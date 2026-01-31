@@ -174,3 +174,10 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+
+# Clide specific
+.config/
+snapshot_report.html
+
+# Claude Code
+.claude/
