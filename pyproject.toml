@@ -54,7 +54,7 @@ clide = "clide.cli:app"
 # example = "clide.extensions.builtin.example:ExampleExtension"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/clide"]
+packages = ["clide"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -75,7 +75,7 @@ exclude = ["tests", "dist", "build"]
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["src", "tests"]
+src = ["clide", "tests"]
 
 [tool.ruff.lint]
 select = [
@@ -100,7 +100,7 @@ ignore = [
 known-first-party = ["clide"]
 
 [tool.coverage.run]
-source = ["src/clide"]
+source = ["clide"]
 branch = true
 
 [tool.coverage.report]

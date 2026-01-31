@@ -1,14 +1,11 @@
 """Tests for service classes."""
 
-import asyncio
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from clide.models.git import GitBranch, GitChange, GitCommit, GitStatus
-from clide.models.problems import Problem, Severity
-from clide.models.todos import TodoItem, TodoType
+from clide.models.todos import TodoType
 from clide.services.file_service import FileService
 from clide.services.git_service import GitService
 from clide.services.linter_service import LinterService

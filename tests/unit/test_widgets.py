@@ -1,13 +1,11 @@
 """Tests for widget components."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
-
-from clide.models.diff import ChangeType, DiffContent, DiffHunk, DiffLine
-from clide.models.editor import CursorPosition, FileBuffer
-from clide.models.git import ChangeStatus, GitBranch, GitChange, GitCommit
+from clide.models.diff import DiffContent
+from clide.models.editor import FileBuffer
+from clide.models.git import ChangeStatus, GitChange, GitCommit
 from clide.models.problems import Problem, Severity
 from clide.models.todos import TodoItem, TodoType
 

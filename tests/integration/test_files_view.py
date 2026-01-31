@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 from textual.app import App, ComposeResult
-from textual.widgets import Static
 
 from clide.widgets.components.files_view import FilesView
 

@@ -6,12 +6,12 @@ import pytest
 from pydantic import ValidationError
 
 from clide.models.config import ClideSettings, KeybindingsConfig, PanelConfig
-from clide.models.diff import ChangeType, DiffContent, DiffHunk, DiffLine, DiffViewState
-from clide.models.editor import CursorPosition, EditorState, FileBuffer, Selection
-from clide.models.git import ChangeStatus, GitBranch, GitChange, GitCommit, GitGraph, GitStatus
-from clide.models.problems import Problem, ProblemsSummary, ProblemsState, Severity
+from clide.models.diff import ChangeType, DiffContent, DiffHunk, DiffLine
+from clide.models.editor import CursorPosition, EditorState, FileBuffer
+from clide.models.git import ChangeStatus, GitBranch, GitChange, GitCommit, GitStatus
+from clide.models.problems import Problem, ProblemsSummary, Severity
 from clide.models.theme import ThemeColors, ThemeDefinition, ThemeMetadata
-from clide.models.todos import TodoItem, TodosSummary, TodosState, TodoType
+from clide.models.todos import TodoItem, TodosSummary, TodoType
 
 
 class TestCursorPosition:

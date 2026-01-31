@@ -1,6 +1,6 @@
 """Controller isolation test harness for Clide."""
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
 from textual.message import Message
@@ -19,7 +19,7 @@ class MockApp:
     def _capture_message(self, message: Message) -> None:
         self.messages.append(message)
 
-    def get_messages(self, message_type: Optional[type] = None) -> list[Message]:
+    def get_messages(self, message_type: type | None = None) -> list[Message]:
         """Get captured messages, optionally filtered by type."""
         if message_type is None:
             return self.messages.copy()
@@ -46,7 +46,7 @@ class ControllerHarness:
 
     def __init__(self) -> None:
         self._mock_app = MockApp()
-        self._controllers: list["BaseController"] = []
+        self._controllers: list[BaseController] = []
         self._mocks: dict[str, Any] = {}
 
     @property
@@ -68,7 +68,7 @@ class ControllerHarness:
         for controller in self._controllers:
             await controller.shutdown()
 
-    def get_messages(self, message_type: Optional[type] = None) -> list[Message]:
+    def get_messages(self, message_type: type | None = None) -> list[Message]:
         """Get messages posted to the mock app."""
         return self._mock_app.get_messages(message_type)
 

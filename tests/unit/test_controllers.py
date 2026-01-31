@@ -1,7 +1,7 @@
 """Tests for controller classes."""
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -11,13 +11,11 @@ from clide.controllers.git import GitController
 from clide.controllers.jira import JiraController
 from clide.controllers.problems import ProblemsController
 from clide.controllers.todos import TodosController
-from clide.models.diff import ChangeType, DiffContent, DiffHunk, DiffLine
-from clide.models.editor import CursorPosition, FileBuffer
+from clide.models.diff import DiffContent, DiffHunk
+from clide.models.editor import FileBuffer
 from clide.models.git import ChangeStatus, GitBranch, GitChange, GitCommit, GitStatus
-from clide.models.problems import Problem, ProblemsSummary, Severity
-from clide.models.todos import TodoItem, TodosSummary, TodoType
-from clide.services.git_service import GitService
-from clide.services.process_service import CommandResult
+from clide.models.problems import Problem, Severity
+from clide.models.todos import TodoItem, TodoType
 
 
 class TestGitController:

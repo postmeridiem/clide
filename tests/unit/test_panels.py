@@ -1,12 +1,7 @@
 """Tests for panel widgets."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
-
-from clide.models.diff import DiffContent
-from clide.models.git import GitBranch, GitChange
 from clide.models.problems import Problem, Severity
 from clide.models.todos import TodoItem, TodoType
 

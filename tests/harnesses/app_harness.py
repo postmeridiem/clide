@@ -1,7 +1,6 @@
 """Full application test harness for Clide."""
 
 from pathlib import Path
-from typing import Optional
 
 from textual.pilot import Pilot
 
@@ -26,14 +25,14 @@ class AppHarness:
     def __init__(
         self,
         workdir: Path,
-        settings: Optional[ClideSettings] = None,
-        extension_manager: Optional[ExtensionManager] = None,
+        settings: ClideSettings | None = None,
+        extension_manager: ExtensionManager | None = None,
     ) -> None:
         self.workdir = workdir
         self.settings = settings or ClideSettings()
         self.extension_manager = extension_manager or ExtensionManager()
-        self._app: Optional[ClideApp] = None
-        self._pilot: Optional[Pilot] = None
+        self._app: ClideApp | None = None
+        self._pilot: Pilot | None = None
 
     async def start(self) -> tuple[ClideApp, Pilot]:
         """Start the application and return app and pilot for testing.

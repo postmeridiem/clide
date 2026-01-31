@@ -59,80 +59,20 @@ make build          # Build for current platform
 
 ```
 clide/
-├── src/clide/
+├── clide/                        # Package source
 │   ├── __init__.py
 │   ├── __main__.py
 │   ├── app.py                    # Main App, layout, keybindings
 │   ├── cli.py                    # Typer entry point
-│   │
 │   ├── controllers/              # Domain logic (no UI)
-│   │   ├── base.py               # BaseController ABC
-│   │   ├── git.py                # Git status, staging, branches
-│   │   ├── editor.py             # Open files, cursor state
-│   │   ├── diff.py               # Diff generation, accept/reject
-│   │   ├── problems.py           # Linter aggregation
-│   │   ├── todos.py              # TODO/FIXME scanning
-│   │   └── jira.py               # Jira CLI integration
-│   │
-│   ├── widgets/
+│   ├── widgets/                  # UI components
 │   │   ├── panels/               # Main layout containers
-│   │   │   ├── sidebar.py        # Left sidebar with tabs
-│   │   │   ├── workspace.py      # Editor/Diff/Terminal tabs
-│   │   │   ├── claude.py         # Claude interaction panel
-│   │   │   └── context.py        # Right context panel
-│   │   │
 │   │   └── components/           # Reusable UI pieces
-│   │       ├── files_view.py     # DirectoryTree wrapper
-│   │       ├── git_changes.py    # Staged/unstaged file list
-│   │       ├── git_graph.py      # Branch visualization
-│   │       ├── branch_status.py  # Current branch + popout
-│   │       ├── editor_pane.py    # TextArea with syntax
-│   │       ├── diff_pane.py      # Side-by-side/unified diff
-│   │       ├── terminal_pane.py  # PTY terminal
-│   │       ├── problems_view.py  # Linter errors list
-│   │       ├── todos_view.py     # TODO comments list
-│   │       └── jira_view.py      # Jira output display
-│   │
 │   ├── models/                   # Pydantic data models
-│   │   ├── config.py             # App settings (ClideSettings)
-│   │   ├── git.py                # GitStatus, GitChange, GitBranch
-│   │   ├── editor.py             # EditorState, FileBuffer
-│   │   ├── diff.py               # DiffContent, DiffHunk
-│   │   ├── problems.py           # Problem, Severity
-│   │   ├── todos.py              # TodoItem, TodoType
-│   │   └── theme.py              # ThemeColors, ThemeDefinition
-│   │
 │   ├── services/                 # Background task logic
-│   │   ├── process_service.py    # Generic subprocess mgmt
-│   │   ├── git_service.py        # Git command execution
-│   │   ├── file_service.py       # File I/O, language detection
-│   │   ├── linter_service.py     # Run linters, parse output
-│   │   └── todo_scanner.py       # Grep for TODOs
-│   │
 │   ├── themes/                   # Theme system
-│   │   ├── __init__.py
-│   │   ├── registry.py           # Theme registry, get_theme()
-│   │   ├── loader.py             # Load custom themes from .config
-│   │   └── builtin/              # 22 built-in themes
-│   │       ├── __init__.py       # Auto-register all themes
-│   │       ├── summer_night.py   # DEFAULT - Summer Night dark
-│   │       ├── summer_day.py     # Summer Day light
-│   │       ├── one_dark.py       # Atom One Dark
-│   │       ├── dracula.py        # Dracula theme
-│   │       ├── nord.py           # Nord color palette
-│   │       ├── gruvbox_dark.py   # Gruvbox dark
-│   │       ├── gruvbox_light.py  # Gruvbox light
-│   │       └── ...               # More themes
-│   │
 │   ├── extensions/               # Plugin system
-│   │   ├── hookspecs.py
-│   │   ├── manager.py
-│   │   └── builtin/
-│   │
-│   └── helpers/
-│       ├── async_utils.py
-│       ├── path_utils.py
-│       └── terminal_utils.py
+│   └── helpers/                  # Utility functions
 │
 ├── tests/
 │   ├── conftest.py

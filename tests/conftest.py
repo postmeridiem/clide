@@ -1,8 +1,7 @@
 """Shared pytest fixtures for Clide tests."""
 
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
-from unittest.mock import MagicMock
 
 import pytest
 from textual.pilot import Pilot

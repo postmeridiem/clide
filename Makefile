@@ -43,7 +43,7 @@ test-single:
 	$(BIN)/pytest $(TEST) -v
 
 test-cov:
-	$(BIN)/pytest --cov=src/clide --cov-report=html --cov-report=term
+	$(BIN)/pytest --cov=clide/clide --cov-report=html --cov-report=term
 
 test-snapshots:
 	$(BIN)/pytest tests/snapshots/
@@ -52,14 +52,14 @@ test-snapshots-update:
 	$(BIN)/pytest tests/snapshots/ --snapshot-update
 
 typecheck:
-	$(BIN)/mypy src/
+	$(BIN)/mypy clide/
 
 lint:
-	$(BIN)/ruff check src/ tests/
+	$(BIN)/ruff check clide/ tests/
 
 format:
-	$(BIN)/ruff format src/ tests/
-	$(BIN)/ruff check --fix src/ tests/
+	$(BIN)/ruff format clide/ tests/
+	$(BIN)/ruff check --fix clide/ tests/
 
 build:
 	$(BIN)/pyinstaller clide.spec --clean
@@ -70,7 +70,7 @@ build-onefile:
 		--onefile \
 		--clean \
 		--noconfirm \
-		src/clide/__main__.py
+		clide/clide/__main__.py
 
 clean:
 	rm -rf $(VENV)
@@ -83,12 +83,12 @@ clean:
 # CI targets (for GitHub Actions)
 ci-lint:
 	pip install ruff mypy
-	ruff check src/ tests/
-	mypy src/
+	ruff check clide/ tests/
+	mypy clide/
 
 ci-test:
 	pip install -e ".[dev]"
-	pytest --cov=src/clide --cov-report=xml
+	pytest --cov=clide/clide --cov-report=xml
 
 ci-build:
 	pip install -e ".[build]"
