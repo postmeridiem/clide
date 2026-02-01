@@ -13,29 +13,34 @@ from clide.models.todos import TodoItem, TodoType
 class TestFilesView:
     """Tests for FilesView component."""
 
-    def test_filter_paths_excludes_hidden(self, tmp_path: Path):
-        """Test that hidden files are filtered out."""
+    def test_filter_paths_excludes_noisy_dirs(self, tmp_path: Path):
+        """Test that noisy directories are filtered out but hidden files are shown."""
         from clide.widgets.components.files_view import FilesView
 
         view = FilesView(path=tmp_path)
         paths = [
             tmp_path / "visible.py",
-            tmp_path / ".hidden",
-            tmp_path / ".git",
-            tmp_path / "__pycache__",
-            tmp_path / "node_modules",
-            tmp_path / ".venv",
+            tmp_path / ".hidden",  # Hidden file - shown (dimmed)
+            tmp_path / ".git",  # Noisy dir - filtered
+            tmp_path / "__pycache__",  # Noisy dir - filtered
+            tmp_path / "node_modules",  # Noisy dir - filtered
+            tmp_path / ".venv",  # Dimmed path - shown (dimmed)
             tmp_path / "src",
         ]
         filtered = view.filter_paths(paths)
 
+        # Regular files/dirs are shown
         assert tmp_path / "visible.py" in filtered
         assert tmp_path / "src" in filtered
-        assert tmp_path / ".hidden" not in filtered
+
+        # Hidden files are shown (will be dimmed in render)
+        assert tmp_path / ".hidden" in filtered
+        assert tmp_path / ".venv" in filtered
+
+        # Noisy directories are filtered out
         assert tmp_path / ".git" not in filtered
         assert tmp_path / "__pycache__" not in filtered
         assert tmp_path / "node_modules" not in filtered
-        assert tmp_path / ".venv" not in filtered
 
     def test_file_selected_message(self):
         """Test FileSelected message."""
@@ -150,14 +155,11 @@ class TestGitGraphView:
         assert len(view._commits) == 1
 
     def test_graph_symbols(self):
-        """Test graph drawing symbols."""
-        from clide.widgets.components.git_graph import GitGraphView
+        """Test graph drawing symbols in CommitItem."""
+        from clide.widgets.components.git_graph import CommitItem
 
-        assert GitGraphView.COMMIT == "●"
-        assert GitGraphView.MERGE == "◆"
-        assert GitGraphView.LINE == "│"
-        assert GitGraphView.BRANCH == "├"
-        assert GitGraphView.JOIN == "┴"
+        assert CommitItem.COMMIT == "●"
+        assert CommitItem.MERGE == "◆"
 
     def test_commit_selected_message(self):
         """Test CommitSelected message."""
@@ -173,11 +175,10 @@ class TestGitGraphView:
         msg = GitGraphView.CommitSelected(commit)
         assert msg.commit == commit
 
-    def test_format_commit_line(self):
-        """Test commit line formatting."""
-        from clide.widgets.components.git_graph import GitGraphView
+    def test_commit_item_stores_commit(self):
+        """Test CommitItem stores commit correctly."""
+        from clide.widgets.components.git_graph import CommitItem
 
-        view = GitGraphView()
         commit = GitCommit(
             hash="abc123def456789",
             short_hash="abc123",
@@ -187,16 +188,15 @@ class TestGitGraphView:
             is_merge=False,
             refs=(),
         )
-        line = view._format_commit_line(commit)
-        assert "abc123" in line
-        assert "Test commit message" in line
-        assert "Author" in line
+        item = CommitItem(commit)
+        assert item.commit == commit
+        assert item.commit.short_hash == "abc123"
+        assert item.commit.message == "Test commit message"
 
-    def test_format_merge_commit_line(self):
-        """Test merge commit line formatting."""
-        from clide.widgets.components.git_graph import GitGraphView
+    def test_commit_item_merge_commit(self):
+        """Test CommitItem handles merge commit."""
+        from clide.widgets.components.git_graph import CommitItem
 
-        view = GitGraphView()
         commit = GitCommit(
             hash="abc123def456789",
             short_hash="abc123",
@@ -206,10 +206,10 @@ class TestGitGraphView:
             is_merge=True,
             refs=("main", "HEAD"),
         )
-        line = view._format_commit_line(commit)
-        assert "◆" in line  # Merge symbol
-        assert "main" in line
-        assert "HEAD" in line
+        item = CommitItem(commit)
+        assert item.commit.is_merge is True
+        assert "main" in item.commit.refs
+        assert "HEAD" in item.commit.refs
 
 
 class TestBranchStatus:

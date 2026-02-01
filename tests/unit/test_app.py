@@ -75,14 +75,14 @@ class TestClideAppBindings:
         app = ClideApp()
         bindings = {b.key for b in app.BINDINGS}
 
-        # Check key bindings exist
-        assert "ctrl+q" in bindings
-        assert "ctrl+b" in bindings
-        assert "ctrl+shift+p" in bindings
-        assert "ctrl+`" in bindings
-        assert "ctrl+1" in bindings
-        assert "f11" in bindings
-        assert "escape" in bindings
+        # Check key bindings exist (alt-based per CLAUDE.md design)
+        assert "alt+q" in bindings  # Quit
+        assert "alt+b" in bindings  # Toggle sidebar
+        assert "alt+p" in bindings  # Command palette
+        assert "alt+`" in bindings  # Toggle terminal
+        assert "alt+1" in bindings  # Focus Claude
+        assert "f11" in bindings  # Fullscreen
+        assert "escape" in bindings  # Exit fullscreen
 
 
 class TestClideAppMeta:

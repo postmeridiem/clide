@@ -47,7 +47,7 @@ def test_directory(tmp_path: Path) -> Path:
 async def test_files_view_renders(test_directory: Path):
     """Test that FilesView renders without errors."""
     app = FilesViewTestApp(test_directory)
-    async with app.run_test() as pilot:
+    async with app.run_test():
         files_view = app.query_one("#files", FilesView)
         assert files_view is not None
         assert files_view.path == test_directory
@@ -56,7 +56,7 @@ async def test_files_view_renders(test_directory: Path):
 async def test_files_view_shows_files(test_directory: Path):
     """Test that FilesView shows files in the directory."""
     app = FilesViewTestApp(test_directory)
-    async with app.run_test() as pilot:
+    async with app.run_test():
         files_view = app.query_one("#files", FilesView)
         # The root should be loaded
         assert files_view.root is not None
@@ -104,9 +104,9 @@ async def test_file_click_emits_event(test_directory: Path):
         assert any(p.name == "README.md" for p in app.selected_files)
 
 
-async def test_filter_paths_hides_hidden_files(test_directory: Path):
-    """Test that hidden files are filtered out."""
-    # Create hidden files/dirs
+async def test_filter_paths_hides_noisy_dirs(test_directory: Path):
+    """Test that noisy directories are filtered but hidden files are shown."""
+    # Create hidden files/dirs and noisy dirs
     (test_directory / ".git").mkdir()
     (test_directory / ".hidden_file").write_text("hidden")
     (test_directory / "__pycache__").mkdir()
@@ -118,16 +118,17 @@ async def test_filter_paths_hides_hidden_files(test_directory: Path):
         # Wait for initial load
         await pilot.pause()
 
-        # Check that hidden items are not in the tree
-        visible_names = {
-            node.data.path.name
-            for node in files_view.root.children
-            if node.data
-        }
+        # Get visible items in the tree
+        visible_names = {node.data.path.name for node in files_view.root.children if node.data}
 
+        # Noisy directories should be filtered out
         assert ".git" not in visible_names
-        assert ".hidden_file" not in visible_names
         assert "__pycache__" not in visible_names
+
+        # Hidden files are shown (they'll be dimmed in the UI)
+        assert ".hidden_file" in visible_names
+
+        # Regular files/dirs are shown
         assert "src" in visible_names
         assert "README.md" in visible_names
 

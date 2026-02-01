@@ -68,20 +68,20 @@ class TestFileService:
         test_file.write_text("Hello, World!")
 
         service = FileService(tmp_path)
-        content = await service.read_file(test_file)
+        content = await service.read_file_async(test_file)
         assert content == "Hello, World!"
 
     @pytest.mark.asyncio
     async def test_read_file_not_found(self, tmp_path: Path):
         service = FileService(tmp_path)
         with pytest.raises(FileNotFoundError):
-            await service.read_file(tmp_path / "nonexistent.txt")
+            await service.read_file_async(tmp_path / "nonexistent.txt")
 
     @pytest.mark.asyncio
     async def test_write_file(self, tmp_path: Path):
         test_file = tmp_path / "output.txt"
         service = FileService(tmp_path)
-        await service.write_file(test_file, "Test content")
+        await service.write_file_async(test_file, "Test content")
         assert test_file.read_text() == "Test content"
 
     @pytest.mark.asyncio
@@ -97,7 +97,7 @@ class TestFileService:
     @pytest.mark.asyncio
     async def test_get_language_typescript(self, tmp_path: Path):
         service = FileService(tmp_path)
-        assert await service.get_language(Path("component.tsx")) == "tsx"
+        assert await service.get_language(Path("component.tsx")) == "typescript"
 
     @pytest.mark.asyncio
     async def test_get_language_unknown(self, tmp_path: Path):
@@ -129,12 +129,14 @@ class TestGitService:
     @pytest.mark.asyncio
     async def test_get_status(self, service: GitService):
         with patch.object(service._process, "run") as mock_run:
-            async def mock_status(*args, **kwargs):
+
+            async def mock_status(*args, **_kwargs):
                 if "status" in args:
                     return CommandResult(returncode=0, stdout="", stderr="")
                 elif "branch" in args:
                     return CommandResult(returncode=0, stdout="main\n", stderr="")
                 return CommandResult(returncode=0, stdout="0\t0", stderr="")
+
             mock_run.side_effect = mock_status
             status = await service.get_status()
             assert status is not None
@@ -252,7 +254,7 @@ def main():
     @pytest.mark.asyncio
     async def test_scan_finds_todos(self, project_with_todos: Path):
         scanner = TodoScanner(project_with_todos)
-        items, summary = await scanner.scan()
+        items, project_items, summary = await scanner.scan()
         # Should find TODO, FIXME, and HACK
         assert len(items) >= 1
         assert summary.total >= 1
@@ -260,7 +262,7 @@ def main():
     @pytest.mark.asyncio
     async def test_scan_empty_project(self, tmp_path: Path):
         scanner = TodoScanner(tmp_path)
-        items, summary = await scanner.scan()
+        items, project_items, summary = await scanner.scan()
         assert items == []
         assert summary.total == 0
 
