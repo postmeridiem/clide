@@ -178,6 +178,10 @@ cython_debug/
 # Clide specific
 .config/
 snapshot_report.html
+logs/
+
+# Credentials
+*-credentials.md
 
 # Claude Code
 .claude/
