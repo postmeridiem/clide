@@ -22,9 +22,10 @@ from textual.reactive import reactive
 from textual.strip import Strip
 from textual.widget import Widget
 
+from clide.services.settings_service import get_settings_service
+
 # Use vendored pyte with diagnostic logging support
 from clide.vendor import pyte
-from clide.services.settings_service import get_settings_service
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -46,6 +47,7 @@ def _setup_terminal_debug_logging() -> None:
     def debug_logger(message: str) -> None:
         """Log debug message with timestamp."""
         import datetime
+
         timestamp = datetime.datetime.now().isoformat()
         log_file.write(f"[{timestamp}] {message}\n")
         log_file.flush()
@@ -153,6 +155,7 @@ class TerminalDisplay(Widget, can_focus=True):
             # Send SIGWINCH to notify the child process of resize
             if self._pid is not None:
                 import signal
+
                 try:
                     os.kill(self._pid, signal.SIGWINCH)
                 except OSError:
@@ -231,11 +234,11 @@ class TerminalDisplay(Widget, can_focus=True):
     # Kitty keyboard protocol, bracketed paste mode queries, etc.
     _UNSUPPORTED_ESCAPES = re.compile(
         r"\x1b\[[\=\>\<][0-9;]*[a-zA-Z]"  # Kitty keyboard protocol (=, >, or < prefix)
-        r"|\x1b\[\?[0-9;]*u"              # Kitty keyboard query
-        r"|\x1b\[\?[0-9;]*c"              # Device attributes query
-        r"|\x1b\[>[0-9;]*c"               # Secondary device attributes
+        r"|\x1b\[\?[0-9;]*u"  # Kitty keyboard query
+        r"|\x1b\[\?[0-9;]*c"  # Device attributes query
+        r"|\x1b\[>[0-9;]*c"  # Secondary device attributes
         r"|\x1b\]\d+;[^\x07\x1b]*(?:\x07|\x1b\\)"  # OSC sequences (title, etc.)
-        r"|\x1b\[\?2026[hl]"              # Synchronized update mode (not used by pyte)
+        r"|\x1b\[\?2026[hl]"  # Synchronized update mode (not used by pyte)
     )
 
     def _filter_unsupported_escapes(self, data: str) -> str:
@@ -417,7 +420,11 @@ class TerminalDisplay(Widget, can_focus=True):
         screen_rows = self._rows
 
         # Widget display dimensions (what we need to output)
-        output_width = self.size.width if self.size.width > 0 else screen_cols + self.PADDING_LEFT + self.PADDING_RIGHT
+        output_width = (
+            self.size.width
+            if self.size.width > 0
+            else screen_cols + self.PADDING_LEFT + self.PADDING_RIGHT
+        )
 
         if y >= screen_rows:
             return Strip.blank(output_width)
@@ -436,7 +443,7 @@ class TerminalDisplay(Widget, can_focus=True):
         cols_to_render = min(screen_cols, output_width - self.PADDING_LEFT - self.PADDING_RIGHT)
 
         # Debug logging for render pipeline
-        debug_logger = getattr(pyte, '_debug_logger', None)
+        debug_logger = pyte.get_debug_logger()
         log_this_line = False
 
         for x in range(cols_to_render):
@@ -450,16 +457,15 @@ class TerminalDisplay(Widget, can_focus=True):
                 if 0x2500 <= code <= 0x257F:
                     log_this_line = True
                     if debug_logger:
-                        debug_logger(f"RENDER y={y} x={x}: box-drawing U+{code:04X} char='{char_data}'")
+                        debug_logger(
+                            f"RENDER y={y} x={x}: box-drawing U+{code:04X} char='{char_data}'"
+                        )
 
             # Handle characters that may not render correctly
             if len(char_data) == 1:
                 code = ord(char_data)
                 # Control characters (except space)
-                if code < 32 and code != 0:
-                    char_data = " "
-                # DEL and C1 control characters
-                elif 127 <= code <= 159:
+                if code < 32 and code != 0 or 127 <= code <= 159:
                     char_data = " "
                 # Braille patterns (U+2800-U+28FF) - used for spinners
                 # Replace with simple ASCII spinner chars or spaces
@@ -510,7 +516,7 @@ class TerminalDisplay(Widget, can_focus=True):
         # Debug: log segments if we had box-drawing chars
         if log_this_line and debug_logger:
             for i, seg in enumerate(segments[:10]):  # First 10 segments
-                seg_text = seg.text if hasattr(seg, 'text') else str(seg)
+                seg_text = seg.text if hasattr(seg, "text") else str(seg)
                 if len(seg_text) <= 5:
                     debug_logger(f"RENDER y={y} seg[{i}]: '{seg_text}' (repr: {repr(seg_text)})")
 
@@ -665,6 +671,7 @@ class ClaudePanel(Vertical):
 
     class ClaudeStarted(Message):
         """Emitted when Claude Code process starts."""
+
         pass
 
     # Reactive state

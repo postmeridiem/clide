@@ -1,5 +1,18 @@
 # TODO
 
+<!--
+  Clide Integration: This file is parsed by Clide's TODO panel.
+
+  Format:
+  - Use ## for sections and ### for subsections
+  - Use markdown checkboxes: - [ ] for open items, - [x] for completed
+  - Items appear in the TODOs panel grouped by section
+  - Click an item in Clide to jump to this file at that line
+
+  For AI agents: Add new items under the appropriate section using the
+  checkbox format. Mark items as done with [x] when completed.
+-->
+
 Long-term open items for Clide development.
 
 ## Core Features

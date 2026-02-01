@@ -19,13 +19,13 @@ from clide.extensions.manager import ExtensionManager
 from clide.models.config import ClideSettings
 from clide.services.claude_events import (
     ClaudeEvent,
-    FileReadEvent,
     FileEditEvent,
+    FileReadEvent,
     FileWriteEvent,
     setup_event_parsing,
 )
 from clide.services.file_watcher import FileEvent, FileEventMessage, setup_file_watching
-from clide.services.settings_service import SettingsService, get_settings_service
+from clide.services.settings_service import get_settings_service
 from clide.services.syntax_service import register_languages
 from clide.themes.registry import get_all_themes, get_theme
 from clide.widgets.panels.claude import ClaudePanel
@@ -242,6 +242,7 @@ class ClideApp(App[None]):
             # Right context panel
             yield ContextPanel(
                 jira_enabled=self.settings.jira_enabled,
+                project_path=self.workdir,
             )
 
         yield Footer()
@@ -293,6 +294,7 @@ class ClideApp(App[None]):
         thread-safe, but we create the Message on the main thread to avoid any
         potential Textual threading issues.
         """
+
         def post_file_event():
             self.post_message(FileEventMessage(event))
 
@@ -353,9 +355,7 @@ class ClideApp(App[None]):
                 pass
 
             # Trigger extension hook
-            self.extension_manager.trigger_claude_event(
-                "file_read", {"path": str(event.path)}
-            )
+            self.extension_manager.trigger_claude_event("file_read", {"path": str(event.path)})
 
         elif isinstance(event, FileEditEvent):
             # Claude edited a file - notify user
@@ -363,9 +363,7 @@ class ClideApp(App[None]):
             self.notify(f"Claude edited: {event.path.name}", severity="information")
 
             # Trigger extension hook
-            self.extension_manager.trigger_claude_event(
-                "file_edit", {"path": str(event.path)}
-            )
+            self.extension_manager.trigger_claude_event("file_edit", {"path": str(event.path)})
 
         elif isinstance(event, FileWriteEvent):
             # Claude created/wrote a file - notify user
@@ -374,9 +372,7 @@ class ClideApp(App[None]):
             self.notify(f"Claude wrote: {event.path.name}", severity="information")
 
             # Trigger extension hook
-            self.extension_manager.trigger_claude_event(
-                "file_write", {"path": str(event.path)}
-            )
+            self.extension_manager.trigger_claude_event("file_write", {"path": str(event.path)})
 
     def _apply_user_settings(self) -> None:
         """Apply saved user settings on startup."""
@@ -438,9 +434,9 @@ class ClideApp(App[None]):
 
     async def _refresh_todos(self) -> None:
         """Refresh TODOs."""
-        todos = await self.todos_controller.scan()
+        code_todos, project_todos = await self.todos_controller.scan()
         context = self.query_one(ContextPanel)
-        context.update_todos(todos)
+        context.update_todos(code_todos, project_todos)
 
     async def _refresh_jira(self) -> None:
         """Refresh Jira content."""
@@ -643,6 +639,31 @@ class ClideApp(App[None]):
         workspace = self.query_one(WorkspacePanel)
         workspace.open_file(item.file_path, line=item.line)
 
+    async def on_context_panel_project_todo_clicked(
+        self,
+        event: ContextPanel.ProjectTodoClicked,
+    ) -> None:
+        """Handle project TODO click - open TODO.md at line."""
+        item = event.item
+        todo_path = self.workdir / "TODO.md"
+        if todo_path.exists():
+            self.workspace_visible = True
+            workspace = self.query_one(WorkspacePanel)
+            workspace.open_file(todo_path, line=item.line)
+
+    async def on_context_panel_todo_md_created(
+        self,
+        event: ContextPanel.TodoMdCreated,
+    ) -> None:
+        """Handle TODO.md creation - refresh TODOs and open file."""
+        # Refresh TODOs to pick up the new file
+        await self._refresh_todos()
+        # Open the new file in editor
+        self.workspace_visible = True
+        workspace = self.query_one(WorkspacePanel)
+        workspace.open_file(event.path)
+        self.notify("Created TODO.md")
+
     async def on_context_panel_jira_refresh_requested(
         self,
         _event: ContextPanel.JiraRefreshRequested,
@@ -749,3 +770,22 @@ class ClideApp(App[None]):
     ) -> None:
         """Handle workspace close request."""
         self.workspace_visible = False
+
+    def on_sidebar_panel_claude_command_requested(
+        self,
+        event: SidebarPanel.ClaudeCommandRequested,
+    ) -> None:
+        """Handle Claude command request from git panel.
+
+        Sends skill commands (e.g., /commit) to Claude terminal.
+        Ensures the git-workflow skill is installed before sending.
+        """
+        # Ensure skill is available
+        self.git_controller._ensure_git_skill()
+
+        # Send command to Claude terminal
+        claude = self.query_one(ClaudePanel)
+        claude.send_input(event.command)
+
+        # Focus Claude panel so user can see the response
+        self.action_focus_claude()

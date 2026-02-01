@@ -5,7 +5,13 @@ from pathlib import Path
 from textual.message import Message
 
 from clide.controllers.base import controller
-from clide.models.todos import TodoItem, TodosState, TodosSummary, TodoType
+from clide.models.todos import (
+    ProjectTodoItem,
+    TodoItem,
+    TodosState,
+    TodosSummary,
+    TodoType,
+)
 from clide.services.todo_scanner import TodoScanner
 
 
@@ -16,8 +22,14 @@ class TodosController:
     class TodosUpdated(Message):
         """Emitted when TODOs list is updated."""
 
-        def __init__(self, items: list[TodoItem], summary: TodosSummary) -> None:
+        def __init__(
+            self,
+            items: list[TodoItem],
+            project_items: list[ProjectTodoItem],
+            summary: TodosSummary,
+        ) -> None:
             self.items = items
+            self.project_items = project_items
             self.summary = summary
             super().__init__()
 
@@ -39,8 +51,13 @@ class TodosController:
 
     @property
     def items(self) -> list[TodoItem]:
-        """Get list of TODO items."""
+        """Get list of code TODO items."""
         return self._state.items
+
+    @property
+    def project_items(self) -> list[ProjectTodoItem]:
+        """Get list of project TODO items from TODO.md."""
+        return self._state.project_items
 
     @property
     def summary(self) -> TodosSummary:
@@ -49,21 +66,29 @@ class TodosController:
 
     @property
     def total_count(self) -> int:
-        """Get total TODO count."""
+        """Get total code TODO count."""
         return self._state.summary.total
 
-    async def refresh(self) -> tuple[list[TodoItem], TodosSummary]:
+    @property
+    def project_count(self) -> int:
+        """Get total project TODO count."""
+        return self._state.summary.project_total
+
+    async def refresh(
+        self,
+    ) -> tuple[list[TodoItem], list[ProjectTodoItem], TodosSummary]:
         """Refresh TODOs from project.
 
         Returns:
-            Tuple of (items, summary)
+            Tuple of (code items, project items, summary)
         """
-        items, summary = await self._scanner.scan()
+        items, project_items, summary = await self._scanner.scan()
 
         self._state.items = items
+        self._state.project_items = project_items
         self._state.summary = summary
 
-        return items, summary
+        return items, project_items, summary
 
     def filter_by_type(self, todo_type: TodoType | None) -> list[TodoItem]:
         """Filter TODOs by type.
@@ -128,11 +153,11 @@ class TodosController:
             grouped[item.file_path].append(item)
         return grouped
 
-    async def scan(self) -> list[TodoItem]:
+    async def scan(self) -> tuple[list[TodoItem], list[ProjectTodoItem]]:
         """Scan for TODOs and return items.
 
         Returns:
-            List of TODO items
+            Tuple of (code items, project items)
         """
-        items, _ = await self.refresh()
-        return items
+        items, project_items, _ = await self.refresh()
+        return items, project_items

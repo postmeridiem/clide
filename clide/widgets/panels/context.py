@@ -1,5 +1,6 @@
-"""Context panel with Problems, TODOs, and Jira tabs."""
+"""Context panel with Jira, TODOs, and Problems tabs."""
 
+from pathlib import Path
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -8,14 +9,14 @@ from textual.reactive import reactive
 from textual.widgets import Static, TabbedContent, TabPane
 
 from clide.models.problems import Problem
-from clide.models.todos import TodoItem
+from clide.models.todos import ProjectTodoItem, TodoItem
 from clide.widgets.components.jira_view import JiraView
 from clide.widgets.components.problems_view import ProblemsView
 from clide.widgets.components.todos_view import TodosView
 
 
 class ContextPanel(Vertical):
-    """Right context panel with Problems, TODOs, and Jira integration."""
+    """Right context panel with Jira, TODOs, and Problems tabs."""
 
     DEFAULT_CSS = """
     ContextPanel {
@@ -61,15 +62,30 @@ class ContextPanel(Vertical):
             super().__init__()
 
     class TodoClicked(Message):
-        """Emitted when a TODO is clicked."""
+        """Emitted when a code TODO is clicked."""
 
         def __init__(self, item: TodoItem) -> None:
             self.item = item
             super().__init__()
 
+    class ProjectTodoClicked(Message):
+        """Emitted when a project TODO (from TODO.md) is clicked."""
+
+        def __init__(self, item: ProjectTodoItem) -> None:
+            self.item = item
+            super().__init__()
+
     class JiraRefreshRequested(Message):
         """Emitted when Jira refresh is requested."""
+
         pass
+
+    class TodoMdCreated(Message):
+        """Emitted when TODO.md has been created."""
+
+        def __init__(self, path: Path) -> None:
+            self.path = path
+            super().__init__()
 
     # Reactive state with counts for tab badges
     problem_count: reactive[int] = reactive(0)
@@ -79,20 +95,22 @@ class ContextPanel(Vertical):
     def __init__(
         self,
         jira_enabled: bool = True,
+        project_path: Path | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self._jira_enabled = jira_enabled
+        self._project_path = project_path or Path.cwd()
         self.id = "panel-context"
 
     def compose(self) -> ComposeResult:
         with TabbedContent(id="context-tabs"):
-            with TabPane("Problems", id="context-problems"):
-                yield ProblemsView(id="problems-view")
-            with TabPane("TODOs", id="context-todos"):
-                yield TodosView(id="todos-view")
             with TabPane("Jira", id="context-jira"):
                 yield JiraView(enabled=self._jira_enabled, id="jira-view")
+            with TabPane("TODOs", id="context-todos"):
+                yield TodosView(project_path=self._project_path, id="todos-view")
+            with TabPane("Problems", id="context-problems"):
+                yield ProblemsView(id="problems-view")
         # Tab bar with counts at bottom
         with Horizontal(classes="context-tab-bar"):
             yield Static("", id="tab-counts")
@@ -120,14 +138,14 @@ class ContextPanel(Vertical):
             problem_style = "error-count" if self.problem_count > 0 else "success-count"
             todo_style = "warning-count" if self.todo_count > 0 else "success-count"
 
-            # Build count display
+            # Build count display (order matches tab order: TODOs, Problems)
             parts = []
+            parts.append(f"[{todo_style}]☐ {self.todo_count}[/]")
+
             if self.problem_count > 0:
                 parts.append(f"[{problem_style}]⚠ {self.problem_count}[/]")
             else:
                 parts.append(f"[{problem_style}]✓ 0[/]")
-
-            parts.append(f"[{todo_style}]☐ {self.todo_count}[/]")
 
             counts.update(" │ ".join(parts))
         except Exception:
@@ -142,12 +160,19 @@ class ContextPanel(Vertical):
         except Exception:
             pass
 
-    def update_todos(self, items: list[TodoItem]) -> None:
+    def update_todos(
+        self,
+        items: list[TodoItem],
+        project_items: list[ProjectTodoItem] | None = None,
+    ) -> None:
         """Update TODOs view and count."""
-        self.todo_count = len(items)
+        project_items = project_items or []
+        # Count includes both code TODOs and unchecked project TODOs
+        unchecked_project = sum(1 for p in project_items if not p.checked)
+        self.todo_count = len(items) + unchecked_project
         try:
             view = self.query_one("#todos-view", TodosView)
-            view.update_items(items)
+            view.update_items(items, project_items)
         except Exception:
             pass
 
@@ -201,8 +226,15 @@ class ContextPanel(Vertical):
         self.post_message(self.ProblemClicked(event.problem))
 
     def on_todos_view_todo_clicked(self, event: TodosView.TodoClicked) -> None:
-        """Forward todo click."""
+        """Forward code todo click."""
         self.post_message(self.TodoClicked(event.item))
+
+    def on_todos_view_project_todo_clicked(
+        self,
+        event: TodosView.ProjectTodoClicked,
+    ) -> None:
+        """Forward project todo click."""
+        self.post_message(self.ProjectTodoClicked(event.item))
 
     def on_jira_view_refresh_requested(
         self,
@@ -210,3 +242,10 @@ class ContextPanel(Vertical):
     ) -> None:
         """Forward Jira refresh request."""
         self.post_message(self.JiraRefreshRequested())
+
+    def on_todos_view_todo_md_created(
+        self,
+        event: TodosView.TodoMdCreated,
+    ) -> None:
+        """Forward TODO.md created event."""
+        self.post_message(self.TodoMdCreated(event.path))

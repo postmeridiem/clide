@@ -1,37 +1,39 @@
 """
-    pyte
-    ~~~~
+pyte
+~~~~
 
-    `pyte` implements a mix of VT100, VT220 and VT520 specification,
-    and aims to support most of the `TERM=linux` functionality.
+`pyte` implements a mix of VT100, VT220 and VT520 specification,
+and aims to support most of the `TERM=linux` functionality.
 
-    :copyright: (c) 2011-2012 by Selectel.
-    :copyright: (c) 2012-2017 by pyte authors and contributors,
-                    see AUTHORS for details.
-    :license: LGPL, see LICENSE for more details.
+:copyright: (c) 2011-2012 by Selectel.
+:copyright: (c) 2012-2017 by pyte authors and contributors,
+                see AUTHORS for details.
+:license: LGPL, see LICENSE for more details.
 
-    Vendored for Clide with modifications for diagnostic logging.
+Vendored for Clide with modifications for diagnostic logging.
 """
 
 __all__ = (
-    "Screen", "DiffScreen", "HistoryScreen", "DebugScreen",
-    "Stream", "ByteStream",
+    "Screen",
+    "DiffScreen",
+    "HistoryScreen",
+    "DebugScreen",
+    "Stream",
+    "ByteStream",
     # Clide additions
-    "set_debug_logger", "set_event_callback",
+    "set_debug_logger",
+    "get_debug_logger",
+    "set_event_callback",
 )
 
 import io
-from typing import Union
-
-from .screens import Screen, DiffScreen, HistoryScreen, DebugScreen
-from .screens import set_debug_logger as _set_screen_logger
-from .streams import Stream, ByteStream
-from .streams import set_debug_logger as _set_stream_logger
-from .streams import set_event_callback
 
 # Re-export submodules for compatibility
-from . import modes
 from . import screens
+from .screens import DebugScreen, DiffScreen, HistoryScreen, Screen
+from .screens import set_debug_logger as _set_screen_logger
+from .streams import ByteStream, Stream, set_event_callback
+from .streams import set_debug_logger as _set_stream_logger
 
 
 def set_debug_logger(logger):
@@ -44,8 +46,18 @@ def set_debug_logger(logger):
     _set_screen_logger(logger)
 
 
+def get_debug_logger():
+    """Get the current debug logger (if set).
+
+    Returns:
+        The current debug logger callable, or None if not set.
+    """
+    return screens._debug_logger
+
+
 if __debug__:
-    def dis(chars: Union[bytes, str]) -> None:
+
+    def dis(chars: bytes | str) -> None:
         """A :func:`dis.dis` for terminals."""
         if isinstance(chars, str):
             chars = chars.encode("utf-8")

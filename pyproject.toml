@@ -111,6 +111,11 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
+    "ARG002", # unused method argument (Textual event handlers require these)
+    "SIM102", # nested if (sometimes clearer)
+    "SIM105", # contextlib.suppress (try-except-pass is clearer in context)
+    "SIM115", # context handler for files (sometimes not applicable)
+    "PTH123", # Path.open() vs open() (not always cleaner)
 ]
 
 [tool.ruff.lint.isort]
