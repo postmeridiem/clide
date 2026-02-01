@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Clide
+Comment=TUI IDE for Claude Code
+GenericName=IDE
+Exec=clide
+Icon=clide
+Type=Application
+Categories=Development;IDE;TextEditor;
+Keywords=claude;code;ai;ide;terminal;
+Terminal=true
+StartupNotify=false

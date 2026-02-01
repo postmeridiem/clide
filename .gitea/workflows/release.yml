@@ -1,0 +1,126 @@
+# Gitea Actions workflow for building and releasing Clide
+# Triggers on version tags (v*)
+# Builds Linux AppImage and Windows installer automatically
+# macOS must be built locally (no macOS runners)
+
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # Build Linux AppImage
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[build]"
+
+      - name: Install FUSE (for appimagetool)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fuse libfuse2
+
+      - name: Build AppImage
+        run: |
+          chmod +x scripts/build-linux.sh
+          ./scripts/build-linux.sh ${{ github.ref_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/*.AppImage
+          retention-days: 5
+
+  # Build Windows installer
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[build]"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: .\scripts\build-windows.ps1 -Version ${{ github.ref_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*-setup.exe
+          retention-days: 5
+
+  # Create GitHub/Gitea release with all artifacts
+  create-release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/linux/*.AppImage
+            artifacts/windows/*-setup.exe
+          draft: true
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### Linux (AppImage)
+            ```bash
+            chmod +x Clide-*-linux-*.AppImage
+            ./Clide-*-linux-*.AppImage
+            ```
+
+            ### Windows
+            Download and run the installer. For best experience, use Windows Terminal.
+
+            ### macOS
+            macOS builds are created manually. See releases for DMG when available.
+
+            ## Requirements
+            - **Linux**: glibc 2.17+ (Ubuntu 18.04+, Fedora 25+, etc.)
+            - **Windows**: Windows 10+ with Windows Terminal recommended
+            - **macOS**: macOS 10.13+ (when available)
