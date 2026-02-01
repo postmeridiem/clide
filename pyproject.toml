@@ -80,6 +80,7 @@ asyncio_default_fixture_loop_scope = "function"
 addopts = [
     "-v",
     "--tb=short",
+    "--snapshot-report=logs/snapshot_report.html",
 ]
 
 [tool.mypy]
@@ -93,6 +94,7 @@ exclude = ["tests", "dist", "build"]
 target-version = "py312"
 line-length = 100
 src = ["clide", "tests"]
+exclude = ["clide/vendor"]
 
 [tool.ruff.lint]
 select = [
@@ -116,6 +118,8 @@ ignore = [
     "SIM105", # contextlib.suppress (try-except-pass is clearer in context)
     "SIM115", # context handler for files (sometimes not applicable)
     "PTH123", # Path.open() vs open() (not always cleaner)
+    "TCH002", # move third-party imports to TYPE_CHECKING (clutters code)
+    "TCH003", # move stdlib imports to TYPE_CHECKING (clutters code)
 ]
 
 [tool.ruff.lint.isort]

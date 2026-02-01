@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 # Language extension mapping for syntax highlighting
 # Maps file extensions to tree-sitter language identifiers
 LANGUAGE_MAP: dict[str, str] = {

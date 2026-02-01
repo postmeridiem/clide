@@ -6,10 +6,10 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import ContentSwitcher, Tab, TabPane, Tabs
+from textual.widgets import ContentSwitcher, Tab, Tabs
 
 from clide.models.diff import DiffContent
-from clide.widgets.components.action_bar import ActionBar, ActionButton, STANDARD_BUTTONS
+from clide.widgets.components.action_bar import ActionBar, ActionButton
 from clide.widgets.components.diff_pane import DiffPane
 from clide.widgets.components.editor_pane import EditorPane
 from clide.widgets.components.terminal_pane import TerminalPane
@@ -104,6 +104,7 @@ class WorkspacePanel(Vertical):
 
     class CloseRequested(Message):
         """Emitted when workspace should be hidden."""
+
         pass
 
     # Reactive state - persisted when hidden
@@ -114,10 +115,12 @@ class WorkspacePanel(Vertical):
     # Messages for app-level actions
     class MaximizeRequested(Message):
         """Emitted when workspace should be maximized."""
+
         pass
 
     class RestoreRequested(Message):
         """Emitted when workspace should be restored from maximized."""
+
         pass
 
     def __init__(
@@ -163,43 +166,53 @@ class WorkspacePanel(Vertical):
 
         # Register standard buttons using simple ASCII icons
         # Save button (for editor)
-        self._action_bar.register_button(ActionButton(
-            id="save",
-            icon="[S]",
-            tooltip="Save",
-        ))
+        self._action_bar.register_button(
+            ActionButton(
+                id="save",
+                icon="[S]",
+                tooltip="Save",
+            )
+        )
 
         # Add separator
         self._action_bar.add_separator()
 
         # Close button
-        self._action_bar.register_button(ActionButton(
-            id="close",
-            icon="x",
-            tooltip="Close",
-        ))
+        self._action_bar.register_button(
+            ActionButton(
+                id="close",
+                icon="x",
+                tooltip="Close",
+            )
+        )
 
         # Minimize button
-        self._action_bar.register_button(ActionButton(
-            id="minimize",
-            icon="_",
-            tooltip="Minimize",
-        ))
+        self._action_bar.register_button(
+            ActionButton(
+                id="minimize",
+                icon="_",
+                tooltip="Minimize",
+            )
+        )
 
         # Maximize button
-        self._action_bar.register_button(ActionButton(
-            id="maximize",
-            icon="^",
-            tooltip="Maximize",
-        ))
+        self._action_bar.register_button(
+            ActionButton(
+                id="maximize",
+                icon="^",
+                tooltip="Maximize",
+            )
+        )
 
         # Restore button (hidden by default)
-        self._action_bar.register_button(ActionButton(
-            id="restore",
-            icon="v",
-            tooltip="Restore",
-            visible=False,
-        ))
+        self._action_bar.register_button(
+            ActionButton(
+                id="restore",
+                icon="v",
+                tooltip="Restore",
+                visible=False,
+            )
+        )
 
         # Update button visibility based on current tab
         self._update_action_bar_for_tab(self.active_tab)

@@ -44,23 +44,23 @@ Long-term open items for Clide development.
 ### Git Integration
 - [ ] Stage/unstage files from Git tab
 - [ ] Discard changes context menu
-- [ ] Git graph visualization (Tree tab)
-- [ ] Branch popout with checkout/new branch actions
+- [x] Git graph visualization (Tree tab)
+- [x] Branch popout with checkout/new branch actions
 
 ## Context Panel (Right Sidebar)
 
 ### Problems View
 - [ ] Linter integration (ruff, eslint, etc.)
-- [ ] Click to navigate to file:line
-- [ ] Reactive problem count badge
+- [x] Click to navigate to file:line
+- [x] Reactive problem count badge
 
 ### TODOs View
-- [ ] Scan for TODO/FIXME/HACK/XXX comments
-- [ ] Click to navigate to file:line
-- [ ] Reactive count badge
+- [x] Scan for TODO/FIXME/HACK/XXX comments
+- [x] Click to navigate to file:line
+- [x] Reactive count badge
 
 ### Jira View
-- [ ] Render Jira CLI markdown output
+- [x] Render Jira CLI markdown output
 - [ ] Auto-refresh on panel focus
 - [ ] Configurable refresh interval
 
@@ -69,7 +69,7 @@ Long-term open items for Clide development.
 ### Responsiveness
 - [ ] CSS breakpoints for different terminal widths
 - [ ] Auto-hide sidebars on narrow terminals (<100 cols)
-- [ ] Compact mode toggle (`Alt+C`)
+- [x] Compact mode toggle (`Alt+C`)
 
 ### Fullscreen Mode
 - [ ] Any panel can go fullscreen (`F11`)
@@ -94,15 +94,15 @@ Long-term open items for Clide development.
 ## Plugin System
 
 - [ ] User-defined panels via pluggy
-- [ ] Custom integrations support
+- [x] Custom integrations support (hookspecs defined)
 - [ ] Extension API documentation
 
 ## Testing
 
-- [ ] Snapshot tests for all panels
-- [ ] Integration tests for panel communication
-- [ ] Unit tests for controllers
-- [ ] Unit tests for services
+- [x] Snapshot tests for all panels
+- [x] Integration tests for panel communication
+- [x] Unit tests for controllers
+- [x] Unit tests for services
 
 ## Documentation
 

@@ -7,12 +7,11 @@ from terminal output, enabling tight IDE integration.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
 
 from textual.message import Message
-
 
 # Event Types
 # -----------
@@ -21,54 +20,63 @@ from textual.message import Message
 @dataclass
 class ClaudeEvent:
     """Base class for Claude Code events."""
+
     pass
 
 
 @dataclass
 class FileReadEvent(ClaudeEvent):
     """Emitted when Claude reads a file."""
+
     path: Path
 
 
 @dataclass
 class FileEditEvent(ClaudeEvent):
     """Emitted when Claude edits a file."""
+
     path: Path
 
 
 @dataclass
 class FileWriteEvent(ClaudeEvent):
     """Emitted when Claude creates/writes a file."""
+
     path: Path
 
 
 @dataclass
 class GlobEvent(ClaudeEvent):
     """Emitted when Claude searches for files."""
+
     pattern: str
 
 
 @dataclass
 class GrepEvent(ClaudeEvent):
     """Emitted when Claude searches file contents."""
+
     pattern: str
 
 
 @dataclass
 class ToolStartEvent(ClaudeEvent):
     """Emitted when Claude starts using a tool."""
+
     tool_name: str
 
 
 @dataclass
 class ToolEndEvent(ClaudeEvent):
     """Emitted when Claude finishes using a tool."""
+
     tool_name: str
 
 
 @dataclass
 class DiffProposedEvent(ClaudeEvent):
     """Emitted when Claude proposes a diff."""
+
     content: str
 
 
@@ -95,11 +103,9 @@ PATTERNS = {
     "tool_write": re.compile(r"● Write\(([^)]+)\)"),
     "tool_glob": re.compile(r"● Glob\(([^)]+)\)"),
     "tool_grep": re.compile(r"● Grep\(([^)]+)\)"),
-
     # Generic tool pattern
     "tool_start": re.compile(r"● (\w+)\("),
     "tool_end": re.compile(r"└─"),
-
     # Diff headers
     "diff_header": re.compile(r"^@@\s*-\d+(?:,\d+)?\s+\+\d+(?:,\d+)?\s*@@", re.MULTILINE),
     "diff_file": re.compile(r"^(?:---|\+\+\+)\s+([^\s]+)", re.MULTILINE),

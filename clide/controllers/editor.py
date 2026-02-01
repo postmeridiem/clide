@@ -130,7 +130,9 @@ class EditorController:
         self._state.buffers.remove(buffer)
 
         # Update active buffer
-        if self._state.active_buffer_index is not None and self._state.active_buffer_index >= len(self._state.buffers):
+        if self._state.active_buffer_index is not None and self._state.active_buffer_index >= len(
+            self._state.buffers
+        ):
             self._state.active_buffer_index = (
                 len(self._state.buffers) - 1 if self._state.buffers else None
             )
@@ -146,10 +148,7 @@ class EditorController:
         Returns:
             True if saved successfully
         """
-        if path:
-            buffer = self._state.get_buffer_by_path(path)
-        else:
-            buffer = self.active_buffer
+        buffer = self._state.get_buffer_by_path(path) if path else self.active_buffer
 
         if not buffer:
             return False

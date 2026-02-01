@@ -1,17 +1,17 @@
 """
-    pyte.graphics
-    ~~~~~~~~~~~~~
+pyte.graphics
+~~~~~~~~~~~~~
 
-    This module defines graphic-related constants, mostly taken from
-    :manpage:`console_codes(4)` and
-    http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html.
+This module defines graphic-related constants, mostly taken from
+:manpage:`console_codes(4)` and
+http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html.
 
-    :copyright: (c) 2011-2012 by Selectel.
-    :copyright: (c) 2012-2017 by pyte authors and contributors,
-                    see AUTHORS for details.
-    :license: LGPL, see LICENSE for more details.
+:copyright: (c) 2011-2012 by Selectel.
+:copyright: (c) 2012-2017 by pyte authors and contributors,
+                see AUTHORS for details.
+:license: LGPL, see LICENSE for more details.
 
-    Vendored for Clide with modifications for diagnostic logging.
+Vendored for Clide with modifications for diagnostic logging.
 """
 
 #: A mapping of ANSI text style codes to style names, "+" means the:
@@ -51,7 +51,7 @@ FG_ANSI = {
     35: "magenta",
     36: "cyan",
     37: "white",
-    39: "default"  # white.
+    39: "default",  # white.
 }
 
 #: An alias to :data:`~pyte.graphics.FG_ANSI` for compatibility.
@@ -67,7 +67,7 @@ FG_AIXTERM = {
     94: "brightblue",
     95: "brightmagenta",
     96: "brightcyan",
-    97: "brightwhite"
+    97: "brightwhite",
 }
 
 #: A mapping of ANSI background color codes to color names.
@@ -85,7 +85,7 @@ BG_ANSI = {
     45: "magenta",
     46: "cyan",
     47: "white",
-    49: "default"  # black.
+    49: "default",  # black.
 }
 
 #: An alias to :data:`~pyte.graphics.BG_ANSI` for compatibility.
@@ -101,7 +101,7 @@ BG_AIXTERM = {
     104: "brightblue",
     105: "bfightmagenta",
     106: "brightcyan",
-    107: "brightwhite"
+    107: "brightwhite",
 }
 
 #: SGR code for foreground in 256 or True color mode.
@@ -114,25 +114,25 @@ BG_256 = 48
 # The following code is part of the Pygments project (BSD licensed).
 _FG_BG_256 = [
     (0x00, 0x00, 0x00),  # 0
-    (0xcd, 0x00, 0x00),  # 1
-    (0x00, 0xcd, 0x00),  # 2
-    (0xcd, 0xcd, 0x00),  # 3
-    (0x00, 0x00, 0xee),  # 4
-    (0xcd, 0x00, 0xcd),  # 5
-    (0x00, 0xcd, 0xcd),  # 6
-    (0xe5, 0xe5, 0xe5),  # 7
-    (0x7f, 0x7f, 0x7f),  # 8
-    (0xff, 0x00, 0x00),  # 9
-    (0x00, 0xff, 0x00),  # 10
-    (0xff, 0xff, 0x00),  # 11
-    (0x5c, 0x5c, 0xff),  # 12
-    (0xff, 0x00, 0xff),  # 13
-    (0x00, 0xff, 0xff),  # 14
-    (0xff, 0xff, 0xff),  # 15
+    (0xCD, 0x00, 0x00),  # 1
+    (0x00, 0xCD, 0x00),  # 2
+    (0xCD, 0xCD, 0x00),  # 3
+    (0x00, 0x00, 0xEE),  # 4
+    (0xCD, 0x00, 0xCD),  # 5
+    (0x00, 0xCD, 0xCD),  # 6
+    (0xE5, 0xE5, 0xE5),  # 7
+    (0x7F, 0x7F, 0x7F),  # 8
+    (0xFF, 0x00, 0x00),  # 9
+    (0x00, 0xFF, 0x00),  # 10
+    (0xFF, 0xFF, 0x00),  # 11
+    (0x5C, 0x5C, 0xFF),  # 12
+    (0xFF, 0x00, 0xFF),  # 13
+    (0x00, 0xFF, 0xFF),  # 14
+    (0xFF, 0xFF, 0xFF),  # 15
 ]
 
 # colors 16..231: the 6x6x6 color cube
-valuerange = (0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff)
+valuerange = (0x00, 0x5F, 0x87, 0xAF, 0xD7, 0xFF)
 
 for i in range(216):
     r = valuerange[(i // 36) % 6]
@@ -145,4 +145,4 @@ for i in range(24):
     v = 8 + i * 10
     _FG_BG_256.append((v, v, v))
 
-FG_BG_256 = ["{0:02x}{1:02x}{2:02x}".format(r, g, b) for r, g, b in _FG_BG_256]
+FG_BG_256 = [f"{r:02x}{g:02x}{b:02x}" for r, g, b in _FG_BG_256]

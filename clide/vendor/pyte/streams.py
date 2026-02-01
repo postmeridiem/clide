@@ -1,25 +1,26 @@
 """
-    pyte.streams
-    ~~~~~~~~~~~~
+pyte.streams
+~~~~~~~~~~~~
 
-    This module provides three stream implementations with different
-    features; for starters, here's a quick example of how streams are
-    typically used:
+This module provides three stream implementations with different
+features; for starters, here's a quick example of how streams are
+typically used:
 
-    >>> import pyte
-    >>> screen = pyte.Screen(80, 24)
-    >>> stream = pyte.Stream(screen)
-    >>> stream.feed("\x1b[5B")  # Move the cursor down 5 rows.
-    >>> screen.cursor.y
-    5
+>>> import pyte
+>>> screen = pyte.Screen(80, 24)
+>>> stream = pyte.Stream(screen)
+>>> stream.feed("\x1b[5B")  # Move the cursor down 5 rows.
+>>> screen.cursor.y
+5
 
-    :copyright: (c) 2011-2012 by Selectel.
-    :copyright: (c) 2012-2017 by pyte authors and contributors,
-                    see AUTHORS for details.
-    :license: LGPL, see LICENSE for more details.
+:copyright: (c) 2011-2012 by Selectel.
+:copyright: (c) 2012-2017 by pyte authors and contributors,
+                see AUTHORS for details.
+:license: LGPL, see LICENSE for more details.
 
-    Vendored for Clide with modifications for diagnostic logging.
+Vendored for Clide with modifications for diagnostic logging.
 """
+
 from __future__ import annotations
 
 import codecs
@@ -27,21 +28,22 @@ import itertools
 import re
 import warnings
 from collections import defaultdict
-from collections.abc import Mapping
-from typing import Any, Callable, Dict, Generator, Optional, TYPE_CHECKING
+from collections.abc import Callable, Generator, Mapping
+from typing import TYPE_CHECKING, Any
 
-from . import control as ctrl, escape as esc
+from . import control as ctrl
+from . import escape as esc
 
 if TYPE_CHECKING:
     from .screens import Screen
 
 
 # Clide diagnostic logging support
-_debug_logger: Optional[Callable[[str], None]] = None
-_event_callback: Optional[Callable[[str], None]] = None
+_debug_logger: Callable[[str], None] | None = None
+_event_callback: Callable[[str], None] | None = None
 
 
-def set_debug_logger(logger: Optional[Callable[[str], None]]) -> None:
+def set_debug_logger(logger: Callable[[str], None] | None) -> None:
     """Set a debug logger function for diagnostic output.
 
     Args:
@@ -51,7 +53,7 @@ def set_debug_logger(logger: Optional[Callable[[str], None]]) -> None:
     _debug_logger = logger
 
 
-def set_event_callback(callback: Optional[Callable[[str], None]]) -> None:
+def set_event_callback(callback: Callable[[str], None] | None) -> None:
     """Set an event callback for raw terminal data.
 
     This callback is invoked with the raw data before parsing.
@@ -70,7 +72,7 @@ def _log_debug(message: str) -> None:
         _debug_logger(message)
 
 
-ParserGenerator = Generator[Optional[bool], str, None]
+ParserGenerator = Generator[bool | None, str, None]
 
 
 class Stream:
@@ -158,30 +160,35 @@ class Stream:
         esc.SGR: "select_graphic_rendition",
         esc.DSR: "report_device_status",
         esc.DECSTBM: "set_margins",
-        esc.HPA: "cursor_to_column"
+        esc.HPA: "cursor_to_column",
     }
 
     #: A set of all events dispatched by the stream.
-    events = frozenset(itertools.chain(
-        basic.values(), escape.values(), sharp.values(), csi.values(),
-        ["define_charset"],
-        ["set_icon_name", "set_title"],  # OSC.
-        ["draw", "debug"]))
+    events = frozenset(
+        itertools.chain(
+            basic.values(),
+            escape.values(),
+            sharp.values(),
+            csi.values(),
+            ["define_charset"],
+            ["set_icon_name", "set_title"],  # OSC.
+            ["draw", "debug"],
+        )
+    )
 
     #: A regular expression pattern matching everything what can be
     #: considered plain text.
     _special = set([ctrl.ESC, ctrl.CSI_C1, ctrl.NUL, ctrl.DEL, ctrl.OSC_C1])
     _special.update(basic)
-    _text_pattern = re.compile(
-        "[^" + "".join(map(re.escape, _special)) + "]+")
+    _text_pattern = re.compile("[^" + "".join(map(re.escape, _special)) + "]+")
     del _special
 
-    def __init__(self, screen: Optional[Screen] = None, strict: bool = True) -> None:
-        self.listener: Optional[Screen] = None
+    def __init__(self, screen: Screen | None = None, strict: bool = True) -> None:
+        self.listener: Screen | None = None
         self.strict = strict
         self.use_utf8: bool = True
 
-        self._taking_plain_text: Optional[bool] = None
+        self._taking_plain_text: bool | None = None
 
         if screen is not None:
             self.attach(screen)
@@ -192,18 +199,20 @@ class Stream:
         :param pyte.screens.Screen screen: a screen to attach to.
         """
         if self.listener is not None:
-            warnings.warn("As of version 0.6.0 the listener queue is "
-                          "restricted to a single element. Existing "
-                          "listener {0} will be replaced."
-                          .format(self.listener), DeprecationWarning)
+            warnings.warn(
+                "As of version 0.6.0 the listener queue is "
+                "restricted to a single element. Existing "
+                f"listener {self.listener} will be replaced.",
+                DeprecationWarning,
+            )
 
         if self.strict:
             for event in self.events:
                 if not hasattr(screen, event):
-                    raise TypeError("{0} is missing {1}".format(screen, event))
+                    raise TypeError(f"{screen} is missing {event}")
 
         self.listener = screen
-        self._parser: Optional[ParserGenerator] = None
+        self._parser: ParserGenerator | None = None
         self._initialize_parser()
 
     def detach(self, screen: Screen) -> None:
@@ -230,7 +239,7 @@ class Stream:
         # Clide: Debug log incoming data
         if _debug_logger is not None:
             # Log escape sequences in a readable format
-            escaped = data.encode('unicode_escape').decode('ascii')
+            escaped = data.encode("unicode_escape").decode("ascii")
             if len(escaped) > 200:
                 escaped = escaped[:200] + "..."
             _log_debug(f"[STREAM] feed: {escaped}")
@@ -254,12 +263,12 @@ class Stream:
                 else:
                     taking_plain_text = False
             else:
-                taking_plain_text = send(data[offset:offset + 1])
+                taking_plain_text = send(data[offset : offset + 1])
                 offset += 1
 
         self._taking_plain_text = taking_plain_text
 
-    def _send_to_parser(self, data: str) -> Optional[bool]:
+    def _send_to_parser(self, data: str) -> bool | None:
         try:
             assert self._parser is not None
             return self._parser.send(data)
@@ -294,25 +303,28 @@ class Stream:
         SP_OR_GT = ctrl.SP + ">"
         NUL_OR_DEL = ctrl.NUL + ctrl.DEL
         CAN_OR_SUB = ctrl.CAN + ctrl.SUB
-        ALLOWED_IN_CSI = "".join([ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF,
-                                  ctrl.VT, ctrl.FF, ctrl.CR])
+        ALLOWED_IN_CSI = "".join([ctrl.BEL, ctrl.BS, ctrl.HT, ctrl.LF, ctrl.VT, ctrl.FF, ctrl.CR])
         OSC_TERMINATORS = set([ctrl.ST_C0, ctrl.ST_C1, ctrl.BEL])
 
-        def create_dispatcher(mapping: Mapping[str, str]) -> Dict[str, Callable[..., None]]:
-            d = defaultdict(lambda: debug, dict(
-                (event, getattr(listener, attr))
-                for event, attr in mapping.items()))
+        def create_dispatcher(mapping: Mapping[str, str]) -> dict[str, Callable[..., None]]:
+            d = defaultdict(
+                lambda: debug,
+                dict((event, getattr(listener, attr)) for event, attr in mapping.items()),
+            )
 
             # Clide: Wrap dispatchers with debug logging
             if _debug_logger is not None:
                 original_d = dict(d)
                 for event, attr in mapping.items():
                     original_handler = original_d.get(event, debug)
+
                     def make_wrapper(e: str, a: str, h: Callable[..., None]) -> Callable[..., None]:
                         def wrapper(*args: Any, **kwargs: Any) -> None:
                             _log_debug(f"[DISPATCH] {a}({args}, {kwargs})")
                             return h(*args, **kwargs)
+
                         return wrapper
+
                     d[event] = make_wrapper(event, attr, original_handler)
 
             return d
@@ -360,7 +372,7 @@ class Stream:
                         listener.define_charset(code, mode=char)
                     else:
                         escape_dispatch[char]()
-                    continue    # Don't go to CSI.
+                    continue  # Don't go to CSI.
 
             if char in basic:
                 # Ignore shifts in UTF-8 mode. See
@@ -485,6 +497,7 @@ class ByteStream(Stream):
        Assume the input to :meth:`~pyte.streams.ByteStream.feed` is encoded
        using UTF-8. Defaults to ``True``.
     """
+
     def __init__(self, *args: Any, **kwargs: Any):
         super(ByteStream, self).__init__(*args, **kwargs)
 

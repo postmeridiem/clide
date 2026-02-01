@@ -1,16 +1,17 @@
 """
-    pyte.screens
-    ~~~~~~~~~~~~
+pyte.screens
+~~~~~~~~~~~~
 
-    This module provides classes for terminal screens.
+This module provides classes for terminal screens.
 
-    :copyright: (c) 2011-2012 by Selectel.
-    :copyright: (c) 2012-2017 by pyte authors and contributors,
-                    see AUTHORS for details.
-    :license: LGPL, see LICENSE for more details.
+:copyright: (c) 2011-2012 by Selectel.
+:copyright: (c) 2012-2017 by pyte authors and contributors,
+                see AUTHORS for details.
+:license: LGPL, see LICENSE for more details.
 
-    Vendored for Clide with modifications for diagnostic logging.
+Vendored for Clide with modifications for diagnostic logging.
 """
+
 from __future__ import annotations
 
 import copy
@@ -20,18 +21,22 @@ import os
 import sys
 import unicodedata
 import warnings
-from collections import deque, defaultdict
+from collections import defaultdict, deque
+from collections.abc import Callable, Generator, Sequence
 from functools import lru_cache
-from typing import Any, Callable, DefaultDict, Dict, Generator, List, NamedTuple, Optional, Set, Sequence, TextIO, TypeVar
+from typing import (
+    Any,
+    NamedTuple,
+    TextIO,
+    TypeVar,
+)
 
 from wcwidth import wcwidth as _wcwidth  # type: ignore[import]
 
-from . import (
-    charsets as cs,
-    control as ctrl,
-    graphics as g,
-    modes as mo
-)
+from . import charsets as cs
+from . import control as ctrl
+from . import graphics as g
+from . import modes as mo
 from .streams import Stream
 
 wcwidth: Callable[[str], int] = lru_cache(maxsize=4096)(_wcwidth)
@@ -40,10 +45,10 @@ KT = TypeVar("KT")
 VT = TypeVar("VT")
 
 # Clide diagnostic logging support
-_debug_logger: Optional[Callable[[str], None]] = None
+_debug_logger: Callable[[str], None] | None = None
 
 
-def set_debug_logger(logger: Optional[Callable[[str], None]]) -> None:
+def set_debug_logger(logger: Callable[[str], None] | None) -> None:
     """Set a debug logger function for diagnostic output."""
     global _debug_logger
     _debug_logger = logger
@@ -57,12 +62,14 @@ def _log_debug(message: str) -> None:
 
 class Margins(NamedTuple):
     """A container for screen's scroll margins."""
+
     top: int
     bottom: int
 
 
 class Savepoint(NamedTuple):
     """A container for savepoint, created on :data:`~pyte.escape.DECSC`."""
+
     cursor: Cursor
     g0_charset: str
     g1_charset: str
@@ -73,6 +80,7 @@ class Savepoint(NamedTuple):
 
 class Char(NamedTuple):
     """A single styled on-screen character."""
+
     data: str
     fg: str = "default"
     bg: str = "default"
@@ -86,6 +94,7 @@ class Char(NamedTuple):
 
 class Cursor:
     """Screen cursor."""
+
     __slots__ = ("x", "y", "attrs", "hidden")
 
     def __init__(self, x: int, y: int, attrs: Char = Char(" ")) -> None:
@@ -95,8 +104,9 @@ class Cursor:
         self.hidden = False
 
 
-class StaticDefaultDict(Dict[KT, VT]):
+class StaticDefaultDict(dict[KT, VT]):
     """A dict with a static default value."""
+
     def __init__(self, default: VT) -> None:
         self.default = default
 
@@ -117,22 +127,24 @@ class Screen:
         return Char(data=" ", fg="default", bg="default", reverse=reverse)
 
     def __init__(self, columns: int, lines: int) -> None:
-        self.savepoints: List[Savepoint] = []
+        self.savepoints: list[Savepoint] = []
         self.columns = columns
         self.lines = lines
-        self.buffer: Dict[int, StaticDefaultDict[int, Char]] = defaultdict(lambda: StaticDefaultDict[int, Char](self.default_char))
-        self.dirty: Set[int] = set()
+        self.buffer: dict[int, StaticDefaultDict[int, Char]] = defaultdict(
+            lambda: StaticDefaultDict[int, Char](self.default_char)
+        )
+        self.dirty: set[int] = set()
         self.reset()
         self.mode = _DEFAULT_MODE.copy()
-        self.margins: Optional[Margins] = None
+        self.margins: Margins | None = None
 
     def __repr__(self) -> str:
-        return ("{0}({1}, {2})".format(self.__class__.__name__,
-                                       self.columns, self.lines))
+        return f"{self.__class__.__name__}({self.columns}, {self.lines})"
 
     @property
-    def display(self) -> List[str]:
+    def display(self) -> list[str]:
         """A list of screen lines as unicode strings."""
+
         def render(line: StaticDefaultDict[int, Char]) -> Generator[str, None, None]:
             is_wide_char = False
             for x in range(self.columns):
@@ -167,9 +179,9 @@ class Screen:
         self.cursor = Cursor(0, 0)
         self.cursor_position()
 
-        self.saved_columns: Optional[int] = None
+        self.saved_columns: int | None = None
 
-    def resize(self, lines: Optional[int] = None, columns: Optional[int] = None) -> None:
+    def resize(self, lines: int | None = None, columns: int | None = None) -> None:
         """Resize the screen to the given size."""
         lines = lines or self.lines
         columns = columns or self.columns
@@ -195,7 +207,7 @@ class Screen:
         self.lines, self.columns = lines, columns
         self.set_margins()
 
-    def set_margins(self, top: Optional[int] = None, bottom: Optional[int] = None) -> None:
+    def set_margins(self, top: int | None = None, bottom: int | None = None) -> None:
         """Select top and bottom margins for the scrolling region."""
         if (top is None or top == 0) and bottom is None:
             self.margins = None
@@ -293,8 +305,7 @@ class Screen:
 
     def draw(self, data: str) -> None:
         """Display decoded characters at the current cursor position."""
-        data = data.translate(
-            self.g1_charset if self.charset else self.g0_charset)
+        data = data.translate(self.g1_charset if self.charset else self.g0_charset)
 
         for char in data:
             char_width = wcwidth(char)
@@ -303,7 +314,9 @@ class Screen:
             if _debug_logger is not None and char_width > 0:
                 code = ord(char)
                 if code > 127 or code < 32:
-                    _log_debug(f"[DRAW] char={char!r} code=U+{code:04X} width={char_width} pos=({self.cursor.x},{self.cursor.y})")
+                    _log_debug(
+                        f"[DRAW] char={char!r} code=U+{code:04X} width={char_width} pos=({self.cursor.x},{self.cursor.y})"
+                    )
 
             if self.cursor.x == self.columns:
                 if mo.DECAWM in self.mode:
@@ -331,7 +344,9 @@ class Screen:
                 elif self.cursor.y:
                     last = self.buffer[self.cursor.y - 1][self.columns - 1]
                     normalized = unicodedata.normalize("NFC", last.data + char)
-                    self.buffer[self.cursor.y - 1][self.columns - 1] = last._replace(data=normalized)
+                    self.buffer[self.cursor.y - 1][self.columns - 1] = last._replace(
+                        data=normalized
+                    )
             else:
                 break
 
@@ -396,12 +411,16 @@ class Screen:
 
     def save_cursor(self) -> None:
         """Push the current cursor position onto the stack."""
-        self.savepoints.append(Savepoint(copy.copy(self.cursor),
-                                         self.g0_charset,
-                                         self.g1_charset,
-                                         self.charset,
-                                         mo.DECOM in self.mode,
-                                         mo.DECAWM in self.mode))
+        self.savepoints.append(
+            Savepoint(
+                copy.copy(self.cursor),
+                self.g0_charset,
+                self.g1_charset,
+                self.charset,
+                mo.DECOM in self.mode,
+                mo.DECAWM in self.mode,
+            )
+        )
 
     def restore_cursor(self) -> None:
         """Set the current cursor position to whatever cursor is on top of the stack."""
@@ -421,7 +440,7 @@ class Screen:
             self.reset_mode(mo.DECOM)
             self.cursor_position()
 
-    def insert_lines(self, count: Optional[int] = None) -> None:
+    def insert_lines(self, count: int | None = None) -> None:
         """Insert the indicated # of lines at line with cursor."""
         count = count or 1
         top, bottom = self.margins or Margins(0, self.lines - 1)
@@ -433,7 +452,7 @@ class Screen:
                 self.buffer.pop(y, None)
             self.carriage_return()
 
-    def delete_lines(self, count: Optional[int] = None) -> None:
+    def delete_lines(self, count: int | None = None) -> None:
         """Delete the indicated # of lines."""
         count = count or 1
         top, bottom = self.margins or Margins(0, self.lines - 1)
@@ -447,7 +466,7 @@ class Screen:
                     self.buffer.pop(y, None)
             self.carriage_return()
 
-    def insert_characters(self, count: Optional[int] = None) -> None:
+    def insert_characters(self, count: int | None = None) -> None:
         """Insert the indicated # of blank characters at the cursor position."""
         self.dirty.add(self.cursor.y)
         count = count or 1
@@ -457,7 +476,7 @@ class Screen:
                 line[x + count] = line[x]
             line.pop(x, None)
 
-    def delete_characters(self, count: Optional[int] = None) -> None:
+    def delete_characters(self, count: int | None = None) -> None:
         """Delete the indicated # of characters."""
         self.dirty.add(self.cursor.y)
         count = count or 1
@@ -468,7 +487,7 @@ class Screen:
             else:
                 line.pop(x, None)
 
-    def erase_characters(self, count: Optional[int] = None) -> None:
+    def erase_characters(self, count: int | None = None) -> None:
         """Erase the indicated # of characters."""
         self.dirty.add(self.cursor.y)
         count = count or 1
@@ -525,7 +544,7 @@ class Screen:
         """Ensure the cursor is within horizontal screen bounds."""
         self.cursor.x = min(max(0, self.cursor.x), self.columns - 1)
 
-    def ensure_vbounds(self, use_margins: Optional[bool] = None) -> None:
+    def ensure_vbounds(self, use_margins: bool | None = None) -> None:
         """Ensure the cursor is within vertical screen bounds."""
         if (use_margins or mo.DECOM in self.mode) and self.margins is not None:
             top, bottom = self.margins
@@ -533,39 +552,39 @@ class Screen:
             top, bottom = 0, self.lines - 1
         self.cursor.y = min(max(top, self.cursor.y), bottom)
 
-    def cursor_up(self, count: Optional[int] = None) -> None:
+    def cursor_up(self, count: int | None = None) -> None:
         """Move cursor up the indicated # of lines."""
         top, _bottom = self.margins or Margins(0, self.lines - 1)
         self.cursor.y = max(self.cursor.y - (count or 1), top)
 
-    def cursor_up1(self, count: Optional[int] = None) -> None:
+    def cursor_up1(self, count: int | None = None) -> None:
         """Move cursor up the indicated # of lines to column 1."""
         self.cursor_up(count)
         self.carriage_return()
 
-    def cursor_down(self, count: Optional[int] = None) -> None:
+    def cursor_down(self, count: int | None = None) -> None:
         """Move cursor down the indicated # of lines."""
         _top, bottom = self.margins or Margins(0, self.lines - 1)
         self.cursor.y = min(self.cursor.y + (count or 1), bottom)
 
-    def cursor_down1(self, count: Optional[int] = None) -> None:
+    def cursor_down1(self, count: int | None = None) -> None:
         """Move cursor down the indicated # of lines to column 1."""
         self.cursor_down(count)
         self.carriage_return()
 
-    def cursor_back(self, count: Optional[int] = None) -> None:
+    def cursor_back(self, count: int | None = None) -> None:
         """Move cursor left the indicated # of columns."""
         if self.cursor.x == self.columns:
             self.cursor.x -= 1
         self.cursor.x -= count or 1
         self.ensure_hbounds()
 
-    def cursor_forward(self, count: Optional[int] = None) -> None:
+    def cursor_forward(self, count: int | None = None) -> None:
         """Move cursor right the indicated # of columns."""
         self.cursor.x += count or 1
         self.ensure_hbounds()
 
-    def cursor_position(self, line: Optional[int] = None, column: Optional[int] = None) -> None:
+    def cursor_position(self, line: int | None = None, column: int | None = None) -> None:
         """Set the cursor to a specific line and column."""
         column = (column or 1) - 1
         line = (line or 1) - 1
@@ -580,12 +599,12 @@ class Screen:
         self.ensure_hbounds()
         self.ensure_vbounds()
 
-    def cursor_to_column(self, column: Optional[int] = None) -> None:
+    def cursor_to_column(self, column: int | None = None) -> None:
         """Move cursor to a specific column in the current line."""
         self.cursor.x = (column or 1) - 1
         self.ensure_hbounds()
 
-    def cursor_to_line(self, line: Optional[int] = None) -> None:
+    def cursor_to_line(self, line: int | None = None) -> None:
         """Move cursor to a specific line in the current column."""
         self.cursor.y = (line or 1) - 1
         if mo.DECOM in self.mode:
@@ -608,7 +627,7 @@ class Screen:
         """Set display attributes."""
         replace = {}
 
-        if not attrs or attrs == (0, ):
+        if not attrs or attrs == (0,):
             self.cursor.attrs = self.default_char
             return
 
@@ -637,8 +656,9 @@ class Screen:
                         m = attrs_list.pop()
                         replace[key] = g.FG_BG_256[m]
                     elif n == 2:
-                        replace[key] = "{0:02x}{1:02x}{2:02x}".format(
-                            attrs_list.pop(), attrs_list.pop(), attrs_list.pop())
+                        replace[key] = (
+                            f"{attrs_list.pop():02x}{attrs_list.pop():02x}{attrs_list.pop():02x}"
+                        )
                 except IndexError:
                     pass
 
@@ -659,7 +679,7 @@ class Screen:
             if mo.DECOM in self.mode:
                 assert self.margins is not None
                 y -= self.margins.top
-            self.write_process_input(ctrl.CSI + "{0};{1}R".format(y, x))
+            self.write_process_input(ctrl.CSI + f"{y};{x}R")
 
     def write_process_input(self, data: str) -> None:
         """Write data to the process running inside the terminal."""
@@ -673,10 +693,13 @@ class Screen:
 
 class DiffScreen(Screen):
     """A screen subclass, which maintains a set of dirty lines. Deprecated."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         warnings.warn(
             "The functionality of ``DiffScreen` has been merged into "
-            "``Screen`` and will be removed in 0.8.0.", DeprecationWarning)
+            "``Screen`` and will be removed in 0.8.0.",
+            DeprecationWarning,
+        )
         super(DiffScreen, self).__init__(*args, **kwargs)
 
 
@@ -694,12 +717,10 @@ class HistoryScreen(Screen):
     _wrapped = set(Stream.events)
     _wrapped.update(["next_page", "prev_page"])
 
-    def __init__(self, columns: int, lines: int, history: int = 100, ratio: float = .5) -> None:
-        self.history = History(deque(maxlen=history),
-                               deque(maxlen=history),
-                               float(ratio),
-                               history,
-                               history)
+    def __init__(self, columns: int, lines: int, history: int = 100, ratio: float = 0.5) -> None:
+        self.history = History(
+            deque(maxlen=history), deque(maxlen=history), float(ratio), history, history
+        )
         super(HistoryScreen, self).__init__(columns, lines)
 
     def _make_wrapper(self, event: str, handler: Callable[..., Any]) -> Callable[..., Any]:
@@ -708,6 +729,7 @@ class HistoryScreen(Screen):
             result = handler(*args, **kwargs)
             self.after_event(event)
             return result
+
         return inner
 
     def __getattribute__(self, attr: str) -> Callable[..., Any]:
@@ -732,8 +754,7 @@ class HistoryScreen(Screen):
                         line.pop(x)
 
         self.cursor.hidden = not (
-            self.history.position == self.history.size and
-            mo.DECTCEM in self.mode
+            self.history.position == self.history.size and mo.DECTCEM in self.mode
         )
 
     def _reset_history(self) -> None:
@@ -769,12 +790,11 @@ class HistoryScreen(Screen):
     def prev_page(self) -> None:
         """Move the screen page up through the history buffer."""
         if self.history.position > self.lines and self.history.top:
-            mid = min(len(self.history.top),
-                      int(math.ceil(self.lines * self.history.ratio)))
+            mid = min(len(self.history.top), int(math.ceil(self.lines * self.history.ratio)))
 
             self.history.bottom.extendleft(
-                self.buffer[y]
-                for y in range(self.lines - 1, self.lines - mid - 1, -1))
+                self.buffer[y] for y in range(self.lines - 1, self.lines - mid - 1, -1)
+            )
             self.history = self.history._replace(position=self.history.position - mid)
 
             for y in range(self.lines - 1, mid - 1, -1):
@@ -787,8 +807,7 @@ class HistoryScreen(Screen):
     def next_page(self) -> None:
         """Move the screen page down through the history buffer."""
         if self.history.position < self.history.size and self.history.bottom:
-            mid = min(len(self.history.bottom),
-                      int(math.ceil(self.lines * self.history.ratio)))
+            mid = min(len(self.history.bottom), int(math.ceil(self.lines * self.history.ratio)))
 
             self.history.top.extend(self.buffer[y] for y in range(mid))
             self.history = self.history._replace(position=self.history.position + mid)
@@ -803,6 +822,7 @@ class HistoryScreen(Screen):
 
 class DebugEvent(NamedTuple):
     """Event dispatched to DebugScreen."""
+
     name: str
     args: Any
     kwargs: Any
@@ -830,6 +850,7 @@ class DebugScreen:
         def wrapper(*args: Any, **kwargs: Any) -> None:
             self.to.write(str(DebugEvent(attr, args, kwargs)))
             self.to.write(str(os.linesep))
+
         return wrapper
 
     def __getattribute__(self, attr: str) -> Callable[..., None]:

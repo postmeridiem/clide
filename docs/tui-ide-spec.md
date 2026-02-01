@@ -1,14 +1,14 @@
 # TUI IDE Specification
 
-A terminal-based IDE built with Textual, designed to wrap Claude Code and integrate project management tooling (Jira/Confluence via CLI).
+Design specification for Clide's terminal user interface. This document describes the layout, interactions, and design decisions.
 
 ## Design Principles
 
-- **Claude-centric**: Claude Code is the primary workspace, always visible
-- **Contextual panels**: Editor/Diff/Terminal appear only when needed
-- **VSCode-familiar**: Keybindings and interaction patterns follow VSCode conventions
-- **Responsive**: Works on 13" laptop and widescreen monitors
-- **No vim magic**: Standard keyboard navigation, no modal editing
+- **Claude-centric** — Claude Code is the primary workspace, always visible
+- **Contextual panels** — Editor/Diff/Terminal appear only when needed
+- **Alt-key shortcuts** — Keybindings use Alt to avoid conflicts with Claude Code input
+- **Responsive** — Works on 13" laptops to widescreen monitors
+- **State preservation** — Hiding panels preserves all state (never destroy widgets)
 
 ---
 
@@ -19,112 +19,105 @@ A terminal-based IDE built with Textual, designed to wrap Claude Code and integr
 ```
 ┌─────────────────┬─────────────────────────┬──────────────────┐
 │ panel-sidebar   │ panel-workspace (60%)   │ panel-context    │
-│                 │ [Editor][Diff][Terminal]│                  │
-│ [Files][Git]    │ (hidden when inactive)  │ (content area)   │
-│ [Tree]          ├─────────────────────────┤                  │
-│                 │                         │                  │
-│ (content area)  │ panel-claude            │                  │
-│                 │ (40% when workspace     │                  │
+│ 20%             │ [Editor][Diff][Terminal]│ 25%              │
+│                 │ (hidden when inactive)  │                  │
+│ [Files][Git]    ├─────────────────────────┤ [Jira][TODOs]    │
+│ [Tree]          │                         │ [Problems]       │
+│                 │ panel-claude            │                  │
+│ (content area)  │ (40% when workspace     │ (content area)   │
 │                 │  visible, else 100%)    │                  │
 ├─────────────────┤                         ├──────────────────┤
-│ branch-status   │                         │[⚠ 3][✓12][Jira] │
-│ ⎇ main ▾       │                         │ context-tabs     │
+│ branch-status   │                         │                  │
+│ ⎇ main ▾       │                         │                  │
+│ staged: 2      │                         │                  │
 └─────────────────┴─────────────────────────┴──────────────────┘
 ```
 
-### Panel Definitions
+### Panel IDs
 
 ```python
 PANELS = {
     # Left sidebar
     "sidebar": "panel-sidebar",
-    "sidebar-files": "panel-sidebar-files",
-    "sidebar-git": "panel-sidebar-git", 
-    "sidebar-tree": "panel-sidebar-tree",
-    "branch-status": "panel-branch-status",
-    
+
     # Center
     "claude": "panel-claude",
     "workspace": "panel-workspace",
-    "editor": "panel-editor",
-    "diff": "panel-diff",
-    "terminal": "panel-terminal",
-    
+
     # Right context
     "context": "panel-context",
-    "context-jira": "panel-context-jira",
-    "context-problems": "panel-context-problems",
-    "context-todos": "panel-context-todos",
 }
 ```
 
 ---
 
-## Left Sidebar (`panel-sidebar`)
+## Left Sidebar
 
 ### Tabs
 
-| Tab | Content | Widget |
-|-----|---------|--------|
-| Files | Project file tree | `DirectoryTree` |
-| Git | Staged/Unstaged changes | `GitChangesView` (custom) |
-| Tree | Merge/branch graph | `GitGraphView` (custom) |
+| Tab | Content | Purpose |
+|-----|---------|---------|
+| Files | Project file tree | Navigate and open files |
+| Git | Staged/Unstaged changes | Review and manage changes |
+| Tree | Branch graph | Visualize git history |
 
-### Git Tab Details
+### Git Tab
 
-Two collapsible sections:
-- **Staged**: Files in index, ready to commit
-- **Unstaged**: Modified/untracked files
+Two collapsible sections showing staged and unstaged changes.
 
-Each file item shows:
-- Status icon: `+` added, `~` modified, `-` deleted, `?` untracked, `→` renamed
-- File path (relative)
+**File status indicators:**
+- `+` Added
+- `~` Modified
+- `-` Deleted
+- `?` Untracked
+- `→` Renamed
 
-**Interactions:**
-- Click file → opens in Editor panel
-- Double-click or keybind → stage/unstage file
-- Right-click or keybind → show context menu (discard, diff, etc.)
+**Action buttons:**
+- **Commit** — Delegate to Claude with `/commit` skill
+- **Stash** — Delegate to Claude with `/stash` skill
+- **Pull** — Delegate to Claude with `/pull` skill
+- **Push** — Delegate to Claude with `/push` skill
 
-### Tree Tab Details
+### Tree Tab
 
-Renders `git log --graph --oneline --decorate --all` with visual styling.
+Visual git graph using box-drawing characters:
 
-**Polish item**: Consider custom rendering with box-drawing characters for a cleaner look:
 ```
-●──┬── main: Latest commit message
-│  ●── feature: Feature work
-●──┴── Merge branch 'feature'
-◆───── Tagged release v1.0
+● main: Latest commit message
+│
+├─● feature: Feature work
+│
+●─┴ Merge branch 'feature'
+◆ Tagged release v1.0
 ```
 
-Use canvas or rich text with:
-```python
-GRAPH_CHARS = {
-    'commit': '●',
-    'merge': '◆',
-    'line': '│',
-    'branch': '├──',
-    'join': '┴──',
-}
-```
+**Symbols:**
+- `●` Regular commit
+- `◆` Merge commit
+- `│` Branch line
+- `├` Branch point
+- `┴` Merge point
 
 ### Branch Status Bar
 
-Fixed at bottom of sidebar. Shows current branch with popout toggle.
+Fixed at bottom of sidebar. Shows current branch and git stats.
+
+```
+┌─────────────────────────────────┐
+│ ⎇ main ▾    staged: 2 unstaged: 5│
+└─────────────────────────────────┘
+```
+
+Click to expand branch selector:
 
 ```
 ┌─────────────────┐
-│ ⎇ main ▾       │  ← Click or keybind to expand
-└─────────────────┘
-        │
-        ▼ (popout overlay)
-┌─────────────────┐
 │ Recent branches │
-│ ○ main         │
+│ ● main         │
 │ ○ feature/xyz  │
 │ ○ develop      │
 ├─────────────────┤
-│ [Checkout] [New]│
+│[Checkout] [New] │
 └─────────────────┘
 ```
 
@@ -132,232 +125,162 @@ Fixed at bottom of sidebar. Shows current branch with popout toggle.
 
 ## Center Column
 
-### Claude Panel (`panel-claude`)
+### Claude Panel
 
-The primary workspace. Displays Claude Code interaction.
+The primary workspace. Always visible.
 
-**Default state**: 100% height of center column
-**With workspace**: 40% height (bottom)
+**Default state:** 100% height of center column
+**With workspace:** 40% height (bottom)
 
 **Content:**
-- Streaming markdown responses (use `Markdown` or `RichLog` widget)
-- Visual distinction between:
-  - Claude's responses
-  - Tool calls / file operations
-  - User input
-- Input area at bottom
+- Full PTY terminal running Claude Code CLI
+- Scrollback history (1000 lines)
+- Input at bottom
 
-### Workspace Panel (`panel-workspace`)
+### Workspace Panel
 
-Tabbed container for Editor, Diff, and Terminal. **Hidden by default.**
+Tabbed container for Editor, Diff, and Terminal. Hidden by default.
 
-**Important**: Hiding is not closing. All panels retain state when hidden:
-- Editor: Open files, cursor position, scroll position, unsaved changes
+**Visibility principle:** Hiding is not closing. All panels retain state:
+- Editor: Open file, cursor position, scroll, unsaved changes
 - Diff: Current diff content, scroll position
-- Terminal: Active session, command history, output buffer
-
-Use `display: none` for visibility, never destroy/recreate widgets.
+- Terminal: Command history, output buffer
 
 **Visibility triggers:**
 
 | Trigger | Result |
 |---------|--------|
-| Click file in sidebar | Show workspace, focus Editor tab |
-| Claude proposes changes | Show workspace, focus Diff tab |
-| User presses `` Ctrl+` `` | Show workspace, focus Terminal tab |
-| User runs command | Show workspace, focus Terminal tab |
-| Close all tabs / Escape | Hide workspace, Claude reclaims space |
-
-**Height**: 60% of center column when visible
+| Click file in sidebar | Show workspace, focus Editor |
+| Click problem/TODO | Show workspace, focus Editor at line |
+| Press `` Alt+` `` | Show workspace, focus Terminal |
+| Close all content | Hide workspace, Claude reclaims space |
 
 #### Editor Tab
 
-- `TextArea` widget with syntax highlighting
-- Language detection from file extension
-- Theme: Follow terminal theme or user preference
+Code editor with:
+- Syntax highlighting (tree-sitter based)
+- Line numbers
+- Current line highlighting
 
 #### Diff Tab
 
-- Side-by-side or unified diff view
-- Syntax highlighting for changed content
-- Accept/Reject buttons for Claude-proposed changes
+Side-by-side diff viewer for:
+- Git changes (staged and unstaged)
+- Claude-proposed edits
 
 #### Terminal Tab
 
-- Proper PTY integration for full terminal emulation
-- Or simpler command runner with output display (decide based on complexity)
+Command execution terminal:
 - Working directory tied to project root
+- Output preserved when panel hidden
 
 ---
 
-## Right Sidebar (`panel-context`)
+## Right Context Panel
 
-### Content Area
+### Tabs
 
-Switches based on selected bottom tab. Shows one of:
-- Jira view (default)
-- Problems view
-- TODOs view
+| Tab | Badge | Content |
+|-----|-------|---------|
+| Jira | — | Jira issue display |
+| TODOs | Count | TODO/FIXME from code and TODO.md |
+| Problems | Count | Linter errors and warnings |
 
-### Bottom Tab Bar (`context-tabs`)
+Tab badges update reactively as counts change.
 
-```
-┌──────────────────┐
-│ [⚠ 3][✓12][Jira]│
-└──────────────────┘
-```
+### Jira Tab
 
-Tabs show inline counts that update reactively.
+Displays Jira issues via CLI integration. Manual refresh button.
 
-| Tab | Icon | Content |
-|-----|------|---------|
-| Problems | ⚠ | Linter errors, warnings (count badge) |
-| TODOs | ✓ | TODO/FIXME comments from codebase (count badge) |
-| Jira | Jira | Output from your CLI tool (default) |
+### TODOs Tab
 
-### Jira View
+Two sub-tabs:
 
-Renders markdown output from your CLI tool. Refreshes on:
-- Panel focus
-- Manual refresh keybind
-- Configurable interval
+**Project tab:** Items from `TODO.md` (checkbox format)
+**Comments tab:** TODO/FIXME/HACK/XXX comments in code
 
-### Problems View
+Click any item to jump to source location.
 
-Aggregates from linters (eslint, ruff, etc.). Shows:
+### Problems Tab
+
+Linter output showing:
 - File path
 - Line number
-- Severity icon
+- Severity (error/warning)
 - Message
 
-Click → opens file in Editor at that line.
-
-### TODOs View
-
-Grep results for `TODO`, `FIXME`, `HACK`, `XXX`. Shows:
-- File path
-- Line number  
-- Comment text
-
-Click → opens file in Editor at that line.
+Click to navigate to source.
 
 ---
 
 ## Responsiveness
 
-### CSS Breakpoints
+### CSS Strategy
 
 ```css
-/* Widescreen (default) */
+/* Default layout */
 #panel-sidebar { width: 20%; min-width: 25; }
 #panel-context { width: 25%; min-width: 30; }
 #panel-claude { width: 1fr; }
-
-/* Medium terminals */
-@media (width < 120) {
-    #panel-sidebar { width: 18%; }
-    #panel-context { width: 22%; }
-}
-
-/* Narrow terminals (laptop, split screen) */
-@media (width < 100) {
-    #panel-sidebar { display: none; }
-    #panel-context { width: 25%; }
-}
-
-@media (width < 80) {
-    #panel-context { display: none; }
-    #panel-claude { width: 100%; }
-}
 ```
 
 ### Compact Mode
 
-Toggle with `Ctrl+Shift+C`. Hides both sidebars, maximizes Claude + workspace.
+Toggle with `Alt+C`. Hides both sidebars:
 
 ```css
 .compact #panel-sidebar { display: none; }
 .compact #panel-context { display: none; }
 ```
 
-### Fullscreen Mode
-
-Any panel can go fullscreen with `F11` (when focused). Press `Escape` to exit.
-
-```css
-.fullscreen {
-    dock: top;
-    width: 100%;
-    height: 100%;
-    layer: fullscreen;
-}
-```
+All panel state preserved when hidden.
 
 ---
 
 ## Keybindings
 
-Following VSCode conventions where possible.
+All shortcuts use `Alt` modifier to avoid conflicts with Claude Code input.
 
-### Global
-
-| Action | Binding |
-|--------|---------|
-| Command palette | `Ctrl+Shift+P` |
-| Quick open file | `Ctrl+P` |
-| Toggle left sidebar | `Ctrl+B` |
-| Toggle right sidebar | `Ctrl+Shift+B` |
-| Toggle terminal | `` Ctrl+` `` |
-| Toggle compact mode | `Ctrl+Shift+C` |
-| Fullscreen focused panel | `F11` |
-| Exit fullscreen | `Escape` |
-
-### Navigation
+### Panel Navigation
 
 | Action | Binding |
 |--------|---------|
-| Focus Claude panel | `Ctrl+1` |
-| Focus Editor | `Ctrl+2` |
-| Focus Terminal | `Ctrl+3` |
-| Focus sidebar | `Ctrl+0` |
-| Next tab (in tabbed panels) | `Ctrl+Tab` |
-| Previous tab | `Ctrl+Shift+Tab` |
-| Close current tab/editor | `Ctrl+W` |
+| Toggle left sidebar | `Alt+B` |
+| Toggle right sidebar | `Alt+Shift+B` |
+| Toggle terminal | `` Alt+` `` |
+| Focus Claude | `Alt+1` |
+| Focus Editor | `Alt+2` |
+| Focus Terminal | `Alt+3` |
+| Toggle compact mode | `Alt+C` |
+
+### Application
+
+| Action | Binding |
+|--------|---------|
+| Command palette | `Alt+P` |
+| Quick open file | `Alt+O` |
+| Select theme | `Alt+T` |
+| Quit | `Alt+Q` |
 
 ### Git
 
 | Action | Binding |
 |--------|---------|
-| Open Git panel | `Ctrl+Shift+G` |
-| Stage file | `Ctrl+Enter` (in git view) |
-| Unstage file | `Ctrl+Backspace` (in git view) |
-
-### Search & Problems
-
-| Action | Binding |
-|--------|---------|
-| Find in file | `Ctrl+F` |
-| Find in project | `Ctrl+Shift+F` |
-| Go to problems | `Ctrl+Shift+M` |
-| Next problem | `F8` |
-| Previous problem | `Shift+F8` |
+| Open Git panel | `Alt+G` |
 
 ### Editor
 
 | Action | Binding |
 |--------|---------|
-| Save | `Ctrl+S` |
-| Undo | `Ctrl+Z` |
-| Redo | `Ctrl+Shift+Z` |
-| Go to line | `Ctrl+G` |
+| Save | `Alt+S` |
+| Go to line | `Alt+L` |
+| Go to problems | `Alt+M` |
 
 ---
 
 ## Panel Communication
 
-Panels should feel connected, like a normal IDE.
-
-### File Navigation
+### File Navigation Flow
 
 ```
 Sidebar file click
@@ -372,7 +295,7 @@ Editor tab focused
 File loaded in Editor
 ```
 
-### Problems/TODOs Navigation
+### Problem/TODO Navigation Flow
 
 ```
 Click problem/todo item
@@ -387,117 +310,57 @@ Editor tab focused
 File opened at specific line
        │
        ▼
-Line highlighted/scrolled into view
+Line scrolled into view
 ```
 
-### Claude Diff Flow
+### Git Action Flow
 
 ```
-Claude proposes file changes
+Click git action button (Commit, Stash, etc.)
        │
        ▼
-Workspace appears
+Ensure skill installed (async, with notification)
        │
        ▼
-Diff tab focused
+Send /command to Claude
        │
        ▼
-Changes displayed with Accept/Reject
-       │
-       ├─► Accept: Apply changes, optionally close diff
-       │
-       └─► Reject: Discard, close diff
-```
-
-### Git File Actions
-
-```
-Click file in Git tab
-       │
-       ▼
-Workspace appears
-       │
-       ▼
-Diff tab shows unstaged changes
-       │
-       ▼
-Stage/unstage from diff view
+Claude executes git workflow
 ```
 
 ---
 
-## Implementation Notes
+## State Management
 
-### Recommended Textual Widgets
-
-| Component | Widget |
-|-----------|--------|
-| File browser | `DirectoryTree` |
-| Claude output | `Markdown` or `RichLog` (for streaming) |
-| Editor | `TextArea` (syntax highlighting built-in) |
-| Tabbed panels | `TabbedContent`, `TabPane` |
-| Panel switching | `ContentSwitcher` |
-| Problems/TODOs list | `ListView` with `ListItem` |
-| Git graph | `RichLog` or custom canvas widget |
-| Command palette | `CommandPalette` (built-in) |
-
-### Background Tasks
-
-Use Textual's `@work` decorator for:
-- Git status refresh
-- Linter execution  
-- TODO scanning
-- Jira CLI calls
+### Reactive Properties
 
 ```python
-@work(thread=True)
-def refresh_git_status(self) -> None:
-    result = subprocess.run(["git", "status", "--porcelain"], ...)
-    self.call_from_thread(self.update_git_view, result.stdout)
-```
-
-### State Management
-
-**Core principle**: Hiding is not closing. All panels persist state when hidden.
-
-```python
-class IDEApp(App):
-    current_file: reactive[str | None] = reactive(None)
+class ClideApp(App):
     workspace_visible: reactive[bool] = reactive(False)
     problem_count: reactive[int] = reactive(0)
     todo_count: reactive[int] = reactive(0)
+    current_branch: reactive[str] = reactive("main")
     compact_mode: reactive[bool] = reactive(False)
 ```
 
-**Panel visibility pattern** — toggle `display`, don't destroy:
-
-```python
-def toggle_workspace(self, visible: bool) -> None:
-    workspace = self.query_one("#panel-workspace")
-    workspace.display = visible  # Retains all child state
-    
-    # Adjust Claude panel height
-    claude = self.query_one("#panel-claude")
-    claude.styles.height = "40%" if visible else "100%"
-```
-
-**State to preserve per panel:**
+### State Preservation
 
 | Panel | Preserved State |
 |-------|-----------------|
-| Editor | Open files, cursor positions, scroll, unsaved changes, undo history |
-| Diff | Current diff content, scroll position, accept/reject state |
-| Terminal | PTY session, command history, output buffer, working directory |
-| Sidebar tabs | Scroll position, expanded/collapsed sections, selection |
-| Context tabs | Scroll position, selected item |
-| Git views | Expanded sections, selected files |
+| Editor | Open file, cursor, scroll, unsaved changes |
+| Diff | Current diff, scroll position |
+| Terminal | Session, history, output buffer |
+| Sidebar tabs | Scroll, expanded sections, selection |
+| Context tabs | Scroll, selected item |
 
 ---
 
-## Future Considerations
+## Themes
 
-- **Session persistence**: Remember open files, panel sizes, last git state
-- **Multiple projects**: Workspace switcher
-- **Claude history**: Browse past conversations
-- **Custom themes**: User-selectable color schemes
-- **Plugin system**: User-defined panels/integrations
+22 built-in themes with custom theme support.
+
+**Default:** summer-night (dark theme)
+
+Theme selection persists in user settings (`~/.clide/settings.json`).
+
+Custom themes can be added to `~/.clide/themes/` as TOML files.

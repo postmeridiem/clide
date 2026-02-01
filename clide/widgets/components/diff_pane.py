@@ -137,7 +137,7 @@ class DiffPane(Vertical):
         header = self.query_one(".diff-header", Static)
         header.update("No diff loaded")
 
-    def on_button_pressed(self, _event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
         if not self._diff:
             return

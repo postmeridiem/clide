@@ -1,11 +1,11 @@
-# Clide Architecture Documentation
+# Clide Architecture
 
-Comprehensive documentation of architecture patterns, best practices, and implementation guidelines.
+Technical documentation covering Clide's architecture, the frameworks it builds on, and implementation patterns.
 
 ## Table of Contents
 
+- [Application Architecture](#application-architecture)
 - [Textual TUI Framework](#textual-tui-framework)
-- [Typer CLI Framework](#typer-cli-framework)
 - [Pydantic Data Validation](#pydantic-data-validation)
 - [Extension System](#extension-system)
 - [Testing Strategy](#testing-strategy)
@@ -13,199 +13,238 @@ Comprehensive documentation of architecture patterns, best practices, and implem
 
 ---
 
+## Application Architecture
+
+Clide follows a layered architecture with clear separation between UI, business logic, and data.
+
+### Layer Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ClideApp (app.py)                    │
+│         Main application, layout, keybindings           │
+├─────────────────────────────────────────────────────────┤
+│                      Widgets Layer                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+│  │   Panels    │  │ Components  │  │   Themes    │     │
+│  │  (layout)   │  │ (reusable)  │  │  (styling)  │     │
+│  └─────────────┘  └─────────────┘  └─────────────┘     │
+├─────────────────────────────────────────────────────────┤
+│                    Controllers Layer                     │
+│         Business logic, state management                 │
+├─────────────────────────────────────────────────────────┤
+│                     Services Layer                       │
+│      Git, files, scanning, settings, skills              │
+├─────────────────────────────────────────────────────────┤
+│                      Models Layer                        │
+│           Pydantic data structures                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+User Action (click, keypress)
+         │
+         ▼
+    Widget Event
+         │
+         ▼
+  Message Bubbles Up
+         │
+         ▼
+   App Event Handler
+         │
+         ▼
+  Controller Method
+         │
+         ▼
+   Service Call
+         │
+         ▼
+  Return Data/Status
+         │
+         ▼
+   Update UI State
+         │
+         ▼
+ Reactive UI Update
+```
+
+### Key Patterns
+
+**Message-based communication** — Widgets emit messages that bubble up. Parent widgets or the app handle messages and coordinate responses.
+
+**Reactive properties** — UI state uses Textual's `reactive` type. Changes automatically trigger `watch_*` methods.
+
+**Background workers** — Long operations use `@work(thread=True)` to avoid blocking the UI.
+
+**State preservation** — Hiding panels uses `display: none`, never destroying widgets. All state persists.
+
+For detailed code organization, see [Code Organization](code-organization.md).
+
+---
+
 ## Textual TUI Framework
 
-Textual models TUIs as a reactive tree of widgets, similar to React's component tree but grid-based on character cells.
+Textual provides the foundation for Clide's terminal UI.
 
-### Key Concepts
+### Core Concepts
 
-**Widgets and Containers**
-- Widgets are the building blocks of the UI
-- Containers are widgets that hold other widgets
-- Default layout stacks widgets vertically from top of screen
+**Widgets** — Building blocks of the UI. Everything visible is a widget.
 
-**Reactive Programming**
-- State changes trigger automatic UI updates
-- No manual refresh loops needed
-- Use reactive attributes for state management
+**Containers** — Widgets that hold other widgets (Vertical, Horizontal, Container).
 
-**Event-Driven Model**
-- Define callbacks for key presses, mouse clicks, timer ticks
-- Actions are functions callable via keystroke or text link
+**Reactive Programming** — State changes trigger automatic UI updates.
 
-### Best Practices
+**CSS Styling** — Layout and appearance defined in CSS, similar to web development.
 
-1. **Use Immutable Objects**
-   - Prefer tuples, NamedTuples, or frozen dataclasses
-   - Easier to reason about, cache, and test
-   - Enables side-effect-free code
+### Layout System
 
-2. **Separate Styles**
-   - Keep CSS in `.tcss` files, not inline
-   - Python code stays clean and focused on logic
+Clide uses CSS Grid for the main layout:
 
-3. **Async-First**
-   - Textual is async under the hood
-   - Use `async`/`await` for I/O operations
-   - Can integrate with async libraries if needed
-
-### Layout Management
-
-```python
-# Grid layout example
-CSS = """
+```css
 Screen {
     layout: grid;
     grid-size: 3 1;
-    grid-columns: 1fr 2fr 1fr;
+    grid-columns: 20% 1fr 25%;
 }
-"""
+```
+
+Panels use percentage widths with minimum sizes:
+
+```css
+#panel-sidebar {
+    width: 20%;
+    min-width: 25;
+}
+```
+
+### Widget Lifecycle
+
+```python
+class MyWidget(Widget):
+    def __init__(self):
+        super().__init__()
+        # Initialize instance variables
+
+    def compose(self) -> ComposeResult:
+        # Yield child widgets
+        yield Label("Hello")
+
+    def on_mount(self) -> None:
+        # Called after widget is added to DOM
+        # Safe to query other widgets here
+
+    def on_unmount(self) -> None:
+        # Cleanup when removed
+```
+
+### Event Handling
+
+Events bubble up through the widget tree:
+
+```python
+# Define a message
+class FileSelected(Message):
+    def __init__(self, path: Path):
+        self.path = path
+        super().__init__()
+
+# Emit the message
+self.post_message(self.FileSelected(path))
+
+# Handle in parent (naming convention: on_<widget>_<message>)
+def on_files_view_file_selected(self, event: FilesView.FileSelected):
+    self.open_file(event.path)
+```
+
+### Background Tasks
+
+Use `@work` for operations that shouldn't block the UI:
+
+```python
+from textual import work
+
+@work(thread=True)
+def fetch_data(self) -> dict:
+    """Runs in thread pool."""
+    result = expensive_operation()
+    return result
+
+def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+    if event.state == WorkerState.SUCCESS:
+        self.update_ui(event.worker.result)
 ```
 
 ### References
 
 - [Textual Documentation](https://textual.textualize.io/)
-- [Textual Tutorial](https://textual.textualize.io/tutorial/)
-- [Real Python Textual Guide](https://realpython.com/python-textual/)
-- [Textual GitHub](https://github.com/Textualize/textual)
-
----
-
-## Typer CLI Framework
-
-Typer is built on Click with Python type hints for automatic argument parsing.
-
-### Project Structure Pattern
-
-```
-app/
-├── __init__.py
-├── main.py          # Root Typer app
-├── commands/        # Subcommand modules
-│   ├── users.py
-│   └── tasks.py
-└── helpers/         # Shared utilities
-    └── validate.py
-```
-
-### Best Practices
-
-1. **Organize Commands**
-   - Use `add_typer()` to group commands
-   - Avoid giant files with dozens of commands
-   - Each command function should orchestrate, not contain all logic
-
-2. **Entry Point Support**
-   - Add `__main__.py` for `python -m` support
-   - Define entry points in pyproject.toml for CLI scripts
-
-3. **Standard Exit Codes**
-   - `0` for success
-   - Non-zero for errors
-   - Crucial for CI/CD integration
-
-4. **Type Hints for Validation**
-   - Use Enum for dropdown-style restrictions
-   - Type hints provide editor autocompletion
-
-### Subcommand Example
-
-```python
-# commands/users.py
-import typer
-
-app = typer.Typer()
-
-@app.command()
-def create(name: str):
-    """Create a new user."""
-    ...
-
-# main.py
-from commands import users
-
-main_app = typer.Typer()
-main_app.add_typer(users.app, name="users")
-```
-
-### References
-
-- [Typer Documentation](https://typer.tiangolo.com/)
-- [Typer Subcommands](https://typer.tiangolo.com/tutorial/subcommands/)
-- [Building a Package](https://typer.tiangolo.com/tutorial/package/)
+- [Textual Widgets](https://textual.textualize.io/widgets/)
+- [Textual CSS](https://textual.textualize.io/guide/CSS/)
 
 ---
 
 ## Pydantic Data Validation
 
-Pydantic v2 with strict mode ensures type safety and validation.
+All data models use Pydantic v2 with strict mode.
 
-### Strict Mode Configuration
+### Model Configuration
 
 ```python
 from pydantic import BaseModel, ConfigDict
 
-class MyModel(BaseModel):
+class GitChange(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True)
-    name: str
-    count: int  # Will reject "123" string
+
+    path: str
+    status: Literal["added", "modified", "deleted"]
+    staged: bool
 ```
+
+**strict=True** — No type coercion. `"123"` won't become `123`.
+
+**frozen=True** — Immutable instances. Enables hashing for use as dict keys.
 
 ### Settings Management
 
-Settings have moved to `pydantic-settings` package:
+Application settings use `pydantic-settings`:
 
 ```python
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class AppSettings(BaseSettings):
+class ClideSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="APP_",
+        env_prefix="CLIDE_",
         env_file=".env",
-        env_nested_delimiter="__",
     )
 
-    database_url: str
-    debug: bool = False
+    theme: str = "summer-night"
+    jira_enabled: bool = False
 ```
 
-### Best Practices
-
-1. **Use `frozen=True` for Immutability**
-   - Prevents accidental mutation
-   - Enables hashing for use as dict keys
-
-2. **Explicit Strict Types**
-   - `StrictInt`, `StrictStr` for field-level strictness
-   - Or use `model_config` for model-wide strictness
-
-3. **Validation vs Parsing**
-   - Strict mode rejects type coercion
-   - JSON parsing allows some conversion (ISO8601 → datetime)
+Settings load from (in priority order):
+1. Environment variables (`CLIDE_THEME=dracula`)
+2. `.env` file
+3. Default values
 
 ### References
 
-- [Pydantic v2 Documentation](https://docs.pydantic.dev/latest/)
+- [Pydantic Documentation](https://docs.pydantic.dev/latest/)
 - [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
-- [Pydantic Configuration](https://docs.pydantic.dev/latest/api/config/)
-- [Migration Guide](https://docs.pydantic.dev/latest/migration/)
 
 ---
 
 ## Extension System
 
-The plugin system uses Pluggy for hook-based extensibility.
+Clide uses Pluggy for hook-based extensibility.
 
-### Pluggy Concepts
+### Hook Specifications
 
-1. **Hook Specifications** - Define the interface extensions implement
-2. **Hook Implementations** - Extension code implementing hooks
-3. **Plugin Manager** - Discovers and calls implementations
-
-### Architecture
+Hooks define extension points:
 
 ```python
-# hookspecs.py - Define hooks
+# clide/extensions/hookspecs.py
 import pluggy
 
 hookspec = pluggy.HookspecMarker("clide")
@@ -213,18 +252,36 @@ hookimpl = pluggy.HookimplMarker("clide")
 
 class ClideHookSpec:
     @hookspec
-    def register_panel(self) -> dict: ...
+    def clide_startup(self, app: App) -> None:
+        """Called when the app starts."""
 
-# extension.py - Implement hooks
+    @hookspec
+    def clide_on_file_changed(self, event: FileEvent) -> None:
+        """Called when a file changes."""
+```
+
+### Implementing Hooks
+
+Extensions implement hooks with the `@hookimpl` decorator:
+
+```python
+from clide.extensions import hookimpl
+
 class MyExtension:
     @hookimpl
-    def register_panel(self) -> dict:
-        return {"name": "custom", "widget": CustomWidget}
+    def clide_startup(self, app: App) -> None:
+        app.notify("Extension loaded!")
+
+    @hookimpl
+    def clide_on_file_changed(self, event: FileEvent) -> None:
+        if event.path.suffix == ".py":
+            # React to Python file changes
+            pass
 ```
 
 ### Distribution
 
-Extensions can be distributed as packages using entry points:
+Extensions can be packaged and distributed via entry points:
 
 ```toml
 # pyproject.toml of extension package
@@ -232,55 +289,73 @@ Extensions can be distributed as packages using entry points:
 my_extension = "my_package:MyExtension"
 ```
 
-### Hook Execution Order
+### Available Hooks
 
-- Multiple implementations called in LIFO (Last In, First Out) order
-- Use `hookimpl(tryfirst=True)` or `hookimpl(trylast=True)` for ordering
-
-### Alternatives
-
-- **Stevedore** - Better for driver/extension patterns, uses entry points
-- Choose Pluggy for hook-based systems (like pytest uses)
+| Hook | When Called |
+|------|-------------|
+| `clide_startup` | App initialization |
+| `clide_shutdown` | App cleanup |
+| `clide_on_file_changed` | File created/modified/deleted |
+| `clide_on_file_saved` | File saved in editor |
 
 ### References
 
 - [Pluggy Documentation](https://pluggy.readthedocs.io/)
-- [Stevedore Documentation](https://docs.openstack.org/stevedore/latest/)
-- [Creating Plugins with Stevedore](https://docs.openstack.org/stevedore/latest/user/tutorial/creating_plugins.html)
 
 ---
 
 ## Testing Strategy
 
-### pytest-asyncio
+### Test Organization
 
-Configure auto mode for automatic async test discovery:
+```
+tests/
+├── unit/           # Isolated component tests
+├── integration/    # Component interaction tests
+└── snapshots/      # Visual regression tests
+```
+
+### Async Testing
+
+Configure pytest-asyncio in auto mode:
 
 ```toml
-# pyproject.toml
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 ```
 
-### Async Test Patterns
+Tests can be async without decorators:
 
 ```python
-import pytest
-
-# Auto mode - no decorator needed
 async def test_async_operation():
     result = await some_async_function()
     assert result == expected
-
-# Async fixtures
-@pytest.fixture
-async def database_connection():
-    conn = await create_connection()
-    yield conn
-    await conn.close()
 ```
 
-### Async Mocking
+### Snapshot Testing
+
+Visual regression testing with pytest-textual-snapshot:
+
+```python
+def test_layout(snap_compare):
+    assert snap_compare(ClideApp(), terminal_size=(120, 40))
+
+def test_with_interaction(snap_compare):
+    async def setup(pilot):
+        await pilot.press("tab", "enter")
+
+    assert snap_compare(ClideApp(), run_before=setup)
+```
+
+Update snapshots after intentional changes:
+
+```bash
+pytest tests/snapshots/ --snapshot-update
+```
+
+### Mocking
+
+Use `AsyncMock` for async dependencies:
 
 ```python
 from unittest.mock import AsyncMock
@@ -291,73 +366,43 @@ async def test_with_mock():
     assert result["status"] == "ok"
 ```
 
-### Snapshot Testing
-
-Visual regression with pytest-textual-snapshot:
-
-```python
-def test_layout(snap_compare):
-    assert snap_compare("app.py", terminal_size=(120, 40))
-
-def test_with_interaction(snap_compare):
-    async def setup(pilot):
-        await pilot.press("tab", "enter")
-
-    assert snap_compare("app.py", run_before=setup)
-```
-
-Update snapshots after intentional changes:
-```bash
-pytest tests/snapshots/ --snapshot-update
-```
-
-### Test Harness Pattern
-
-Harnesses provide isolated test environments:
-
-```python
-class AppHarness:
-    async def start(self) -> tuple[App, Pilot]:
-        """Start app with mocked dependencies."""
-
-    async def stop(self) -> None:
-        """Clean shutdown."""
-```
-
-### Best Practices
-
-1. **Always use `@pytest.mark.asyncio`** (or auto mode)
-2. **Use async fixtures** for async setup/teardown
-3. **Mock external services** - don't hit real APIs
-4. **Choose appropriate fixture scopes** for performance
-5. **Avoid blocking the event loop** in async tests
-
 ### References
 
-- [pytest-asyncio Documentation](https://pytest-asyncio.readthedocs.io/en/latest/)
+- [pytest-asyncio](https://pytest-asyncio.readthedocs.io/)
 - [pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)
 - [Textual Testing Guide](https://textual.textualize.io/guide/testing/)
-- [pytest Fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html)
 
 ---
 
 ## Build and Distribution
 
-### PyInstaller Limitations
+### Development
 
-**Critical: PyInstaller cannot cross-compile.**
-- Build on the target OS
-- Use CI/CD for multi-platform builds
+```bash
+make setup      # Create venv, install deps
+make run        # Run application
+make test       # Run all tests
+make typecheck  # Run mypy
+make lint       # Run ruff
+make format     # Format code
+```
 
-### CI/CD Multi-Platform Build
+### PyInstaller
 
-Use Gitea Actions (or compatible CI) for multi-platform builds:
+Build standalone executables:
+
+```bash
+pip install -e ".[build]"
+pyinstaller clide.spec --clean
+```
+
+**Important**: PyInstaller cannot cross-compile. Build on each target platform.
+
+### CI/CD
+
+Multi-platform builds via Gitea Actions:
 
 ```yaml
-# .gitea/workflows/build.yml
-name: Build
-on: [push, tag]
-
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -371,45 +416,17 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -e ".[build]"
-      - run: pyinstaller clide.spec --clean
-
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -e ".[build]"
-      - run: pyinstaller clide.spec --clean
+    # ... same steps
 ```
 
-### Optimization Tips
+### Optimization
 
-1. **Use `--onefile`** for single executable
-2. **Apply `--strip`** to reduce binary size
-3. **Use UPX compression** (460 MB → ~130 MB possible)
-4. **Exclude unused modules** with `--exclude-module`
-5. **Lazy imports** for large libraries
-
-### Platform-Specific Output
-
-- **Windows**: `.exe` or MSIX installer
-- **macOS**: `.app` bundle in `.dmg`
-- **Linux**: AppImage or native package
-
-### Linux Compatibility
-
-Build on the oldest target distro version. Newer systems may produce incompatible binaries.
+- Use `--onefile` for single executable
+- Apply `--strip` to reduce size
+- Use UPX compression for further reduction
+- Exclude unused modules with `--exclude-module`
 
 ### References
 
 - [PyInstaller Documentation](https://pyinstaller.org/)
-- [Building the Bootloader](https://pyinstaller.org/en/latest/bootloader-building.html)
 - [Gitea Actions](https://docs.gitea.com/usage/actions/overview)
