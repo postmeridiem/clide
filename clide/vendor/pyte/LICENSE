@@ -1,0 +1,19 @@
+pyte - LGPL License
+====================
+
+This is a vendored copy of pyte (https://github.com/selectel/pyte)
+with modifications for Clide diagnostic logging.
+
+Original copyright:
+    (c) 2011-2012 by Selectel.
+    (c) 2012-2017 by pyte authors and contributors.
+
+This code is licensed under the GNU Lesser General Public License (LGPL).
+Modifications made by the Clide project are also licensed under LGPL.
+
+For the full LGPL license text, see:
+https://www.gnu.org/licenses/lgpl-3.0.html
+
+Modifications:
+- Added diagnostic logging hooks for debugging terminal rendering issues
+- Added event callback support for Claude Code integration

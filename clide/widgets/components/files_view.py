@@ -85,3 +85,45 @@ class FilesView(DirectoryTree):
     def refresh_tree(self) -> None:
         """Refresh the directory tree."""
         self.reload()
+
+    def highlight_path(self, path: Path) -> None:
+        """Highlight a path in the tree (expand parents and scroll to it).
+
+        Used to show which file Claude is working with.
+        """
+        # Normalize the path
+        try:
+            path = path.resolve()
+        except Exception:
+            return
+
+        # Find and select the node
+        def find_node(node, target_path):
+            """Recursively find a node by path."""
+            if node.data and hasattr(node.data, 'path'):
+                if node.data.path.resolve() == target_path:
+                    return node
+            for child in node.children:
+                result = find_node(child, target_path)
+                if result:
+                    return result
+            return None
+
+        target_node = find_node(self.root, path)
+        if target_node:
+            # Expand all parent nodes
+            parent = target_node.parent
+            while parent:
+                parent.expand()
+                parent = parent.parent
+
+            # Select and scroll to the node
+            self.select_node(target_node)
+            self.scroll_to_node(target_node)
+
+    def on_directory_tree_file_selected(
+        self, event: DirectoryTree.FileSelected
+    ) -> None:
+        """Re-emit file selection as FilesView.FileSelected."""
+        event.stop()
+        self.post_message(self.FileSelected(node=event.node, path=event.path))

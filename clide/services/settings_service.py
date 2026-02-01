@@ -32,6 +32,9 @@ class UserSettings(BaseModel):
     # Integrations
     jira_enabled: bool = False
 
+    # Debug
+    terminal_debug: bool = False  # Verbose terminal/pyte logging to ~/.clide/terminal_debug.log
+
 
 class SettingsService:
     """Service for loading and saving user settings.

@@ -9,7 +9,7 @@ Clide is a TUI IDE wrapper for Claude Code CLI, designed to be Claude-centric wi
 ### Design Principles
 - **Claude-centric**: Claude Code is the primary workspace, always visible
 - **Contextual panels**: Editor/Diff/Terminal appear only when needed
-- **VSCode-familiar**: Keybindings follow VSCode conventions
+- **Alt-key shortcuts**: Alt-based keybindings don't interfere with input fields
 - **Responsive**: Works on 13" laptop to widescreen monitors
 - **State preservation**: Hiding panels preserves all state (never destroy widgets)
 
@@ -246,22 +246,25 @@ error = "#f44747"
 - Settings: `theme = "summer-night"` in ClideSettings
 - Runtime: `app.theme = "dracula"`
 
-## Keybindings (VSCode-style)
+## Keybindings (Alt-based)
 
 | Action | Binding |
 |--------|---------|
-| Command palette | `Ctrl+Shift+P` |
-| Quick open | `Ctrl+P` |
-| Toggle left sidebar | `Ctrl+B` |
-| Toggle right sidebar | `Ctrl+Shift+B` |
-| Toggle terminal | `` Ctrl+` `` |
-| Focus Claude | `Ctrl+1` |
-| Focus Editor | `Ctrl+2` |
-| Focus Terminal | `Ctrl+3` |
-| Toggle compact mode | `Ctrl+Shift+C` |
-| Git panel | `Ctrl+Shift+G` |
-| Problems panel | `Ctrl+Shift+M` |
-| Select theme | `Ctrl+K Ctrl+T` |
+| Quit | `Alt+Q` |
+| Command palette | `Alt+P` |
+| Quick open | `Alt+O` |
+| Toggle left sidebar | `Alt+B` |
+| Toggle right sidebar | `Alt+Shift+B` |
+| Toggle terminal | `` Alt+` `` |
+| Focus Claude | `Alt+1` |
+| Focus Editor | `Alt+2` |
+| Focus Terminal | `Alt+3` |
+| Toggle compact mode | `Alt+C` |
+| Git panel | `Alt+G` |
+| Problems panel | `Alt+M` |
+| Select theme | `Alt+T` |
+| Save file | `Alt+S` |
+| Go to line | `Alt+L` |
 
 ## Configuration
 

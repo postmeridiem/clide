@@ -132,6 +132,17 @@ class SidebarPanel(Vertical):
         except Exception:
             pass
 
+    def highlight_file(self, path: Path) -> None:
+        """Highlight a file in the file browser.
+
+        Used to show which file Claude is working with.
+        """
+        try:
+            files_view = self.query_one(FilesView)
+            files_view.highlight_path(path)
+        except Exception:
+            pass
+
     def focus_tab(self, tab_id: str) -> None:
         """Focus a specific tab."""
         tabs = self.query_one("#sidebar-tabs", TabbedContent)

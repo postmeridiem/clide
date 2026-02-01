@@ -1,5 +1,6 @@
 """Pluggy hook specifications for Clide extensions."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pluggy
@@ -7,6 +8,8 @@ import pluggy
 if TYPE_CHECKING:
     from textual.app import App
     from textual.widget import Widget
+
+    from clide.services.file_watcher import FileEvent
 
 hookspec = pluggy.HookspecMarker("clide")
 hookimpl = pluggy.HookimplMarker("clide")
@@ -74,4 +77,40 @@ class ClideHookSpec:
 
         Returns:
             The modified (or original) widget
+        """
+
+    @hookspec
+    def clide_on_file_changed(self, event: "FileEvent") -> None:
+        """Called when a file is created, modified, deleted, or moved.
+
+        Extensions can use this to:
+        - Refresh TODO scanning
+        - Re-run linters
+        - Update Jira issue links
+        - Trigger custom actions
+
+        Args:
+            event: The file event with path, type, and timestamp
+        """
+
+    @hookspec
+    def clide_on_file_saved(self, path: Path) -> None:
+        """Called after a file is saved by the editor.
+
+        More specific than file_changed - only for user saves.
+
+        Args:
+            path: Absolute path to the saved file
+        """
+
+    @hookspec
+    def clide_on_claude_event(self, event_type: str, data: dict[str, Any]) -> None:
+        """Called when Claude Code performs an action.
+
+        Extensions can use this to react to Claude's actions,
+        such as opening files, making edits, or running commands.
+
+        Args:
+            event_type: Type of event (e.g., "file_read", "file_edit", "tool_use")
+            data: Event-specific data (e.g., {"path": "/path/to/file"})
         """

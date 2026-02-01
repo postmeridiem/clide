@@ -1,7 +1,8 @@
 """Extension manager for loading and managing Clide extensions."""
 
 from importlib.metadata import entry_points
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pluggy
 
@@ -9,6 +10,8 @@ from clide.extensions.hookspecs import ClideHookSpec
 
 if TYPE_CHECKING:
     from textual.app import App
+
+    from clide.services.file_watcher import FileEvent
 
 EXTENSION_NAMESPACE = "clide.extensions"
 
@@ -78,3 +81,28 @@ class ExtensionManager:
             app: The Clide application instance
         """
         self.hook.clide_on_app_shutdown(app=app)
+
+    def trigger_file_changed(self, event: "FileEvent") -> None:
+        """Trigger file change hooks for all extensions.
+
+        Args:
+            event: The file event with path, type, and timestamp
+        """
+        self.hook.clide_on_file_changed(event=event)
+
+    def trigger_file_saved(self, path: Path) -> None:
+        """Trigger file saved hooks for all extensions.
+
+        Args:
+            path: Path to the saved file
+        """
+        self.hook.clide_on_file_saved(path=path)
+
+    def trigger_claude_event(self, event_type: str, data: dict[str, Any]) -> None:
+        """Trigger Claude event hooks for all extensions.
+
+        Args:
+            event_type: Type of event (e.g., "file_read", "file_edit")
+            data: Event-specific data
+        """
+        self.hook.clide_on_claude_event(event_type=event_type, data=data)

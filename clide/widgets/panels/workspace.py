@@ -3,12 +3,13 @@
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import TabbedContent, TabPane
+from textual.widgets import ContentSwitcher, Tab, TabPane, Tabs
 
 from clide.models.diff import DiffContent
+from clide.widgets.components.action_bar import ActionBar, ActionButton, STANDARD_BUTTONS
 from clide.widgets.components.diff_pane import DiffPane
 from clide.widgets.components.editor_pane import EditorPane
 from clide.widgets.components.terminal_pane import TerminalPane
@@ -33,11 +34,41 @@ class WorkspacePanel(Vertical):
         display: none;
     }
 
-    WorkspacePanel TabbedContent {
+    WorkspacePanel.maximized {
         height: 100%;
     }
 
-    WorkspacePanel TabPane {
+    /* Header row with tabs and action bar */
+    WorkspacePanel #workspace-header {
+        height: auto;
+        width: 100%;
+        background: $surface;
+    }
+
+    WorkspacePanel #workspace-header Tabs {
+        width: 1fr;
+    }
+
+    WorkspacePanel #workspace-header #workspace-action-bar {
+        width: auto;
+        height: auto;
+        padding: 0 1;
+    }
+
+    WorkspacePanel #workspace-header ActionBarButton {
+        height: 1;
+        min-width: 3;
+        margin: 0;
+        padding: 0;
+    }
+
+    WorkspacePanel ContentSwitcher {
+        height: 1fr;
+    }
+
+    WorkspacePanel #pane-editor,
+    WorkspacePanel #pane-diff,
+    WorkspacePanel #pane-terminal {
         height: 100%;
         padding: 0;
     }
@@ -78,6 +109,16 @@ class WorkspacePanel(Vertical):
     # Reactive state - persisted when hidden
     visible: reactive[bool] = reactive(False)
     active_tab: reactive[str] = reactive("editor")
+    maximized: reactive[bool] = reactive(False)
+
+    # Messages for app-level actions
+    class MaximizeRequested(Message):
+        """Emitted when workspace should be maximized."""
+        pass
+
+    class RestoreRequested(Message):
+        """Emitted when workspace should be restored from maximized."""
+        pass
 
     def __init__(
         self,
@@ -87,19 +128,170 @@ class WorkspacePanel(Vertical):
         super().__init__(**kwargs)
         self._workdir = workdir or Path.cwd()
         self.id = "panel-workspace"
+        self._action_bar: ActionBar | None = None
 
     def compose(self) -> ComposeResult:
-        with TabbedContent(id="workspace-tabs"):
-            with TabPane("Editor", id="workspace-editor"):
+        # Header row with tabs and action bar
+        with Horizontal(id="workspace-header"):
+            yield Tabs(
+                Tab("Editor", id="tab-editor"),
+                Tab("Diff", id="tab-diff"),
+                Tab("Terminal", id="tab-terminal"),
+                id="workspace-tabs",
+            )
+            self._action_bar = ActionBar(id="workspace-action-bar")
+            yield self._action_bar
+
+        # Content area
+        with ContentSwitcher(id="workspace-content", initial="pane-editor"):
+            with Vertical(id="pane-editor"):
                 yield EditorPane(id="editor-pane")
-            with TabPane("Diff", id="workspace-diff"):
+            with Vertical(id="pane-diff"):
                 yield DiffPane(id="diff-pane")
-            with TabPane("Terminal", id="workspace-terminal"):
+            with Vertical(id="pane-terminal"):
                 yield TerminalPane(cwd=self._workdir, id="terminal-pane")
 
     def on_mount(self) -> None:
-        """Set initial visibility."""
+        """Set initial visibility and configure action bar."""
         self._update_visibility()
+        self._setup_action_bar()
+
+    def _setup_action_bar(self) -> None:
+        """Set up the action bar with standard buttons."""
+        if self._action_bar is None:
+            return
+
+        # Register standard buttons using simple ASCII icons
+        # Save button (for editor)
+        self._action_bar.register_button(ActionButton(
+            id="save",
+            icon="[S]",
+            tooltip="Save",
+        ))
+
+        # Add separator
+        self._action_bar.add_separator()
+
+        # Close button
+        self._action_bar.register_button(ActionButton(
+            id="close",
+            icon="x",
+            tooltip="Close",
+        ))
+
+        # Minimize button
+        self._action_bar.register_button(ActionButton(
+            id="minimize",
+            icon="_",
+            tooltip="Minimize",
+        ))
+
+        # Maximize button
+        self._action_bar.register_button(ActionButton(
+            id="maximize",
+            icon="^",
+            tooltip="Maximize",
+        ))
+
+        # Restore button (hidden by default)
+        self._action_bar.register_button(ActionButton(
+            id="restore",
+            icon="v",
+            tooltip="Restore",
+            visible=False,
+        ))
+
+        # Update button visibility based on current tab
+        self._update_action_bar_for_tab(self.active_tab)
+
+    def _update_action_bar_for_tab(self, tab: str) -> None:
+        """Update action bar buttons based on active tab."""
+        if self._action_bar is None:
+            return
+
+        # Save button only visible for editor
+        self._action_bar.set_button_visible("save", tab == "editor")
+
+        # Update save button enabled state based on editor modified state
+        if tab == "editor":
+            try:
+                editor = self.query_one("#editor-pane", EditorPane)
+                self._action_bar.set_button_enabled("save", editor.modified)
+            except Exception:
+                self._action_bar.set_button_enabled("save", False)
+
+    def watch_maximized(self, maximized: bool) -> None:
+        """Handle maximize state changes."""
+        if self._action_bar is None:
+            return
+
+        # Toggle maximize/restore button visibility
+        self._action_bar.set_button_visible("maximize", not maximized)
+        self._action_bar.set_button_visible("restore", maximized)
+
+        # Update CSS class
+        if maximized:
+            self.add_class("maximized")
+        else:
+            self.remove_class("maximized")
+
+    def on_action_bar_button_pressed(self, event: ActionBar.ButtonPressed) -> None:
+        """Handle action bar button presses."""
+        button_id = event.button_id
+
+        if button_id == "save":
+            self._action_save()
+        elif button_id == "close":
+            self._action_close()
+        elif button_id == "minimize":
+            self._action_minimize()
+        elif button_id == "maximize":
+            self._action_maximize()
+        elif button_id == "restore":
+            self._action_restore()
+
+    def _action_save(self) -> None:
+        """Save the current file in editor."""
+        try:
+            editor = self.query_one("#editor-pane", EditorPane)
+            editor.save()
+        except Exception as e:
+            self.app.notify(f"Save failed: {e}", severity="error")
+
+    def _action_close(self) -> None:
+        """Close the workspace panel."""
+        self.post_message(self.CloseRequested())
+        self.hide()
+
+    def _action_minimize(self) -> None:
+        """Minimize (hide) the workspace panel."""
+        self.hide()
+
+    def _action_maximize(self) -> None:
+        """Maximize the workspace panel."""
+        self.maximized = True
+        self.post_message(self.MaximizeRequested())
+
+    def _action_restore(self) -> None:
+        """Restore from maximized state."""
+        self.maximized = False
+        self.post_message(self.RestoreRequested())
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        """Handle tab switches to update action bar and content."""
+        # Extract tab name from tab id (e.g., "tab-editor" -> "editor")
+        tab_id = event.tab.id
+        if tab_id and tab_id.startswith("tab-"):
+            tab_name = tab_id.replace("tab-", "")
+            self.active_tab = tab_name
+            self._update_action_bar_for_tab(tab_name)
+
+            # Switch content
+            try:
+                content = self.query_one("#workspace-content", ContentSwitcher)
+                content.current = f"pane-{tab_name}"
+            except Exception:
+                pass
 
     def watch_visible(self, visible: bool) -> None:
         """Handle visibility changes - hide, don't destroy."""
@@ -128,9 +320,19 @@ class WorkspacePanel(Vertical):
 
     def focus_tab(self, tab_id: str) -> None:
         """Focus a specific tab."""
-        tabs = self.query_one("#workspace-tabs", TabbedContent)
-        tabs.active = f"workspace-{tab_id}"
-        self.active_tab = tab_id
+        try:
+            # Activate the tab
+            tabs = self.query_one("#workspace-tabs", Tabs)
+            tabs.active = f"tab-{tab_id}"
+
+            # Switch content
+            content = self.query_one("#workspace-content", ContentSwitcher)
+            content.current = f"pane-{tab_id}"
+
+            self.active_tab = tab_id
+            self._update_action_bar_for_tab(tab_id)
+        except Exception:
+            pass
 
     # Editor methods
     def open_file(self, path: Path, line: int | None = None) -> None:

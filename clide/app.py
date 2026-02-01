@@ -17,7 +17,16 @@ from clide.controllers.problems import ProblemsController
 from clide.controllers.todos import TodosController
 from clide.extensions.manager import ExtensionManager
 from clide.models.config import ClideSettings
+from clide.services.claude_events import (
+    ClaudeEvent,
+    FileReadEvent,
+    FileEditEvent,
+    FileWriteEvent,
+    setup_event_parsing,
+)
+from clide.services.file_watcher import FileEvent, FileEventMessage, setup_file_watching
 from clide.services.settings_service import SettingsService, get_settings_service
+from clide.services.syntax_service import register_languages
 from clide.themes.registry import get_all_themes, get_theme
 from clide.widgets.panels.claude import ClaudePanel
 from clide.widgets.panels.context import ContextPanel
@@ -62,11 +71,13 @@ class ClideApp(App[None]):
     SidebarPanel {
         width: 20%;
         min-width: 25;
+        max-width: 50;
     }
 
     ContextPanel {
         width: 25%;
         min-width: 30;
+        max-width: 50;
     }
 
     /* Workspace + Claude layout */
@@ -104,35 +115,41 @@ class ClideApp(App[None]):
     }
     """
 
-    # VSCode-style keybindings
+    # Keybindings
+    # OS-native shortcuts (Ctrl on Windows/Linux, Cmd on Mac mapped to ctrl in terminal)
+    # Alt-based shortcuts for actions that shouldn't interfere with input fields
+    # Note: priority=True ensures bindings work even when widgets have focus
     BINDINGS: ClassVar[list[Binding]] = [
         # Global
-        Binding("ctrl+q", "quit", "Quit"),
-        Binding("ctrl+shift+p", "command_palette", "Commands"),
-        Binding("ctrl+p", "quick_open", "Quick Open"),
-        Binding("ctrl+b", "toggle_sidebar", "Toggle Sidebar"),
-        Binding("ctrl+shift+b", "toggle_context", "Toggle Context"),
-        Binding("ctrl+`", "toggle_terminal", "Toggle Terminal"),
-        Binding("ctrl+shift+c", "toggle_compact", "Compact Mode"),
+        Binding("alt+q", "quit", "Quit", priority=True),
+        Binding("alt+p", "command_palette", "Commands"),
+        Binding("alt+o", "quick_open", "Quick Open"),
+        Binding("alt+b", "toggle_sidebar", "Sidebar", priority=True),
+        Binding("alt+shift+b", "toggle_context", "Context", priority=True),
+        Binding("alt+`", "toggle_terminal", "Terminal", priority=True),
+        Binding("alt+c", "toggle_compact", "Compact", priority=True),
         Binding("f11", "toggle_fullscreen", "Fullscreen"),
         Binding("escape", "escape", "Escape", show=False),
         # Navigation
-        Binding("ctrl+1", "focus_claude", "Focus Claude", show=False),
-        Binding("ctrl+2", "focus_editor", "Focus Editor", show=False),
-        Binding("ctrl+3", "focus_terminal", "Focus Terminal", show=False),
-        Binding("ctrl+0", "focus_sidebar", "Focus Sidebar", show=False),
+        Binding("alt+1", "focus_claude", "Claude", show=False, priority=True),
+        Binding("alt+2", "focus_editor", "Editor", show=False, priority=True),
+        Binding("alt+3", "focus_terminal", "Terminal", show=False, priority=True),
+        Binding("alt+0", "focus_sidebar", "Sidebar", show=False, priority=True),
+        Binding("alt+w", "close_tab", "Close Tab", show=False),
         Binding("ctrl+w", "close_tab", "Close Tab", show=False),
         # Git
-        Binding("ctrl+shift+g", "open_git", "Git", show=False),
+        Binding("alt+g", "open_git", "Git", show=False, priority=True),
         # Problems
-        Binding("ctrl+shift+m", "open_problems", "Problems", show=False),
+        Binding("alt+m", "open_problems", "Problems", show=False, priority=True),
         Binding("f8", "next_problem", "Next Problem", show=False),
         Binding("shift+f8", "prev_problem", "Prev Problem", show=False),
-        # Editor
-        Binding("ctrl+s", "save_file", "Save", show=False),
-        Binding("ctrl+g", "goto_line", "Go to Line", show=False),
+        # Editor - OS-native shortcuts with priority
+        Binding("ctrl+s", "save_file", "Save", priority=True),
+        Binding("alt+s", "save_file", "Save", show=False, priority=True),
+        Binding("ctrl+z", "undo", "Undo", show=False, priority=True),
+        Binding("alt+l", "goto_line", "Go to Line", show=False),
         # Theme
-        Binding("ctrl+k ctrl+t", "select_theme", "Select Theme", show=False),
+        Binding("alt+t", "select_theme", "Theme", priority=True),
     ]
 
     # Reactive state
@@ -172,6 +189,9 @@ class ClideApp(App[None]):
         # Register themes
         self._register_themes()
 
+        # Register additional syntax highlighting languages
+        register_languages()
+
     def _register_themes(self) -> None:
         """Register all themes with Textual."""
         for theme_meta in get_all_themes():
@@ -192,6 +212,7 @@ class ClideApp(App[None]):
         self.theme = theme_name
         if save:
             self._settings_service.set("theme", theme_name)
+            self.notify(f"Theme set to: {theme_name}", severity="information")
 
     def save_user_settings(self) -> None:
         """Save current user settings to disk."""
@@ -234,6 +255,12 @@ class ClideApp(App[None]):
         self.extension_manager.load_extensions()
         await self.extension_manager.trigger_app_startup(self)
 
+        # Set up file watching for real-time sync
+        self._setup_file_watching()
+
+        # Set up Claude event parsing for IDE integration
+        self._setup_claude_events()
+
         # Initial data refresh
         await self._refresh_git()
         await self._refresh_problems()
@@ -243,6 +270,113 @@ class ClideApp(App[None]):
 
         # Focus Claude panel
         self.action_focus_claude()
+
+    def _setup_file_watching(self) -> None:
+        """Set up file system watching for real-time updates."""
+        self._file_watcher = setup_file_watching(
+            self.workdir,
+            handlers=[self._on_file_changed],
+        )
+
+    def _setup_claude_events(self) -> None:
+        """Set up Claude event parsing for IDE integration."""
+        setup_event_parsing(self._on_claude_event)
+
+    def _on_file_changed(self, event: FileEvent) -> None:
+        """Handle file system changes by posting a FileEventMessage.
+
+        This bridges the watchdog callback to Textual's message system,
+        allowing widgets to subscribe to file events via on_file_event_message.
+
+        Note: This is called from the watchdog thread, so we use call_from_thread
+        to safely execute on the main thread. The FileEvent (Pydantic model) is
+        thread-safe, but we create the Message on the main thread to avoid any
+        potential Textual threading issues.
+        """
+        def post_file_event():
+            self.post_message(FileEventMessage(event))
+
+        self.call_from_thread(post_file_event)
+
+    async def on_file_event_message(self, message: FileEventMessage) -> None:
+        """Handle file event messages from the file watcher.
+
+        This is the central handler for all file system events.
+        The App coordinates updates to child widgets since Textual
+        messages bubble up (not down to children).
+        """
+        event = message.event
+
+        # Trigger extension hooks
+        self.extension_manager.trigger_file_changed(event)
+
+        # Refresh file tree for created/deleted/moved files
+        if event.event_type in ("created", "deleted", "moved"):
+            try:
+                sidebar = self.query_one(SidebarPanel)
+                sidebar.refresh_files()
+            except Exception:
+                pass
+
+        # Use call_later to avoid blocking the event loop during refreshes
+        # This ensures UI responsiveness isn't affected by heavy git operations
+        if event.event_type in ("created", "modified", "deleted", "moved"):
+            self.call_later(self._async_refresh_after_file_change, event)
+
+    async def _async_refresh_after_file_change(self, event: FileEvent) -> None:
+        """Perform async refreshes after a file change without blocking UI."""
+        # Refresh git status for all file changes
+        await self._refresh_git()
+
+        # Only refresh problems/todos for Python/text files
+        if event.path.suffix in (".py", ".pyi", ".txt", ".md", ".rst"):
+            if event.event_type in ("created", "modified"):
+                await self._refresh_problems()
+                await self._refresh_todos()
+
+    def _on_claude_event(self, event: ClaudeEvent) -> None:
+        """Handle Claude Code events for IDE integration.
+
+        When Claude reads/edits files, we can update the UI accordingly.
+        """
+        # Schedule handling on the main thread
+        self.call_later(self._handle_claude_event, event)
+
+    async def _handle_claude_event(self, event: ClaudeEvent) -> None:
+        """Async handler for Claude events."""
+        if isinstance(event, FileReadEvent):
+            # Claude read a file - highlight in sidebar file tree
+            try:
+                sidebar = self.query_one(SidebarPanel)
+                sidebar.highlight_file(event.path)
+            except Exception:
+                pass
+
+            # Trigger extension hook
+            self.extension_manager.trigger_claude_event(
+                "file_read", {"path": str(event.path)}
+            )
+
+        elif isinstance(event, FileEditEvent):
+            # Claude edited a file - notify user
+            # Note: Git refresh is handled by FileEventMessage from the file watcher
+            self.notify(f"Claude edited: {event.path.name}", severity="information")
+
+            # Trigger extension hook
+            self.extension_manager.trigger_claude_event(
+                "file_edit", {"path": str(event.path)}
+            )
+
+        elif isinstance(event, FileWriteEvent):
+            # Claude created/wrote a file - notify user
+            # Note: Git refresh and file tree refresh are handled by
+            # FileEventMessage from the file watcher (event-driven)
+            self.notify(f"Claude wrote: {event.path.name}", severity="information")
+
+            # Trigger extension hook
+            self.extension_manager.trigger_claude_event(
+                "file_write", {"path": str(event.path)}
+            )
 
     def _apply_user_settings(self) -> None:
         """Apply saved user settings on startup."""
@@ -255,6 +389,10 @@ class ClideApp(App[None]):
 
         # Compact mode
         self.compact_mode = self._user_settings.compact_mode
+
+        # Re-apply theme after mount (Textual needs this for proper initialization)
+        if self._user_settings.theme:
+            self.theme = self._user_settings.theme
 
     # Reactive watchers
     def watch_workspace_visible(self, visible: bool) -> None:
@@ -406,9 +544,26 @@ class ClideApp(App[None]):
         pass
 
     def action_save_file(self) -> None:
-        """Save current file."""
-        # EditorPane handles save internally
-        pass
+        """Save current file in editor."""
+        try:
+            workspace = self.query_one(WorkspacePanel)
+            if workspace.has_unsaved_changes():
+                workspace._action_save()
+                # FileSaved message will be emitted by EditorPane if successful
+            else:
+                self.notify("No unsaved changes", severity="warning")
+        except Exception as e:
+            self.notify(f"Save failed: {e}", severity="error")
+
+    def action_undo(self) -> None:
+        """Undo last action in focused widget."""
+        # Undo is handled by the focused widget (TextArea has built-in undo)
+        # This action provides feedback if no undo is available
+        focused = self.focused
+        if focused and hasattr(focused, "undo"):
+            focused.undo()
+        else:
+            self.notify("Undo not available", severity="warning")
 
     def action_goto_line(self) -> None:
         """Go to line dialog."""
@@ -497,9 +652,10 @@ class ClideApp(App[None]):
 
     async def on_workspace_panel_file_saved(
         self,
-        _event: WorkspacePanel.FileSaved,
+        event: WorkspacePanel.FileSaved,
     ) -> None:
         """Handle file save - refresh problems and git."""
+        self.notify(f"Saved: {event.path.name}", severity="information")
         await self._refresh_git()
         await self._refresh_problems()
 
@@ -556,3 +712,40 @@ class ClideApp(App[None]):
         """Handle Claude Code exited."""
         if event.return_code != 0:
             self.notify(f"Claude Code exited with code {event.return_code}", severity="warning")
+
+    def on_workspace_panel_maximize_requested(
+        self,
+        _event: WorkspacePanel.MaximizeRequested,
+    ) -> None:
+        """Handle workspace maximize request - hide sidebars."""
+        # Hide sidebars when workspace is maximized
+        sidebar = self.query_one(SidebarPanel)
+        context = self.query_one(ContextPanel)
+        sidebar.display = False
+        context.display = False
+
+        # Hide Claude panel
+        claude = self.query_one(ClaudePanel)
+        claude.display = False
+
+    def on_workspace_panel_restore_requested(
+        self,
+        _event: WorkspacePanel.RestoreRequested,
+    ) -> None:
+        """Handle workspace restore request - show sidebars."""
+        # Restore sidebars based on saved visibility settings
+        sidebar = self.query_one(SidebarPanel)
+        context = self.query_one(ContextPanel)
+        sidebar.display = self._user_settings.sidebar_visible
+        context.display = self._user_settings.context_visible
+
+        # Show Claude panel
+        claude = self.query_one(ClaudePanel)
+        claude.display = True
+
+    def on_workspace_panel_close_requested(
+        self,
+        _event: WorkspacePanel.CloseRequested,
+    ) -> None:
+        """Handle workspace close request."""
+        self.workspace_visible = False

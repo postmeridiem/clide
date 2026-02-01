@@ -9,6 +9,37 @@ from textual.widgets import Static, TextArea
 
 from clide.models.editor import CursorPosition, FileBuffer
 
+# TypeScript highlight query (basic)
+TYPESCRIPT_HIGHLIGHTS = """
+(comment) @comment
+(string) @string
+(number) @number
+(identifier) @variable
+(type_identifier) @type
+(property_identifier) @property
+(function_declaration name: (identifier) @function)
+(method_definition name: (property_identifier) @function.method)
+(call_expression function: (identifier) @function.call)
+(import_statement) @keyword
+(export_statement) @keyword
+["const" "let" "var" "function" "class" "interface" "type" "enum"
+ "if" "else" "for" "while" "do" "switch" "case" "default" "break"
+ "continue" "return" "throw" "try" "catch" "finally" "new" "delete"
+ "typeof" "instanceof" "in" "of" "async" "await" "yield" "import"
+ "export" "from" "as" "extends" "implements" "static" "public"
+ "private" "protected" "readonly" "abstract" "declare" "namespace"
+ "module" "require"] @keyword
+["=>" "=" "+" "-" "*" "/" "%" "**" "++" "--" "==" "!=" "===" "!=="
+ "<" ">" "<=" ">=" "&&" "||" "!" "?" ":" "?." "??" "&" "|" "^" "~"
+ "<<" ">>" ">>>"] @operator
+["(" ")" "[" "]" "{" "}"] @punctuation.bracket
+["," "." ";" ":"] @punctuation.delimiter
+(true) @constant.builtin
+(false) @constant.builtin
+(null) @constant.builtin
+(undefined) @constant.builtin
+"""
+
 
 class EditorPane(Vertical):
     """Editor pane with TextArea and status bar."""
@@ -72,6 +103,45 @@ class EditorPane(Vertical):
     def __init__(self, buffer: FileBuffer | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self._buffer = buffer
+        self._typescript_registered = False
+
+    def on_mount(self) -> None:
+        """Register additional languages on mount."""
+        self._register_typescript()
+
+    def _register_typescript(self) -> None:
+        """Register TypeScript and TSX languages if available."""
+        if self._typescript_registered:
+            return
+
+        try:
+            import tree_sitter_typescript as tst
+
+            textarea = self.query_one("#editor-textarea", TextArea)
+
+            # Register TypeScript
+            try:
+                textarea.register_language(
+                    "typescript",
+                    tst.language_typescript(),
+                    TYPESCRIPT_HIGHLIGHTS,
+                )
+            except Exception:
+                pass
+
+            # Register TSX (reuse TypeScript highlights)
+            try:
+                textarea.register_language(
+                    "tsx",
+                    tst.language_tsx(),
+                    TYPESCRIPT_HIGHLIGHTS,
+                )
+            except Exception:
+                pass
+
+            self._typescript_registered = True
+        except ImportError:
+            pass
 
     def compose(self) -> ComposeResult:
         if self._buffer:
@@ -97,8 +167,19 @@ class EditorPane(Vertical):
         self._buffer = buffer
 
         textarea = self.query_one("#editor-textarea", TextArea)
+
+        # Register TypeScript if needed
+        if buffer.language in ("typescript", "tsx"):
+            self._register_typescript()
+
         textarea.load_text(buffer.content)
-        textarea.language = buffer.language
+
+        # Set language (will use JavaScript as fallback for TS if registration failed)
+        language = buffer.language
+        if language in ("typescript", "tsx") and language not in textarea.available_languages:
+            language = "javascript"  # Fallback to JS highlighting
+
+        textarea.language = language
 
         # Update tab
         tab = self.query_one(".file-tab", Static)
@@ -167,7 +248,12 @@ class EditorPane(Vertical):
         """Load a file from disk into the editor."""
         from clide.services.file_service import FileService
 
-        content = FileService.read_file(path)
+        try:
+            content = FileService.read_file(path)
+        except OSError as e:
+            # Show error in editor
+            content = f"# Error loading file\n# {e}"
+
         language = FileService.detect_language(path)
 
         buffer = FileBuffer(
