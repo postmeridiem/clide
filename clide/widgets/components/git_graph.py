@@ -1,37 +1,48 @@
 """Git graph visualization component."""
 
+from rich.markup import escape
 from textual.app import ComposeResult
-from textual.containers import Vertical
 from textual.message import Message
-from textual.widgets import RichLog
+from textual.widgets import ListView, Static
 
 from clide.models.git import GitCommit
+from clide.widgets.components.tile_list import TileItem, TileListView
 
 
-class GitGraphView(Vertical):
-    """View for git commit graph visualization."""
+class CommitItem(TileItem):
+    """A single commit item displayed as a tile."""
 
-    DEFAULT_CSS = """
-    GitGraphView {
-        height: 100%;
-    }
-
-    GitGraphView RichLog {
-        height: 100%;
-        scrollbar-size: 1 1;
-    }
-
-    GitGraphView .commit-line {
-        height: auto;
-    }
-    """
-
-    # Graph drawing characters
     COMMIT = "●"
     MERGE = "◆"
-    LINE = "│"
-    BRANCH = "├"
-    JOIN = "┴"
+
+    def __init__(self, commit: GitCommit) -> None:
+        super().__init__()
+        self.commit = commit
+
+    def compose(self) -> ComposeResult:
+        symbol = self.MERGE if self.commit.is_merge else self.COMMIT
+
+        # Format refs (branches, tags)
+        refs_str = ""
+        if self.commit.refs:
+            refs = ", ".join(self.commit.refs)
+            refs_str = f" [bold cyan]({escape(refs)})[/]"
+
+        # Truncate message
+        message = self.commit.message[:60]
+        if len(self.commit.message) > 60:
+            message += "..."
+
+        # Multi-line tile format
+        yield Static(
+            f"[bold yellow]{symbol}[/] [bold]{escape(message)}[/]{refs_str}\n"
+            f"  [dim]{self.commit.short_hash} · {escape(self.commit.author)} · {self.commit.date}[/]",
+            markup=True,
+        )
+
+
+class GitGraphView(TileListView):
+    """View for git commit graph visualization."""
 
     class CommitSelected(Message):
         """Emitted when a commit is selected."""
@@ -45,46 +56,23 @@ class GitGraphView(Vertical):
         self._commits = commits or []
 
     def compose(self) -> ComposeResult:
-        yield RichLog(id="graph-log", highlight=True, markup=True)
-
-    def on_mount(self) -> None:
-        """Render initial graph."""
-        self._render_graph()
+        yield ListView(
+            *[CommitItem(c) for c in self._commits],
+            id="commit-list",
+        )
 
     def update_commits(self, commits: list[GitCommit]) -> None:
         """Update the commit list."""
         self._commits = commits
-        self._render_graph()
+        try:
+            commit_list = self.query_one("#commit-list", ListView)
+            commit_list.clear()
+            for commit in commits:
+                commit_list.append(CommitItem(commit))
+        except Exception:
+            pass
 
-    def _render_graph(self) -> None:
-        """Render the commit graph."""
-        log = self.query_one("#graph-log", RichLog)
-        log.clear()
-
-        for commit in self._commits:
-            line = self._format_commit_line(commit)
-            log.write(line)
-
-    def _format_commit_line(self, commit: GitCommit) -> str:
-        """Format a single commit line."""
-        # Choose commit symbol
-        symbol = self.MERGE if commit.is_merge else self.COMMIT
-
-        # Format refs (branches, tags)
-        refs_str = ""
-        if commit.refs:
-            refs = ", ".join(commit.refs)
-            refs_str = f" [bold cyan]({refs})[/]"
-
-        # Truncate message
-        message = commit.message[:50]
-        if len(commit.message) > 50:
-            message += "..."
-
-        return (
-            f"[bold yellow]{symbol}[/] "
-            f"[dim]{commit.short_hash}[/]"
-            f"{refs_str} "
-            f"{message} "
-            f"[dim]- {commit.author}, {commit.date}[/]"
-        )
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """Handle commit selection."""
+        if isinstance(event.item, CommitItem):
+            self.post_message(self.CommitSelected(event.item.commit))

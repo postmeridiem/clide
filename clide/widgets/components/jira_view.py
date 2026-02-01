@@ -11,35 +11,41 @@ class JiraView(Vertical):
 
     DEFAULT_CSS = """
     JiraView {
-        height: 100%;
+        height: 1fr;
+        background: $background;
     }
 
     JiraView .jira-header {
         height: 1;
         background: $surface;
         padding: 0 1;
+        border-bottom: solid $primary;
     }
 
     JiraView Markdown {
         height: 1fr;
         padding: 1;
+        background: $background;
     }
 
     JiraView .jira-actions {
         height: auto;
-        padding: 0 1;
-        background: $panel;
+        padding: 1;
+        background: $surface;
+        border-top: solid $primary;
     }
 
     JiraView .disabled-message {
         padding: 2;
         text-align: center;
         color: $warning;
+        background: $panel;
     }
     """
 
     class RefreshRequested(Message):
         """Emitted when refresh is requested."""
+
         pass
 
     class IssueClicked(Message):

@@ -44,25 +44,35 @@ class GitService:
 
                 # Parse status
                 if index_status == "?":
+                    # Untracked files go in both untracked list and unstaged
                     untracked.append(path)
+                    unstaged.append(
+                        GitChange(
+                            path=path,
+                            status=ChangeStatus.UNTRACKED,
+                            staged=False,
+                        )
+                    )
                 else:
                     if index_status != " ":
-                        staged.append(GitChange(
-                            path=path,
-                            status=self._parse_status(index_status),
-                            staged=True,
-                        ))
+                        staged.append(
+                            GitChange(
+                                path=path,
+                                status=self._parse_status(index_status),
+                                staged=True,
+                            )
+                        )
                     if worktree_status != " ":
-                        unstaged.append(GitChange(
-                            path=path,
-                            status=self._parse_status(worktree_status),
-                            staged=False,
-                        ))
+                        unstaged.append(
+                            GitChange(
+                                path=path,
+                                status=self._parse_status(worktree_status),
+                                staged=False,
+                            )
+                        )
 
         # Get current branch
-        branch_result = await self._process.run(
-            "git", "branch", "--show-current"
-        )
+        branch_result = await self._process.run("git", "branch", "--show-current")
         branch = branch_result.stdout.strip() if branch_result.success else "HEAD"
 
         # Get ahead/behind
@@ -80,8 +90,7 @@ class GitService:
     async def _get_ahead_behind(self, branch: str) -> tuple[int, int]:
         """Get commits ahead/behind upstream."""
         result = await self._process.run(
-            "git", "rev-list", "--left-right", "--count",
-            f"{branch}...@{{upstream}}"
+            "git", "rev-list", "--left-right", "--count", f"{branch}...@{{upstream}}"
         )
         if result.success:
             parts = result.stdout.strip().split()
@@ -146,8 +155,11 @@ class GitService:
             List of GitBranch objects
         """
         result = await self._process.run(
-            "git", "branch", "-a", "--format",
-            "%(HEAD)%(refname:short)|%(upstream:short)|%(objectname:short)|%(subject)"
+            "git",
+            "branch",
+            "-a",
+            "--format",
+            "%(HEAD)%(refname:short)|%(upstream:short)|%(objectname:short)|%(subject)",
         )
 
         branches: list[GitBranch] = []
@@ -159,14 +171,16 @@ class GitService:
                 parts = line[1:].split("|")
                 if len(parts) >= 4:
                     name = parts[0].strip()
-                    branches.append(GitBranch(
-                        name=name,
-                        is_current=is_current,
-                        is_remote=name.startswith("remotes/"),
-                        tracking=parts[1] or None,
-                        commit_hash=parts[2],
-                        commit_message=parts[3],
-                    ))
+                    branches.append(
+                        GitBranch(
+                            name=name,
+                            is_current=is_current,
+                            is_remote=name.startswith("remotes/"),
+                            tracking=parts[1] or None,
+                            commit_hash=parts[2],
+                            commit_message=parts[3],
+                        )
+                    )
 
         return branches
 
@@ -227,7 +241,8 @@ class GitService:
             List of GitCommit objects
         """
         result = await self._process.run(
-            "git", "log",
+            "git",
+            "log",
             f"--max-count={max_count}",
             "--format=%H|%h|%s|%an|%ar|%P|%D",
             "--all",
@@ -242,15 +257,17 @@ class GitService:
                 if len(parts) >= 7:
                     parents = tuple(parts[5].split()) if parts[5] else ()
                     refs = tuple(r.strip() for r in parts[6].split(",")) if parts[6] else ()
-                    commits.append(GitCommit(
-                        hash=parts[0],
-                        short_hash=parts[1],
-                        message=parts[2],
-                        author=parts[3],
-                        date=parts[4],
-                        is_merge=len(parents) > 1,
-                        parents=parents,
-                        refs=refs,
-                    ))
+                    commits.append(
+                        GitCommit(
+                            hash=parts[0],
+                            short_hash=parts[1],
+                            message=parts[2],
+                            author=parts[3],
+                            date=parts[4],
+                            is_merge=len(parents) > 1,
+                            parents=parents,
+                            refs=refs,
+                        )
+                    )
 
         return commits

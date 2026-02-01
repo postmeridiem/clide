@@ -1,13 +1,15 @@
-"""TODOs view component."""
+"""TODOs view component with sub-tabs for Project and Comment TODOs."""
 
 from pathlib import Path
 
+from rich.markup import escape
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.message import Message
-from textual.widgets import Button, Collapsible, ListItem, ListView, Static
+from textual.widgets import Button, ListView, Static, TabbedContent, TabPane
 
 from clide.models.todos import ProjectTodoItem, TodoItem, TodoType
+from clide.widgets.components.tile_list import TileItem, TileListView
 
 # Template for new TODO.md files
 TODO_MD_TEMPLATE = """# TODO
@@ -42,8 +44,8 @@ Project TODO items.
 """
 
 
-class TodoListItem(ListItem):
-    """A single code TODO item."""
+class TodoListItem(TileItem):
+    """A single code TODO item displayed as a tile."""
 
     def __init__(self, item: TodoItem) -> None:
         super().__init__()
@@ -53,17 +55,23 @@ class TodoListItem(ListItem):
     def compose(self) -> ComposeResult:
         icon = self.item.type_icon
         type_class = self.item.todo_type.value.lower()
+        # Show just filename, not full path
+        filename = (
+            self.item.file_path.name
+            if hasattr(self.item.file_path, "name")
+            else str(self.item.file_path).split("/")[-1]
+        )
+        # Escape user content to prevent markup errors
+        safe_text = escape(self.item.text)
 
         yield Static(
-            f"[{type_class}]{icon} {self.item.todo_type.value}[/] "
-            f"[dim]{self.item.file_path}:{self.item.line}[/] "
-            f"{self.item.text}",
+            f"[{type_class}]{icon}[/] {safe_text}\n" f"  [dim]{filename}:{self.item.line}[/]",
             markup=True,
         )
 
 
-class ProjectTodoListItem(ListItem):
-    """A single project TODO item from TODO.md."""
+class ProjectTodoListItem(TileItem):
+    """A single project TODO item from TODO.md displayed as a tile."""
 
     def __init__(self, item: ProjectTodoItem) -> None:
         super().__init__()
@@ -72,54 +80,54 @@ class ProjectTodoListItem(ListItem):
 
     def compose(self) -> ComposeResult:
         icon = self.item.icon
-        checked_style = "dim strike" if self.item.checked else ""
-        category = f"[dim]{self.item.category}[/] " if self.item.subsection else ""
+        category = f"[dim]{escape(self.item.category)}[/] " if self.item.subsection else ""
+        safe_text = escape(self.item.text)
+
+        text_part = f"[dim strike]{safe_text}[/]" if self.item.checked else safe_text
 
         yield Static(
-            f"[project]{icon}[/] {category}" f"[{checked_style}]{self.item.text}[/]",
+            f"[project]{icon}[/] {category}{text_part}",
             markup=True,
         )
 
 
-class TodosView(Vertical):
-    """View for TODO/FIXME comments and project TODOs."""
+class TodosView(TileListView):
+    """View for TODO/FIXME comments and project TODOs with sub-tabs."""
 
     DEFAULT_CSS = """
     TodosView {
-        height: 100%;
+        height: 1fr;
+        background: $background;
     }
 
-    TodosView .todos-header {
-        height: 1;
-        background: $surface;
-        padding: 0 1;
+    TodosView TabbedContent {
+        height: 1fr;
     }
 
-    TodosView .section-header {
-        height: 1;
-        background: $panel;
-        padding: 0 1;
-        color: $text-muted;
+    TodosView Tabs {
+        width: 100%;
     }
 
-    TodosView ListView {
-        height: auto;
-        max-height: 50%;
+    TodosView Tab {
+        width: 1fr;
     }
 
+    TodosView TabPane {
+        height: 1fr;
+        padding: 0;
+    }
+
+    TodosView ContentSwitcher {
+        height: 1fr;
+    }
+
+    TodosView #project-todos-list,
     TodosView #code-todos-list {
         height: 1fr;
-        max-height: none;
     }
 
-    TodosView Collapsible {
-        padding: 0;
-        border: none;
-    }
-
-    TodosView CollapsibleTitle {
-        background: $panel;
-        padding: 0 1;
+    TodosView ListItem {
+        padding: 1 1;
     }
 
     TodosView .todo { color: $primary; }
@@ -133,7 +141,7 @@ class TodosView(Vertical):
     TodosView .empty-message {
         padding: 2;
         text-align: center;
-        color: $success;
+        color: $text-muted;
     }
 
     TodosView .create-todo-section {
@@ -193,26 +201,28 @@ class TodosView(Vertical):
         self._has_todo_md = (self._project_path / "TODO.md").exists()
 
     def compose(self) -> ComposeResult:
-        total = len(self._items) + len(self._project_items)
-        yield Static(f"TODOs ({total})", classes="todos-header", id="todos-header")
+        # Calculate initial counts
+        unchecked_project = sum(1 for i in self._project_items if not i.checked)
+        code_count = len(self._items)
 
-        # Create TODO.md section (shown when file doesn't exist)
-        with Vertical(classes="create-todo-section", id="create-todo-section"):
-            yield Static(
-                "No TODO.md found in project",
-                classes="create-todo-message",
-            )
-            yield Button("Create TODO.md", id="create-todo-btn", variant="primary")
+        with TabbedContent(id="todos-tabs"):
+            # Project TODOs tab (default, for Claude collaboration)
+            with TabPane(f"Project ({unchecked_project})", id="tab-project"):
+                # Create TODO.md section (shown when file doesn't exist)
+                with Vertical(classes="create-todo-section", id="create-todo-section"):
+                    yield Static(
+                        "No TODO.md found in project",
+                        classes="create-todo-message",
+                    )
+                    yield Button("Create TODO.md", id="create-todo-btn", variant="primary")
 
-        # Project TODOs section (collapsible)
-        with Collapsible(title="Project TODOs", id="project-todos-section"):
-            yield ListView(id="project-todos-list")
+                yield ListView(id="project-todos-list")
+                yield Static("No project TODOs", classes="empty-message", id="project-empty")
 
-        # Code TODOs section
-        yield Static("Code TODOs", classes="section-header", id="code-todos-header")
-        yield ListView(id="code-todos-list")
-
-        yield Static("No TODOs found", classes="empty-message", id="todos-empty")
+            # Code Comment TODOs tab
+            with TabPane(f"Comments ({code_count})", id="tab-comments"):
+                yield ListView(id="code-todos-list")
+                yield Static("No code TODOs found ✓", classes="empty-message", id="code-empty")
 
     def on_mount(self) -> None:
         """Initialize the lists with items."""
@@ -222,11 +232,10 @@ class TodosView(Vertical):
         """Refresh both list views with current items."""
         try:
             create_section = self.query_one("#create-todo-section", Vertical)
-            project_section = self.query_one("#project-todos-section", Collapsible)
             project_list = self.query_one("#project-todos-list", ListView)
-            code_header = self.query_one("#code-todos-header", Static)
+            project_empty = self.query_one("#project-empty", Static)
             code_list = self.query_one("#code-todos-list", ListView)
-            empty_msg = self.query_one("#todos-empty", Static)
+            code_empty = self.query_one("#code-empty", Static)
 
             # Clear both lists
             project_list.clear()
@@ -235,51 +244,74 @@ class TodosView(Vertical):
             # Check if TODO.md exists
             self._has_todo_md = (self._project_path / "TODO.md").exists()
 
-            has_items = False
-
-            # Show create button if no TODO.md and no project items
+            # Project TODOs tab
             if not self._has_todo_md and not self._project_items:
+                # Show create button
                 create_section.display = True
-                project_section.display = False
+                project_list.display = False
+                project_empty.display = False
             else:
                 create_section.display = False
 
-                # Populate project TODOs
                 if self._project_items:
-                    has_items = True
-                    # Group by section
-                    sections: dict[str, list[ProjectTodoItem]] = {}
+                    # Add unchecked items
                     for item in self._project_items:
-                        if item.section not in sections:
-                            sections[item.section] = []
-                        sections[item.section].append(item)
-
-                    # Add items (flat list, grouped display can be added later)
-                    for item in self._project_items:
-                        if not item.checked:  # Only show unchecked by default
+                        if not item.checked:
                             project_list.append(ProjectTodoListItem(item))
 
                     unchecked = sum(1 for i in self._project_items if not i.checked)
-                    project_section.title = f"Project TODOs ({unchecked})"
-                    project_section.display = True
+                    project_list.display = unchecked > 0
+                    project_empty.display = unchecked == 0
                 else:
-                    project_section.display = False
+                    project_list.display = False
+                    project_empty.display = True
 
-            # Populate code TODOs
+            # Code TODOs tab
             if self._items:
-                has_items = True
                 for item in self._items:
                     code_list.append(TodoListItem(item))
-                code_header.update(f"Code TODOs ({len(self._items)})")
-                code_header.display = True
                 code_list.display = True
+                code_empty.display = False
             else:
-                code_header.display = False
                 code_list.display = False
+                code_empty.display = True
 
-            # Show empty message only if no items at all and TODO.md exists
-            empty_msg.display = not has_items and self._has_todo_md
+            # Update tab labels with counts
+            self._update_tab_labels()
 
+        except Exception:
+            pass
+
+    def _update_tab_labels(self) -> None:
+        """Update tab labels with current counts."""
+        try:
+            tabs = self.query_one("#todos-tabs", TabbedContent)
+
+            unchecked_project = sum(1 for i in self._project_items if not i.checked)
+            code_count = len(self._items)
+
+            # Update tab labels via the Tabs widget
+            # Tab IDs include the pane ID, e.g., "--content-tab-tab-project"
+            for tab in tabs.query("Tab"):
+                tab_id = str(tab.id) if tab.id else ""
+                if "tab-project" in tab_id:
+                    tab.label = f"Project ({unchecked_project})"
+                elif "tab-comments" in tab_id:
+                    tab.label = f"Comments ({code_count})"
+        except Exception:
+            pass
+
+    def update_tab_counts(self, project_count: int, code_count: int) -> None:
+        """Update tab labels with provided counts (called from ContextPanel)."""
+        try:
+            tabs = self.query_one("#todos-tabs", TabbedContent)
+
+            for tab in tabs.query("Tab"):
+                tab_id = str(tab.id) if tab.id else ""
+                if "tab-project" in tab_id:
+                    tab.label = f"Project ({project_count})"
+                elif "tab-comments" in tab_id:
+                    tab.label = f"Comments ({code_count})"
         except Exception:
             pass
 
@@ -291,15 +323,6 @@ class TodosView(Vertical):
         """Update both TODO lists."""
         self._items = items
         self._project_items = project_items or []
-
-        # Update header with total count
-        try:
-            unchecked_project = sum(1 for p in self._project_items if not p.checked)
-            total = len(items) + unchecked_project
-            header = self.query_one("#todos-header", Static)
-            header.update(f"TODOs ({total})")
-        except Exception:
-            pass
 
         # Refresh the lists
         self._refresh_lists()

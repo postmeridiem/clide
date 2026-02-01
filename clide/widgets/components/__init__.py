@@ -9,6 +9,7 @@ from clide.widgets.components.git_graph import GitGraphView
 from clide.widgets.components.jira_view import JiraView
 from clide.widgets.components.problems_view import ProblemsView
 from clide.widgets.components.terminal_pane import TerminalPane
+from clide.widgets.components.tile_list import TileItem, TileListView
 from clide.widgets.components.todos_view import TodosView
 
 __all__ = [
@@ -21,5 +22,7 @@ __all__ = [
     "JiraView",
     "ProblemsView",
     "TerminalPane",
+    "TileItem",
+    "TileListView",
     "TodosView",
 ]

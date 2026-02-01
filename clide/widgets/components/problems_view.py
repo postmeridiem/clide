@@ -2,16 +2,17 @@
 
 from pathlib import Path
 
+from rich.markup import escape
 from textual.app import ComposeResult
-from textual.containers import Vertical
 from textual.message import Message
-from textual.widgets import ListItem, ListView, Static
+from textual.widgets import ListView, Static
 
 from clide.models.problems import Problem
+from clide.widgets.components.tile_list import TileItem, TileListView
 
 
-class ProblemItem(ListItem):
-    """A single problem item."""
+class ProblemItem(TileItem):
+    """A single problem item displayed as a tile."""
 
     def __init__(self, problem: Problem) -> None:
         super().__init__()
@@ -20,31 +21,35 @@ class ProblemItem(ListItem):
     def compose(self) -> ComposeResult:
         icon = self.problem.severity_icon
         severity_class = self.problem.severity.value
+        # Show just filename
+        filename = (
+            self.problem.file_path.name
+            if hasattr(self.problem.file_path, "name")
+            else str(self.problem.file_path).split("/")[-1]
+        )
+        safe_message = escape(self.problem.message)
 
         yield Static(
-            f"[{severity_class}]{icon}[/] "
-            f"[dim]{self.problem.file_path}:{self.problem.line}[/] "
-            f"{self.problem.message}",
+            f"[{severity_class}]{icon}[/] [{severity_class}]{safe_message}[/]\n"
+            f"  [dim]{filename}:{self.problem.line}[/]",
             markup=True,
         )
 
 
-class ProblemsView(Vertical):
+class ProblemsView(TileListView):
     """View for linter problems/diagnostics."""
 
     DEFAULT_CSS = """
     ProblemsView {
-        height: 100%;
+        height: 1fr;
+        background: $background;
     }
 
     ProblemsView .problems-header {
         height: 1;
         background: $surface;
         padding: 0 1;
-    }
-
-    ProblemsView ListView {
-        height: 1fr;
+        border-bottom: solid $primary;
     }
 
     ProblemsView .error { color: $error; }

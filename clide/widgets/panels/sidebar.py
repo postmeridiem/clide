@@ -33,6 +33,15 @@ class SidebarPanel(Vertical):
         height: 1fr;
     }
 
+    SidebarPanel TabbedContent {
+        height: 1fr;
+    }
+
+    SidebarPanel TabPane {
+        height: 1fr;
+        padding: 0;
+    }
+
     SidebarPanel BranchStatus {
         dock: bottom;
         height: auto;
@@ -59,6 +68,13 @@ class SidebarPanel(Vertical):
 
         def __init__(self, branch: str) -> None:
             self.branch = branch
+            super().__init__()
+
+    class ClaudeCommandRequested(Message):
+        """Emitted when a Claude command is requested (e.g., /commit)."""
+
+        def __init__(self, command: str) -> None:
+            self.command = command
             super().__init__()
 
     # Reactive state
@@ -101,10 +117,17 @@ class SidebarPanel(Vertical):
         staged: list,
         unstaged: list,
     ) -> None:
-        """Update git changes view."""
+        """Update git changes view and branch stats."""
         try:
             git_view = self.query_one(GitChangesView)
             git_view.update_changes(staged, unstaged)
+        except Exception:
+            pass
+
+        # Update branch status with staged/unstaged counts
+        try:
+            branch_status = self.query_one(BranchStatus)
+            branch_status.update_stats(len(staged), len(unstaged))
         except Exception:
             pass
 
@@ -112,7 +135,7 @@ class SidebarPanel(Vertical):
         """Update git graph view."""
         try:
             graph = self.query_one(GitGraphView)
-            graph.update_graph(commits)
+            graph.update_commits(commits)
         except Exception:
             pass
 
@@ -157,7 +180,7 @@ class SidebarPanel(Vertical):
         event: GitChangesView.FileClicked,
     ) -> None:
         """Forward git file selection."""
-        self.post_message(self.GitFileSelected(event.path, event.staged))
+        self.post_message(self.GitFileSelected(Path(event.change.path), event.change.staged))
 
     def on_branch_status_branch_changed(
         self,
@@ -166,3 +189,12 @@ class SidebarPanel(Vertical):
         """Forward branch change."""
         self.current_branch = event.branch
         self.post_message(self.BranchChanged(event.branch))
+
+    def on_git_changes_view_claude_action_requested(
+        self,
+        event: GitChangesView.ClaudeActionRequested,
+    ) -> None:
+        """Forward Claude action request (commit, stash, pull, push)."""
+        # Convert action to Claude skill command
+        command = f"/{event.action}"
+        self.post_message(self.ClaudeCommandRequested(command))

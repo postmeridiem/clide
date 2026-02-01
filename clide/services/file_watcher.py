@@ -6,27 +6,32 @@ enabling reactive updates when files change on disk.
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from pydantic import BaseModel, ConfigDict
 from textual.message import Message
 
 try:
-    from watchdog.observers import Observer as WatchdogObserver
+    from watchdog.events import (
+        DirCreatedEvent,
+        DirDeletedEvent,
+        DirModifiedEvent,
+        DirMovedEvent,
+        FileCreatedEvent,
+        FileDeletedEvent,
+        FileModifiedEvent,
+        FileMovedEvent,
+    )
     from watchdog.events import (
         FileSystemEventHandler as WatchdogHandler,
-        FileCreatedEvent,
-        FileModifiedEvent,
-        FileDeletedEvent,
-        FileMovedEvent,
-        DirCreatedEvent,
-        DirModifiedEvent,
-        DirDeletedEvent,
-        DirMovedEvent,
     )
+    from watchdog.observers import Observer as WatchdogObserver
+
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
@@ -103,6 +108,8 @@ class FileWatcher:
             ".ruff_cache",
             ".pytest_cache",
             "*.egg-info",
+            ".clide",
+            ".claude",
         ]
         self._handlers: list[Callable[[FileEvent], None]] = []
         self._observer: WatchdogObserver | None = None  # type: ignore[valid-type]
@@ -219,21 +226,15 @@ class _WatchdogHandler(WatchdogHandler):  # type: ignore[misc, valid-type]
         )
 
     def on_created(self, event) -> None:  # type: ignore[no-untyped-def]
-        file_event = self._create_event(
-            event.src_path, "created", event.is_directory
-        )
+        file_event = self._create_event(event.src_path, "created", event.is_directory)
         self._watcher._emit_event(file_event)
 
     def on_modified(self, event) -> None:  # type: ignore[no-untyped-def]
-        file_event = self._create_event(
-            event.src_path, "modified", event.is_directory
-        )
+        file_event = self._create_event(event.src_path, "modified", event.is_directory)
         self._watcher._emit_event(file_event)
 
     def on_deleted(self, event) -> None:  # type: ignore[no-untyped-def]
-        file_event = self._create_event(
-            event.src_path, "deleted", event.is_directory
-        )
+        file_event = self._create_event(event.src_path, "deleted", event.is_directory)
         self._watcher._emit_event(file_event)
 
     def on_moved(self, event) -> None:  # type: ignore[no-untyped-def]

@@ -3,11 +3,13 @@
 from pathlib import Path
 from typing import ClassVar
 
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header
+from textual.worker import Worker, WorkerState
 
 from clide.controllers.diff import DiffController
 from clide.controllers.editor import EditorController
@@ -113,6 +115,32 @@ class ClideApp(App[None]):
         height: 100%;
         layer: fullscreen;
     }
+
+    /* Global button styling - outlined look */
+    Button {
+        background: transparent;
+        border: solid $secondary;
+        color: $foreground;
+        margin: 0 1;
+    }
+
+    Button:hover {
+        background: $secondary 20%;
+        border: solid $secondary;
+    }
+
+    Button:focus {
+        border: solid $primary;
+    }
+
+    Button.-primary {
+        border: solid $primary;
+        color: $primary;
+    }
+
+    Button.-primary:hover {
+        background: $primary 20%;
+    }
     """
 
     # Keybindings
@@ -182,8 +210,10 @@ class ClideApp(App[None]):
         self.diff_controller = DiffController(self.workdir)
         self.problems_controller = ProblemsController(self.workdir)
         self.todos_controller = TodosController(self.workdir)
+        # Use settings parameter if jira_enabled explicitly set, otherwise user settings
+        jira_enabled = self.settings.jira_enabled or self._user_settings.jira_enabled
         self.jira_controller = JiraController(
-            enabled=self._user_settings.jira_enabled,
+            enabled=jira_enabled,
         )
 
         # Register themes
@@ -199,8 +229,12 @@ class ClideApp(App[None]):
             if theme_def:
                 self.register_theme(theme_def.to_textual_theme())
 
-        # Set initial theme from user settings
-        self.theme = self._user_settings.theme
+        # Set initial theme: settings parameter takes precedence over user settings
+        # Use settings.theme if different from default, otherwise user settings
+        if self.settings.theme != "summer-night":
+            self.theme = self.settings.theme
+        else:
+            self.theme = self._user_settings.theme
 
     def set_theme(self, theme_name: str, *, save: bool = True) -> None:
         """Set the application theme.
@@ -309,8 +343,20 @@ class ClideApp(App[None]):
         """
         event = message.event
 
+        # Ignore files in .clide directory (settings, etc.)
+        if ".clide" in str(event.path):
+            return
+
         # Trigger extension hooks
         self.extension_manager.trigger_file_changed(event)
+
+        # Debounce: skip if we refreshed recently (within 1 second)
+        import time
+
+        now = time.time()
+        if hasattr(self, "_last_file_refresh") and now - self._last_file_refresh < 1.0:
+            return
+        self._last_file_refresh = now
 
         # Refresh file tree for created/deleted/moved files
         if event.event_type in ("created", "deleted", "moved"):
@@ -778,14 +824,43 @@ class ClideApp(App[None]):
         """Handle Claude command request from git panel.
 
         Sends skill commands (e.g., /commit) to Claude terminal.
-        Ensures the git-workflow skill is installed before sending.
+        Ensures the specific skill is installed before sending.
         """
-        # Ensure skill is available
-        self.git_controller._ensure_git_skill()
+        from clide.services.skill_installer import get_skill_installer
 
-        # Send command to Claude terminal
+        # Extract skill name from command (e.g., "/commit" -> "commit")
+        skill_name = event.command.lstrip("/").split()[0]
+
+        installer = get_skill_installer(project_dir=self.workdir)
+
+        # Quick check if already installed
+        if installer.is_installed(skill_name):
+            self._send_claude_command(event.command)
+            return
+
+        # Need to install - show notification and do in background
+        self.notify(f"Installing {skill_name} skill...", timeout=10)
+        self._install_skill_and_run(skill_name, event.command)
+
+    @work(thread=True)
+    def _install_skill_and_run(self, skill_name: str, command: str) -> tuple[str, str]:
+        """Install skill in background thread and return command to run."""
+        self.git_controller._ensure_skill(skill_name)
+        return (skill_name, command)
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Handle worker completion."""
+        if event.state == WorkerState.SUCCESS:
+            # Check if this was a skill installation worker
+            if event.worker.name == "_install_skill_and_run":
+                result = event.worker.result
+                if result:
+                    skill_name, command = result
+                    self._send_claude_command(command)
+                    self.notify(f"{skill_name} skill installed!", severity="information", timeout=3)
+
+    def _send_claude_command(self, command: str) -> None:
+        """Send a command to Claude terminal."""
         claude = self.query_one(ClaudePanel)
-        claude.send_input(event.command)
-
-        # Focus Claude panel so user can see the response
+        claude.send_input(command)
         self.action_focus_claude()

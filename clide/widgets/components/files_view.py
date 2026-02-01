@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.text import Text
@@ -10,6 +9,8 @@ from textual.message import Message
 from textual.widgets import DirectoryTree
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from rich.style import Style
     from textual.widgets._directory_tree import DirEntry
     from textual.widgets._tree import TreeNode
@@ -55,32 +56,47 @@ class FilesView(DirectoryTree):
             classes=classes,
         )
 
-    def render_label(
-        self, node: TreeNode[DirEntry], base_style: Style, style: Style
-    ) -> Text:
+    def render_label(self, node: TreeNode[DirEntry], base_style: Style, style: Style) -> Text:
         """Render a label with minimal Unicode icons."""
         path = node.data.path
+        is_dimmed = path.name.startswith(".") or path.name in self.DIMMED_PATHS
 
         if path.is_dir():
             icon = ICON_FOLDER_OPEN if node.is_expanded else ICON_FOLDER_CLOSED
-            icon_style = "bold cyan"
+            icon_style = "dim cyan" if is_dimmed else "bold cyan"
         else:
             icon = ICON_FILE
             icon_style = "dim"
 
         label = Text()
         label.append(f"{icon} ", style=icon_style)
-        label.append(path.name, style=style)
+        label.append(path.name, style="dim" if is_dimmed else style)
         return label
 
-    def filter_paths(self, paths: list[Path]) -> list[Path]:
-        """Filter out hidden and ignored paths."""
-        return [
-            p for p in paths
-            if not p.name.startswith(".")
-            and p.name not in ("__pycache__", "node_modules", ".git", ".venv", "venv")
-        ]
+    # Directories that clutter the tree and are never needed in the IDE
+    HIDDEN_DIRS = {
+        "__pycache__",
+        "node_modules",
+        ".git",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".tox",
+    }
 
+    # Directories/files shown but dimmed (less important)
+    DIMMED_PATHS = {
+        ".venv",
+        "venv",
+        "dist",
+        "build",
+    }
+
+    def filter_paths(self, paths: list[Path]) -> list[Path]:
+        """Filter out noisy directories but show hidden files."""
+        return [
+            p for p in paths if p.name not in self.HIDDEN_DIRS and not p.name.endswith(".egg-info")
+        ]
 
     def refresh_tree(self) -> None:
         """Refresh the directory tree."""
@@ -100,7 +116,7 @@ class FilesView(DirectoryTree):
         # Find and select the node
         def find_node(node, target_path):
             """Recursively find a node by path."""
-            if node.data and hasattr(node.data, 'path'):
+            if node.data and hasattr(node.data, "path"):
                 if node.data.path.resolve() == target_path:
                     return node
             for child in node.children:
@@ -121,9 +137,7 @@ class FilesView(DirectoryTree):
             self.select_node(target_node)
             self.scroll_to_node(target_node)
 
-    def on_directory_tree_file_selected(
-        self, event: DirectoryTree.FileSelected
-    ) -> None:
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Re-emit file selection as FilesView.FileSelected."""
         event.stop()
         self.post_message(self.FileSelected(node=event.node, path=event.path))

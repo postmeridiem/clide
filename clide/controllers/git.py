@@ -1,12 +1,22 @@
 """Git controller for managing git operations."""
 
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
 
 from textual.message import Message
 
 from clide.controllers.base import controller
-from clide.models.git import GitBranch, GitCommit, GitStatus
 from clide.services.git_service import GitService
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from clide.models.git import GitBranch, GitCommit, GitStatus
+from clide.services.skill_installer import get_skill_installer
+
+# Git operations that can be delegated to Claude via skills
+GitSkillCommand = Literal["commit", "stash", "pull", "push", "branch"]
 
 
 @controller
@@ -199,3 +209,95 @@ class GitController:
             Diff string
         """
         return await self._service.get_diff(path, staged)
+
+    # =========================================================================
+    # Claude Skill Integration
+    # =========================================================================
+
+    class ClaudeCommandRequested(Message):
+        """Emitted when a git command should be sent to Claude."""
+
+        def __init__(self, command: str) -> None:
+            self.command = command
+            super().__init__()
+
+    def _ensure_skill(self, skill_name: str) -> bool:
+        """Ensure a specific skill is installed.
+
+        Args:
+            skill_name: The skill name (e.g., "commit", "stash").
+
+        Returns:
+            True if skill is available.
+        """
+        installer = get_skill_installer()
+
+        # Check if already installed
+        if installer.is_installed(skill_name):
+            return True
+
+        # Try to install from template (project scope by default)
+        try:
+            installer.install(skill_name, scope="project")
+            return True
+        except ValueError:
+            # Template not found
+            return False
+        except FileExistsError:
+            # Already exists (race condition)
+            return True
+
+    def _ensure_git_skill(self) -> bool:
+        """Ensure all git skills are installed (legacy compatibility).
+
+        Returns:
+            True if commit skill is available.
+        """
+        return self._ensure_skill("commit")
+
+    def request_claude_commit(self) -> bool:
+        """Request Claude to handle the commit workflow.
+
+        Emits ClaudeCommandRequested with /commit command.
+
+        Returns:
+            True if skill is available and command was requested.
+        """
+        # The app will handle this message and send to Claude terminal
+        return self._ensure_git_skill()
+
+    def request_claude_stash(self) -> bool:
+        """Request Claude to handle stashing changes.
+
+        Returns:
+            True if skill is available and command was requested.
+        """
+        return self._ensure_git_skill()
+
+    def request_claude_pull(self) -> bool:
+        """Request Claude to handle pulling changes.
+
+        Returns:
+            True if skill is available and command was requested.
+        """
+        return self._ensure_git_skill()
+
+    def request_claude_push(self) -> bool:
+        """Request Claude to handle pushing changes.
+
+        Returns:
+            True if skill is available and command was requested.
+        """
+        return self._ensure_git_skill()
+
+    def get_claude_command(self, action: GitSkillCommand) -> str:
+        """Get the Claude command string for a git action.
+
+        Args:
+            action: The git action to perform.
+
+        Returns:
+            The command string to send to Claude (e.g., "/commit").
+        """
+        self._ensure_git_skill()
+        return f"/{action}"

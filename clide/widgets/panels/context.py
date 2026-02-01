@@ -3,10 +3,10 @@
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Static, TabbedContent, TabPane
+from textual.widgets import TabbedContent, TabPane
 
 from clide.models.problems import Problem
 from clide.models.todos import ProjectTodoItem, TodoItem
@@ -30,11 +30,9 @@ class ContextPanel(Vertical):
         height: 1fr;
     }
 
-    ContextPanel .context-tab-bar {
-        dock: bottom;
-        height: 1;
-        background: $panel;
-        padding: 0 1;
+    ContextPanel TabPane {
+        height: 1fr;
+        padding: 0;
     }
 
     ContextPanel .tab-count {
@@ -90,6 +88,8 @@ class ContextPanel(Vertical):
     # Reactive state with counts for tab badges
     problem_count: reactive[int] = reactive(0)
     todo_count: reactive[int] = reactive(0)
+    project_todo_count: reactive[int] = reactive(0)
+    code_todo_count: reactive[int] = reactive(0)
     visible: reactive[bool] = reactive(True)
 
     def __init__(
@@ -107,17 +107,14 @@ class ContextPanel(Vertical):
         with TabbedContent(id="context-tabs"):
             with TabPane("Jira", id="context-jira"):
                 yield JiraView(enabled=self._jira_enabled, id="jira-view")
-            with TabPane("TODOs", id="context-todos"):
+            with TabPane("TODOs (0)", id="context-todos"):
                 yield TodosView(project_path=self._project_path, id="todos-view")
-            with TabPane("Problems", id="context-problems"):
+            with TabPane("Problems (0)", id="context-problems"):
                 yield ProblemsView(id="problems-view")
-        # Tab bar with counts at bottom
-        with Horizontal(classes="context-tab-bar"):
-            yield Static("", id="tab-counts")
 
     def on_mount(self) -> None:
         """Initialize tab counts."""
-        self._update_tab_counts()
+        self._update_tab_headers()
 
     def watch_visible(self, visible: bool) -> None:
         """Handle visibility changes."""
@@ -125,29 +122,32 @@ class ContextPanel(Vertical):
 
     def watch_problem_count(self, count: int) -> None:
         """Update problem count display."""
-        self._update_tab_counts()
+        self._update_tab_headers()
 
     def watch_todo_count(self, count: int) -> None:
         """Update todo count display."""
-        self._update_tab_counts()
+        self._update_tab_headers()
 
-    def _update_tab_counts(self) -> None:
-        """Update the tab counts display."""
+    def _update_tab_headers(self) -> None:
+        """Update the tab headers with counts."""
         try:
-            counts = self.query_one("#tab-counts", Static)
-            problem_style = "error-count" if self.problem_count > 0 else "success-count"
-            todo_style = "warning-count" if self.todo_count > 0 else "success-count"
+            tabs = self.query_one("#context-tabs", TabbedContent)
 
-            # Build count display (order matches tab order: TODOs, Problems)
-            parts = []
-            parts.append(f"[{todo_style}]☐ {self.todo_count}[/]")
+            # Update tab labels via the Tabs widget
+            for tab in tabs.query("Tab"):
+                tab_id = str(tab.id) if tab.id else ""
+                if "context-todos" in tab_id:
+                    tab.label = f"TODOs ({self.todo_count})"
+                elif "context-problems" in tab_id:
+                    tab.label = f"Problems ({self.problem_count})"
+        except Exception:
+            pass
 
-            if self.problem_count > 0:
-                parts.append(f"[{problem_style}]⚠ {self.problem_count}[/]")
-            else:
-                parts.append(f"[{problem_style}]✓ 0[/]")
-
-            counts.update(" │ ".join(parts))
+    def _update_todos_subtabs(self) -> None:
+        """Update the TODOs view sub-tab labels."""
+        try:
+            view = self.query_one("#todos-view", TodosView)
+            view.update_tab_counts(self.project_todo_count, self.code_todo_count)
         except Exception:
             pass
 
@@ -169,10 +169,14 @@ class ContextPanel(Vertical):
         project_items = project_items or []
         # Count includes both code TODOs and unchecked project TODOs
         unchecked_project = sum(1 for p in project_items if not p.checked)
-        self.todo_count = len(items) + unchecked_project
+        self.project_todo_count = unchecked_project
+        self.code_todo_count = len(items)
+        self.todo_count = unchecked_project + len(items)
         try:
             view = self.query_one("#todos-view", TodosView)
             view.update_items(items, project_items)
+            # Update sub-tab counts
+            self._update_todos_subtabs()
         except Exception:
             pass
 
