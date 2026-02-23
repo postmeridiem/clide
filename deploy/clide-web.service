@@ -1,0 +1,27 @@
+[Unit]
+Description=Clide Web Terminal (ttyd + zellij)
+After=network.target
+
+[Service]
+Type=simple
+User=jpmschweitzer
+Group=jpmschweitzer
+WorkingDirectory=/mnt/media/Projects
+
+# ttyd options:
+# -p 8888       : Port (same as Jupyter was using)
+# -W            : Writable (allows input)
+# -a            : Allow URL arguments (passes ?project=X as command arg)
+# -t fontSize=14: Terminal font size
+ExecStart=/usr/local/bin/ttyd -p 8888 -W -a -t fontSize=14 /usr/local/bin/clide-launcher
+
+Restart=on-failure
+RestartSec=10
+
+# Environment for 256-color + truecolor
+Environment="TERM=xterm-256color"
+Environment="COLORTERM=truecolor"
+Environment="PATH=/home/jpmschweitzer/.nvm/versions/node/v24.11.0/bin:/usr/local/bin:/mnt/media/Projects/clide/.venv/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=multi-user.target

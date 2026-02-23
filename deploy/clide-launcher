@@ -1,0 +1,68 @@
+#!/bin/bash
+set -e
+
+export TERM=xterm-256color
+export COLORTERM=truecolor
+
+PROJECTS_DIR="/mnt/media/Projects"
+CLIDE_BIN="/mnt/media/Projects/clide/.venv/bin/clide"
+
+# Parse URL argument from ttyd (format: project=name or just name)
+# ttyd passes arguments after the command
+PROJECT_ARG="${1:-}"
+
+# Extract project name (handle "project=foo" or just "foo")
+if [[ "$PROJECT_ARG" == project=* ]]; then
+    PROJECT="${PROJECT_ARG#project=}"
+elif [[ -n "$PROJECT_ARG" ]]; then
+    PROJECT="$PROJECT_ARG"
+else
+    PROJECT=""
+fi
+
+# If no project specified, show selector
+if [[ -z "$PROJECT" ]]; then
+    echo "╔══════════════════════════════════════════════════════════╗"
+    echo "║                    Clide Project Selector                 ║"
+    echo "╠══════════════════════════════════════════════════════════╣"
+    echo "║  Add ?project=NAME to URL to connect directly            ║"
+    echo "║  Example: code.schweitz.net?project=system-management    ║"
+    echo "╠══════════════════════════════════════════════════════════╣"
+    echo "║  Available projects:                                      ║"
+    echo "╚══════════════════════════════════════════════════════════╝"
+    echo ""
+
+    # List git repos in Projects dir
+    for dir in "$PROJECTS_DIR"/*/; do
+        if [[ -d "$dir/.git" ]]; then
+            name=$(basename "$dir")
+            echo "  • $name"
+        fi
+    done
+
+    echo ""
+    echo "Active sessions:"
+    zellij list-sessions 2>/dev/null | grep "^clide-" | sed 's/^/  • /' || echo "  (none)"
+    echo ""
+    read -p "Enter project name: " PROJECT
+fi
+
+# Validate project exists
+WORKDIR="$PROJECTS_DIR/$PROJECT"
+if [[ ! -d "$WORKDIR" ]]; then
+    echo "Error: Project '$PROJECT' not found in $PROJECTS_DIR"
+    echo "Available: $(ls -1 "$PROJECTS_DIR" | tr '\n' ' ')"
+    exit 1
+fi
+
+SESSION_NAME="clide-$PROJECT"
+
+# Check if session exists (live or dead)
+cd "$WORKDIR"
+if zellij list-sessions 2>/dev/null | grep -q "$SESSION_NAME"; then
+    # Attach to existing session (resurrects dead sessions automatically)
+    exec zellij attach "$SESSION_NAME"
+else
+    # Create new session
+    exec zellij --session "$SESSION_NAME" options --default-shell "$CLIDE_BIN" --default-cwd "$WORKDIR"
+fi

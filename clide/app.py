@@ -175,7 +175,6 @@ class ClideApp(App[None]):
         Binding("ctrl+s", "save_file", "Save", priority=True),
         Binding("alt+s", "save_file", "Save", show=False, priority=True),
         Binding("ctrl+z", "undo", "Undo", show=False, priority=True),
-        Binding("alt+l", "goto_line", "Go to Line", show=False),
         # Theme
         Binding("alt+t", "select_theme", "Theme", priority=True),
     ]
@@ -607,10 +606,6 @@ class ClideApp(App[None]):
         else:
             self.notify("Undo not available", severity="warning")
 
-    def action_goto_line(self) -> None:
-        """Go to line dialog."""
-        # TODO: Implement go to line
-        pass
 
     def action_quick_open(self) -> None:
         """Quick file open."""

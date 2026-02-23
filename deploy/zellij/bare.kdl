@@ -1,0 +1,4 @@
+// Bare layout - no UI, just the pane
+layout {
+    pane
+}
