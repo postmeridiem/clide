@@ -12,7 +12,7 @@ class JiraView(Vertical):
     DEFAULT_CSS = """
     JiraView {
         height: 1fr;
-        background: $background;
+        background: $surface;
     }
 
     JiraView .jira-header {

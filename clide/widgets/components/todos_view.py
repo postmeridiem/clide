@@ -97,7 +97,7 @@ class TodosView(TileListView):
     DEFAULT_CSS = """
     TodosView {
         height: 1fr;
-        background: $background;
+        background: $surface;
     }
 
     TodosView TabbedContent {

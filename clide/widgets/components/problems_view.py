@@ -42,7 +42,7 @@ class ProblemsView(TileListView):
     DEFAULT_CSS = """
     ProblemsView {
         height: 1fr;
-        background: $background;
+        background: $surface;
     }
 
     ProblemsView .problems-header {
