@@ -1,3 +1,0 @@
-[submodule "deploy/ttyd-nerd-font"]
-	path = deploy/ttyd-nerd-font
-	url = https://github.com/metorm/ttyd-nerd-font.git

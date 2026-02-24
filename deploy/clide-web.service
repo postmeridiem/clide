@@ -1,5 +1,5 @@
 [Unit]
-Description=Clide Web Terminal (ttyd + zellij)
+Description=Clide Web Server (FastAPI + tmux)
 After=network.target
 
 [Service]
@@ -8,27 +8,24 @@ User=jpmschweitzer
 Group=jpmschweitzer
 WorkingDirectory=/mnt/media/Projects
 
-# ttyd options:
-# -p 8888       : Port (same as Jupyter was using)
-# -W            : Writable (allows input)
-# -a            : Allow URL arguments (passes ?project=X as command arg)
-# -t fontSize=14: Terminal font size
-# -t fontFamily: Use embedded JetBrains Mono Nerd Font (from ttyd-nerd-font fork)
-ExecStart=/usr/local/bin/ttyd -p 8888 -W -a -t fontSize=14 -t 'fontFamily=JetBrains,monospace' /usr/local/bin/clide-launcher
+ExecStart=/mnt/media/Projects/clide/.venv/bin/clide-web
 
-# Kill all child processes (ttyd → zellij → clide → claude)
+# Environment
+Environment="CLIDE_WEB_PORT=8888"
+Environment="CLIDE_WEB_PROJECTS_DIR=/mnt/media/Projects"
+Environment="CLIDE_WEB_CLIDE_BIN=/mnt/media/Projects/clide/.venv/bin/clide"
+Environment="TERM=xterm-256color"
+Environment="COLORTERM=truecolor"
+Environment="PATH=/home/jpmschweitzer/.nvm/versions/node/v24.11.0/bin:/usr/local/bin:/mnt/media/Projects/clide/.venv/bin:/usr/bin:/bin"
+
+# Process management
 KillMode=control-group
 KillSignal=SIGTERM
-TimeoutStopSec=5
+TimeoutStopSec=10
 SendSIGKILL=yes
 
 Restart=on-failure
 RestartSec=3
-
-# Environment for 256-color + truecolor
-Environment="TERM=xterm-256color"
-Environment="COLORTERM=truecolor"
-Environment="PATH=/home/jpmschweitzer/.nvm/versions/node/v24.11.0/bin:/usr/local/bin:/mnt/media/Projects/clide/.venv/bin:/usr/bin:/bin"
 
 [Install]
 WantedBy=multi-user.target
