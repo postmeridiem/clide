@@ -95,13 +95,6 @@ class WorkspacePanel(Vertical):
             self.file_path = file_path
             super().__init__()
 
-    class CommandSubmitted(Message):
-        """Emitted when a terminal command is submitted."""
-
-        def __init__(self, command: str) -> None:
-            self.command = command
-            super().__init__()
-
     class CloseRequested(Message):
         """Emitted when workspace should be hidden."""
 
@@ -401,32 +394,7 @@ class WorkspacePanel(Vertical):
         self.show("terminal")
         try:
             terminal = self.query_one("#terminal-pane", TerminalPane)
-            terminal_input = terminal.query_one("#terminal-input")
-            terminal_input.focus()
-        except Exception:
-            pass
-
-    def write_terminal_output(self, text: str, style: str = "output") -> None:
-        """Write output to terminal."""
-        try:
-            terminal = self.query_one("#terminal-pane", TerminalPane)
-            terminal.write_output(text, style)
-        except Exception:
-            pass
-
-    def write_terminal_error(self, error: str) -> None:
-        """Write error to terminal."""
-        try:
-            terminal = self.query_one("#terminal-pane", TerminalPane)
-            terminal.write_error(error)
-        except Exception:
-            pass
-
-    def clear_terminal(self) -> None:
-        """Clear terminal output."""
-        try:
-            terminal = self.query_one("#terminal-pane", TerminalPane)
-            terminal.clear()
+            terminal.focus_terminal()
         except Exception:
             pass
 
@@ -442,10 +410,3 @@ class WorkspacePanel(Vertical):
     def on_diff_pane_reject_clicked(self, event: DiffPane.RejectClicked) -> None:
         """Forward diff reject event."""
         self.post_message(self.DiffRejected(event.file_path))
-
-    def on_terminal_pane_command_submitted(
-        self,
-        event: TerminalPane.CommandSubmitted,
-    ) -> None:
-        """Forward terminal command event."""
-        self.post_message(self.CommandSubmitted(event.command))

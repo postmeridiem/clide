@@ -606,7 +606,6 @@ class ClideApp(App[None]):
         else:
             self.notify("Undo not available", severity="warning")
 
-
     def action_quick_open(self) -> None:
         """Quick file open."""
         # TODO: Implement quick open
@@ -738,27 +737,6 @@ class ClideApp(App[None]):
         await self.diff_controller.reject_proposal(event.file_path)
         workspace = self.query_one(WorkspacePanel)
         workspace.clear_diff()
-
-    async def on_workspace_panel_command_submitted(
-        self,
-        event: WorkspacePanel.CommandSubmitted,
-    ) -> None:
-        """Handle terminal command - run and show output."""
-        from clide.services.process_service import ProcessService
-
-        workspace = self.query_one(WorkspacePanel)
-        result = await ProcessService.run_async(
-            event.command,
-            cwd=self.workdir,
-            shell=True,
-        )
-        if result.stdout:
-            workspace.write_terminal_output(result.stdout)
-        if result.stderr:
-            workspace.write_terminal_error(result.stderr)
-
-        # Refresh after command
-        await self._refresh_git()
 
     def on_claude_panel_claude_started(
         self,

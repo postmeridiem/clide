@@ -1,15 +1,17 @@
-"""Terminal pane component."""
+"""Terminal pane component with full PTY support."""
 
+import os
 from pathlib import Path
 
 from textual.app import ComposeResult
 from textual.containers import Vertical
-from textual.message import Message
-from textual.widgets import Input, RichLog, Static
+from textual.widgets import Static
+
+from clide.widgets.components.terminal_display import TerminalDisplay
 
 
 class TerminalPane(Vertical):
-    """Simple terminal/command runner pane."""
+    """Full PTY terminal pane running an interactive shell."""
 
     DEFAULT_CSS = """
     TerminalPane {
@@ -22,46 +24,26 @@ class TerminalPane(Vertical):
         padding: 0 1;
     }
 
-    TerminalPane RichLog {
+    TerminalPane TerminalDisplay {
         height: 1fr;
-        background: $background;
-    }
-
-    TerminalPane Input {
-        dock: bottom;
-        height: 1;
-    }
-
-    TerminalPane .prompt {
-        color: $primary;
-    }
-
-    TerminalPane .output {
-        color: $foreground;
-    }
-
-    TerminalPane .error {
-        color: $error;
     }
     """
-
-    class CommandSubmitted(Message):
-        """Emitted when a command is submitted."""
-
-        def __init__(self, command: str) -> None:
-            self.command = command
-            super().__init__()
 
     def __init__(self, cwd: Path | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self._cwd = cwd or Path.cwd()
-        self._history: list[str] = []
-        self._history_index = 0
+        self._terminal: TerminalDisplay | None = None
+        self._shell = os.environ.get("SHELL", "/bin/bash")
 
     def compose(self) -> ComposeResult:
         yield Static(f"Terminal - {self._cwd}", classes="terminal-header")
-        yield RichLog(id="terminal-log", highlight=True, markup=True)
-        yield Input(placeholder="Enter command...", id="terminal-input")
+        self._terminal = TerminalDisplay(id="terminal-display")
+        yield self._terminal
+
+    def on_mount(self) -> None:
+        """Start the shell when mounted."""
+        if self._terminal:
+            self._terminal.start(self._shell, str(self._cwd))
 
     @property
     def cwd(self) -> Path:
@@ -75,66 +57,18 @@ class TerminalPane(Vertical):
         header = self.query_one(".terminal-header", Static)
         header.update(f"Terminal - {path}")
 
-    def write_output(self, text: str, style: str = "output") -> None:
-        """Write output to terminal.
+    def focus_terminal(self) -> None:
+        """Focus the terminal display."""
+        if self._terminal:
+            self._terminal.focus()
 
-        Args:
-            text: Text to write
-            style: Style class (output, error, prompt)
-        """
-        log = self.query_one("#terminal-log", RichLog)
-        if style == "error":
-            log.write(f"[red]{text}[/]")
-        elif style == "prompt":
-            log.write(f"[bold cyan]$ {text}[/]")
-        else:
-            log.write(text)
+    def stop(self) -> None:
+        """Stop the terminal process."""
+        if self._terminal:
+            self._terminal.stop()
 
-    def write_command(self, command: str) -> None:
-        """Write a command to terminal (with prompt)."""
-        self.write_output(command, "prompt")
-
-    def write_error(self, error: str) -> None:
-        """Write an error to terminal."""
-        self.write_output(error, "error")
-
-    def clear(self) -> None:
-        """Clear terminal output."""
-        log = self.query_one("#terminal-log", RichLog)
-        log.clear()
-
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Handle command submission."""
-        command = event.value.strip()
-        if not command:
-            return
-
-        # Add to history
-        self._history.append(command)
-        self._history_index = len(self._history)
-
-        # Clear input
-        event.input.clear()
-
-        # Write command to output
-        self.write_command(command)
-
-        # Post message for handling
-        self.post_message(self.CommandSubmitted(command))
-
-    def history_up(self) -> None:
-        """Navigate history up."""
-        if self._history and self._history_index > 0:
-            self._history_index -= 1
-            input_widget = self.query_one("#terminal-input", Input)
-            input_widget.value = self._history[self._history_index]
-
-    def history_down(self) -> None:
-        """Navigate history down."""
-        input_widget = self.query_one("#terminal-input", Input)
-        if self._history_index < len(self._history) - 1:
-            self._history_index += 1
-            input_widget.value = self._history[self._history_index]
-        else:
-            self._history_index = len(self._history)
-            input_widget.clear()
+    def restart(self) -> None:
+        """Restart the shell."""
+        if self._terminal:
+            self._terminal.stop()
+            self._terminal.start(self._shell, str(self._cwd))
