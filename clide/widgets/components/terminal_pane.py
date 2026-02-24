@@ -33,7 +33,20 @@ class TerminalPane(Vertical):
         super().__init__(**kwargs)
         self._cwd = cwd or Path.cwd()
         self._terminal: TerminalDisplay | None = None
-        self._shell = os.environ.get("SHELL", "/bin/bash")
+        self._shell = self._find_shell()
+
+    @staticmethod
+    def _find_shell() -> str:
+        """Find the user's real shell, ignoring Zellij overrides."""
+        import pwd
+
+        # Get shell from /etc/passwd (most reliable)
+        try:
+            return pwd.getpwuid(os.getuid()).pw_shell
+        except KeyError:
+            pass
+        # Fallback
+        return "/bin/bash"
 
     def compose(self) -> ComposeResult:
         yield Static(f"Terminal - {self._cwd}", classes="terminal-header")

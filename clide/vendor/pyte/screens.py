@@ -310,6 +310,20 @@ class Screen:
         for char in data:
             char_width = wcwidth(char)
 
+            # Treat Private Use Area and other nerd font glyphs as width 1.
+            # wcwidth returns -1 for PUA chars (U+E000-U+F8FF, U+F0000-U+FFFFF)
+            # which are used by Nerd Fonts for icons in tmux status bars, etc.
+            if char_width < 0:
+                code = ord(char)
+                if (0xE000 <= code <= 0xF8FF or       # BMP Private Use Area
+                    0xF0000 <= code <= 0xFFFFF or     # Supplementary PUA-A
+                    0x100000 <= code <= 0x10FFFF or   # Supplementary PUA-B
+                    0x2580 <= code <= 0x259F or       # Block Elements
+                    0x1F000 <= code <= 0x1FFFF):      # Symbols/Emoji
+                    char_width = 1
+                else:
+                    continue  # Skip truly unprintable chars instead of breaking
+
             # Clide: Log character drawing for debugging
             if _debug_logger is not None and char_width > 0:
                 code = ord(char)
@@ -347,8 +361,10 @@ class Screen:
                     self.buffer[self.cursor.y - 1][self.columns - 1] = last._replace(
                         data=normalized
                     )
+            elif char_width == 0:
+                continue  # Skip zero-width non-combining chars
             else:
-                break
+                continue  # Skip any remaining unhandled chars
 
             if char_width > 0:
                 self.cursor.x = min(self.cursor.x + char_width, self.columns)

@@ -57,12 +57,23 @@ fi
 
 SESSION_NAME="clide-$PROJECT"
 
-# Check if session exists (live or dead)
-cd "$WORKDIR"
-if zellij list-sessions 2>/dev/null | grep -q "$SESSION_NAME"; then
-    # Attach to existing session (resurrects dead sessions automatically)
-    exec zellij attach "$SESSION_NAME"
+# Clean up dead/exited zellij sessions for this project
+if zellij list-sessions 2>/dev/null | grep -q "$SESSION_NAME.*EXITED"; then
+    zellij delete-session "$SESSION_NAME" 2>/dev/null || true
+fi
+
+# Try to attach to a live session, otherwise create fresh
+if zellij list-sessions 2>/dev/null | grep -q "^$SESSION_NAME "; then
+    # Session exists and is alive -- attach
+    exec zellij attach "$SESSION_NAME" \
+        options --no-pane-frames --default-cwd "$WORKDIR"
 else
-    # Create new session
-    exec zellij --session "$SESSION_NAME" options --default-shell "$CLIDE_BIN" --default-cwd "$WORKDIR"
+    # No live session -- kill any zombie remnants and start fresh
+    zellij delete-session "$SESSION_NAME" 2>/dev/null || true
+
+    exec zellij --session "$SESSION_NAME" \
+        options \
+        --no-pane-frames \
+        --default-shell "$CLIDE_BIN" \
+        --default-cwd "$WORKDIR"
 fi

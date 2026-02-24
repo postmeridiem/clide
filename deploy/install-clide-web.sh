@@ -16,9 +16,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUDO_USER="${SUDO_USER:-$(logname)}"
 USER_HOME=$(eval echo ~"$SUDO_USER")
 
-echo "[1/6] Installing ttyd..."
-curl -L https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 -o /usr/local/bin/ttyd
+echo "[1/6] Building ttyd (with Nerd Font support)..."
+TTYD_SRC="$SCRIPT_DIR/ttyd-nerd-font"
+if [[ ! -d "$TTYD_SRC/src" ]]; then
+    echo "Error: ttyd-nerd-font submodule not initialized."
+    echo "Run: git submodule update --init deploy/ttyd-nerd-font"
+    exit 1
+fi
+mkdir -p "$TTYD_SRC/build"
+cd "$TTYD_SRC/build"
+cmake .. -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1
+make -j"$(nproc)" >/dev/null 2>&1
+cp "$TTYD_SRC/build/ttyd" /usr/local/bin/ttyd
 chmod +x /usr/local/bin/ttyd
+cd "$SCRIPT_DIR"
 ttyd --version
 
 echo ""

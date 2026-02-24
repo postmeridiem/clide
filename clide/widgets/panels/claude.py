@@ -32,6 +32,7 @@ class ClaudePanel(Vertical):
 
     ClaudePanel.with-workspace {
         height: 40%;
+        border-top: solid $surface;
     }
 
     ClaudePanel TerminalDisplay {

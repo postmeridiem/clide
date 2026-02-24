@@ -181,11 +181,29 @@ class TerminalDisplay(Widget, can_focus=True):
         if pid == 0:
             # Child process
             os.chdir(cwd)
+
+            # Strip Zellij env vars so child processes don't think
+            # they're inside a Zellij session (Clide may run inside
+            # Zellij for web deployment session persistence)
+            for key in list(os.environ):
+                if key.startswith("ZELLIJ"):
+                    del os.environ[key]
+
             os.environ["TERM"] = "xterm-256color"
             os.environ["COLORTERM"] = "truecolor"
             os.environ["COLUMNS"] = str(self._cols)
             os.environ["LINES"] = str(self._rows)
-            os.execlp(command, command)
+            # Launch through a login shell so profile scripts are sourced
+            # and PATH includes locations like ~/.local/bin where Claude's
+            # native binary may be installed.
+            # Use /etc/passwd shell, not $SHELL (which Zellij may override)
+            import pwd
+
+            try:
+                shell = pwd.getpwuid(os.getuid()).pw_shell
+            except KeyError:
+                shell = "/bin/bash"
+            os.execvp(shell, [shell, "-l", "-c", command])
         else:
             # Parent process
             self._pid = pid
@@ -321,23 +339,25 @@ class TerminalDisplay(Widget, can_focus=True):
             except OSError:
                 pass
 
-    # ANSI 256-color palette (standard 16 colors)
+    # ANSI 256-color palette (standard 16 colors, softened for dark themes)
     ANSI_COLORS = {
-        "black": "#000000",
-        "red": "#cd0000",
-        "green": "#00cd00",
-        "yellow": "#cdcd00",
-        "blue": "#0000ee",
-        "magenta": "#cd00cd",
-        "cyan": "#00cdcd",
-        "white": "#e5e5e5",
-        "brightblack": "#7f7f7f",
-        "brightred": "#ff0000",
-        "brightgreen": "#00ff00",
-        "brightyellow": "#ffff00",
-        "brightblue": "#5c5cff",
-        "brightmagenta": "#ff00ff",
-        "brightcyan": "#00ffff",
+        "black": "#282c34",
+        "red": "#e06c75",
+        "green": "#98c379",
+        "brown": "#e5c07b",
+        "yellow": "#e5c07b",
+        "blue": "#61afef",
+        "magenta": "#c678dd",
+        "cyan": "#56b6c2",
+        "white": "#abb2bf",
+        "brightblack": "#5c6370",
+        "brightred": "#e06c75",
+        "brightgreen": "#98c379",
+        "brightbrown": "#e5c07b",
+        "brightyellow": "#e5c07b",
+        "brightblue": "#61afef",
+        "brightmagenta": "#c678dd",
+        "brightcyan": "#56b6c2",
         "brightwhite": "#ffffff",
     }
 

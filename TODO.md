@@ -110,6 +110,11 @@ Long-term open items for Clide development.
 - [ ] Plugin development guide
 - [ ] Architecture documentation updates
 
+## Web Deployment (ttyd)
+
+- [ ] Image paste support: intercept browser clipboard image on Ctrl+V, upload blob to server, save as temp file. Claude Code already handles Ctrl+V as image paste — just needs the image on the filesystem
+- [ ] Right-click context menu for copy/paste in web terminal
+
 ## Build & Distribution
 
 - [ ] PyInstaller builds for macOS

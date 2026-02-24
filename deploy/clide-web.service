@@ -13,7 +13,8 @@ WorkingDirectory=/mnt/media/Projects
 # -W            : Writable (allows input)
 # -a            : Allow URL arguments (passes ?project=X as command arg)
 # -t fontSize=14: Terminal font size
-ExecStart=/usr/local/bin/ttyd -p 8888 -W -a -t fontSize=14 /usr/local/bin/clide-launcher
+# -t fontFamily: Use embedded JetBrains Mono Nerd Font (from ttyd-nerd-font fork)
+ExecStart=/usr/local/bin/ttyd -p 8888 -W -a -t fontSize=14 -t 'fontFamily=JetBrains,monospace' /usr/local/bin/clide-launcher
 
 # Kill all child processes (ttyd → zellij → clide → claude)
 KillMode=control-group

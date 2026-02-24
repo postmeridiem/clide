@@ -192,7 +192,7 @@ class ClideApp(App[None]):
         test_mode: bool = False,
     ) -> None:
         super().__init__()
-        self.workdir = workdir or Path.cwd()
+        self.workdir = self._resolve_workdir(workdir)
         self.settings = settings or ClideSettings()
         self._test_mode = test_mode
 
@@ -220,6 +220,31 @@ class ClideApp(App[None]):
 
         # Register additional syntax highlighting languages
         register_languages()
+
+    @staticmethod
+    def _resolve_workdir(workdir: Path | None) -> Path:
+        """Resolve the working directory to the git root when possible."""
+        import subprocess
+
+        target = workdir.resolve() if workdir and workdir.is_dir() else Path.cwd()
+
+        # Find git root -- anchors to the project root even if cwd is a subdirectory
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=str(target),
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            if result.returncode == 0:
+                git_root = Path(result.stdout.strip())
+                if git_root.is_dir():
+                    return git_root
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass
+
+        return target
 
     def _register_themes(self) -> None:
         """Register all themes with Textual."""
