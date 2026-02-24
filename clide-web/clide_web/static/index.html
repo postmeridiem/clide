@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clide</title>
+    <link rel="stylesheet" href="/static/vendor/xterm.min.css">
+    <style>
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #21262f;
+            font-family: 'JetBrains Mono', monospace;
+            /* Kill all scrollbars */
+            scrollbar-width: none;           /* Firefox */
+            -ms-overflow-style: none;        /* IE/Edge */
+        }
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none;                   /* Chrome/Safari */
+        }
+        /* Kill xterm.js internal scrollbar — TUI handles its own scrolling */
+        .xterm-viewport {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        .xterm-viewport::-webkit-scrollbar {
+            display: none !important;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            height: 36px;
+            background: #292e38;
+            border-bottom: 1px solid #393e48;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 12px;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #e2e8f5;
+            font-size: 13px;
+            user-select: none;
+        }
+
+        #toolbar .logo {
+            font-weight: 600;
+            color: #00a3d2;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        #toolbar .separator {
+            width: 1px;
+            height: 20px;
+            background: #393e48;
+        }
+
+        #toolbar select {
+            background: #393e48;
+            color: #e2e8f5;
+            border: 1px solid #525762;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-family: system-ui, -apple-system, sans-serif;
+            cursor: pointer;
+            outline: none;
+        }
+        #toolbar select:hover {
+            border-color: #00a3d2;
+        }
+        #toolbar select:focus {
+            border-color: #00a3d2;
+            box-shadow: 0 0 0 1px #00a3d2;
+        }
+
+        #toolbar label {
+            font-size: 11px;
+            color: #898e9a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar-spacer { flex: 1; }
+
+        #status {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #525762;
+            transition: background 0.3s;
+        }
+        #status .dot.connected { background: #00ab9a; }
+        #status .dot.reconnecting { background: #d08447; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Terminal container */
+        #terminal-container {
+            height: calc(100% - 36px);
+            width: 100%;
+            position: absolute;
+            top: 36px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* Reconnect overlay */
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(33, 38, 47, 0.92);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 12px;
+            color: #e2e8f5;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        #overlay .message {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        #overlay .sub {
+            font-size: 13px;
+            color: #898e9a;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <span class="logo">Clide</span>
+        <div class="separator"></div>
+        <div class="toolbar-group">
+            <label>Project</label>
+            <select id="project-select"><option value="">Loading...</option></select>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div id="status">
+            <div class="dot" id="status-dot"></div>
+            <span id="status-text">Connecting...</span>
+        </div>
+    </div>
+    <div id="terminal-container"></div>
+    <div id="overlay">
+        <div class="message">Reconnecting...</div>
+        <div class="sub">Session is preserved</div>
+    </div>
+
+    <script src="/static/vendor/xterm.min.js"></script>
+    <script src="/static/vendor/addon-fit.min.js"></script>
+    <script src="/static/vendor/addon-web-links.min.js"></script>
+    <script>
+    (function() {
+        "use strict";
+
+        // --- State ---
+        // Extract project from path: /projects/<name> or fallback to ?project=<name>
+        function getProjectFromUrl() {
+            var match = location.pathname.match(/^\/projects\/([^/]+)/);
+            if (match) return decodeURIComponent(match[1]);
+            return new URLSearchParams(location.search).get("project") || "";
+        }
+        let currentProject = getProjectFromUrl();
+        let ws = null;
+        let reconnectTimer = null;
+        let reconnectDelay = 1000;
+
+        // --- DOM refs ---
+        const statusDot = document.getElementById("status-dot");
+        const statusText = document.getElementById("status-text");
+        const overlay = document.getElementById("overlay");
+        const projectSelect = document.getElementById("project-select");
+
+        // --- Terminal ---
+        const term = new Terminal({
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 14,
+            theme: {
+                background: "#21262f",
+                foreground: "#e2e8f5",
+                cursor: "#00a3d2",
+                cursorAccent: "#21262f",
+                selectionBackground: "rgba(0, 163, 210, 0.3)",
+                black: "#21262f",
+                red: "#f06c6f",
+                green: "#00ab9a",
+                yellow: "#d08447",
+                blue: "#00a3d2",
+                magenta: "#fa5f8b",
+                cyan: "#00a9b9",
+                white: "#e2e8f5",
+                brightBlack: "#393e48",
+                brightRed: "#f06c6f",
+                brightGreen: "#00ab9a",
+                brightYellow: "#d08447",
+                brightBlue: "#00a3d2",
+                brightMagenta: "#fa5f8b",
+                brightCyan: "#00a9b9",
+                brightWhite: "#e2e8f5",
+            },
+            cursorBlink: true,
+            allowProposedApi: true,
+            scrollback: 0,
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.loadAddon(new WebLinksAddon.WebLinksAddon());
+        term.open(document.getElementById("terminal-container"));
+        fitAddon.fit();
+
+        // --- Status helpers ---
+        function setStatus(state, text) {
+            statusDot.className = "dot " + state;
+            statusText.textContent = text;
+        }
+
+        // --- WebSocket ---
+        function connect() {
+            if (ws) {
+                ws.onclose = null;
+                ws.close();
+            }
+
+            const proto = location.protocol === "https:" ? "wss:" : "ws:";
+            const url = proto + "//" + location.host + "/projects/" + encodeURIComponent(currentProject) + "/ws";
+            ws = new WebSocket(url);
+            ws.binaryType = "arraybuffer";
+
+            ws.onopen = function() {
+                setStatus("connected", currentProject || "Connected");
+                overlay.style.display = "none";
+                reconnectDelay = 1000;
+
+                // Send initial terminal size (slight delay to ensure xterm is rendered)
+                setTimeout(function() {
+                    fitAddon.fit();
+                    sendResize();
+                }, 50);
+            };
+
+            ws.onmessage = function(evt) {
+                let prefix, payload;
+                if (evt.data instanceof ArrayBuffer) {
+                    const bytes = new Uint8Array(evt.data);
+                    if (bytes.length < 1) return;
+                    prefix = String.fromCharCode(bytes[0]);
+                    payload = bytes.slice(1);
+                    if (prefix === "0") {
+                        term.write(payload);
+                    } else if (prefix === "1") {
+                        handleControl(new TextDecoder().decode(payload));
+                    }
+                } else {
+                    // Text frame
+                    prefix = evt.data[0];
+                    payload = evt.data.slice(1);
+                    if (prefix === "0") {
+                        term.write(payload);
+                    } else if (prefix === "1") {
+                        handleControl(payload);
+                    }
+                }
+            };
+
+            ws.onclose = function() {
+                setStatus("reconnecting", "Reconnecting...");
+                overlay.style.display = "flex";
+                reconnectTimer = setTimeout(function() {
+                    reconnectDelay = Math.min(reconnectDelay * 1.5, 10000);
+                    connect();
+                }, reconnectDelay);
+            };
+
+            ws.onerror = function() {
+                // onclose will fire after this
+            };
+        }
+
+        // --- Terminal input → WebSocket ---
+        term.onData(function(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send("0" + data);
+            }
+        });
+
+        // --- Resize ---
+        function sendResize() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const dims = fitAddon.proposeDimensions();
+                if (dims) {
+                    ws.send("2" + dims.cols + "," + dims.rows);
+                }
+            }
+        }
+
+        const resizeObserver = new ResizeObserver(function() {
+            fitAddon.fit();
+            sendResize();
+        });
+        resizeObserver.observe(document.getElementById("terminal-container"));
+
+        // --- Control messages ---
+        function handleControl(jsonStr) {
+            let msg;
+            try { msg = JSON.parse(jsonStr); } catch(e) { return; }
+
+            if (msg.type === "projects") {
+                populateProjects(msg.projects);
+            } else if (msg.type === "session_info") {
+                setStatus("connected", msg.project);
+                document.title = "Clide — " + msg.project;
+            } else if (msg.type === "error") {
+                term.write("\r\n\x1b[31mError: " + msg.message + "\x1b[0m\r\n");
+            }
+        }
+
+        // --- Project management ---
+        function populateProjects(projects) {
+            projectSelect.innerHTML = "";
+            projects.forEach(function(p) {
+                const opt = document.createElement("option");
+                opt.value = p;
+                opt.textContent = p;
+                if (p === currentProject) opt.selected = true;
+                projectSelect.appendChild(opt);
+            });
+        }
+
+        projectSelect.addEventListener("change", function() {
+            currentProject = projectSelect.value;
+            history.pushState(null, "", "/projects/" + encodeURIComponent(currentProject));
+            document.title = "Clide — " + currentProject;
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            term.clear();
+            term.reset();
+            connect();
+        });
+
+        // --- Load projects and connect ---
+        fetch("/api/projects")
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                populateProjects(data.projects);
+                // If no project selected, pick first available
+                if (!currentProject && data.projects.length > 0) {
+                    currentProject = data.projects[0];
+                    projectSelect.value = currentProject;
+                    history.replaceState(null, "", "/projects/" + encodeURIComponent(currentProject));
+                }
+                if (currentProject) {
+                    connect();
+                } else {
+                    setStatus("", "No projects found");
+                    term.write("\r\nNo projects found in configured projects directory.\r\n");
+                }
+            })
+            .catch(function() {
+                setStatus("reconnecting", "Server unreachable");
+            });
+
+    })();
+    </script>
+</body>
+</html>
