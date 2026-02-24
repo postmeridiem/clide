@@ -114,6 +114,7 @@ Long-term open items for Clide development.
 
 - [ ] Image paste support: intercept browser clipboard image on Ctrl+V, upload blob to server, save as temp file. Claude Code already handles Ctrl+V as image paste — just needs the image on the filesystem
 - [ ] Right-click context menu for copy/paste in web terminal
+- [ ] Multiple terminal tabs: the workspace terminal already runs inside a shell — leverage this for tabbed terminal sessions (new tab, close tab, switch tabs)
 
 ## Build & Distribution
 
