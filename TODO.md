@@ -21,7 +21,7 @@ Long-term open items for Clide development.
 - [ ] Streaming markdown responses in Claude panel
 - [ ] Visual distinction between Claude responses, tool calls, and user input
 - [ ] Claude history browser (past conversations)
-- [ ] Claude diff flow (propose changes → diff tab → accept/reject)
+- [x] Claude diff flow (propose changes → diff tab → accept/reject)
 
 ### Editor
 - [ ] Multi-file tab support with state preservation
@@ -32,18 +32,18 @@ Long-term open items for Clide development.
 
 ### Diff Panel
 - [ ] Side-by-side diff view
-- [ ] Unified diff view toggle
-- [ ] Accept/Reject buttons for Claude-proposed changes
+- [x] Unified diff view toggle
+- [x] Accept/Reject buttons for Claude-proposed changes
 - [ ] Syntax highlighting in diff content
 
 ### Terminal
-- [ ] Full PTY integration for terminal emulation
+- [x] Full PTY integration for terminal emulation
 - [ ] Command history preservation
-- [ ] Output buffer retention when hiding
+- [x] Output buffer retention when hiding
 
 ### Git Integration
-- [ ] Stage/unstage files from Git tab
-- [ ] Discard changes context menu
+- [x] Stage/unstage files from Git tab
+- [x] Discard changes context menu
 - [x] Git graph visualization (Tree tab)
 - [x] Branch popout with checkout/new branch actions
 
