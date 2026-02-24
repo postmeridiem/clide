@@ -1,11 +1,11 @@
 # Web Deployment
 
-Clide runs in a browser via a three-layer stack:
+Clide runs in a browser via a two-layer stack:
 
 ```
 Browser (code.schweitz.net)
- └─ ttyd (web terminal server, port 8888)
-     └─ zellij (session persistence only)
+ └─ clide-web (FastAPI + uvicorn, port 8888)
+     └─ tmux (session persistence)
          └─ clide (Textual TUI)
              └─ claude code (embedded PTY)
 ```
@@ -14,9 +14,9 @@ Browser (code.schweitz.net)
 
 | Layer | Purpose | Config |
 |-------|---------|--------|
-| **ttyd** | Serves terminal over WebSocket | systemd service on port 8888 |
-| **zellij** | Session reconnection (detach/reattach) | Locked mode, bare layout, no UI |
-| **clide** | TUI IDE wrapper around Claude Code | Zellij's default shell |
+| **clide-web** | FastAPI server: HTML page, WebSocket ↔ PTY bridge, REST API | systemd service on port 8888 |
+| **tmux** | Session persistence (detach/reattach on browser disconnect) | Managed by clide-web |
+| **clide** | TUI IDE wrapper around Claude Code | Spawned by tmux |
 
 ## Installation
 
@@ -26,93 +26,113 @@ From the clide project root:
 sudo bash deploy/install-clide-web.sh
 ```
 
-This installs:
-1. `ttyd` binary to `/usr/local/bin/`
-2. `zellij` binary to `/usr/local/bin/`
-3. `clide-launcher` script to `/usr/local/bin/`
-4. Zellij config to `~/.config/zellij/` (locked mode + bare layout)
-5. `clide-web.service` systemd unit
-6. Enables and starts the service
+This:
+1. Installs `clide-web` Python package into the clide venv
+2. Installs `clide-web.service` systemd unit
+3. Enables and starts the service
+
+### First-Run Setup
+
+After installing, run the setup wizard to configure projects directory and clide binary path:
+
+```bash
+clide-web-setup
+```
+
+Settings are stored in `~/.clide/clide.db` as UserPreference records.
+
+### Prerequisites
+
+- Python 3.12+ with clide venv set up (`make setup`)
+- `tmux` installed (`sudo dnf install tmux` / `sudo apt install tmux`)
 
 ### Reverse Proxy
 
 For external access, configure your reverse proxy (e.g., Nginx Proxy Manager) to:
 - Proxy `code.schweitz.net` → `localhost:8888`
-- Enable WebSocket support (required for ttyd)
+- Enable WebSocket support
 
 ## Architecture
 
-### ttyd
+### clide-web
 
-Web terminal server. Runs `clide-launcher` for each browser connection.
+FastAPI application serving:
+- `GET /` — HTML page with xterm.js terminal + toolbar
+- `GET /projects/{name}` — Project terminal page
+- `WS /projects/{name}/ws` — WebSocket terminal bridge
+- `GET /api/projects` — List available git repos
+- `GET /api/sessions` — List active tmux sessions
+- `GET /health` — Health check for reverse proxy
 
-**Service:** `/etc/systemd/system/clide-web.service`
+**WebSocket Protocol:**
 
-Key flags:
-- `-p 8888` — port
-- `-W` — writable (allows input)
-- `-a` — allows URL arguments (passes `?project=X` to the launcher)
-- `-t fontSize=14` — terminal font size
+| Prefix | Direction | Purpose |
+|--------|-----------|---------|
+| `0` | both | Terminal data |
+| `1` | both | Control message (JSON) |
+| `2` | client→server | Resize: `cols,rows` |
 
-### clide-launcher
+### tmux
 
-Entry point script at `/usr/local/bin/clide-launcher`. Handles:
+Managed programmatically by clide-web. One session per project (`clide-<project>`).
 
-1. **Project selection** — parses `?project=NAME` from the URL
-2. **Session management** — creates or reattaches to a Zellij session named `clide-<project>`
-3. **Fallback UI** — shows a project selector if no project specified
+- Browser disconnect → tmux session persists, reconnect shows current state
+- Clide exit (Alt+Q) → `pane-died` hook auto-respawns a fresh Clide instance
+- Status bar hidden for clide-web sessions only (user's other tmux sessions unaffected)
+- Full environment inherited (HOME, PATH, etc.)
 
-**URL patterns:**
-- `code.schweitz.net` — shows project selector
-- `code.schweitz.net?project=clide` — opens/attaches to the clide project
+### Keybindings
 
-### Zellij
+All keys pass through directly to Clide — no intermediate layer captures keys.
+No keybinding conflicts (unlike the previous Zellij-based setup).
 
-Used **only** for session persistence (reconnecting after browser close/refresh). All UI features are disabled.
+### Database
 
-**Config:** `deploy/zellij/config.kdl`
+SQLite database at `~/.clide/clide.db` shared between clide and clide-web.
+Uses SQLModel (Pydantic-native ORM by FastAPI's creator).
 
-Key settings:
-- `default_mode "locked"` — all keys pass through to Clide except `Ctrl+G`
-- `default_layout "bare"` — no tab bar, no status bar
-- `pane_frames false` — no pane borders
-- `default_shell` — points to the clide binary
-- `show_startup_tips false`
+Tables:
+- **Project** — name, path, theme, last_accessed
+- **Session** — tmux session name, status, last_activity
+- **UserPreference** — key/value settings (projects_dir, clide_bin, port, etc.)
+- **ConnectionLog** — client IP, connect/disconnect timestamps
 
-**Layout:** `deploy/zellij/bare.kdl` — single pane, zero chrome.
+## Configuration
 
-### Keybinding Layering
+Settings priority: environment variables > database preferences > defaults.
 
-Since the stack is deeply nested, keybindings are carefully layered:
+Environment variables (prefix `CLIDE_WEB_`):
 
-| Key | Layer | Action |
-|-----|-------|--------|
-| `Ctrl+G` | Zellij | Unlock Zellij (only key Zellij captures in locked mode) |
-| `Ctrl+Q` | Clide | Quit Clide |
-| `Ctrl+B` | Clide | Toggle sidebar |
-| `Ctrl+P` | Clide | Quick open |
-| `Ctrl+S` | Clide | Save file |
-| All others | Clide → Claude | Pass through to Clide, then to Claude Code |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIDE_WEB_HOST` | `0.0.0.0` | Server bind address |
+| `CLIDE_WEB_PORT` | `8888` | Server port |
+| `CLIDE_WEB_PROJECTS_DIR` | `/mnt/media/Projects` | Directory containing git repos |
+| `CLIDE_WEB_CLIDE_BIN` | `clide` | Path to clide binary |
+| `CLIDE_WEB_DB_PATH` | `~/.clide/clide.db` | SQLite database path |
 
-**To detach a session** (e.g., before service restart):
-1. `Ctrl+G` — unlock Zellij
-2. `Ctrl+O` — session mode
-3. `d` — detach
+## URL Patterns
 
-Or just close the browser tab — Zellij detaches automatically.
+- `code.schweitz.net` — auto-selects first project
+- `code.schweitz.net/projects/clide` — opens/attaches to the clide project
+
+The toolbar dropdown allows switching projects. URL updates via `history.pushState`.
 
 ## Operations
 
 ### Service Management
 
 ```bash
-# Status
+# Using make targets (from clide-web/ directory)
+make start-server       # Start the systemd service
+make stop-server        # Stop the systemd service
+make restart-server     # Restart the systemd service
+make status-server      # Show service status
+make logs-server        # Tail service logs
+
+# Or directly with systemctl
 systemctl status clide-web
-
-# Restart (disconnects all sessions)
 sudo systemctl restart clide-web
-
-# Logs
 journalctl -u clide-web -f
 ```
 
@@ -120,40 +140,34 @@ journalctl -u clide-web -f
 
 ```bash
 # List sessions
-zellij list-sessions
+tmux list-sessions
 
-# Kill stuck sessions
-zellij delete-all-sessions --force --yes
+# Kill a specific session
+tmux kill-session -t clide-myproject
 
-# Clear serialized session cache (if ghost sessions persist)
-rm -rf ~/.cache/zellij/*/session_info/clide-*
+# Kill all clide sessions
+tmux list-sessions | grep ^clide- | cut -d: -f1 | xargs -I{} tmux kill-session -t {}
 ```
-
-### Troubleshooting
-
-**Service stuck in `deactivating`:** A child process (usually `claude`) didn't respond to SIGTERM.
-```bash
-sudo systemctl kill -s SIGKILL clide-web
-sudo systemctl start clide-web
-```
-
-**Old sessions ignore config changes:** Zellij serializes sessions. Delete them and restart:
-```bash
-zellij delete-all-sessions --force --yes
-rm -rf ~/.cache/zellij/*/session_info/clide-*
-sudo systemctl restart clide-web
-```
-
-**Keys not reaching Clide:** Zellij may be in normal mode. Press `Ctrl+G` to toggle back to locked mode. The status bar being visible is a sign you're unlocked (bare layout hides it in locked mode).
 
 ## Files
 
 ```
+clide-web/                      # Python package
+├── clide_web/
+│   ├── server.py               # FastAPI app, routes, WebSocket handler
+│   ├── sessions.py             # tmux session manager
+│   ├── pty_bridge.py           # PTY ↔ WebSocket bridge
+│   ├── config.py               # Pydantic settings with DB overlay
+│   ├── setup_wizard.py         # Interactive first-run configuration
+│   └── static/
+│       ├── index.html          # HTML page (toolbar + xterm.js)
+│       └── vendor/             # Vendored xterm.js (no CDN dependencies)
+├── pyproject.toml
+└── Makefile
 deploy/
-├── install-clide-web.sh    # Installation script (run with sudo)
-├── clide-launcher           # Session launcher (ttyd → zellij → clide)
-├── clide-web.service        # systemd unit file
-└── zellij/
-    ├── config.kdl           # Zellij config (locked mode, no UI)
-    └── bare.kdl             # Bare layout (single pane, no chrome)
+├── install-clide-web.sh        # Installation script (run with sudo)
+└── clide-web.service           # systemd unit file
+clide/
+├── models/db.py                # SQLModel table definitions (shared)
+└── services/database.py        # SQLite engine and session factory
 ```

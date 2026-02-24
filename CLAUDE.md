@@ -22,10 +22,14 @@ Clide is a TUI IDE wrapper for Claude Code CLI, designed to be Claude-centric wi
 | CLI | Typer | latest |
 | Data Validation | Pydantic | v2 (strict mode) |
 | Settings | pydantic-settings | latest |
+| Database | SQLModel + SQLite | latest |
+| Web Server | FastAPI + uvicorn | latest |
 | Testing | pytest + pytest-asyncio + pytest-textual-snapshot | latest |
 | Extensions | pluggy | latest |
 
 ## Development Commands
+
+### Clide (TUI)
 
 ```bash
 make setup          # Create venv, install deps
@@ -36,6 +40,20 @@ make typecheck      # Run mypy
 make lint           # Run ruff check
 make format         # Run ruff format
 make build          # Build for current platform
+```
+
+### clide-web (Web Server)
+
+```bash
+cd clide-web/
+make setup          # Create venv, install deps, run setup wizard
+make run            # Run the web server (foreground)
+make dev            # Run with auto-reload
+make start-server   # Start systemd service
+make stop-server    # Stop systemd service
+make restart-server # Restart systemd service
+make status-server  # Show service status
+make logs-server    # Tail service logs
 ```
 
 ## Panel Architecture
@@ -89,7 +107,21 @@ clide/
 │       └── my-theme.toml
 ├── docs/
 │   ├── tui-ide-spec.md           # Full UI/UX specification
+│   ├── web-deployment.md         # Web deployment architecture
 │   └── ARCHITECTURE.md           # Framework best practices
+├── pyproject.toml
+└── Makefile
+│
+clide-web/                        # Web server package (wraps clide)
+├── clide_web/
+│   ├── server.py                 # FastAPI app, routes, WebSocket handler
+│   ├── sessions.py               # tmux session manager
+│   ├── pty_bridge.py             # PTY ↔ WebSocket bridge
+│   ├── config.py                 # Pydantic settings with DB overlay
+│   ├── setup_wizard.py           # Interactive first-run config
+│   └── static/
+│       ├── index.html            # HTML page (toolbar + xterm.js)
+│       └── vendor/               # Vendored xterm.js (offline)
 ├── pyproject.toml
 └── Makefile
 ```
