@@ -1,6 +1,7 @@
 """Pydantic models for Clide."""
 
 from clide.models.config import ClideSettings, PanelConfig
+from clide.models.db import ConnectionLog, Project, Session, UserPreference
 from clide.models.diff import ChangeType, DiffContent, DiffHunk, DiffLine, DiffViewState
 from clide.models.editor import CursorPosition, EditorState, FileBuffer, Selection
 from clide.models.git import (
@@ -56,4 +57,9 @@ __all__ = [
     "TabInfo",
     "TabType",
     "TAB_ICONS",
+    # Database (SQLModel)
+    "Project",
+    "Session",
+    "UserPreference",
+    "ConnectionLog",
 ]

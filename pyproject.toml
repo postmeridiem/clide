@@ -32,6 +32,8 @@ dependencies = [
     "rich>=13.0.0",
     "watchdog>=4.0.0",
     "wcwidth>=0.2.0",  # Required by vendored pyte
+    "sqlmodel>=0.0.16",
+    "aiosqlite>=0.20",
     # Tree-sitter for syntax highlighting
     "tree-sitter>=0.21.0",
     "tree-sitter-python>=0.21.0",
