@@ -12,23 +12,23 @@ GREEN := \033[0;32m
 RESET := \033[0m
 
 help:
-	@echo "$(BLUE)Clide Development Commands$(RESET)"
-	@echo ""
-	@echo "$(GREEN)setup$(RESET)          Create venv and install dependencies"
-	@echo "$(GREEN)run$(RESET)            Run the application"
-	@echo "$(GREEN)test$(RESET)           Run all tests"
-	@echo "$(GREEN)test-single$(RESET)    Run single test (TEST=path::test_name)"
-	@echo "$(GREEN)typecheck$(RESET)      Run mypy type checking"
-	@echo "$(GREEN)lint$(RESET)           Run ruff linter"
-	@echo "$(GREEN)format$(RESET)         Run ruff formatter"
-	@echo "$(GREEN)build$(RESET)          Build executable for current platform"
-	@echo "$(GREEN)clean$(RESET)          Remove build artifacts and caches"
-	@echo ""
-	@echo "$(BLUE)Distribution Builds$(RESET)"
-	@echo ""
-	@echo "$(GREEN)build-macos$(RESET)    Build macOS DMG (VERSION=x.x.x)"
-	@echo "$(GREEN)build-linux$(RESET)    Build Linux AppImage (VERSION=x.x.x)"
-	@echo "$(GREEN)build-windows$(RESET)  Build Windows installer (VERSION=x.x.x)"
+	@printf "$(BLUE)Clide Development Commands$(RESET)\n"
+	@printf "\n"
+	@printf "$(GREEN)setup$(RESET)          Create venv and install dependencies\n"
+	@printf "$(GREEN)run$(RESET)            Run the application\n"
+	@printf "$(GREEN)test$(RESET)           Run all tests\n"
+	@printf "$(GREEN)test-single$(RESET)    Run single test (TEST=path::test_name)\n"
+	@printf "$(GREEN)typecheck$(RESET)      Run mypy type checking\n"
+	@printf "$(GREEN)lint$(RESET)           Run ruff linter\n"
+	@printf "$(GREEN)format$(RESET)         Run ruff formatter\n"
+	@printf "$(GREEN)build$(RESET)          Build executable for current platform\n"
+	@printf "$(GREEN)clean$(RESET)          Remove build artifacts and caches\n"
+	@printf "\n"
+	@printf "$(BLUE)Distribution Builds$(RESET)\n"
+	@printf "\n"
+	@printf "$(GREEN)build-macos$(RESET)    Build macOS DMG (VERSION=x.x.x)\n"
+	@printf "$(GREEN)build-linux$(RESET)    Build Linux AppImage (VERSION=x.x.x)\n"
+	@printf "$(GREEN)build-windows$(RESET)  Build Windows installer (VERSION=x.x.x)\n"
 
 setup:
 	@echo "Creating virtual environment..."
@@ -38,7 +38,7 @@ setup:
 	$(BIN)/pip install -e ".[dev,build]"
 	@echo "Installing pre-commit hooks..."
 	$(BIN)/pre-commit install || true
-	@echo "$(GREEN)Setup complete! Activate with: source $(VENV)/bin/activate$(RESET)"
+	@printf "$(GREEN)Setup complete! Activate with: source $(VENV)/bin/activate$(RESET)\n"
 
 run:
 	$(BIN)/python -m clide
@@ -103,11 +103,11 @@ ci-build:
 
 # Distribution builds
 build-macos:
-	@echo "$(BLUE)Building macOS distribution...$(RESET)"
+	@printf "$(BLUE)Building macOS distribution...$(RESET)\n"
 	./scripts/build-macos.sh $(VERSION)
 
 build-linux:
-	@echo "$(BLUE)Building Linux AppImage...$(RESET)"
+	@printf "$(BLUE)Building Linux AppImage...$(RESET)\n"
 	./scripts/build-linux.sh $(VERSION)
 
 build-windows:
@@ -115,7 +115,7 @@ build-windows:
 	powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1 -Version $(VERSION)
 
 build-all: build-linux
-	@echo ""
-	@echo "$(GREEN)Linux build complete.$(RESET)"
-	@echo "$(BLUE)Note:$(RESET) macOS build requires: make build-macos VERSION=$(VERSION)"
-	@echo "$(BLUE)Note:$(RESET) Windows build requires Windows: make build-windows VERSION=$(VERSION)"
+	@printf "\n"
+	@printf "$(GREEN)Linux build complete.$(RESET)\n"
+	@printf "$(BLUE)Note:$(RESET) macOS build requires: make build-macos VERSION=$(VERSION)\n"
+	@printf "$(BLUE)Note:$(RESET) Windows build requires Windows: make build-windows VERSION=$(VERSION)\n"
