@@ -15,8 +15,14 @@ WorkingDirectory=/mnt/media/Projects
 # -t fontSize=14: Terminal font size
 ExecStart=/usr/local/bin/ttyd -p 8888 -W -a -t fontSize=14 /usr/local/bin/clide-launcher
 
+# Kill all child processes (ttyd → zellij → clide → claude)
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=5
+SendSIGKILL=yes
+
 Restart=on-failure
-RestartSec=10
+RestartSec=3
 
 # Environment for 256-color + truecolor
 Environment="TERM=xterm-256color"
