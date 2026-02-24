@@ -264,7 +264,6 @@ error = "#f44747"
 | Problems panel | `Alt+M` |
 | Select theme | `Alt+T` |
 | Save file | `Alt+S` |
-| Go to line | `Alt+L` |
 
 ## Configuration
 
