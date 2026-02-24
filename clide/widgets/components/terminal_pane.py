@@ -50,7 +50,7 @@ class TerminalPane(Vertical):
 
     def compose(self) -> ComposeResult:
         yield Static(f"Terminal - {self._cwd}", classes="terminal-header")
-        self._terminal = TerminalDisplay(id="terminal-display")
+        self._terminal = TerminalDisplay()
         yield self._terminal
 
     def on_mount(self) -> None:
@@ -79,6 +79,10 @@ class TerminalPane(Vertical):
         """Stop the terminal process."""
         if self._terminal:
             self._terminal.stop()
+
+    def on_unmount(self) -> None:
+        """Clean up PTY when widget is destroyed."""
+        self.stop()
 
     def restart(self) -> None:
         """Restart the shell."""

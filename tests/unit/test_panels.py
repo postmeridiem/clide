@@ -59,7 +59,7 @@ class TestWorkspacePanel:
         panel = WorkspacePanel(workdir=tmp_path)
         assert panel._workdir == tmp_path
         assert panel.visible is False
-        assert panel.active_tab == "editor"
+        assert panel.get_active_tab_type() is None
         assert panel.id == "panel-workspace"
 
     def test_default_workdir(self):
@@ -108,13 +108,6 @@ class TestWorkspacePanel:
 
         msg = WorkspacePanel.DiffRejected("test.py")
         assert msg.file_path == "test.py"
-
-    def test_command_submitted_message(self):
-        """Test CommandSubmitted message."""
-        from clide.widgets.panels.workspace import WorkspacePanel
-
-        msg = WorkspacePanel.CommandSubmitted("ls -la")
-        assert msg.command == "ls -la"
 
     def test_close_requested_message(self):
         """Test CloseRequested message."""

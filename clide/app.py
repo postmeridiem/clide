@@ -534,7 +534,7 @@ class ClideApp(App[None]):
     def action_toggle_terminal(self) -> None:
         """Toggle terminal (shows workspace with terminal tab)."""
         workspace = self.query_one(WorkspacePanel)
-        if self.workspace_visible and workspace.active_tab == "terminal":
+        if self.workspace_visible and workspace.get_active_tab_type() == "terminal":
             self.workspace_visible = False
         else:
             workspace.show_terminal()
@@ -568,7 +568,7 @@ class ClideApp(App[None]):
         """Focus editor."""
         self.workspace_visible = True
         workspace = self.query_one(WorkspacePanel)
-        workspace.focus_tab("editor")
+        workspace.focus_last_editor()
 
     def action_focus_terminal(self) -> None:
         """Focus terminal."""
@@ -583,9 +583,9 @@ class ClideApp(App[None]):
         sidebar.focus()
 
     def action_close_tab(self) -> None:
-        """Close current tab/editor."""
-        # TODO: Implement tab closing
-        pass
+        """Close current tab in workspace."""
+        workspace = self.query_one(WorkspacePanel)
+        workspace.close_tab()
 
     def action_open_git(self) -> None:
         """Open git panel."""
@@ -614,8 +614,7 @@ class ClideApp(App[None]):
         try:
             workspace = self.query_one(WorkspacePanel)
             if workspace.has_unsaved_changes():
-                workspace._action_save()
-                # FileSaved message will be emitted by EditorPane if successful
+                workspace.save_active_editor()
             else:
                 self.notify("No unsaved changes", severity="warning")
         except Exception as e:

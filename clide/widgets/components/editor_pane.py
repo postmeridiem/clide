@@ -117,7 +117,7 @@ class EditorPane(Vertical):
         try:
             import tree_sitter_typescript as tst
 
-            textarea = self.query_one("#editor-textarea", TextArea)
+            textarea = self.query_one(TextArea)
 
             # Register TypeScript
             try:
@@ -149,24 +149,22 @@ class EditorPane(Vertical):
             yield TextArea(
                 self._buffer.content,
                 language=self._buffer.language,
-                id="editor-textarea",
                 show_line_numbers=True,
             )
             yield Static(
                 self._get_status_text(),
                 classes="editor-status",
-                id="editor-status",
             )
         else:
             yield Static("No file open", classes="file-tab")
-            yield TextArea(id="editor-textarea", show_line_numbers=True)
-            yield Static("", classes="editor-status", id="editor-status")
+            yield TextArea(show_line_numbers=True)
+            yield Static("", classes="editor-status")
 
     def load_buffer(self, buffer: FileBuffer) -> None:  # noqa: ARG002
         """Load a file buffer into the editor."""
         self._buffer = buffer
 
-        textarea = self.query_one("#editor-textarea", TextArea)
+        textarea = self.query_one(TextArea)
 
         # Register TypeScript if needed
         if buffer.language in ("typescript", "tsx"):
@@ -194,7 +192,7 @@ class EditorPane(Vertical):
 
     def get_content(self) -> str:
         """Get current editor content."""
-        textarea = self.query_one("#editor-textarea", TextArea)
+        textarea = self.query_one(TextArea)
         return textarea.text
 
     def _get_status_text(self) -> str:
@@ -210,7 +208,7 @@ class EditorPane(Vertical):
 
     def _update_status(self) -> None:
         """Update status bar."""
-        status = self.query_one("#editor-status", Static)
+        status = self.query_one(".editor-status", Static)
         status.update(self._get_status_text())
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
@@ -265,7 +263,7 @@ class EditorPane(Vertical):
         self.load_buffer(buffer)
 
         if goto_line is not None:
-            textarea = self.query_one("#editor-textarea", TextArea)
+            textarea = self.query_one(TextArea)
             textarea.cursor_location = (goto_line - 1, 0)
 
     def save(self) -> bool:

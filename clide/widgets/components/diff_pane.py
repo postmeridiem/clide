@@ -78,7 +78,7 @@ class DiffPane(Vertical):
         else:
             yield Static("No diff loaded", classes="diff-header")
 
-        yield RichLog(id="diff-log", highlight=True, markup=True, classes="diff-content")
+        yield RichLog(highlight=True, markup=True, classes="diff-content")
 
         if self._is_proposal:
             with Horizontal(classes="diff-actions"):
@@ -109,7 +109,7 @@ class DiffPane(Vertical):
 
     def _render_diff(self) -> None:
         """Render the diff content."""
-        log = self.query_one("#diff-log", RichLog)
+        log = self.query_one(RichLog)
         log.clear()
 
         if not self._diff:
@@ -131,7 +131,7 @@ class DiffPane(Vertical):
     def clear(self) -> None:
         """Clear the diff viewer."""
         self._diff = None
-        log = self.query_one("#diff-log", RichLog)
+        log = self.query_one(RichLog)
         log.clear()
 
         header = self.query_one(".diff-header", Static)

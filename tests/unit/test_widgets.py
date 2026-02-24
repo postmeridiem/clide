@@ -383,8 +383,7 @@ class TestTerminalPane:
 
         pane = TerminalPane(cwd=tmp_path)
         assert pane.cwd == tmp_path
-        assert pane._history == []
-        assert pane._history_index == 0
+        assert pane._terminal is None
 
     def test_default_cwd(self):
         """Test default cwd is current directory."""
@@ -400,13 +399,6 @@ class TestTerminalPane:
         pane = TerminalPane()
         pane._cwd = tmp_path
         assert pane.cwd == tmp_path
-
-    def test_command_submitted_message(self):
-        """Test CommandSubmitted message."""
-        from clide.widgets.components.terminal_pane import TerminalPane
-
-        msg = TerminalPane.CommandSubmitted("ls -la")
-        assert msg.command == "ls -la"
 
 
 class TestProblemsView:

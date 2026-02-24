@@ -14,6 +14,7 @@ from clide.models.git import (
 from clide.models.problems import Problem, ProblemsState, ProblemsSummary, Severity
 from clide.models.theme import ThemeColors, ThemeDefinition, ThemeMetadata
 from clide.models.todos import TodoItem, TodosState, TodosSummary, TodoType
+from clide.models.workspace import TAB_ICONS, TabInfo, TabType
 
 __all__ = [
     # Config
@@ -51,4 +52,8 @@ __all__ = [
     "ThemeColors",
     "ThemeDefinition",
     "ThemeMetadata",
+    # Workspace
+    "TabInfo",
+    "TabType",
+    "TAB_ICONS",
 ]
