@@ -184,5 +184,5 @@ logs/
 # Credentials
 *-credentials.md
 
-# Claude Code
-.claude/
+# Claude Code — user-specific settings only; project-level settings and skills are committed
+.claude/settings.local.json

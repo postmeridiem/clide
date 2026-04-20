@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(go *)",
+      "Bash(make *)",
+      "Bash(golangci-lint *)",
+      "Bash(goreleaser *)",
+      "Bash(govulncheck *)",
+      "Bash(npm *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(sudo rm *)",
+      "Bash(sudo chmod *)",
+      "Bash(sudo chown *)",
+      "Bash(mkfs*)",
+      "Bash(mkfs.*)",
+      "Bash(dd if=*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -fd*)",
+      "Bash(git clean -fdx*)",
+      "Bash(git clean -ffd*)",
+      "Bash(git branch -D *)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore .*)",
+      "Bash(chmod -R 777 *)",
+      "Bash(chmod 777 *)"
+    ]
+  }
+}
