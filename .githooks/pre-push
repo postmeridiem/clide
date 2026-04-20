@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Pre-push gate. Blocks the push if any quality check fails.
+#
+# Install: `make hooks` (points git core.hooksPath at .githooks/).
+# Bypass: never. If this runs slowly, fix the slow test; don't reach
+# for --no-verify (git-commit skill forbids it).
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# `make tools` installs Go-installed binaries into $HOME/go/bin (or
+# $GOBIN if set). Users routinely forget to put that on PATH, so the
+# hook prepends it here to avoid spurious "command not found" failures
+# for govulncheck / goimports / golangci-lint.
+export PATH="${GOBIN:-$HOME/go/bin}:$PATH"
+
+echo "==> pre-push: make push-check"
+make push-check
