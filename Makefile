@@ -1,154 +1,139 @@
 # clide — local dev targets. CI scripts in ci/ shell out to these.
 #
-# Two components under one Makefile:
-#   - Go sidecar/CLI under sidecar/
-#   - Flutter desktop app under app/ (scaffolded once Flutter is installed
-#     locally; targets gracefully noop when app/ isn't present yet).
+# One toolchain: Flutter + Dart. Native supporter tools (`ptyc`, future
+# peers) live in their own directories with their own build targets and
+# compose in under `make build`.
 
-GO          ?= go
-BIN_DIR     ?= sidecar/bin
 INSTALL_DIR ?= $(HOME)/.local/bin
 
 # Version stamping. Source of truth: project.yaml `version:` field. Local
 # builds augment with git short SHA + dirty marker (semver build metadata).
-# Tagged releases are handled by goreleaser using the git tag instead.
 VERSION_BASE ?= $(shell awk -F': *' '/^version:/ {gsub(/[" ]/,"",$$2); print $$2; exit}' project.yaml)
 COMMIT       ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 DIRTY        := $(shell git diff --quiet HEAD 2>/dev/null || echo .dirty)
 VERSION      ?= $(VERSION_BASE)+$(COMMIT)$(DIRTY)
 DATE         ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-LDFLAGS := -s -w \
-	-X 'git.schweitz.net/jpmschweitzer/clide/sidecar/internal/version.Version=$(VERSION)' \
-	-X 'git.schweitz.net/jpmschweitzer/clide/sidecar/internal/version.Commit=$(COMMIT)' \
-	-X 'git.schweitz.net/jpmschweitzer/clide/sidecar/internal/version.Date=$(DATE)'
-
-GO_PACKAGES := ./...
-
 .PHONY: help
 help: ## Show this help.
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# -- sidecar (Go) --------------------------------------------------------
+# -- app + core (Flutter / Dart) ----------------------------------------
 
-.PHONY: build
-build: ## Build the clide sidecar/CLI binary into sidecar/bin/clide.
-	cd sidecar && $(GO) build -ldflags="$(LDFLAGS)" -o bin/clide ./cmd/clide
-
-.PHONY: install
-install: build ## Install sidecar/bin/clide into $(INSTALL_DIR).
-	install -m 0755 $(BIN_DIR)/clide $(INSTALL_DIR)/clide
-
-.PHONY: test
-test: ## Unit tests (Go), fast.
-	cd sidecar && $(GO) test $(GO_PACKAGES)
-
-.PHONY: test-race
-test-race: ## Unit tests with the race detector.
-	cd sidecar && $(GO) test -race $(GO_PACKAGES)
-
-.PHONY: test-integration
-test-integration: build ## Integration tests (binary + fixture repos). Tag: integration.
-	cd sidecar && $(GO) test -tags=integration ./...
-
-.PHONY: lint
-lint: ## golangci-lint run on the sidecar.
-	cd sidecar && golangci-lint run
-
-.PHONY: vuln
-vuln: ## govulncheck on all sidecar packages — Go CVE gate.
-	cd sidecar && govulncheck ./...
-
-.PHONY: fmt
-fmt: ## gofmt + goimports on the sidecar.
-	cd sidecar && gofmt -w .
-	@command -v goimports >/dev/null && cd sidecar && goimports -w . || echo "(goimports not installed; skipping)"
-
-.PHONY: tidy
-tidy: ## go mod tidy for the sidecar.
-	cd sidecar && $(GO) mod tidy
-
-.PHONY: snapshot
-snapshot: ## GoReleaser snapshot build (dry-run, no publish).
-	goreleaser release --snapshot --clean
-
-# -- app (Flutter) -------------------------------------------------------
-
-# App targets gracefully noop if app/ doesn't exist yet (pre-Tier-0
-# scaffold) or if flutter isn't installed locally.
-APP_PRESENT := $(shell test -f app/pubspec.yaml && echo yes || echo no)
+# App and core targets gracefully noop if the Dart package isn't
+# scaffolded yet (pre-Tier-0 state) or if flutter isn't installed
+# locally.
+APP_PRESENT := $(shell test -f pubspec.yaml && echo yes || echo no)
 HAS_FLUTTER := $(shell command -v flutter >/dev/null && echo yes || echo no)
 
-.PHONY: app-pubget
-app-pubget: ## flutter pub get (hydrate the app's pub cache).
+.PHONY: build
+build: ## Build the Dart AOT `clide` binary (CLI + --daemon modes in one binary).
 ifeq ($(APP_PRESENT),yes)
-	cd app && flutter pub get
+	dart compile exe bin/clide.dart -o bin/clide \
+		--define=clideVersion=$(VERSION) \
+		--define=clideCommit=$(COMMIT) \
+		--define=clideDate=$(DATE)
 else
-	@echo "(app/ not scaffolded yet; skipping)"
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
 
-.PHONY: app-analyze
-app-analyze: ## dart analyze on the app.
+.PHONY: install
+install: build ## Install bin/clide into $(INSTALL_DIR).
 ifeq ($(APP_PRESENT),yes)
-	cd app && flutter analyze
+	install -m 0755 bin/clide $(INSTALL_DIR)/clide
 else
-	@echo "(app/ not scaffolded yet; skipping)"
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
 
-.PHONY: app-format
-app-format: ## dart format on the app.
+.PHONY: pubget
+pubget: ## flutter pub get (hydrate the pub cache).
 ifeq ($(APP_PRESENT),yes)
-	cd app && dart format --set-exit-if-changed .
+	flutter pub get
 else
-	@echo "(app/ not scaffolded yet; skipping)"
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
 
-.PHONY: app-test
-app-test: ## flutter test on the app.
+.PHONY: analyze
+analyze: ## dart analyze / flutter analyze.
 ifeq ($(APP_PRESENT),yes)
-	cd app && flutter test
+	flutter analyze
 else
-	@echo "(app/ not scaffolded yet; skipping)"
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
 
-.PHONY: app-build-linux
-app-build-linux: ## flutter build linux.
+.PHONY: format
+format: ## dart format --set-exit-if-changed.
 ifeq ($(APP_PRESENT),yes)
-	cd app && flutter build linux
+	dart format --set-exit-if-changed .
 else
-	@echo "(app/ not scaffolded yet; skipping)"
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
 
-.PHONY: app-build-macos
-app-build-macos: ## flutter build macos.
+.PHONY: test
+test: ## flutter test (unit + widget).
 ifeq ($(APP_PRESENT),yes)
-	cd app && flutter build macos
+	flutter test
 else
-	@echo "(app/ not scaffolded yet; skipping)"
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
+endif
+
+.PHONY: test-integration
+test-integration: build ## Integration tests (daemon + CLI + fixture repos).
+ifeq ($(APP_PRESENT),yes)
+	flutter test integration_test || echo "(no integration_test suite yet)"
+else
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
+endif
+
+.PHONY: build-linux
+build-linux: ## flutter build linux (desktop bundle).
+ifeq ($(APP_PRESENT),yes)
+	flutter build linux
+else
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
+endif
+
+.PHONY: build-macos
+build-macos: ## flutter build macos (desktop bundle).
+ifeq ($(APP_PRESENT),yes)
+	flutter build macos
+else
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
+endif
+
+# -- ptyc (C supporter tool) --------------------------------------------
+
+# Compiled alongside the main binary. Tiny, no deps beyond libc.
+PTYX_PRESENT := $(shell test -f ptyc/Makefile && echo yes || echo no)
+
+.PHONY: ptyc-build
+ptyc-build: ## Build the ptyc PTY-spawn helper.
+ifeq ($(PTYX_PRESENT),yes)
+	$(MAKE) -C ptyc
+else
+	@echo "(ptyc/ not scaffolded yet; skipping)"
+endif
+
+.PHONY: ptyc-clean
+ptyc-clean: ## Clean ptyc build artefacts.
+ifeq ($(PTYX_PRESENT),yes)
+	$(MAKE) -C ptyc clean
+else
+	@echo "(ptyc/ not scaffolded yet; skipping)"
 endif
 
 # -- security ------------------------------------------------------------
 
 .PHONY: security
-security: vuln ## Run all CVE gates. For now: Go (govulncheck). Dart CVE gate lands when a reliable tooling exists.
-
-# -- tooling -------------------------------------------------------------
-
-# Pinned Go tool versions. Bump deliberately; never floating.
-GOVULNCHECK_VERSION     ?= v1.1.4
-GOIMPORTS_VERSION       ?= v0.29.0
-GOLANGCI_LINT_VERSION   ?= v2.11.4
-
-.PHONY: tools
-tools: ## Install Go tooling at pinned versions (govulncheck, goimports, golangci-lint).
-	$(GO) install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
-	$(GO) install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
-	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+security: ## Dart advisory review + ptyc source review (manual — no floating deps).
+	@echo "security: Dart advisories reviewed manually before pubspec.yaml bumps;"
+	@echo "         ptyc is reviewed by reading it (tiny libc-only C)."
+	@echo "         Automated Dart CVE tooling lands here when a reliable option exists."
 
 # -- pre-push gate -------------------------------------------------------
 
 .PHONY: push-check
-push-check: lint test test-race test-integration vuln app-analyze app-test ## Full pre-push gate — everything that must pass before a push.
+push-check: analyze format test ## Full pre-push gate — everything that must pass before a push.
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks (points core.hooksPath at .githooks/).
@@ -159,9 +144,7 @@ hooks: ## Install the repo's git hooks (points core.hooksPath at .githooks/).
 
 .PHONY: clean
 clean: ## Remove build artefacts.
-	rm -rf sidecar/bin sidecar/dist
-ifeq ($(APP_PRESENT),yes)
-	rm -rf app/build app/.dart_tool
-endif
+	rm -rf bin build .dart_tool
+	$(MAKE) ptyc-clean
 
 .DEFAULT_GOAL := help

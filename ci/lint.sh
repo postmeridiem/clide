@@ -7,6 +7,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-make lint
-make app-analyze
+make analyze
+make format
 make security

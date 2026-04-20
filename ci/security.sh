@@ -3,8 +3,9 @@
 # local dev and CI run the same commands.
 #
 # See ~/.claude/projects/-var-mnt-data-projects-clide/memory/ for the
-# standing requirements: Go deps must be version-locked and CVE-checked;
-# Dart deps prefer zero, with what remains pinned and audited.
+# standing requirement: Dart deps prefer zero; what remains is pinned
+# and advisory-audited before bumping. Native supporter tools (ptyc, any
+# future peer) are reviewed by reading them — they have no dep graph.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

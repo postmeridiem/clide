@@ -1,25 +1,24 @@
-# -- Flutter / Dart (app/) ----------------------------------------------
-/app/.dart_tool/
-/app/.packages
-/app/.flutter-plugins
-/app/.flutter-plugins-dependencies
-/app/build/
-/app/.idea/
-/app/.vscode/
-/app/*.iml
-/app/ios/Pods/
-/app/macos/Pods/
-/app/windows/flutter/ephemeral/
-/app/linux/flutter/ephemeral/
-/app/macos/Flutter/ephemeral/
+# -- Flutter / Dart (app + core at repo root) ---------------------------
+/.dart_tool/
+/.packages
+/.flutter-plugins
+/.flutter-plugins-dependencies
+/build/
+/.idea/
+/.vscode/
+/*.iml
+/ios/Pods/
+/macos/Pods/
+/windows/flutter/ephemeral/
+/linux/flutter/ephemeral/
+/macos/Flutter/ephemeral/
+/bin/clide
+/bin/clide.exe
 # pubspec.lock is committed (supply-chain policy).
 
-# -- Go sidecar ---------------------------------------------------------
-/sidecar/bin/
-/sidecar/dist/
-/sidecar/vendor/
-/clide
-/clide.exe
+# -- ptyc (C supporter tool) --------------------------------------------
+/ptyc/bin/
+/ptyc/*.o
 
 # -- Test, coverage, profile output ------------------------------------
 *.test
@@ -28,10 +27,6 @@
 *.pprof
 coverage.*
 /tmp/
-
-# -- Go module / workspace artefacts (we don't vendor or use workspaces)
-/go.work
-/go.work.sum
 
 # -- pql per-repo state (clide dogfoods against itself; pql's index lands
 #    here when running queries locally). Mirror what `pql init` writes.

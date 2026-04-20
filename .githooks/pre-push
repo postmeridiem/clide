@@ -8,11 +8,5 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-# `make tools` installs Go-installed binaries into $HOME/go/bin (or
-# $GOBIN if set). Users routinely forget to put that on PATH, so the
-# hook prepends it here to avoid spurious "command not found" failures
-# for govulncheck / goimports / golangci-lint.
-export PATH="${GOBIN:-$HOME/go/bin}:$PATH"
-
 echo "==> pre-push: make push-check"
 make push-check

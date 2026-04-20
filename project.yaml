@@ -23,12 +23,11 @@ status: pre-v2.0, scaffolding (Tier 0 — Flutter app + sidecar handshake — is
 
 repository: ssh://git@git.schweitz.net:2222/jpmschweitzer/clide.git
 license: MIT
-# Go sidecar module path. Gitea-hosted; Go module resolution works if
-# the host serves the meta tags, otherwise a vanity path can be added.
-module: git.schweitz.net/jpmschweitzer/clide/sidecar
 
-# Toolchain pins. Mirror in sidecar/go.mod and app/pubspec.yaml when bumping.
-go_version: ">=1.25"
+# Toolchain pins. Mirror in pubspec.yaml when bumping.
+# Single-language core — Dart + Flutter. Native supporter tools
+# (ptyc today, peers tomorrow) pin their own toolchains in their own
+# directories; not tracked here.
 flutter_channel: stable
 dart_sdk: ">=3.5.0 <4.0.0"
 

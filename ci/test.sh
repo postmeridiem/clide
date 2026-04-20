@@ -5,5 +5,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 make test
-make test-race
-make app-test
+make test-integration

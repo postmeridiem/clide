@@ -1,7 +1,8 @@
 # ADR 0002 — Sidecar language: Go
 
-**Status:** accepted
+**Status:** superseded by [ADR 0005](0005-dart-core-ptyc-peer.md)
 **Date:** 2026-04-20 (ported from the claudian lineage)
+**Superseded:** 2026-04-20 — the "separate language" premise dissolved once we chose Dart for the core; see 0005 for the rationale.
 
 ## Context
 

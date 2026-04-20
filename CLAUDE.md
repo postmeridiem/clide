@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What clide is
 
-A Flutter desktop IDE for Claude Code. Three surfaces, one coherent tool:
+A Flutter desktop IDE for Claude Code. One language (Dart) across the stack, plus small native supporter tools where Dart can't reach.
 
 - **`app/`** — Flutter desktop application (Linux / macOS primary; Windows stretch).
-- **`sidecar/`** — Go sidecar/CLI, single binary with two modes: `clide <subcommand>` (one-shot for Claude) and `clide --daemon` (long-running for the app). Owns PTYs, subprocesses, file watchers, git, pql invocations.
+- **`lib/` + `bin/clide.dart`** — Dart core, shared by the app and by one AOT-compiled binary that has two modes: `clide <subcommand>` (one-shot for Claude) and `clide --daemon` (long-running for the app). Owns IPC, PTYs (via `ptyc`), subprocesses, file watchers, git shell-outs, pql invocations.
 - **[`pql`](https://github.com/postmeridiem/pql)** — external supporter tool. Clide wraps it for every query surface; never re-implements it.
+- **`ptyc`** — small C supporter tool, peer of pql. Spawns a PTY + child and hands the master fd back over `SCM_RIGHTS`. Clide shells out to it for every pane (shell, tmux, claude, LSP, debug adapter).
 
-App ↔ sidecar ↔ CLI speak a single JSON-lines unix socket protocol. The sidecar outlives app restarts so Claude sessions survive reopens.
+App ↔ daemon ↔ CLI speak a single JSON-lines unix socket protocol. The daemon outlives app restarts so Claude sessions survive reopens. Native rendering — markdown, canvas, graph — is Dart/Flutter (`CustomPaint` + widgets), not third-party packages.
 
 Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Decisions: [`docs/ADRs/`](docs/ADRs/). Python Textual predecessor under [`legacy/`](legacy/).
 
@@ -18,19 +19,20 @@ Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Decisions: [`docs/AD
 
 These are load-bearing. Violating any means the design is wrong, not the rule.
 
-- **Flutter desktop is the host. No Electron, ever.** Web target may work as a happy accident — don't compromise desktop fidelity for it. `xterm.dart` is the terminal renderer.
-- **No heavy lifting in the UI layer.** Flutter app renders and handles input. PTYs/subprocesses/filesystem/git all live in the sidecar.
+- **Flutter desktop is the host. No Electron, ever.** Web target may work as a happy accident — don't compromise desktop fidelity for it. If we ship a web build at all, prefer Flutter's **WebAssembly (CanvasKit/Skwasm) compile** over the JS/HTML renderer: it matches the desktop rendering pipeline, keeps our custom `CustomPaint` components pixel-identical, and avoids the DOM-renderer quirks around input handling and terminal-style content. `xterm.dart` is the terminal renderer (Tier 1); markdown, canvas, graph are custom `CustomPaint`/widget components (Tiers 2+, 5).
+- **No heavy lifting in the UI layer.** The app renders and handles input; process/PTY/IO lifecycles live in the daemon. The daemon is Dart too — the split is *process boundary*, not language boundary.
 - **CLI-first, not MCP.** Claude talks via Bash (`clide ...`), matching pql's contract. See [ADR 0001](docs/ADRs/0001-cli-first-not-mcp.md).
-- **Sidecar language: Go.** Module `git.schweitz.net/jpmschweitzer/clide/sidecar`. See [ADR 0002](docs/ADRs/0002-sidecar-language-go.md).
-- **User/Claude parity.** Every CLI subcommand has a UI affordance in the app, and every UI action has a CLI. If you add one side without the other, the feature is incomplete.
-- **pql: wrap, don't duplicate, and treat it as a clide subsystem when present.** Pql logic only lives in `sidecar/internal/pql/` (pure shell-outs). Clide owns pql's `ignore_files:` config key; it never touches pql's `.pql/` index/cache data. See [ADR 0003](docs/ADRs/0003-pql-as-supporter-tool.md).
+- **Dart is the core; native supporter tools fill specific gaps.** One Dart AOT binary for CLI + daemon. `ptyc` (C) for PTY spawning. `pql` (Go) for queries. No second "core language." See [ADR 0005](docs/ADRs/0005-dart-core-ptyc-peer.md) (supersedes [ADR 0002](docs/ADRs/0002-sidecar-language-go.md)).
+- **Own the rendering stack.** PTY (via `ptyc`), markdown renderer, graph, canvas — all clide-owned, not pulled from opinionated packages. Third-party rendering is where we'd hit ceilings first; we'd rather pay the cost up front.
+- **User/Claude parity.** Every CLI subcommand has a UI affordance in the app, and every UI action has a CLI. Events are symmetric: every UI state change is a subscribable event. See [ADR 0006](docs/ADRs/0006-cli-and-event-surface.md).
+- **pql: wrap, don't duplicate, and treat it as a clide subsystem when present.** Pql logic only lives in `lib/src/pql/` (pure shell-outs). Clide owns pql's `ignore_files:` config key; it never touches pql's `.pql/` index/cache data. See [ADR 0003](docs/ADRs/0003-pql-as-supporter-tool.md).
 - **Repo-is-the-workspace.** The git repo root is the workspace — no parallel "vault" concept. Clide dogfoods against its own repo.
 - **Ignore discipline.** Single knob: `ignore_files:` in `.pql/config.yaml`, ordered layering. Default `[.gitignore]`; clide writes `[.gitignore, .clideignore]` when `.clideignore` exists. See [ADR 0004](docs/ADRs/0004-ignore-file-strategy.md).
 
 ## Tier ordering (don't skip ahead)
 
-1. **Tier 0** — Flutter app + sidecar daemon handshake, empty IDE shell.
-2. **Tier 1** — Claude in an `xterm.dart` pane; session persists across app restarts.
+1. **Tier 0** — Flutter app + Dart daemon handshake, empty IDE shell.
+2. **Tier 1** — Claude in an `xterm.dart` pane backed by `ptyc`-spawned PTYs; session persists across app restarts.
 3. **Tier 2** — Pane model + active-file awareness + `clide open/active/insert/replace-selection/tail`.
 4. **Tier 3** — Git panel (staged/unstaged, hunk stage, conflict UI) + diff tab + `clide git …`.
 5. **Tier 4** — pql integration: Query panel, file tree, backlinks, problems — all drawing from pql.
@@ -42,37 +44,36 @@ See `docs/initial-plan.md` for the full tier definitions and acceptance criteria
 ## Parent projects
 
 - **`legacy/`** — Python Textual clide v1.2.0. Feature-frozen. Reference for the pane model, panel set, git skills (`/commit`, `/stash`, `/pull`, `/push` — rewire to `clide git …`), TODO.md parsing format.
-- **`projects/claudian`** (April 2026, discarded) — 2-day experiment with an Obsidian-plugin approach. Its architectural patterns (Go sidecar, CLI-first, pql-as-subsystem, ignore-file strategy, supply-chain gate, changelog discipline, commit conventions) are the ADRs and skills you see here.
+- **`projects/claudian`** (April 2026, discarded) — 2-day experiment with an Obsidian-plugin approach. Its architectural patterns (CLI-first, pql-as-subsystem, ignore-file strategy, supply-chain gate, changelog discipline, commit conventions) are the ADRs and skills you see here. It first proposed a Go sidecar; ADR 0005 reversed that in favour of a Dart core.
 - **[`projects/pql`](https://github.com/postmeridiem/pql)** — active supporter tool. Clide depends on it; never duplicates it.
 
 ## Dependencies & supply chain
 
-- **Go (sidecar):** exact-pin versions (never `@latest`). `make vuln` (`govulncheck ./...`) runs after every dep add/bump and gates CI.
-- **Dart (app):** prefer-zero-deps. Flutter-SDK widgets first; third-party packages need justification. What stays is exact-pinned in `pubspec.yaml` (no caret ranges). Advisories reviewed before every bump; `pubspec.lock` committed.
-- `go.sum` and `pubspec.lock` are always committed.
-- `make security` aggregates the Go and Dart CVE gates; `ci/security.sh` is the CI entry.
+- **Dart (core + app):** prefer-zero-deps. Flutter-SDK widgets first; third-party packages need justification. What stays is exact-pinned in `pubspec.yaml` (no caret ranges). Advisories reviewed before every bump; `pubspec.lock` committed.
+- **`ptyc` and any future native supporter tool:** no dep graph by design (libc-only for `ptyc`). "Audit" is reading the source before each bump.
+- `pubspec.lock` is always committed.
+- `make security` runs the Dart advisory review; `ci/security.sh` is the CI entry.
 
 ## Commands
 
-(Placeholder until Phase 3 commits land these targets.)
+(Placeholder until Tier 0 commits land these targets in real form.)
 
 ```
-make build           # build sidecar/bin/clide
-make test            # go test ./...
-make test-race       # with race detector
-make lint            # golangci-lint
-make vuln            # govulncheck (sidecar CVE gate)
-make app-build       # flutter build linux / macos
-make app-test        # flutter test
-make app-analyze     # dart analyze
-make security        # run all CVE gates (go + dart)
-make push-check      # full pre-push gate: lint + test + test-race + vuln + app-analyze + app-test
+make build           # dart compile exe bin/clide.dart -o bin/clide
+make test            # flutter test
+make test-integration# daemon + CLI + fixture-repo suite
+make analyze         # flutter analyze
+make format          # dart format --set-exit-if-changed
+make build-linux     # flutter build linux
+make build-macos     # flutter build macos
+make ptyc-build      # build the ptyc PTY-spawn helper
+make security        # Dart advisory review + ptyc source review
+make push-check      # pre-push gate: analyze + format + test
 make hooks           # install the repo's git hooks (one-time setup)
-make tools           # install Go tooling at pinned versions (govulncheck, goimports, golangci-lint)
 make clean           # remove build artefacts
 ```
 
-One-time setup on a fresh clone: `make tools && make hooks`, plus `cd app && flutter pub get` once Flutter is installed.
+One-time setup on a fresh clone: `make hooks && flutter pub get` once Flutter is installed.
 
 ## Changelog discipline
 
