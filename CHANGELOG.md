@@ -25,6 +25,7 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   [ADR 0002](docs/ADRs/0002-sidecar-language-go.md) — Sidecar language: Go.
   [ADR 0003](docs/ADRs/0003-pql-as-supporter-tool.md) — pql as supporter tool; wrap, don't duplicate; pql is a Clide subsystem when present.
   [ADR 0004](docs/ADRs/0004-ignore-file-strategy.md) — Ignore file strategy (`ignore_files:` in `.pql/config.yaml`, layered).
+- [`docs/initial-plan.md`](docs/initial-plan.md) — the north-star design document for the Flutter rebuild. Captures what we kept from Python Clide (pane model, git skills, Claude-always-visible), what we took from Obsidian (canvas and graph — no vault, no bases, no plugin inheritance), what Claudian's short experiment contributed (Go sidecar, CLI-first, pql-as-subsystem, ignore-file strategy), and the tier roadmap (Tier 0 app+sidecar handshake → Tier 5 canvas+graph).
 - Claude Code configuration under `.claude/`: project-level
   allow/deny permissions and two skills — `skill-create` (generic
   skill authoring guidance) and `git-commit` (this repo's commit
