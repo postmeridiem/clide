@@ -1,0 +1,47 @@
+# clide — project manifest
+#
+# Single source of truth for project metadata. Read by:
+#   - the Makefile (VERSION ldflag for the sidecar)
+#   - the Flutter app's build-info surface
+#   - any future Claude Code skill (compatibility check)
+#   - any other consumer that needs to know "what is this project,
+#     what version of it is on disk right now"
+#
+# Convention: this file declares the version the codebase *claims to be*.
+# Local `make build` stamps that version + git short SHA + dirty marker
+# into the sidecar binary and (when wired) into the Flutter app.
+# Tagged releases use the git tag for binaries; project.yaml `version:`
+# is bumped in the post-release commit alongside the changelog move.
+#
+# Lineage: Python clide reached v1.2.0 under legacy/. The Flutter
+# rebuild starts fresh at v2.0.0-dev to signal a clean break.
+
+name: clide
+description: Flutter desktop IDE for Claude Code — markdown-first, pql-powered, with a Go sidecar.
+version: 2.0.0-dev
+status: pre-v2.0, scaffolding (Tier 0 — Flutter app + sidecar handshake — is next)
+
+repository: ssh://git@git.schweitz.net:2222/jpmschweitzer/clide.git
+license: MIT
+# Go sidecar module path. Gitea-hosted; Go module resolution works if
+# the host serves the meta tags, otherwise a vanity path can be added.
+module: git.schweitz.net/jpmschweitzer/clide/sidecar
+
+# Toolchain pins. Mirror in sidecar/go.mod and app/pubspec.yaml when bumping.
+go_version: ">=1.25"
+flutter_channel: stable
+dart_sdk: ">=3.5.0 <4.0.0"
+
+maintainers:
+  - name: Jeroen Schweitzer
+    email: jpmschweitzer@gmail.com
+
+keywords:
+  - ide
+  - flutter
+  - claude-code
+  - markdown
+  - pql
+  - canvas
+  - graph
+  - agent-tools
