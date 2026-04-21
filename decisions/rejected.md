@@ -5,6 +5,11 @@ future reference.
 
 ---
 
+### R-002: Go sidecar
+- **Rejected:** 2026-04-20 (was ADR 0002; superseded by [D-005](architecture.md#d-005-dart-core-ptyc-peer))
+- **Reason:** The ADR picked Go on two premises — (a) the heavy work belongs in a language separate from the UI layer, and (b) pql is Go so muscle memory transfers. Both broke on reassessment. The sidecar stripped of PTY is I/O-bound glue that `dart:io` covers cleanly (unix sockets, JSON-lines framing, process tables, shell-outs). The real axis was *separate process vs shared language*, not Go vs Rust, and separate-process is what matters (session persistence needs the daemon to outlive the app), not language. PTY is the one place Dart is genuinely weak — Dart's multi-threaded VM can't safely `fork()` — and that single constraint forces a native helper regardless, independent of whether the rest of the core is Dart. Once a small native helper is accepted, the question "does *everything else* need to be in that same native language" answers itself: no. Go sidecar directory dissolved; `ptyc` (C, PTY-only, pql-peer) is the surviving native supporter tool.
+- **Cross-reference:** [D-005](architecture.md#d-005-dart-core-ptyc-peer)
+
 ### R-003: `MaterialApp` root
 - **Rejected:** 2026-04-21
 - **Reason:** Dragged in Material theming, default icons, and platform chrome that fought the custom three-tier theme pipeline ([D-009](architecture.md#d-009-three-tier-theme-pipeline)). Every bundled theme had to override Material defaults to look like clide; the overrides were visible in widget tests as "why is this `ElevatedButton` colored this way."

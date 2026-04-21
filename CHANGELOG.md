@@ -18,6 +18,13 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Migrated the `docs/ADRs/` content into `decisions/` as D/R records:
+  ADR 0001 → `D-001`, ADR 0002 → `R-002` (superseded by `D-005`), ADR
+  0003 → `D-003`, ADR 0004 → `D-004`, ADR 0005 → `D-005`, ADR 0006 →
+  `D-006`. Titles preserved; ADR 0006's trailing open questions moved
+  to `questions-architecture.md` as `Q-001` / `Q-002` / `Q-003`. The
+  originals are preserved in git history.
+
 - `decisions/` at the repo root — Q&D record system ported from
   settled-reach and adapted for clide's domains. Confirmed decisions
   (`D-NNN`) live under domain files (`architecture.md`, `extensions.md`,
@@ -31,6 +38,9 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   settled-reach's convention).
 
 ### Removed
+
+- `docs/ADRs/` directory — content lifted into `decisions/` as D/R
+  records (see Added above). Originals preserved in git history.
 
 - Go sidecar skeleton under `sidecar/` — `cmd/clide/main.go`, `go.mod`, and the `internal/*` packages (`cli`, `daemon`, `diag`, `git`, `ipc`, `pql`, `proc`, `pty`, `version`). Deleted wholesale per [ADR 0005](docs/ADRs/0005-dart-core-ptyc-peer.md): the "sidecar language: Go" premise no longer holds once the core is Dart. All functionality listed for those packages will be reimplemented under `lib/` as part of Tier 0.
 - Go-specific Makefile targets (`lint`, `vuln`, `test-race`, `fmt`, `tidy`, `snapshot`, `tools`, `install` via Go), the `govulncheck`/`goimports`/`golangci-lint` version pins, and the pre-push hook's `GOBIN` PATH injection. Replaced with Dart/Flutter equivalents (`analyze`, `format`, `test`, `test-integration`, `build` via `dart compile exe`).
