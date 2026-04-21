@@ -53,6 +53,25 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 - `make decisions-validate` — cheap parser dry-run wired into
   `push-check`. Catches malformed records before push.
 
+- Reserved extension slots — `builtin.decisions`, `builtin.tickets`,
+  `builtin.claude-control`. Id-reserving stubs under
+  `app/lib/builtin/` with no contributions yet. Implementations land
+  once [`Q-021`](decisions/questions-architecture.md#q-021-pql-absorbs-planning-vs-keeps-separate)
+  resolves (decisions + tickets) or when the claude-control tier
+  arrives (`.claude/` first-class surface — distinct from the
+  existing `builtin.claude` PTY-pane stub).
+
+- `CLAUDE.md` — new "Decision discipline" guardrail pointing at
+  `decisions/`.
+
+### Changed
+
+- `CLAUDE.md` — inline ADR links rewritten to point at the migrated
+  `decisions/` records; bottom "Open questions" section collapsed to
+  a pointer at `decisions/questions-*.md`; parent-project note
+  updated to reference `decisions/architecture.md` instead of the
+  deleted `docs/ADRs/`.
+
 ### Removed
 
 - `docs/ADRs/` directory — content lifted into `decisions/` as D/R

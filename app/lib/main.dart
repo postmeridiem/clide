@@ -1,6 +1,8 @@
 import 'package:clide_app/app.dart';
 import 'package:clide_app/builtin/canvas/canvas.dart';
 import 'package:clide_app/builtin/claude/claude.dart';
+import 'package:clide_app/builtin/claude_control/claude_control.dart';
+import 'package:clide_app/builtin/decisions/decisions.dart';
 import 'package:clide_app/builtin/default_layout/default_layout.dart';
 import 'package:clide_app/builtin/diff/diff.dart';
 import 'package:clide_app/builtin/editor/editor.dart';
@@ -18,6 +20,7 @@ import 'package:clide_app/builtin/problems/problems.dart';
 import 'package:clide_app/builtin/settings_ui/settings_ui.dart';
 import 'package:clide_app/builtin/terminal/terminal.dart';
 import 'package:clide_app/builtin/theme_picker/theme_picker.dart';
+import 'package:clide_app/builtin/tickets/tickets.dart';
 import 'package:clide_app/builtin/todos/todos.dart';
 import 'package:clide_app/builtin/welcome/welcome.dart';
 import 'dart:io' show Directory, Platform;
@@ -75,7 +78,10 @@ Future<void> main() async {
     ..register(GraphExtension())
     ..register(SettingsUiExtension())
     ..register(ExtensionsUiExtension())
-    ..register(KeybindingsUiExtension());
+    ..register(KeybindingsUiExtension())
+    ..register(DecisionsExtension())
+    ..register(TicketsExtension())
+    ..register(ClaudeControlExtension());
 
   await services.extensions.activateAll();
 
