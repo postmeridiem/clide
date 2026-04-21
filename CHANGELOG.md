@@ -37,6 +37,19 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 - `DECISIONS.md` one-line pointer at the repo root (matches
   settled-reach's convention).
 
+- `tools/scripts/plan` — Python stopgap entrypoint for `decisions`
+  and `ticket` subcommands, writing to `.pql/pql.db` (gitignored).
+  Supports `decisions sync | validate | claim | list | show | coverage`
+  and `ticket new | list | show | status | assign | team | block |
+  unblock | label | search | board`, plus `sqlite-query`. Verb shape
+  and output format mirror the eventual `pql` subcommands so migration
+  when pql ships feature parity is a call-site find-replace
+  (`tools/scripts/plan ` → `pql `). Ported from settled-reach with
+  the Scrum layer stripped; ticket IDs are `T-NNN` (TEXT PKs) and
+  there's no `sprints` table. Time-limited per
+  [`D-040`](decisions/process.md#d-040-python-stopgap-under-toolsscriptsplan)
+  / [`R-011`](decisions/rejected.md#r-011-permanent-stopgap).
+
 ### Removed
 
 - `docs/ADRs/` directory — content lifted into `decisions/` as D/R

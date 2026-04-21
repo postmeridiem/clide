@@ -48,8 +48,13 @@ coverage.*
 /tmp/
 
 # -- pql per-repo state (clide dogfoods against itself; pql's index lands
-#    here when running queries locally). Mirror what `pql init` writes.
+#    here when running queries locally). `pql.db` is also where the
+#    `tools/scripts/plan` stopgap writes decisions + tickets (D-040).
 /.pql/
+
+# -- Python stopgap tooling under tools/scripts/plan ------------------
+tools/scripts/__pycache__/
+tools/scripts/planning/__pycache__/
 
 # -- SQLite index files (defensive; should never land at repo root) ----
 *.sqlite

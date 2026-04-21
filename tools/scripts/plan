@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""plan — clide planning stopgap.
+
+Writes to .pql/pql.db. Replaced by `pql` subcommands when pql ships
+feature parity. See tools/scripts/README.md for the sunset clause.
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+# Make "from planning import ..." work when invoked as a script.
+HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+from planning import cmd_decisions, cmd_ticket, db  # noqa: E402
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(
+        prog="plan",
+        description="clide planning stopgap — decisions + tickets",
+    )
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    cmd_decisions.add_subparsers(sub)
+    cmd_ticket.add_subparsers(sub)
+
+    sq = sub.add_parser("sqlite-query", help="run a raw SQL query")
+    sq.add_argument("sql")
+
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = _build_parser()
+    args = ap.parse_args(argv)
+
+    if args.cmd == "decisions":
+        return cmd_decisions.dispatch(args)
+    if args.cmd == "ticket":
+        return cmd_ticket.dispatch(args)
+    if args.cmd == "sqlite-query":
+        conn = db.connect()
+        try:
+            cur = conn.execute(args.sql)
+            if cur.description:
+                cols = [d[0] for d in cur.description]
+                print("\t".join(cols))
+                for row in cur.fetchall():
+                    print("\t".join(str(v) for v in row))
+            conn.commit()
+        finally:
+            conn.close()
+        return 0
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
