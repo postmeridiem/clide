@@ -50,6 +50,9 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   [`D-040`](decisions/process.md#d-040-python-stopgap-under-toolsscriptsplan)
   / [`R-011`](decisions/rejected.md#r-011-permanent-stopgap).
 
+- `make decisions-validate` — cheap parser dry-run wired into
+  `push-check`. Catches malformed records before push.
+
 ### Removed
 
 - `docs/ADRs/` directory — content lifted into `decisions/` as D/R

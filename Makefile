@@ -160,8 +160,12 @@ security: ## Dart advisory review + ptyc source review (manual — no floating d
 
 # -- pre-push gate -------------------------------------------------------
 
+.PHONY: decisions-validate
+decisions-validate: ## Parser dry-run over decisions/*.md (cheap pre-push gate).
+	tools/scripts/plan decisions validate
+
 .PHONY: push-check
-push-check: test test-a11y ## Pre-push gate: fast unit + widget + golden + a11y (<90s).
+push-check: decisions-validate test test-a11y ## Pre-push gate: decisions + fast unit + widget + golden + a11y (<90s).
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks (points core.hooksPath at .githooks/).
