@@ -1,0 +1,38 @@
+# clide — Dart core package.
+#
+# This is the repo-root package: the `clide` CLI (one-shot subcommand
+# mode) and the `clide --daemon` long-running process both compile from
+# `bin/clide.dart` against `lib/`. It has NO Flutter dependency so
+# `dart compile exe` produces a lean static binary.
+#
+# The Flutter desktop UI lives under `app/` as a separate package that
+# depends on this one via a path: dependency. See ADR 0005 for the
+# layout rationale.
+#
+# Version is mirrored from project.yaml on every bump. project.yaml is
+# the single source of truth — if you change one without the other,
+# `make build`'s ldflag stamping will reveal the drift.
+
+name: clide
+description: >-
+  Flutter desktop IDE for Claude Code — Dart core (CLI + daemon + shared
+  library). The Flutter UI lives under app/.
+version: 2.0.0-dev
+publish_to: none
+repository: https://git.schweitz.net/jpmschweitzer/clide
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+# Prefer-zero-deps. Anything added here must be justified against the
+# "write it yourself" default (see memory:
+# feedback_dart_deps_minimal_locked_cve_checked.md). Exact-pin; never
+# carets.
+dependencies: {}
+
+dev_dependencies:
+  lints: 5.0.0
+  test: 1.25.8
+  # Mocks at IO boundaries (daemon subprocess, socket). Null-safe,
+  # no codegen. Hand-rolled fakes for ChangeNotifier-style services.
+  mocktail: 1.0.4
