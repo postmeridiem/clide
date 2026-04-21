@@ -1,0 +1,55 @@
+# clide_app — Flutter desktop UI.
+#
+# Renders clide's IDE surfaces; depends on the root `clide` Dart core
+# package (shared with the CLI + daemon). Prefer-zero-deps; every
+# third-party entry below is exact-pinned and justified. No carets.
+
+name: clide_app
+description: >-
+  Flutter desktop IDE for Claude Code — renders the UI. Talks to the
+  Dart core (CLI + daemon) via IPC; all PTY/subprocess/filesystem work
+  lives in the daemon (ADR 0005).
+publish_to: none
+version: 2.0.0-dev
+repository: https://git.schweitz.net/jpmschweitzer/clide
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Dart core — shared types, IPC protocol, anything CLI + daemon + app
+  # all import. Kept Flutter-free so `dart compile exe` produces a lean
+  # static binary (see ADR 0005).
+  clide:
+    path: ../
+
+  # YAML — the one justified exception to prefer-zero-deps. Dart-team
+  # maintained, used for theme files and extension manifests.
+  yaml: 3.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+
+  # Integration tests for the real-app startup-regression gate.
+  integration_test:
+    sdk: flutter
+
+  # Mocks at IO/IPC boundaries; hand-rolled fakes for ChangeNotifiers.
+  mocktail: 1.0.4
+
+  # Golden-test framework (Ahem font, cross-platform pixel stability).
+  # Used only for widget primitives, not compositions.
+  alchemist: 0.12.1
+
+flutter:
+  uses-material-design: false
+
+  assets:
+    - lib/kernel/src/theme/themes/
+    - lib/kernel/src/i18n/catalog/

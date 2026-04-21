@@ -1,0 +1,29 @@
+# Summer Night — ported from legacy clide v1.2.0.
+# Palette-only; the three-tier resolver fills semantic + surface from
+# defaults. Override sections land here as the token surface grows.
+
+name: summer-night
+display_name: Summer Night
+dark: true
+
+palette:
+  # Accents (legacy names: primary/secondary/accent)
+  primary: "#00a3d2"      # cyan
+  secondary: "#00a9b9"    # teal
+  accent: "#fa5f8b"       # pink
+
+  # Backgrounds
+  background: "#21262f"
+  surface: "#393e48"
+  panel: "#292e38"
+
+  # Text. `muted` is WCAG-AA-calibrated against `panel` — don't darken
+  # without re-running the a11y/contrast suite.
+  foreground: "#e2e8f5"
+  muted: "#a6adbb"
+
+  # Status
+  success: "#00ab9a"
+  warning: "#d08447"
+  error: "#f06c6f"
+  info: "#00a3d2"

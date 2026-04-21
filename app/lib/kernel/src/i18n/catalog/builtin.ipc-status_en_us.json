@@ -1,0 +1,6 @@
+{
+  "connected": { "translation": "connected" },
+  "connected.hint": { "translation": "clide daemon is reachable over the local socket" },
+  "disconnected": { "translation": "disconnected" },
+  "disconnected.hint": { "translation": "clide daemon is not running — start it with `clide --daemon`" }
+}
