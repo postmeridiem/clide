@@ -18,6 +18,19 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- `ptyc/` — the C PTY-spawn helper, peer of `pql` per
+  [`D-005`](decisions/architecture.md#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer).
+  One-shot, libc-only, ~400 LOC. Reads a JSON request on stdin
+  (`argv`, optional `cwd`/`env`/`cols`/`rows`), does
+  `posix_openpt` + `fork` + `execvp`, and hands the master fd back
+  to the caller over a unix socket via `SCM_RIGHTS`. Socket fd
+  defaults to 3; override via `PTYC_SOCK_FD` for language runtimes
+  that shuffle pipe fds through the low numbers (Python's
+  `subprocess` with `stdout=PIPE` does this). Exec-failure pipe
+  (CLOEXEC) reports child-side errors to the parent without leaking
+  zombies. Root Makefile gains `ptyc-test` target in addition to
+  `ptyc-build` / `ptyc-clean`.
+
 - Migrated the `docs/ADRs/` content into `decisions/` as D/R records:
   ADR 0001 → `D-001`, ADR 0002 → `R-002` (superseded by `D-005`), ADR
   0003 → `D-003`, ADR 0004 → `D-004`, ADR 0005 → `D-005`, ADR 0006 →

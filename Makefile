@@ -132,19 +132,27 @@ endif
 # -- ptyc (C supporter tool) --------------------------------------------
 
 # Compiled alongside the main binary. Tiny, no deps beyond libc.
-PTYX_PRESENT := $(shell test -f ptyc/Makefile && echo yes || echo no)
+PTYC_PRESENT := $(shell test -f ptyc/Makefile && echo yes || echo no)
 
 .PHONY: ptyc-build
 ptyc-build: ## Build the ptyc PTY-spawn helper.
-ifeq ($(PTYX_PRESENT),yes)
+ifeq ($(PTYC_PRESENT),yes)
 	$(MAKE) -C ptyc
+else
+	@echo "(ptyc/ not scaffolded yet; skipping)"
+endif
+
+.PHONY: ptyc-test
+ptyc-test: ## Run ptyc smoke tests (SCM_RIGHTS round-trip).
+ifeq ($(PTYC_PRESENT),yes)
+	$(MAKE) -C ptyc test
 else
 	@echo "(ptyc/ not scaffolded yet; skipping)"
 endif
 
 .PHONY: ptyc-clean
 ptyc-clean: ## Clean ptyc build artefacts.
-ifeq ($(PTYX_PRESENT),yes)
+ifeq ($(PTYC_PRESENT),yes)
 	$(MAKE) -C ptyc clean
 else
 	@echo "(ptyc/ not scaffolded yet; skipping)"
