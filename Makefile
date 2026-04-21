@@ -70,20 +70,48 @@ else
 endif
 
 .PHONY: test
-test: ## flutter test (unit + widget).
-ifeq ($(APP_PRESENT),yes)
-	flutter test
-else
-	@echo "(pubspec.yaml not scaffolded yet; skipping)"
-endif
+test: ## Fast: analyze + format + unit + widget + golden (<60s).
+	ci/test.sh
+
+.PHONY: test-a11y
+test-a11y: ## A11y contract (semantic coverage + keyboard + contrast + i18n).
+	ci/test_a11y.sh
 
 .PHONY: test-integration
-test-integration: build ## Integration tests (daemon + CLI + fixture repos).
-ifeq ($(APP_PRESENT),yes)
-	flutter test integration_test || echo "(no integration_test suite yet)"
-else
-	@echo "(pubspec.yaml not scaffolded yet; skipping)"
-endif
+test-integration: ## Integration tests (real app boot; xvfb on headless Linux).
+	ci/test_integration.sh
+
+.PHONY: test-e2e
+test-e2e: build ## Daemon subprocess + web WASM Playwright smoke.
+	ci/test_e2e.sh
+
+.PHONY: test-all
+test-all: test test-a11y test-integration test-e2e ## Everything, sequentially.
+
+.PHONY: coverage
+coverage: ## flutter test --coverage + lcov summary.
+	ci/test_coverage.sh
+
+.PHONY: smoke-bundle
+smoke-bundle: ## Build Linux release bundle and run it under xvfb for 5s.
+	ci/smoke_bundle.sh
+
+# -- web UI harness (for Claude Code to drive the app) -----------------
+
+.PHONY: ui-dev
+ui-dev: ## Build web WASM + start localhost:4280 in the background.
+	tools/ui/build.sh
+	tools/ui/serve.sh
+
+.PHONY: ui-stop
+ui-stop: ## Stop the background web server.
+	tools/ui/stop.sh
+
+.PHONY: ui-smoke
+ui-smoke: ## Build + serve + run Playwright smoke + stop.
+	tools/ui/build.sh
+	tools/ui/serve.sh
+	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test smoke.spec.ts'
 
 .PHONY: build-linux
 build-linux: ## flutter build linux (desktop bundle).
@@ -133,7 +161,7 @@ security: ## Dart advisory review + ptyc source review (manual — no floating d
 # -- pre-push gate -------------------------------------------------------
 
 .PHONY: push-check
-push-check: analyze format test ## Full pre-push gate — everything that must pass before a push.
+push-check: test test-a11y ## Pre-push gate: fast unit + widget + golden + a11y (<90s).
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks (points core.hooksPath at .githooks/).
