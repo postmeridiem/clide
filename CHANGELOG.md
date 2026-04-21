@@ -16,6 +16,20 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- `decisions/` at the repo root — Q&D record system ported from
+  settled-reach and adapted for clide's domains. Confirmed decisions
+  (`D-NNN`) live under domain files (`architecture.md`, `extensions.md`,
+  `accessibility.md`, `testing.md`, `tooling.md`, `process.md`); open
+  questions (`Q-NNN`) live under parallel `questions-<domain>.md`;
+  rejected alternatives (`R-NNN`) live in `rejected.md`. Record shape,
+  claiming rules, and the eventual pql-side tooling plan are documented
+  in `decisions/README.md`. Migration of the existing `docs/ADRs/` into
+  these files lands in a follow-up commit.
+- `DECISIONS.md` one-line pointer at the repo root (matches
+  settled-reach's convention).
+
 ### Removed
 
 - Go sidecar skeleton under `sidecar/` — `cmd/clide/main.go`, `go.mod`, and the `internal/*` packages (`cli`, `daemon`, `diag`, `git`, `ipc`, `pql`, `proc`, `pty`, `version`). Deleted wholesale per [ADR 0005](docs/ADRs/0005-dart-core-ptyc-peer.md): the "sidecar language: Go" premise no longer holds once the core is Dart. All functionality listed for those packages will be reimplemented under `lib/` as part of Tier 0.
