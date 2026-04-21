@@ -3,12 +3,9 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(go *)",
-      "Bash(make *)",
-      "Bash(golangci-lint *)",
-      "Bash(goreleaser *)",
-      "Bash(govulncheck *)",
-      "Bash(npm *)"
+      "Bash(dart *)",
+      "Bash(flutter *)",
+      "Bash(make *)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
