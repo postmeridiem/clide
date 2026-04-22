@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>clide — current code as wireframe</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #faf9f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #666; background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); z-index: 10000; }
+    #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #faf9f5; z-index: 9999; }
+    #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
+    #__bundler_placeholder { color: #999; font-size: 14px; }
+  </style>
+  <noscript>
+    <style>#__bundler_loading { display: none; }</style>
+    <div style="position:fixed;bottom:12px;left:12px;font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:10000;">
+      This page requires JavaScript to display.
+    </div>
+  </noscript>
+</head>
+<body>
+  <div id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#F4F1EA"></rect>
+    <g stroke="#1A1A1A" stroke-width="1.2" fill="none">
+      <rect x="30" y="30" width="40" height="40"></rect>
+      <line x1="30" y1="42" x2="70" y2="42"></line>
+      <line x1="42" y1="30" x2="42" y2="70"></line>
+      <line x1="58" y1="30" x2="58" y2="70"></line>
+    </g>
+    <text x="50" y="82" text-anchor="middle" fill="#C14B2A" font-family="Caveat,cursive" font-size="9">wire</text>
+  </svg>
+</div>
+  <div id="__bundler_loading">Unpacking...</div>
+
+  <script>
+    
+document.addEventListener('DOMContentLoaded', async function() {
+  const loading = document.getElementById('__bundler_loading');
+  function setStatus(msg) { if (loading) loading.textContent = msg; }
+
+  // Error sink persists across replaceWith since it's on window, not the DOM.
+  window.addEventListener('error', function(e) {
+    var p = document.body || document.documentElement;
+    var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
+    d.id = '__bundler_err';
+    d.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;font:12px/1.4 ui-monospace,monospace;background:#2a1215;color:#ff8a80;padding:10px 14px;border-radius:8px;border:1px solid #5c2b2e;z-index:99999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') +
+      '[bundle] ' + (e.message || e.type) +
+      (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ')' : '');
+  }, true);
+
+  try {
+    const manifestEl = document.querySelector('script[type="__bundler/manifest"]');
+    const templateEl = document.querySelector('script[type="__bundler/template"]');
+    if (!manifestEl || !templateEl) {
+      setStatus('Error: missing bundle data');
+      console.error('[bundler] Missing script tags — manifestEl:', !!manifestEl, 'templateEl:', !!templateEl);
+      return;
+    }
+
+    const manifest = JSON.parse(manifestEl.textContent);
+    let template = JSON.parse(templateEl.textContent);
+
+    const uuids = Object.keys(manifest);
+    setStatus('Unpacking ' + uuids.length + ' assets...');
+
+    const blobUrls = {};
+    await Promise.all(uuids.map(async (uuid) => {
+      const entry = manifest[uuid];
+      try {
+        const binaryStr = atob(entry.data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        let finalBytes = bytes;
+        if (entry.compressed) {
+          if (typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('gzip');
+            const writer = ds.writable.getWriter();
+            const reader = ds.readable.getReader();
+            writer.write(bytes);
+            writer.close();
+            const chunks = [];
+            let totalLen = 0;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+              totalLen += value.length;
+            }
+            finalBytes = new Uint8Array(totalLen);
+            let offset = 0;
+            for (const chunk of chunks) { finalBytes.set(chunk, offset); offset += chunk.length; }
+          } else {
+            console.warn('DecompressionStream not available, asset ' + uuid + ' may not render');
+          }
+        }
+
+        blobUrls[uuid] = URL.createObjectURL(new Blob([finalBytes], { type: entry.mime }));
+      } catch (err) {
+        console.error('Failed to decode asset ' + uuid + ':', err);
+        blobUrls[uuid] = URL.createObjectURL(new Blob([], { type: entry.mime }));
+      }
+    }));
+
+    const extResEl = document.querySelector('script[type="__bundler/ext_resources"]');
+    const extResources = extResEl ? JSON.parse(extResEl.textContent) : [];
+    const resourceMap = {};
+    for (const entry of extResources) {
+      if (blobUrls[entry.uuid]) resourceMap[entry.id] = blobUrls[entry.uuid];
+    }
+
+    setStatus('Rendering...');
+    for (const uuid of uuids) template = template.split(uuid).join(blobUrls[uuid]);
+
+    // Strip integrity + crossorigin — blob URLs from a file:// document inherit
+    // a null origin, so crossorigin forces a CORS fetch that SRI then rejects.
+    // The manifest bytes are ours; SRI protects against CDN compromise, not this.
+    template = template.replace(/\s+integrity="[^"]*"/gi, '').replace(/\s+crossorigin="[^"]*"/gi, '');
+
+    const resourceScript = '<script>window.__resources = ' +
+      JSON.stringify(resourceMap).split('</' + 'script>').join('<\\/' + 'script>') +
+      ';</' + 'script>';
+    // Inject after <head> so the DOCTYPE stays first; prepending the script
+    // would push the parser into quirks mode. DOMParser always emits a <head>
+    // (synthesizing one if the source HTML omitted it) but may carry
+    // attributes through, so match the full opening tag. slice() rather than
+    // replace() keeps us clear of $-pattern substitution in resourceScript.
+    const headOpen = template.match(/<head[^>]*>/i);
+    if (headOpen) {
+      const i = headOpen.index + headOpen[0].length;
+      template = template.slice(0, i) + resourceScript + template.slice(i);
+    }
+
+    // Parse the template and swap the root element. Scripts inserted via
+    // DOMParser/replaceWith are inert per spec — re-create each with
+    // createElement so they execute, awaiting onload for src scripts to
+    // preserve ordering (React before ReactDOM before Babel before text/babel).
+    const doc = new DOMParser().parseFromString(template, 'text/html');
+    document.documentElement.replaceWith(doc.documentElement);
+    const dead = Array.from(document.scripts);
+    for (const old of dead) {
+      const s = document.createElement('script');
+      for (const a of old.attributes) s.setAttribute(a.name, a.value);
+      s.textContent = old.textContent;
+      // text/babel scripts with a src: fetch and inline. transformScriptTags
+      // does XHR against the src, but blob:null/ from a file:// origin is
+      // silently dropped. Inlining makes it a plain inline babel script,
+      // which transformScriptTags handles unconditionally.
+      if ((s.type === 'text/babel' || s.type === 'text/jsx') && s.src) {
+        const r = await fetch(s.src);
+        s.textContent = await r.text();
+        s.removeAttribute('src');
+      }
+      const p = s.src ? new Promise(function(r) { s.onload = s.onerror = r; }) : null;
+      old.replaceWith(s);
+      if (p) await p;
+    }
+    // Babel standalone auto-transforms type=text/babel on DOMContentLoaded,
+    // which fired before we swapped the document. Trigger manually if present.
+    if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
+      window.Babel.transformScriptTags();
+    }
+  } catch (err) {
+    setStatus('Error unpacking: ' + err.message);
+    console.error('Bundle unpack error:', err);
+  }
+});
+
+  </script>
+
+  <script type="__bundler/manifest">
+{}
+  </script>
+
+  <script type="__bundler/ext_resources">
+[]
+  </script>
+
+  <script type="__bundler/template">
+"<!DOCTYPE html>\n<html lang=\"en\"><head>\n<meta charset=\"utf-8\">\n<title>clide — current code as wireframe<\u002Ftitle>\n\n<style>\n  :root {\n    --paper: #f4f1ea;\n    --paper-2: #ece7db;\n    --ink: #1a1a1a;\n    --ink-2: #4a4a4a;\n    --ink-3: #8a8a82;\n    --accent: #c14b2a;       /* red pencil for annotations */\n    --rule: #1a1a1a;\n  }\n\n  html, body {\n    margin: 0;\n    padding: 0;\n    background: var(--paper);\n    color: var(--ink);\n    font-family: \"IBM Plex Mono\", \"JetBrains Mono\", ui-monospace, Menlo, Consolas, monospace;\n    font-size: 12px;\n    line-height: 1.4;\n  }\n\n  /* page chrome — a \"drafting sheet\" */\n  .sheet {\n    max-width: 1360px;\n    margin: 32px auto 80px;\n    padding: 28px 36px 36px;\n    background: var(--paper);\n    border: 1.5px solid var(--ink);\n    position: relative;\n  }\n  .sheet::before {\n    /* drafting grid, very faint */\n    content: \"\";\n    position: absolute;\n    inset: 0;\n    background-image:\n      linear-gradient(to right, rgba(26,26,26,0.04) 1px, transparent 1px),\n      linear-gradient(to bottom, rgba(26,26,26,0.04) 1px, transparent 1px);\n    background-size: 16px 16px;\n    pointer-events: none;\n  }\n\n  .titleblock {\n    display: flex;\n    justify-content: space-between;\n    align-items: flex-end;\n    border-bottom: 1px solid var(--ink);\n    padding-bottom: 10px;\n    margin-bottom: 24px;\n    position: relative;\n  }\n  .titleblock h1 {\n    font-family: \"Josefin Sans\", \"Helvetica Neue\", sans-serif;\n    font-weight: 300;\n    font-size: 34px;\n    margin: 0;\n    letter-spacing: 0.02em;\n  }\n  .titleblock h1 em {\n    font-style: normal;\n    color: var(--ink-3);\n    font-weight: 300;\n  }\n  .titleblock .meta {\n    font-size: 11px;\n    color: var(--ink-2);\n    text-align: right;\n    line-height: 1.6;\n  }\n  .titleblock .meta b { color: var(--ink); font-weight: 500; }\n\n  .caption {\n    font-size: 11px;\n    color: var(--ink-2);\n    margin: -8px 0 20px;\n    max-width: 900px;\n  }\n\n  /* ---------- wireframe app frame ---------- */\n  .app {\n    width: 100%;\n    height: 720px;\n    border: 1.5px solid var(--ink);\n    display: grid;\n    grid-template-columns: 240px 6px 1fr 6px 280px;\n    grid-template-rows: 1fr 26px;\n    position: relative;\n    background: var(--paper);\n  }\n\n  /* drag resize handles */\n  .gutter {\n    grid-row: 1;\n    background:\n      repeating-linear-gradient(\n        to bottom,\n        var(--ink) 0 4px,\n        transparent 4px 8px\n      );\n    opacity: 0.35;\n  }\n  .gutter.g1 { grid-column: 2; }\n  .gutter.g2 { grid-column: 4; }\n\n  .slot {\n    border-right: 1px solid var(--ink);\n    display: flex;\n    flex-direction: column;\n    overflow: hidden;\n  }\n  .slot:last-of-type { border-right: 0; }\n\n  .sidebar  { grid-column: 1; grid-row: 1; }\n  .workspace { grid-column: 3; grid-row: 1; border-right: 0; border-left: 0; }\n  .context  { grid-column: 5; grid-row: 1; border-right: 0; border-left: 0; }\n\n  /* tab bar */\n  .tabbar {\n    display: flex;\n    align-items: stretch;\n    border-bottom: 1px solid var(--ink);\n    background: var(--paper-2);\n    min-height: 28px;\n  }\n  .tab {\n    padding: 6px 12px;\n    font-size: 11px;\n    border-right: 1px solid var(--ink);\n    color: var(--ink-2);\n    display: flex;\n    align-items: center;\n    gap: 6px;\n    white-space: nowrap;\n  }\n  .tab.active {\n    background: var(--paper);\n    color: var(--ink);\n    border-bottom: 2px solid var(--ink);\n    margin-bottom: -1px;\n    position: relative;\n  }\n  .tab .dot {\n    display: inline-block;\n    width: 5px; height: 5px; border-radius: 50%;\n    background: var(--ink-3);\n  }\n  .tab.active .dot { background: var(--ink); }\n  .tab .prio {\n    color: var(--ink-3);\n    font-size: 10px;\n    opacity: 0.8;\n  }\n\n  .paneheader {\n    display: flex;\n    align-items: baseline;\n    justify-content: space-between;\n    padding: 8px 12px 4px;\n    border-bottom: 1px dashed var(--ink-3);\n  }\n  .paneheader .ptitle { font-size: 12px; }\n  .paneheader .psub { font-size: 10px; color: var(--ink-3); }\n  .paneheader .pclose { font-size: 10px; color: var(--ink-3); }\n\n  .body {\n    flex: 1;\n    padding: 10px 12px;\n    overflow: hidden;\n    position: relative;\n  }\n\n  /* generic placeholder block with diagonal hatch */\n  .hatch {\n    background:\n      repeating-linear-gradient(\n        135deg,\n        rgba(26,26,26,0.07) 0 6px,\n        transparent 6px 12px\n      );\n    border: 1px dashed var(--ink-3);\n  }\n\n  /* ---------- sidebar list rows ---------- */\n  .section-hdr {\n    font-size: 10px;\n    color: var(--ink-3);\n    text-transform: uppercase;\n    letter-spacing: 0.08em;\n    margin: 6px 0 4px;\n  }\n  .row {\n    display: flex;\n    align-items: center;\n    gap: 6px;\n    font-size: 11px;\n    padding: 2px 0 2px 0;\n    color: var(--ink);\n  }\n  .row .chev { width: 8px; color: var(--ink-3); font-size: 10px; }\n  .row .ico { width: 10px; color: var(--ink-3); }\n  .row.muted { color: var(--ink-3); }\n  .row .gs { /* git state marker */\n    display: inline-block; width: 10px; text-align: center;\n    font-weight: 700;\n  }\n  .gs.M { color: #2a6fc1; }\n  .gs.A, .gs.U { color: #2d8a52; }\n  .gs.D { color: #b03a2a; }\n\n  .indent-1 { padding-left: 14px; }\n  .indent-2 { padding-left: 28px; }\n  .indent-3 { padding-left: 42px; }\n\n  /* ---------- workspace: claude pane ---------- */\n  .claude {\n    display: flex;\n    flex-direction: column;\n    flex: 1;\n    gap: 0;\n  }\n  .term {\n    flex: 1;\n    background: #111;\n    color: #ededed;\n    padding: 10px 12px;\n    font-family: \"JetBrains Mono\", ui-monospace, Menlo, monospace;\n    font-size: 11px;\n    line-height: 1.5;\n    overflow: hidden;\n    position: relative;\n  }\n  .term .prompt { color: #a3c4ff; }\n  .term .ok { color: #8fdc9b; }\n  .term .warn { color: #e0c170; }\n  .term .dim { color: #8a8a82; }\n  .term .cursor {\n    display: inline-block;\n    width: 7px; height: 12px;\n    background: #ededed;\n    vertical-align: -2px;\n    animation: blink 1s steps(2) infinite;\n  }\n  @keyframes blink { 50% { opacity: 0; } }\n\n  /* ---------- context panel (links) ---------- */\n  .links-title {\n    font-size: 11px;\n    color: var(--ink);\n    padding-bottom: 8px;\n    border-bottom: 1px dashed var(--ink-3);\n    margin-bottom: 8px;\n  }\n\n  /* ---------- statusbar ---------- */\n  .statusbar {\n    grid-column: 1 / -1;\n    grid-row: 2;\n    border-top: 1px solid var(--ink);\n    background: var(--paper-2);\n    display: flex;\n    align-items: center;\n    padding: 0 10px;\n    font-size: 10px;\n    color: var(--ink-2);\n    gap: 16px;\n  }\n  .statusbar .spacer { flex: 1; }\n  .statusbar .item { display: inline-flex; gap: 6px; align-items: center; }\n  .statusbar .plug {\n    display: inline-block;\n    width: 8px; height: 8px; border-radius: 50%;\n    background: #2d8a52;\n  }\n\n  /* ---------- annotations (red pencil) ---------- */\n  .anno {\n    position: absolute;\n    color: var(--accent);\n    font-family: \"Caveat\", \"Kalam\", \"Bradley Hand\", cursive;\n    font-size: 15px;\n    line-height: 1.15;\n    max-width: 220px;\n    pointer-events: none;\n  }\n  .anno .tag {\n    display: inline-block;\n    border: 1.5px solid var(--accent);\n    padding: 0 6px;\n    border-radius: 10px;\n    font-family: \"IBM Plex Mono\", monospace;\n    font-size: 10px;\n    margin-right: 4px;\n    color: var(--accent);\n  }\n\n  /* arrow helper */\n  .arrow {\n    position: absolute;\n    stroke: var(--accent);\n    fill: none;\n    stroke-width: 1.5;\n  }\n\n  .dim-text { color: var(--ink-3); }\n\n  /* legend */\n  .legend {\n    margin-top: 24px;\n    display: grid;\n    grid-template-columns: repeat(4, 1fr);\n    gap: 16px 24px;\n    border-top: 1px solid var(--ink);\n    padding-top: 18px;\n  }\n  .legend h3 {\n    font-family: \"Josefin Sans\", sans-serif;\n    font-weight: 400;\n    font-size: 14px;\n    margin: 0 0 8px;\n    letter-spacing: 0.04em;\n  }\n  .legend ul { margin: 0; padding-left: 14px; }\n  .legend li { font-size: 11px; color: var(--ink-2); margin-bottom: 3px; }\n  .legend code {\n    font-family: inherit;\n    color: var(--ink);\n    background: var(--paper-2);\n    padding: 0 3px;\n  }\n\n  /* coord labels on gutters */\n  .size-label {\n    position: absolute;\n    top: -16px;\n    font-size: 10px;\n    color: var(--ink-3);\n    font-family: \"IBM Plex Mono\", monospace;\n  }\n\n  /* top dimension rule */\n  .rule-top {\n    height: 18px;\n    position: relative;\n    margin-bottom: 4px;\n    font-size: 10px;\n    color: var(--ink-3);\n  }\n  .rule-top .seg {\n    position: absolute;\n    border-top: 1px solid var(--ink-3);\n    border-left: 1px solid var(--ink-3);\n    border-right: 1px solid var(--ink-3);\n    height: 8px;\n    top: 10px;\n    display: flex;\n    align-items: flex-start;\n    justify-content: center;\n  }\n  .rule-top .seg span {\n    background: var(--paper);\n    padding: 0 6px;\n    transform: translateY(-8px);\n  }\n\n  /* badges for contribution pts */\n  .badge {\n    display: inline-block;\n    font-size: 9px;\n    color: var(--ink-3);\n    border: 1px solid var(--ink-3);\n    border-radius: 8px;\n    padding: 0 5px;\n    margin-left: 6px;\n    vertical-align: 1px;\n  }\n<\u002Fstyle>\n<\u002Fhead>\n<body>\n  <div class=\"sheet\">\n    <div class=\"titleblock\">\n      <div>\n        <h1>clide <em>— current code, as wireframe<\u002Fem><\u002Fh1>\n        <div style=\"font-size:11px;color:var(--ink-2);margin-top:6px;\">\n          Flutter desktop IDE for Claude Code · <b>classicPreset<\u002Fb> layout ·\n          builtins rendered at their contributed tabs &amp; priorities\n        <\u002Fdiv>\n      <\u002Fdiv>\n      <div class=\"meta\">\n        <div>source &nbsp;·&nbsp; <b>app/lib/app.dart<\u002Fb><\u002Fdiv>\n        <div>layout &nbsp;·&nbsp; <b>builtin.default-layout.classic<\u002Fb><\u002Fdiv>\n        <div>version &nbsp;·&nbsp; <b>2.0.0-dev<\u002Fb><\u002Fdiv>\n      <\u002Fdiv>\n    <\u002Fdiv>\n\n    <p class=\"caption\">\n      Read this as an architectural screenshot, not a visual comp. Every box, tab\n      and placeholder comes from an actual <code>ContributionPoint<\u002Fcode> wired\n      into a <code>SlotHost<\u002Fcode>; priorities (in brackets) drive tab order. Red\n      notes are my observations, not suggestions.\n    <\u002Fp>\n\n    <!-- dimension rule above frame -->\n    <div class=\"rule-top\">\n      <div class=\"seg\" style=\"left:0; width:240px;\"><span>sidebar · 240 (180–400)<\u002Fspan><\u002Fdiv>\n      <div class=\"seg\" style=\"left:246px; right:286px;\"><span>workspace · flex<\u002Fspan><\u002Fdiv>\n      <div class=\"seg\" style=\"right:0; width:280px;\"><span>context · 280 (220–420)<\u002Fspan><\u002Fdiv>\n    <\u002Fdiv>\n\n    <div class=\"app\">\n\n      <!-- ============ SIDEBAR ============ -->\n      <div class=\"slot sidebar\">\n        <div class=\"tabbar\">\n          <div class=\"tab active\"><span class=\"dot\"><\u002Fspan>Files<span class=\"prio\">[−100]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>Git<span class=\"prio\">[−80]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>pql<span class=\"prio\">[−60]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>Problems<span class=\"prio\">[−50]<\u002Fspan><\u002Fdiv>\n        <\u002Fdiv>\n        <div class=\"body\" style=\"padding:6px 0 0 0;\">\n          <!-- File tree -->\n          <div style=\"padding: 2px 8px;\">\n            <div class=\"row\"><span class=\"chev\">▾<\u002Fspan><span>clide/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-1\"><span class=\"chev\">▾<\u002Fspan><span>app/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-2\"><span class=\"chev\">▸<\u002Fspan><span>assets/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-2\"><span class=\"chev\">▾<\u002Fspan><span>lib/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"chev\">▸<\u002Fspan><span>builtin/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"chev\">▸<\u002Fspan><span>extension/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"chev\">▸<\u002Fspan><span>kernel/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"chev\">▸<\u002Fspan><span>lua/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"chev\">▸<\u002Fspan><span>widgets/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"ico\">□<\u002Fspan><span>app.dart<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-3\"><span class=\"ico\">□<\u002Fspan><span>main.dart<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-2\"><span class=\"chev\">▸<\u002Fspan><span>test/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-2\"><span class=\"chev\">▸<\u002Fspan><span>web/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-2\"><span class=\"ico\">□<\u002Fspan><span>pubspec.yaml<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-2\"><span class=\"ico\">□<\u002Fspan><span>README.md<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-1\"><span class=\"chev\">▸<\u002Fspan><span>lib/<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-1\"><span class=\"ico\">□<\u002Fspan><span>CLAUDE.md<\u002Fspan><\u002Fdiv>\n            <div class=\"row indent-1\"><span class=\"ico\">□<\u002Fspan><span>LICENSE<\u002Fspan><\u002Fdiv>\n          <\u002Fdiv>\n        <\u002Fdiv>\n      <\u002Fdiv>\n\n      <div class=\"gutter g1\"><\u002Fdiv>\n\n      <!-- ============ WORKSPACE ============ -->\n      <div class=\"slot workspace\">\n        <div class=\"tabbar\">\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>Welcome<span class=\"prio\">[−100]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>Diff<span class=\"prio\">[−70]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>Editor<span class=\"prio\">[80]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab active\"><span class=\"dot\"><\u002Fspan>Claude<span class=\"prio\">[90]<\u002Fspan><\u002Fdiv>\n          <div class=\"tab\"><span class=\"dot\"><\u002Fspan>Terminal<span class=\"prio\">[100]<\u002Fspan><\u002Fdiv>\n        <\u002Fdiv>\n\n        <div class=\"paneheader\">\n          <div class=\"ptitle\">claude — primary<\u002Fdiv>\n          <div class=\"psub\">tmux · clide-claude-a1b7f3 · pid 48021<\u002Fdiv>\n          <!-- primary pane has no close button per D-041 -->\n        <\u002Fdiv>\n\n        <div class=\"body\" style=\"padding:0;\">\n          <div class=\"term\">\n            <div><span class=\"dim\">$<\u002Fspan> <span class=\"prompt\">claude<\u002Fspan> <span class=\"dim\">started — session clide-claude-a1b7f3 attached<\u002Fspan><\u002Fdiv>\n            <div class=\"dim\">────────────────────────────────────────────────────────<\u002Fdiv>\n            <div><span class=\"ok\">▌<\u002Fspan> &nbsp;what would you like to work on?<\u002Fdiv>\n            <div>&nbsp;<\u002Fdiv>\n            <div>&gt; &nbsp;add keybindings UI to the settings surface<\u002Fdiv>\n            <div>&nbsp;<\u002Fdiv>\n            <div class=\"dim\">I'll draft a tab contribution in <u>builtin.keybindings-ui<\u002Fu>, wired<\u002Fdiv>\n            <div class=\"dim\">into the sidebar slot with priority −40 (between pql and Problems).<\u002Fdiv>\n            <div class=\"dim\">Plan:<\u002Fdiv>\n            <div>&nbsp;&nbsp;1. KeybindingsPanelView (widget)<\u002Fdiv>\n            <div>&nbsp;&nbsp;2. KeybindingsController (ipc: keybindings.list)<\u002Fdiv>\n            <div>&nbsp;&nbsp;3. Register TabContribution in extension.dart<\u002Fdiv>\n            <div>&nbsp;<\u002Fdiv>\n            <div><span class=\"prompt\">&gt;<\u002Fspan> <span class=\"cursor\"><\u002Fspan><\u002Fdiv>\n            <div style=\"position:absolute; left:12px; bottom:8px; right:12px; display:flex; justify-content:space-between;\">\n              <span class=\"dim\">⌃C cancel &nbsp; ⏎ send<\u002Fspan>\n              <span class=\"dim\">xterm.dart · 4.0.0<\u002Fspan>\n            <\u002Fdiv>\n          <\u002Fdiv>\n        <\u002Fdiv>\n      <\u002Fdiv>\n\n      <div class=\"gutter g2\"><\u002Fdiv>\n\n      <!-- ============ CONTEXT ============ -->\n      <div class=\"slot context\">\n        <div class=\"tabbar\">\n          <div class=\"tab active\"><span class=\"dot\"><\u002Fspan>Links<span class=\"prio\">[−80]<\u002Fspan><\u002Fdiv>\n        <\u002Fdiv>\n        <div class=\"body\">\n          <div class=\"links-title\">app.dart<\u002Fdiv>\n          <div class=\"section-hdr\">Backlinks (3)<\u002Fdiv>\n          <div class=\"row\"><span>lib/main.dart<\u002Fspan><\u002Fdiv>\n          <div class=\"row\"><span>test/widgets/app_test.dart<\u002Fspan><\u002Fdiv>\n          <div class=\"row\"><span>integration_test/app_starts_test.dart<\u002Fspan><\u002Fdiv>\n\n          <div class=\"section-hdr\" style=\"margin-top:14px;\">Outlinks (5)<\u002Fdiv>\n          <div class=\"row\"><span>kernel/kernel.dart<\u002Fspan><\u002Fdiv>\n          <div class=\"row\"><span>widgets/widgets.dart<\u002Fspan><\u002Fdiv>\n          <div class=\"row\"><span>extension/src/contribution.dart<\u002Fspan><\u002Fdiv>\n          <div class=\"row\"><span>kernel/src/panels/slot_id.dart<\u002Fspan><\u002Fdiv>\n          <div class=\"row\" style=\"color:#2a6fc1;\"><span>https://flutter.dev/docs<\u002Fspan><\u002Fdiv>\n\n          <div style=\"height:14px;\"><\u002Fdiv>\n          <div class=\"hatch\" style=\"height:140px; display:flex; align-items:center; justify-content:center; color:var(--ink-3); font-size:10px;\">\n            (scroll region · pql.backlinks view)\n          <\u002Fdiv>\n        <\u002Fdiv>\n      <\u002Fdiv>\n\n      <!-- ============ STATUSBAR ============ -->\n      <div class=\"statusbar\">\n        <span class=\"item dim-text\">clide 2.0.0-dev<\u002Fspan>\n        <span class=\"item dim-text\">main ↑2 ↓0<\u002Fspan>\n        <span class=\"spacer\"><\u002Fspan>\n        <span class=\"item\" style=\"color:#2d8a52;\"><span class=\"plug\"><\u002Fspan> connected<\u002Fspan>\n      <\u002Fdiv>\n\n    <\u002Fdiv>\n\n    <!-- ========== ANNOTATIONS ========== -->\n    <div style=\"position:relative; height:0;\">\n      <!-- (annotations layered absolutely over the frame via margin trick) -->\n    <\u002Fdiv>\n\n    <!-- Notes block under the wireframe -->\n    <div class=\"legend\">\n      <div>\n        <h3>Kernel services<\u002Fh3>\n        <ul>\n          <li><code>panels<\u002Fcode> — tab registry per slot<\u002Fli>\n          <li><code>arrangement<\u002Fcode> — slot visibility + size<\u002Fli>\n          <li><code>commands<\u002Fcode> + <code>keybindings<\u002Fcode><\u002Fli>\n          <li><code>ipc<\u002Fcode> (<code>DaemonClient<\u002Fcode>) + <code>events<\u002Fcode><\u002Fli>\n          <li><code>theme<\u002Fcode>, <code>i18n<\u002Fcode>, <code>dialog<\u002Fcode><\u002Fli>\n          <li><code>files<\u002Fcode>, <code>project<\u002Fcode>, <code>notify<\u002Fcode>, <code>secrets<\u002Fcode><\u002Fli>\n        <\u002Ful>\n      <\u002Fdiv>\n\n      <div>\n        <h3>Contributed tabs (by priority)<\u002Fh3>\n        <ul>\n          <li><b>sidebar<\u002Fb>: Files −100 · Git −80 · pql −60 · Problems −50<\u002Fli>\n          <li><b>workspace<\u002Fb>: Welcome −100 · Diff −70 · Editor 80 · Claude 90 · Terminal 100<\u002Fli>\n          <li><b>context<\u002Fb>: Links −80<\u002Fli>\n          <li><b>statusbar<\u002Fb>: ipc-status (right, prio 100)<\u002Fli>\n        <\u002Ful>\n      <\u002Fdiv>\n\n      <div>\n        <h3>Stub extensions <span class=\"badge\">no UI yet<\u002Fspan><\u002Fh3>\n        <ul>\n          <li>builtin.canvas<\u002Fli>\n          <li>builtin.decisions<\u002Fli>\n          <li>builtin.graph<\u002Fli>\n          <li>builtin.jira<\u002Fli>\n          <li>builtin.markdown<\u002Fli>\n          <li>builtin.tickets<\u002Fli>\n          <li>builtin.todos<\u002Fli>\n        <\u002Ful>\n      <\u002Fdiv>\n\n      <div>\n        <h3>Not in classicPreset<\u002Fh3>\n        <ul>\n          <li><code>Slots.toolbar<\u002Fcode> — reserved, no slot in frame<\u002Fli>\n          <li><code>Slots.commandPalette<\u002Fcode> — overlay, no slot<\u002Fli>\n          <li><code>Slots.tray<\u002Fcode> / <code>popout<\u002Fcode> / <code>fullscreen<\u002Fcode> — reserved<\u002Fli>\n          <li>No multi-file workspace tabs yet (editor is single-buffer)<\u002Fli>\n          <li>No secondary Claude panes rendered (command exists, UI wiring pending)<\u002Fli>\n        <\u002Ful>\n      <\u002Fdiv>\n    <\u002Fdiv>\n  <\u002Fdiv>\n\n\n<\u002Fbody><\u002Fhtml>"
+  </script>
+</body>
+</html>
