@@ -70,6 +70,14 @@ flutter:
     - assets/LICENSE
     - assets/fonts/jetbrains_mono/OFL.txt
     - assets/fonts/josefin_sans/OFL.txt
+    - assets/logo/clide-logo.svg
+    - assets/logo/clide-logo-16.png
+    - assets/logo/clide-logo-32.png
+    - assets/logo/clide-logo-48.png
+    - assets/logo/clide-logo-192.png
+    - assets/logo/clide-logo-256.png
+    - assets/logo/clide-logo-512.png
+    - assets/logo/clide-logo-1024.png
 
   # Bundled fonts. OFL-licensed; license files live alongside each.
   #

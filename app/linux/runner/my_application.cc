@@ -45,14 +45,23 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "clide_app");
+    gtk_header_bar_set_title(header_bar, "clide");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "clide_app");
+    gtk_window_set_title(window, "clide");
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+
+  // Window icon — load from the bundled asset.
+  g_autoptr(GError) icon_error = nullptr;
+  GdkPixbuf* icon = gdk_pixbuf_new_from_file(
+      "data/flutter_assets/assets/logo/clide-logo-256.png", &icon_error);
+  if (icon != nullptr) {
+    gtk_window_set_icon(window, icon);
+    g_object_unref(icon);
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

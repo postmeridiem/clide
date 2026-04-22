@@ -1,11 +1,11 @@
 {
-    "name": "clide_app",
-    "short_name": "clide_app",
+    "name": "clide",
+    "short_name": "clide",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#21262f",
+    "theme_color": "#00a3d2",
+    "description": "Flutter desktop IDE for Claude Code.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
