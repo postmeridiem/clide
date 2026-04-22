@@ -23,7 +23,8 @@ class _ToolStatusItemState extends State<ToolStatusItem> {
   }
 
   Future<void> _check() async {
-    final ptycResult = await _which('ptyc');
+    final cwd = Directory.current.path;
+    final ptycResult = _exists('$cwd/ptyc/bin/ptyc') || await _which('ptyc');
     final pqlResult = await _which('pql');
     if (!mounted) return;
     setState(() {
@@ -32,6 +33,8 @@ class _ToolStatusItemState extends State<ToolStatusItem> {
       _checked = true;
     });
   }
+
+  bool _exists(String path) => File(path).existsSync();
 
   Future<bool> _which(String name) async {
     try {
