@@ -39,11 +39,8 @@ class _ClideIconRailState extends State<ClideIconRail> {
     final tokens = ClideTheme.of(context).surface;
     return MouseRegion(
       onExit: (_) => setState(() => _hoveredId = null),
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: tokens.dividerColor)),
-        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -98,7 +95,7 @@ class _RailButton extends StatelessWidget {
           child: GestureDetector(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -109,7 +106,7 @@ class _RailButton extends StatelessWidget {
                   ),
                 ),
               ),
-              child: ClideIcon(item.icon, size: 16, color: color),
+              child: ClideIcon(item.icon, size: 14, color: color),
             ),
           ),
         ),

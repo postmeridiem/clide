@@ -70,7 +70,7 @@ class _RootShellState extends State<_RootShell> {
     return DefaultTextStyle(
       style: TextStyle(
         color: tokens.globalForeground,
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: clideUiDefaultWeight,
         fontFamily: clideUiFamily,
         fontFamilyFallback: clideUiFamilyFallback,
@@ -171,9 +171,11 @@ class RootLayout extends StatelessWidget {
               ),
             ),
             if (statusVisible)
-              SizedBox(
+              Container(
                 height: statusHeight,
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.dividerColor))),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (sidebarVisible && !sidebarCollapsed)
                       SizedBox(width: sidebarSize, child: _BottomRail(slot: Slots.sidebar))
@@ -487,7 +489,10 @@ class StatusbarHost extends StatelessWidget {
         final right = items.where((i) => i.priority >= 100).toList();
         return Container(
           color: tokens.statusBarBackground,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          alignment: Alignment.center,
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               for (final item in left) item.build(ctx),
               const Spacer(),
