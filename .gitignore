@@ -87,3 +87,4 @@ legacy/**/htmlcov/
 legacy/**/.coverage
 legacy/**/.coverage.*
 .clide/settings.yaml
+.claude/skills/pql/
