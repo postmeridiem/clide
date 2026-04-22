@@ -1,18 +1,27 @@
+import 'package:clide_app/builtin/tickets/src/tickets_view.dart';
 import 'package:clide_app/extension/extension.dart';
+import 'package:clide_app/kernel/kernel.dart';
 
-/// Tier-reserved stub. Will surface a sidebar tab (filtered list) + a
-/// workspace tab (kanban board) + commands (`tickets.open`,
-/// `tickets.new`, `tickets.move`, `tickets.block`). Data source:
-/// `pql ticket …`. Ticket persistence strategy open at `Q-022`.
 class TicketsExtension extends ClideExtension {
   @override
   String get id => 'builtin.tickets';
   @override
   String get title => 'Tickets';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
   List<String> get dependsOn => const [];
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  List<ContributionPoint> get contributions => [
+        TabContribution(
+          id: 'tickets.panel',
+          slot: Slots.sidebar,
+          title: 'Tickets',
+          titleKey: 'tab.title',
+          i18nNamespace: id,
+          priority: -10,
+          build: (_) => const TicketsView(),
+        ),
+      ];
 }

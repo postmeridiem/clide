@@ -1,17 +1,27 @@
+import 'package:clide_app/builtin/decisions/src/decisions_view.dart';
 import 'package:clide_app/extension/extension.dart';
+import 'package:clide_app/kernel/kernel.dart';
 
-/// Tier-reserved stub. Will surface a sidebar tab (filter by domain /
-/// status, backlinks from current file) + commands (`decisions.open`,
-/// `decisions.claim`, `decisions.amend`). Data source: `pql decisions …`.
 class DecisionsExtension extends ClideExtension {
   @override
   String get id => 'builtin.decisions';
   @override
   String get title => 'Decisions';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
   List<String> get dependsOn => const [];
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  List<ContributionPoint> get contributions => [
+        TabContribution(
+          id: 'decisions.panel',
+          slot: Slots.sidebar,
+          title: 'Decisions',
+          titleKey: 'tab.title',
+          i18nNamespace: id,
+          priority: -20,
+          build: (_) => const DecisionsView(),
+        ),
+      ];
 }

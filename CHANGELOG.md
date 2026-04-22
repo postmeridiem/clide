@@ -53,6 +53,18 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   weights. Replaces hand-painted CustomPaint icons in sidebar and
   context panel icon rails.
 
+- Decisions panel in sidebar — lists confirmed D-records from
+  `pql decisions list` with ID and title (T-037).
+
+- Tickets panel in sidebar — lists tickets from `pql ticket list`
+  with status dot color-coded by state (T-037).
+
+- Markdown viewer in context panel — shows raw content of the
+  active .md file, auto-updating on buffer switch (T-038).
+
+- Graph view in context panel — lists files with inbound/outbound
+  link counts from `pql search --connections` (T-039).
+
 ### Changed
 
 - Workspace renders Claude as the always-visible primary surface

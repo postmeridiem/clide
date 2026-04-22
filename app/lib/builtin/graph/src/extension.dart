@@ -1,17 +1,27 @@
+import 'package:clide_app/builtin/graph/src/graph_view.dart';
 import 'package:clide_app/extension/extension.dart';
+import 'package:clide_app/kernel/kernel.dart';
 
-/// Tier-0 stub. Real implementation lands in a later tier; the extension
-/// is registered so the extensions-ui surface can list it as "installed,
-/// not yet implemented" and its id is reserved.
 class GraphExtension extends ClideExtension {
   @override
   String get id => 'builtin.graph';
   @override
   String get title => 'Graph';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
   List<String> get dependsOn => const ['builtin.pql'];
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  List<ContributionPoint> get contributions => [
+        TabContribution(
+          id: 'graph.view',
+          slot: Slots.contextPanel,
+          title: 'Graph',
+          titleKey: 'tab.graph',
+          i18nNamespace: id,
+          priority: -80,
+          build: (_) => const GraphView(),
+        ),
+      ];
 }
