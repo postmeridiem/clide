@@ -53,11 +53,15 @@ flutter:
   assets:
     - lib/kernel/src/theme/themes/
     - lib/kernel/src/i18n/catalog/
-    # Bundled-dependency manifest — read by the About screen.
+    # Licensing — read by the About screen. `licenses.yaml` is the
+    # manifest (self + runtime deps + dev deps); each `license_file`
+    # pointer must also be a bundled asset so the About screen can
+    # display each dependency's full license text at runtime.
+    # Root LICENSE is mirrored into assets/LICENSE for the same reason
+    # (root paths can't be referenced from a Flutter package's assets).
     # See CLAUDE.md "Dependencies & supply chain" and D-042.
     - assets/licenses.yaml
-    # License files referenced by licenses.yaml must be bundled too so
-    # the About screen can display each dependency's full license text.
+    - assets/LICENSE
     - assets/fonts/jetbrains_mono/OFL.txt
     - assets/fonts/josefin_sans/OFL.txt
 

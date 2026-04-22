@@ -1,20 +1,48 @@
-# clide — bundled-dependency manifest.
+# clide — licensing manifest.
 #
-# Every third-party artefact that ships in the clide binary is listed
-# here: fonts, Dart packages, native supporter tools, bundled data.
-# The About screen reads this file and renders the entries verbatim.
+# Three sections:
+#   - `self:` — clide's own license (MIT). Rendered first in the About
+#     screen so the user knows what they're running before they see
+#     the list of things it depends on.
+#   - `dependencies:` — third-party artefacts that SHIP in the clide
+#     binary: fonts, runtime Dart packages, native supporter tools,
+#     bundled data. The About screen renders these verbatim.
+#   - `dev_dependencies:` — build-time-only tooling: test runners,
+#     mocks, lints, golden-test harness. These never enter the shipped
+#     binary, so the About screen does not render them, but they're
+#     tracked here for audit completeness alongside the real list.
 #
-# Adding a new bundled dependency is a two-step commit:
+# Adding a new runtime dependency is a two-step commit:
 #   1. Add the dependency itself (font file, `pubspec.yaml` entry, etc.)
-#   2. Add the entry below in the same commit, so the About screen stays
-#      accurate and the prefer-zero-deps guardrail is enforced by the
-#      obvious visible consequence: an extra row in the list.
+#   2. Add the entry under `dependencies:` below in the same commit, so
+#      the About screen stays accurate and the prefer-zero-deps
+#      guardrail is enforced by the obvious visible consequence: an
+#      extra row in the list.
+#
+# Adding a new dev-only dependency is the same two-step commit, just
+# under `dev_dependencies:` instead. The guardrail still applies —
+# dev deps are supply-chain risk too — but they don't pollute the
+# user-facing About screen.
 #
 # See CLAUDE.md "Dependencies & supply chain" for the full rule, and
 # `decisions/tooling.md` for the D-record that pins it.
 
 schema_version: 1
 
+# clide itself. Listed first so the About screen can render "You're
+# looking at clide vX, MIT-licensed" at the top of the panel before
+# the bundled-dependency list underneath. The root LICENSE is the
+# authoritative copy; `app/assets/LICENSE` is a mirror bundled so the
+# About screen can read it at runtime.
+self:
+  name: clide
+  version: "2.0.0-dev"
+  homepage: https://git.schweitz.net/jpmschweitzer/clide
+  license: MIT
+  license_file: assets/LICENSE
+  copyright: "© 2026 Jeroen Schweitzer"
+
+# Runtime dependencies — ship in the clide binary.
 dependencies:
   - name: JetBrains Mono
     kind: font
@@ -47,15 +75,17 @@ dependencies:
       YAML parser for theme files and extension manifests. The one
       justified exception to prefer-zero-deps; Dart-team maintained.
 
+# Build-time-only dependencies — test runners, mocks, lints. Tracked
+# here for audit completeness; NOT rendered in the About screen.
+dev_dependencies:
   - name: mocktail
     kind: dart-package
     version: "1.0.4"
     homepage: https://pub.dev/packages/mocktail
     license: MIT
     purpose: >-
-      Test-only. Mocks at IO / IPC boundaries. ChangeNotifier facades
-      use hand-rolled fakes instead of mocks (D-025).
-    scope: dev
+      Mocks at IO / IPC boundaries. ChangeNotifier facades use
+      hand-rolled fakes instead of mocks (D-025).
 
   - name: alchemist
     kind: dart-package
@@ -63,14 +93,31 @@ dependencies:
     homepage: https://pub.dev/packages/alchemist
     license: MIT
     purpose: >-
-      Test-only. Golden-test framework; Ahem-font rendering for
-      cross-platform pixel stability on widget primitives (D-024).
-    scope: dev
+      Golden-test framework; Ahem-font rendering for cross-platform
+      pixel stability on widget primitives (D-024).
 
   - name: flutter_lints
     kind: dart-package
     version: "6.0.0"
     homepage: https://pub.dev/packages/flutter_lints
     license: BSD-3-Clause
-    purpose: Test-only. Flutter-team-recommended analyzer lint set.
-    scope: dev
+    purpose: Flutter-team-recommended analyzer lint set (app/).
+
+  - name: lints
+    kind: dart-package
+    version: "5.0.0"
+    homepage: https://pub.dev/packages/lints
+    license: BSD-3-Clause
+    purpose: >-
+      Dart-team-recommended analyzer lint set for the Flutter-free
+      core package at the repo root.
+
+  - name: test
+    kind: dart-package
+    version: "1.25.8"
+    homepage: https://pub.dev/packages/test
+    license: BSD-3-Clause
+    purpose: >-
+      Dart test runner for the core package (Flutter-free; the app
+      uses flutter_test from the Flutter SDK for widget + golden
+      coverage).
