@@ -33,9 +33,18 @@ class ProjectManager extends ChangeNotifier {
     }
     _current = Directory(root);
     await _settings.setProjectDir(_current);
+    await _settings.set<String>('app.lastProject', root);
     _events.emit(ProjectOpened(path: root));
     notifyListeners();
     return true;
+  }
+
+  Future<bool> openLast() async {
+    final last = _settings.get<String>('app.lastProject');
+    if (last == null || last.isEmpty) return false;
+    final dir = Directory(last);
+    if (!await dir.exists()) return false;
+    return open(last);
   }
 
   Future<void> close() async {

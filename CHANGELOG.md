@@ -65,6 +65,11 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 - Graph view in context panel — lists files with inbound/outbound
   link counts from `pql search --connections` (T-039).
 
+- Last-opened project persisted to user settings and restored on
+  boot. First launch shows the welcome screen with a path-entry
+  dialog; subsequent launches re-open the last project directly
+  into Claude.
+
 ### Changed
 
 - Workspace renders Claude as the always-visible primary surface

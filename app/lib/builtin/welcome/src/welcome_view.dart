@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clide_app/kernel/kernel.dart';
 import 'package:clide_app/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -47,24 +49,129 @@ class WelcomeView extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _StartAction(
-                  label: i.string('open-project',
-                      namespace: _ns, placeholder: 'Open project…'),
-                  hint: i.string('open-project.hint',
-                      namespace: _ns,
-                      placeholder: 'Pick a git repository'),
-                  icon: const FolderIcon(),
-                  onTap: () {},
-                ),
-                _StartAction(
-                  label: 'New Claude session…',
-                  icon: const TerminalIcon(),
-                  onTap: () {},
+                  label: i.string('open-project', namespace: _ns, placeholder: 'Open project…'),
+                  hint: i.string('open-project.hint', namespace: _ns, placeholder: 'Pick a git repository'),
+                  icon: PhosphorIcons.folder,
+                  onTap: () => _openProject(context),
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  void _openProject(BuildContext context) {
+    final kernel = ClideKernel.of(context);
+    kernel.dialog.show<String>((ctx, dismiss) {
+      return _OpenProjectDialog(
+        onOpen: (path) async {
+          final ok = await kernel.project.open(path);
+          if (ok) {
+            kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+            dismiss(path);
+          }
+        },
+        onCancel: () => dismiss(),
+      );
+    });
+  }
+}
+
+class _OpenProjectDialog extends StatefulWidget {
+  const _OpenProjectDialog({required this.onOpen, required this.onCancel});
+  final Future<void> Function(String path) onOpen;
+  final VoidCallback onCancel;
+
+  @override
+  State<_OpenProjectDialog> createState() => _OpenProjectDialogState();
+}
+
+class _OpenProjectDialogState extends State<_OpenProjectDialog> {
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final path = _controller.text.trim();
+    if (path.isEmpty) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await widget.onOpen(path);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Not a git repository');
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      width: 420,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: tokens.modalSurfaceBackground,
+        border: Border.all(color: tokens.modalSurfaceBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ClideText('Open project', fontSize: 16, fontWeight: FontWeight.w600),
+          const SizedBox(height: 4),
+          const ClideText('Enter the path to a git repository.', muted: true, fontSize: 13),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: tokens.panelBackground,
+              border: Border.all(color: tokens.globalBorder),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: EditableText(
+              controller: _controller,
+              focusNode: _focus,
+              style: TextStyle(color: tokens.globalForeground, fontSize: 14, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
+              cursorColor: tokens.globalForeground,
+              backgroundCursorColor: tokens.globalTextMuted,
+              onSubmitted: (_) => unawaited(_submit()),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            ClideText(_error!, color: tokens.statusError, fontSize: 12),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ClideButton(label: 'Cancel', onPressed: widget.onCancel),
+              const SizedBox(width: 8),
+              ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
