@@ -5,7 +5,9 @@
       "Bash(git commit *)",
       "Bash(dart *)",
       "Bash(flutter *)",
-      "Bash(make *)"
+      "Bash(make *)",
+      "Bash(pql)",
+      "Bash(pql *)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
