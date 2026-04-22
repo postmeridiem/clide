@@ -174,7 +174,7 @@ security: ## Dart advisory review + ptyc source review (manual — no floating d
 
 .PHONY: decisions-validate
 decisions-validate: ## Parser dry-run over decisions/*.md (cheap pre-push gate).
-	tools/scripts/plan decisions validate
+	pql decisions validate
 
 .PHONY: push-check
 push-check: decisions-validate test-core test test-a11y ## Pre-push gate: decisions + core + fast unit + widget + golden + a11y (<90s).

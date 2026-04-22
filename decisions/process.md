@@ -46,12 +46,13 @@ Q&D record system itself, kanban, commit conventions, changelog.
 - **Cost:** Planning features don't ship until pql catches up. Mitigated by [D-040](#d-040-python-stopgap-under-toolsscriptsplan). Gated by [Q-021](questions-process.md#q-021-pql-absorbs-planning-vs-keeps-separate).
 - **Raised by:** 2026-04-21 planning.
 
-### D-040: Python stopgap under `tools/scripts/plan`
+### D-040: [SUPERSEDED] Python stopgap under `tools/scripts/plan`
 - **Date:** 2026-04-21
 - **Decision:** A time-limited Python port of settled-reach's `decisions_sync.py` + `ticket` + `decision` scripts lives at `tools/scripts/plan` with support modules under `tools/scripts/planning/`. Writes to `.pql/pql.db` (gitignored). Ticket IDs are `T-NNN` (TEXT PK, reshape from settled-reach's integers). Same schema, same markdown, same verb shape as the eventual `pql` subcommands.
 - **Sunset:** Delete the stopgap when pql ships `pql decisions sync | validate | list | show | claim | coverage` + `pql ticket new | list | show | status | assign | block | board` with feature parity, and reads the same `.pql/pql.db` file the stopgap wrote. Removal commit shape: [R-011](rejected.md#r-011-permanent-stopgap).
 - **Rationale:** Planning tooling must work day one. Pql's Go implementation won't land for at least a cycle or two. Without a stopgap, the convention lives on paper; with one, tickets + decisions are queryable from today. Same schema means migration is call-site find-replace (`tools/scripts/plan ` → `pql `), no data migration.
 - **Cost:** Python dep on contributors' machines (already present on most Linux dists). One time-limited tool to maintain. See [R-010](rejected.md#r-010-python-script-stopgap-at-toolingdb) for why `tools/scripts/plan` and not `tooling/db/`.
 - **Raised by:** 2026-04-21 planning.
+- **Amendment (2026-04-22):** Sunset condition met. pql 1.0.0 ships full feature parity. Stopgap deleted per [R-011](rejected.md#r-011-permanent-stopgap).
 
 ---

@@ -52,14 +52,8 @@ coverage.*
 # app/test/goldens/goldens/{ci,linux}/).
 app/test/goldens/failures/
 
-# -- pql per-repo state (clide dogfoods against itself; pql's index lands
-#    here when running queries locally). `pql.db` is also where the
-#    `tools/scripts/plan` stopgap writes decisions + tickets (D-040).
+# -- pql per-repo state (index + planning DB, rebuilt from markdown) ----
 /.pql/
-
-# -- Python stopgap tooling under tools/scripts/plan ------------------
-tools/scripts/__pycache__/
-tools/scripts/planning/__pycache__/
 
 # -- SQLite index files (defensive; should never land at repo root) ----
 *.sqlite

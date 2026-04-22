@@ -18,6 +18,13 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- pql skill installed via `pql init --with-skill=yes`
+  (`.claude/skills/pql/SKILL.md`). Covers vault queries and the
+  planning surface (decisions + tickets).
+
+- `Bash(pql)` and `Bash(pql *)` permissions in
+  `.claude/settings.json`.
+
 - Git subsystem in the daemon (`lib/src/git/`). Status parser
   (`git status --porcelain`), unified-diff parser, and operations
   (stage, unstage, stage-hunk, discard, commit, stash, log, pull,
@@ -269,6 +276,21 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   a pointer at `decisions/questions-*.md`; parent-project note
   updated to reference `decisions/architecture.md` instead of the
   deleted `docs/ADRs/`.
+
+- `make decisions-validate` rewired from `tools/scripts/plan` to
+  `pql decisions validate`.
+
+- Decision discipline guardrail in CLAUDE.md now points at
+  `pql decisions claim` instead of the Python stopgap.
+
+### Removed
+
+- `tools/scripts/plan` — Python stopgap planning scripts, superseded
+  by `pql` 1.0 native `decisions` and `ticket` subcommands. Sunset
+  condition from
+  [`D-040`](decisions/process.md#d-040-python-stopgap-under-toolsscriptsplan)
+  met; deletion per
+  [`R-011`](decisions/rejected.md#r-011-permanent-stopgap).
 
 ### Removed
 

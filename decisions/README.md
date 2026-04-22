@@ -82,26 +82,23 @@ same semantics, no race on concurrent sessions.
 
 ## Querying
 
-Stopgap today: `tools/scripts/plan decisions …` reads and writes
-`.pql/pql.db` (gitignored; markdown is source of truth). Replaced
-by `pql decisions …` when pql ships parity — see
-[D-040](process.md#d-040-python-stopgap-under-toolsscriptsplan) and
-[R-011](rejected.md#r-011-permanent-stopgap).
+`pql decisions …` reads `decisions/*.md` and writes `.pql/pql.db`
+(gitignored; markdown is the source of truth).
 
 Common queries:
 
 ```bash
-tools/scripts/plan decisions list --type confirmed --domain architecture
-tools/scripts/plan decisions show D-005 --with-refs
-tools/scripts/plan decisions coverage     # D-records without tickets
-tools/scripts/plan decisions validate     # pre-push parser gate
+pql decisions list --type confirmed --domain architecture
+pql decisions show D-005 --with-refs
+pql decisions coverage     # D-records without tickets
+pql decisions validate     # pre-push parser gate
+pql ticket board           # kanban view of tickets
 ```
 
 ## Adding a decision
 
 1. Edit the appropriate domain file.
 2. Follow the record shape above.
-3. Run `tools/scripts/plan decisions validate` (also runs in
-   `make push-check`).
+3. Run `pql decisions validate` (also runs in `make push-check`).
 4. Commit. The SQLite index rebuilds from markdown on any
-   `tools/scripts/plan decisions sync`.
+   `pql decisions sync`.
