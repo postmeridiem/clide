@@ -93,10 +93,16 @@ class DialogHost extends StatelessWidget {
             final b = router.current;
             if (b == null) return const SizedBox.shrink();
             return Positioned.fill(
-              child: ColoredBox(
-                color: backdropColor,
-                child: Center(
-                  child: b(ctx, router.dismiss),
+              child: GestureDetector(
+                onTap: () => router.dismiss(),
+                child: ColoredBox(
+                  color: backdropColor,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: b(ctx, router.dismiss),
+                    ),
+                  ),
                 ),
               ),
             );

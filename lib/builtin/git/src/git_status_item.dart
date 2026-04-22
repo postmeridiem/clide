@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 class GitStatusItem extends StatefulWidget {
@@ -116,11 +117,20 @@ class _BranchPicker extends StatefulWidget {
 class _BranchPickerState extends State<_BranchPicker> {
   List<Map<String, Object?>> _branches = const [];
   bool _loading = true;
+  String? _error;
+  late final FocusNode _focus;
 
   @override
   void initState() {
     super.initState();
+    _focus = FocusNode()..requestFocus();
     unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -133,6 +143,8 @@ class _BranchPickerState extends State<_BranchPicker> {
           for (final b in (r.data['branches'] as List? ?? const []))
             (b as Map).cast<String, Object?>(),
         ];
+      } else {
+        _error = r.error?.message ?? 'failed to load branches';
       }
     });
   }
@@ -142,53 +154,75 @@ class _BranchPickerState extends State<_BranchPicker> {
     widget.onDismiss();
   }
 
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+      widget.onDismiss();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    return Container(
-      width: 320,
-      constraints: const BoxConstraints(maxHeight: 320),
-      decoration: BoxDecoration(
-        color: tokens.dropdownBackground,
-        border: Border.all(color: tokens.dropdownBorder),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: ClideText(
-              'Switch branch',
-              fontSize: clideFontCaption,
-              color: tokens.globalTextMuted,
-              fontFamily: clideMonoFamily,
+    return Focus(
+      focusNode: _focus,
+      onKeyEvent: _onKey,
+      child: Container(
+        width: 320,
+        constraints: const BoxConstraints(maxHeight: 320),
+        decoration: BoxDecoration(
+          color: tokens.dropdownBackground,
+          border: Border.all(color: tokens.dropdownBorder),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ClideText('Switch branch', fontSize: clideFontCaption, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  ),
+                  GestureDetector(
+                    onTap: () => widget.onDismiss(),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: ClideIcon(PhosphorIcons.xMark, size: 12, color: tokens.globalTextMuted),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: ClideText('Loading…', muted: true),
-            ),
-          Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              itemCount: _branches.length,
-              itemBuilder: (ctx, i) {
-                final b = _branches[i];
-                final name = b['name'] as String? ?? '';
-                final current = b['current'] as bool? ?? false;
-                return _BranchRow(
-                  name: name,
-                  current: current,
-                  onTap: current ? null : () => unawaited(_checkout(name)),
-                );
-              },
-            ),
-          ),
-        ],
+            if (_loading)
+              const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+            if (_error != null)
+              Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true)),
+            if (!_loading && _error == null && _branches.isEmpty)
+              const Padding(padding: EdgeInsets.all(12), child: ClideText('No branches found.', muted: true)),
+            if (_branches.isNotEmpty)
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: _branches.length,
+                  itemBuilder: (ctx, i) {
+                    final b = _branches[i];
+                    final name = b['name'] as String? ?? '';
+                    final current = b['current'] as bool? ?? false;
+                    return _BranchRow(
+                      name: name,
+                      current: current,
+                      onTap: current ? null : () => unawaited(_checkout(name)),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
