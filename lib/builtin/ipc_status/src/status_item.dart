@@ -1,53 +1,84 @@
+import 'dart:io';
+
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
-class IpcStatusItem extends StatelessWidget {
-  const IpcStatusItem({super.key, required this.ipc});
+class ToolStatusItem extends StatefulWidget {
+  const ToolStatusItem({super.key});
 
-  final DaemonClient ipc;
+  @override
+  State<ToolStatusItem> createState() => _ToolStatusItemState();
+}
 
-  static const _ns = 'builtin.ipc-status';
+class _ToolStatusItemState extends State<ToolStatusItem> {
+  bool _ptycOk = false;
+  bool _pqlOk = false;
+  bool _checked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+  }
+
+  Future<void> _check() async {
+    final ptycResult = await _which('ptyc');
+    final pqlResult = await _which('pql');
+    if (!mounted) return;
+    setState(() {
+      _ptycOk = ptycResult;
+      _pqlOk = pqlResult;
+      _checked = true;
+    });
+  }
+
+  Future<bool> _which(String name) async {
+    try {
+      final r = await Process.run('which', [name]);
+      return r.exitCode == 0;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    return ListenableBuilder(
-      listenable: Listenable.merge([ipc, kernel.i18n]),
-      builder: (ctx, _) {
-        final connected = ipc.isConnected;
-        final color = connected ? tokens.statusSuccess : tokens.statusError;
-        final i = kernel.i18n;
-        final label = connected
-            ? i.string('connected', namespace: _ns, placeholder: 'connected')
-            : i.string('disconnected',
-                namespace: _ns, placeholder: 'disconnected');
-        final hint = connected
-            ? i.string('connected.hint',
-                namespace: _ns,
-                placeholder: 'clide daemon is reachable over the local socket')
-            : i.string('disconnected.hint',
-                namespace: _ns,
-                placeholder:
-                    'clide daemon is not running — start it with `clide --daemon`');
-        return Semantics(
-          label: label,
-          hint: hint,
-          liveRegion: true,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClideIcon(const PlugIcon(), size: 12, color: color),
-                const SizedBox(width: 6),
-                ClideText(label, fontSize: clideFontCaption, color: color),
-              ],
-            ),
-          ),
-        );
-      },
+    if (!_checked) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Indicator(label: 'ptyc', ok: _ptycOk, tokens: tokens),
+          const SizedBox(width: 10),
+          _Indicator(label: 'pql', ok: _pqlOk, tokens: tokens),
+        ],
+      ),
+    );
+  }
+}
+
+class _Indicator extends StatelessWidget {
+  const _Indicator({required this.label, required this.ok, required this.tokens});
+  final String label;
+  final bool ok;
+  final SurfaceTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ok ? tokens.statusSuccess : tokens.statusWarning;
+    return Semantics(
+      label: '$label ${ok ? "available" : "not found"}',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClideIcon(PhosphorIcons.circlesFour, size: 10, color: color),
+          const SizedBox(width: 4),
+          ClideText(label, fontSize: clideFontCaption, color: color, fontFamily: clideMonoFamily),
+        ],
+      ),
     );
   }
 }

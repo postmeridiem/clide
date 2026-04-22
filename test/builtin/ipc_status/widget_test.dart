@@ -1,9 +1,7 @@
-import 'dart:ui';
-
 import 'package:clide/builtin/ipc_status/ipc_status.dart';
+import 'package:clide/builtin/ipc_status/src/status_item.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -14,18 +12,7 @@ void main() {
     late KernelFixture f;
 
     setUp(() async {
-      f = await KernelFixture.create(
-        i18nCatalogs: {
-          'builtin.ipc-status': {
-            const Locale('en', 'US'): const {
-              'connected': {'translation': 'connected'},
-              'connected.hint': {'translation': 'daemon reachable'},
-              'disconnected': {'translation': 'disconnected'},
-              'disconnected.hint': {'translation': 'daemon down'},
-            },
-          },
-        },
-      );
+      f = await KernelFixture.create();
     });
 
     tearDown(() async => f.dispose());
@@ -41,21 +28,10 @@ void main() {
       expect(items.first.priority, 100);
     });
 
-    testWidgets('renders "disconnected" label until connected', (tester) async {
-      await tester.pumpWidget(
-        harness(f, IpcStatusItem(ipc: f.services.ipc)),
-      );
-      expect(find.text('disconnected'), findsOneWidget);
-    });
-
-    testWidgets('flips to "connected" when the client reports connected',
-        (tester) async {
-      await tester.pumpWidget(
-        harness(f, IpcStatusItem(ipc: f.services.ipc)),
-      );
-      f.ipc.setConnected(true);
+    testWidgets('renders without crashing', (tester) async {
+      await tester.pumpWidget(harness(f, const ToolStatusItem()));
       await tester.pumpAndSettle();
-      expect(find.text('connected'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }
