@@ -106,7 +106,7 @@ class _RailButton extends StatelessWidget {
                   ),
                 ),
               ),
-              child: ClideIcon(item.icon, size: 14, color: color),
+              child: ClideIcon(item.icon, size: 16, color: color),
             ),
           ),
         ),

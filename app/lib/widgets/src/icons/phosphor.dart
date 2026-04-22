@@ -11,7 +11,7 @@ class PhosphorIconPainter extends ClideIconPainter {
   @override
   void paint(ui.Canvas canvas, ui.Color color) {
     final builder = ui.ParagraphBuilder(
-      ui.ParagraphStyle(fontFamily: family, fontSize: 0.75, height: 1.0, textAlign: ui.TextAlign.center),
+      ui.ParagraphStyle(fontFamily: family, fontSize: 1.0, height: 1.0, textAlign: ui.TextAlign.center),
     )
       ..pushStyle(ui.TextStyle(color: color, fontFamily: family))
       ..addText(String.fromCharCode(codePoint));

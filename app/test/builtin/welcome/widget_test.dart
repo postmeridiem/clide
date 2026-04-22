@@ -43,37 +43,11 @@ void main() {
       expect(tabs.first.i18nNamespace, ext.id);
     });
 
-    testWidgets('WelcomeView renders title + subtitle + Open-project button',
-        (tester) async {
+    testWidgets('WelcomeView renders title + subtitle + start actions', (tester) async {
       await tester.pumpWidget(harness(f, const WelcomeView()));
       expect(find.text('clide'), findsOneWidget);
-      expect(
-        find.text('Flutter desktop IDE for Claude Code'),
-        findsOneWidget,
-      );
-      expect(find.text('Open project'), findsOneWidget);
-    });
-
-    testWidgets('Open-project action renders as tappable row',
-        (tester) async {
-      await tester.pumpWidget(harness(f, const WelcomeView()));
-      expect(find.text('Open project'), findsOneWidget);
-    });
-
-    testWidgets('locale switch refreshes the visible text', (tester) async {
-      await tester.pumpWidget(harness(f, const WelcomeView()));
-      f.services.i18n
-          .registerCatalog('builtin.welcome', const Locale('nl'), const {
-        'title': {'translation': 'clide-nl'},
-        'subtitle': {'translation': 'Flutter IDE voor Claude Code'},
-        'open-project': {'translation': 'Project openen'},
-        'open-project.hint': {'translation': 'Kies een git repo'},
-        'tab.title': {'translation': 'Welkom'},
-      });
-      await f.services.i18n.setLocale(const Locale('nl'));
-      await tester.pumpAndSettle();
-      expect(find.text('Project openen'), findsOneWidget);
-      expect(find.text('clide-nl'), findsOneWidget);
+      expect(find.text('Flutter desktop IDE for Claude Code'), findsOneWidget);
+      expect(find.text('Open folder…'), findsOneWidget);
     });
   });
 }
