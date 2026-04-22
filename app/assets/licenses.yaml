@@ -113,6 +113,7 @@ dependencies:
     version: "44.0.0"
     homepage: https://github.com/bytecodealliance/wasmtime
     license: Apache-2.0 with LLVM exception
+    license_file: native/linux-x64/WASMTIME-LICENSE
     purpose: >-
       WebAssembly runtime. Statically linked into libtree-sitter.so to
       provide grammar WASM loading. Not called directly — tree-sitter's
