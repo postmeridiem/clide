@@ -120,15 +120,30 @@ Status flow: backlog → ready → in_progress → review → done (also cancell
 | Command | Purpose |
 |---|---|
 | `pql plan status` | Dashboard: decision counts, open Qs, ticket summary, coverage gaps |
+| `pql plan export [--to FILE]` | Snapshot planning state to JSON (default: `pql-plan.json`) |
+| `pql plan import [--from FILE]` | Restore planning state from a JSON snapshot |
+
+### Versioning planning state
+
+Planning state lives in `pql.db` (gitignored). To version it in git,
+use `pql plan export` to write a committed JSON snapshot. pql does NOT
+do this automatically — the user decides when and how to trigger it:
+
+- Pre-push hook: `.githooks/pre-push` calls `pql plan export && git add pql-plan.json`
+- Sprint close: a skill or script exports + commits on milestone
+- Manual: run `pql plan export` before committing when state changed
+
+On a fresh clone, `pql plan import` restores from the snapshot.
 
 ### Planning cookbook
 
 - **Sync and list confirmed** → `pql decisions sync && pql decisions list --type confirmed`
 - **Show with refs** → `pql decisions show D-005 --with-refs --pretty`
 - **Create ticket** → `pql ticket new task "implement X" --decision D-005`
-- **Move forward** → `pql ticket status T-001 in_progress`
+- **Batch close** → `pql ticket status T-001,T-002,T-003 done`
 - **Coverage gaps** → `pql decisions coverage`
 - **Dashboard** → `pql plan status --pretty`
+- **Snapshot for git** → `pql plan export`
 
 ---
 

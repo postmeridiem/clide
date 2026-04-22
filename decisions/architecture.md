@@ -97,6 +97,7 @@ Core, rendering, IPC, kernel, panel manager.
 
 ### D-005: Dart core; sidecar dissolved; `ptyc` as pql-peer
 - **Date:** 2026-04-20 (was ADR 0005; supersedes [R-002](rejected.md#r-002-go-sidecar))
+- **Amendment (2026-04-23):** The separate daemon process and two-package layout are dissolved per [D-056](#d-056-dissolve-daemon-process-flutter-app-hosts-ipc-server). Dart-core and ptyc-as-peer principles survive; the daemon binary does not.
 - **Decision:** Three moves. **(1) Dart is the core language.** Everything that used to live under `sidecar/` — IPC server, CLI dispatch, process management, file watching, git shell-outs, pql wrapper — is written in Dart. Two execution modes of one Dart AOT binary: `clide <subcommand>` (one-shot, pql-style) and `clide --daemon` (long-running, owns PTYs and subprocesses, survives app restarts). The Flutter app imports the Dart core as a library *and* connects to the daemon over IPC. **(2) The sidecar directory dissolves.** Layout is `app/` (Flutter UI), `lib/` (Dart core), `bin/clide.dart` (AOT entry), `ptyc/` (C helper), no `sidecar/`, no Go module. **(3) `ptyc` is a pql-peer supporter tool.** Small C binary that does `posix_openpt` + `fork` + `exec` + fd-passing via `SCM_RIGHTS`; clide wraps it the same way it wraps pql. Shells out for every PTY (terminal pane, tmux session, Claude, LSP server, debug adapter — one code path). Consumers other than clide can use `ptyc` standalone.
 - **Context:** [R-002](rejected.md#r-002-go-sidecar) picked Go for the sidecar/CLI on two premises: (a) the heavy work belongs in a language separate from the UI layer, and (b) pql is Go so the muscle memory transfers. On reassessment, both premises broke: the "heavy work" is I/O-bound glue that `dart:io` covers cleanly — the real choice was **separate process vs shared language**, and separate-process is what matters. PTY is the one place Dart is genuinely weak (multi-threaded VM can't safely `fork()`), and once you accept a small native helper, *nothing else* needs to be in the same language.
 - **Rationale:** One toolchain for the IDE proper (Flutter + Dart). C toolchain needed only to build `ptyc` — tiny, rarely-changing. Session persistence stays because PTY master fds live in the Dart daemon process, not the app. `ptyc` naming: **p** for *project* (parallel to pql's *project query language*), **ptyc** reads as both "PTY + child" (domain vocabulary) and "PTY + C" (implementation language). Usable from Dart, Python, Go, shell — anywhere a subprocess can be spawned and a fd received.
@@ -206,5 +207,23 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cost:** The Claude pane grows its own tab model (lightweight — just a list of session IDs + which is active). The `builtin.claude` extension owns this; no kernel changes needed.
 - **Cross-reference:** [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed), [D-047](#d-047-interaction-model-claude-is-home-layout), [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first).
 - **Raised by:** 2026-04-23 interaction model refinement.
+
+### D-056: Dissolve daemon process; Flutter app hosts IPC server
+- **Date:** 2026-04-23
+- **Decision:** The separate Dart daemon process (`clide --daemon`) and the two-package repo layout (`lib/` core + `app/` Flutter) are dissolved. The Flutter app moves to the repo root (one `pubspec.yaml`) and hosts the IPC server in-process. All subsystem handlers (pane, files, editor, git, pql) run inside the Flutter process. The `bin/clide.dart` AOT binary is removed. The CLI surface for Claude (`clide <command>`) becomes a thin C client — either a new peer of `ptyc` or a mode within `ptyc` itself — that connects to the app's unix socket, sends a JSON-lines request, prints the response, and exits. tmux owns session persistence (it already did per [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed)); the daemon's PTY ownership was redundant.
+- **Amendment to [D-005](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer):** D-005's "two execution modes of one Dart AOT binary" premise assumed the daemon needed to outlive the app to preserve PTY sessions. tmux already solves this — `tmux new-session -A` re-attaches regardless of which process originally spawned it. The daemon process added complexity (two packages, two build targets, IPC client/server split, process lifecycle management) without a benefit tmux doesn't already provide. D-005's other principles survive: Dart is the core language, `ptyc` is a C peer of pql, one language for the IDE proper.
+- **Repo layout after dissolution:**
+  - `/pubspec.yaml` — single Flutter package (was `app/pubspec.yaml`)
+  - `/lib/` — all Dart code: kernel, extensions, widgets, subsystem handlers
+  - `/bin/` — empty or removed (CLI is a C binary now)
+  - `/test/` — all tests
+  - `/assets/` — fonts, themes, grammars, licenses
+  - `/ptyc/` — C PTY helper (unchanged)
+  - `/native/` — vendored native libs (libtree-sitter.so)
+  - `/decisions/`, `/docs/`, `/legacy/` — unchanged
+- **Rationale:** One package means one `pubspec.yaml`, one `flutter analyze`, one `flutter test`, no `cd` gymnastics, no cross-package import barriers. The IPC server running in-process eliminates the daemon lifecycle (start, stop, reconnect, pid file). If the app crashes, tmux sessions survive; the app re-attaches on restart. The CLI client in C is ~100 lines (socket connect + JSON exchange) with the same contract as pql.
+- **Cost:** If the Flutter app is not running, Claude's `clide` commands fail. In practice this is acceptable — the IDE being closed means the user isn't working. A future "headless mode" could start the Flutter engine without a window if needed.
+- **Cross-reference:** [D-005](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended), [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed) (tmux persistence), [D-001](#d-001-cli-first-not-mcp) (CLI-first surface preserved via C client).
+- **Raised by:** 2026-04-23 architectural simplification.
 
 ---

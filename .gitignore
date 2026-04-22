@@ -1,4 +1,4 @@
-# -- Flutter / Dart (app + core at repo root) ---------------------------
+# -- Flutter / Dart (single package at repo root) -----------------------
 /.dart_tool/
 /.packages
 /.flutter-plugins
@@ -15,18 +15,6 @@
 /bin/clide
 /bin/clide.exe
 # pubspec.lock is committed (supply-chain policy).
-
-# Flutter app sub-package under app/. Same patterns, different prefix.
-app/.dart_tool/
-app/.flutter-plugins
-app/.flutter-plugins-dependencies
-app/build/
-app/*.iml
-app/ios/Pods/
-app/macos/Pods/
-app/windows/flutter/ephemeral/
-app/linux/flutter/ephemeral/
-app/macos/Flutter/ephemeral/
 
 # UI harness (Playwright) — npm + output artefacts.
 tools/ui/node_modules/
@@ -50,7 +38,7 @@ coverage.*
 # Alchemist golden-test failure artefacts (diff images written when a
 # pixel-compare fails locally; the committed fixtures live under
 # app/test/goldens/goldens/{ci,linux}/).
-app/test/goldens/failures/
+test/goldens/failures/
 
 # -- pql per-repo state (index + planning DB, rebuilt from markdown) ----
 /.pql/
