@@ -86,3 +86,4 @@ legacy/**/*.egg-info/
 legacy/**/htmlcov/
 legacy/**/.coverage
 legacy/**/.coverage.*
+.clide/settings.yaml

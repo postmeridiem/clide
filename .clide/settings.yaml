@@ -1,6 +1,0 @@
-project:
-  layout:
-    sidebar:
-      activeTab: files.tree
-    context:
-      activeTab: markdown.viewer
