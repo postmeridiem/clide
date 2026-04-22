@@ -82,7 +82,12 @@ class _RootShellState extends State<_RootShell> {
           color: tokens.globalBackground,
           child: DialogHost(
             router: widget.services.dialog,
-            child: const RootLayout(),
+            child: Stack(
+              children: [
+                const Positioned.fill(child: RootLayout()),
+                const ClidePalette(),
+              ],
+            ),
           ),
         ),
       ),
@@ -181,6 +186,16 @@ class SlotHost extends StatelessWidget {
           (t) => t.id == activeId,
           orElse: () => tabs.first,
         );
+
+        if (slot == Slots.sidebar) {
+          return _SidebarSlot(
+            tabs: tabs,
+            active: active,
+            activeId: activeId,
+            onSelect: (id) => kernel.panels.activateTab(slot, id),
+          );
+        }
+
         return Container(
           color: tokens.panelBackground,
           child: Column(
@@ -202,7 +217,7 @@ class SlotHost extends StatelessWidget {
     );
   }
 
-  String _resolveTitle(BuildContext context, TabContribution t) {
+  static String _resolveTitle(BuildContext context, TabContribution t) {
     final key = t.titleKey;
     final ns = t.i18nNamespace;
     if (key == null || ns == null) return t.title;
@@ -211,6 +226,56 @@ class SlotHost extends StatelessWidget {
           namespace: ns,
           placeholder: t.title,
         );
+  }
+}
+
+class _SidebarSlot extends StatelessWidget {
+  const _SidebarSlot({
+    required this.tabs,
+    required this.active,
+    required this.activeId,
+    required this.onSelect,
+  });
+
+  final List<TabContribution> tabs;
+  final TabContribution active;
+  final String activeId;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      color: tokens.sidebarBackground,
+      child: Column(
+        children: [
+          Expanded(child: active.build(context)),
+          ClideIconRail(
+            items: [
+              for (final t in tabs)
+                ClideIconRailItem(
+                  id: t.id,
+                  icon: _iconFor(t),
+                  tooltip: SlotHost._resolveTitle(context, t),
+                ),
+            ],
+            activeId: activeId,
+            onSelect: onSelect,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static ClideIconPainter _iconFor(TabContribution t) {
+    if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
+    return switch (t.id) {
+      'files.tree' => const FolderIcon(),
+      'git.panel' => const GitBranchIcon(),
+      'pql.panel' => const SearchIcon(),
+      'problems.panel' => const WarningIcon(),
+      _ => const DotIcon(),
+    };
   }
 }
 
