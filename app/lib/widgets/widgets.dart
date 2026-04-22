@@ -30,3 +30,4 @@ export 'src/icons/search.dart';
 export 'src/icons/terminal_icon.dart';
 export 'src/icons/warning.dart';
 export 'src/icons/x.dart';
+export 'src/icons/phosphor.dart';

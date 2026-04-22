@@ -49,6 +49,10 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   and context panel sizes, active sections, and editor split ratio
   saved to `.clide/settings.yaml` (D-053, T-032).
 
+- Phosphor Icons font (v2.0.8, MIT) — regular, bold, and fill
+  weights. Replaces hand-painted CustomPaint icons in sidebar and
+  context panel icon rails.
+
 ### Changed
 
 - Workspace renders Claude as the always-visible primary surface

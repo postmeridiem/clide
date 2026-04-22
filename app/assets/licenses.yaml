@@ -66,6 +66,18 @@ dependencies:
       range available via the variable-font weight axis.
     weights_bundled: [VariableFont, Italic-VariableFont]
 
+  - name: Phosphor Icons
+    kind: font
+    version: "2.0.8"
+    homepage: https://phosphoricons.com
+    license: MIT
+    license_file: assets/fonts/phosphor/LICENSE
+    purpose: >-
+      Icon font for UI glyphs throughout the IDE — sidebar sections,
+      context panel, toolbar, and editor chrome. Regular, Bold, and
+      Fill weights bundled.
+    weights_bundled: [Regular, Bold, Fill]
+
   - name: yaml
     kind: dart-package
     version: "3.1.3"

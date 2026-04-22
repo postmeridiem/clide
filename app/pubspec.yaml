@@ -70,6 +70,7 @@ flutter:
     - assets/LICENSE
     - assets/fonts/jetbrains_mono/OFL.txt
     - assets/fonts/josefin_sans/OFL.txt
+    - assets/fonts/phosphor/LICENSE
     - assets/logo/clide-logo.svg
     - assets/logo/clide-logo-16.png
     - assets/logo/clide-logo-32.png
@@ -96,6 +97,13 @@ flutter:
         - asset: assets/fonts/josefin_sans/JosefinSans-VariableFont.ttf
         - asset: assets/fonts/josefin_sans/JosefinSans-Italic-VariableFont.ttf
           style: italic
+
+    - family: Phosphor
+      fonts:
+        - asset: assets/fonts/phosphor/Phosphor.ttf
+        - asset: assets/fonts/phosphor/Phosphor-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/phosphor/Phosphor-Fill.ttf
 
     - family: JetBrainsMono
       fonts:

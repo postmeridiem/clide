@@ -305,11 +305,13 @@ class _SidebarSlot extends StatelessWidget {
   static ClideIconPainter _iconFor(TabContribution t) {
     if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
     return switch (t.id) {
-      'files.tree' => const FolderIcon(),
-      'git.panel' => const GitBranchIcon(),
-      'pql.panel' => const SearchIcon(),
-      'problems.panel' => const WarningIcon(),
-      _ => const DotIcon(),
+      'files.tree' => PhosphorIcons.folder,
+      'git.panel' => PhosphorIcons.gitBranch,
+      'pql.panel' => PhosphorIcons.magnifyingGlass,
+      'problems.panel' => PhosphorIcons.warningCircle,
+      'decisions.panel' => PhosphorIcons.lightbulb,
+      'tickets.panel' => PhosphorIcons.ticket,
+      _ => PhosphorIcons.circlesFour,
     };
   }
 }
@@ -445,9 +447,10 @@ class _ContextSlot extends StatelessWidget {
   static ClideIconPainter _iconFor(TabContribution t) {
     if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
     return switch (t.id) {
-      'markdown.viewer' => const DotIcon(),
-      'graph.view' => const SearchIcon(),
-      _ => const DotIcon(),
+      'markdown.viewer' => PhosphorIcons.eye,
+      'graph.view' => PhosphorIcons.graph,
+      'pql.backlinks' => PhosphorIcons.link,
+      _ => PhosphorIcons.circlesFour,
     };
   }
 }
