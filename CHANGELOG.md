@@ -18,6 +18,18 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Editor subsystem in the daemon (`lib/src/editor/`). `EditorBuffer`
+  holds path + content + cursor/selection + dirty flag;
+  `EditorRegistry` owns the open-buffer set, active-buffer tracking,
+  and file I/O. IPC verbs land alongside (`editor.open | active |
+  activate | list | read | insert | replace-selection | set-selection
+  | set-content | save | close`) with matching events (`editor.opened
+  | active-changed | selection-changed | edited | saved | closed`).
+  Omitting `id` on mutating verbs targets the active buffer so the
+  tier-2 CLI shortcuts (`clide insert "…"`, `clide replace-selection
+  "…"`) read naturally. 16 new core tests cover the lifecycle +
+  dispatcher round-trips.
+
 - `builtin.claude` — Tier-1 stub upgraded to the real Claude pane per
   D-041. Contributes a primary `Claude` tab in the workspace slot that
   spawns `tmux new-session -A -s clide-claude-<hash> -- claude` via

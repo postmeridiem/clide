@@ -16,8 +16,10 @@ import 'package:clide/clide.dart';
 // Daemon-only deep imports — these pull in dart:ffi (PTY) and
 // daemon-subsystem wiring that the Flutter app doesn't need and
 // can't compile for web. See lib/clide.dart for the barrel split.
+import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/panes/registry.dart';
 
 Future<void> main(List<String> argv) async {
@@ -85,6 +87,9 @@ Future<void> _runDaemon(List<String> args) async {
   final files = FilesService.atCwd(events: events);
   registerFilesCommands(dispatcher, files);
 
+  final editor = EditorRegistry(events: events, workspaceRoot: files.root);
+  registerEditorCommands(dispatcher, editor);
+
   final stopping = Completer<void>();
   void shutdown(ProcessSignal sig) {
     if (!stopping.isCompleted) {
@@ -99,6 +104,7 @@ Future<void> _runDaemon(List<String> args) async {
   await server.start();
   await stopping.future;
   await registry.shutdown();
+  await editor.shutdown();
   await files.shutdown();
   await server.stop();
   exit(0);

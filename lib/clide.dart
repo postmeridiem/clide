@@ -17,6 +17,7 @@ library;
 // they're pure data types that both the app and the daemon reference.
 
 export 'src/daemon/dispatcher.dart';
+export 'src/editor/buffer.dart';
 export 'src/files/ignore.dart';
 export 'src/files/listing.dart' show FileEntry, listDir;
 export 'src/ipc/envelope.dart';
