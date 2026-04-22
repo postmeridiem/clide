@@ -42,7 +42,7 @@ class IpcStatusItem extends StatelessWidget {
               children: [
                 ClideIcon(const PlugIcon(), size: 12, color: color),
                 const SizedBox(width: 6),
-                ClideText(label, fontSize: 12, color: color),
+                ClideText(label, fontSize: clideFontCaption, color: color),
               ],
             ),
           ),

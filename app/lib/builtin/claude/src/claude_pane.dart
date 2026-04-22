@@ -217,7 +217,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       child: _error != null
           ? Padding(
               padding: const EdgeInsets.all(16),
-              child: ClideText(_error!, muted: true, fontSize: 12),
+              child: ClideText(_error!, muted: true),
             )
           : ClidePtyView(
               terminal: _terminal,

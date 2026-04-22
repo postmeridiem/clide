@@ -161,7 +161,7 @@ class _ThemeRow extends StatelessWidget {
                 Expanded(
                   child: ClideText(displayName, color: fg),
                 ),
-                ClideText(name, color: tokens.globalTextMuted, fontSize: 11),
+                ClideText(name, color: tokens.globalTextMuted, fontSize: clideFontCaption),
               ],
             ),
           ),

@@ -57,13 +57,12 @@ class _DiffViewState extends State<DiffView> {
                   child: ClideText(
                     c.error!,
                     color: tokens.statusError,
-                    fontSize: 12,
                   ),
                 ),
               if (c.loading && c.diffs.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(12),
-                  child: ClideText('Loading…', muted: true, fontSize: 12),
+                  child: ClideText('Loading…', muted: true),
                 ),
               if (!c.loading && c.diffs.isEmpty && c.error == null)
                 Padding(
@@ -73,7 +72,6 @@ class _DiffViewState extends State<DiffView> {
                         ? 'No staged changes.'
                         : 'No unstaged changes.',
                     muted: true,
-                    fontSize: 12,
                   ),
                 ),
               Expanded(
@@ -119,7 +117,7 @@ class _DiffToolbar extends StatelessWidget {
               onTap: controller.showStaged ? controller.toggleStaged : null,
               child: ClideText(
                 'Unstaged',
-                fontSize: 12,
+                fontSize: clideFontCaption,
                 color: controller.showStaged
                     ? tokens.globalTextMuted
                     : tokens.globalForeground,
@@ -135,7 +133,7 @@ class _DiffToolbar extends StatelessWidget {
               onTap: controller.showStaged ? null : controller.toggleStaged,
               child: ClideText(
                 'Staged',
-                fontSize: 12,
+                fontSize: clideFontCaption,
                 color: controller.showStaged
                     ? tokens.globalForeground
                     : tokens.globalTextMuted,
@@ -186,15 +184,15 @@ class _FileDiff extends StatelessWidget {
               Expanded(
                 child: ClideText(
                   path,
-                  fontSize: 12,
+                  fontSize: clideFontCaption,
                   color: tokens.panelHeaderForeground,
                 ),
               ),
               if (additions > 0)
-                ClideText('+$additions ', fontSize: 11,
+                ClideText('+$additions ', fontSize: clideFontCaption,
                     color: tokens.statusSuccess),
               if (removals > 0)
-                ClideText('-$removals', fontSize: 11,
+                ClideText('-$removals', fontSize: clideFontCaption,
                     color: tokens.statusError),
             ],
           ),
@@ -202,7 +200,7 @@ class _FileDiff extends StatelessWidget {
         if (meta.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-            child: ClideText(meta.join(' · '), fontSize: 11, muted: true),
+            child: ClideText(meta.join(' · '), fontSize: clideFontCaption, muted: true),
           ),
         if (!isBinary)
           for (final hunk in hunks)
@@ -241,7 +239,7 @@ class _HunkView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           child: ClideText(
             header,
-            fontSize: 11,
+            fontSize: clideFontMono,
             muted: true,
             fontFamily: clideMonoFamily,
           ),
@@ -298,7 +296,7 @@ class _DiffLineRow extends StatelessWidget {
             width: 36,
             child: ClideText(
               oldLineNo != null ? '${oldLineNo.toInt()}' : '',
-              fontSize: 11,
+              fontSize: clideFontMono,
               muted: true,
               fontFamily: clideMonoFamily,
               textAlign: TextAlign.right,
@@ -309,7 +307,7 @@ class _DiffLineRow extends StatelessWidget {
             width: 36,
             child: ClideText(
               newLineNo != null ? '${newLineNo.toInt()}' : '',
-              fontSize: 11,
+              fontSize: clideFontMono,
               muted: true,
               fontFamily: clideMonoFamily,
               textAlign: TextAlign.right,
@@ -318,7 +316,7 @@ class _DiffLineRow extends StatelessWidget {
           const SizedBox(width: 4),
           ClideText(
             prefix,
-            fontSize: 11,
+            fontSize: clideFontMono,
             color: fg,
             fontFamily: clideMonoFamily,
           ),
@@ -326,7 +324,7 @@ class _DiffLineRow extends StatelessWidget {
           Expanded(
             child: ClideText(
               text,
-              fontSize: 11,
+              fontSize: clideFontMono,
               color: fg,
               fontFamily: clideMonoFamily,
               maxLines: 1,

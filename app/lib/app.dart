@@ -69,7 +69,7 @@ class _RootShellState extends State<_RootShell> {
     return DefaultTextStyle(
       style: TextStyle(
         color: tokens.globalForeground,
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: clideUiDefaultWeight,
         fontFamily: clideUiFamily,
         fontFamilyFallback: clideUiFamilyFallback,

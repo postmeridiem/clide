@@ -129,7 +129,6 @@ class _EditorViewState extends State<EditorView> {
                   child: ClideText(
                     'Open a file to begin editing.',
                     muted: true,
-                    fontSize: 13,
                   ),
                 )
               : Focus(
@@ -178,7 +177,7 @@ class _TextBody extends StatelessWidget {
             focusNode: focus,
             style: TextStyle(
               color: foreground,
-              fontSize: 13,
+              fontSize: clideFontMono,
               fontFamily: clideMonoFamily,
               fontFamilyFallback: clideMonoFamilyFallback,
             ),

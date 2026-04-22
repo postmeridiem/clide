@@ -5,6 +5,7 @@ import 'clide_divider.dart';
 import 'clide_icon.dart';
 import 'clide_text.dart';
 import 'icons/x.dart';
+import 'typography.dart';
 
 /// Shared chrome for any pane that sits in a tab or split: a title
 /// strip at the top, an optional close button, and the pane body
@@ -146,7 +147,7 @@ class _Header extends StatelessWidget {
                   children: [
                     ClideText(
                       title,
-                      fontSize: 12,
+                      fontSize: clideFontCaption,
                       color: tokens.panelHeaderForeground,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -154,7 +155,7 @@ class _Header extends StatelessWidget {
                     if (subtitle != null)
                       ClideText(
                         subtitle!,
-                        fontSize: 11,
+                        fontSize: clideFontCaption,
                         muted: true,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

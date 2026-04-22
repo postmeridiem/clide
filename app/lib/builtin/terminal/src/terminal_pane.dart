@@ -168,9 +168,9 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const ClideText('Terminal unavailable', fontSize: 14),
+            const ClideText('Terminal unavailable'),
             const SizedBox(height: 4),
-            ClideText(message, fontSize: 12, muted: true),
+            ClideText(message, muted: true),
           ],
         ),
       ),

@@ -20,7 +20,7 @@ class ClidePtyView extends StatelessWidget {
     this.label,
     this.focusNode,
     this.autofocus = false,
-    this.fontSize = 13,
+    this.fontSize = clideFontMono,
   });
 
   final Terminal terminal;

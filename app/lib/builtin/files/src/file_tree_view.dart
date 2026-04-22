@@ -50,14 +50,14 @@ class _FileTreeViewState extends State<FileTreeView> {
         if (c.error != null && c.rootPath == null) {
           return Padding(
             padding: const EdgeInsets.all(12),
-            child: ClideText(c.error!, muted: true, fontSize: 12),
+            child: ClideText(c.error!, muted: true),
           );
         }
         final root = c.rootPath;
         if (root == null) {
           return const Padding(
             padding: EdgeInsets.all(12),
-            child: ClideText('Loading…', muted: true, fontSize: 12),
+            child: ClideText('Loading…', muted: true),
           );
         }
         final rootName = root.split(Platform.pathSeparator).last;
@@ -256,7 +256,6 @@ class _RowState extends State<_Row> {
               Expanded(
                 child: ClideText(
                   widget.label,
-                  fontSize: 12,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   color: tokens.sidebarForeground,

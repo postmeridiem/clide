@@ -66,20 +66,20 @@ class _GitPanelViewState extends State<GitPanelView> {
                     child: ClideText(
                       c.error!,
                       color: tokens.statusError,
-                      fontSize: 11,
+                      fontSize: clideFontCaption,
                       maxLines: 3,
                     ),
                   ),
                 if (c.loading && c.isClean)
                   const Padding(
                     padding: EdgeInsets.all(12),
-                    child: ClideText('Loading…', muted: true, fontSize: 12),
+                    child: ClideText('Loading…', muted: true),
                   ),
                 if (!c.loading && c.isClean && c.error == null)
                   const Padding(
                     padding: EdgeInsets.all(12),
                     child: ClideText('Nothing to commit, working tree clean.',
-                        muted: true, fontSize: 12),
+                        muted: true),
                   ),
                 if (c.conflicted.isNotEmpty)
                   _FileGroup(
@@ -162,7 +162,7 @@ class _BranchHeader extends StatelessWidget {
           Expanded(
             child: ClideText(
               parts.join(' '),
-              fontSize: 12,
+              fontSize: clideFontCaption,
               color: tokens.sidebarForeground,
             ),
           ),
@@ -217,7 +217,7 @@ class _CommitInput extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: clideUiFamily,
                   fontWeight: clideUiDefaultWeight,
-                  fontSize: 12,
+                  fontSize: clideFontCaption,
                   color: tokens.globalForeground,
                 ),
                 cursorColor: tokens.globalFocus,
@@ -286,7 +286,7 @@ class _FileGroup extends StatelessWidget {
               Expanded(
                 child: ClideText(
                   '$label (${entries.length})',
-                  fontSize: 11,
+                  fontSize: clideFontCaption,
                   muted: true,
                   color: tokens.sidebarForeground,
                 ),
@@ -361,14 +361,13 @@ class _GitFileRowState extends State<_GitFileRow> {
               children: [
                 ClideText(
                   _stateIndicator(state),
-                  fontSize: 11,
+                  fontSize: clideFontCaption,
                   color: _stateColor(state, tokens),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: ClideText(
                     name,
-                    fontSize: 12,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     color: tokens.sidebarForeground,
@@ -459,7 +458,7 @@ class _SmallAction extends StatelessWidget {
           cursor: SystemMouseCursors.click,
           child: ClideText(
             label,
-            fontSize: 10,
+            fontSize: clideFontCaption,
             color: tokens.sidebarForeground,
           ),
         ),

@@ -15,7 +15,7 @@ class ClideText extends StatelessWidget {
     this.data, {
     super.key,
     this.color,
-    this.fontSize = 13,
+    this.fontSize = 14,
     this.fontFamily,
     this.fontWeight,
     this.muted = false,

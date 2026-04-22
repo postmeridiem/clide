@@ -46,6 +46,17 @@ const List<String> clideUiFamilyFallback = [
 /// The bundled monospace family. Always resolved first.
 const String clideMonoFamily = 'JetBrainsMono';
 
+// ---------------------------------------------------------------------------
+// Type scale — semantic sizes. Widgets inherit from the ambient
+// DefaultTextStyle (set at the app root). Only override when the
+// semantic role genuinely differs from body text. Prefer these
+// constants over bare numbers so the scale stays coherent.
+// ---------------------------------------------------------------------------
+
+const double clideFontBody = 14;
+const double clideFontCaption = 12;
+const double clideFontMono = 13;
+
 /// System fallback chain. Ordered by platform prevalence + quality of
 /// programming-ligature / box-drawing coverage.
 const List<String> clideMonoFamilyFallback = [

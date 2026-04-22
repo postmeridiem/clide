@@ -47,7 +47,6 @@ class _BacklinksViewState extends State<BacklinksView> {
             child: ClideText(
               'Open a file to see its links.',
               muted: true,
-              fontSize: 12,
             ),
           );
         }
@@ -66,7 +65,6 @@ class _BacklinksViewState extends State<BacklinksView> {
                       horizontal: 12, vertical: 4),
                   child: ClideText(
                     c.activePath!.split('/').last,
-                    fontSize: 12,
                     color: tokens.globalForeground,
                   ),
                 ),
@@ -77,13 +75,13 @@ class _BacklinksViewState extends State<BacklinksView> {
                     child: ClideText(
                       c.error!,
                       color: tokens.statusError,
-                      fontSize: 11,
+                      fontSize: clideFontCaption,
                     ),
                   ),
                 if (c.loading)
                   const Padding(
                     padding: EdgeInsets.all(12),
-                    child: ClideText('Loading…', muted: true, fontSize: 12),
+                    child: ClideText('Loading…', muted: true),
                   ),
                 _LinkGroup(
                   label: 'Backlinks',
@@ -126,14 +124,14 @@ class _LinkGroup extends StatelessWidget {
               const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
           child: ClideText(
             '$label (${links.length})',
-            fontSize: 11,
+            fontSize: clideFontCaption,
             muted: true,
           ),
         ),
         if (links.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-            child: ClideText('None', fontSize: 11, muted: true),
+            child: ClideText('None', fontSize: clideFontCaption, muted: true),
           ),
         for (final link in links)
           _LinkRow(link: link, pathKey: pathKey),
@@ -183,7 +181,6 @@ class _LinkRowState extends State<_LinkRow> {
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
             child: ClideText(
               display,
-              fontSize: 12,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               color: target.startsWith('http')

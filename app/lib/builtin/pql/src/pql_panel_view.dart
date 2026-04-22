@@ -68,19 +68,19 @@ class _PqlPanelViewState extends State<PqlPanelView> {
                   child: ClideText(
                     c.error!,
                     color: tokens.statusError,
-                    fontSize: 11,
+                    fontSize: clideFontCaption,
                     maxLines: 3,
                   ),
                 ),
               if (c.loading && c.results.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(12),
-                  child: ClideText('Loading…', muted: true, fontSize: 12),
+                  child: ClideText('Loading…', muted: true),
                 ),
               if (!c.loading && c.results.isEmpty && c.error == null)
                 const Padding(
                   padding: EdgeInsets.all(12),
-                  child: ClideText('No results.', muted: true, fontSize: 12),
+                  child: ClideText('No results.', muted: true),
                 ),
               Expanded(
                 child: SingleChildScrollView(
@@ -136,7 +136,7 @@ class _ViewTabs extends StatelessWidget {
                     cursor: SystemMouseCursors.click,
                     child: ClideText(
                       _tabLabel(v),
-                      fontSize: 11,
+                      fontSize: clideFontCaption,
                       color: controller.view == v
                           ? tokens.globalForeground
                           : tokens.globalTextMuted,
@@ -187,7 +187,7 @@ class _QueryInput extends StatelessWidget {
             focusNode: focus,
             style: TextStyle(
               fontFamily: clideMonoFamily,
-              fontSize: 12,
+              fontSize: clideFontMono,
               color: tokens.globalForeground,
             ),
             cursorColor: tokens.globalFocus,
@@ -237,7 +237,6 @@ class _FileRowState extends State<_FileRow> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
             child: ClideText(
               path,
-              fontSize: 12,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               color: tokens.sidebarForeground,
@@ -267,9 +266,9 @@ class _QueryResultRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClideText(name, fontSize: 12, color: tokens.sidebarForeground),
+          ClideText(name, color: tokens.sidebarForeground),
           if (values.isNotEmpty)
-            ClideText(values, fontSize: 10, muted: true, maxLines: 2),
+            ClideText(values, fontSize: clideFontCaption, muted: true, maxLines: 2),
         ],
       ),
     );
@@ -301,20 +300,19 @@ class _DecisionRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 44,
-            child: ClideText(id, fontSize: 11, color: idColor,
+            child: ClideText(id, fontSize: clideFontMono, color: idColor,
                 fontFamily: clideMonoFamily),
           ),
           const SizedBox(width: 4),
           Expanded(
             child: ClideText(
               title,
-              fontSize: 12,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               color: tokens.sidebarForeground,
             ),
           ),
-          ClideText(domain, fontSize: 10, muted: true),
+          ClideText(domain, fontSize: clideFontCaption, muted: true),
         ],
       ),
     );
@@ -341,7 +339,7 @@ class _TicketColumn extends StatelessWidget {
               const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
           child: ClideText(
             '$status (${tickets.length})',
-            fontSize: 11,
+            fontSize: clideFontCaption,
             muted: true,
           ),
         ),
@@ -355,7 +353,7 @@ class _TicketColumn extends StatelessWidget {
                   width: 44,
                   child: ClideText(
                     (t as Map)['id'] as String? ?? '',
-                    fontSize: 11,
+                    fontSize: clideFontMono,
                     fontFamily: clideMonoFamily,
                     color: tokens.statusInfo,
                   ),
@@ -364,7 +362,6 @@ class _TicketColumn extends StatelessWidget {
                 Expanded(
                   child: ClideText(
                     t['title'] as String? ?? '',
-                    fontSize: 12,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     color: tokens.sidebarForeground,

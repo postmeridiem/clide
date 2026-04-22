@@ -57,7 +57,7 @@ class _ProblemsViewState extends State<ProblemsView> {
                     Expanded(
                       child: ClideText(
                         'Problems (${c.problems.length})',
-                        fontSize: 12,
+                        fontSize: clideFontCaption,
                         color: tokens.sidebarForeground,
                       ),
                     ),
@@ -70,7 +70,7 @@ class _ProblemsViewState extends State<ProblemsView> {
                           cursor: SystemMouseCursors.click,
                           child: ClideText(
                             'Refresh',
-                            fontSize: 10,
+                            fontSize: clideFontCaption,
                             color: tokens.sidebarForeground,
                           ),
                         ),
@@ -82,7 +82,7 @@ class _ProblemsViewState extends State<ProblemsView> {
               if (c.loading && c.problems.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(12),
-                  child: ClideText('Scanning…', muted: true, fontSize: 12),
+                  child: ClideText('Scanning…', muted: true),
                 ),
               if (!c.loading && c.problems.isEmpty)
                 const Padding(
@@ -90,7 +90,6 @@ class _ProblemsViewState extends State<ProblemsView> {
                   child: ClideText(
                     'No problems found.',
                     muted: true,
-                    fontSize: 12,
                   ),
                 ),
               Expanded(
@@ -130,7 +129,7 @@ class _ProblemRow extends StatelessWidget {
             children: [
               ClideText(
                 problem.source,
-                fontSize: 10,
+                fontSize: clideFontMono,
                 color: tokens.statusWarning,
                 fontFamily: clideMonoFamily,
               ),
@@ -138,7 +137,6 @@ class _ProblemRow extends StatelessWidget {
               Expanded(
                 child: ClideText(
                   problem.message,
-                  fontSize: 12,
                   color: tokens.sidebarForeground,
                   maxLines: 2,
                 ),
@@ -150,7 +148,7 @@ class _ProblemRow extends StatelessWidget {
               padding: const EdgeInsets.only(left: 44, top: 2),
               child: ClideText(
                 problem.hint!,
-                fontSize: 10,
+                fontSize: clideFontMono,
                 muted: true,
                 fontFamily: clideMonoFamily,
               ),
