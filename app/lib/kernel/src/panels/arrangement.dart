@@ -11,6 +11,9 @@ class LayoutArrangement extends ChangeNotifier {
   Map<SlotId, _SlotState>? _focusModeSnapshot;
   SlotId? _focusModeSlot;
 
+  bool _editorOpen = false;
+  double _editorRatio = 0.35;
+
   void applyPreset(LayoutPresetContribution preset) {
     _state.clear();
     _focusModeSnapshot = null;
@@ -37,6 +40,8 @@ class LayoutArrangement extends ChangeNotifier {
   bool isCollapsed(SlotId id) => _state[id]?.collapsed ?? false;
   bool get isInFocusMode => _focusModeSlot != null;
   SlotId? get focusModeSlot => _focusModeSlot;
+  bool get editorOpen => _editorOpen;
+  double get editorRatio => _editorRatio;
 
   void setSize(SlotId id, double size) {
     final s = _state[id];
@@ -98,6 +103,30 @@ class LayoutArrangement extends ChangeNotifier {
     } else {
       enterFocusMode(slot);
     }
+  }
+
+  void openEditor() {
+    if (_editorOpen) return;
+    _editorOpen = true;
+    notifyListeners();
+  }
+
+  void closeEditor() {
+    if (!_editorOpen) return;
+    _editorOpen = false;
+    notifyListeners();
+  }
+
+  void toggleEditor() {
+    _editorOpen = !_editorOpen;
+    notifyListeners();
+  }
+
+  void setEditorRatio(double ratio) {
+    final clamped = ratio.clamp(0.15, 0.70);
+    if (_editorRatio == clamped) return;
+    _editorRatio = clamped;
+    notifyListeners();
   }
 
   void registerSlotsInto(PanelRegistry registry, LayoutPresetContribution preset) {

@@ -81,6 +81,21 @@ class DefaultLayoutExtension extends ClideExtension {
           defaultBinding: 'escape',
           run: _exitFocusMode,
         ),
+        // Editor split (D-049, D-054)
+        CommandContribution(
+          id: 'editor.open',
+          command: 'editor.open',
+          title: 'Open Editor',
+          defaultBinding: 'ctrl+e',
+          run: _openEditor,
+        ),
+        CommandContribution(
+          id: 'editor.close',
+          command: 'editor.close',
+          title: 'Close Editor',
+          defaultBinding: 'ctrl+w',
+          run: _closeEditor,
+        ),
         // Sidebar section switching (D-054): alt+1 through alt+5
         for (var i = 0; i < 5; i++)
           CommandContribution(
@@ -182,9 +197,30 @@ class DefaultLayoutExtension extends ClideExtension {
       ctx.arrangement.exitFocusMode();
       return IpcResponse.ok(id: '', data: {'focusMode': false});
     }
+    if (ctx.arrangement.editorOpen) {
+      ctx.arrangement.closeEditor();
+      return IpcResponse.ok(id: '', data: {'editorOpen': false});
+    }
     if (ctx.palette.isOpen) {
       ctx.palette.toggle();
       return IpcResponse.ok(id: '', data: {'palette': false});
+    }
+    return IpcResponse.ok(id: '', data: {});
+  }
+
+  Future<IpcResponse> _openEditor(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    ctx.arrangement.openEditor();
+    return IpcResponse.ok(id: '', data: {'editorOpen': true});
+  }
+
+  Future<IpcResponse> _closeEditor(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    if (ctx.arrangement.editorOpen) {
+      ctx.arrangement.closeEditor();
+      return IpcResponse.ok(id: '', data: {'editorOpen': false});
     }
     return IpcResponse.ok(id: '', data: {});
   }

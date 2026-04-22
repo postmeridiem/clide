@@ -100,5 +100,42 @@ void main() {
       a.applyPreset(classicPreset());
       expect(a.isInFocusMode, false);
     });
+
+    test('openEditor sets editorOpen', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      expect(a.editorOpen, false);
+      a.openEditor();
+      expect(a.editorOpen, true);
+    });
+
+    test('closeEditor clears editorOpen', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.openEditor();
+      a.closeEditor();
+      expect(a.editorOpen, false);
+    });
+
+    test('toggleEditor flips editorOpen', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.toggleEditor();
+      expect(a.editorOpen, true);
+      a.toggleEditor();
+      expect(a.editorOpen, false);
+    });
+
+    test('setEditorRatio clamps to 0.15–0.70', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.setEditorRatio(0.05);
+      expect(a.editorRatio, 0.15);
+      a.setEditorRatio(0.90);
+      expect(a.editorRatio, 0.70);
+      a.setEditorRatio(0.40);
+      expect(a.editorRatio, 0.40);
+    });
+
+    test('editorRatio defaults to 0.35', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      expect(a.editorRatio, 0.35);
+    });
   });
 }

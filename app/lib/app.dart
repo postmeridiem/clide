@@ -228,6 +228,10 @@ class SlotHost extends StatelessWidget {
           );
         }
 
+        if (slot == Slots.workspace) {
+          return _WorkspaceSlot(tabs: tabs, active: active);
+        }
+
         return Container(
           color: tokens.panelBackground,
           child: Column(
@@ -307,6 +311,96 @@ class _SidebarSlot extends StatelessWidget {
       'problems.panel' => const WarningIcon(),
       _ => const DotIcon(),
     };
+  }
+}
+
+class _WorkspaceSlot extends StatelessWidget {
+  const _WorkspaceSlot({required this.tabs, required this.active});
+
+  final List<TabContribution> tabs;
+  final TabContribution active;
+
+  static const _editorTabId = 'editor.active';
+
+  @override
+  Widget build(BuildContext context) {
+    final kernel = ClideKernel.of(context);
+    final tokens = ClideTheme.of(context).surface;
+    return ListenableBuilder(
+      listenable: kernel.arrangement,
+      builder: (ctx, _) {
+        final editorOpen = kernel.arrangement.editorOpen;
+        final editorTab = tabs.where((t) => t.id == _editorTabId).firstOrNull;
+        final primaryTabs = tabs.where((t) => t.id != _editorTabId).toList();
+        final primary = primaryTabs.contains(active) ? active : (primaryTabs.isNotEmpty ? primaryTabs.first : active);
+
+        if (!editorOpen || editorTab == null) {
+          return Container(color: tokens.panelBackground, child: primary.build(ctx));
+        }
+
+        final ratio = kernel.arrangement.editorRatio;
+        return Container(
+          color: tokens.panelBackground,
+          child: LayoutBuilder(
+            builder: (ctx, constraints) {
+              final totalHeight = constraints.maxHeight;
+              final editorHeight = (totalHeight * ratio).clamp(60.0, totalHeight - 60.0);
+              return Column(
+                children: [
+                  SizedBox(height: editorHeight, child: editorTab.build(ctx)),
+                  _EditorDragHandle(arrangement: kernel.arrangement, totalHeight: totalHeight),
+                  Expanded(child: primary.build(ctx)),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EditorDragHandle extends StatefulWidget {
+  const _EditorDragHandle({required this.arrangement, required this.totalHeight});
+
+  final LayoutArrangement arrangement;
+  final double totalHeight;
+
+  @override
+  State<_EditorDragHandle> createState() => _EditorDragHandleState();
+}
+
+class _EditorDragHandleState extends State<_EditorDragHandle> {
+  bool _hovered = false;
+  double? _dragStartRatio;
+  double? _dragStartY;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeRow,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Listener(
+        onPointerDown: (e) {
+          _dragStartRatio = widget.arrangement.editorRatio;
+          _dragStartY = e.position.dy;
+        },
+        onPointerMove: (e) {
+          final startR = _dragStartRatio;
+          final startY = _dragStartY;
+          if (startR == null || startY == null || widget.totalHeight <= 0) return;
+          final deltaRatio = (e.position.dy - startY) / widget.totalHeight;
+          widget.arrangement.setEditorRatio(startR + deltaRatio);
+        },
+        onPointerUp: (_) {
+          _dragStartRatio = null;
+          _dragStartY = null;
+        },
+        child: Container(height: 4, color: _hovered ? tokens.panelActiveBorder : tokens.panelBorder),
+      ),
+    );
   }
 }
 

@@ -40,6 +40,17 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 - Right panel (context) icon rail — bottom section switcher matching
   the left sidebar rail pattern (D-047, T-034).
 
+- Editor-above-Claude mode — `Ctrl+E` opens the editor as a split
+  above Claude in the middle column with a draggable divider;
+  `Ctrl+W` or `Escape` closes it. Prompt bar Y stays fixed
+  (D-049, T-035).
+
+### Changed
+
+- Workspace renders Claude as the always-visible primary surface
+  instead of showing a tab bar (D-047, D-048). The editor is a
+  split overlay, not a tab.
+
 - Syntax highlighting via tree-sitter (dart:ffi to vendored
   libtree-sitter.so with embedded wasmtime). 48 grammar WASM files,
   48 highlight queries. Colors map to theme syntax tokens.
