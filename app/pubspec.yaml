@@ -53,3 +53,19 @@ flutter:
   assets:
     - lib/kernel/src/theme/themes/
     - lib/kernel/src/i18n/catalog/
+
+  # JetBrains Mono — bundled so terminal panes render consistently
+  # regardless of what the user has system-installed. OFL-licensed;
+  # see assets/fonts/jetbrains_mono/OFL.txt. Thin/Light/Medium/
+  # ExtraBold weights can be added later if a theme needs them.
+  fonts:
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Italic.ttf
+          style: italic
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-BoldItalic.ttf
+          weight: 700
+          style: italic

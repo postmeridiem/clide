@@ -18,6 +18,16 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- JetBrains Mono bundled as `app/assets/fonts/jetbrains_mono/` —
+  Regular / Italic / Bold / BoldItalic weights (OFL-licensed,
+  license file checked in alongside). Declared as the `JetBrainsMono`
+  family in `app/pubspec.yaml`. `app/lib/widgets/src/typography.dart`
+  exposes `clideMonoFamily` + `clideMonoFamilyFallback` for terminal
+  panes and any other monospace surface; fallback chain covers
+  macOS / Linux / Windows for the web build path and for harnesses
+  that don't load asset fonts. Additional weights
+  (Thin/Light/Medium/ExtraBold) can be added on demand.
+
 - `ptyc/` — the C PTY-spawn helper, peer of `pql` per
   [`D-005`](decisions/architecture.md#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer).
   One-shot, libc-only, ~400 LOC. Reads a JSON request on stdin

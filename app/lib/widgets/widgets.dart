@@ -13,6 +13,7 @@ export 'src/clide_surface.dart';
 export 'src/clide_tab_bar.dart';
 export 'src/clide_text.dart';
 export 'src/clide_tooltip.dart';
+export 'src/typography.dart';
 export 'src/icons/check.dart';
 export 'src/icons/chevron.dart';
 export 'src/icons/dot.dart';
