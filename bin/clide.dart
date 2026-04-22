@@ -142,9 +142,10 @@ Future<void> _runDaemon(List<String> args) async {
     socketPath: socketPath,
     dispatch: dispatcher.dispatch,
   );
+  final ptycPath = _resolvePtycPath();
   final events = _ServerEventSink(server);
   final registry = PaneRegistry(events: events);
-  registerPaneCommands(dispatcher, registry);
+  registerPaneCommands(dispatcher, registry, defaultPtycPath: ptycPath);
 
   final files = FilesService.atCwd(events: events);
   registerFilesCommands(dispatcher, files);
@@ -421,6 +422,20 @@ void _emitError({
 }) {
   final err = IpcError(code: code, kind: kind, message: message, hint: hint);
   stderr.writeln(jsonEncode(err.toJson()));
+}
+
+String _resolvePtycPath() {
+  final self = Platform.resolvedExecutable;
+  final binDir = File(self).parent.path;
+  final candidates = [
+    '$binDir/../ptyc/bin/ptyc',
+    '$binDir/ptyc',
+    'ptyc',
+  ];
+  for (final c in candidates) {
+    if (File(c).existsSync()) return c;
+  }
+  return 'ptyc';
 }
 
 Never _die(String msg) {

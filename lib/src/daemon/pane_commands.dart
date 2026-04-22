@@ -17,8 +17,8 @@ import '../panes/pane.dart';
 import '../panes/registry.dart';
 import 'dispatcher.dart';
 
-void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry) {
-  d.register('pane.spawn', (req) => _spawn(req, registry));
+void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {String defaultPtycPath = 'ptyc'}) {
+  d.register('pane.spawn', (req) => _spawn(req, registry, defaultPtycPath));
   d.register('pane.list', (req) => _list(req, registry));
   d.register('pane.close', (req) => _close(req, registry));
   d.register('pane.write', (req) => _write(req, registry));
@@ -47,7 +47,7 @@ IpcResponse _notFound(String id, String message) => IpcResponse.err(
       ),
     );
 
-Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
+Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry, String defaultPtycPath) async {
   final args = req.args;
   final rawArgv = args['argv'];
   if (rawArgv is! List || rawArgv.isEmpty) {
@@ -84,7 +84,7 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
       cols: (args['cols'] as num?)?.toInt() ?? 80,
       rows: (args['rows'] as num?)?.toInt() ?? 24,
       title: args['title'] as String?,
-      ptycPath: (args['ptyc_path'] as String?) ?? 'ptyc',
+      ptycPath: (args['ptyc_path'] as String?) ?? defaultPtycPath,
     );
     return IpcResponse.ok(id: req.id, data: pane.toJson());
   } catch (e) {
