@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:clide/clide.dart';
 import 'package:clide_app/kernel/kernel.dart';
+import 'package:clide_app/kernel/src/syntax/tree_sitter_service.dart';
 import 'package:clide_app/widgets/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'editor_controller.dart';
+import 'syntax_text_controller.dart';
 
 /// Tier-2 editor tab. One tab — the content reflects the daemon's
 /// active buffer. Multi-file tabs live in the workspace-slot plan but
@@ -25,14 +27,15 @@ class EditorView extends StatefulWidget {
 
 class _EditorViewState extends State<EditorView> {
   EditorController? _controller;
-  late final TextEditingController _text;
+  final TreeSitterService _syntax = TreeSitterService();
+  late final SyntaxTextController _text;
   late final FocusNode _focus;
   String? _lastRemoteContent;
 
   @override
   void initState() {
     super.initState();
-    _text = TextEditingController();
+    _text = SyntaxTextController(syntax: _syntax);
     _focus = FocusNode();
     _text.addListener(_onTextChanged);
   }
@@ -54,11 +57,13 @@ class _EditorViewState extends State<EditorView> {
     _focus.dispose();
     _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
+    _syntax.dispose();
     super.dispose();
   }
 
   void _onControllerChanged() {
     final c = _controller!;
+    _text.updatePath(c.activePath);
     if (c.content != _lastRemoteContent) {
       _lastRemoteContent = c.content;
       final sel = TextSelection(
@@ -110,6 +115,7 @@ class _EditorViewState extends State<EditorView> {
   Widget build(BuildContext context) {
     final c = _controller;
     final tokens = ClideTheme.of(context).surface;
+    _text.tokens = tokens;
     if (c == null) return const SizedBox.shrink();
 
     return ListenableBuilder(

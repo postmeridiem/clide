@@ -97,6 +97,38 @@ dependencies:
       the core PTY wrapper for libc bindings (socketpair, recvmsg with
       SCM_RIGHTS, ioctl). Dart-team maintained; zero transitive deps.
 
+  - name: tree-sitter
+    kind: native-shared-lib
+    version: "0.26.8"
+    homepage: https://github.com/tree-sitter/tree-sitter
+    license: MIT
+    purpose: >-
+      Incremental parsing library with embedded WASM grammar engine.
+      Vendored as libtree-sitter.so (wasmtime statically linked) in
+      app/native/. Called via dart:ffi. Loads grammar .wasm files
+      through its built-in WASM store API.
+
+  - name: wasmtime
+    kind: native-static-lib
+    version: "44.0.0"
+    homepage: https://github.com/bytecodealliance/wasmtime
+    license: Apache-2.0 with LLVM exception
+    purpose: >-
+      WebAssembly runtime. Statically linked into libtree-sitter.so to
+      provide grammar WASM loading. Not called directly — tree-sitter's
+      C API wraps it.
+
+  - name: tree-sitter grammars
+    kind: wasm-assets
+    version: various
+    homepage: https://github.com/tree-sitter
+    license: MIT (most); Apache-2.0 (elixir, erlang, hcl, just)
+    purpose: >-
+      Language parsers for syntax highlighting. 47 grammars compiled to
+      WASM via wasi-sdk, loaded at runtime by tree-sitter's embedded
+      wasmtime engine. Source repos are tree-sitter/tree-sitter-<lang>
+      on GitHub; sqlite is dhcmrlchtdj/tree-sitter-sqlite (MIT).
+
 # Build-time-only dependencies — test runners, mocks, lints. Tracked
 # here for audit completeness; NOT rendered in the About screen.
 dev_dependencies:

@@ -78,6 +78,9 @@ flutter:
     - assets/logo/clide-logo-256.png
     - assets/logo/clide-logo-512.png
     - assets/logo/clide-logo-1024.png
+    # Tree-sitter WASM grammars and highlight queries.
+    - assets/grammars/
+    - assets/queries/
 
   # Bundled fonts. OFL-licensed; license files live alongside each.
   #

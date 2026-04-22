@@ -12,7 +12,6 @@ import 'package:clide_app/builtin/git/git.dart';
 import 'package:clide_app/builtin/grammars_core/grammars_core.dart';
 import 'package:clide_app/builtin/graph/graph.dart';
 import 'package:clide_app/builtin/ipc_status/ipc_status.dart';
-import 'package:clide_app/builtin/jira/jira.dart';
 import 'package:clide_app/builtin/keybindings_ui/keybindings_ui.dart';
 import 'package:clide_app/builtin/markdown/markdown.dart';
 import 'package:clide_app/builtin/pql/pql.dart';
@@ -26,6 +25,7 @@ import 'package:clide_app/builtin/welcome/welcome.dart';
 import 'dart:io' show Directory, Platform;
 
 import 'package:clide_app/kernel/kernel.dart';
+import 'package:clide_app/kernel/src/syntax/tree_sitter_ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
@@ -33,11 +33,9 @@ import 'package:flutter/widgets.dart';
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
 
-  // Enable the semantics tree at boot so screen readers (Orca, VoiceOver,
-  // NVDA) + the headless-browser automation harness both work out of the
-  // box. Production release builds could gate this on a platform check,
-  // but a11y-first means always-on.
   binding.ensureSemantics();
+
+  TreeSitterLib.init();
 
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
@@ -73,7 +71,6 @@ Future<void> main() async {
     ..register(PqlExtension())
     ..register(TodosExtension())
     ..register(ProblemsExtension())
-    ..register(JiraExtension())
     ..register(CanvasExtension())
     ..register(GraphExtension())
     ..register(SettingsUiExtension())

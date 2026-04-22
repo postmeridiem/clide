@@ -46,7 +46,7 @@ ifeq ($(APP_PRESENT),yes)
 	@bin/clide --daemon & echo $$! > $(DAEMON_PID_FILE)
 	@echo "Daemon PID $$(cat $(DAEMON_PID_FILE))"
 	@echo "Launching Flutter app…"
-	-cd app && flutter run -d linux
+	-cd app && LD_LIBRARY_PATH=$(CURDIR)/app/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux
 	@$(MAKE) --no-print-directory stop
 else
 	@echo "(pubspec.yaml not scaffolded yet; skipping)"

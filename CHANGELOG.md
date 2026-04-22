@@ -18,6 +18,26 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Syntax highlighting via tree-sitter (dart:ffi to vendored
+  libtree-sitter.so with embedded wasmtime). 48 grammar WASM files,
+  48 highlight queries. Colors map to theme syntax tokens.
+
+### Changed
+
+- Core frame vs shipped extension boundary defined (D-046). Builtins
+  are frame infrastructure only; content extensions are bundled but
+  architecturally removable.
+
+### Removed
+
+- `builtin.jira` stub — Jira integration belongs as a third-party
+  extension, not a frame builtin.
+- `wasm_run` and `wasm_run_flutter` dependencies — replaced by
+  vendored libtree-sitter.so via dart:ffi. Eliminates runtime network
+  download that violated POLICY.md.
+
+### Added
+
 - pql skill installed via `pql init --with-skill=yes`
   (`.claude/skills/pql/SKILL.md`). Covers vault queries and the
   planning surface (decisions + tickets).
