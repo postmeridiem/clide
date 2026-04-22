@@ -65,4 +65,10 @@ ticket persistence.
 - **Context:** Kanban's lack of a sync event breaks settled-reach's SQLite-authoritative approach the moment two devs collaborate.
 - **Source:** 2026-04-21 planning.
 
+### Q-025: Body text face — mono everywhere vs Josefin Sans UI + mono code
+- **Status:** Open
+- **Question:** The design handoff uses JetBrains Mono for all UI text (tab labels, file paths, status bar, sidebar labels), reserving Josefin Sans only for display/title text. Our current implementation uses Josefin Sans as the ambient UI face with JetBrains Mono only for code/terminal/diff surfaces. Which direction?
+- **Context:** The design's "mono everywhere" rationale: clide is an IDE for people who like grids. The current Josefin Sans rationale: visual distinction between chrome text and code text, warmer feel. Both are valid — this is a feel decision, not a technical one.
+- **Source:** 2026-04-22 design handoff review.
+
 ---

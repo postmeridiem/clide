@@ -111,4 +111,27 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cost:** Replay-buffer memory per subsystem (cheap — most emit seldom). Back-pressure on firehose streams ([Q-002](questions-architecture.md#q-002-back-pressure-on-event-streams)), authorisation granularity ([Q-001](questions-architecture.md#q-001-authorisation-granularity)), and event persistence ([Q-003](questions-architecture.md#q-003-event-persistence-audit-undo)) are all deferred until Tier 1 is in real use.
 - **Raised by:** 2026-04-20 planning.
 
+### D-043: Design handoff — adopt token palettes, reject Material wrapper
+- **Date:** 2026-04-22
+- **Decision:** The claude.ai/design handoff (`docs/claude-design/`) delivers hi-fi mockups, interaction flows, a design system, and four theme palettes (clide, midnight, paper, terminal) as Dart files using `MaterialApp`/`ThemeData`. We adopt the colour tokens, layout annotations, typography direction, and syntax highlighting palettes. We reject the `MaterialApp` wrapper — tokens are translated into our existing YAML theme pipeline and `SurfaceTokens` (per [D-007](#d-007-app-root-is-bare-widgetsapp)). The design files stay in `docs/claude-design/` as reference; they are not runtime assets.
+- **Rationale:** The design's value is in the palette + layout + component vocabulary, not in the delivery format. Material's `ThemeData` fights our bare-`WidgetsApp` + `CustomPaint` stance. Translating tokens preserves design intent without absorbing Material's widget opinions.
+- **Cost:** Manual translation of four theme files into YAML. Ongoing: any design refresh needs the same translation pass.
+- **Cross-reference:** [D-007](#d-007-app-root-is-bare-widgetsapp), [D-009](#d-009-three-tier-theme-pipeline), [R-012](rejected.md#r-012-materialapp-wrapper-from-design-handoff).
+- **Raised by:** 2026-04-22 design handoff review.
+
+### D-044: Four bundled themes — clide, midnight, paper, terminal
+- **Date:** 2026-04-22
+- **Decision:** Ship four bundled themes replacing the single summer-night preset. `clide` (cool near-black + periwinkle, default), `midnight` (VS Code-adjacent muted dark), `paper` (drafting-sheet light), `terminal` (near-black + amber). All share the same semantic token names. Source palettes in `docs/claude-design/themes/`; runtime YAML under `lib/kernel/src/theme/themes/`.
+- **Rationale:** Summer-night was a placeholder carried from the legacy TUI. The design system delivers a coherent set of four that covers dark, muted-dark, light, and monochrome workflows.
+- **Cost:** Summer-night users lose their theme (acceptable — it was dev-only). Four YAML files to maintain.
+- **Cross-reference:** [D-043](#d-043-design-handoff-adopt-token-palettes-reject-material-wrapper), [D-022](accessibility.md#d-022-wcag-aa-contrast-gate-on-bundled-themes).
+- **Raised by:** 2026-04-22 design handoff review.
+
+### D-045: Syntax highlighting tokens in the theme pipeline
+- **Date:** 2026-04-22
+- **Decision:** Add syntax-role colour tokens to `SurfaceTokens`: keyword, type, string, number, comment, method, punctuation. Each bundled theme defines these. The editor and diff views consume them; tree-sitter (when it lands per [Q-015](questions-architecture.md#q-015-editor-tab-full-lsp-vs-tree-sitter-only)) maps grammar scopes to these tokens.
+- **Rationale:** The design system ships syntax palettes per theme. Adding them now means the token surface is ready when syntax highlighting lands.
+- **Cost:** Seven new fields on `SurfaceTokens`. Default resolution falls back to semantic roles (keyword → accent, comment → textMuted, etc.) so themes that don't declare syntax tokens still compile.
+- **Raised by:** 2026-04-22 design handoff review.
+
 ---

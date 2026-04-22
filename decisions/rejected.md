@@ -55,4 +55,9 @@ future reference.
 - **Reason:** If the Python port under `tools/scripts/plan` outlasts pql's feature parity, delete it. The deletion commit should be one changeset: remove `tools/scripts/plan`, remove its Makefile target (`decisions-validate` rewires to `pql decisions validate`), add a `CHANGELOG.md` entry under Removed, and verify `.pql/pql.db` still opens under the new `pql` binary.
 - **Cross-reference:** [D-040](process.md#d-040-python-stopgap-under-toolsscriptsplan)
 
+### R-012: MaterialApp wrapper from design handoff
+- **Rejected:** 2026-04-22
+- **Reason:** The design handoff delivers theme files as `MaterialApp`/`ThemeData` Dart classes. This is the delivery format of claude.ai/design, not a design intent. Adopting Material's widget system would contradict [D-007](architecture.md#d-007-app-root-is-bare-widgetsapp) (bare WidgetsApp, no Material/Cupertino). We translate the palette tokens and syntax roles into our existing YAML + `SurfaceTokens` pipeline.
+- **Cross-reference:** [D-043](architecture.md#d-043-design-handoff-adopt-token-palettes-reject-material-wrapper)
+
 ---
