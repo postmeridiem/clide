@@ -62,6 +62,15 @@ Core, rendering, IPC, kernel, panel manager.
 
 ---
 
+### D-041: Claude panes — one primary per repo, tmux-backed
+- **Date:** 2026-04-22
+- **Decision:** Every repo (keyed on the git root) hosts **exactly one primary Claude pane** plus zero or more **secondary** Claude panes. The primary persists across clide restarts; secondaries are ephemeral. Persistence layer is **tmux**: the daemon spawns the primary as `tmux new-session -A -s clide-claude-<repohash> -- claude`, which re-attaches to the running session if the app restarts. Secondaries spawn as `tmux new-session -A -s clide-claude-<repohash>-N -- claude` with `N` incrementing. Close semantics: closing a secondary kills that tmux session and focus collapses back to the primary (or to the next-most-recent secondary); the primary has **no close affordance** — close-gestures on it hide it / minimise to a dock, they don't kill the session. Daemon is the owner; the UI doesn't track tmux session state directly, it just asks the pane subsystem to spawn/close and observes events. General-purpose terminal panes (`builtin.terminal`) do **not** get tmux wrapping or persistence — they're per-app-lifetime.
+- **Context:** 2026-04-22 planning. The user workflow is "open repo → Claude is already there, with my last conversation intact." A cold session-restart every time clide re-launches defeats the premise. tmux already solves "reattach to a shell-like session across disconnects"; layering our own persistence protocol on top of ptyc would duplicate it.
+- **Rationale:** (1) tmux is battle-tested — no new persistence code to review. (2) The pane subsystem stays neutral; Claude-specific behaviour lives in `builtin.claude`. (3) Keying by git root means the user doesn't manage session names manually — opening a repo is enough. (4) "Always one primary" removes a failure mode: there's never "no Claude to talk to." (5) Secondaries stay frictionless — the user spawns and closes them at will without breaking the primary.
+- **Cost:** Requires tmux on the PATH of the daemon's runtime environment (reasonable for Linux + macOS; Windows support via WSL or a separate approach). Killing a primary (via the daemon on shutdown) still leaves the detached tmux session around until the next clide start re-attaches; acceptable but worth documenting for support. Secondary numbering (`-1`, `-2`, …) resets between clide runs since ephemeral state is lost — also acceptable.
+- **Raised by:** 2026-04-22 planning, Tier 1 implementation.
+- **Cross-reference:** [`D-005`](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (ptyc as the spawn primitive tmux runs under), [`D-006`](#d-006-cli-and-event-surface-contract) (pane.\* IPC surface), [`R-009`](rejected.md#r-009-port-planning-tooling-into-clide) (why per-repo scoping via git root matches the wrap-don't-duplicate theme).
+
 ### D-001: CLI-first, not MCP
 - **Date:** 2026-04-20 (was ADR 0001; ported from the claudian lineage)
 - **Decision:** Claude talks to clide exclusively via Bash (`clide …`). No MCP server. No protocol layer in Claude's face. The CLI uses the same exit-code + stderr-JSON contract as pql.
