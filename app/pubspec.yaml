@@ -54,11 +54,21 @@ flutter:
     - lib/kernel/src/theme/themes/
     - lib/kernel/src/i18n/catalog/
 
-  # JetBrains Mono — bundled so terminal panes render consistently
-  # regardless of what the user has system-installed. OFL-licensed;
-  # see assets/fonts/jetbrains_mono/OFL.txt. Thin/Light/Medium/
-  # ExtraBold weights can be added later if a theme needs them.
+  # Bundled fonts. OFL-licensed; license files live alongside each.
+  #
+  # JosefinSans — UI default. Variable font covers weights 100-700
+  # plus an italic axis companion; we default to Light (300) per the
+  # project's aesthetic direction.
+  #
+  # JetBrainsMono — terminal / code surfaces. Static weights keep
+  # rendering predictable across xterm.dart, goldens, and CI.
   fonts:
+    - family: JosefinSans
+      fonts:
+        - asset: assets/fonts/josefin_sans/JosefinSans-VariableFont.ttf
+        - asset: assets/fonts/josefin_sans/JosefinSans-Italic-VariableFont.ttf
+          style: italic
+
     - family: JetBrainsMono
       fonts:
         - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf

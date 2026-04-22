@@ -70,12 +70,9 @@ class _RootShellState extends State<_RootShell> {
       style: TextStyle(
         color: tokens.globalForeground,
         fontSize: 13,
-        fontFamilyFallback: const [
-          'Inter',
-          'Helvetica',
-          'Arial',
-          'sans-serif',
-        ],
+        fontWeight: clideUiDefaultWeight,
+        fontFamily: clideUiFamily,
+        fontFamilyFallback: clideUiFamilyFallback,
       ),
       child: KeyboardListener(
         focusNode: _keyFocus,

@@ -47,6 +47,11 @@ tools/ui/.serve.pid
 coverage.*
 /tmp/
 
+# Alchemist golden-test failure artefacts (diff images written when a
+# pixel-compare fails locally; the committed fixtures live under
+# app/test/goldens/goldens/{ci,linux}/).
+app/test/goldens/failures/
+
 # -- pql per-repo state (clide dogfoods against itself; pql's index lands
 #    here when running queries locally). `pql.db` is also where the
 #    `tools/scripts/plan` stopgap writes decisions + tickets (D-040).
