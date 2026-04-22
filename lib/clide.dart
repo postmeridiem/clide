@@ -9,7 +9,11 @@
 library;
 
 export 'src/daemon/dispatcher.dart';
+export 'src/daemon/files_commands.dart';
 export 'src/daemon/pane_commands.dart';
+export 'src/files/ignore.dart';
+export 'src/files/listing.dart' show FileEntry, listDir;
+export 'src/files/watcher.dart';
 export 'src/ipc/envelope.dart';
 export 'src/ipc/paths.dart';
 export 'src/ipc/schema_v1.dart';

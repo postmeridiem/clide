@@ -18,6 +18,19 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- `builtin.files` — workspace filesystem panel in the sidebar. Lazy
+  tree rooted at the git root, expand/collapse, click-to-open plumbed
+  to a future `editor.open` command. Backed by a new daemon-side
+  `files.*` IPC subsystem (`files.root`, `files.ls`, `files.watch`)
+  and a `FileWatcher` that wraps `Directory.watch(recursive: true)`
+  with ignore-file filtering. Ignore set composes clide's built-in
+  hide list (`.git/`, `.pql/`, `.clide/`, `.dart_tool/`, `build/`,
+  `node_modules/`) with `.gitignore` / `.clideignore` at the root per
+  D-004. `IgnoreSet` + `IgnorePattern` support line-per-pattern, `#`
+  comments, anchored / directory-only / negated forms, and `**` across
+  directories. 11 new unit tests on the matcher; 5 new dispatcher
+  tests; 171 app tests still green.
+
 - `builtin.terminal` — general-purpose terminal pane, Tier-1 stub
   upgraded to a working implementation. Contributes a `Terminal` tab
   in the workspace slot that spawns `$SHELL -l` via IPC

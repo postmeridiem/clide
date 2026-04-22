@@ -72,8 +72,12 @@ Future<void> _runDaemon(List<String> args) async {
     socketPath: socketPath,
     dispatch: dispatcher.dispatch,
   );
-  final registry = PaneRegistry(events: _ServerEventSink(server));
+  final events = _ServerEventSink(server);
+  final registry = PaneRegistry(events: events);
   registerPaneCommands(dispatcher, registry);
+
+  final files = FilesService.atCwd(events: events);
+  registerFilesCommands(dispatcher, files);
 
   final stopping = Completer<void>();
   void shutdown(ProcessSignal sig) {
@@ -89,6 +93,7 @@ Future<void> _runDaemon(List<String> args) async {
   await server.start();
   await stopping.future;
   await registry.shutdown();
+  await files.shutdown();
   await server.stop();
   exit(0);
 }

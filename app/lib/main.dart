@@ -123,4 +123,5 @@ const List<String> _tier0Namespaces = [
   'builtin.ipc-status',
   'builtin.theme-picker',
   'builtin.terminal',
+  'builtin.files',
 ];
