@@ -22,6 +22,7 @@ class ClideTooltip extends StatefulWidget {
 
 class _ClideTooltipState extends State<ClideTooltip> {
   OverlayEntry? _entry;
+  bool _hovering = false;
 
   void _show() {
     final overlay = Overlay.maybeOf(context);
@@ -68,10 +69,14 @@ class _ClideTooltipState extends State<ClideTooltip> {
       tooltip: widget.message,
       child: MouseRegion(
         onEnter: (_) async {
+          _hovering = true;
           await Future<void>.delayed(widget.showDelay);
-          if (mounted) _show();
+          if (mounted && _hovering) _show();
         },
-        onExit: (_) => _hide(),
+        onExit: (_) {
+          _hovering = false;
+          _hide();
+        },
         child: widget.child,
       ),
     );
