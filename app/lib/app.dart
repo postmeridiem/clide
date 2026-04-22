@@ -299,6 +299,7 @@ class _SidebarSlot extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     return Container(
       color: tokens.sidebarBackground,
+      alignment: Alignment.topLeft,
       child: active.build(context),
     );
   }
@@ -414,6 +415,7 @@ class _ContextSlot extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     return Container(
       color: tokens.panelBackground,
+      alignment: Alignment.topLeft,
       child: active.build(context),
     );
   }
