@@ -20,8 +20,10 @@ import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/panes/registry.dart';
+import 'package:clide/src/pql/client.dart';
 
 Future<void> main(List<String> argv) async {
   if (argv.isEmpty) {
@@ -151,6 +153,9 @@ Future<void> _runDaemon(List<String> args) async {
   registerEditorCommands(dispatcher, editor);
 
   registerGitCommands(dispatcher, files.root, events);
+
+  final pql = PqlClient(workDir: files.root);
+  registerPqlCommands(dispatcher, pql);
 
   final stopping = Completer<void>();
   void shutdown(ProcessSignal sig) {
