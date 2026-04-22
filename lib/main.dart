@@ -25,7 +25,19 @@ import 'package:clide/builtin/welcome/welcome.dart';
 import 'dart:io' show Directory, Platform;
 
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/kernel/src/ipc/in_process.dart';
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
+import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/editor_commands.dart';
+import 'package:clide/src/daemon/files_commands.dart';
+import 'package:clide/src/daemon/git_commands.dart';
+import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/daemon/pql_commands.dart';
+import 'package:clide/src/editor/registry.dart' show EditorRegistry;
+import 'package:clide/src/panes/registry.dart';
+import 'package:clide/src/ipc/envelope.dart';
+import 'package:clide/src/panes/event_sink.dart';
+import 'package:clide/src/pql/client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
@@ -45,11 +57,22 @@ Future<void> main() async {
     bundledThemes: themes,
     i18nLoader: AssetCatalogLoader(bundle: rootBundle),
     preloadNamespaces: _tier0Namespaces,
-    // The local unix-socket daemon is desktop-only. On web the
-    // connection indicator stays `disconnected` — that's the honest
-    // state: the Flutter-web build can't reach a local socket.
-    autoStartDaemonClient: !kIsWeb,
-    socketPath: kIsWeb ? '/clide-web-no-socket' : null,
+    autoStartDaemonClient: false,
+    daemonClientFactory: kIsWeb ? null : (log, events) {
+      final dispatcher = DaemonDispatcher();
+      final eventSink = _BusEventSink(events);
+      final filesService = FilesService.atCwd(events: eventSink);
+      final workRoot = filesService.root;
+      final paneRegistry = PaneRegistry(events: eventSink);
+      registerPaneCommands(dispatcher, paneRegistry);
+      registerFilesCommands(dispatcher, filesService);
+      final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
+      registerEditorCommands(dispatcher, editorRegistry);
+      registerGitCommands(dispatcher, workRoot, eventSink);
+      final pql = PqlClient(workDir: workRoot);
+      registerPqlCommands(dispatcher, pql);
+      return InProcessClient(log: log, events: events, dispatcher: dispatcher);
+    },
   );
 
   // Register every built-in. Tier 0 activates only the four that do
@@ -128,6 +151,21 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// Every Tier-0 extension that ships an i18n catalog. Extensions
 /// registered but not active (the 17 stubs) don't preload — their
 /// catalogs load lazily on activate in later tiers.
+class _BusEventSink implements DaemonEventSink {
+  _BusEventSink(this._bus);
+  final EventBus _bus;
+
+  @override
+  void emit(IpcEvent event) {
+    _bus.emit(DaemonEvent(
+      subsystem: event.subsystem,
+      kind: event.kind,
+      data: event.data,
+      ts: DateTime.now(),
+    ));
+  }
+}
+
 const List<String> _tier0Namespaces = [
   'builtin.default-layout',
   'builtin.welcome',
