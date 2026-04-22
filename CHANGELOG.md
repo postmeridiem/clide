@@ -18,6 +18,17 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- CLI shortcuts per CLAUDE.md's Tier-2 list: `clide open <path>`,
+  `clide active`, `clide insert <text | ->`, `clide replace-selection
+  <text | ->`, `clide save`, `clide tail --events [--filter
+  SUBSYSTEM[:ID]]`. A lone `-` on insert / replace-selection reads
+  text from stdin (pipe-friendly). `tail` reads the event-broadcast
+  stream and prints JSON lines until SIGINT; `--filter` narrows by
+  subsystem or subsystem+id. 5 new end-to-end CLI tests spin up real
+  daemon subprocesses via a per-test `CLIDE_SOCKET_PATH` override (new
+  env knob on `defaultSocketPath`) so tests run in parallel without
+  colliding.
+
 - Editor subsystem in the daemon (`lib/src/editor/`). `EditorBuffer`
   holds path + content + cursor/selection + dirty flag;
   `EditorRegistry` owns the open-buffer set, active-buffer tracking,
