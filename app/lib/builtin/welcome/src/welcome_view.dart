@@ -7,63 +7,97 @@ import 'package:flutter/widgets.dart';
 class WelcomeView extends StatelessWidget {
   const WelcomeView({super.key});
 
-  static const _ns = 'builtin.welcome';
-
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    return ListenableBuilder(
-      listenable: kernel.i18n,
-      builder: (ctx, _) {
-        final i = kernel.i18n;
-        return ClideSurface(
-          color: tokens.globalBackground,
-          padding: const EdgeInsets.all(32),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Spacer(flex: 1),
+          _Header(tokens: tokens),
+          const SizedBox(height: 48),
+          Expanded(
+            flex: 3,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClideText(
-                  i.string('title', namespace: _ns, placeholder: 'clide'),
-                  fontSize: 48,
-                  fontWeight: FontWeight.w300,
-                  color: tokens.globalForeground,
-                ),
-                const SizedBox(height: 8),
-                ClideText(
-                  i.string(
-                    'subtitle',
-                    namespace: _ns,
-                    placeholder: 'Flutter desktop IDE for Claude Code',
-                  ),
-                  muted: true,
-                ),
-                const SizedBox(height: 40),
-                ClideText(
-                  'START',
-                  fontSize: clideFontCaption,
-                  color: tokens.sidebarSectionHeader,
-                  fontFamily: clideMonoFamily,
-                ),
-                const SizedBox(height: 12),
-                _StartAction(
-                  label: i.string('open-project', namespace: _ns, placeholder: 'Open project…'),
-                  hint: i.string('open-project.hint', namespace: _ns, placeholder: 'Pick a git repository'),
-                  icon: PhosphorIcons.folder,
-                  onTap: () => _openProject(context),
-                ),
+                SizedBox(width: 340, child: _StartColumn(tokens: tokens, kernel: kernel)),
+                const SizedBox(width: 48),
+                Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
               ],
             ),
           ),
-        );
-      },
+          _StatusLine(tokens: tokens, kernel: kernel),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.tokens});
+  final SurfaceTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset('assets/logo/clide-logo-192.png', width: 64, height: 64),
+        const SizedBox(width: 20),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClideText('clide', fontSize: 42, fontWeight: FontWeight.w300, color: tokens.globalForeground),
+            ClideText('Flutter desktop IDE for Claude Code', muted: true, fontSize: 14),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StartColumn extends StatelessWidget {
+  const _StartColumn({required this.tokens, required this.kernel});
+  final SurfaceTokens tokens;
+  final KernelServices kernel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClideText('START', fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+        const SizedBox(height: 16),
+        _ActionRow(
+          icon: PhosphorIcons.folder,
+          label: 'Open folder…',
+          shortcut: '⌘O',
+          tokens: tokens,
+          onTap: () => _openFolder(context),
+        ),
+        _ActionRow(
+          icon: PhosphorIcons.gitBranch,
+          label: 'Clone from git…',
+          shortcut: '⌘G',
+          tokens: tokens,
+          onTap: () {},
+        ),
+        _ActionRow(
+          icon: PhosphorIcons.chatCircle,
+          label: 'Start a Claude session',
+          shortcut: '⌘C',
+          tokens: tokens,
+          onTap: () {},
+        ),
+      ],
     );
   }
 
-  void _openProject(BuildContext context) {
-    final kernel = ClideKernel.of(context);
+  void _openFolder(BuildContext context) {
     kernel.dialog.show<String>((ctx, dismiss) {
       return _OpenProjectDialog(
         onOpen: (path) async {
@@ -76,6 +110,174 @@ class WelcomeView extends StatelessWidget {
         onCancel: () => dismiss(),
       );
     });
+  }
+}
+
+class _ActionRow extends StatefulWidget {
+  const _ActionRow({required this.icon, required this.label, this.shortcut, required this.tokens, required this.onTap});
+  final ClideIconPainter icon;
+  final String label;
+  final String? shortcut;
+  final SurfaceTokens tokens;
+  final VoidCallback onTap;
+
+  @override
+  State<_ActionRow> createState() => _ActionRowState();
+}
+
+class _ActionRowState extends State<_ActionRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _hover ? widget.tokens.listItemHoverBackground : null,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            children: [
+              ClideIcon(widget.icon, size: 16, color: widget.tokens.globalTextMuted),
+              const SizedBox(width: 12),
+              Expanded(child: ClideText(widget.label, fontSize: 14, color: widget.tokens.globalForeground)),
+              if (widget.shortcut != null)
+                ClideText(widget.shortcut!, fontSize: 12, color: widget.tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentColumn extends StatelessWidget {
+  const _RecentColumn({required this.tokens, required this.kernel});
+  final SurfaceTokens tokens;
+  final KernelServices kernel;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: kernel.project,
+      builder: (ctx, _) {
+        final recents = kernel.project.recents;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClideText('RECENT', fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            const SizedBox(height: 16),
+            if (recents.isEmpty)
+              const ClideText('No recent projects.', muted: true, fontSize: 13)
+            else
+              for (final r in recents)
+                _RecentRow(project: r, tokens: tokens, onTap: () => _openRecent(r.path)),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openRecent(String path) {
+    kernel.project.open(path).then((ok) {
+      if (ok) kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+    });
+  }
+}
+
+class _RecentRow extends StatefulWidget {
+  const _RecentRow({required this.project, required this.tokens, required this.onTap});
+  final RecentProject project;
+  final SurfaceTokens tokens;
+  final VoidCallback onTap;
+
+  @override
+  State<_RecentRow> createState() => _RecentRowState();
+}
+
+class _RecentRowState extends State<_RecentRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _hover ? widget.tokens.listItemHoverBackground : null,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClideText(widget.project.name, fontSize: 14, fontWeight: FontWeight.w500),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        ClideText(widget.project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        if (widget.project.branch != null) ...[
+                          ClideText('  ·  ', muted: true, fontSize: 12),
+                          ClideIcon(PhosphorIcons.gitBranch, size: 10, color: widget.tokens.globalTextMuted),
+                          const SizedBox(width: 3),
+                          ClideText(widget.project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              ClideText(widget.project.timeAgo, muted: true, fontSize: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.tokens, required this.kernel});
+  final SurfaceTokens tokens;
+  final KernelServices kernel;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: kernel.ipc,
+      builder: (ctx, _) {
+        final connected = kernel.ipc.isConnected;
+        final themeName = kernel.theme.currentName;
+        return Row(
+          children: [
+            ClideText('clide 2.0.0-dev', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+            ClideText('  ·  ', muted: true, fontSize: 12),
+            ClideText(
+              connected ? 'daemon connected' : 'daemon disconnected',
+              fontSize: 12,
+              fontFamily: clideMonoFamily,
+              color: connected ? tokens.statusSuccess : tokens.statusError,
+            ),
+            ClideText('  ·  ', muted: true, fontSize: 12),
+            ClideText('theme: ', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+            ClideText(themeName, fontSize: 12, fontFamily: clideMonoFamily, color: tokens.globalFocus),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -110,10 +312,7 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
   Future<void> _submit() async {
     final path = _controller.text.trim();
     if (path.isEmpty) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
     try {
       await widget.onOpen(path);
     } catch (_) {
@@ -171,65 +370,6 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StartAction extends StatefulWidget {
-  const _StartAction({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.hint,
-  });
-
-  final String label;
-  final String? hint;
-  final ClideIconPainter icon;
-  final VoidCallback onTap;
-
-  @override
-  State<_StartAction> createState() => _StartActionState();
-}
-
-class _StartActionState extends State<_StartAction> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Semantics(
-          button: true,
-          label: widget.label,
-          hint: widget.hint,
-          child: Container(
-            width: 280,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: _hover ? tokens.listItemHoverBackground : null,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              children: [
-                ClideIcon(widget.icon, size: 16, color: tokens.globalFocus),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ClideText(
-                    widget.label,
-                    color: tokens.globalFocus,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

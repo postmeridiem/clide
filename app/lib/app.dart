@@ -1,3 +1,4 @@
+import 'package:clide_app/builtin/welcome/src/welcome_view.dart';
 import 'package:clide_app/extension/src/contribution.dart';
 import 'package:clide_app/kernel/kernel.dart';
 import 'package:clide_app/widgets/widgets.dart';
@@ -85,6 +86,7 @@ class _RootShellState extends State<_RootShell> {
               children: [
                 const Positioned.fill(child: RootLayout()),
                 const ClidePalette(),
+                const Positioned.fill(child: _WelcomeOverlay()),
               ],
             ),
           ),
@@ -324,26 +326,19 @@ class _WorkspaceSlot extends StatelessWidget {
 
   static const _editorTabId = 'editor.active';
   static const _claudeTabId = 'claude.primary';
-  static const _welcomeTabId = 'welcome.view';
 
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
     return ListenableBuilder(
-      listenable: Listenable.merge([kernel.arrangement, kernel.project]),
+      listenable: kernel.arrangement,
       builder: (ctx, _) {
         final editorOpen = kernel.arrangement.editorOpen;
         final editorTab = tabs.where((t) => t.id == _editorTabId).firstOrNull;
 
-        final TabContribution primary;
-        if (kernel.project.isOpen) {
-          final claude = tabs.where((t) => t.id == _claudeTabId).firstOrNull;
-          primary = claude ?? active;
-        } else {
-          final welcome = tabs.where((t) => t.id == _welcomeTabId).firstOrNull;
-          primary = welcome ?? active;
-        }
+        final claude = tabs.where((t) => t.id == _claudeTabId).firstOrNull;
+        final primary = claude ?? active;
 
         if (!editorOpen || editorTab == null) {
           return Container(color: tokens.panelBackground, child: primary.build(ctx));
@@ -486,6 +481,26 @@ class StatusbarHost extends StatelessWidget {
               for (final item in right) item.build(ctx),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class _WelcomeOverlay extends StatelessWidget {
+  const _WelcomeOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final kernel = ClideKernel.of(context);
+    return ListenableBuilder(
+      listenable: kernel.project,
+      builder: (ctx, _) {
+        if (kernel.project.isOpen) return const SizedBox.shrink();
+        final tokens = ClideTheme.of(ctx).surface;
+        return ColoredBox(
+          color: tokens.globalBackground,
+          child: const WelcomeView(),
         );
       },
     );

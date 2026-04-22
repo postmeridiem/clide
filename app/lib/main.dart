@@ -83,7 +83,11 @@ Future<void> main() async {
   await services.extensions.activateAll();
 
   if (!kIsWeb) {
-    final opened = await services.project.openLast();
+    await services.project.loadRecents();
+    var opened = await services.project.openLast();
+    if (!opened) {
+      opened = await services.project.open(Directory.current.path);
+    }
     if (opened) {
       services.panels.activateTab(Slots.workspace, 'claude.primary');
     }
