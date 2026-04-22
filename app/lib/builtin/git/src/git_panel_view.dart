@@ -40,6 +40,20 @@ class _GitPanelViewState extends State<GitPanelView> {
     super.dispose();
   }
 
+  void _confirmDiscard(BuildContext ctx, GitController c, String path) {
+    final kernel = ClideKernel.of(ctx);
+    kernel.dialog.show<String>(
+      (dialogCtx, dismiss) => _DiscardConfirmDialog(
+        path: path,
+        onConfirm: () {
+          unawaited(c.discard([path]));
+          dismiss();
+        },
+        onCancel: () => dismiss(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = _controller;
@@ -116,7 +130,7 @@ class _GitPanelViewState extends State<GitPanelView> {
                       ),
                     ],
                     onStage: (path) => unawaited(c.stage([path])),
-                    onDiscard: (path) => unawaited(c.discard([path])),
+                    onDiscard: (path) => _confirmDiscard(context, c, path),
                   ),
                 if (c.untracked.isNotEmpty)
                   _FileGroup(
@@ -462,6 +476,65 @@ class _SmallAction extends StatelessWidget {
             color: tokens.sidebarForeground,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DiscardConfirmDialog extends StatelessWidget {
+  const _DiscardConfirmDialog({
+    required this.path,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  final String path;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final name = path.split('/').last;
+    return Container(
+      width: 360,
+      decoration: BoxDecoration(
+        color: tokens.modalSurfaceBackground,
+        border: Border.all(color: tokens.modalSurfaceBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClideText(
+            'Discard changes?',
+            color: tokens.globalForeground,
+          ),
+          const SizedBox(height: 8),
+          ClideText(
+            'Unstaged changes to $name will be permanently lost.',
+            fontSize: clideFontCaption,
+            color: tokens.statusError,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ClideButton(
+                label: 'Cancel',
+                variant: ClideButtonVariant.subtle,
+                onPressed: onCancel,
+              ),
+              const SizedBox(width: 8),
+              ClideButton(
+                label: 'Discard',
+                onPressed: onConfirm,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
