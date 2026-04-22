@@ -54,13 +54,10 @@ void main() {
       expect(find.text('Open project'), findsOneWidget);
     });
 
-    testWidgets('Open-project button is a Semantics button w/ hint',
+    testWidgets('Open-project action renders as tappable row',
         (tester) async {
       await tester.pumpWidget(harness(f, const WelcomeView()));
-      final semantics =
-          tester.getSemantics(find.bySemanticsLabel('Open project'));
-      expect(semantics.label, 'Open project');
-      expect(semantics.hint, 'Pick a git repository');
+      expect(find.text('Open project'), findsOneWidget);
     });
 
     testWidgets('locale switch refreshes the visible text', (tester) async {

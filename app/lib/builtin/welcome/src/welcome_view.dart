@@ -25,11 +25,11 @@ class WelcomeView extends StatelessWidget {
               children: [
                 ClideText(
                   i.string('title', namespace: _ns, placeholder: 'clide'),
-                  fontSize: 40,
+                  fontSize: 48,
                   fontWeight: FontWeight.w300,
-                  color: tokens.panelActiveBorder,
+                  color: tokens.globalForeground,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 ClideText(
                   i.string(
                     'subtitle',
@@ -37,31 +37,93 @@ class WelcomeView extends StatelessWidget {
                     placeholder: 'Flutter desktop IDE for Claude Code',
                   ),
                   muted: true,
-                  fontSize: 14,
                 ),
-                const SizedBox(height: 32),
-                ClideButton(
-                  label: i.string(
-                    'open-project',
-                    namespace: _ns,
-                    placeholder: 'Open project',
-                  ),
-                  semanticHint: i.string(
-                    'open-project.hint',
-                    namespace: _ns,
-                    placeholder:
-                        'Pick a git repository to open as the workspace',
-                  ),
-                  variant: ClideButtonVariant.primary,
-                  onPressed: () {
-                    // project open UI lands with the project picker tier
-                  },
+                const SizedBox(height: 40),
+                ClideText(
+                  'START',
+                  fontSize: clideFontCaption,
+                  color: tokens.sidebarSectionHeader,
+                  fontFamily: clideMonoFamily,
+                ),
+                const SizedBox(height: 12),
+                _StartAction(
+                  label: i.string('open-project',
+                      namespace: _ns, placeholder: 'Open project…'),
+                  hint: i.string('open-project.hint',
+                      namespace: _ns,
+                      placeholder: 'Pick a git repository'),
+                  icon: const FolderIcon(),
+                  onTap: () {},
+                ),
+                _StartAction(
+                  label: 'New Claude session…',
+                  icon: const TerminalIcon(),
+                  onTap: () {},
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _StartAction extends StatefulWidget {
+  const _StartAction({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.hint,
+  });
+
+  final String label;
+  final String? hint;
+  final ClideIconPainter icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_StartAction> createState() => _StartActionState();
+}
+
+class _StartActionState extends State<_StartAction> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Semantics(
+          button: true,
+          label: widget.label,
+          hint: widget.hint,
+          child: Container(
+            width: 280,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: _hover ? tokens.listItemHoverBackground : null,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              children: [
+                ClideIcon(widget.icon, size: 16, color: tokens.globalFocus),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ClideText(
+                    widget.label,
+                    color: tokens.globalFocus,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
