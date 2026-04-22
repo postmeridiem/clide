@@ -20,6 +20,7 @@ class PaneRegistry {
 
   final DaemonEventSink events;
   final Map<String, Pane> _panes = {};
+  final Map<String, PtySession> _sessions = {};
   final Map<String, StreamSubscription<Uint8List>> _subs = {};
   int _nextId = 1;
 
@@ -55,12 +56,13 @@ class PaneRegistry {
     final pane = Pane(
       id: id,
       kind: kind,
-      session: session,
+      pid: session.pid,
       argv: argv,
       cwd: cwd,
       title: title,
     );
     _panes[id] = pane;
+    _sessions[id] = session;
 
     _emit('pane.spawned', id, pane.toJson());
 
@@ -77,15 +79,17 @@ class PaneRegistry {
   /// Send bytes to a pane's stdin.
   int write(String id, List<int> bytes) {
     final p = _panes[id];
-    if (p == null || p.isClosed) return 0;
-    return p.session.write(bytes);
+    final s = _sessions[id];
+    if (p == null || p.isClosed || s == null) return 0;
+    return s.write(bytes);
   }
 
   /// Resize a pane + emit `pane.resized`.
   void resize(String id, {required int cols, required int rows}) {
     final p = _panes[id];
-    if (p == null || p.isClosed) return;
-    p.session.resize(cols: cols, rows: rows);
+    final s = _sessions[id];
+    if (p == null || p.isClosed || s == null) return;
+    s.resize(cols: cols, rows: rows);
     _emit('pane.resized', id, {'cols': cols, 'rows': rows});
   }
 
@@ -93,9 +97,11 @@ class PaneRegistry {
   Future<void> close(String id) async {
     final p = _panes[id];
     if (p == null) return;
-    await p.session.close();
+    final s = _sessions[id];
+    if (s != null) await s.close();
     await _subs[id]?.cancel();
     _subs.remove(id);
+    _sessions.remove(id);
     _panes.remove(id);
     _emit('pane.closed', id, const {});
   }
@@ -111,6 +117,7 @@ class PaneRegistry {
 
   void _onExit(Pane p) {
     if (_panes.containsKey(p.id)) {
+      p.isClosed = true;
       _emit('pane.exit', p.id, const {});
       // Don't auto-close — keep the pane entry so `list` can show the
       // exited state until the consumer explicitly closes. A future

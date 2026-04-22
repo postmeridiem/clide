@@ -13,6 +13,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+// Daemon-only deep imports — these pull in dart:ffi (PTY) and
+// daemon-subsystem wiring that the Flutter app doesn't need and
+// can't compile for web. See lib/clide.dart for the barrel split.
+import 'package:clide/src/daemon/files_commands.dart';
+import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/panes/registry.dart';
 
 Future<void> main(List<String> argv) async {
   if (argv.isEmpty) {

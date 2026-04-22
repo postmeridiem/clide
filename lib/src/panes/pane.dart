@@ -1,12 +1,10 @@
-/// A single active pane in the daemon.
+/// A single active pane. Pure data — no PTY coupling so this type
+/// travels cleanly into the Flutter app (which can't depend on
+/// `dart:ffi`-using code for the web build).
 ///
-/// Owns a [PtySession] plus whatever pane-level metadata the UI +
-/// CLI need. The `kind:` field distinguishes general-purpose terminal
-/// panes from Claude panes (D-041, not yet landed) from whatever
-/// future pane-shaped surface Tier 1+ grows.
+/// The daemon's [PaneRegistry] keeps a parallel `PtySession` keyed on
+/// [id] and mutates [isClosed] when the session exits.
 library;
-
-import '../pty/session.dart';
 
 /// Kind of a pane. Keep this enum small and explicit — each kind
 /// typically pairs with a bundled extension that manages its
@@ -25,28 +23,28 @@ enum PaneKind {
   }
 }
 
-/// A live pane. Thin wrapper over [PtySession] — the registry is what
-/// owns the session lifecycle; consumers of this class read state and
-/// call [write] / [resize] via the session.
 class Pane {
   Pane({
     required this.id,
     required this.kind,
-    required this.session,
+    required this.pid,
     required this.argv,
     this.cwd,
     this.title,
+    this.isClosed = false,
   });
 
   final String id;
   final PaneKind kind;
-  final PtySession session;
+  final int pid;
   final List<String> argv;
   final String? cwd;
   final String? title;
 
-  int get pid => session.pid;
-  bool get isClosed => session.isClosed;
+  /// Mutated by the registry when the child exits or the session
+  /// closes. Kept mutable so registry state doesn't need to replace
+  /// [Pane] instances on transition.
+  bool isClosed;
 
   Map<String, Object?> toJson() => {
         'id': id,

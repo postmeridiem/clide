@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/src/daemon/files_commands.dart';
 import 'package:test/test.dart';
 
 void main() {

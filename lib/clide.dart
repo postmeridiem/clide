@@ -8,21 +8,23 @@
 ///   * `decisions/architecture.md` `D-006` — CLI + event contract.
 library;
 
+// Flutter-app-visible surface. Deliberately **does not** export the
+// `pty/` or `panes/registry.dart` modules — those import `dart:ffi`
+// and pull in the PTY machinery that only runs on desktop. The
+// daemon entrypoint (`bin/clide.dart`) imports them via deep paths.
+//
+// `Pane` + `PaneKind` + the event-sink interfaces travel here because
+// they're pure data types that both the app and the daemon reference.
+
 export 'src/daemon/dispatcher.dart';
-export 'src/daemon/files_commands.dart';
-export 'src/daemon/pane_commands.dart';
 export 'src/files/ignore.dart';
 export 'src/files/listing.dart' show FileEntry, listDir;
-export 'src/files/watcher.dart';
 export 'src/ipc/envelope.dart';
 export 'src/ipc/paths.dart';
 export 'src/ipc/schema_v1.dart';
 export 'src/ipc/server.dart';
 export 'src/panes/event_sink.dart';
 export 'src/panes/pane.dart' show Pane, PaneKind;
-export 'src/panes/registry.dart' show PaneRegistry;
-export 'src/pty/errors.dart' show PtyException;
-export 'src/pty/pty.dart';
 
 /// Build-time-stamped version string.
 ///

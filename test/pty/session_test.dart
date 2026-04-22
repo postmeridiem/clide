@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:clide/clide.dart';
+import 'package:clide/src/pty/pty.dart';
 import 'package:test/test.dart';
 
 void main() {
