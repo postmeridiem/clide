@@ -1,0 +1,5 @@
+{
+  "tab.title": { "translation": "Editor" },
+  "empty": { "translation": "Open a file to begin editing." },
+  "subtitle.no-buffer": { "translation": "no buffer · use `clide open <path>` or pick a file in the tree" }
+}

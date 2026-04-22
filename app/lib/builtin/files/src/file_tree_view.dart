@@ -197,11 +197,14 @@ class _FileRow extends StatelessWidget {
 
   void _openFile(BuildContext context, String path) {
     final kernel = ClideKernel.of(context);
-    // editor.open is a Tier-2 command; the registry's contract takes
-    // a positional argv, so pass the path as argv[0]. Response is
-    // ignored — until the editor extension registers the handler,
-    // execute() returns a not-found error.
-    unawaited(kernel.commands.execute('editor.open', args: [path]));
+    // editor.open is a daemon-side IPC handler (lib/src/daemon/
+    // editor_commands.dart), not a kernel command. Fire the request
+    // and let the editor extension's controller pick up the
+    // editor.active-changed / editor.opened event — no need to await
+    // or handle the response here.
+    unawaited(
+      kernel.ipc.request('editor.open', args: {'path': path}),
+    );
   }
 }
 

@@ -125,4 +125,5 @@ const List<String> _tier0Namespaces = [
   'builtin.terminal',
   'builtin.files',
   'builtin.claude',
+  'builtin.editor',
 ];

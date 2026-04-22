@@ -18,6 +18,24 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- `builtin.editor` — Tier-2 editor tab wired up. Contributes a
+  single `Editor` workspace tab that renders the daemon's active
+  buffer via a new `EditorController`. Hydrates on mount
+  (`editor.active` → `editor.read`), subscribes to
+  `editor.opened | active-changed | edited | saved | closed`, and
+  propagates user edits back through `editor.set-content`. Small
+  echo-suppression guard avoids clobbering the caret when the
+  daemon's authoritative edit echo comes back. Text surface is
+  Flutter's `EditableText` primitive — no `TextField` / Material —
+  so the D-007 "no Material root" stance carries into the editor;
+  JetBrainsMono via the shared `clideMonoFamily` constants, cursor
+  + selection colours bind to the theme.
+
+- File-tree click in `builtin.files` now opens the clicked file in
+  the editor via `ipc.request('editor.open', {path})`. No local
+  command hop — the dispatch goes straight to the daemon and the
+  UI reconciles through the `editor.active-changed` event.
+
 - CLI shortcuts per CLAUDE.md's Tier-2 list: `clide open <path>`,
   `clide active`, `clide insert <text | ->`, `clide replace-selection
   <text | ->`, `clide save`, `clide tail --events [--filter
