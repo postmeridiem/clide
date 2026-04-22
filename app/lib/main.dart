@@ -82,6 +82,13 @@ Future<void> main() async {
 
   await services.extensions.activateAll();
 
+  if (!kIsWeb) {
+    final opened = await services.project.open(Directory.current.path);
+    if (opened) {
+      services.panels.activateTab(Slots.workspace, 'claude.primary');
+    }
+  }
+
   runApp(ClideApp(services: services));
 }
 

@@ -323,18 +323,27 @@ class _WorkspaceSlot extends StatelessWidget {
   final TabContribution active;
 
   static const _editorTabId = 'editor.active';
+  static const _claudeTabId = 'claude.primary';
+  static const _welcomeTabId = 'welcome.view';
 
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
     return ListenableBuilder(
-      listenable: kernel.arrangement,
+      listenable: Listenable.merge([kernel.arrangement, kernel.project]),
       builder: (ctx, _) {
         final editorOpen = kernel.arrangement.editorOpen;
         final editorTab = tabs.where((t) => t.id == _editorTabId).firstOrNull;
-        final primaryTabs = tabs.where((t) => t.id != _editorTabId).toList();
-        final primary = primaryTabs.contains(active) ? active : (primaryTabs.isNotEmpty ? primaryTabs.first : active);
+
+        final TabContribution primary;
+        if (kernel.project.isOpen) {
+          final claude = tabs.where((t) => t.id == _claudeTabId).firstOrNull;
+          primary = claude ?? active;
+        } else {
+          final welcome = tabs.where((t) => t.id == _welcomeTabId).firstOrNull;
+          primary = welcome ?? active;
+        }
 
         if (!editorOpen || editorTab == null) {
           return Container(color: tokens.panelBackground, child: primary.build(ctx));
