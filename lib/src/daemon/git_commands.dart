@@ -218,6 +218,37 @@ void registerGitCommands(
       return _gitError(req.id, e);
     }
   });
+
+  d.register('git.branches', (req) async {
+    final branches = await gitBranches(workDir);
+    return IpcResponse.ok(id: req.id, data: {
+      'branches': [
+        for (final b in branches)
+          {'name': b.name, 'current': b.current},
+      ],
+    });
+  });
+
+  d.register('git.checkout', (req) async {
+    final branch = req.args['branch'] as String?;
+    if (branch == null || branch.isEmpty) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(
+          code: IpcExitCode.userError,
+          kind: IpcErrorKind.userError,
+          message: 'git.checkout requires a branch',
+        ),
+      );
+    }
+    try {
+      await gitCheckout(workDir, branch);
+      _emitChanged(events);
+      return IpcResponse.ok(id: req.id, data: {'branch': branch});
+    } on GitException catch (e) {
+      return _gitError(req.id, e);
+    }
+  });
 }
 
 List<String> _pathList(Object? raw) {

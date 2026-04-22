@@ -1,4 +1,5 @@
 import 'package:clide_app/builtin/git/src/git_panel_view.dart';
+import 'package:clide_app/builtin/git/src/git_status_item.dart';
 import 'package:clide_app/extension/extension.dart';
 import 'package:clide_app/kernel/kernel.dart';
 
@@ -22,6 +23,11 @@ class GitExtension extends ClideExtension {
           i18nNamespace: id,
           priority: -80,
           build: (_) => const GitPanelView(),
+        ),
+        StatusItemContribution(
+          id: 'git.branch',
+          priority: 10,
+          build: (_) => const GitStatusItem(),
         ),
       ];
 }

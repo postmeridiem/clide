@@ -194,6 +194,37 @@ Future<String> gitPush(
   return ((r.stdout as String) + (r.stderr as String)).trim();
 }
 
+/// List local branches. Returns (name, isCurrent) pairs.
+Future<List<({String name, bool current})>> gitBranches(
+    Directory workDir) async {
+  final r = await Process.run(
+    'git',
+    ['branch', '--format=%(refname:short)\x00%(HEAD)'],
+    workingDirectory: workDir.path,
+  );
+  if (r.exitCode != 0) return const [];
+  final out = <({String name, bool current})>[];
+  for (final line in (r.stdout as String).split('\n')) {
+    if (line.trim().isEmpty) continue;
+    final parts = line.split('\x00');
+    if (parts.length < 2) continue;
+    out.add((name: parts[0], current: parts[1].trim() == '*'));
+  }
+  return out;
+}
+
+/// Checkout a branch.
+Future<void> gitCheckout(Directory workDir, String branch) async {
+  final r = await Process.run(
+    'git',
+    ['checkout', branch],
+    workingDirectory: workDir.path,
+  );
+  if (r.exitCode != 0) {
+    throw GitException('git checkout failed', stderr: r.stderr as String);
+  }
+}
+
 /// Get the current branch name.
 Future<String?> gitCurrentBranch(Directory workDir) async {
   final r = await Process.run(
