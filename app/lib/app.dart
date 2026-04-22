@@ -173,7 +173,19 @@ class RootLayout extends StatelessWidget {
             if (statusVisible)
               SizedBox(
                 height: statusHeight,
-                child: const StatusbarHost(),
+                child: Row(
+                  children: [
+                    if (sidebarVisible && !sidebarCollapsed)
+                      SizedBox(width: sidebarSize, child: _BottomRail(slot: Slots.sidebar))
+                    else if (sidebarVisible && sidebarCollapsed)
+                      const SizedBox(width: ClideSpine.width),
+                    Expanded(child: const StatusbarHost()),
+                    if (contextVisible && !contextCollapsed)
+                      SizedBox(width: contextSize, child: _BottomRail(slot: Slots.contextPanel))
+                    else if (contextVisible && contextCollapsed)
+                      const SizedBox(width: ClideSpine.width),
+                  ],
+                ),
               ),
           ],
         );
@@ -285,37 +297,8 @@ class _SidebarSlot extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     return Container(
       color: tokens.sidebarBackground,
-      child: Column(
-        children: [
-          Expanded(child: active.build(context)),
-          ClideIconRail(
-            items: [
-              for (final t in tabs)
-                ClideIconRailItem(
-                  id: t.id,
-                  icon: _iconFor(t),
-                  tooltip: SlotHost._resolveTitle(context, t),
-                ),
-            ],
-            activeId: activeId,
-            onSelect: onSelect,
-          ),
-        ],
-      ),
+      child: active.build(context),
     );
-  }
-
-  static ClideIconPainter _iconFor(TabContribution t) {
-    if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
-    return switch (t.id) {
-      'files.tree' => PhosphorIcons.folder,
-      'git.panel' => PhosphorIcons.gitBranch,
-      'pql.panel' => PhosphorIcons.magnifyingGlass,
-      'problems.panel' => PhosphorIcons.warningCircle,
-      'decisions.panel' => PhosphorIcons.lightbulb,
-      'tickets.panel' => PhosphorIcons.ticket,
-      _ => PhosphorIcons.circlesFour,
-    };
   }
 }
 
@@ -429,28 +412,57 @@ class _ContextSlot extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     return Container(
       color: tokens.panelBackground,
-      child: Column(
-        children: [
-          Expanded(child: active.build(context)),
-          ClideIconRail(
+      child: active.build(context),
+    );
+  }
+}
+
+class _BottomRail extends StatelessWidget {
+  const _BottomRail({required this.slot});
+  final SlotId slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final kernel = ClideKernel.of(context);
+    final tokens = ClideTheme.of(context).surface;
+    return ListenableBuilder(
+      listenable: kernel.panels,
+      builder: (ctx, _) {
+        final tabs = kernel.panels.tabsFor(slot);
+        if (tabs.isEmpty) return Container(color: tokens.statusBarBackground);
+        final activeId = kernel.panels.activeTabIn(slot) ?? tabs.first.id;
+        return Container(
+          color: tokens.statusBarBackground,
+          child: ClideIconRail(
             items: [
               for (final t in tabs)
                 ClideIconRailItem(
                   id: t.id,
-                  icon: _iconFor(t),
-                  tooltip: SlotHost._resolveTitle(context, t),
+                  icon: _iconFor(slot, t),
+                  tooltip: SlotHost._resolveTitle(ctx, t),
                 ),
             ],
             activeId: activeId,
-            onSelect: onSelect,
+            onSelect: (id) => kernel.panels.activateTab(slot, id),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  static ClideIconPainter _iconFor(TabContribution t) {
+  static ClideIconPainter _iconFor(SlotId slot, TabContribution t) {
     if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
+    if (slot == Slots.sidebar) {
+      return switch (t.id) {
+        'files.tree' => PhosphorIcons.folder,
+        'git.panel' => PhosphorIcons.gitBranch,
+        'pql.panel' => PhosphorIcons.magnifyingGlass,
+        'problems.panel' => PhosphorIcons.warningCircle,
+        'decisions.panel' => PhosphorIcons.lightbulb,
+        'tickets.panel' => PhosphorIcons.ticket,
+        _ => PhosphorIcons.circlesFour,
+      };
+    }
     return switch (t.id) {
       'markdown.viewer' => PhosphorIcons.eye,
       'graph.view' => PhosphorIcons.graph,
