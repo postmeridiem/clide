@@ -73,6 +73,10 @@ endif
 test: ## Fast: analyze + format + unit + widget + golden (<60s).
 	ci/test.sh
 
+.PHONY: test-core
+test-core: ## Flutter-free core tests (IPC, daemon, PTY) with hard timeout.
+	ci/test_core.sh
+
 .PHONY: test-a11y
 test-a11y: ## A11y contract (semantic coverage + keyboard + contrast + i18n).
 	ci/test_a11y.sh
@@ -86,7 +90,7 @@ test-e2e: build ## Daemon subprocess + web WASM Playwright smoke.
 	ci/test_e2e.sh
 
 .PHONY: test-all
-test-all: test test-a11y test-integration test-e2e ## Everything, sequentially.
+test-all: test-core test test-a11y test-integration test-e2e ## Everything, sequentially.
 
 .PHONY: coverage
 coverage: ## flutter test --coverage + lcov summary.
@@ -173,7 +177,7 @@ decisions-validate: ## Parser dry-run over decisions/*.md (cheap pre-push gate).
 	tools/scripts/plan decisions validate
 
 .PHONY: push-check
-push-check: decisions-validate test test-a11y ## Pre-push gate: decisions + fast unit + widget + golden + a11y (<90s).
+push-check: decisions-validate test-core test test-a11y ## Pre-push gate: decisions + core + fast unit + widget + golden + a11y (<90s).
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks (points core.hooksPath at .githooks/).

@@ -4,8 +4,8 @@
 /// under `app/` (which depends on this package via `path: ../`).
 ///
 /// See:
-///   * docs/ADRs/0005-dart-core-ptyc-peer.md — layout + language rationale.
-///   * docs/ADRs/0006-cli-and-event-surface.md — CLI + event contract.
+///   * `decisions/architecture.md` `D-005` — layout + language rationale.
+///   * `decisions/architecture.md` `D-006` — CLI + event contract.
 library;
 
 export 'src/daemon/dispatcher.dart';
@@ -13,6 +13,8 @@ export 'src/ipc/envelope.dart';
 export 'src/ipc/paths.dart';
 export 'src/ipc/schema_v1.dart';
 export 'src/ipc/server.dart';
+export 'src/pty/errors.dart' show PtyException;
+export 'src/pty/pty.dart';
 
 /// Build-time-stamped version string.
 ///

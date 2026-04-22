@@ -18,6 +18,28 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- `PtySession` in the Dart core (`lib/src/pty/`) — spawns a child
+  under a PTY via the `ptyc` supporter tool, receives the master fd
+  over `SCM_RIGHTS`, and exposes a byte stream, write, resize, and
+  kill. A background isolate loops on blocking `read(fd)` and posts
+  chunks to the main isolate. `close()` sends SIGTERM to the child
+  so the PTY's EOF wakes the isolate cleanly, then falls through to
+  SIGKILL + fd close + isolate kill as a safety net. Child env is
+  built via `mergePtyEnv()` which stamps clide's true-colour defaults
+  (`TERM=xterm-256color`, `COLORTERM=truecolor`, `CLICOLOR_FORCE=1`).
+  Test coverage: echo round-trip, cat write/readback, env stamping
+  verification, idempotent close.
+
+- `ffi: 2.1.3` as a runtime dependency on the Dart core — justified
+  in `pubspec.yaml` + documented in `licenses.yaml` per D-042. Used
+  by `lib/src/pty/ffi/` for `socketpair`, `recvmsg` with `SCM_RIGHTS`,
+  `read`/`write` on raw fds, and `ioctl(TIOCSWINSZ)`.
+
+- `ci/test_core.sh` + `make test-core` — runs the Flutter-free core
+  Dart tests (`test/`) under a 120s hard timeout with process-group
+  cleanup. Wired into `push-check` ahead of the app test suite so a
+  hung PTY test can't block the pre-push gate.
+
 - Josefin Sans bundled as `app/assets/fonts/josefin_sans/` as the
   application UI face — variable-font pair (upright + italic, weight
   range 100-700), OFL-licensed. Declared as the `JosefinSans` family

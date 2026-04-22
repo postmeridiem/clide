@@ -28,7 +28,13 @@ environment:
 # "write it yourself" default (see memory:
 # feedback_dart_deps_minimal_locked_cve_checked.md). Exact-pin; never
 # carets.
-dependencies: {}
+dependencies:
+  # Dart-team-maintained allocator (`calloc`) + type helpers on top of
+  # dart:ffi. Saves ~50 LOC of malloc/free boilerplate for the PTY
+  # wrapper's libc bindings (socketpair, recvmsg with SCM_RIGHTS,
+  # ioctl). Tiny, zero transitive deps. Listed in
+  # app/assets/licenses.yaml per D-042.
+  ffi: 2.1.3
 
 dev_dependencies:
   lints: 5.0.0
