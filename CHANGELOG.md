@@ -18,6 +18,18 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- IPC `pane` subsystem in the daemon (per D-006). Commands:
+  `pane.spawn | list | focus | close | write | resize | tail`. Events:
+  `pane.spawned`, `pane.output` (base64-framed), `pane.exit`,
+  `pane.resized`, `pane.focused`, `pane.closed`. `PaneRegistry` owns
+  per-pane `PtySession` lifecycles + id generation (`p_N`); a
+  `DaemonEventSink` seam lets handlers emit events without depending
+  on the IPC server package. `DaemonServer.broadcast()` fans events
+  out to every connected client (a later pass adds per-client
+  `--filter` scoping). Panes carry a `kind:` field — `terminal` today,
+  `claude` ready for step 7. Covered by 14 new Dart core tests
+  exercising the real registry + dispatcher against the `ptyc` helper.
+
 - `PtySession` in the Dart core (`lib/src/pty/`) — spawns a child
   under a PTY via the `ptyc` supporter tool, receives the master fd
   over `SCM_RIGHTS`, and exposes a byte stream, write, resize, and

@@ -67,10 +67,13 @@ Matches ADR 0006's exit-code contract:
 Future<void> _runDaemon(List<String> args) async {
   final socketPath = defaultSocketPath();
   final dispatcher = DaemonDispatcher();
-  final server = DaemonServer(
+  late final DaemonServer server;
+  server = DaemonServer(
     socketPath: socketPath,
     dispatch: dispatcher.dispatch,
   );
+  final registry = PaneRegistry(events: _ServerEventSink(server));
+  registerPaneCommands(dispatcher, registry);
 
   final stopping = Completer<void>();
   void shutdown(ProcessSignal sig) {
@@ -85,8 +88,20 @@ Future<void> _runDaemon(List<String> args) async {
 
   await server.start();
   await stopping.future;
+  await registry.shutdown();
   await server.stop();
   exit(0);
+}
+
+/// Thin adapter: the server doesn't `implement DaemonEventSink` itself
+/// (that would tie ipc/ to panes/); instead the daemon entrypoint wraps
+/// it at the seam where both are known.
+class _ServerEventSink implements DaemonEventSink {
+  _ServerEventSink(this._server);
+  final DaemonServer _server;
+
+  @override
+  void emit(IpcEvent event) => _server.broadcast(event);
 }
 
 Future<void> _runCli(

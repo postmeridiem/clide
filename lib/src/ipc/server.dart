@@ -8,8 +8,7 @@ typedef RequestDispatcher = Future<IpcResponse> Function(IpcRequest request);
 
 /// Unix-socket JSON-lines server. Each connection is an independent
 /// bidirectional line-framed stream: client writes requests, daemon
-/// writes responses (and events, later). Tier 0 handles request→response
-/// only; event broadcasting lands with the first feature that emits.
+/// writes responses + events on the same socket.
 class DaemonServer {
   DaemonServer({
     required this.socketPath,
@@ -21,6 +20,23 @@ class DaemonServer {
 
   ServerSocket? _server;
   final Set<Socket> _clients = {};
+
+  /// Broadcast [event] to every currently-connected client.
+  ///
+  /// Future tuning: per-client subsystem/id filter (`tail --filter
+  /// pane:p_7`). For Tier 1 every client sees everything. Sockets
+  /// that error on write are silently dropped; the client's read side
+  /// will notice the close.
+  void broadcast(IpcEvent event) {
+    final line = event.encode();
+    for (final c in List<Socket>.from(_clients)) {
+      try {
+        c.writeln(line);
+      } catch (_) {
+        _clients.remove(c);
+      }
+    }
+  }
 
   Future<void> start() async {
     final addr = InternetAddress(socketPath, type: InternetAddressType.unix);

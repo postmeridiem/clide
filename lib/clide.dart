@@ -9,10 +9,14 @@
 library;
 
 export 'src/daemon/dispatcher.dart';
+export 'src/daemon/pane_commands.dart';
 export 'src/ipc/envelope.dart';
 export 'src/ipc/paths.dart';
 export 'src/ipc/schema_v1.dart';
 export 'src/ipc/server.dart';
+export 'src/panes/event_sink.dart';
+export 'src/panes/pane.dart' show Pane, PaneKind;
+export 'src/panes/registry.dart' show PaneRegistry;
 export 'src/pty/errors.dart' show PtyException;
 export 'src/pty/pty.dart';
 
