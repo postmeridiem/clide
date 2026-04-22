@@ -30,8 +30,7 @@ class _AppRoot extends StatelessWidget {
     return WidgetsApp(
       title: 'clide',
       color: const Color(0xFF000000),
-      pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) =>
-          PageRouteBuilder<T>(
+      pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) => PageRouteBuilder<T>(
         settings: settings,
         pageBuilder: (ctx, _, __) => builder(ctx),
       ),
@@ -117,7 +116,9 @@ class RootLayout extends StatelessWidget {
       builder: (ctx, _) {
         final a = kernel.arrangement;
         final sidebarVisible = a.isVisible(Slots.sidebar);
+        final sidebarCollapsed = a.isCollapsed(Slots.sidebar);
         final contextVisible = a.isVisible(Slots.contextPanel);
+        final contextCollapsed = a.isCollapsed(Slots.contextPanel);
         final statusVisible = a.isVisible(Slots.statusbar);
         final sidebarSize = a.sizeOf(Slots.sidebar) ?? 240;
         final contextSize = a.sizeOf(Slots.contextPanel) ?? 280;
@@ -128,7 +129,13 @@ class RootLayout extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  if (sidebarVisible) ...[
+                  if (sidebarVisible && sidebarCollapsed)
+                    ClideSpine(
+                      label: _sidebarSpineLabel(kernel),
+                      side: SpineSide.left,
+                      onExpand: () => a.setCollapsed(Slots.sidebar, false),
+                    )
+                  else if (sidebarVisible) ...[
                     SizedBox(
                       width: sidebarSize,
                       child: SlotHost(slot: Slots.sidebar),
@@ -140,7 +147,13 @@ class RootLayout extends StatelessWidget {
                     ),
                   ],
                   const Expanded(child: SlotHost(slot: Slots.workspace)),
-                  if (contextVisible) ...[
+                  if (contextVisible && contextCollapsed)
+                    ClideSpine(
+                      label: 'context',
+                      side: SpineSide.right,
+                      onExpand: () => a.setCollapsed(Slots.contextPanel, false),
+                    )
+                  else if (contextVisible) ...[
                     DragResizeHandle(
                       arrangement: a,
                       slot: Slots.contextPanel,
@@ -163,6 +176,16 @@ class RootLayout extends StatelessWidget {
         );
       },
     );
+  }
+
+  static String _sidebarSpineLabel(KernelServices kernel) {
+    final activeTab = kernel.panels.activeTabIn(Slots.sidebar);
+    if (activeTab == null) return 'overview';
+    final tabs = kernel.panels.tabsFor(Slots.sidebar);
+    for (final t in tabs) {
+      if (t.id == activeTab) return t.title.toLowerCase();
+    }
+    return 'overview';
   }
 }
 
@@ -196,14 +219,22 @@ class SlotHost extends StatelessWidget {
           );
         }
 
+        if (slot == Slots.contextPanel) {
+          return _ContextSlot(
+            tabs: tabs,
+            active: active,
+            activeId: activeId,
+            onSelect: (id) => kernel.panels.activateTab(slot, id),
+          );
+        }
+
         return Container(
           color: tokens.panelBackground,
           child: Column(
             children: [
               ClideTabBar(
                 items: [
-                  for (final t in tabs)
-                    ClideTabItem(id: t.id, title: _resolveTitle(ctx, t)),
+                  for (final t in tabs) ClideTabItem(id: t.id, title: _resolveTitle(ctx, t)),
                 ],
                 activeId: active.id,
                 onSelect: (id) => kernel.panels.activateTab(slot, id),
@@ -279,6 +310,54 @@ class _SidebarSlot extends StatelessWidget {
   }
 }
 
+class _ContextSlot extends StatelessWidget {
+  const _ContextSlot({
+    required this.tabs,
+    required this.active,
+    required this.activeId,
+    required this.onSelect,
+  });
+
+  final List<TabContribution> tabs;
+  final TabContribution active;
+  final String activeId;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      color: tokens.panelBackground,
+      child: Column(
+        children: [
+          Expanded(child: active.build(context)),
+          ClideIconRail(
+            items: [
+              for (final t in tabs)
+                ClideIconRailItem(
+                  id: t.id,
+                  icon: _iconFor(t),
+                  tooltip: SlotHost._resolveTitle(context, t),
+                ),
+            ],
+            activeId: activeId,
+            onSelect: onSelect,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static ClideIconPainter _iconFor(TabContribution t) {
+    if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
+    return switch (t.id) {
+      'markdown.viewer' => const DotIcon(),
+      'graph.view' => const SearchIcon(),
+      _ => const DotIcon(),
+    };
+  }
+}
+
 class StatusbarHost extends StatelessWidget {
   const StatusbarHost({super.key});
 
@@ -289,10 +368,7 @@ class StatusbarHost extends StatelessWidget {
     return ListenableBuilder(
       listenable: kernel.panels,
       builder: (ctx, _) {
-        final items = kernel.panels
-            .contributionsFor(Slots.statusbar)
-            .whereType<StatusItemContribution>()
-            .toList();
+        final items = kernel.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
         final left = items.where((i) => i.priority < 100).toList();
         final right = items.where((i) => i.priority >= 100).toList();
         return Container(

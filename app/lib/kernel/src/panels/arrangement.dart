@@ -3,19 +3,18 @@ import 'package:clide_app/kernel/src/panels/registry.dart';
 import 'package:clide_app/kernel/src/panels/slot_id.dart';
 import 'package:flutter/foundation.dart';
 
-/// Current, runtime layout state: which slots are visible, at what size,
-/// and in what positions. Persisted through `settings`.
-///
-/// The registry knows which slots *exist* and which contributions are
-/// mounted. The arrangement knows which slots are *currently* shown and
-/// how big they are — user-modifiable via drag-resize.
 class LayoutArrangement extends ChangeNotifier {
   LayoutArrangement();
 
   final Map<SlotId, _SlotState> _state = {};
 
+  Map<SlotId, _SlotState>? _focusModeSnapshot;
+  SlotId? _focusModeSlot;
+
   void applyPreset(LayoutPresetContribution preset) {
     _state.clear();
+    _focusModeSnapshot = null;
+    _focusModeSlot = null;
     for (final slot in preset.slots) {
       _state[slot.slot] = _SlotState(
         position: slot.position,
@@ -35,12 +34,14 @@ class LayoutArrangement extends ChangeNotifier {
   double? minSizeOf(SlotId id) => _state[id]?.minSize;
   double? maxSizeOf(SlotId id) => _state[id]?.maxSize;
   bool isVisible(SlotId id) => _state[id]?.visible ?? false;
+  bool isCollapsed(SlotId id) => _state[id]?.collapsed ?? false;
+  bool get isInFocusMode => _focusModeSlot != null;
+  SlotId? get focusModeSlot => _focusModeSlot;
 
   void setSize(SlotId id, double size) {
     final s = _state[id];
     if (s == null) return;
-    final clamped =
-        size.clamp(s.minSize ?? 0, s.maxSize ?? double.infinity).toDouble();
+    final clamped = size.clamp(s.minSize ?? 0, s.maxSize ?? double.infinity).toDouble();
     if (s.size == clamped) return;
     _state[id] = s.copyWith(size: clamped);
     notifyListeners();
@@ -53,12 +54,53 @@ class LayoutArrangement extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Convenience for the default-layout extension: register all slots
-  /// it provides into a [PanelRegistry] with defaults from this preset.
-  void registerSlotsInto(
-    PanelRegistry registry,
-    LayoutPresetContribution preset,
-  ) {
+  void setCollapsed(SlotId id, bool collapsed) {
+    final s = _state[id];
+    if (s == null || s.collapsed == collapsed) return;
+    _state[id] = s.copyWith(collapsed: collapsed);
+    notifyListeners();
+  }
+
+  void toggleCollapsed(SlotId id) {
+    final s = _state[id];
+    if (s == null) return;
+    _state[id] = s.copyWith(collapsed: !s.collapsed);
+    notifyListeners();
+  }
+
+  void enterFocusMode(SlotId slot) {
+    if (_focusModeSlot != null) return;
+    _focusModeSnapshot = {for (final e in _state.entries) e.key: e.value};
+    _focusModeSlot = slot;
+    for (final id in _state.keys) {
+      if (id == slot) {
+        _state[id] = _state[id]!.copyWith(visible: true, collapsed: false);
+      } else {
+        _state[id] = _state[id]!.copyWith(visible: false);
+      }
+    }
+    notifyListeners();
+  }
+
+  void exitFocusMode() {
+    final snap = _focusModeSnapshot;
+    if (snap == null) return;
+    _state.clear();
+    _state.addAll(snap);
+    _focusModeSnapshot = null;
+    _focusModeSlot = null;
+    notifyListeners();
+  }
+
+  void toggleFocusMode(SlotId slot) {
+    if (_focusModeSlot != null) {
+      exitFocusMode();
+    } else {
+      enterFocusMode(slot);
+    }
+  }
+
+  void registerSlotsInto(PanelRegistry registry, LayoutPresetContribution preset) {
     for (final slot in preset.slots) {
       registry.registerSlot(SlotDefinition(
         id: slot.slot,
@@ -78,6 +120,7 @@ class _SlotState {
     this.minSize,
     this.maxSize,
     this.visible = true,
+    this.collapsed = false,
   });
 
   final SlotPosition position;
@@ -85,6 +128,7 @@ class _SlotState {
   final double? minSize;
   final double? maxSize;
   final bool visible;
+  final bool collapsed;
 
   _SlotState copyWith({
     SlotPosition? position,
@@ -92,6 +136,7 @@ class _SlotState {
     double? minSize,
     double? maxSize,
     bool? visible,
+    bool? collapsed,
   }) {
     return _SlotState(
       position: position ?? this.position,
@@ -99,6 +144,7 @@ class _SlotState {
       minSize: minSize ?? this.minSize,
       maxSize: maxSize ?? this.maxSize,
       visible: visible ?? this.visible,
+      collapsed: collapsed ?? this.collapsed,
     );
   }
 }

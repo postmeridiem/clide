@@ -18,6 +18,28 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Interaction model from Wireframe Flows v3: eight new D-records
+  (D-047 through D-054) and five Q-records (Q-026 through Q-030)
+  codifying layout invariants, chrome budget, editor mode, context
+  auto-behavior, collapse spine, focus mode, state persistence, and
+  the canonical keyboard map.
+
+- Panel collapse spine — collapsed side panels render as a 12px
+  vertical spine with rotated label, hover highlight, and badge dot
+  for pending context (D-051, T-030).
+
+- Focus mode — `Ctrl+.` takes the active panel full-window;
+  `Escape` restores the prior layout with collapse states and
+  divider positions intact (D-052, T-031).
+
+- Canonical keyboard shortcuts from the interaction model: collapse
+  toggles (`Ctrl+Shift+1/3`), panel focus (`Ctrl+1/2/3`), sidebar
+  section switching (`Alt+1–5`), focus mode, and `Escape` dismiss
+  (D-054, T-033).
+
+- Right panel (context) icon rail — bottom section switcher matching
+  the left sidebar rail pattern (D-047, T-034).
+
 - Syntax highlighting via tree-sitter (dart:ffi to vendored
   libtree-sitter.so with embedded wasmtime). 48 grammar WASM files,
   48 highlight queries. Colors map to theme syntax tokens.

@@ -46,5 +46,59 @@ void main() {
       expect(r.definitionFor(Slots.sidebar), isNotNull);
       expect(r.definitionFor(Slots.statusbar), isNotNull);
     });
+
+    test('setCollapsed toggles collapsed state', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      expect(a.isCollapsed(Slots.sidebar), false);
+      a.setCollapsed(Slots.sidebar, true);
+      expect(a.isCollapsed(Slots.sidebar), true);
+      expect(a.isVisible(Slots.sidebar), true);
+    });
+
+    test('toggleCollapsed flips collapsed flag', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.toggleCollapsed(Slots.sidebar);
+      expect(a.isCollapsed(Slots.sidebar), true);
+      a.toggleCollapsed(Slots.sidebar);
+      expect(a.isCollapsed(Slots.sidebar), false);
+    });
+
+    test('enterFocusMode hides all slots except the focused one', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.enterFocusMode(Slots.workspace);
+      expect(a.isInFocusMode, true);
+      expect(a.focusModeSlot, Slots.workspace);
+      expect(a.isVisible(Slots.workspace), true);
+      expect(a.isVisible(Slots.sidebar), false);
+      expect(a.isVisible(Slots.contextPanel), false);
+    });
+
+    test('exitFocusMode restores prior layout', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.setCollapsed(Slots.sidebar, true);
+      a.setSize(Slots.contextPanel, 300);
+      a.enterFocusMode(Slots.workspace);
+      a.exitFocusMode();
+      expect(a.isInFocusMode, false);
+      expect(a.isVisible(Slots.sidebar), true);
+      expect(a.isCollapsed(Slots.sidebar), true);
+      expect(a.sizeOf(Slots.contextPanel), 300);
+    });
+
+    test('toggleFocusMode enters then exits', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.toggleFocusMode(Slots.workspace);
+      expect(a.isInFocusMode, true);
+      a.toggleFocusMode(Slots.workspace);
+      expect(a.isInFocusMode, false);
+      expect(a.isVisible(Slots.sidebar), true);
+    });
+
+    test('applyPreset clears focus mode', () {
+      final a = LayoutArrangement()..applyPreset(classicPreset());
+      a.enterFocusMode(Slots.workspace);
+      a.applyPreset(classicPreset());
+      expect(a.isInFocusMode, false);
+    });
   });
 }

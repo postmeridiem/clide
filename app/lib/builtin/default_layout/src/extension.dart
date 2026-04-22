@@ -8,7 +8,7 @@ class DefaultLayoutExtension extends ClideExtension {
   @override
   String get title => 'Default layout';
   @override
-  String get version => '0.1.0';
+  String get version => '0.2.0';
 
   LayoutPresetContribution? _preset;
   ClideExtensionContext? _ctx;
@@ -29,20 +29,67 @@ class DefaultLayoutExtension extends ClideExtension {
           defaultBinding: 'ctrl+shift+p',
           run: _togglePalette,
         ),
+        // Collapse toggles (D-051, D-054)
         CommandContribution(
-          id: 'sidebar.toggle',
-          command: 'sidebar.toggle',
-          title: 'Toggle Sidebar',
-          defaultBinding: 'ctrl+b',
-          run: _toggleSidebar,
+          id: 'sidebar.collapse',
+          command: 'sidebar.collapse',
+          title: 'Toggle Sidebar Collapse',
+          defaultBinding: 'ctrl+shift+1',
+          run: _collapseSidebar,
         ),
         CommandContribution(
-          id: 'context.toggle',
-          command: 'context.toggle',
-          title: 'Toggle Context Panel',
-          defaultBinding: 'ctrl+j',
-          run: _toggleContext,
+          id: 'context.collapse',
+          command: 'context.collapse',
+          title: 'Toggle Context Panel Collapse',
+          defaultBinding: 'ctrl+shift+3',
+          run: _collapseContext,
         ),
+        // Panel focus (D-054)
+        CommandContribution(
+          id: 'panel.focus.left',
+          command: 'panel.focus.left',
+          title: 'Focus Left Panel',
+          defaultBinding: 'ctrl+1',
+          run: _focusLeft,
+        ),
+        CommandContribution(
+          id: 'panel.focus.middle',
+          command: 'panel.focus.middle',
+          title: 'Focus Middle Panel',
+          defaultBinding: 'ctrl+2',
+          run: _focusMiddle,
+        ),
+        CommandContribution(
+          id: 'panel.focus.right',
+          command: 'panel.focus.right',
+          title: 'Focus Right Panel',
+          defaultBinding: 'ctrl+3',
+          run: _focusRight,
+        ),
+        // Focus mode (D-052, D-054)
+        CommandContribution(
+          id: 'panel.focusMode',
+          command: 'panel.focusMode',
+          title: 'Toggle Focus Mode',
+          defaultBinding: 'ctrl+.',
+          run: _toggleFocusMode,
+        ),
+        CommandContribution(
+          id: 'panel.focusMode.exit',
+          command: 'panel.focusMode.exit',
+          title: 'Exit Focus Mode',
+          defaultBinding: 'escape',
+          run: _exitFocusMode,
+        ),
+        // Sidebar section switching (D-054): alt+1 through alt+5
+        for (var i = 0; i < 5; i++)
+          CommandContribution(
+            id: 'sidebar.section.${i + 1}',
+            command: 'sidebar.section.${i + 1}',
+            title: 'Sidebar: Section ${i + 1}',
+            defaultBinding: 'alt+${i + 1}',
+            run: (args) => _switchSidebarSection(i),
+          ),
       ];
 
   @override
@@ -56,9 +103,7 @@ class DefaultLayoutExtension extends ClideExtension {
   Future<IpcResponse> _reset(List<String> args) async {
     final preset = _preset;
     final ctx = _ctx;
-    if (preset == null || ctx == null) {
-      return _notActivated();
-    }
+    if (preset == null || ctx == null) return _notActivated();
     ctx.arrangement.applyPreset(preset);
     return IpcResponse.ok(id: '', data: {'preset': preset.id});
   }
@@ -70,20 +115,92 @@ class DefaultLayoutExtension extends ClideExtension {
     return IpcResponse.ok(id: '', data: {'open': ctx.palette.isOpen});
   }
 
-  Future<IpcResponse> _toggleSidebar(List<String> args) async {
+  Future<IpcResponse> _collapseSidebar(List<String> args) async {
     final ctx = _ctx;
     if (ctx == null) return _notActivated();
-    final visible = ctx.arrangement.isVisible(Slots.sidebar);
-    ctx.arrangement.setVisible(Slots.sidebar, !visible);
-    return IpcResponse.ok(id: '', data: {'visible': !visible});
+    ctx.arrangement.toggleCollapsed(Slots.sidebar);
+    final collapsed = ctx.arrangement.isCollapsed(Slots.sidebar);
+    return IpcResponse.ok(id: '', data: {'collapsed': collapsed});
   }
 
-  Future<IpcResponse> _toggleContext(List<String> args) async {
+  Future<IpcResponse> _collapseContext(List<String> args) async {
     final ctx = _ctx;
     if (ctx == null) return _notActivated();
-    final visible = ctx.arrangement.isVisible(Slots.contextPanel);
-    ctx.arrangement.setVisible(Slots.contextPanel, !visible);
-    return IpcResponse.ok(id: '', data: {'visible': !visible});
+    ctx.arrangement.toggleCollapsed(Slots.contextPanel);
+    final collapsed = ctx.arrangement.isCollapsed(Slots.contextPanel);
+    return IpcResponse.ok(id: '', data: {'collapsed': collapsed});
+  }
+
+  Future<IpcResponse> _focusLeft(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    if (ctx.arrangement.isCollapsed(Slots.sidebar)) {
+      ctx.arrangement.setCollapsed(Slots.sidebar, false);
+    }
+    final active = ctx.panels.activeTabIn(Slots.sidebar);
+    if (active != null) {
+      ctx.focus.setActive(slot: Slots.sidebar, contributionId: active);
+    }
+    return IpcResponse.ok(id: '', data: {'focused': 'sidebar'});
+  }
+
+  Future<IpcResponse> _focusMiddle(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    final active = ctx.panels.activeTabIn(Slots.workspace);
+    if (active != null) {
+      ctx.focus.setActive(slot: Slots.workspace, contributionId: active);
+    }
+    return IpcResponse.ok(id: '', data: {'focused': 'workspace'});
+  }
+
+  Future<IpcResponse> _focusRight(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    if (ctx.arrangement.isCollapsed(Slots.contextPanel)) {
+      ctx.arrangement.setCollapsed(Slots.contextPanel, false);
+    }
+    final active = ctx.panels.activeTabIn(Slots.contextPanel);
+    if (active != null) {
+      ctx.focus.setActive(slot: Slots.contextPanel, contributionId: active);
+    }
+    return IpcResponse.ok(id: '', data: {'focused': 'context'});
+  }
+
+  Future<IpcResponse> _toggleFocusMode(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    final activeSlot = ctx.focus.activeSlot ?? Slots.workspace;
+    ctx.arrangement.toggleFocusMode(activeSlot);
+    return IpcResponse.ok(id: '', data: {'focusMode': ctx.arrangement.isInFocusMode});
+  }
+
+  Future<IpcResponse> _exitFocusMode(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    if (ctx.arrangement.isInFocusMode) {
+      ctx.arrangement.exitFocusMode();
+      return IpcResponse.ok(id: '', data: {'focusMode': false});
+    }
+    if (ctx.palette.isOpen) {
+      ctx.palette.toggle();
+      return IpcResponse.ok(id: '', data: {'palette': false});
+    }
+    return IpcResponse.ok(id: '', data: {});
+  }
+
+  Future<IpcResponse> _switchSidebarSection(int index) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    if (ctx.arrangement.isCollapsed(Slots.sidebar)) {
+      ctx.arrangement.setCollapsed(Slots.sidebar, false);
+    }
+    final tabs = ctx.panels.tabsFor(Slots.sidebar);
+    if (index < tabs.length) {
+      ctx.panels.activateTab(Slots.sidebar, tabs[index].id);
+      return IpcResponse.ok(id: '', data: {'section': tabs[index].id});
+    }
+    return IpcResponse.ok(id: '', data: {});
   }
 
   static IpcResponse _notActivated() => IpcResponse.err(
