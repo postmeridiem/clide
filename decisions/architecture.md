@@ -198,4 +198,13 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first), [D-052](#d-052-focus-mode-full-window-takeover).
 - **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
 
+### D-055: Claude pane internal tabs for multi-session
+- **Date:** 2026-04-23
+- **Decision:** Multiple Claude sessions share the workspace as internal tabs inside the Claude pane header — not as workspace-level tabs (which would violate [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first)). The primary session tab has no close affordance (per [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed)). Secondary session tabs show a close `×`. A small `+` button sits at the right end of the tab row to spawn a new secondary. Double-clicking empty space in the tab row also spawns a new secondary. When a secondary is closed, focus collapses to the most-recently-active remaining tab (primary or another secondary). The tab row is hidden when only the primary exists — it appears on first secondary spawn and disappears when the last secondary closes. Session names in the tab row use the tmux session name slug (readable path, per the session naming convention).
+- **Amendment to [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed):** D-041 defined the lifecycle (primary persists, secondaries are ephemeral, close semantics) but left the multi-session UI unspecified. This record fills that gap. The `claude.new-secondary` command (already registered but not wired) is the spawn mechanism; the tab row is the UI surface.
+- **Rationale:** The workspace is Claude's space ([D-047](#d-047-interaction-model-claude-is-home-layout)). Multiple Claude sessions are a Claude concern, not a workspace concern. Internal tabs keep the multiplicity contained — the workspace slot doesn't know how many sessions exist, it just renders the Claude pane. The hide-when-one rule keeps the common case (single primary) chrome-free.
+- **Cost:** The Claude pane grows its own tab model (lightweight — just a list of session IDs + which is active). The `builtin.claude` extension owns this; no kernel changes needed.
+- **Cross-reference:** [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed), [D-047](#d-047-interaction-model-claude-is-home-layout), [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first).
+- **Raised by:** 2026-04-23 interaction model refinement.
+
 ---
