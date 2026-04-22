@@ -1,17 +1,37 @@
+import 'package:clide_app/builtin/pql/src/backlinks_view.dart';
+import 'package:clide_app/builtin/pql/src/pql_panel_view.dart';
 import 'package:clide_app/extension/extension.dart';
+import 'package:clide_app/kernel/kernel.dart';
 
-/// Tier-0 stub. Real implementation lands in a later tier; the extension
-/// is registered so the extensions-ui surface can list it as "installed,
-/// not yet implemented" and its id is reserved.
 class PqlExtension extends ClideExtension {
   @override
   String get id => 'builtin.pql';
   @override
   String get title => 'pql';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
   List<String> get dependsOn => const [];
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  List<ContributionPoint> get contributions => [
+        TabContribution(
+          id: 'pql.panel',
+          slot: Slots.sidebar,
+          title: 'pql',
+          titleKey: 'tab.title',
+          i18nNamespace: id,
+          priority: -60,
+          build: (_) => const PqlPanelView(),
+        ),
+        TabContribution(
+          id: 'pql.backlinks',
+          slot: Slots.contextPanel,
+          title: 'Links',
+          titleKey: 'tab.links',
+          i18nNamespace: id,
+          priority: -80,
+          build: (_) => const BacklinksView(),
+        ),
+      ];
 }

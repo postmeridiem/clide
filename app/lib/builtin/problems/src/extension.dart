@@ -1,17 +1,27 @@
+import 'package:clide_app/builtin/problems/src/problems_view.dart';
 import 'package:clide_app/extension/extension.dart';
+import 'package:clide_app/kernel/kernel.dart';
 
-/// Tier-0 stub. Real implementation lands in a later tier; the extension
-/// is registered so the extensions-ui surface can list it as "installed,
-/// not yet implemented" and its id is reserved.
 class ProblemsExtension extends ClideExtension {
   @override
   String get id => 'builtin.problems';
   @override
   String get title => 'Problems';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
-  List<String> get dependsOn => const [];
+  List<String> get dependsOn => const ['builtin.pql'];
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  List<ContributionPoint> get contributions => [
+        TabContribution(
+          id: 'problems.panel',
+          slot: Slots.sidebar,
+          title: 'Problems',
+          titleKey: 'tab.title',
+          i18nNamespace: id,
+          priority: -50,
+          build: (_) => const ProblemsView(),
+        ),
+      ];
 }

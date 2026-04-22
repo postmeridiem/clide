@@ -25,6 +25,23 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 - `Bash(pql)` and `Bash(pql *)` permissions in
   `.claude/settings.json`.
 
+- pql daemon subsystem (`lib/src/pql/`). `PqlClient` wraps the pql
+  CLI per D-003. IPC verbs `pql.files | meta | backlinks | outlinks
+  | tags | schema | query | doctor | decisions.sync | decisions.list
+  | decisions.show | decisions.coverage | tickets.list | tickets.show
+  | tickets.board | plan.status`. 15 new core tests.
+
+- `builtin.pql` — sidebar panel with four views: Files (pql-indexed
+  file listing), Query (PQL DSL input + results), Decisions (synced
+  D/Q/R records colour-coded by type), Tickets (kanban board columns).
+  Context panel tab showing backlinks + outlinks for the active file,
+  auto-refreshing on `editor.active-changed` events.
+
+- `builtin.problems` — sidebar panel aggregating diagnostics from
+  `pql.doctor` and `pql.decisions.sync`. Surfaces missing index DB,
+  stale skill installs, and broken decision cross-references with
+  actionable hints.
+
 - Git subsystem in the daemon (`lib/src/git/`). Status parser
   (`git status --porcelain`), unified-diff parser, and operations
   (stage, unstage, stage-hunk, discard, commit, stash, log, pull,
