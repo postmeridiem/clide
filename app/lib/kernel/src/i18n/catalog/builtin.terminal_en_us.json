@@ -1,0 +1,7 @@
+{
+  "tab.title": { "translation": "Terminal" },
+  "subtitle.spawning": { "translation": "spawning shell…" },
+  "subtitle.exited": { "translation": "Shell exited." },
+  "error.unavailable": { "translation": "Terminal unavailable" },
+  "error.daemon": { "translation": "Daemon not connected. Start `clide --daemon`." }
+}

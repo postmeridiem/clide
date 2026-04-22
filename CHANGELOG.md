@@ -18,6 +18,16 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- `builtin.terminal` — general-purpose terminal pane, Tier-1 stub
+  upgraded to a working implementation. Contributes a `Terminal` tab
+  in the workspace slot that spawns `$SHELL -l` via IPC
+  `pane.spawn`, streams `pane.output` events into `xterm.dart`, and
+  routes user input through `pane.write`. Resize propagates via
+  `pane.resize` on viewport change. `initState` → spawn;
+  `dispose` → `pane.close`. Error-state surface for "daemon not
+  connected" / "shell exited." No Claude-specific behaviour — that
+  lives in `builtin.claude` + D-041.
+
 - Shared pane widgets under `app/lib/widgets/`: `ClidePtyView` wraps
   `xterm.dart` with clide-theme token bindings, JetBrains Mono as the
   face, and a Semantics live-region wrapper; `ClidePaneChrome` is the
