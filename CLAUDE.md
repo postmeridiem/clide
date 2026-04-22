@@ -62,6 +62,7 @@ See `docs/initial-plan.md` for the full tier definitions and acceptance criteria
 
 ```
 make build           # dart compile exe bin/clide.dart -o bin/clide
+make run             # build daemon + launch Flutter desktop app
 make test            # flutter test
 make test-integration# daemon + CLI + fixture-repo suite
 make analyze         # flutter analyze

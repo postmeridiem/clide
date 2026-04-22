@@ -37,6 +37,24 @@ else
 	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
 
+.PHONY: run
+run: ## Build the daemon + launch the Flutter desktop app.
+ifeq ($(APP_PRESENT),yes)
+	@# Build the CLI/daemon binary if stale.
+	$(MAKE) build
+	@# Start daemon in background, then launch app.
+	@echo "Starting daemon…"
+	@bin/clide --daemon &
+	@DAEMON_PID=$$!; \
+	trap 'kill $$DAEMON_PID 2>/dev/null' EXIT; \
+	echo "Daemon PID $$DAEMON_PID"; \
+	echo "Launching Flutter app…"; \
+	cd app && flutter run -d linux; \
+	kill $$DAEMON_PID 2>/dev/null || true
+else
+	@echo "(pubspec.yaml not scaffolded yet; skipping)"
+endif
+
 .PHONY: install
 install: build ## Install bin/clide into $(INSTALL_DIR).
 ifeq ($(APP_PRESENT),yes)
