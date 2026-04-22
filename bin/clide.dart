@@ -18,6 +18,7 @@ import 'package:clide/clide.dart';
 // can't compile for web. See lib/clide.dart for the barrel split.
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
+import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/panes/registry.dart';
@@ -65,6 +66,8 @@ Future<void> main(List<String> argv) async {
       );
     case 'save':
       await _runCliArgs('editor.save', const {}, exitOnOk: true);
+    case 'git':
+      await _runGit(rest);
     case 'tail':
       await _runTail(rest);
     default:
@@ -102,6 +105,20 @@ Editor (tier 2):
                           `-` reads text from stdin.
   save                    Save the active buffer (editor.save).
 
+Git (tier 3):
+  git status              Working tree status (staged/unstaged/conflicts).
+  git diff [--staged] [P] Diff for file(s) P, or all if omitted.
+  git stage <paths…>      Stage files (git add).
+  git stage-all           Stage everything (git add -A).
+  git unstage [paths…]    Unstage files (git reset HEAD).
+  git discard <paths…>    Discard unstaged changes in files.
+  git commit "<msg>"      Commit staged changes.
+  git log [--count N]     Recent commit log (default 20).
+  git stash [--message M] Stash working changes.
+  git stash-pop           Pop the top stash entry.
+  git pull                Pull from remote.
+  git push [remote] [br]  Push to remote.
+
 Event subscription:
   tail --events [--filter SUBSYSTEM[:ID]]
                           Stream events as JSON lines. --filter keeps
@@ -132,6 +149,8 @@ Future<void> _runDaemon(List<String> args) async {
 
   final editor = EditorRegistry(events: events, workspaceRoot: files.root);
   registerEditorCommands(dispatcher, editor);
+
+  registerGitCommands(dispatcher, files.root, events);
 
   final stopping = Completer<void>();
   void shutdown(ProcessSignal sig) {
@@ -253,6 +272,77 @@ Future<void> _runCliArgs(
       message: 'bad response from daemon: $e',
     );
     exit(IpcExitCode.toolError);
+  }
+}
+
+/// `clide git <verb> [args]` — maps to `git.*` IPC verbs.
+Future<void> _runGit(List<String> args) async {
+  if (args.isEmpty) {
+    _die('usage: clide git <verb> [args…]');
+  }
+  switch (args.first) {
+    case 'status':
+      await _runCliArgs('git.status', const {}, exitOnOk: true);
+    case 'diff':
+      final staged = args.contains('--staged');
+      final paths = args.sublist(1).where((a) => !a.startsWith('--')).toList();
+      await _runCliArgs(
+        'git.diff',
+        {'staged': staged, if (paths.isNotEmpty) 'paths': paths},
+        exitOnOk: true,
+      );
+    case 'stage':
+      final paths = args.sublist(1);
+      if (paths.isEmpty) _die('usage: clide git stage <path…>');
+      await _runCliArgs('git.stage', {'paths': paths}, exitOnOk: true);
+    case 'stage-all':
+      await _runCliArgs('git.stage-all', const {}, exitOnOk: true);
+    case 'unstage':
+      final paths = args.sublist(1);
+      await _runCliArgs('git.unstage', {'paths': paths}, exitOnOk: true);
+    case 'discard':
+      final paths = args.sublist(1);
+      if (paths.isEmpty) _die('usage: clide git discard <path…>');
+      await _runCliArgs('git.discard', {'paths': paths}, exitOnOk: true);
+    case 'commit':
+      if (args.length < 2) _die('usage: clide git commit "<message>"');
+      final message = args.sublist(1).join(' ');
+      await _runCliArgs('git.commit', {'message': message}, exitOnOk: true);
+    case 'log':
+      var count = 20;
+      for (var i = 1; i < args.length; i++) {
+        if (args[i] == '--count' && i + 1 < args.length) {
+          count = int.tryParse(args[i + 1]) ?? 20;
+        }
+      }
+      await _runCliArgs('git.log', {'count': count}, exitOnOk: true);
+    case 'stash':
+      String? message;
+      for (var i = 1; i < args.length; i++) {
+        if (args[i] == '--message' && i + 1 < args.length) {
+          message = args[i + 1];
+        }
+      }
+      await _runCliArgs(
+        'git.stash',
+        {if (message != null) 'message': message},
+        exitOnOk: true,
+      );
+    case 'stash-pop':
+      await _runCliArgs('git.stash-pop', const {}, exitOnOk: true);
+    case 'pull':
+      await _runCliArgs('git.pull', const {}, exitOnOk: true);
+    case 'push':
+      final rest = args.sublist(1);
+      final setUpstream = rest.contains('-u');
+      final positional = rest.where((a) => a != '-u').toList();
+      await _runCliArgs('git.push', {
+        if (setUpstream) 'setUpstream': true,
+        if (positional.isNotEmpty) 'remote': positional[0],
+        if (positional.length > 1) 'branch': positional[1],
+      }, exitOnOk: true);
+    default:
+      _die('unknown git verb: ${args.first}');
   }
 }
 
