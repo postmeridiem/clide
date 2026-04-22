@@ -199,16 +199,18 @@ Future<List<({String name, bool current})>> gitBranches(
     Directory workDir) async {
   final r = await Process.run(
     'git',
-    ['branch', '--format=%(refname:short)\x00%(HEAD)'],
+    ['branch', '--format=%(refname:short)|%(HEAD)'],
     workingDirectory: workDir.path,
   );
   if (r.exitCode != 0) return const [];
   final out = <({String name, bool current})>[];
   for (final line in (r.stdout as String).split('\n')) {
     if (line.trim().isEmpty) continue;
-    final parts = line.split('\x00');
-    if (parts.length < 2) continue;
-    out.add((name: parts[0], current: parts[1].trim() == '*'));
+    final sep = line.lastIndexOf('|');
+    if (sep < 0) continue;
+    final name = line.substring(0, sep);
+    final head = line.substring(sep + 1).trim();
+    out.add((name: name, current: head == '*'));
   }
   return out;
 }
