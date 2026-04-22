@@ -113,7 +113,60 @@ class DefaultLayoutExtension extends ClideExtension {
     _preset = classicPreset();
     ctx.arrangement.registerSlotsInto(ctx.panels, _preset!);
     ctx.arrangement.applyPreset(_preset!);
+    _restoreLayout(ctx);
+    ctx.arrangement.addListener(() => _persistLayout(ctx));
+    ctx.panels.addListener(() => _persistActiveTabs(ctx));
   }
+
+  void _restoreLayout(ClideExtensionContext ctx) {
+    final s = ctx.settings;
+    final sidebarCollapsed = s.get<bool>(_kSidebarCollapsed);
+    if (sidebarCollapsed != null) {
+      ctx.arrangement.setCollapsed(Slots.sidebar, sidebarCollapsed);
+    }
+    final contextCollapsed = s.get<bool>(_kContextCollapsed);
+    if (contextCollapsed != null) {
+      ctx.arrangement.setCollapsed(Slots.contextPanel, contextCollapsed);
+    }
+    final sidebarSize = s.get<double>(_kSidebarSize);
+    if (sidebarSize != null) ctx.arrangement.setSize(Slots.sidebar, sidebarSize);
+    final contextSize = s.get<double>(_kContextSize);
+    if (contextSize != null) ctx.arrangement.setSize(Slots.contextPanel, contextSize);
+    final editorRatio = s.get<double>(_kEditorRatio);
+    if (editorRatio != null) ctx.arrangement.setEditorRatio(editorRatio);
+    final activeLeft = s.get<String>(_kActiveLeft);
+    if (activeLeft != null) ctx.panels.activateTab(Slots.sidebar, activeLeft);
+    final activeRight = s.get<String>(_kActiveRight);
+    if (activeRight != null) ctx.panels.activateTab(Slots.contextPanel, activeRight);
+  }
+
+  void _persistLayout(ClideExtensionContext ctx) {
+    if (ctx.settings.projectDir == null) return;
+    final s = ctx.settings;
+    final a = ctx.arrangement;
+    s.set(_kSidebarCollapsed, a.isCollapsed(Slots.sidebar));
+    s.set(_kContextCollapsed, a.isCollapsed(Slots.contextPanel));
+    s.set(_kSidebarSize, a.sizeOf(Slots.sidebar));
+    s.set(_kContextSize, a.sizeOf(Slots.contextPanel));
+    s.set(_kEditorRatio, a.editorRatio);
+  }
+
+  void _persistActiveTabs(ClideExtensionContext ctx) {
+    if (ctx.settings.projectDir == null) return;
+    final s = ctx.settings;
+    final left = ctx.panels.activeTabIn(Slots.sidebar);
+    if (left != null) s.set(_kActiveLeft, left);
+    final right = ctx.panels.activeTabIn(Slots.contextPanel);
+    if (right != null) s.set(_kActiveRight, right);
+  }
+
+  static const _kSidebarCollapsed = 'project.layout.sidebar.collapsed';
+  static const _kContextCollapsed = 'project.layout.context.collapsed';
+  static const _kSidebarSize = 'project.layout.sidebar.size';
+  static const _kContextSize = 'project.layout.context.size';
+  static const _kEditorRatio = 'project.layout.editor.ratio';
+  static const _kActiveLeft = 'project.layout.sidebar.activeTab';
+  static const _kActiveRight = 'project.layout.context.activeTab';
 
   Future<IpcResponse> _reset(List<String> args) async {
     final preset = _preset;

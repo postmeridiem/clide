@@ -45,6 +45,10 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   `Ctrl+W` or `Escape` closes it. Prompt bar Y stays fixed
   (D-049, T-035).
 
+- Layout state persists across sessions — collapse state, sidebar
+  and context panel sizes, active sections, and editor split ratio
+  saved to `.clide/settings.yaml` (D-053, T-032).
+
 ### Changed
 
 - Workspace renders Claude as the always-visible primary surface
