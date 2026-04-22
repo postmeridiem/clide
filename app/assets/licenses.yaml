@@ -1,0 +1,76 @@
+# clide — bundled-dependency manifest.
+#
+# Every third-party artefact that ships in the clide binary is listed
+# here: fonts, Dart packages, native supporter tools, bundled data.
+# The About screen reads this file and renders the entries verbatim.
+#
+# Adding a new bundled dependency is a two-step commit:
+#   1. Add the dependency itself (font file, `pubspec.yaml` entry, etc.)
+#   2. Add the entry below in the same commit, so the About screen stays
+#      accurate and the prefer-zero-deps guardrail is enforced by the
+#      obvious visible consequence: an extra row in the list.
+#
+# See CLAUDE.md "Dependencies & supply chain" for the full rule, and
+# `decisions/tooling.md` for the D-record that pins it.
+
+schema_version: 1
+
+dependencies:
+  - name: JetBrains Mono
+    kind: font
+    version: "2.304"
+    homepage: https://github.com/JetBrains/JetBrainsMono
+    license: OFL-1.1
+    license_file: assets/fonts/jetbrains_mono/OFL.txt
+    purpose: >-
+      Monospace face for terminal panes, diff views, code editors, and
+      any other monospace surface.
+    weights_bundled: [Regular, Italic, Bold, BoldItalic]
+
+  - name: Josefin Sans
+    kind: font
+    version: "variable"
+    homepage: https://fonts.google.com/specimen/Josefin+Sans
+    license: OFL-1.1
+    license_file: assets/fonts/josefin_sans/OFL.txt
+    purpose: >-
+      Application UI face. Default weight Light (300); full 100-700
+      range available via the variable-font weight axis.
+    weights_bundled: [VariableFont, Italic-VariableFont]
+
+  - name: yaml
+    kind: dart-package
+    version: "3.1.3"
+    homepage: https://pub.dev/packages/yaml
+    license: MIT
+    purpose: >-
+      YAML parser for theme files and extension manifests. The one
+      justified exception to prefer-zero-deps; Dart-team maintained.
+
+  - name: mocktail
+    kind: dart-package
+    version: "1.0.4"
+    homepage: https://pub.dev/packages/mocktail
+    license: MIT
+    purpose: >-
+      Test-only. Mocks at IO / IPC boundaries. ChangeNotifier facades
+      use hand-rolled fakes instead of mocks (D-025).
+    scope: dev
+
+  - name: alchemist
+    kind: dart-package
+    version: "0.12.1"
+    homepage: https://pub.dev/packages/alchemist
+    license: MIT
+    purpose: >-
+      Test-only. Golden-test framework; Ahem-font rendering for
+      cross-platform pixel stability on widget primitives (D-024).
+    scope: dev
+
+  - name: flutter_lints
+    kind: dart-package
+    version: "6.0.0"
+    homepage: https://pub.dev/packages/flutter_lints
+    license: BSD-3-Clause
+    purpose: Test-only. Flutter-team-recommended analyzer lint set.
+    scope: dev

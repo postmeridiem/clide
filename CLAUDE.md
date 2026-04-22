@@ -51,6 +51,7 @@ See `docs/initial-plan.md` for the full tier definitions and acceptance criteria
 ## Dependencies & supply chain
 
 - **Dart (core + app):** prefer-zero-deps. Flutter-SDK widgets first; third-party packages need justification. What stays is exact-pinned in `pubspec.yaml` (no caret ranges). Advisories reviewed before every bump; `pubspec.lock` committed.
+- **Document every bundled dependency.** Every third-party artefact that ships in the clide binary — Dart packages, fonts, bundled assets, native supporter tools — is listed in [`app/assets/licenses.yaml`](app/assets/licenses.yaml) with name, kind, version, homepage, license, relative path to the bundled license text, and a one-line purpose. Adding a dep is a two-step commit: add the artefact **and** the `licenses.yaml` entry in the same changeset. The About screen (Tier 6) renders the file verbatim; until then, the list being accurate is the contract. See [`D-042`](decisions/tooling.md#d-042-bundled-dependencies-documented-in-licensesyaml).
 - **`ptyc` and any future native supporter tool:** no dep graph by design (libc-only for `ptyc`). "Audit" is reading the source before each bump.
 - `pubspec.lock` is always committed.
 - `make security` runs the Dart advisory review; `ci/security.sh` is the CI entry.

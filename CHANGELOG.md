@@ -18,15 +18,37 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Josefin Sans bundled as `app/assets/fonts/josefin_sans/` as the
+  application UI face — variable-font pair (upright + italic, weight
+  range 100-700), OFL-licensed. Declared as the `JosefinSans` family
+  in `app/pubspec.yaml`. `_AppRoot` installs it as the ambient
+  `DefaultTextStyle` at weight `w300` (Light) per the project's
+  aesthetic direction; callers can still pass an explicit
+  `fontWeight` on `ClideText` to get bolder emphasis.
+
 - JetBrains Mono bundled as `app/assets/fonts/jetbrains_mono/` —
   Regular / Italic / Bold / BoldItalic weights (OFL-licensed,
   license file checked in alongside). Declared as the `JetBrainsMono`
   family in `app/pubspec.yaml`. `app/lib/widgets/src/typography.dart`
-  exposes `clideMonoFamily` + `clideMonoFamilyFallback` for terminal
-  panes and any other monospace surface; fallback chain covers
-  macOS / Linux / Windows for the web build path and for harnesses
-  that don't load asset fonts. Additional weights
-  (Thin/Light/Medium/ExtraBold) can be added on demand.
+  exposes `clideUiFamily` + `clideMonoFamily` plus platform-ordered
+  fallback chains for both faces, for web builds and harnesses that
+  don't load asset fonts.
+
+- `app/assets/licenses.yaml` — canonical manifest of every bundled
+  third-party artefact (fonts today; Dart packages + native tools as
+  they land). Schema has name, kind, version, homepage, license,
+  `license_file` pointer, and a one-line purpose. Bundled alongside
+  the per-dep license texts. The About screen (Tier 6) will render
+  this file verbatim. Accompanied by
+  [`D-042`](decisions/tooling.md#d-042-bundled-dependencies-documented-in-licensesyaml):
+  adding a dep is a two-step commit (artefact + `licenses.yaml`
+  entry in the same changeset).
+
+### Changed
+
+- CLAUDE.md "Dependencies & supply chain" section gains the
+  "document every bundled dependency" rule, pointing at
+  `app/assets/licenses.yaml` and `D-042`.
 
 - `ptyc/` — the C PTY-spawn helper, peer of `pql` per
   [`D-005`](decisions/architecture.md#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer).

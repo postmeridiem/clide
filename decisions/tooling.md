@@ -18,6 +18,13 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Cost:** PRs don't run CI yet; `make push-check` is the gate until activation.
 - **Raised by:** 2026-04-21 planning.
 
+### D-042: Bundled dependencies documented in `licenses.yaml`
+- **Date:** 2026-04-22
+- **Decision:** Every third-party artefact bundled into the clide binary — Dart packages, fonts, native supporter tools, bundled data — has an entry in `app/assets/licenses.yaml` with name, kind, version, homepage, license identifier, relative path to the bundled license text, and a one-line purpose. The file is shipped as a Flutter asset and rendered by the About screen (Tier 6). Adding a bundled dependency is a two-step commit: add the artefact **and** the corresponding `licenses.yaml` entry in the same changeset.
+- **Rationale:** Complements [D-031](#d-031-prefer-zero-deps-exact-pin). Prefer-zero-deps is a *budget*; `licenses.yaml` is the *visible consequence*. An extra row in the About screen is a review-time signal that the budget just grew. It also discharges the redistribution obligations bundled licenses impose (OFL, MIT, BSD all require preserving the license text alongside the binary) without ad-hoc NOTICE files.
+- **Cost:** One extra edit per dep. Zero tolerance for drift — an un-listed dep is a contributor-visible bug. Until the About screen lands at Tier 6, `licenses.yaml` is accurate but not rendered; the discipline applies from now regardless so Tier 6 inherits a clean list.
+- **Raised by:** 2026-04-22 planning (user-directed best practice).
+
 ### D-033: Golden-output ignore pattern — `coverage.*` excludes output, not scripts
 - **Date:** 2026-04-21
 - **Decision:** `.gitignore` excludes `coverage.*` (the lcov output files from `flutter test --coverage`). Coverage-related scripts are named `ci/test_coverage.sh` (not `ci/coverage.sh`) to stay outside the pattern.

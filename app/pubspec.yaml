@@ -53,6 +53,13 @@ flutter:
   assets:
     - lib/kernel/src/theme/themes/
     - lib/kernel/src/i18n/catalog/
+    # Bundled-dependency manifest — read by the About screen.
+    # See CLAUDE.md "Dependencies & supply chain" and D-042.
+    - assets/licenses.yaml
+    # License files referenced by licenses.yaml must be bundled too so
+    # the About screen can display each dependency's full license text.
+    - assets/fonts/jetbrains_mono/OFL.txt
+    - assets/fonts/josefin_sans/OFL.txt
 
   # Bundled fonts. OFL-licensed; license files live alongside each.
   #
