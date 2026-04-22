@@ -22,7 +22,7 @@ import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
-import 'dart:io' show Directory, Platform;
+import 'dart:io' show Directory, File, Platform;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/kernel/src/ipc/in_process.dart';
@@ -63,8 +63,9 @@ Future<void> main() async {
       final eventSink = _BusEventSink(events);
       final filesService = FilesService.atCwd(events: eventSink);
       final workRoot = filesService.root;
+      final ptycPath = _resolvePtyc(workRoot.path);
       final paneRegistry = PaneRegistry(events: eventSink);
-      registerPaneCommands(dispatcher, paneRegistry);
+      registerPaneCommands(dispatcher, paneRegistry, defaultPtycPath: ptycPath);
       registerFilesCommands(dispatcher, filesService);
       final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
       registerEditorCommands(dispatcher, editorRegistry);
@@ -151,6 +152,18 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// Every Tier-0 extension that ships an i18n catalog. Extensions
 /// registered but not active (the 17 stubs) don't preload — their
 /// catalogs load lazily on activate in later tiers.
+String _resolvePtyc(String repoRoot) {
+  final candidates = [
+    '$repoRoot/ptyc/bin/ptyc',
+    '${Platform.environment['HOME']}/.local/bin/ptyc',
+    'ptyc',
+  ];
+  for (final c in candidates) {
+    if (File(c).existsSync()) return c;
+  }
+  return 'ptyc';
+}
+
 class _BusEventSink implements DaemonEventSink {
   _BusEventSink(this._bus);
   final EventBus _bus;
