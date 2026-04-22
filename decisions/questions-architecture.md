@@ -31,7 +31,7 @@ ticket persistence.
 
 ### Q-005: IPC wire-format stability + `schema_version:`
 - **Status:** Open
-- **Question:** When do we freeze the IPC envelope / schema and introduce `schema_version:` in `project.yaml`? What's the bump policy for breaking changes?
+- **Question:** When do we freeze the IPC envelope / schema and introduce `schema_version:` in `pubspec.yaml`? What's the bump policy for breaking changes?
 - **Context:** Covered partially by [D-006](architecture.md)'s `v: 1` starting point; CLAUDE.md flags this as "decide when the first real subcommand lands."
 - **Source:** CLAUDE.md "Open questions" footer.
 

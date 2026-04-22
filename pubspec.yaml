@@ -1,8 +1,8 @@
 # clide — Flutter desktop IDE for Claude Code.
 #
-# Single package: UI, core subsystems (IPC, PTY, git, pql), and
-# extensions all live here. The Flutter app hosts the IPC server
-# in-process (D-056); tmux owns session persistence (D-041).
+# Single source of truth for project metadata and dependencies.
+# The Flutter app hosts everything in-process (D-056); tmux owns
+# session persistence (D-041).
 #
 # Prefer-zero-deps; every third-party entry is exact-pinned and
 # justified. No carets. See D-031.
@@ -15,6 +15,17 @@ description: >-
 publish_to: none
 version: 2.0.0-dev
 repository: https://git.schweitz.net/jpmschweitzer/clide
+
+# Project metadata (was project.yaml, folded in per D-056).
+# version: above is the single source of truth. The Makefile reads
+# it for build stamping. Cutting a release bumps version + changelog
+# in one commit.
+#
+# maintainers:
+#   Jeroen Schweitzer <jpmschweitzer@gmail.com>
+# license: MIT
+# status: pre-v2.0, interaction model + panel system landed
+# flutter_channel: stable
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

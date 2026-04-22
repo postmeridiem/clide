@@ -34,7 +34,7 @@ Q&D record system itself, kanban, commit conventions, changelog.
 
 ### D-038: Changelog discipline — Keep a Changelog 1.1.0
 - **Date:** 2026-04-21
-- **Decision:** `CHANGELOG.md` follows Keep a Changelog 1.1.0. Every user-visible commit adds an entry under `## [Unreleased]` in the appropriate subsection (Added / Changed / Deprecated / Removed / Fixed / Security). Cutting a release moves entries under a dated heading and bumps `project.yaml` `version:` in the same commit. Pure bookkeeping commits (comment-only, .gitignore tweak, lint config) skip the changelog.
+- **Decision:** `CHANGELOG.md` follows Keep a Changelog 1.1.0. Every user-visible commit adds an entry under `## [Unreleased]` in the appropriate subsection (Added / Changed / Deprecated / Removed / Fixed / Security). Cutting a release moves entries under a dated heading and bumps `pubspec.yaml` `version:` in the same commit. Pure bookkeeping commits (comment-only, .gitignore tweak, lint config) skip the changelog.
 - **Rationale:** Release notes that have to be written after the fact aren't written. Writing them per commit keeps the log honest.
 - **Cost:** One extra edit per user-visible commit; zero if the change is invisible.
 - **Raised by:** 2026-04-21 planning.

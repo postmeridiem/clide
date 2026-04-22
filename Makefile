@@ -5,7 +5,7 @@
 
 INSTALL_DIR ?= $(HOME)/.local/bin
 
-VERSION_BASE ?= $(shell awk -F': *' '/^version:/ {gsub(/[" ]/,"",$$2); print $$2; exit}' project.yaml)
+VERSION_BASE ?= $(shell awk -F': *' '/^version:/ {gsub(/[" ]/,"",$$2); print $$2; exit}' pubspec.yaml)
 COMMIT       ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 DIRTY        := $(shell git diff --quiet HEAD 2>/dev/null || echo .dirty)
 VERSION      ?= $(VERSION_BASE)+$(COMMIT)$(DIRTY)
