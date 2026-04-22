@@ -22,7 +22,12 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
   libtree-sitter.so with embedded wasmtime). 48 grammar WASM files,
   48 highlight queries. Colors map to theme syntax tokens.
 
+- POLICY.md — project-wide rules for runtime behavior, dependency
+  vetting, vendored binary management, telemetry, and licensing.
+
 ### Changed
+
+- Line length set to 160 across .editorconfig and dart formatter.
 
 - Core frame vs shipped extension boundary defined (D-046). Builtins
   are frame infrastructure only; content extensions are bundled but
