@@ -1,0 +1,55 @@
+# clide theme · clide
+# cool near-black + periwinkle · default
+#
+# Flat palette. Raw hex values — no wrappers, no framework.
+# Layer your semantic roles on top of these keys; surface tokens consume
+# the semantic layer, not palette directly.
+
+name: clide
+dark: true
+subtitle: "cool near-black + periwinkle · default"
+
+palette:
+  bg: "#20202C"
+  bgSunken: "#1A1A24"
+  surface: "#242838"
+  surfaceHi: "#2C3046"
+  border: "#343850"
+  borderHi: "#3C445C"
+  textHi: "#E6E8F2"
+  text: "#B1BBE3"
+  textDim: "#78809C"
+  textMute: "#545C84"
+  accent: "#78A0F8"
+  accentPress: "#6C90DC"
+  accentSoft: "rgba(120,160,248,0.13)"
+  onAccent: "#0D1020"
+  ok: "#7DD3A8"
+  warn: "#E6C370"
+  err: "#E87D7D"
+  info: "#78A0F8"
+
+syntax:
+  keyword: "#C792EA"
+  type: "#78A0F8"
+  string: "#A8D99B"
+  number: "#E6C370"
+  comment: "#545C84"
+  method: "#82B1FF"
+  punct: "#78809C"
+
+# Suggested semantic roles (rename to whatever your pipeline uses):
+#
+#   text          -> palette.textHi
+#   textMuted     -> palette.textDim
+#   textSubtle    -> palette.textMute
+#   bg            -> palette.bg
+#   bgSurface     -> palette.surface
+#   bgHover       -> palette.surfaceHi
+#   divider       -> palette.border
+#   brand         -> palette.accent
+#   brandOn       -> palette.onAccent
+#   status.ok     -> palette.ok
+#   status.warn   -> palette.warn
+#   status.err    -> palette.err
+#   status.info   -> palette.info

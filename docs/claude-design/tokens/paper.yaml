@@ -1,0 +1,55 @@
+# clide theme · paper
+# drafting sheet · red-pencil accent · light
+#
+# Flat palette. Raw hex values — no wrappers, no framework.
+# Layer your semantic roles on top of these keys; surface tokens consume
+# the semantic layer, not palette directly.
+
+name: paper
+dark: false
+subtitle: "drafting sheet · red-pencil accent · light"
+
+palette:
+  bg: "#F4F1EA"
+  bgSunken: "#ECE7DB"
+  surface: "#FBF8F1"
+  surfaceHi: "#ECE7DB"
+  border: "#1A1A1A"
+  borderHi: "#4A4A4A"
+  textHi: "#1A1A1A"
+  text: "#4A4A4A"
+  textDim: "#8A8A82"
+  textMute: "#A8A89E"
+  accent: "#C14B2A"
+  accentPress: "#A03D20"
+  accentSoft: "rgba(193,75,42,0.13)"
+  onAccent: "#FBF8F1"
+  ok: "#2D8A52"
+  warn: "#B88A2A"
+  err: "#B03A2A"
+  info: "#2A6FC1"
+
+syntax:
+  keyword: "#7B3F8C"
+  type: "#2A6FC1"
+  string: "#2D8A52"
+  number: "#B88A2A"
+  comment: "#8A8A82"
+  method: "#1E5D9E"
+  punct: "#4A4A4A"
+
+# Suggested semantic roles (rename to whatever your pipeline uses):
+#
+#   text          -> palette.textHi
+#   textMuted     -> palette.textDim
+#   textSubtle    -> palette.textMute
+#   bg            -> palette.bg
+#   bgSurface     -> palette.surface
+#   bgHover       -> palette.surfaceHi
+#   divider       -> palette.border
+#   brand         -> palette.accent
+#   brandOn       -> palette.onAccent
+#   status.ok     -> palette.ok
+#   status.warn   -> palette.warn
+#   status.err    -> palette.err
+#   status.info   -> palette.info

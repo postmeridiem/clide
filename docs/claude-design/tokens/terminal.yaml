@@ -1,0 +1,55 @@
+# clide theme · terminal
+# near-black + amber · tmux feel
+#
+# Flat palette. Raw hex values — no wrappers, no framework.
+# Layer your semantic roles on top of these keys; surface tokens consume
+# the semantic layer, not palette directly.
+
+name: terminal
+dark: true
+subtitle: "near-black + amber · tmux feel"
+
+palette:
+  bg: "#0A0A0A"
+  bgSunken: "#000000"
+  surface: "#111111"
+  surfaceHi: "#181818"
+  border: "#242424"
+  borderHi: "#2E2E2E"
+  textHi: "#E6E6E6"
+  text: "#BDBDBD"
+  textDim: "#7A7A7A"
+  textMute: "#4A4A4A"
+  accent: "#E0B050"
+  accentPress: "#C29438"
+  accentSoft: "rgba(224,176,80,0.13)"
+  onAccent: "#000000"
+  ok: "#8FDC9B"
+  warn: "#E0B050"
+  err: "#E05050"
+  info: "#A3C4FF"
+
+syntax:
+  keyword: "#E05050"
+  type: "#E0B050"
+  string: "#8FDC9B"
+  number: "#C792EA"
+  comment: "#4A4A4A"
+  method: "#A3C4FF"
+  punct: "#7A7A7A"
+
+# Suggested semantic roles (rename to whatever your pipeline uses):
+#
+#   text          -> palette.textHi
+#   textMuted     -> palette.textDim
+#   textSubtle    -> palette.textMute
+#   bg            -> palette.bg
+#   bgSurface     -> palette.surface
+#   bgHover       -> palette.surfaceHi
+#   divider       -> palette.border
+#   brand         -> palette.accent
+#   brandOn       -> palette.onAccent
+#   status.ok     -> palette.ok
+#   status.warn   -> palette.warn
+#   status.err    -> palette.err
+#   status.info   -> palette.info

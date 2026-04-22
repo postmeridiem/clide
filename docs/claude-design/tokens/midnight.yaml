@@ -1,0 +1,55 @@
+# clide theme · midnight
+# VS Code-adjacent muted dark
+#
+# Flat palette. Raw hex values — no wrappers, no framework.
+# Layer your semantic roles on top of these keys; surface tokens consume
+# the semantic layer, not palette directly.
+
+name: midnight
+dark: true
+subtitle: "VS Code-adjacent muted dark"
+
+palette:
+  bg: "#1E1E1E"
+  bgSunken: "#181818"
+  surface: "#252526"
+  surfaceHi: "#2D2D2E"
+  border: "#333333"
+  borderHi: "#3F3F3F"
+  textHi: "#D4D4D4"
+  text: "#BBBBBB"
+  textDim: "#858585"
+  textMute: "#6A6A6A"
+  accent: "#569CD6"
+  accentPress: "#4785BD"
+  accentSoft: "rgba(86,156,214,0.13)"
+  onAccent: "#0B1220"
+  ok: "#89D185"
+  warn: "#D7BA7D"
+  err: "#F48771"
+  info: "#569CD6"
+
+syntax:
+  keyword: "#C586C0"
+  type: "#4EC9B0"
+  string: "#CE9178"
+  number: "#B5CEA8"
+  comment: "#6A9955"
+  method: "#DCDCAA"
+  punct: "#858585"
+
+# Suggested semantic roles (rename to whatever your pipeline uses):
+#
+#   text          -> palette.textHi
+#   textMuted     -> palette.textDim
+#   textSubtle    -> palette.textMute
+#   bg            -> palette.bg
+#   bgSurface     -> palette.surface
+#   bgHover       -> palette.surfaceHi
+#   divider       -> palette.border
+#   brand         -> palette.accent
+#   brandOn       -> palette.onAccent
+#   status.ok     -> palette.ok
+#   status.warn   -> palette.warn
+#   status.err    -> palette.err
+#   status.info   -> palette.info

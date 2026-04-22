@@ -14,11 +14,12 @@ bundle/
 ├─ Clide Hi-Fi.html               ← 3 hi-fi scenes · 4 swappable themes
 ├─ Clide Design System.html       ← tokens · type · components · syntax
 │
-├─ themes/                        ← DROP-IN Dart files
-│  ├─ clide_theme.dart            (default · cool near-black + periwinkle)
-│  ├─ midnight_theme.dart         (VS Code-adjacent muted dark)
-│  ├─ paper_theme.dart            (drafting-sheet light)
-│  └─ terminal_theme.dart         (near-black + amber)
+├─ tokens/                        ← framework-free token exports
+│  ├─ clide.yaml                  (default · cool near-black + periwinkle)
+│  ├─ midnight.yaml               (VS Code-adjacent muted dark)
+│  ├─ paper.yaml                  (drafting-sheet light)
+│  ├─ terminal.yaml               (near-black + amber)
+│  └─ clide_tokens.dart           (all four themes · pure `dart:ui`, no Material)
 │
 └─ png/                           ← flat renders for tickets / PRs
    ├─ wireframe-layout.png
@@ -42,11 +43,11 @@ Drop the bundle into the repo (e.g. `docs/design/`) and point Claude at it:
 
 ```bash
 claude "read docs/design/README.md and docs/design/Clide\ Design\ System.html,
-         then implement the Clide theme from docs/design/themes/clide_theme.dart
-         so it's wired through kernel/theme.dart"
+         then adopt the clide palette from docs/design/tokens/clide.yaml
+         into our theme pipeline"
 ```
 
-Claude Code can parse the HTML natively and see every token value, component, and layout annotation. It can also read the Dart theme files without conversion.
+Claude Code can parse the HTML natively and see every token value, component, and layout annotation. The YAML files match the clide theme pipeline format; the Dart file is there as a convenience for literal-paste.
 
 ---
 
@@ -57,6 +58,8 @@ Claude Code can parse the HTML natively and see every token value, component, an
 - **Display** — `Josefin Sans 300` for titles, section heads, and the wordmark. Light weight is load-bearing; using 400+ changes the feel entirely.
 - **UI + code** — `JetBrains Mono 400/500` for everything else. Tab labels, file paths, status bar, editor. Monospace is a deliberate choice — clide is an IDE for people who like their grids.
 
+> **Open question** — whether UI chrome text should be mono too, or reserved for code surfaces only. The hi-fi currently runs mono across the board; swapping to a prop sans in chrome is a ~5-file edit.
+
 ### 2 · Layout (classicPreset)
 
 Three columns + statusbar. Every box in the frame is a `SlotHost` slot populated by `TabContribution`s sorted by priority (lower = leftmost tab).
@@ -64,18 +67,20 @@ Three columns + statusbar. Every box in the frame is a `SlotHost` slot populated
 ```
 ┌────────────┬──────────────────────┬──────────────┐
 │ sidebar    │ workspace            │ context      │
-│ 240 px     │ flex                 │ 300 px       │
-│ 180–400    │                      │ 220–420      │
+│ 180 px     │ flex                 │ 300 px       │
+│ 160–360    │                      │ 220–420      │
 ├────────────┴──────────────────────┴──────────────┤
 │ statusbar · 24 px                                │
 └──────────────────────────────────────────────────┘
 ```
 
+Sidebar navigates via a bottom **icon rail** (Files / Git / pql / Problems), not tabs at the top.
+
 See `Wireframe.html` for the full architectural breakdown — every red-pencil annotation cites the source file it came from.
 
 ### 3 · Themes
 
-Four presets ship by default. `clide` is the reference — the other three are variations on the same component vocabulary, differing only in token values.
+Four presets ship by default. `clide` is the reference — the other three are variations on the same component vocabulary, differing only in palette values.
 
 | name       | bg        | accent    | feel                          |
 |------------|-----------|-----------|-------------------------------|
@@ -84,20 +89,78 @@ Four presets ship by default. `clide` is the reference — the other three are v
 | `paper`    | `#F4F1EA` | `#C14B2A` | drafting sheet · light        |
 | `terminal` | `#0A0A0A` | `#E0B050` | near-black + amber            |
 
-All four share the same semantic token names (`bg`, `surface`, `border`, `text`, `accent`, `ok/warn/err/info`, syntax roles). A widget written against the tokens will render correctly in all four.
+All four share the same palette keys (`bg`, `surface`, `border`, `text*`, `accent`, `ok/warn/err/info`) and syntax roles. A widget written against a semantic role will render correctly in all four.
 
-### 4 · Drop-in usage
+### 4 · Token shape
 
-```dart
-import 'themes/clide_theme.dart';
+No Material wrapper. Tokens ship in two flavors — pick whichever your pipeline already handles.
 
-MaterialApp(
-  theme: ClideTheme.data,
-  home: const ClideApp(),
-);
+**YAML** (preferred — matches the clide theme pipeline):
+
+```yaml
+name: clide
+dark: true
+palette:
+  bg:          "#20202C"
+  bgSunken:    "#1A1A24"
+  surface:     "#242838"
+  surfaceHi:   "#2C3046"
+  border:      "#343850"
+  borderHi:    "#3C445C"
+  textHi:      "#E6E8F2"
+  text:        "#B1BBE3"
+  textDim:     "#78809C"
+  textMute:    "#545C84"
+  accent:      "#78A0F8"
+  accentPress: "#6C90DC"
+  accentSoft:  "rgba(120,160,248,0.13)"
+  onAccent:    "#0D1020"
+  ok:          "#7DD3A8"
+  warn:        "#E6C370"
+  err:         "#E87D7D"
+  info:        "#78A0F8"
+syntax:
+  keyword:  "#C792EA"
+  type:     "#78A0F8"
+  string:   "#A8D99B"
+  number:   "#E6C370"
+  comment:  "#545C84"
+  method:   "#82B1FF"
+  punct:    "#78809C"
 ```
 
-The `ClideTheme.tokens` object exposes semantic colors for cases where a Material widget can't carry the meaning — e.g. syntax highlighting, git status markers, Claude message kinds.
+**Dart** (pure `dart:ui` — no Flutter material/cupertino imports):
+
+```dart
+import 'tokens/clide_tokens.dart';
+
+final theme = ClideThemes.clide;
+paintWith(theme.palette.accent);
+highlightWith(theme.syntax.keyword);
+```
+
+`clide_tokens.dart` declares all four themes in one file — `ClideThemes.clide`, `.midnight`, `.paper`, `.terminal`, plus `.all` and `.defaultTheme`.
+
+### 5 · Palette key reference
+
+| key           | role                                                  |
+|---------------|-------------------------------------------------------|
+| `bg`          | page / editor canvas                                  |
+| `bgSunken`    | sidebar, gutters, anything below the main surface     |
+| `surface`     | cards, table header, pill backgrounds                 |
+| `surfaceHi`   | hover / selected row                                  |
+| `border`      | hairlines, dividers                                   |
+| `borderHi`    | outlined controls, focus rings                        |
+| `textHi`      | primary text                                          |
+| `text`        | secondary labels                                      |
+| `textDim`     | metadata                                              |
+| `textMute`    | all-caps section labels, disabled                     |
+| `accent`      | brand / primary                                       |
+| `accentPress` | pressed state                                         |
+| `accentSoft`  | tinted fills (13% alpha accent)                       |
+| `onAccent`    | text on accent bg                                     |
+| `ok/warn/err` | status                                                |
+| `info`        | neutral info; often === `accent`                      |
 
 ---
 
@@ -106,7 +169,7 @@ The `ClideTheme.tokens` object exposes semantic colors for cases where a Materia
 | # | screen                         | purpose                                                  |
 |---|--------------------------------|----------------------------------------------------------|
 | 1 | **Main IDE · at rest**         | cold-start settled · all slots populated · Claude primary |
-| 2 | **Editor · with Claude panel** | file editor in workspace · Claude as context-column tab   |
+| 2 | **Claude + editor reference**  | Claude as workspace center · pinned editor in right pane  |
 | 3 | **Welcome · no project**       | first-run landing · start actions + recent projects       |
 
 Open `Clide Hi-Fi.html` and use the floating Tweaks panel (bottom-right, toggle from the toolbar) to swap between themes live.
@@ -131,4 +194,4 @@ These are the highest-leverage next design targets.
 
 All HTMLs render offline, no network required after first open. Fonts are bundled as CSS and fall back to system monospace if Josefin Sans or JetBrains Mono are blocked.
 
-Generated by the design pass · refreshed 2026-04
+Generated by the design pass · refreshed 2026-04 · v2 (tokens-only, no Material)
