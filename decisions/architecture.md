@@ -134,4 +134,68 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cost:** Seven new fields on `SurfaceTokens`. Default resolution falls back to semantic roles (keyword → accent, comment → textMuted, etc.) so themes that don't declare syntax tokens still compile.
 - **Raised by:** 2026-04-22 design handoff review.
 
+### D-047: Interaction model — Claude-is-home layout
+- **Date:** 2026-04-22
+- **Decision:** The prompt bar is pinned to a fixed Y-position in the middle column; every other surface makes room *around* Claude — never on top, never pushing the prompt off-Y. Three hard rules: (1) prompt bar Y-position is invariant across all states (open, collapsed, focus, editor, viewer); (2) the three bottom strips (left icon rail, app strip, right icon rail) align to one continuous horizontal line; (3) Claude is always the largest surface when present. The three-column layout from [D-011](#d-011-panel-manager-is-kernel-layout-is-data-three-column-is-a-preset) is refined: left = overview (tickets, decisions, files, git, PRs), middle = Claude (+ optional editor above), right = context (viewer, pql graph, links, images). Both side panels have a bottom icon rail for section switching; keyboard: `⌥1–5` (left), context-type switcher (right).
+- **Rationale:** "Claude is home" means the prompt never moves, regardless of what opens or closes around it. Every layout mutation respects this invariant. The three-column refinement assigns purpose to columns rather than leaving them generic.
+- **Cost:** The prompt bar invariant constrains future layout presets — any preset that repositions Claude must explicitly break this rule. Editor mode (see [D-049](#d-049-editor-mode-inline-above-claude-viewer-swap)) is the only case where another surface shares the middle column, and it opens *above* Claude rather than displacing it.
+- **Cross-reference:** [D-011](#d-011-panel-manager-is-kernel-layout-is-data-three-column-is-a-preset), [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first), [D-049](#d-049-editor-mode-inline-above-claude-viewer-swap).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-048: Chrome budget — no tabs, no breadcrumbs, keyboard-first
+- **Date:** 2026-04-22
+- **Decision:** Clide deletes classic IDE chrome: no buffer tabs, no breadcrumbs, no VS Code-style activity bar, no separate status bar row (merged into app strip). Total persistent chrome: 2 edge arrows (collapse toggles), 1 hover-only `⛶` glyph per panel (focus mode), 0 always-visible buttons beyond icon rails. `⌘P` overlay is the fuzzy finder — no layout shift. Keyboard is the primary interaction surface; icons are escape hatches. Files open individually; opening a second file closes the first (split on explicit command — deferred, see [Q-027](questions-architecture.md#q-027-two-editor-split)).
+- **Rationale:** Every pixel of chrome that isn't Claude is a tax on the "Claude is home" principle. Tabs and breadcrumbs are navigation affordances for a multi-buffer editor; clide's editor is a secondary surface (viewer ↔ editor swap per [D-049](#d-049-editor-mode-inline-above-claude-viewer-swap)), not a primary one. The fuzzy finder (`⌘P`) replaces all navigation chrome.
+- **Cost:** Users accustomed to VS Code/IntelliJ tab workflows have no tabs to fall back on. Mitigated by `⌘P` fuzzy find being the universal navigation path. Resolves T-022 (multi-buffer editor tabs) as rejected in favour of this approach.
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-049](#d-049-editor-mode-inline-above-claude-viewer-swap).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-049: Editor mode — inline above Claude, viewer swap
+- **Date:** 2026-04-22
+- **Decision:** Editor invoked via `⌘E` on a file or `✎` icon in a viewer. Editor lifts *above* Claude in the middle column, occupying 30–40% of vertical space; Claude keeps the remainder; prompt bar Y unchanged. Close with `⌘W`. Draggable divider between editor and Claude. The viewer (`👁`) and editor (`✎`) are mutually exclusive for the same file — a `✎` click on a viewer promotes the file to editor in the middle column and snaps the right panel back to nav; a `👁` click on an editor demotes the file to viewer in the right panel and closes the editor. Different files can coexist (editor on `main.dart` + viewer on `README.md`). When editor is open on `.md`, the viewer auto-opens with live sync to editor content; no auto-viewer for non-renderable files (`.dart`, `.yaml`, etc.).
+- **Rationale:** The editor is not a primary surface — it's a temporary intervention. Claude's prompt bar must never move ([D-047](#d-047-interaction-model-claude-is-home-layout)), so the editor opens above, not replacing. The viewer ↔ editor swap prevents two surfaces showing the same file simultaneously, which simplifies state management and avoids confusion about which surface is authoritative.
+- **Cost:** Only one file in the editor at a time (no tabs per [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first)). Power users wanting two files side-by-side must wait for split (see [Q-027](questions-architecture.md#q-027-two-editor-split)).
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-050: Context auto-behavior — right panel reacts to Claude
+- **Date:** 2026-04-22
+- **Decision:** The right panel responds to Claude's content references automatically: (1) right open + empty → panel holds footprint, stays empty; (2) right open + viewer loaded + Claude links `foo.md` → swap in, replaces current viewer; (3) right collapsed + Claude links `foo.md` → badge on spine ("2"), no layout shift; (4) editor open on `.md` → viewer auto-opens with live sync; (5) editor on non-renderable file → no auto-viewer.
+- **Rationale:** Claude is the driver; the context panel is reactive. Auto-swapping when the panel is open reduces user clicks. Badging when collapsed respects the user's decision to collapse — no involuntary layout shifts.
+- **Cost:** The auto-swap requires the daemon (or Claude integration) to emit structured content references, not just terminal text. This implies a lightweight parser or event that identifies file references in Claude's output — deferred to implementation.
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-051](#d-051-panel-collapse-12px-spine-with-badge).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-051: Panel collapse — 12px spine with badge
+- **Date:** 2026-04-22
+- **Decision:** When collapsed, a panel becomes a 12px spine: vertically rotated label ("tickets" / "context"), no icon rail, `paper-2` background (slightly darker than main paper), border on inner edge only. Click anywhere on spine to expand. If a context badge is pending (e.g. Claude linked a file while collapsed): small filled dot with count at top of spine. Edge arrow on outer boundary toggles collapse; keyboard: `⌘⇧1` (left) / `⌘⇧3` (right). Expand restores prior size and section state.
+- **Rationale:** Collapsed panels must not consume significant horizontal space (12px = 1 icon-width) but must remain discoverable and able to signal pending content. The badge-on-spine avoids involuntary expand while still communicating that something arrived.
+- **Cost:** The spine replaces the current simple `setVisible(false)` toggle with a real collapsed-state widget. Collapse state must be persisted across sessions (see [D-053](#d-053-state-persistence-across-sessions)).
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-050](#d-050-context-auto-behavior-right-panel-reacts-to-claude).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-052: Focus mode — full-window takeover
+- **Date:** 2026-04-22
+- **Decision:** Focus mode entered via double-click on panel header, hover-visible `⛶` glyph in header, or `⌘.`. Active panel takes the full window; all others hidden. Header shows "Esc" hint. `Esc` restores the exact prior layout (collapse state, divider positions, active sections). Focus mode is per-panel, not per-tab.
+- **Rationale:** When the user wants to concentrate on a single surface — Claude conversation, file tree, diff view — they shouldn't have to manually collapse both side panels. Focus mode is a single-action "maximise and restore" with no state loss.
+- **Cost:** Must snapshot and restore full `LayoutArrangement` state on enter/exit. Interacts with responsive behaviour — focus mode at narrow widths should work identically.
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-053](#d-053-state-persistence-across-sessions).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-053: State persistence across sessions
+- **Date:** 2026-04-22
+- **Decision:** The following layout state is persisted across app restarts: collapse state of left and right panels, active left section (tickets/decisions/files/git/pr), active right context type, pql pane expanded/collapsed, editor split ratio when open, fuzzy find recent picks. Stored via `SettingsStore` in project-scoped settings (`.clide/settings.yaml`).
+- **Rationale:** Users expect their workspace layout to survive restarts. Without persistence, every launch starts at the default layout preset, which is disorienting when the user has customised their column widths and panel states.
+- **Cost:** Adds write-on-change to several layout operations. Must handle migration if the setting keys evolve. `.clide/settings.yaml` is already gitignored, so personal layout state stays personal.
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-051](#d-051-panel-collapse-12px-spine-with-badge), [D-052](#d-052-focus-mode-full-window-takeover).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
+### D-054: Keyboard map — canonical shortcuts
+- **Date:** 2026-04-22
+- **Decision:** Canonical keyboard shortcuts (cross-platform, `⌘` = `Ctrl` on Linux): `⌘P` fuzzy find overlay; `⌘⇧1` / `⌘⇧3` collapse/expand left / right panel; `⌘1` / `⌘2` / `⌘3` focus left / middle / right panel; `⌘.` toggle focus mode on focused panel; `⌥1–⌥5` left-panel section switch (tickets, decisions, files, git, pr); `⌘E` open current file in editor; `⌘W` close editor / dismiss viewer; `Esc` exit focus mode / close fuzzy finder / dismiss viewer. Responsive breakpoints: ≥ 1600px splits relax toward 30%; 1200–1600px default (L 200px, R 220px, middle flex); < 1200px splits toward 40%, consider auto-collapse right; < 1000px deferred (see [Q-026](questions-architecture.md#q-026-small-screen-layout)).
+- **Rationale:** These shortcuts follow the "keyboard is the primary surface" principle from [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first). The set is minimal and covers all layout operations. `⌘.` for focus mode follows VS Code precedent (quick-fix → general "do the thing").
+- **Cost:** Some shortcuts may conflict with OS-level bindings on specific Linux desktops; the keybinding resolver ([D-017](extensions.md#d-017-panels-are-extension-shaped-from-day-one)) allows user override.
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout), [D-048](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first), [D-052](#d-052-focus-mode-full-window-takeover).
+- **Raised by:** 2026-04-22 interaction model spec (Wireframe — Flows v3).
+
 ---

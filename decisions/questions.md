@@ -8,7 +8,7 @@ open questions with one-line summaries.
 
 | File | Topics |
 |------|--------|
-| [questions-architecture.md](questions-architecture.md) | IPC, events, canvas, window chrome, macOS signing, pql absorption, ticket persistence |
+| [questions-architecture.md](questions-architecture.md) | IPC, events, canvas, window chrome, macOS signing, pql absorption, ticket persistence, interaction model |
 | [questions-extensions.md](questions-extensions.md) | Extension API shape, Lua runtime vendoring, manifest schema version |
 | [questions-accessibility.md](questions-accessibility.md) | Web-mode a11y, i18n plurals/gender/dates |
 | [questions-testing.md](questions-testing.md) | Coverage gates, screen-reader automation |

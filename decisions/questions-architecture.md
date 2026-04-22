@@ -71,4 +71,34 @@ ticket persistence.
 - **Context:** The design's "mono everywhere" rationale: clide is an IDE for people who like grids. The current Josefin Sans rationale: visual distinction between chrome text and code text, warmer feel. Both are valid — this is a feel decision, not a technical one.
 - **Source:** 2026-04-22 design handoff review.
 
+### Q-026: Small screen layout (< 1000px)
+- **Status:** Open
+- **Question:** Below 1000px window width, should clide switch to modal viewer/editor instead of split, or stack panels vertically? The spec defers this but flags it.
+- **Context:** The interaction model defines breakpoints down to 1200px but punts on < 1000px. This matters for small laptops and tiling WM users who give clide half a screen.
+- **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 1.
+
+### Q-027: Two-editor split
+- **Status:** Open
+- **Question:** Should clide support two files open in the editor simultaneously (horizontal split in the middle column)? The spec says resist until proven needed — feels like tabs creeping back.
+- **Context:** [D-048](architecture.md#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first) deletes buffer tabs. A two-editor split would be the only way to compare files side-by-side without using the viewer ↔ editor swap. The diff view may cover most of this need.
+- **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 2.
+
+### Q-028: Terminal strip scope — shell only or logs/errors/tests
+- **Status:** Open
+- **Question:** Is the app strip (bottom bar) purely a terminal shell + status, or does it also host tabs for logs, errors, and test output? Probably both, later.
+- **Context:** The interaction model spec defines the app strip as 14px with terminal shell + daemon indicator + branch; expanding on focus. If it grows to host logs/errors/tests, it becomes a mini-panel with its own tab model.
+- **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 3.
+
+### Q-029: Branch picker location
+- **Status:** Open
+- **Question:** The branch picker was moved out of the bottom status bar. Best place is inside the git section header (left panel), with a compact indicator in the app strip. Confirm or revise?
+- **Context:** The interaction model spec suggests the git section header as the primary location. The app strip shows a compact indicator (branch name only) for at-a-glance awareness.
+- **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 4.
+
+### Q-030: Focus behavior when editor is dirty and viewer is peeked
+- **Status:** Open
+- **Question:** When the editor has unsaved changes and the user peeks a viewer, where does focus land? The spec says prompt-bar-rule wins: focus stays in Claude.
+- **Context:** This intersects [D-047](architecture.md#d-047-interaction-model-claude-is-home-layout) (Claude is home) and [D-049](architecture.md#d-049-editor-mode-inline-above-claude-viewer-swap) (editor mode). If focus always snaps to Claude, the user must explicitly re-focus the editor to continue typing.
+- **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 5.
+
 ---
