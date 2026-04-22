@@ -29,6 +29,7 @@ class _AppRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return WidgetsApp(
+      debugShowCheckedModeBanner: false,
       title: 'clide',
       color: const Color(0xFF000000),
       pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) => PageRouteBuilder<T>(

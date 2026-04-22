@@ -11,28 +11,36 @@ class WelcomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 48),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Spacer(flex: 1),
-          _Header(tokens: tokens),
-          const SizedBox(height: 48),
-          Expanded(
-            flex: 3,
-            child: Row(
+    return Stack(
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(width: 340, child: _StartColumn(tokens: tokens, kernel: kernel)),
-                const SizedBox(width: 48),
-                Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
+                _Header(tokens: tokens),
+                const SizedBox(height: 56),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _StartColumn(tokens: tokens, kernel: kernel)),
+                    const SizedBox(width: 56),
+                    Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
+                  ],
+                ),
               ],
             ),
           ),
-          _StatusLine(tokens: tokens, kernel: kernel),
-        ],
-      ),
+        ),
+        Positioned(
+          left: 64,
+          right: 64,
+          bottom: 24,
+          child: _StatusLine(tokens: tokens, kernel: kernel),
+        ),
+      ],
     );
   }
 }
@@ -46,13 +54,13 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Image.asset('assets/logo/clide-logo-192.png', width: 64, height: 64),
-        const SizedBox(width: 20),
+        Image.asset('assets/logo/clide-logo-192.png', width: 72, height: 72),
+        const SizedBox(width: 24),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('clide', fontSize: 42, fontWeight: FontWeight.w300, color: tokens.globalForeground),
-            ClideText('Flutter desktop IDE for Claude Code', muted: true, fontSize: 14),
+            ClideText('clide', fontSize: 52, fontWeight: FontWeight.w300, color: tokens.globalForeground),
+            ClideText('Flutter desktop IDE for Claude Code', muted: true, fontSize: 16),
           ],
         ),
       ],
@@ -70,8 +78,8 @@ class _StartColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClideText('START', fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
-        const SizedBox(height: 16),
+        ClideText('START', fontSize: 12, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+        const SizedBox(height: 20),
         _ActionRow(
           icon: PhosphorIcons.folder,
           label: 'Open folder…',
@@ -144,11 +152,11 @@ class _ActionRowState extends State<_ActionRow> {
           ),
           child: Row(
             children: [
-              ClideIcon(widget.icon, size: 16, color: widget.tokens.globalTextMuted),
-              const SizedBox(width: 12),
-              Expanded(child: ClideText(widget.label, fontSize: 14, color: widget.tokens.globalForeground)),
+              ClideIcon(widget.icon, size: 18, color: widget.tokens.globalTextMuted),
+              const SizedBox(width: 14),
+              Expanded(child: ClideText(widget.label, fontSize: 15, color: widget.tokens.globalForeground)),
               if (widget.shortcut != null)
-                ClideText(widget.shortcut!, fontSize: 12, color: widget.tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                ClideText(widget.shortcut!, fontSize: 13, color: widget.tokens.globalTextMuted, fontFamily: clideMonoFamily),
             ],
           ),
         ),
@@ -171,10 +179,10 @@ class _RecentColumn extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('RECENT', fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
-            const SizedBox(height: 16),
+            ClideText('RECENT', fontSize: 12, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            const SizedBox(height: 20),
             if (recents.isEmpty)
-              const ClideText('No recent projects.', muted: true, fontSize: 13)
+              const ClideText('No recent projects.', muted: true, fontSize: 14)
             else
               for (final r in recents)
                 _RecentRow(project: r, tokens: tokens, onTap: () => _openRecent(r.path)),
@@ -224,23 +232,23 @@ class _RecentRowState extends State<_RecentRow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClideText(widget.project.name, fontSize: 14, fontWeight: FontWeight.w500),
-                    const SizedBox(height: 2),
+                    ClideText(widget.project.name, fontSize: 15, fontWeight: FontWeight.w500),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
-                        ClideText(widget.project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        ClideText(widget.project.relativePath, muted: true, fontSize: 13, fontFamily: clideMonoFamily),
                         if (widget.project.branch != null) ...[
-                          ClideText('  ·  ', muted: true, fontSize: 12),
-                          ClideIcon(PhosphorIcons.gitBranch, size: 10, color: widget.tokens.globalTextMuted),
+                          ClideText('  ·  ', muted: true, fontSize: 13),
+                          ClideIcon(PhosphorIcons.gitBranch, size: 11, color: widget.tokens.globalTextMuted),
                           const SizedBox(width: 3),
-                          ClideText(widget.project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                          ClideText(widget.project.branch!, muted: true, fontSize: 13, fontFamily: clideMonoFamily),
                         ],
                       ],
                     ),
                   ],
                 ),
               ),
-              ClideText(widget.project.timeAgo, muted: true, fontSize: 12),
+              ClideText(widget.project.timeAgo, muted: true, fontSize: 13),
             ],
           ),
         ),
