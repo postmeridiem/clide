@@ -1,0 +1,36 @@
+# clide — cool near-black + periwinkle (default)
+# Source: docs/claude-design/tokens/clide.yaml
+
+name: clide
+display_name: Clide
+dark: true
+
+palette:
+  background: "#20202C"
+  panel: "#1A1A24"
+  surface: "#242838"
+  muted: "#78809C"
+  foreground: "#E6E8F2"
+  secondary: "#B1BBE3"
+  primary: "#78A0F8"
+  accent: "#6C90DC"
+  success: "#7DD3A8"
+  warning: "#E6C370"
+  error: "#E87D7D"
+  info: "#78A0F8"
+  # extended palette keys for the design's richer vocabulary
+  surfaceHi: "#2C3046"
+  border: "#343850"
+  borderHi: "#3C445C"
+  textDim: "#78809C"
+  textMute: "#545C84"
+  accentSoft: "#2178A0F8"
+
+syntax:
+  keyword: "#C792EA"
+  type: "#78A0F8"
+  string: "#A8D99B"
+  number: "#E6C370"
+  comment: "#545C84"
+  method: "#82B1FF"
+  punct: "#78809C"

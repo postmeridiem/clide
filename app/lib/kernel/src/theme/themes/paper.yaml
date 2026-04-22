@@ -1,0 +1,35 @@
+# paper — drafting sheet, red-pencil accent, light
+# Source: docs/claude-design/tokens/paper.yaml
+
+name: paper
+display_name: Paper
+dark: false
+
+palette:
+  background: "#F4F1EA"
+  panel: "#ECE7DB"
+  surface: "#FBF8F1"
+  muted: "#8A8A82"
+  foreground: "#1A1A1A"
+  secondary: "#4A4A4A"
+  primary: "#C14B2A"
+  accent: "#A03D20"
+  success: "#2D8A52"
+  warning: "#B88A2A"
+  error: "#B03A2A"
+  info: "#2A6FC1"
+  surfaceHi: "#ECE7DB"
+  border: "#1A1A1A"
+  borderHi: "#4A4A4A"
+  textDim: "#8A8A82"
+  textMute: "#A8A89E"
+  accentSoft: "#21C14B2A"
+
+syntax:
+  keyword: "#7B3F8C"
+  type: "#2A6FC1"
+  string: "#2D8A52"
+  number: "#B88A2A"
+  comment: "#8A8A82"
+  method: "#1E5D9E"
+  punct: "#4A4A4A"

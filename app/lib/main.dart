@@ -105,7 +105,10 @@ Future<Directory> _resolveAppDir() async {
 Future<List<ThemeDefinition>> _loadBundledThemes() async {
   const loader = ThemeLoader();
   const paths = [
-    'lib/kernel/src/theme/themes/summer-night.yaml',
+    'lib/kernel/src/theme/themes/clide.yaml',
+    'lib/kernel/src/theme/themes/midnight.yaml',
+    'lib/kernel/src/theme/themes/paper.yaml',
+    'lib/kernel/src/theme/themes/terminal.yaml',
   ];
   final out = <ThemeDefinition>[];
   for (final p in paths) {

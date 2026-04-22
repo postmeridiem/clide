@@ -77,6 +77,14 @@ class SurfaceTokens {
     required this.statusWarning,
     required this.statusError,
     required this.statusInfo,
+    // syntax
+    required this.syntaxKeyword,
+    required this.syntaxType,
+    required this.syntaxString,
+    required this.syntaxNumber,
+    required this.syntaxComment,
+    required this.syntaxMethod,
+    required this.syntaxPunct,
     required this.extensionTokens,
   });
 
@@ -145,6 +153,14 @@ class SurfaceTokens {
   final Color statusWarning;
   final Color statusError;
   final Color statusInfo;
+
+  final Color syntaxKeyword;
+  final Color syntaxType;
+  final Color syntaxString;
+  final Color syntaxNumber;
+  final Color syntaxComment;
+  final Color syntaxMethod;
+  final Color syntaxPunct;
 
   /// Extension-declared tokens keyed by their dotted path
   /// (e.g. `ext.sqlite.table.background`).
@@ -235,6 +251,15 @@ abstract class TokenKeys {
   static const statusError = 'status.error';
   static const statusInfo = 'status.info';
 
+  // syntax
+  static const syntaxKeyword = 'syntax.keyword';
+  static const syntaxType = 'syntax.type';
+  static const syntaxString = 'syntax.string';
+  static const syntaxNumber = 'syntax.number';
+  static const syntaxComment = 'syntax.comment';
+  static const syntaxMethod = 'syntax.method';
+  static const syntaxPunct = 'syntax.punct';
+
   static const all = <String>[
     globalForeground,
     globalBackground,
@@ -289,5 +314,12 @@ abstract class TokenKeys {
     statusWarning,
     statusError,
     statusInfo,
+    syntaxKeyword,
+    syntaxType,
+    syntaxString,
+    syntaxNumber,
+    syntaxComment,
+    syntaxMethod,
+    syntaxPunct,
   ];
 }

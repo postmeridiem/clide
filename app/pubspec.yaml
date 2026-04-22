@@ -8,7 +8,7 @@ name: clide_app
 description: >-
   Flutter desktop IDE for Claude Code — renders the UI. Talks to the
   Dart core (CLI + daemon) via IPC; all PTY/subprocess/filesystem work
-  lives in the daemon (ADR 0005).
+  lives in the daemon (D-005).
 publish_to: none
 version: 2.0.0-dev
 repository: https://git.schweitz.net/jpmschweitzer/clide
@@ -23,7 +23,7 @@ dependencies:
 
   # Dart core — shared types, IPC protocol, anything CLI + daemon + app
   # all import. Kept Flutter-free so `dart compile exe` produces a lean
-  # static binary (see ADR 0005).
+  # static binary (see D-005).
   clide:
     path: ../
 

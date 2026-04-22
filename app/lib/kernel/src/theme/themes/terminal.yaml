@@ -1,0 +1,35 @@
+# terminal — near-black + amber, tmux feel
+# Source: docs/claude-design/tokens/terminal.yaml
+
+name: terminal
+display_name: Terminal
+dark: true
+
+palette:
+  background: "#0A0A0A"
+  panel: "#000000"
+  surface: "#111111"
+  muted: "#7A7A7A"
+  foreground: "#E6E6E6"
+  secondary: "#BDBDBD"
+  primary: "#E0B050"
+  accent: "#C29438"
+  success: "#8FDC9B"
+  warning: "#E0B050"
+  error: "#E05050"
+  info: "#A3C4FF"
+  surfaceHi: "#181818"
+  border: "#242424"
+  borderHi: "#2E2E2E"
+  textDim: "#7A7A7A"
+  textMute: "#4A4A4A"
+  accentSoft: "#21E0B050"
+
+syntax:
+  keyword: "#E05050"
+  type: "#E0B050"
+  string: "#8FDC9B"
+  number: "#C792EA"
+  comment: "#4A4A4A"
+  method: "#A3C4FF"
+  punct: "#7A7A7A"

@@ -102,6 +102,13 @@ class ThemeResolver {
       statusWarning: surface[TokenKeys.statusWarning]!,
       statusError: surface[TokenKeys.statusError]!,
       statusInfo: surface[TokenKeys.statusInfo]!,
+      syntaxKeyword: surface[TokenKeys.syntaxKeyword]!,
+      syntaxType: surface[TokenKeys.syntaxType]!,
+      syntaxString: surface[TokenKeys.syntaxString]!,
+      syntaxNumber: surface[TokenKeys.syntaxNumber]!,
+      syntaxComment: surface[TokenKeys.syntaxComment]!,
+      syntaxMethod: surface[TokenKeys.syntaxMethod]!,
+      syntaxPunct: surface[TokenKeys.syntaxPunct]!,
       extensionTokens: extTokens,
     );
   }
@@ -235,4 +242,11 @@ const Map<String, String> _defaultSurfaceMap = {
   TokenKeys.statusWarning: 'semantic.warning',
   TokenKeys.statusError: 'semantic.error',
   TokenKeys.statusInfo: 'semantic.info',
+  TokenKeys.syntaxKeyword: 'semantic.calltoaction',
+  TokenKeys.syntaxType: 'semantic.info',
+  TokenKeys.syntaxString: 'semantic.success',
+  TokenKeys.syntaxNumber: 'semantic.warning',
+  TokenKeys.syntaxComment: 'semantic.text_muted',
+  TokenKeys.syntaxMethod: 'semantic.focus',
+  TokenKeys.syntaxPunct: 'semantic.text_muted',
 };
