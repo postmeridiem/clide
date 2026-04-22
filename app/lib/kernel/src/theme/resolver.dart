@@ -151,12 +151,13 @@ class ThemeResolver {
       final resolved = _resolveRef(override, palette, semantic);
       if (resolved != null) return resolved;
     }
-    final defaultRef = _defaultSurfaceMap[key];
-    if (defaultRef != null) {
-      final resolved = _resolveRef(defaultRef, palette, semantic);
-      if (resolved != null) return resolved;
+    final candidates = _defaultSurfaceMap[key];
+    if (candidates != null) {
+      for (final ref in candidates) {
+        final resolved = _resolveRef(ref, palette, semantic);
+        if (resolved != null) return resolved;
+      }
     }
-    // Last-ditch: something has to render. Fall back to semantic text.
     return semantic.lookup(SemanticKeys.text) ?? const Color(0xFFFFFFFF);
   }
 
@@ -172,81 +173,94 @@ class ThemeResolver {
 /// Default palette names a semantic role will try, in order, when the
 /// theme doesn't override the role explicitly.
 const Map<String, List<String>> _defaultSemanticFallbacks = {
-  SemanticKeys.mainchrome: ['panel', 'surface', 'background'],
+  SemanticKeys.mainchrome: ['bgSunken', 'panel', 'surface', 'background'],
   SemanticKeys.calltoaction: ['accent', 'primary'],
-  SemanticKeys.focus: ['primary', 'accent'],
-  SemanticKeys.background: ['background'],
+  SemanticKeys.focus: ['accent', 'primary'],
+  SemanticKeys.background: ['bg', 'background'],
   SemanticKeys.surface: ['surface', 'panel'],
-  SemanticKeys.text: ['foreground'],
-  SemanticKeys.textMuted: ['muted', 'secondary', 'foreground'],
-  SemanticKeys.success: ['success'],
-  SemanticKeys.warning: ['warning'],
-  SemanticKeys.error: ['error'],
+  SemanticKeys.text: ['textHi', 'foreground'],
+  SemanticKeys.textMuted: ['textDim', 'muted', 'secondary', 'foreground'],
+  SemanticKeys.success: ['ok', 'success'],
+  SemanticKeys.warning: ['warn', 'warning'],
+  SemanticKeys.error: ['err', 'error'],
   SemanticKeys.info: ['info', 'primary'],
 };
 
 /// Default surface map. Every entry resolves through the semantic layer
 /// where it makes sense; raw palette refs are used only where the
 /// semantic layer doesn't have a role that fits.
-const Map<String, String> _defaultSurfaceMap = {
-  TokenKeys.globalForeground: 'semantic.text',
-  TokenKeys.globalBackground: 'semantic.background',
-  TokenKeys.globalBorder: 'semantic.surface',
-  TokenKeys.globalFocus: 'semantic.focus',
-  TokenKeys.globalTextMuted: 'semantic.text_muted',
-  TokenKeys.panelBackground: 'semantic.mainchrome',
-  TokenKeys.panelBorder: 'semantic.surface',
-  TokenKeys.panelActiveBorder: 'semantic.focus',
-  TokenKeys.panelHeader: 'semantic.mainchrome',
-  TokenKeys.panelHeaderForeground: 'semantic.text',
-  TokenKeys.sidebarBackground: 'semantic.mainchrome',
-  TokenKeys.sidebarForeground: 'semantic.text',
-  TokenKeys.sidebarItemHover: 'semantic.surface',
-  TokenKeys.sidebarItemSelected: 'semantic.focus',
-  TokenKeys.sidebarSectionHeader: 'semantic.text_muted',
-  TokenKeys.statusBarBackground: 'semantic.mainchrome',
-  TokenKeys.statusBarForeground: 'semantic.text',
-  TokenKeys.statusBarItemActiveBackground: 'semantic.focus',
-  TokenKeys.statusBarItemHoverBackground: 'semantic.surface',
-  TokenKeys.tabBarBackground: 'semantic.mainchrome',
-  TokenKeys.tabActive: 'semantic.background',
-  TokenKeys.tabInactive: 'semantic.mainchrome',
-  TokenKeys.tabActiveForeground: 'semantic.text',
-  TokenKeys.tabInactiveForeground: 'semantic.text_muted',
-  TokenKeys.tabActiveBorder: 'semantic.focus',
-  TokenKeys.tabCloseHover: 'semantic.error',
-  TokenKeys.buttonBackground: 'semantic.surface',
-  TokenKeys.buttonForeground: 'semantic.text',
-  TokenKeys.buttonHoverBackground: 'semantic.mainchrome',
-  TokenKeys.buttonActiveBackground: 'semantic.focus',
-  TokenKeys.buttonBorder: 'semantic.surface',
-  TokenKeys.listItemBackground: 'semantic.background',
-  TokenKeys.listItemForeground: 'semantic.text',
-  TokenKeys.listItemHoverBackground: 'semantic.surface',
-  TokenKeys.listItemSelectedBackground: 'semantic.focus',
-  TokenKeys.listItemSelectedForeground: 'semantic.background',
-  TokenKeys.scrollbarSlider: 'semantic.surface',
-  TokenKeys.scrollbarSliderHover: 'semantic.text_muted',
-  TokenKeys.scrollbarTrack: 'semantic.mainchrome',
-  TokenKeys.tooltipBackground: 'semantic.surface',
-  TokenKeys.tooltipForeground: 'semantic.text',
-  TokenKeys.tooltipBorder: 'semantic.mainchrome',
-  TokenKeys.dropdownBackground: 'semantic.surface',
-  TokenKeys.dropdownForeground: 'semantic.text',
-  TokenKeys.dropdownBorder: 'semantic.mainchrome',
-  TokenKeys.modalOverlayBackground: '#C0000000',
-  TokenKeys.modalSurfaceBackground: 'semantic.mainchrome',
-  TokenKeys.modalSurfaceBorder: 'semantic.focus',
-  TokenKeys.dividerColor: 'semantic.surface',
-  TokenKeys.statusSuccess: 'semantic.success',
-  TokenKeys.statusWarning: 'semantic.warning',
-  TokenKeys.statusError: 'semantic.error',
-  TokenKeys.statusInfo: 'semantic.info',
-  TokenKeys.syntaxKeyword: 'semantic.calltoaction',
-  TokenKeys.syntaxType: 'semantic.info',
-  TokenKeys.syntaxString: 'semantic.success',
-  TokenKeys.syntaxNumber: 'semantic.warning',
-  TokenKeys.syntaxComment: 'semantic.text_muted',
-  TokenKeys.syntaxMethod: 'semantic.focus',
-  TokenKeys.syntaxPunct: 'semantic.text_muted',
+const Map<String, List<String>> _defaultSurfaceMap = {
+  // global — try design keys first, then legacy semantic
+  TokenKeys.globalForeground: ['textHi', 'semantic.text'],
+  TokenKeys.globalBackground: ['bg', 'semantic.background'],
+  TokenKeys.globalBorder: ['border', 'semantic.surface'],
+  TokenKeys.globalFocus: ['accent', 'semantic.focus'],
+  TokenKeys.globalTextMuted: ['textDim', 'semantic.text_muted'],
+  // panel
+  TokenKeys.panelBackground: ['bgSunken', 'semantic.mainchrome'],
+  TokenKeys.panelBorder: ['border', 'semantic.surface'],
+  TokenKeys.panelActiveBorder: ['borderHi', 'semantic.focus'],
+  TokenKeys.panelHeader: ['surface', 'semantic.mainchrome'],
+  TokenKeys.panelHeaderForeground: ['text', 'semantic.text'],
+  // sidebar
+  TokenKeys.sidebarBackground: ['bgSunken', 'semantic.mainchrome'],
+  TokenKeys.sidebarForeground: ['text', 'semantic.text'],
+  TokenKeys.sidebarItemHover: ['surface', 'semantic.surface'],
+  TokenKeys.sidebarItemSelected: ['surfaceHi', 'semantic.focus'],
+  TokenKeys.sidebarSectionHeader: ['textMute', 'semantic.text_muted'],
+  // statusbar
+  TokenKeys.statusBarBackground: ['bgSunken', 'semantic.mainchrome'],
+  TokenKeys.statusBarForeground: ['text', 'semantic.text'],
+  TokenKeys.statusBarItemActiveBackground: ['accent', 'semantic.focus'],
+  TokenKeys.statusBarItemHoverBackground: ['surface', 'semantic.surface'],
+  // tabs
+  TokenKeys.tabBarBackground: ['bgSunken', 'semantic.mainchrome'],
+  TokenKeys.tabActive: ['bg', 'semantic.background'],
+  TokenKeys.tabInactive: ['bgSunken', 'semantic.mainchrome'],
+  TokenKeys.tabActiveForeground: ['textHi', 'semantic.text'],
+  TokenKeys.tabInactiveForeground: ['textDim', 'semantic.text_muted'],
+  TokenKeys.tabActiveBorder: ['accent', 'semantic.focus'],
+  TokenKeys.tabCloseHover: ['err', 'semantic.error'],
+  // buttons
+  TokenKeys.buttonBackground: ['accent', 'semantic.calltoaction'],
+  TokenKeys.buttonForeground: ['onAccent', 'semantic.background'],
+  TokenKeys.buttonHoverBackground: ['accentPress', 'semantic.focus'],
+  TokenKeys.buttonActiveBackground: ['accentPress', 'semantic.focus'],
+  TokenKeys.buttonBorder: ['border', 'semantic.surface'],
+  // list items
+  TokenKeys.listItemBackground: ['bg', 'semantic.background'],
+  TokenKeys.listItemForeground: ['text', 'semantic.text'],
+  TokenKeys.listItemHoverBackground: ['surface', 'semantic.surface'],
+  TokenKeys.listItemSelectedBackground: ['surfaceHi', 'semantic.focus'],
+  TokenKeys.listItemSelectedForeground: ['textHi', 'semantic.text'],
+  // scrollbar
+  TokenKeys.scrollbarSlider: ['border', 'semantic.surface'],
+  TokenKeys.scrollbarSliderHover: ['borderHi', 'semantic.text_muted'],
+  TokenKeys.scrollbarTrack: ['bgSunken', 'semantic.mainchrome'],
+  // tooltip
+  TokenKeys.tooltipBackground: ['surface', 'semantic.surface'],
+  TokenKeys.tooltipForeground: ['textHi', 'semantic.text'],
+  TokenKeys.tooltipBorder: ['borderHi', 'semantic.mainchrome'],
+  // dropdown
+  TokenKeys.dropdownBackground: ['surface', 'semantic.surface'],
+  TokenKeys.dropdownForeground: ['text', 'semantic.text'],
+  TokenKeys.dropdownBorder: ['border', 'semantic.mainchrome'],
+  // modal
+  TokenKeys.modalOverlayBackground: ['#C0000000'],
+  TokenKeys.modalSurfaceBackground: ['surface', 'semantic.mainchrome'],
+  TokenKeys.modalSurfaceBorder: ['accent', 'semantic.focus'],
+  // divider
+  TokenKeys.dividerColor: ['border', 'semantic.surface'],
+  // status
+  TokenKeys.statusSuccess: ['ok', 'semantic.success'],
+  TokenKeys.statusWarning: ['warn', 'semantic.warning'],
+  TokenKeys.statusError: ['err', 'semantic.error'],
+  TokenKeys.statusInfo: ['info', 'semantic.info'],
+  TokenKeys.syntaxKeyword: ['semantic.calltoaction'],
+  TokenKeys.syntaxType: ['semantic.info'],
+  TokenKeys.syntaxString: ['semantic.success'],
+  TokenKeys.syntaxNumber: ['semantic.warning'],
+  TokenKeys.syntaxComment: ['semantic.text_muted'],
+  TokenKeys.syntaxMethod: ['semantic.focus'],
+  TokenKeys.syntaxPunct: ['semantic.text_muted'],
 };

@@ -11,7 +11,10 @@ void main() {
 
   group('contrast — all bundled themes meet WCAG AA', () {
     const bundledPaths = [
-      'lib/kernel/src/theme/themes/summer-night.yaml',
+      'lib/kernel/src/theme/themes/clide.yaml',
+      'lib/kernel/src/theme/themes/midnight.yaml',
+      'lib/kernel/src/theme/themes/paper.yaml',
+      'lib/kernel/src/theme/themes/terminal.yaml',
     ];
 
     for (final path in bundledPaths) {

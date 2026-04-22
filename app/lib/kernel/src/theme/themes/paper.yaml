@@ -21,7 +21,7 @@ palette:
   surfaceHi: "#ECE7DB"
   border: "#1A1A1A"
   borderHi: "#4A4A4A"
-  textDim: "#8A8A82"
+  textDim: "#5E5E56"
   textMute: "#A8A89E"
   accentSoft: "#21C14B2A"
 

@@ -18,6 +18,7 @@ palette:
   warning: "#D7BA7D"
   error: "#F48771"
   info: "#569CD6"
+  onAccent: "#0B1220"
   surfaceHi: "#2D2D2E"
   border: "#333333"
   borderHi: "#3F3F3F"
