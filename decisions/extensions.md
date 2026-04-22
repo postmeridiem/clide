@@ -39,6 +39,24 @@ Extension contract, Lua runtime, grain, contribution points.
 - **Cost:** Runtime is a separate supporter tool to build; ffi is tricky. Deferred to Tier 6; only the slot is reserved now.
 - **Raised by:** 2026-04-21 planning.
 
+### D-046: Core frame builtins vs shipped extensions boundary
+- **Date:** 2026-04-22
+- **Decision:** The `app/lib/builtin/` directory is reserved for core frame infrastructure — components the shell cannot function without. Everything that renders *content* (editor surfaces, tool panels, integrations) is a shipped extension: still Dart, still bundled in the binary, but architecturally an extension that registers through the contribution contract and could in principle be disabled by the user.
+
+  **Core frame builtins** (cannot be disabled; the frame breaks without them):
+  `default-layout`, `welcome`, `ipc-status`, `theme-picker`, `terminal`, `files`, `grammars-core`, `settings-ui`, `extensions-ui`, `keybindings-ui`.
+
+  **Split components** (core process in the frame, UI surfaces as shipped extensions):
+  `git` — the daemon-side git process (branch, status, stage, commit, diff computation) is frame infrastructure that the status bar, file tree dirty markers, and other extensions depend on. The git panel, conflict UI, and diff tab are shipped extensions that consume it.
+
+  **Shipped extensions** (bundled but removable; contribute content, not infrastructure):
+  `editor`, `claude`, `claude-control`, `markdown`, `diff`, `git-ui`, `pql`, `canvas`, `graph`, `decisions`, `tickets`, `todos`, `problems`.
+
+- **Rationale:** The previous session bled several content extensions (jira, todos, decisions, tickets, canvas, graph) into `builtin/` as stubs, treating "shipped with the app" as "part of the frame." This conflates two concerns: the frame's structural integrity and the bundled feature set. A user who disables the canvas extension should get a working IDE with no canvas panel; a user who disables the layout extension gets a broken window. The boundary is: can the frame render and function without it? If yes, it's a shipped extension, not a frame builtin.
+- **Cost:** Shipped extensions need a separate registration path (e.g. `app/lib/extensions/` or equivalent) distinct from `app/lib/builtin/`. The extension contract must support "bundled Dart extension" as a first-class category alongside "builtin" and "third-party Lua." Migration is incremental — move one at a time, each behind a working build.
+- **Supersedes:** Removes `builtin.jira` (already deleted; should never have been a builtin — Jira integration is a third-party extension, not a shipped one).
+- **Raised by:** 2026-04-22 session review.
+
 ---
 
 *See also the existing `builtin.grammars_core` stub for tree-sitter

@@ -3,7 +3,7 @@
 ///
 /// Admission rule: the kernel owns anything whose second concurrent user
 /// would create incoherent state or divergent UX. External-interfacing
-/// work generally belongs to extensions (git, pql, Linear, Jira);
+/// work generally belongs to extensions (git, pql, Linear);
 /// external-interfacing *singletons* (OS clipboard, tray, keychain)
 /// belong here.
 ///
