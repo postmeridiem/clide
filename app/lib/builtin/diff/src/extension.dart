@@ -1,17 +1,27 @@
+import 'package:clide_app/builtin/diff/src/diff_view.dart';
 import 'package:clide_app/extension/extension.dart';
+import 'package:clide_app/kernel/kernel.dart';
 
-/// Tier-0 stub. Real implementation lands in a later tier; the extension
-/// is registered so the extensions-ui surface can list it as "installed,
-/// not yet implemented" and its id is reserved.
 class DiffExtension extends ClideExtension {
   @override
   String get id => 'builtin.diff';
   @override
   String get title => 'Diff';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
   List<String> get dependsOn => const [];
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  List<ContributionPoint> get contributions => [
+        TabContribution(
+          id: 'diff.view',
+          slot: Slots.workspace,
+          title: 'Diff',
+          titleKey: 'tab.title',
+          i18nNamespace: id,
+          priority: -70,
+          build: (_) => const DiffView(),
+        ),
+      ];
 }

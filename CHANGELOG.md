@@ -18,6 +18,31 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Git subsystem in the daemon (`lib/src/git/`). Status parser
+  (`git status --porcelain`), unified-diff parser, and operations
+  (stage, unstage, stage-hunk, discard, commit, stash, log, pull,
+  push). IPC verbs `git.status | diff | stage | stage-all | unstage
+  | stage-hunk | unstage-hunk | discard | commit | stash | stash-pop
+  | log | pull | push` with `git.changed` events on mutations.
+  42 new core tests cover parsing, operations, and dispatcher
+  round-trips.
+
+- `clide git …` CLI shortcuts: `git status`, `git diff [--staged]`,
+  `git stage <paths>`, `git stage-all`, `git unstage`, `git discard`,
+  `git commit "<msg>"`, `git log [--count N]`, `git stash`,
+  `git stash-pop`, `git pull`, `git push`.
+
+- `builtin.git` — sidebar panel showing staged, unstaged, untracked,
+  and conflicted file groups. Per-file stage/unstage/discard on hover.
+  Inline commit message input with Commit button. Branch + ahead/behind
+  display with Pull/Push actions. Auto-refreshes on `git.changed`
+  events.
+
+- `builtin.diff` — workspace tab rendering unified diffs with
+  old/new line numbers, addition/removal colouring, and binary/rename
+  metadata. Staged/Unstaged toggle toolbar. Auto-refreshes on
+  `git.changed` events.
+
 - `builtin.editor` — Tier-2 editor tab wired up. Contributes a
   single `Editor` workspace tab that renders the daemon's active
   buffer via a new `EditorController`. Hydrates on mount

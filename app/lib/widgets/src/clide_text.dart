@@ -16,6 +16,7 @@ class ClideText extends StatelessWidget {
     super.key,
     this.color,
     this.fontSize = 13,
+    this.fontFamily,
     this.fontWeight,
     this.muted = false,
     this.maxLines,
@@ -26,6 +27,7 @@ class ClideText extends StatelessWidget {
   final String data;
   final Color? color;
   final double fontSize;
+  final String? fontFamily;
   final FontWeight? fontWeight;
   final bool muted;
   final int? maxLines;
@@ -45,10 +47,7 @@ class ClideText extends StatelessWidget {
       style: TextStyle(
         color: resolved,
         fontSize: fontSize,
-        // Null means inherit from the ambient DefaultTextStyle —
-        // _AppRoot installs clideUiDefaultWeight there; goldens get
-        // whatever Alchemist injects. Passing an explicit weight (e.g.
-        // FontWeight.bold) still wins.
+        fontFamily: fontFamily,
         fontWeight: fontWeight,
       ),
     );
