@@ -75,6 +75,18 @@ dependencies:
       YAML parser for theme files and extension manifests. Justified
       exception to prefer-zero-deps; Dart-team maintained.
 
+  - name: xterm
+    kind: dart-package
+    version: "4.0.0"
+    homepage: https://pub.dev/packages/xterm
+    license: MIT
+    purpose: >-
+      Flutter-native terminal emulator (ANSI / xterm / truecolor
+      parser + renderer). Powers every pane that renders a PTY —
+      general terminal, Claude, diff views running shell commands.
+      Writing a vt100 / ANSI parser is weeks of work for no fidelity
+      gain.
+
   - name: ffi
     kind: dart-package
     version: "2.1.3"

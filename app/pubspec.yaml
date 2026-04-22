@@ -31,6 +31,12 @@ dependencies:
   # maintained, used for theme files and extension manifests.
   yaml: 3.1.3
 
+  # xterm.dart — Flutter-native terminal emulator (ANSI / xterm / truecolor
+  # parser + renderer). Writing a vt100/ANSI parser that handles everything
+  # tmux / neovim / claude emit would be weeks of work for no fidelity
+  # win. Listed in licenses.yaml per D-042. MIT.
+  xterm: 4.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

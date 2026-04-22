@@ -8,6 +8,8 @@ library;
 export 'src/clide_button.dart';
 export 'src/clide_divider.dart';
 export 'src/clide_icon.dart';
+export 'src/clide_pane_chrome.dart';
+export 'src/clide_pty_view.dart';
 export 'src/clide_scrollbar.dart';
 export 'src/clide_surface.dart';
 export 'src/clide_tab_bar.dart';

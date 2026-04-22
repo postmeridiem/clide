@@ -18,6 +18,24 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- Shared pane widgets under `app/lib/widgets/`: `ClidePtyView` wraps
+  `xterm.dart` with clide-theme token bindings, JetBrains Mono as the
+  face, and a Semantics live-region wrapper; `ClidePaneChrome` is the
+  reusable title strip + optional close button. Consumers of the new
+  widgets (`builtin.terminal`, `builtin.claude`) drive the xterm
+  `Terminal` model and route bytes through IPC `pane.write` /
+  `pane.output` events themselves — the widgets are rendering only,
+  no IPC coupling.
+
+- `xterm: 4.0.0` Dart dependency on the Flutter app — MIT, listed in
+  `licenses.yaml` per D-042. Hand-rolling a VT100 / xterm / truecolour
+  parser + renderer would be weeks for no fidelity win.
+
+- `Q-023` — open question on SSH-remote development (run clide against
+  a workspace on another host). Local-first stays the Tier-1 target;
+  this records the constraint so the daemon / IPC / extension seams
+  don't unknowingly accrete local-only assumptions.
+
 - IPC `pane` subsystem in the daemon (per D-006). Commands:
   `pane.spawn | list | focus | close | write | resize | tail`. Events:
   `pane.spawned`, `pane.output` (base64-framed), `pane.exit`,
