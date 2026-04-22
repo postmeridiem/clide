@@ -53,9 +53,9 @@ const String clideMonoFamily = 'JetBrainsMono';
 // constants over bare numbers so the scale stays coherent.
 // ---------------------------------------------------------------------------
 
-const double clideFontBody = 14;
-const double clideFontCaption = 12;
-const double clideFontMono = 13;
+const double clideFontBody = 15;
+const double clideFontCaption = 14;
+const double clideFontMono = 14;
 
 /// System fallback chain. Ordered by platform prevalence + quality of
 /// programming-ligature / box-drawing coverage.
