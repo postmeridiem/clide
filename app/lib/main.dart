@@ -124,4 +124,5 @@ const List<String> _tier0Namespaces = [
   'builtin.theme-picker',
   'builtin.terminal',
   'builtin.files',
+  'builtin.claude',
 ];

@@ -1,0 +1,7 @@
+{
+  "tab.title": { "translation": "Claude" },
+  "status.attaching": { "translation": "attaching…" },
+  "status.no-tmux": { "translation": "no-tmux · fresh every launch" },
+  "status.exited": { "translation": "session exited" },
+  "status.primary-exited": { "translation": "session exited — restart clide to retry" }
+}

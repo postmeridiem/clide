@@ -18,6 +18,18 @@ heading, and (b) bumping `project.yaml` `version:` in the same commit.
 
 ### Added
 
+- `builtin.claude` — Tier-1 stub upgraded to the real Claude pane per
+  D-041. Contributes a primary `Claude` tab in the workspace slot that
+  spawns `tmux new-session -A -s clide-claude-<hash> -- claude` via
+  IPC `pane.spawn`, with `<hash>` derived from the git root path so
+  reopening the app re-attaches to the running conversation. Primary
+  has no close affordance; closing the tab doesn't kill the session.
+  Command `claude.new-secondary` is registered for the palette wiring
+  that's coming next. If tmux isn't on PATH, falls back to spawning
+  `claude` directly and surfaces "no-tmux · fresh every launch" in
+  the header subtitle. Accompanied by D-041 in
+  [`decisions/architecture.md`](decisions/architecture.md#d-041-claude-panes-one-primary-per-repo-tmux-backed).
+
 - `builtin.files` — workspace filesystem panel in the sidebar. Lazy
   tree rooted at the git root, expand/collapse, click-to-open plumbed
   to a future `editor.open` command. Backed by a new daemon-side
