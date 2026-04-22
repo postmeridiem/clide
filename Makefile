@@ -40,20 +40,23 @@ endif
 .PHONY: run
 run: ## Build the daemon + launch the Flutter desktop app.
 ifeq ($(APP_PRESENT),yes)
-	@# Build the CLI/daemon binary if stale.
+	@# Kill any stale daemon so the binary isn't locked.
+	@pkill -f 'bin/clide --daemon' 2>/dev/null; sleep 0.2; true
 	$(MAKE) build
-	@# Start daemon in background, then launch app.
 	@echo "Starting daemon…"
-	@bin/clide --daemon &
-	@DAEMON_PID=$$!; \
-	trap 'kill $$DAEMON_PID 2>/dev/null' EXIT; \
+	@bin/clide --daemon & DAEMON_PID=$$!; \
+	trap 'kill $$DAEMON_PID 2>/dev/null; wait $$DAEMON_PID 2>/dev/null' EXIT INT TERM; \
 	echo "Daemon PID $$DAEMON_PID"; \
 	echo "Launching Flutter app…"; \
 	cd app && flutter run -d linux; \
-	kill $$DAEMON_PID 2>/dev/null || true
+	kill $$DAEMON_PID 2>/dev/null; wait $$DAEMON_PID 2>/dev/null; true
 else
 	@echo "(pubspec.yaml not scaffolded yet; skipping)"
 endif
+
+.PHONY: stop
+stop: ## Kill any running clide daemon.
+	@pkill -f 'bin/clide --daemon' 2>/dev/null && echo "daemon stopped" || echo "no daemon running"
 
 .PHONY: install
 install: build ## Install bin/clide into $(INSTALL_DIR).
