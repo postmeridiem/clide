@@ -6,6 +6,7 @@
 library;
 
 export 'src/clide_button.dart';
+export 'src/clide_column_hat.dart';
 export 'src/clide_divider.dart';
 export 'src/clide_filter_box.dart';
 export 'src/clide_icon.dart';

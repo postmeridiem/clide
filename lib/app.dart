@@ -141,7 +141,10 @@ class RootLayout extends StatelessWidget {
                   else if (sidebarVisible) ...[
                     SizedBox(
                       width: sidebarSize,
-                      child: SlotHost(slot: Slots.sidebar),
+                      child: Column(children: [
+                        ColumnHat.left(windowControls: kernel.window),
+                        Expanded(child: SlotHost(slot: Slots.sidebar)),
+                      ]),
                     ),
                     DragResizeHandle(
                       arrangement: a,
@@ -149,7 +152,14 @@ class RootLayout extends StatelessWidget {
                       axis: Axis.horizontal,
                     ),
                   ],
-                  const Expanded(child: SlotHost(slot: Slots.workspace)),
+                  Expanded(child: Column(children: [
+                    ColumnHat.center(
+                      windowControls: kernel.window,
+                      project: kernel.project.current?.path.split('/').last,
+                      branch: null,
+                    ),
+                    const Expanded(child: SlotHost(slot: Slots.workspace)),
+                  ])),
                   if (contextVisible && contextCollapsed)
                     ClideSpine(
                       label: 'context',
@@ -164,7 +174,10 @@ class RootLayout extends StatelessWidget {
                     ),
                     SizedBox(
                       width: contextSize,
-                      child: SlotHost(slot: Slots.contextPanel),
+                      child: Column(children: [
+                        ColumnHat.right(windowControls: kernel.window),
+                        Expanded(child: SlotHost(slot: Slots.contextPanel)),
+                      ]),
                     ),
                   ],
                 ],

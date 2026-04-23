@@ -25,32 +25,10 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  // Use a header bar when running in GNOME as this is the common style used
-  // by applications and is the setup most users will be using (e.g. Ubuntu
-  // desktop).
-  // If running on X and not using GNOME then just use a traditional title bar
-  // in case the window manager does more exotic layout, e.g. tiling.
-  // If running on Wayland assume the header bar will work (may need changing
-  // if future cases occur).
-  gboolean use_header_bar = TRUE;
-#ifdef GDK_WINDOWING_X11
-  GdkScreen* screen = gtk_window_get_screen(window);
-  if (GDK_IS_X11_SCREEN(screen)) {
-    const gchar* wm_name = gdk_x11_screen_get_window_manager_name(screen);
-    if (g_strcmp0(wm_name, "GNOME Shell") != 0) {
-      use_header_bar = FALSE;
-    }
-  }
-#endif
-  if (use_header_bar) {
-    GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
-    gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "clide");
-    gtk_header_bar_set_show_close_button(header_bar, TRUE);
-    gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
-  } else {
-    gtk_window_set_title(window, "clide");
-  }
+  // D-057: frameless custom chrome. The Flutter app draws its own
+  // per-column hats with drag regions and window buttons.
+  gtk_window_set_decorated(window, FALSE);
+  gtk_window_set_title(window, "clide");
 
   gtk_window_set_default_size(window, 1280, 720);
 
@@ -83,6 +61,53 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  // D-057: method channel for window controls (drag, minimize, maximize, close).
+  FlEngine* engine = fl_view_get_engine(view);
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  FlMethodChannel* channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(engine), "clide/window",
+      FL_METHOD_CODEC(codec));
+  g_object_set_data(G_OBJECT(window), "clide_method_channel", channel);
+  fl_method_channel_set_method_call_handler(
+      channel,
+      [](FlMethodChannel* channel, FlMethodCall* method_call,
+         gpointer user_data) {
+        GtkWindow* w = GTK_WINDOW(user_data);
+        const gchar* method = fl_method_call_get_name(method_call);
+        g_autoptr(FlMethodResponse) response = nullptr;
+
+        if (g_strcmp0(method, "startDrag") == 0) {
+          gtk_window_begin_move_drag(w, 1, 0, 0,
+                                     GDK_CURRENT_TIME);
+          response = FL_METHOD_RESPONSE(
+              fl_method_success_response_new(fl_value_new_null()));
+        } else if (g_strcmp0(method, "minimize") == 0) {
+          gtk_window_iconify(w);
+          response = FL_METHOD_RESPONSE(
+              fl_method_success_response_new(fl_value_new_null()));
+        } else if (g_strcmp0(method, "maximize") == 0) {
+          if (gtk_window_is_maximized(w)) {
+            gtk_window_unmaximize(w);
+          } else {
+            gtk_window_maximize(w);
+          }
+          response = FL_METHOD_RESPONSE(
+              fl_method_success_response_new(fl_value_new_null()));
+        } else if (g_strcmp0(method, "close") == 0) {
+          gtk_window_close(w);
+          response = FL_METHOD_RESPONSE(
+              fl_method_success_response_new(fl_value_new_null()));
+        } else if (g_strcmp0(method, "isMaximized") == 0) {
+          response = FL_METHOD_RESPONSE(fl_method_success_response_new(
+              fl_value_new_bool(gtk_window_is_maximized(w))));
+        } else {
+          response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+        }
+
+        fl_method_call_respond(method_call, response, nullptr);
+      },
+      window, nullptr);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

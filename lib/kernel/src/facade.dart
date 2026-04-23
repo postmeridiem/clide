@@ -26,6 +26,7 @@ import 'package:clide/kernel/src/settings.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/loader.dart';
 import 'package:clide/kernel/src/tray.dart';
+import 'package:clide/kernel/src/window_controls.dart';
 import 'package:flutter/widgets.dart';
 
 /// Aggregated kernel services. Feature code that runs outside a
@@ -55,6 +56,7 @@ class KernelServices {
     required this.focus,
     required this.project,
     required this.extensions,
+    required this.window,
   });
 
   final Logger log;
@@ -79,6 +81,7 @@ class KernelServices {
   final FocusTracker focus;
   final ProjectManager project;
   final ExtensionManager extensions;
+  final WindowControls window;
 
   static Future<KernelServices> boot({
     required Directory appDir,
@@ -124,6 +127,7 @@ class KernelServices {
     final os = OsBridge(log: log, events: events);
     final net = NetworkStatus();
     final focus = FocusTracker();
+    final window = WindowControls();
     final project = ProjectManager(
       log: log,
       events: events,
@@ -187,6 +191,7 @@ class KernelServices {
       focus: focus,
       project: project,
       extensions: extensions,
+      window: window,
     );
   }
 

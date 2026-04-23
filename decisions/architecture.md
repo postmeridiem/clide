@@ -226,4 +226,13 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cross-reference:** [D-005](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended), [D-041](#d-041-claude-panes-one-primary-per-repo-tmux-backed) (tmux persistence), [D-001](#d-001-cli-first-not-mcp) (CLI-first surface preserved via C client).
 - **Raised by:** 2026-04-23 architectural simplification.
 
+### D-057: Frameless custom chrome with per-column 24px hats
+- **Date:** 2026-04-23
+- **Decision:** The OS-native title bar is hidden. Each of the three columns wears its own 24px "hat" that serves as both a drag region and a host for window controls. Left hat: macOS traffic lights (Linux/Windows: plain drag). Center hat: `clide > branch` label, always present. Right hat: minimize/maximize/close glyph buttons on Linux/Windows (macOS: plain drag). Entire hat surface is draggable; buttons opt out of hit testing. When a column collapses to a 12px spine, its hat shrinks to a 12px drag cap — no buttons, still draggable. The center hat never collapses. Three `ChromeStyle` variants: `seam` (default desktop — full hats), `prompt` (center hat only — presentations/focus), `inline` (web/wasm — no hats, browser owns window controls). Persisted in settings as `app.chromeStyle`. Platform bridge via `MethodChannel('clide/window')` — custom GTK C and Cocoa Swift handlers, no third-party package.
+- **Resolves:** [Q-006](questions-architecture.md#q-006-window-chrome-native-frame-vs-frameless-custom).
+- **Rationale:** The GTK headerbar wastes 30+ vertical pixels and clashes with the custom theme. Per-column hats add zero net rows — they reuse the space each column header already occupied. Custom FFI avoids a `window_manager` dependency (D-031). The `ChromeStyle` enum keeps web builds clean and allows user override.
+- **Cost:** ~150 lines C (GTK) + ~100 lines Swift (Cocoa) for the platform channel. Window controls become unreachable when their column collapses — mitigated by keyboard shortcuts (`⌘Q` to close, `⌘1`/`⌘3` to expand).
+- **Cross-reference:** [D-047](#d-047-interaction-model-claude-is-home-layout) (center hat always visible), [D-051](#d-051-panel-collapse-12px-spine-with-badge) (spine-cap behavior).
+- **Raised by:** 2026-04-23 interaction model refinement.
+
 ---

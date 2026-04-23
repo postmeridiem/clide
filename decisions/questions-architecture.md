@@ -36,9 +36,9 @@ ticket persistence.
 - **Source:** CLAUDE.md "Open questions" footer.
 
 ### Q-006: Window chrome — native frame vs frameless custom
-- **Status:** Open
+- **Status:** Resolved → [D-057](architecture.md#d-057-frameless-custom-chrome-with-per-column-24px-hats)
 - **Question:** Does clide ship with the OS-native window frame (title bar, min/max/close from the WM) or a frameless custom chrome that gives us pixel control at the cost of reimplementing window controls per-platform?
-- **Context:** Surfaced during Tier-0 plumbing discussion; decision deferred.
+- **Context:** Surfaced during Tier-0 plumbing discussion; resolved 2026-04-23 — frameless with per-column 24px hats.
 - **Source:** 2026-04-21 planning.
 
 ### Q-007: macOS app bundle signing / notarisation
