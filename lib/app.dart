@@ -441,6 +441,7 @@ class _SidebarSlot extends StatelessWidget {
     return Container(
       color: tokens.sidebarBackground,
       alignment: Alignment.topLeft,
+      padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
       child: active.build(context),
     );
   }
@@ -557,6 +558,7 @@ class _ContextSlot extends StatelessWidget {
     return Container(
       color: tokens.panelBackground,
       alignment: Alignment.topLeft,
+      padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
       child: active.build(context),
     );
   }

@@ -49,7 +49,8 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
         child: SizedBox(
           width: widget.axis == Axis.horizontal ? widget.thickness : null,
           height: widget.axis == Axis.vertical ? widget.thickness : null,
-          child: Center(
+          child: Align(
+            alignment: widget.slot == Slots.sidebar ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
               width: widget.axis == Axis.horizontal ? 1 : null,
               height: widget.axis == Axis.vertical ? 1 : null,
