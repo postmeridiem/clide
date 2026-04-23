@@ -125,6 +125,19 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
     }
   });
 
+  d.register('pql.decisions.read', (req) async {
+    final id = req.args['id'] as String?;
+    if (id == null || id.isEmpty) {
+      return _userError(req.id, 'pql.decisions.read requires an id');
+    }
+    try {
+      final result = await pql.decisionRead(id);
+      return IpcResponse.ok(id: req.id, data: result);
+    } on PqlException catch (e) {
+      return _pqlError(req.id, e);
+    }
+  });
+
   d.register('pql.decisions.show', (req) async {
     final id = req.args['id'] as String?;
     if (id == null || id.isEmpty) {

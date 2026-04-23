@@ -94,6 +94,10 @@ class PqlClient {
     return _runObject(args);
   }
 
+  Future<Map<String, Object?>> decisionRead(String id) async {
+    return _runObject(['decisions', 'read', id]);
+  }
+
   Future<List<Map<String, Object?>>> decisionCoverage() async {
     return _runList(['decisions', 'coverage']);
   }

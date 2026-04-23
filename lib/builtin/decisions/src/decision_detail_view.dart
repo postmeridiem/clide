@@ -33,7 +33,7 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
   Future<void> _load(String id) async {
     setState(() => _loading = true);
     final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('pql.decisions.show', args: {'id': id});
+    final resp = await kernel.ipc.request('pql.decisions.read', args: {'id': id});
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -57,6 +57,8 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
     final domain = d['domain'] as String?;
     final status = d['status'] as String?;
     final date = d['date'] as String?;
+    final body = d['body'] as String?;
+    final refs = (d['refs'] as List?)?.cast<Map<String, Object?>>() ?? const [];
     final typeColor = typeColors.forType(type);
 
     return SingleChildScrollView(
@@ -104,7 +106,58 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
               ],
             ),
           ),
+          if (body != null && body.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: tokens.panelBackground,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: tokens.panelBorder),
+              ),
+              child: ClideText(body, fontSize: 13, fontFamily: clideMonoFamily),
+            ),
+          ],
+          if (refs.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ClideText('CROSS-REFERENCES', fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            const SizedBox(height: 6),
+            for (final ref in refs) _RefCard(ref: ref, tokens: tokens),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _RefCard extends StatelessWidget {
+  const _RefCard({required this.ref, required this.tokens});
+  final Map<String, Object?> ref;
+  final SurfaceTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final targetId = (ref['target_id'] ?? ref['source_id']) as String? ?? '';
+    final refType = ref['ref_type'] as String? ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: ClideTappable(
+        onTap: () => ClideKernel.of(context).messages.publish('builtin.decisions', 'selection', {'id': targetId}),
+        builder: (ctx, hovered, _) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.sidebarItemHover : tokens.panelBackground,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: hovered ? tokens.panelActiveBorder : tokens.panelBorder),
+          ),
+          child: Row(
+            children: [
+              ClideText(targetId, fontSize: 11, color: tokens.globalFocus, fontFamily: clideMonoFamily),
+              const SizedBox(width: 8),
+              ClideText(refType, fontSize: 11, color: tokens.globalTextMuted),
+            ],
+          ),
+        ),
       ),
     );
   }
