@@ -19,6 +19,7 @@ class _TicketsViewState extends State<TicketsView> {
   bool _loading = true;
   String _filter = '';
   String? _focusedId;
+  final _focusedKey = GlobalKey();
   final Set<String> _expanded = {'active', 'backlog'};
   StreamSubscription<Message>? _focusSub;
 
@@ -28,15 +29,34 @@ class _TicketsViewState extends State<TicketsView> {
     });
   }
 
+  static String _sectionForStatus(String? status) => switch (status) {
+        'in_progress' => 'active',
+        'backlog' || 'ready' => 'backlog',
+        'done' => 'done',
+        _ => 'other',
+      };
+
+  void _onFocus(Message msg) {
+    final id = msg.data['id'] as String?;
+    if (id == null || id == _focusedId) return;
+    final entry = _tickets.where((t) => t.id == id).firstOrNull;
+    final section = _sectionForStatus(entry?.status);
+    setState(() {
+      _focusedId = id;
+      _expanded.add(section);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _focusedKey.currentContext;
+      if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_focusSub == null) {
       final kernel = ClideKernel.of(context);
-      _focusSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'focus').listen((msg) {
-        final id = msg.data['id'] as String?;
-        if (id != _focusedId) setState(() => _focusedId = id);
-      });
+      _focusSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'focus').listen(_onFocus);
     }
     if (!_loading || _tickets.isNotEmpty) return;
     unawaited(_load());
@@ -98,10 +118,10 @@ class _TicketsViewState extends State<TicketsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (active.isNotEmpty) _AccordionSection(label: 'ACTIVE', count: active.length, tokens: tokens, expanded: hasFilter || _expanded.contains('active'), onToggle: () => _toggle('active'), children: [for (final t in active) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
-                if (backlog.isNotEmpty) _AccordionSection(label: 'BACKLOG', count: backlog.length, tokens: tokens, expanded: hasFilter || _expanded.contains('backlog'), onToggle: () => _toggle('backlog'), children: [for (final t in backlog) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
-                if (done.isNotEmpty) _AccordionSection(label: 'DONE', count: done.length, tokens: tokens, expanded: hasFilter || _expanded.contains('done'), onToggle: () => _toggle('done'), children: [for (final t in done) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
-                if (other.isNotEmpty) _AccordionSection(label: 'OTHER', count: other.length, tokens: tokens, expanded: hasFilter || _expanded.contains('other'), onToggle: () => _toggle('other'), children: [for (final t in other) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
+                if (active.isNotEmpty) _AccordionSection(label: 'ACTIVE', count: active.length, tokens: tokens, expanded: hasFilter || _expanded.contains('active'), onToggle: () => _toggle('active'), children: [for (final t in active) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
+                if (backlog.isNotEmpty) _AccordionSection(label: 'BACKLOG', count: backlog.length, tokens: tokens, expanded: hasFilter || _expanded.contains('backlog'), onToggle: () => _toggle('backlog'), children: [for (final t in backlog) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
+                if (done.isNotEmpty) _AccordionSection(label: 'DONE', count: done.length, tokens: tokens, expanded: hasFilter || _expanded.contains('done'), onToggle: () => _toggle('done'), children: [for (final t in done) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
+                if (other.isNotEmpty) _AccordionSection(label: 'OTHER', count: other.length, tokens: tokens, expanded: hasFilter || _expanded.contains('other'), onToggle: () => _toggle('other'), children: [for (final t in other) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
               ],
             ),
           ),
@@ -152,7 +172,7 @@ class _AccordionSection extends StatelessWidget {
               children: [
                 ClideIcon(expanded ? PhosphorIcons.caretDown : PhosphorIcons.caretRight, size: 10, color: tokens.globalTextMuted),
                 const SizedBox(width: 6),
-                ClideText('$label · $count', fontSize: 11, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+                ClideText('$label · $count', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
               ],
             ),
           ),
@@ -164,11 +184,12 @@ class _AccordionSection extends StatelessWidget {
 }
 
 class _TicketCard extends StatelessWidget {
-  const _TicketCard({required this.entry, required this.tokens, required this.typeColors, this.focused = false});
+  const _TicketCard({required this.entry, required this.tokens, required this.typeColors, this.focused = false, this.focusKey});
   final _TicketEntry entry;
   final SurfaceTokens tokens;
   final TicketTypeColors typeColors;
   final bool focused;
+  final GlobalKey? focusKey;
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +197,7 @@ class _TicketCard extends StatelessWidget {
     final statusLabel = _statusLabel(entry.status);
 
     return Padding(
+      key: focusKey,
       padding: const EdgeInsets.only(bottom: 4),
       child: ClideTappable(
         onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': entry.id}),
@@ -200,15 +222,15 @@ class _TicketCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  ClideText(entry.id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
                   if (entry.parentId != null) ...[
-                    ClideText(' ← ', fontSize: 11, color: tokens.globalTextMuted),
-                    ClideText(entry.parentId!, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                    ClideText(' ← ', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+                    ClideText(entry.parentId!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
                   ],
                 ],
               ),
               const SizedBox(height: 4),
-              ClideText(entry.title, fontSize: 13),
+              ClideText(entry.title, fontSize: clideFontCaption),
               if (statusLabel != null) ...[
                 const SizedBox(height: 6),
                 _StatusBadge(label: statusLabel, tokens: tokens, status: entry.status),
@@ -248,7 +270,7 @@ class _StatusBadge extends StatelessWidget {
         color: color.withAlpha(0x30),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: ClideText(label, fontSize: 10, color: color, fontFamily: clideMonoFamily),
+      child: ClideText(label, fontSize: clideFontBadge, color: color, fontFamily: clideMonoFamily),
     );
   }
 }

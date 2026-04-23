@@ -32,6 +32,15 @@ class _TicketDetailViewState extends State<TicketDetailView> {
     super.dispose();
   }
 
+  void _navigateToRecord(BuildContext context, String id) {
+    final kernel = ClideKernel.of(context);
+    if (id.startsWith('T-')) {
+      kernel.messages.publish('builtin.tickets', 'selection', {'id': id});
+    } else {
+      kernel.messages.publish('builtin.decisions', 'selection', {'id': id});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = _controller;
@@ -57,7 +66,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
               _StatusControls(detail: d, tokens: tokens, controller: c),
               if (d.description != null && d.description!.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                ClideText(d.description!, muted: true, fontSize: 13),
+                ClideMarkdown(d.description!, onRecordTap: (id) => _navigateToRecord(ctx, id)),
               ],
               if (d.parents.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -111,17 +120,17 @@ class _TicketHeader extends StatelessWidget {
                 child: Container(width: 10, height: 10, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
               ),
               const SizedBox(width: 8),
-              ClideText(detail.id, fontSize: 13, color: typeColor, fontFamily: clideMonoFamily),
+              ClideText(detail.id, fontSize: clideFontSmall, color: typeColor, fontFamily: clideMonoFamily),
               const Spacer(),
               if (detail.priority != null)
-                ClideText(detail.priority!, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                ClideText(detail.priority!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
             ],
           ),
           const SizedBox(height: 8),
           ClideText(detail.title, fontSize: 15, fontWeight: FontWeight.w500),
           if (detail.assignedTo != null) ...[
             const SizedBox(height: 6),
-            ClideText('assigned: ${detail.assignedTo}', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+            ClideText('assigned: ${detail.assignedTo}', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
           ],
         ],
       ),
@@ -159,7 +168,7 @@ class _StatusControls extends StatelessWidget {
                     border: Border.all(color: active ? tokens.statusInfo : tokens.panelBorder),
                   ),
                   alignment: Alignment.center,
-                  child: ClideText(_shortLabel(s), fontSize: 10, color: color, fontFamily: clideMonoFamily),
+                  child: ClideText(_shortLabel(s), fontSize: clideFontBadge, color: color, fontFamily: clideMonoFamily),
                 );
               },
             ),
@@ -187,7 +196,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClideText(label, fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily);
+    return ClideText(label, fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily);
   }
 }
 
@@ -219,9 +228,9 @@ class _CompactCard extends StatelessWidget {
             children: [
               Container(width: 6, height: 6, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
               const SizedBox(width: 6),
-              ClideText(id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+              ClideText(id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
               const SizedBox(width: 8),
-              Expanded(child: ClideText(title, fontSize: 12)),
+              Expanded(child: ClideText(title, fontSize: clideFontSmall)),
             ],
           ),
         ),
@@ -265,13 +274,13 @@ class _DecisionRefCard extends StatelessWidget {
                 children: [
                   Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                   const SizedBox(width: 6),
-                  ClideText(id, fontSize: 11, color: color, fontFamily: clideMonoFamily),
+                  ClideText(id, fontSize: clideFontSmall, color: color, fontFamily: clideMonoFamily),
                   const Spacer(),
-                  if (domain != null) ClideText(domain, fontSize: 10, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  if (domain != null) ClideText(domain, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
                 ],
               ),
               const SizedBox(height: 3),
-              ClideText(title, fontSize: 12),
+              ClideText(title, fontSize: clideFontSmall),
             ],
           ),
         ),

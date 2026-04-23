@@ -67,6 +67,15 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     }
   }
 
+  void _navigateToRecord(BuildContext context, String id) {
+    final kernel = ClideKernel.of(context);
+    if (id.startsWith('T-')) {
+      kernel.messages.publish('builtin.tickets', 'selection', {'id': id});
+    } else {
+      kernel.messages.publish('builtin.decisions', 'selection', {'id': id});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -83,7 +92,7 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
       subtitle: '${_content!.split('\n').length} lines',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
-        child: ClideMarkdown(_content!),
+        child: ClideMarkdown(_content!, onRecordTap: (id) => _navigateToRecord(context, id)),
       ),
     );
   }

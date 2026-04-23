@@ -17,11 +17,18 @@ class _DecisionsViewState extends State<DecisionsView> {
   String? _error;
   bool _loading = true;
   String _filter = '';
+  String? _focusedId;
+  final _focusedKey = GlobalKey();
   final Set<String> _expanded = {'confirmed'};
+  StreamSubscription<Message>? _focusSub;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_focusSub == null) {
+      final kernel = ClideKernel.of(context);
+      _focusSub = kernel.messages.subscribe(publisher: 'builtin.decisions', channel: 'focus').listen(_onFocus);
+    }
     if (!_loading || _decisions.isNotEmpty) return;
     unawaited(_load());
   }
@@ -47,6 +54,27 @@ class _DecisionsViewState extends State<DecisionsView> {
     } else {
       setState(() => _loading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _focusSub?.cancel();
+    super.dispose();
+  }
+
+  void _onFocus(Message msg) {
+    final id = msg.data['id'] as String?;
+    if (id == null || id == _focusedId) return;
+    final entry = _decisions.where((d) => d.id == id).firstOrNull;
+    final section = entry?.type ?? 'confirmed';
+    setState(() {
+      _focusedId = id;
+      _expanded.add(section);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _focusedKey.currentContext;
+      if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
+    });
   }
 
   void _toggleSection(String key) {
@@ -91,21 +119,21 @@ class _DecisionsViewState extends State<DecisionsView> {
                   color: typeColors.confirmed,
                   expanded: hasFilter || _expanded.contains('confirmed'),
                   onToggle: () => _toggleSection('confirmed'),
-                  children: [for (final d in confirmed) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors)],
+                  children: [for (final d in confirmed) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)],
                 ),
                 if (questions.isNotEmpty) _AccordionSection(
                   label: 'QUESTIONS', count: questions.length, tokens: tokens,
                   color: typeColors.question,
                   expanded: hasFilter || _expanded.contains('question'),
                   onToggle: () => _toggleSection('question'),
-                  children: [for (final d in questions) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors)],
+                  children: [for (final d in questions) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)],
                 ),
                 if (rejected.isNotEmpty) _AccordionSection(
                   label: 'REJECTED', count: rejected.length, tokens: tokens,
                   color: typeColors.rejected,
                   expanded: hasFilter || _expanded.contains('rejected'),
                   onToggle: () => _toggleSection('rejected'),
-                  children: [for (final d in rejected) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors)],
+                  children: [for (final d in rejected) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)],
                 ),
               ],
             ),
@@ -162,7 +190,7 @@ class _AccordionSection extends StatelessWidget {
                 const SizedBox(width: 6),
                 Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                 const SizedBox(width: 6),
-                ClideText('$label · $count', fontSize: 11, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+                ClideText('$label · $count', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
               ],
             ),
           ),
@@ -174,24 +202,27 @@ class _AccordionSection extends StatelessWidget {
 }
 
 class _DecisionCard extends StatelessWidget {
-  const _DecisionCard({required this.entry, required this.tokens, required this.typeColors});
+  const _DecisionCard({required this.entry, required this.tokens, required this.typeColors, this.focused = false, this.focusKey});
   final _DecisionEntry entry;
   final SurfaceTokens tokens;
   final DecisionTypeColors typeColors;
+  final bool focused;
+  final GlobalKey? focusKey;
 
   @override
   Widget build(BuildContext context) {
     final typeColor = typeColors.forType(entry.type);
     return Padding(
+      key: focusKey,
       padding: const EdgeInsets.only(bottom: 4),
       child: ClideTappable(
         onTap: () => ClideKernel.of(context).messages.publish('builtin.decisions', 'selection', {'id': entry.id}),
         builder: (ctx, hovered, _) => Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: hovered ? tokens.sidebarItemHover : tokens.panelBackground,
+            color: hovered ? tokens.sidebarItemHover : (focused ? tokens.sidebarItemSelected : tokens.panelBackground),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: hovered ? tokens.panelActiveBorder : tokens.panelBorder, width: 1),
+            border: Border.all(color: focused ? tokens.globalFocus : (hovered ? tokens.panelActiveBorder : tokens.panelBorder), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,20 +234,20 @@ class _DecisionCard extends StatelessWidget {
                     child: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
                   ),
                   const SizedBox(width: 6),
-                  ClideText(entry.id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
                   const Spacer(),
                   if (entry.domain != null)
-                    ClideText(entry.domain!, fontSize: 10, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                    ClideText(entry.domain!, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
                 ],
               ),
               const SizedBox(height: 4),
-              ClideText(entry.title, fontSize: 13),
+              ClideText(entry.title, fontSize: clideFontCaption),
               if (entry.status == 'resolved') ...[
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: tokens.statusSuccess.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
-                  child: ClideText('resolved', fontSize: 10, color: tokens.statusSuccess, fontFamily: clideMonoFamily),
+                  child: ClideText('resolved', fontSize: clideFontBadge, color: tokens.statusSuccess, fontFamily: clideMonoFamily),
                 ),
               ],
             ],

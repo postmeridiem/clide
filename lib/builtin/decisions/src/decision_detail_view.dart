@@ -16,17 +16,25 @@ class DecisionDetailView extends StatefulWidget {
 class _DecisionDetailViewState extends State<DecisionDetailView> {
   Map<String, Object?>? _decision;
   bool _loading = false;
+  StreamSubscription<Message>? _sub;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (widget.initialId != null && _decision == null && !_loading) {
+    if (_sub != null) return;
+    final kernel = ClideKernel.of(context);
+    _sub = kernel.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen((msg) {
+      final id = msg.data['id'] as String?;
+      if (id != null) unawaited(_load(id));
+    });
+    if (widget.initialId != null) {
       unawaited(_load(widget.initialId!));
     }
   }
 
   @override
   void dispose() {
+    _sub?.cancel();
     super.dispose();
   }
 
@@ -35,10 +43,22 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
     final kernel = ClideKernel.of(context);
     final resp = await kernel.ipc.request('pql.decisions.read', args: {'id': id});
     if (!mounted) return;
+    if (resp.ok) {
+      kernel.messages.publish('builtin.decisions', 'focus', {'id': id});
+    }
     setState(() {
       _loading = false;
       _decision = resp.ok ? resp.data : null;
     });
+  }
+
+  void _navigateToRecord(BuildContext context, String id) {
+    final kernel = ClideKernel.of(context);
+    if (id.startsWith('T-')) {
+      kernel.messages.publish('builtin.tickets', 'selection', {'id': id});
+    } else {
+      kernel.messages.publish('builtin.decisions', 'selection', {'id': id});
+    }
   }
 
   @override
@@ -83,13 +103,13 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
                       child: Container(width: 10, height: 10, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
                     ),
                     const SizedBox(width: 8),
-                    ClideText(id, fontSize: 13, color: typeColor, fontFamily: clideMonoFamily),
+                    ClideText(id, fontSize: clideFontSmall, color: typeColor, fontFamily: clideMonoFamily),
                     const Spacer(),
                     if (domain != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: tokens.panelBorder, borderRadius: BorderRadius.circular(3)),
-                        child: ClideText(domain, fontSize: 10, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                        child: ClideText(domain, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
                       ),
                   ],
                 ),
@@ -97,7 +117,7 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
                 ClideText(title, fontSize: 15, fontWeight: FontWeight.w500),
                 if (date != null) ...[
                   const SizedBox(height: 6),
-                  ClideText(date, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                  ClideText(date, muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
                 ],
                 if (status != null && status != 'active') ...[
                   const SizedBox(height: 8),
@@ -108,11 +128,11 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
           ),
           if (body != null && body.isNotEmpty) ...[
             const SizedBox(height: 12),
-            ClideMarkdown(body),
+            ClideMarkdown(body, onRecordTap: (id) => _navigateToRecord(context, id)),
           ],
           if (refs.isNotEmpty) ...[
             const SizedBox(height: 16),
-            ClideText('CROSS-REFERENCES', fontSize: 11, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            ClideText('CROSS-REFERENCES', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
             const SizedBox(height: 6),
             for (final ref in refs) _RefCard(ref: ref, tokens: tokens),
           ],
@@ -144,9 +164,9 @@ class _RefCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              ClideText(targetId, fontSize: 11, color: tokens.globalFocus, fontFamily: clideMonoFamily),
+              ClideText(targetId, fontSize: clideFontSmall, color: tokens.globalFocus, fontFamily: clideMonoFamily),
               const SizedBox(width: 8),
-              ClideText(refType, fontSize: 11, color: tokens.globalTextMuted),
+              ClideText(refType, fontSize: clideFontSmall, color: tokens.globalTextMuted),
             ],
           ),
         ),
@@ -170,7 +190,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(color: color.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
-      child: ClideText(status.toUpperCase(), fontSize: 10, color: color, fontFamily: clideMonoFamily),
+      child: ClideText(status.toUpperCase(), fontSize: clideFontBadge, color: color, fontFamily: clideMonoFamily),
     );
   }
 }

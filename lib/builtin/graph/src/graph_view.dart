@@ -103,8 +103,8 @@ class _NodeRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
-            Expanded(child: ClideText(node.path, fontSize: 13)),
-            ClideText('${node.inbound}in ${node.outbound}out', color: tokens.globalTextMuted, fontSize: 11),
+            Expanded(child: ClideText(node.path, fontSize: clideFontCaption)),
+            ClideText('${node.inbound}in ${node.outbound}out', color: tokens.globalTextMuted, fontSize: clideFontSmall),
           ],
         ),
       ),
