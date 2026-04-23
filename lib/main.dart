@@ -81,29 +81,35 @@ Future<void> main() async {
   // Register every built-in. Tier 0 activates only the four that do
   // real work; the rest compile in as stubs so the extensions-ui can
   // list them when Tier 6 lands.
+  // Registration order = default icon rail order (left to right).
+  // User can override via project.layout.sidebar.order in settings.
   services.extensions
     ..register(DefaultLayoutExtension())
     ..register(WelcomeExtension())
     ..register(IpcStatusExtension())
     ..register(ThemePickerExtension())
-    ..register(ClaudeExtension())
-    ..register(TerminalExtension())
+    // Sidebar: tickets first, then decisions, files, git, pql, problems
+    ..register(TicketsExtension())
+    ..register(DecisionsExtension())
     ..register(FilesExtension())
-    ..register(EditorExtension())
-    ..register(GrammarsCoreExtension())
-    ..register(MarkdownExtension())
-    ..register(DiffExtension())
     ..register(GitExtension())
     ..register(PqlExtension())
-    ..register(TodosExtension())
     ..register(ProblemsExtension())
+    // Workspace
+    ..register(ClaudeExtension())
+    ..register(TerminalExtension())
+    ..register(EditorExtension())
+    ..register(DiffExtension())
+    // Format engines + stubs
+    ..register(GrammarsCoreExtension())
+    ..register(MarkdownExtension())
+    ..register(TodosExtension())
     ..register(CanvasExtension())
     ..register(GraphExtension())
+    // UI extensions
     ..register(SettingsUiExtension())
     ..register(ExtensionsUiExtension())
     ..register(KeybindingsUiExtension())
-    ..register(DecisionsExtension())
-    ..register(TicketsExtension())
     ..register(ClaudeControlExtension());
 
   await services.extensions.activateAll();
