@@ -85,6 +85,7 @@ class TicketDetailController extends ChangeNotifier {
 
     _detail = TicketDetail(ticket: ticket, parents: parents, decisions: decisions);
     _loading = false;
+    messages.publish('builtin.tickets', 'focus', {'id': id});
     notifyListeners();
   }
 

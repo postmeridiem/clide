@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:clide/builtin/tickets/src/ticket_colors.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -17,7 +18,9 @@ class _TicketsViewState extends State<TicketsView> {
   String? _error;
   bool _loading = true;
   String _filter = '';
+  String? _focusedId;
   final Set<String> _expanded = {'active', 'backlog'};
+  StreamSubscription<Message>? _focusSub;
 
   void _toggle(String key) {
     setState(() {
@@ -28,8 +31,21 @@ class _TicketsViewState extends State<TicketsView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_focusSub == null) {
+      final kernel = ClideKernel.of(context);
+      _focusSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'focus').listen((msg) {
+        final id = msg.data['id'] as String?;
+        if (id != _focusedId) setState(() => _focusedId = id);
+      });
+    }
     if (!_loading || _tickets.isNotEmpty) return;
     unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    _focusSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -82,10 +98,10 @@ class _TicketsViewState extends State<TicketsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (active.isNotEmpty) _AccordionSection(label: 'ACTIVE', count: active.length, tokens: tokens, expanded: hasFilter || _expanded.contains('active'), onToggle: () => _toggle('active'), children: [for (final t in active) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors)]),
-                if (backlog.isNotEmpty) _AccordionSection(label: 'BACKLOG', count: backlog.length, tokens: tokens, expanded: hasFilter || _expanded.contains('backlog'), onToggle: () => _toggle('backlog'), children: [for (final t in backlog) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors)]),
-                if (done.isNotEmpty) _AccordionSection(label: 'DONE', count: done.length, tokens: tokens, expanded: hasFilter || _expanded.contains('done'), onToggle: () => _toggle('done'), children: [for (final t in done) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors)]),
-                if (other.isNotEmpty) _AccordionSection(label: 'OTHER', count: other.length, tokens: tokens, expanded: hasFilter || _expanded.contains('other'), onToggle: () => _toggle('other'), children: [for (final t in other) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors)]),
+                if (active.isNotEmpty) _AccordionSection(label: 'ACTIVE', count: active.length, tokens: tokens, expanded: hasFilter || _expanded.contains('active'), onToggle: () => _toggle('active'), children: [for (final t in active) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
+                if (backlog.isNotEmpty) _AccordionSection(label: 'BACKLOG', count: backlog.length, tokens: tokens, expanded: hasFilter || _expanded.contains('backlog'), onToggle: () => _toggle('backlog'), children: [for (final t in backlog) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
+                if (done.isNotEmpty) _AccordionSection(label: 'DONE', count: done.length, tokens: tokens, expanded: hasFilter || _expanded.contains('done'), onToggle: () => _toggle('done'), children: [for (final t in done) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
+                if (other.isNotEmpty) _AccordionSection(label: 'OTHER', count: other.length, tokens: tokens, expanded: hasFilter || _expanded.contains('other'), onToggle: () => _toggle('other'), children: [for (final t in other) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId)]),
               ],
             ),
           ),
@@ -148,10 +164,11 @@ class _AccordionSection extends StatelessWidget {
 }
 
 class _TicketCard extends StatelessWidget {
-  const _TicketCard({required this.entry, required this.tokens, required this.typeColors});
+  const _TicketCard({required this.entry, required this.tokens, required this.typeColors, this.focused = false});
   final _TicketEntry entry;
   final SurfaceTokens tokens;
   final TicketTypeColors typeColors;
+  final bool focused;
 
   @override
   Widget build(BuildContext context) {
@@ -165,9 +182,9 @@ class _TicketCard extends StatelessWidget {
         builder: (ctx, hovered, _) => Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: hovered ? tokens.sidebarItemHover : tokens.panelBackground,
+            color: hovered ? tokens.sidebarItemHover : (focused ? tokens.sidebarItemSelected : tokens.panelBackground),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: hovered ? tokens.panelActiveBorder : tokens.panelBorder, width: 1),
+            border: Border.all(color: focused ? tokens.globalFocus : (hovered ? tokens.panelActiveBorder : tokens.panelBorder), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
