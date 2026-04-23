@@ -206,21 +206,24 @@ class _CompactCard extends StatelessWidget {
     final typeColor = typeColors.forType(type);
     return Padding(
       padding: EdgeInsets.only(left: indent * 12.0, bottom: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: tokens.panelBackground,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: tokens.panelBorder),
-        ),
-        child: Row(
-          children: [
-            Container(width: 6, height: 6, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            ClideText(id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-            const SizedBox(width: 8),
-            Expanded(child: ClideText(title, fontSize: 12)),
-          ],
+      child: ClideTappable(
+        onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': id}),
+        builder: (ctx, hovered, _) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.sidebarItemHover : tokens.panelBackground,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: hovered ? tokens.panelActiveBorder : tokens.panelBorder),
+          ),
+          child: Row(
+            children: [
+              Container(width: 6, height: 6, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              ClideText(id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+              const SizedBox(width: 8),
+              Expanded(child: ClideText(title, fontSize: 12)),
+            ],
+          ),
         ),
       ),
     );
@@ -246,28 +249,31 @@ class _DecisionRefCard extends StatelessWidget {
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: tokens.panelBackground,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: tokens.panelBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                ClideText(id, fontSize: 11, color: color, fontFamily: clideMonoFamily),
-                const Spacer(),
-                if (domain != null) ClideText(domain, fontSize: 10, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-              ],
-            ),
-            const SizedBox(height: 3),
-            ClideText(title, fontSize: 12),
-          ],
+      child: ClideTappable(
+        onTap: () => ClideKernel.of(context).messages.publish('builtin.decisions', 'selection', {'id': id}),
+        builder: (ctx, hovered, _) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.sidebarItemHover : tokens.panelBackground,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: hovered ? tokens.panelActiveBorder : tokens.panelBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  ClideText(id, fontSize: 11, color: color, fontFamily: clideMonoFamily),
+                  const Spacer(),
+                  if (domain != null) ClideText(domain, fontSize: 10, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                ],
+              ),
+              const SizedBox(height: 3),
+              ClideText(title, fontSize: 12),
+            ],
+          ),
         ),
       ),
     );
