@@ -89,11 +89,18 @@ class _RootShellState extends State<_RootShell> {
             windowControls: widget.services.window,
             child: DialogHost(
               router: widget.services.dialog,
-              child: Stack(
+              child: Column(
                 children: [
-                  const Positioned.fill(child: RootLayout()),
-                  const ClidePalette(),
-                  const Positioned.fill(child: _WelcomeOverlay()),
+                  _HatBar(kernel: widget.services),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        const Positioned.fill(child: RootLayout()),
+                        const ClidePalette(),
+                        const Positioned.fill(child: _WelcomeOverlay()),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -136,7 +143,6 @@ class RootLayout extends StatelessWidget {
 
         return Column(
           children: [
-            _HatBar(kernel: kernel),
             Expanded(
               child: Row(
                 children: [

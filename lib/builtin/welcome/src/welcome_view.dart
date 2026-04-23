@@ -244,7 +244,7 @@ class _RecentRowState extends State<_RecentRow> {
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        ClideText(widget.project.relativePath, muted: true, fontSize: 13, fontFamily: clideMonoFamily),
+                        Flexible(child: ClideText(widget.project.relativePath, muted: true, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
                         if (widget.project.branch != null) ...[
                           ClideText('  ·  ', muted: true, fontSize: 13),
                           ClideIcon(PhosphorIcons.gitBranch, size: 11, color: widget.tokens.globalTextMuted),
