@@ -6,6 +6,7 @@ add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "protocols/xdg-decoration-unstable-v1-protocol.c"
+  "protocols/server-decoration-protocol.c"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 

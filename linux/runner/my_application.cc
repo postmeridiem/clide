@@ -8,7 +8,7 @@
 #include <gdk/gdkwayland.h>
 #endif
 #ifdef HAS_WAYLAND_CLIENT
-#include "protocols/xdg-decoration-unstable-v1-client-protocol.h"
+#include "protocols/server-decoration-client-protocol.h"
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
@@ -20,17 +20,18 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-// D-057: xdg-decoration state.
+// D-057: KDE server-decoration protocol — request no decorations.
 #ifdef HAS_WAYLAND_CLIENT
-static struct zxdg_decoration_manager_v1* decoration_manager = nullptr;
+static struct org_kde_kwin_server_decoration_manager* kde_deco_manager = nullptr;
 
 static void registry_handler(void* data, struct wl_registry* registry,
                              uint32_t id, const char* interface,
                              uint32_t version) {
-  if (g_strcmp0(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
-    decoration_manager = (struct zxdg_decoration_manager_v1*)
+  if (g_strcmp0(interface,
+               org_kde_kwin_server_decoration_manager_interface.name) == 0) {
+    kde_deco_manager = (struct org_kde_kwin_server_decoration_manager*)
         wl_registry_bind(registry, id,
-                         &zxdg_decoration_manager_v1_interface, 1);
+                         &org_kde_kwin_server_decoration_manager_interface, 1);
   }
 }
 
@@ -40,20 +41,30 @@ static void registry_remover(void* data, struct wl_registry* registry,
 static const struct wl_registry_listener registry_listener = {
     registry_handler, registry_remover};
 
-static void request_client_side_decorations(GtkWindow* window) {
+static void kde_deco_default_mode(void* data,
+    struct org_kde_kwin_server_decoration_manager* mgr, uint32_t mode) {}
+
+static const struct org_kde_kwin_server_decoration_manager_listener
+    kde_deco_manager_listener = {kde_deco_default_mode};
+
+static void request_no_server_decorations(GtkWindow* window) {
   GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(window));
   if (!GDK_IS_WAYLAND_DISPLAY(display)) return;
 
-  struct wl_display* wl_display =
+  struct wl_display* wl_dpy =
       gdk_wayland_display_get_wl_display(display);
-  struct wl_registry* registry = wl_display_get_registry(wl_display);
+  struct wl_registry* registry = wl_display_get_registry(wl_dpy);
   wl_registry_add_listener(registry, &registry_listener, nullptr);
-  wl_display_roundtrip(wl_display);
+  wl_display_roundtrip(wl_dpy);
 
-  if (decoration_manager == nullptr) {
+  if (kde_deco_manager == nullptr) {
     wl_registry_destroy(registry);
     return;
   }
+
+  org_kde_kwin_server_decoration_manager_add_listener(
+      kde_deco_manager, &kde_deco_manager_listener, nullptr);
+  wl_display_roundtrip(wl_dpy);
 
   GdkWindow* gdk_win = gtk_widget_get_window(GTK_WIDGET(window));
   if (gdk_win == nullptr) {
@@ -67,17 +78,14 @@ static void request_client_side_decorations(GtkWindow* window) {
     return;
   }
 
-  struct zxdg_toplevel_decoration_v1* toplevel_decoration =
-      zxdg_decoration_manager_v1_get_toplevel_decoration(
-          decoration_manager, surface);
-
-  if (toplevel_decoration != nullptr) {
-    zxdg_toplevel_decoration_v1_set_mode(
-        toplevel_decoration,
-        ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE);
+  struct org_kde_kwin_server_decoration* deco =
+      org_kde_kwin_server_decoration_manager_create(kde_deco_manager, surface);
+  if (deco != nullptr) {
+    // Mode 0 = None (no decorations at all)
+    org_kde_kwin_server_decoration_request_mode(deco, 0);
+    wl_display_roundtrip(wl_dpy);
   }
 
-  wl_display_roundtrip(wl_display);
   wl_registry_destroy(registry);
 }
 #endif
@@ -88,7 +96,7 @@ static void on_window_realize(GtkWidget* widget, gpointer data) {
     gdk_window_set_decorations(gdk_win, (GdkWMDecoration)0);
   }
 #ifdef HAS_WAYLAND_CLIENT
-  request_client_side_decorations(GTK_WINDOW(widget));
+  request_no_server_decorations(GTK_WINDOW(widget));
 #endif
 }
 
