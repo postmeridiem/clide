@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -27,9 +26,8 @@ class _DecisionsViewState extends State<DecisionsView> {
 
   Future<void> _load() async {
     final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('pql.exec', args: {
-      'argv': ['decisions', 'list', '--type', 'confirmed'],
-    });
+    await kernel.ipc.request('pql.decisions.sync');
+    final resp = await kernel.ipc.request('pql.decisions.list');
     if (!mounted) return;
     if (!resp.ok) {
       setState(() {
@@ -38,18 +36,14 @@ class _DecisionsViewState extends State<DecisionsView> {
       });
       return;
     }
-    final raw = resp.data['stdout'] as String? ?? '[]';
-    try {
-      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+    final raw = resp.data['decisions'];
+    if (raw is List) {
       setState(() {
-        _decisions = list.map(_DecisionEntry.fromJson).toList();
+        _decisions = [for (final e in raw) _DecisionEntry.fromJson((e as Map).cast<String, dynamic>())];
         _loading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = 'parse error: $e';
-        _loading = false;
-      });
+    } else {
+      setState(() => _loading = false);
     }
   }
 

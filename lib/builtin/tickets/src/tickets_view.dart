@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -27,9 +26,7 @@ class _TicketsViewState extends State<TicketsView> {
 
   Future<void> _load() async {
     final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('pql.exec', args: {
-      'argv': ['ticket', 'list'],
-    });
+    final resp = await kernel.ipc.request('pql.tickets.list');
     if (!mounted) return;
     if (!resp.ok) {
       setState(() {
@@ -38,18 +35,14 @@ class _TicketsViewState extends State<TicketsView> {
       });
       return;
     }
-    final raw = resp.data['stdout'] as String? ?? '[]';
-    try {
-      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+    final raw = resp.data['tickets'];
+    if (raw is List) {
       setState(() {
-        _tickets = list.map(_TicketEntry.fromJson).toList();
+        _tickets = [for (final e in raw) _TicketEntry.fromJson((e as Map).cast<String, dynamic>())];
         _loading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = 'parse error: $e';
-        _loading = false;
-      });
+    } else {
+      setState(() => _loading = false);
     }
   }
 
