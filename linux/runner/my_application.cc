@@ -14,9 +14,20 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+// D-057: strip all window decorations after the GdkWindow exists.
+static void remove_decorations(GtkWidget* widget, gpointer data) {
+  (void)data;
+  GdkWindow* gdk_win = gtk_widget_get_window(widget);
+  if (gdk_win != nullptr) {
+    gdk_window_set_decorations(gdk_win, (GdkWMDecoration)0);
+  }
+}
+
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
-  gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
+  GtkWidget* toplevel = gtk_widget_get_toplevel(GTK_WIDGET(view));
+  remove_decorations(toplevel, nullptr);
+  gtk_widget_show(toplevel);
 }
 
 // Implements GApplication::activate.
@@ -30,6 +41,9 @@ static void my_application_activate(GApplication* application) {
   gtk_window_set_decorated(window, FALSE);
   gtk_window_set_title(window, "clide");
 
+  // Also strip decorations via GDK after realize (catches KDE/KWin
+  // on Wayland which ignores gtk_window_set_decorated).
+  g_signal_connect(window, "realize", G_CALLBACK(remove_decorations), nullptr);
 
   gtk_window_set_default_size(window, 1280, 720);
 
