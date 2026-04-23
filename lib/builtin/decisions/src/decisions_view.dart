@@ -102,31 +102,22 @@ class _DecisionEntry {
       );
 }
 
-class _DecisionRow extends StatefulWidget {
+class _DecisionRow extends StatelessWidget {
   const _DecisionRow({required this.entry, required this.tokens});
   final _DecisionEntry entry;
   final SurfaceTokens tokens;
 
   @override
-  State<_DecisionRow> createState() => _DecisionRowState();
-}
-
-class _DecisionRowState extends State<_DecisionRow> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        color: _hovered ? widget.tokens.listItemHoverBackground : null,
+    return ClideTappable(
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.listItemHoverBackground : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
-            ClideText(widget.entry.id, color: widget.tokens.globalTextMuted, fontSize: 12),
+            ClideText(entry.id, color: tokens.globalTextMuted, fontSize: 12),
             const SizedBox(width: 8),
-            Expanded(child: ClideText(widget.entry.title, fontSize: 13)),
+            Expanded(child: ClideText(entry.title, fontSize: 13)),
           ],
         ),
       ),

@@ -4,6 +4,7 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/kernel/src/window_controls.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
+import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/icons/phosphor.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -113,40 +114,28 @@ class _RightContent extends StatelessWidget {
   }
 }
 
-class _TrafficDot extends StatefulWidget {
+class _TrafficDot extends StatelessWidget {
   const _TrafficDot({required this.color, required this.onTap});
   final Color color;
   final VoidCallback onTap;
 
   @override
-  State<_TrafficDot> createState() => _TrafficDotState();
-}
-
-class _TrafficDotState extends State<_TrafficDot> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: _hover ? widget.color : widget.color.withAlpha(0xCC),
-            shape: BoxShape.circle,
-          ),
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: hovered ? color : color.withAlpha(0xCC),
+          shape: BoxShape.circle,
         ),
       ),
     );
   }
 }
 
-class _WinButton extends StatefulWidget {
+class _WinButton extends StatelessWidget {
   const _WinButton({required this.icon, required this.onTap, required this.tokens, this.isClose = false});
   final ClideIconPainter icon;
   final VoidCallback onTap;
@@ -154,28 +143,16 @@ class _WinButton extends StatefulWidget {
   final bool isClose;
 
   @override
-  State<_WinButton> createState() => _WinButtonState();
-}
-
-class _WinButtonState extends State<_WinButton> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    final hoverBg = widget.isClose ? const Color(0xFFE81123) : widget.tokens.listItemHoverBackground;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          width: 36,
-          height: hatHeight,
-          color: _hover ? hoverBg : null,
-          alignment: Alignment.center,
-          child: ClideIcon(widget.icon, size: 14, color: _hover && widget.isClose ? const Color(0xFFFFFFFF) : widget.tokens.globalTextMuted),
-        ),
+    final hoverBg = isClose ? const Color(0xFFE81123) : tokens.listItemHoverBackground;
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        width: 36,
+        height: hatHeight,
+        color: hovered ? hoverBg : null,
+        alignment: Alignment.center,
+        child: ClideIcon(icon, size: 14, color: hovered && isClose ? const Color(0xFFFFFFFF) : tokens.globalTextMuted),
       ),
     );
   }

@@ -228,7 +228,7 @@ class _BranchPickerState extends State<_BranchPicker> {
   }
 }
 
-class _BranchRow extends StatefulWidget {
+class _BranchRow extends StatelessWidget {
   const _BranchRow({
     required this.name,
     required this.current,
@@ -240,50 +240,38 @@ class _BranchRow extends StatefulWidget {
   final VoidCallback? onTap;
 
   @override
-  State<_BranchRow> createState() => _BranchRowState();
-}
-
-class _BranchRowState extends State<_BranchRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    return MouseRegion(
-      cursor:
-          widget.onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          color: _hover ? tokens.listItemHoverBackground : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            children: [
-              if (widget.current)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ClideIcon(
-                    const CheckIcon(),
-                    size: 12,
-                    color: tokens.statusSuccess,
-                  ),
-                )
-              else
-                const SizedBox(width: 20),
-              Expanded(
-                child: ClideText(
-                  widget.name,
-                  fontFamily: clideMonoFamily,
-                  fontSize: clideFontMono,
-                  color: widget.current
-                      ? tokens.globalForeground
-                      : tokens.listItemForeground,
+    return ClideTappable(
+      onTap: onTap,
+      cursor: onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.listItemHoverBackground : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            if (current)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ClideIcon(
+                  const CheckIcon(),
+                  size: 12,
+                  color: tokens.statusSuccess,
                 ),
+              )
+            else
+              const SizedBox(width: 20),
+            Expanded(
+              child: ClideText(
+                name,
+                fontFamily: clideMonoFamily,
+                fontSize: clideFontMono,
+                color: current
+                    ? tokens.globalForeground
+                    : tokens.listItemForeground,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -120,7 +120,7 @@ class _TabRow extends StatelessWidget {
   }
 }
 
-class _Tab extends StatefulWidget {
+class _Tab extends StatelessWidget {
   const _Tab({required this.session, required this.active, required this.tokens, required this.onTap, this.onClose});
   final _Session session;
   final bool active;
@@ -129,74 +129,51 @@ class _Tab extends StatefulWidget {
   final VoidCallback? onClose;
 
   @override
-  State<_Tab> createState() => _TabState();
-}
-
-class _TabState extends State<_Tab> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: _hovered && !widget.active ? widget.tokens.tabInactive : null,
-            border: Border(bottom: BorderSide(color: widget.active ? widget.tokens.tabActiveBorder : const Color(0x00000000), width: 2)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClideText(
-                widget.session.label,
-                fontSize: 12,
-                color: widget.active ? widget.tokens.tabActiveForeground : widget.tokens.tabInactiveForeground,
-                fontFamily: clideMonoFamily,
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: hovered && !active ? tokens.tabInactive : null,
+          border: Border(bottom: BorderSide(color: active ? tokens.tabActiveBorder : const Color(0x00000000), width: 2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClideText(
+              session.label,
+              fontSize: 12,
+              color: active ? tokens.tabActiveForeground : tokens.tabInactiveForeground,
+              fontFamily: clideMonoFamily,
+            ),
+            if (onClose != null) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onClose,
+                child: ClideIcon(PhosphorIcons.xMark, size: 10, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
               ),
-              if (widget.onClose != null) ...[
-                const SizedBox(width: 6),
-                GestureDetector(
-                  onTap: widget.onClose,
-                  child: ClideIcon(PhosphorIcons.xMark, size: 10, color: _hovered ? widget.tokens.globalForeground : widget.tokens.globalTextMuted),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _AddButton extends StatefulWidget {
+class _AddButton extends StatelessWidget {
   const _AddButton({required this.tokens, required this.onTap});
   final SurfaceTokens tokens;
   final VoidCallback onTap;
 
   @override
-  State<_AddButton> createState() => _AddButtonState();
-}
-
-class _AddButtonState extends State<_AddButton> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: ClideText('+', fontSize: 14, color: _hovered ? widget.tokens.globalForeground : widget.tokens.globalTextMuted),
-        ),
+    return ClideTappable(
+      onTap: onTap,
+      tooltip: 'New session',
+      builder: (context, hovered, _) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: ClideText('+', fontSize: 14, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
       ),
     );
   }

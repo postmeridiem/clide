@@ -290,105 +290,72 @@ class _RightHatContent extends StatelessWidget {
   }
 }
 
-class _TrafficDot extends StatefulWidget {
+class _TrafficDot extends StatelessWidget {
   const _TrafficDot({required this.color, required this.onTap});
   final Color color;
   final VoidCallback onTap;
-  @override
-  State<_TrafficDot> createState() => _TrafficDotState();
-}
 
-class _TrafficDotState extends State<_TrafficDot> {
-  bool _hover = false;
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          width: 12, height: 12,
-          decoration: BoxDecoration(color: _hover ? widget.color : widget.color.withAlpha(0xCC), shape: BoxShape.circle),
-        ),
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        width: 12, height: 12,
+        decoration: BoxDecoration(color: hovered ? color : color.withAlpha(0xCC), shape: BoxShape.circle),
       ),
     );
   }
 }
 
-class _WinBtn extends StatefulWidget {
+class _WinBtn extends StatelessWidget {
   const _WinBtn({required this.icon, required this.onTap, required this.tokens, this.isClose = false});
   final ClideIconPainter icon;
   final VoidCallback onTap;
   final SurfaceTokens tokens;
   final bool isClose;
-  @override
-  State<_WinBtn> createState() => _WinBtnState();
-}
 
-class _WinBtnState extends State<_WinBtn> {
-  bool _hover = false;
   @override
   Widget build(BuildContext context) {
-    final hoverBg = widget.isClose ? const Color(0xFFE81123) : widget.tokens.listItemHoverBackground;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          width: 36, height: hatHeight,
-          color: _hover ? hoverBg : null,
-          alignment: Alignment.center,
-          child: ClideIcon(widget.icon, size: 14, color: _hover && widget.isClose ? const Color(0xFFFFFFFF) : widget.tokens.chromeForeground),
-        ),
+    final hoverBg = isClose ? const Color(0xFFE81123) : tokens.listItemHoverBackground;
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        width: 36, height: hatHeight,
+        color: hovered ? hoverBg : null,
+        alignment: Alignment.center,
+        child: ClideIcon(icon, size: 14, color: hovered && isClose ? const Color(0xFFFFFFFF) : tokens.chromeForeground),
       ),
     );
   }
 }
 
-class _ProjectSwitcherButton extends StatefulWidget {
+class _ProjectSwitcherButton extends StatelessWidget {
   const _ProjectSwitcherButton({required this.kernel, required this.tokens});
   final KernelServices kernel;
   final SurfaceTokens tokens;
 
-  @override
-  State<_ProjectSwitcherButton> createState() => _ProjectSwitcherButtonState();
-}
-
-class _ProjectSwitcherButtonState extends State<_ProjectSwitcherButton> {
-  bool _hover = false;
-
   void _openSwitcher() {
-    widget.kernel.dialog.show<String>((ctx, dismiss) {
-      return _ProjectSwitcherDropdown(kernel: widget.kernel, onDismiss: dismiss);
+    kernel.dialog.show<String>((ctx, dismiss) {
+      return _ProjectSwitcherDropdown(kernel: kernel, onDismiss: dismiss);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.kernel.project,
+      listenable: kernel.project,
       builder: (ctx, _) {
-        final name = widget.kernel.project.current?.path.split('/').last;
+        final name = kernel.project.current?.path.split('/').last;
         final label = name != null ? 'clide > $name' : 'clide';
-        return MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hover = true),
-          onExit: (_) => setState(() => _hover = false),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _openSwitcher,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClideText(label, fontSize: 12, color: _hover ? widget.tokens.globalForeground : widget.tokens.chromeForeground, fontFamily: clideMonoFamily),
-                const SizedBox(width: 4),
-                ClideIcon(PhosphorIcons.caretDown, size: 8, color: widget.tokens.chromeForeground),
-              ],
-            ),
+        return ClideTappable(
+          onTap: _openSwitcher,
+          builder: (context, hovered, _) => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClideText(label, fontSize: 12, color: hovered ? tokens.globalForeground : tokens.chromeForeground, fontFamily: clideMonoFamily),
+              const SizedBox(width: 4),
+              ClideIcon(PhosphorIcons.caretDown, size: 8, color: tokens.chromeForeground),
+            ],
           ),
         );
       },
@@ -523,64 +490,52 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
   }
 }
 
-class _RecentProjectRow extends StatefulWidget {
+class _RecentProjectRow extends StatelessWidget {
   const _RecentProjectRow({required this.project, required this.tokens, required this.onTap});
   final RecentProject project;
   final SurfaceTokens tokens;
   final VoidCallback onTap;
 
   @override
-  State<_RecentProjectRow> createState() => _RecentProjectRowState();
-}
-
-class _RecentProjectRowState extends State<_RecentProjectRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          color: _hover ? widget.tokens.listItemHoverBackground : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            children: [
-              ClideIcon(PhosphorIcons.folder, size: 14, color: widget.tokens.globalTextMuted),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClideText(widget.project.name, fontSize: 14),
-                    if (widget.project.branch != null)
-                      Row(
-                        children: [
-                          ClideText(widget.project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
-                          ClideText('  ·  ', muted: true, fontSize: 12),
-                          ClideIcon(PhosphorIcons.gitBranch, size: 10, color: widget.tokens.globalTextMuted),
-                          const SizedBox(width: 3),
-                          ClideText(widget.project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
-                        ],
-                      )
-                    else
-                      ClideText(widget.project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
-                  ],
-                ),
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.listItemHoverBackground : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            ClideIcon(PhosphorIcons.folder, size: 14, color: tokens.globalTextMuted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClideText(project.name, fontSize: 14),
+                  if (project.branch != null)
+                    Row(
+                      children: [
+                        ClideText(project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        ClideText('  ·  ', muted: true, fontSize: 12),
+                        ClideIcon(PhosphorIcons.gitBranch, size: 10, color: tokens.globalTextMuted),
+                        const SizedBox(width: 3),
+                        ClideText(project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                      ],
+                    )
+                  else
+                    ClideText(project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                ],
               ),
-              ClideText(widget.project.timeAgo, muted: true, fontSize: 11),
-            ],
-          ),
+            ),
+            ClideText(project.timeAgo, muted: true, fontSize: 11),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ActionRow extends StatefulWidget {
+class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.label, this.shortcut, required this.tokens, required this.onTap});
   final String label;
   final String? shortcut;
@@ -588,30 +543,18 @@ class _ActionRow extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_ActionRow> createState() => _ActionRowState();
-}
-
-class _ActionRowState extends State<_ActionRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          color: _hover ? widget.tokens.listItemHoverBackground : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(child: ClideText(widget.label, fontSize: 14)),
-              if (widget.shortcut != null && widget.shortcut!.isNotEmpty)
-                ClideText(widget.shortcut!, fontSize: 12, color: widget.tokens.globalTextMuted, fontFamily: clideMonoFamily),
-            ],
-          ),
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.listItemHoverBackground : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(child: ClideText(label, fontSize: 14)),
+            if (shortcut != null && shortcut!.isNotEmpty)
+              ClideText(shortcut!, fontSize: 12, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+          ],
         ),
       ),
     );

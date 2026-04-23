@@ -155,45 +155,32 @@ class _ViewTabs extends StatelessWidget {
       };
 }
 
-class _FileRow extends StatefulWidget {
+class _FileRow extends StatelessWidget {
   const _FileRow({required this.entry});
   final Map<String, Object?> entry;
 
   @override
-  State<_FileRow> createState() => _FileRowState();
-}
-
-class _FileRowState extends State<_FileRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final path = widget.entry['path'] as String? ?? '';
-    final name = widget.entry['name'] as String? ?? path.split('/').last;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    final path = entry['path'] as String? ?? '';
+    final name = entry['name'] as String? ?? path.split('/').last;
+    return Semantics(
+      button: true,
+      label: 'Open $name',
+      child: ClideTappable(
         onTap: () {
           final kernel = ClideKernel.of(context);
           unawaited(
               kernel.ipc.request('editor.open', args: {'path': path}));
         },
-        child: Semantics(
-          button: true,
-          label: 'Open $name',
-          child: Container(
-            color: _hover ? tokens.sidebarItemHover : null,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-            child: ClideText(
-              path,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              color: tokens.sidebarForeground,
-            ),
+        builder: (context, hovered, _) => Container(
+          color: hovered ? tokens.sidebarItemHover : null,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+          child: ClideText(
+            path,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            color: tokens.sidebarForeground,
           ),
         ),
       ),

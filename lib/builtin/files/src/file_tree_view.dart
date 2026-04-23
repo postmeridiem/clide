@@ -225,7 +225,7 @@ class _FileRow extends StatelessWidget {
   }
 }
 
-class _Row extends StatefulWidget {
+class _Row extends StatelessWidget {
   const _Row({
     required this.depth,
     required this.onTap,
@@ -241,80 +241,55 @@ class _Row extends StatefulWidget {
   final bool rotateLeading;
 
   @override
-  State<_Row> createState() => _RowState();
-}
-
-class _RowState extends State<_Row> {
-  bool _hover = false;
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final leftPadding = 8.0 + (widget.depth * 14.0);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          color: _hover ? tokens.sidebarItemHover : null,
-          padding: EdgeInsets.only(left: leftPadding, right: 8, top: 3, bottom: 3),
-          child: Row(
-            children: [
-              if (widget.leading != null) ...[
-                Transform.rotate(
-                  angle: widget.rotateLeading ? 1.5708 : 0, // 90° when expanded
-                  child: widget.leading,
-                ),
-                const SizedBox(width: 6),
-              ] else
-                const SizedBox(width: 16),
-              Expanded(
-                child: ClideText(
-                  widget.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  color: tokens.sidebarForeground,
-                ),
+    final leftPadding = 8.0 + (depth * 14.0);
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.sidebarItemHover : null,
+        padding: EdgeInsets.only(left: leftPadding, right: 8, top: 3, bottom: 3),
+        child: Row(
+          children: [
+            if (leading != null) ...[
+              Transform.rotate(
+                angle: rotateLeading ? 1.5708 : 0, // 90° when expanded
+                child: leading,
               ),
-            ],
-          ),
+              const SizedBox(width: 6),
+            ] else
+              const SizedBox(width: 16),
+            Expanded(
+              child: ClideText(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                color: tokens.sidebarForeground,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _FilteredFileRow extends StatefulWidget {
+class _FilteredFileRow extends StatelessWidget {
   const _FilteredFileRow({required this.entry});
   final FileEntry entry;
 
   @override
-  State<_FilteredFileRow> createState() => _FilteredFileRowState();
-}
-
-class _FilteredFileRowState extends State<_FilteredFileRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          final kernel = ClideKernel.of(context);
-          unawaited(kernel.ipc.request('editor.open', args: {'path': widget.entry.path}));
-        },
-        child: Container(
-          color: _hover ? tokens.sidebarItemHover : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-          child: ClideText(widget.entry.path, maxLines: 1, overflow: TextOverflow.ellipsis, color: tokens.sidebarForeground),
-        ),
+    return ClideTappable(
+      onTap: () {
+        final kernel = ClideKernel.of(context);
+        unawaited(kernel.ipc.request('editor.open', args: {'path': entry.path}));
+      },
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.sidebarItemHover : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+        child: ClideText(entry.path, maxLines: 1, overflow: TextOverflow.ellipsis, color: tokens.sidebarForeground),
       ),
     );
   }

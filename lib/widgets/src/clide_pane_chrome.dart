@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import 'clide_divider.dart';
 import 'clide_icon.dart';
+import 'clide_tappable.dart';
 import 'clide_text.dart';
 import 'icons/x.dart';
 import 'typography.dart';
@@ -67,16 +68,9 @@ class ClidePaneChrome extends StatelessWidget {
   }
 }
 
-class _CloseButton extends StatefulWidget {
+class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onPressed});
   final VoidCallback onPressed;
-
-  @override
-  State<_CloseButton> createState() => _CloseButtonState();
-}
-
-class _CloseButtonState extends State<_CloseButton> {
-  bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
@@ -84,26 +78,21 @@ class _CloseButtonState extends State<_CloseButton> {
     return Semantics(
       button: true,
       label: 'Close pane',
-      onTap: widget.onPressed,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onPressed,
-          child: Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _hover ? tokens.tabCloseHover : null,
-            ),
-            child: ClideIcon(
-              const CloseIcon(),
-              size: 10,
-              color: tokens.panelHeaderForeground,
-            ),
+      onTap: onPressed,
+      child: ClideTappable(
+        onTap: onPressed,
+        tooltip: 'Close pane',
+        builder: (context, hovered, _) => Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: hovered ? tokens.tabCloseHover : null,
+          ),
+          child: ClideIcon(
+            const CloseIcon(),
+            size: 10,
+            color: tokens.panelHeaderForeground,
           ),
         ),
       ),

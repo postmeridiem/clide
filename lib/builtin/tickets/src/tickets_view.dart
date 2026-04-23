@@ -102,35 +102,26 @@ class _TicketEntry {
       );
 }
 
-class _TicketRow extends StatefulWidget {
+class _TicketRow extends StatelessWidget {
   const _TicketRow({required this.entry, required this.tokens});
   final _TicketEntry entry;
   final SurfaceTokens tokens;
 
   @override
-  State<_TicketRow> createState() => _TicketRowState();
-}
-
-class _TicketRowState extends State<_TicketRow> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    final statusColor = switch (widget.entry.status) {
-      'done' => widget.tokens.statusSuccess,
-      'in_progress' => widget.tokens.statusInfo,
-      'cancelled' => widget.tokens.statusError,
-      _ => widget.tokens.globalTextMuted,
+    final statusColor = switch (entry.status) {
+      'done' => tokens.statusSuccess,
+      'in_progress' => tokens.statusInfo,
+      'cancelled' => tokens.statusError,
+      _ => tokens.globalTextMuted,
     };
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        color: _hovered ? widget.tokens.listItemHoverBackground : null,
+    return ClideTappable(
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.listItemHoverBackground : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
-            ClideText(widget.entry.id, color: widget.tokens.globalTextMuted, fontSize: 12),
+            ClideText(entry.id, color: tokens.globalTextMuted, fontSize: 12),
             const SizedBox(width: 6),
             Container(
               width: 6,
@@ -138,7 +129,7 @@ class _TicketRowState extends State<_TicketRow> {
               decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
-            Expanded(child: ClideText(widget.entry.title, fontSize: 13)),
+            Expanded(child: ClideText(entry.title, fontSize: 13)),
           ],
         ),
       ),

@@ -129,7 +129,7 @@ class _StartColumn extends StatelessWidget {
   }
 }
 
-class _ActionRow extends StatefulWidget {
+class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.icon, required this.label, this.shortcut, required this.tokens, required this.onTap});
   final ClideIconPainter icon;
   final String label;
@@ -138,35 +138,23 @@ class _ActionRow extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_ActionRow> createState() => _ActionRowState();
-}
-
-class _ActionRowState extends State<_ActionRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: _hover ? widget.tokens.listItemHoverBackground : null,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              ClideIcon(widget.icon, size: 18, color: widget.tokens.globalTextMuted),
-              const SizedBox(width: 14),
-              Expanded(child: ClideText(widget.label, fontSize: 15, color: widget.tokens.globalForeground)),
-              if (widget.shortcut != null)
-                ClideText(widget.shortcut!, fontSize: 13, color: widget.tokens.globalTextMuted, fontFamily: clideMonoFamily),
-            ],
-          ),
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: hovered ? tokens.listItemHoverBackground : null,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            ClideIcon(icon, size: 18, color: tokens.globalTextMuted),
+            const SizedBox(width: 14),
+            Expanded(child: ClideText(label, fontSize: 15, color: tokens.globalForeground)),
+            if (shortcut != null)
+              ClideText(shortcut!, fontSize: 13, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+          ],
         ),
       ),
     );
@@ -207,58 +195,46 @@ class _RecentColumn extends StatelessWidget {
   }
 }
 
-class _RecentRow extends StatefulWidget {
+class _RecentRow extends StatelessWidget {
   const _RecentRow({required this.project, required this.tokens, required this.onTap});
   final RecentProject project;
   final SurfaceTokens tokens;
   final VoidCallback onTap;
 
   @override
-  State<_RecentRow> createState() => _RecentRowState();
-}
-
-class _RecentRowState extends State<_RecentRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: _hover ? widget.tokens.listItemHoverBackground : null,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClideText(widget.project.name, fontSize: 15, fontWeight: FontWeight.w500),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Flexible(child: ClideText(widget.project.relativePath, muted: true, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                        if (widget.project.branch != null) ...[
-                          ClideText('  ·  ', muted: true, fontSize: 13),
-                          ClideIcon(PhosphorIcons.gitBranch, size: 11, color: widget.tokens.globalTextMuted),
-                          const SizedBox(width: 3),
-                          ClideText(widget.project.branch!, muted: true, fontSize: 13, fontFamily: clideMonoFamily),
-                        ],
+    return ClideTappable(
+      onTap: onTap,
+      builder: (context, hovered, _) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: hovered ? tokens.listItemHoverBackground : null,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClideText(project.name, fontSize: 15, fontWeight: FontWeight.w500),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Flexible(child: ClideText(project.relativePath, muted: true, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      if (project.branch != null) ...[
+                        ClideText('  ·  ', muted: true, fontSize: 13),
+                        ClideIcon(PhosphorIcons.gitBranch, size: 11, color: tokens.globalTextMuted),
+                        const SizedBox(width: 3),
+                        ClideText(project.branch!, muted: true, fontSize: 13, fontFamily: clideMonoFamily),
                       ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-              ClideText(widget.project.timeAgo, muted: true, fontSize: 13),
-            ],
-          ),
+            ),
+            ClideText(project.timeAgo, muted: true, fontSize: 13),
+          ],
         ),
       ),
     );

@@ -90,30 +90,21 @@ class _GraphNode {
       );
 }
 
-class _NodeRow extends StatefulWidget {
+class _NodeRow extends StatelessWidget {
   const _NodeRow({required this.node, required this.tokens});
   final _GraphNode node;
   final SurfaceTokens tokens;
 
   @override
-  State<_NodeRow> createState() => _NodeRowState();
-}
-
-class _NodeRowState extends State<_NodeRow> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        color: _hovered ? widget.tokens.listItemHoverBackground : null,
+    return ClideTappable(
+      builder: (context, hovered, _) => Container(
+        color: hovered ? tokens.listItemHoverBackground : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
-            Expanded(child: ClideText(widget.node.path, fontSize: 13)),
-            ClideText('${widget.node.inbound}in ${widget.node.outbound}out', color: widget.tokens.globalTextMuted, fontSize: 11),
+            Expanded(child: ClideText(node.path, fontSize: 13)),
+            ClideText('${node.inbound}in ${node.outbound}out', color: tokens.globalTextMuted, fontSize: 11),
           ],
         ),
       ),

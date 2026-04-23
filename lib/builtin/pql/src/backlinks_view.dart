@@ -140,31 +140,22 @@ class _LinkGroup extends StatelessWidget {
   }
 }
 
-class _LinkRow extends StatefulWidget {
+class _LinkRow extends StatelessWidget {
   const _LinkRow({required this.link, required this.pathKey});
   final Map<String, Object?> link;
   final String pathKey;
 
   @override
-  State<_LinkRow> createState() => _LinkRowState();
-}
-
-class _LinkRowState extends State<_LinkRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final target = widget.link[widget.pathKey] as String? ?? '';
-    final alias = widget.link['alias'] as String?;
+    final target = link[pathKey] as String? ?? '';
+    final alias = link['alias'] as String?;
     final display = alias ?? target;
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return Semantics(
+      button: true,
+      label: target,
+      child: ClideTappable(
         onTap: () {
           if (!target.startsWith('http')) {
             final kernel = ClideKernel.of(context);
@@ -172,21 +163,17 @@ class _LinkRowState extends State<_LinkRow> {
                 kernel.ipc.request('editor.open', args: {'path': target}));
           }
         },
-        child: Semantics(
-          button: true,
-          label: target,
-          child: Container(
-            color: _hover ? tokens.sidebarItemHover : null,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-            child: ClideText(
-              display,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              color: target.startsWith('http')
-                  ? tokens.statusInfo
-                  : tokens.sidebarForeground,
-            ),
+        builder: (context, hovered, _) => Container(
+          color: hovered ? tokens.sidebarItemHover : null,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+          child: ClideText(
+            display,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            color: target.startsWith('http')
+                ? tokens.statusInfo
+                : tokens.sidebarForeground,
           ),
         ),
       ),

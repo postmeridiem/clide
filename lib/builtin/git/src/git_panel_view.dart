@@ -336,7 +336,7 @@ class _FileGroup extends StatelessWidget {
   }
 }
 
-class _GitFileRow extends StatefulWidget {
+class _GitFileRow extends StatelessWidget {
   const _GitFileRow({
     required this.entry,
     this.onStage,
@@ -350,77 +350,64 @@ class _GitFileRow extends StatefulWidget {
   final void Function(String path)? onDiscard;
 
   @override
-  State<_GitFileRow> createState() => _GitFileRowState();
-}
-
-class _GitFileRowState extends State<_GitFileRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final path = widget.entry['path'] as String? ?? '';
+    final path = entry['path'] as String? ?? '';
     final name = path.split('/').last;
-    final indexState = widget.entry['indexState'] as String?;
-    final workTreeState = widget.entry['workTreeState'] as String?;
+    final indexState = entry['indexState'] as String?;
+    final workTreeState = entry['workTreeState'] as String?;
     final state = indexState ?? workTreeState ?? '';
     final stateLabel = _stateLabel(state);
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return Semantics(
+      button: true,
+      label: '$name $stateLabel',
+      child: ClideTappable(
         onTap: () {
           final kernel = ClideKernel.of(context);
           unawaited(kernel.ipc.request('editor.open', args: {'path': path}));
         },
-        child: Semantics(
-          button: true,
-          label: '$name $stateLabel',
-          child: Container(
-            color: _hover ? tokens.sidebarItemHover : null,
-            padding: const EdgeInsets.only(
-                left: 20, right: 8, top: 2, bottom: 2),
-            child: Row(
-              children: [
-                ClideText(
-                  _stateIndicator(state),
-                  fontSize: clideFontCaption,
-                  color: _stateColor(state, tokens),
+        builder: (context, hovered, _) => Container(
+          color: hovered ? tokens.sidebarItemHover : null,
+          padding: const EdgeInsets.only(
+              left: 20, right: 8, top: 2, bottom: 2),
+          child: Row(
+            children: [
+              ClideText(
+                _stateIndicator(state),
+                fontSize: clideFontCaption,
+                color: _stateColor(state, tokens),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: ClideText(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  color: tokens.sidebarForeground,
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: ClideText(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    color: tokens.sidebarForeground,
+              ),
+              if (hovered) ...[
+                if (onStage != null)
+                  _SmallAction(
+                    label: '+',
+                    semanticsLabel: 'stage $name',
+                    onTap: () => onStage!(path),
                   ),
-                ),
-                if (_hover) ...[
-                  if (widget.onStage != null)
-                    _SmallAction(
-                      label: '+',
-                      semanticsLabel: 'stage $name',
-                      onTap: () => widget.onStage!(path),
-                    ),
-                  if (widget.onUnstage != null)
-                    _SmallAction(
-                      label: '-',
-                      semanticsLabel: 'unstage $name',
-                      onTap: () => widget.onUnstage!(path),
-                    ),
-                  if (widget.onDiscard != null)
-                    _SmallAction(
-                      label: 'x',
-                      semanticsLabel: 'discard changes to $name',
-                      onTap: () => widget.onDiscard!(path),
-                    ),
-                ],
+                if (onUnstage != null)
+                  _SmallAction(
+                    label: '-',
+                    semanticsLabel: 'unstage $name',
+                    onTap: () => onUnstage!(path),
+                  ),
+                if (onDiscard != null)
+                  _SmallAction(
+                    label: 'x',
+                    semanticsLabel: 'discard changes to $name',
+                    onTap: () => onDiscard!(path),
+                  ),
               ],
-            ),
+            ],
           ),
         ),
       ),

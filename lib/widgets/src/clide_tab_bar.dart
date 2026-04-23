@@ -1,5 +1,6 @@
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
+import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:flutter/widgets.dart';
 
@@ -59,7 +60,7 @@ class ClideTabBar extends StatelessWidget {
   }
 }
 
-class _Tab extends StatefulWidget {
+class _Tab extends StatelessWidget {
   const _Tab({required this.item, required this.active, required this.onTap});
 
   final ClideTabItem item;
@@ -67,43 +68,27 @@ class _Tab extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_Tab> createState() => _TabState();
-}
-
-class _TabState extends State<_Tab> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final bg = widget.active
-        ? tokens.tabActive
-        : (_hovered ? tokens.tabInactive : tokens.tabInactive);
-    final fg = widget.active
-        ? tokens.tabActiveForeground
-        : tokens.tabInactiveForeground;
+    final fg = active ? tokens.tabActiveForeground : tokens.tabInactiveForeground;
 
     return Semantics(
       button: true,
-      selected: widget.active,
-      label: widget.item.title,
-      onTap: widget.onTap,
+      selected: active,
+      label: item.title,
+      onTap: onTap,
       excludeSemantics: true,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: Container(
+      child: ClideTappable(
+        onTap: onTap,
+        builder: (context, hovered, _) {
+          final bg = active ? tokens.tabActive : tokens.tabInactive;
+          return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: bg,
               border: Border(
                 bottom: BorderSide(
-                  color: widget.active
-                      ? tokens.tabActiveBorder
-                      : const Color(0x00000000),
+                  color: active ? tokens.tabActiveBorder : const Color(0x00000000),
                   width: 2,
                 ),
               ),
@@ -111,15 +96,15 @@ class _TabState extends State<_Tab> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.item.icon != null) ...[
-                  ClideIcon(widget.item.icon!, size: 12, color: fg),
+                if (item.icon != null) ...[
+                  ClideIcon(item.icon!, size: 12, color: fg),
                   const SizedBox(width: 6),
                 ],
-                ClideText(widget.item.title, color: fg),
+                ClideText(item.title, color: fg),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
