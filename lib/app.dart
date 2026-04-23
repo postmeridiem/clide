@@ -222,7 +222,7 @@ class _HatBar extends StatelessWidget {
       child: Container(
         height: hatHeight,
         decoration: BoxDecoration(
-          color: tokens.panelHeader,
+          color: tokens.sidebarBackground,
           border: Border(bottom: BorderSide(color: tokens.dividerColor, width: 1)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8),
