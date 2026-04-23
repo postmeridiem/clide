@@ -49,38 +49,34 @@ class _ToolStatusItemState extends State<ToolStatusItem> {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     if (!_checked) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _Indicator(label: 'ptyc', ok: _ptycOk, tokens: tokens),
-          const SizedBox(width: 10),
-          _Indicator(label: 'pql', ok: _pqlOk, tokens: tokens),
-        ],
-      ),
+
+    if (_ptycOk && _pqlOk) {
+      return _chip('ok', tokens.statusSuccess, tokens);
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!_ptycOk) _chip('ptyc not found', tokens.statusWarning, tokens),
+        if (!_ptycOk && !_pqlOk) const SizedBox(width: 10),
+        if (!_pqlOk) _chip('pql not found', tokens.statusWarning, tokens),
+      ],
     );
   }
-}
 
-class _Indicator extends StatelessWidget {
-  const _Indicator({required this.label, required this.ok, required this.tokens});
-  final String label;
-  final bool ok;
-  final SurfaceTokens tokens;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = ok ? tokens.statusSuccess : tokens.statusWarning;
+  Widget _chip(String label, Color color, SurfaceTokens tokens) {
     return Semantics(
-      label: '$label ${ok ? "available" : "not found"}',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClideIcon(PhosphorIcons.circlesFour, size: 10, color: color),
-          const SizedBox(width: 4),
-          ClideText(label, fontSize: clideFontCaption, color: color, fontFamily: clideMonoFamily),
-        ],
+      label: label,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            ClideText(label, fontSize: clideFontCaption, color: color),
+          ],
+        ),
       ),
     );
   }
