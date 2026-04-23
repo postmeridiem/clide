@@ -19,7 +19,7 @@ help: ## Show this help.
 
 .PHONY: run
 run: ## Launch the Flutter desktop app.
-	LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux
+	GTK_CSD=1 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux
 
 .PHONY: pubget
 pubget: ## flutter pub get.
