@@ -219,7 +219,7 @@ class _CompactCard extends StatelessWidget {
             const SizedBox(width: 6),
             ClideText(id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
             const SizedBox(width: 8),
-            Expanded(child: ClideText(title, fontSize: 12, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Expanded(child: ClideText(title, fontSize: 12)),
           ],
         ),
       ),
