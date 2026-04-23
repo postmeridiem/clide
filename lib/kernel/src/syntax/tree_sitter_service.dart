@@ -42,6 +42,9 @@ class _LoadedGrammar {
 }
 
 class TreeSitterService {
+  static final TreeSitterService shared = TreeSitterService._();
+  TreeSitterService._();
+
   final Map<String, _LoadedGrammar> _grammars = {};
   final Set<String> _unavailable = {};
 

@@ -27,7 +27,7 @@ class EditorView extends StatefulWidget {
 
 class _EditorViewState extends State<EditorView> {
   EditorController? _controller;
-  final TreeSitterService _syntax = TreeSitterService();
+  final TreeSitterService _syntax = TreeSitterService.shared;
   late final SyntaxTextController _text;
   late final FocusNode _focus;
   String? _lastRemoteContent;
@@ -57,7 +57,6 @@ class _EditorViewState extends State<EditorView> {
     _focus.dispose();
     _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
-    _syntax.dispose();
     super.dispose();
   }
 

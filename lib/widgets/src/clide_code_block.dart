@@ -16,7 +16,6 @@ class ClideCodeBlock extends StatefulWidget {
 }
 
 class _ClideCodeBlockState extends State<ClideCodeBlock> {
-  final TreeSitterService _syntax = TreeSitterService();
   List<SyntaxSpan>? _spans;
 
   @override
@@ -33,12 +32,6 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
     }
   }
 
-  @override
-  void dispose() {
-    _syntax.dispose();
-    super.dispose();
-  }
-
   Future<void> _highlight() async {
     final lang = widget.language;
     if (lang == null || lang.isEmpty) {
@@ -46,11 +39,11 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
       return;
     }
     final path = 'code.$lang';
-    if (!await _syntax.hasGrammar(path)) {
+    if (!await TreeSitterService.shared.hasGrammar(path)) {
       setState(() => _spans = null);
       return;
     }
-    final result = await _syntax.highlight(path, widget.source);
+    final result = await TreeSitterService.shared.highlight(path, widget.source);
     if (mounted) setState(() => _spans = result.spans);
   }
 
@@ -115,14 +108,15 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
     for (final span in sorted) {
       final sChar = span.start < byteToChar.length ? byteToChar[span.start] : source.length;
       final eChar = span.end < byteToChar.length ? byteToChar[span.end] : source.length;
-      if (sChar > lastChar) {
-        children.add(TextSpan(text: source.substring(lastChar, sChar)));
+      final clippedStart = sChar < lastChar ? lastChar : sChar;
+      if (clippedStart > lastChar) {
+        children.add(TextSpan(text: source.substring(lastChar, clippedStart)));
       }
-      if (eChar > sChar) {
+      if (eChar > clippedStart) {
         final color = TreeSitterService.colorForRole(span.role, tokens);
-        children.add(TextSpan(text: source.substring(sChar, eChar), style: base.copyWith(color: color)));
+        children.add(TextSpan(text: source.substring(clippedStart, eChar), style: base.copyWith(color: color)));
       }
-      lastChar = eChar;
+      if (eChar > lastChar) lastChar = eChar;
     }
     if (lastChar < source.length) {
       children.add(TextSpan(text: source.substring(lastChar)));
