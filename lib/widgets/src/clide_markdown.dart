@@ -12,11 +12,22 @@ class ClideMarkdown extends StatelessWidget {
 
   final String source;
 
+  static String _unescapeHtml(String s) {
+    return s
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'");
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
+    final cleaned = _unescapeHtml(source);
     final doc = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
-    final nodes = doc.parseLines(source.split('\n'));
+    final nodes = doc.parseLines(cleaned.split('\n'));
     final widgets = _buildNodes(nodes, tokens);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -41,34 +52,34 @@ class ClideMarkdown extends StatelessWidget {
     switch (el.tag) {
       case 'h1':
         return Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          padding: const EdgeInsets.only(top: 20, bottom: 10),
           child: _inlineText(el, tokens, fontSize: 22, fontWeight: FontWeight.w500),
         );
       case 'h2':
         return Padding(
-          padding: const EdgeInsets.only(top: 14, bottom: 6),
+          padding: const EdgeInsets.only(top: 18, bottom: 8),
           child: _inlineText(el, tokens, fontSize: 18, fontWeight: FontWeight.w500),
         );
       case 'h3':
         return Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 4),
+          padding: const EdgeInsets.only(top: 16, bottom: 6),
           child: _inlineText(el, tokens, fontSize: 16, fontWeight: FontWeight.w500),
         );
       case 'h4':
       case 'h5':
       case 'h6':
         return Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 4),
+          padding: const EdgeInsets.only(top: 14, bottom: 6),
           child: _inlineText(el, tokens, fontSize: clideFontBody, fontWeight: FontWeight.w600),
         );
       case 'p':
         return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 12),
           child: _inlineRichText(el, tokens),
         );
       case 'ul':
         return Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 8),
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -77,7 +88,7 @@ class ClideMarkdown extends StatelessWidget {
         );
       case 'ol':
         return Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 8),
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -89,8 +100,8 @@ class ClideMarkdown extends StatelessWidget {
         );
       case 'blockquote':
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.only(left: 12),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(left: 8),
           decoration: BoxDecoration(border: Border(left: BorderSide(color: tokens.globalTextMuted, width: 3))),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -125,7 +136,7 @@ class ClideMarkdown extends StatelessWidget {
   static Widget _buildListItem(md.Element el, SurfaceTokens tokens, {bool ordered = false, int index = 1}) {
     final bullet = ordered ? '$index. ' : '• ';
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
