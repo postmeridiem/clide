@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clide/builtin/tickets/src/ticket_colors.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -81,15 +82,17 @@ class _TicketsViewState extends State<TicketsView> {
 }
 
 class _TicketEntry {
-  const _TicketEntry({required this.id, required this.title, this.status, this.priority});
+  const _TicketEntry({required this.id, required this.title, this.type, this.status, this.priority});
   final String id;
   final String title;
+  final String? type;
   final String? status;
   final String? priority;
 
   factory _TicketEntry.fromJson(Map<String, dynamic> json) => _TicketEntry(
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
+        type: json['type'] as String?,
         status: json['status'] as String?,
         priority: json['priority'] as String?,
       );
@@ -102,6 +105,9 @@ class _TicketRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ClideTheme.of(context).dark;
+    final typeColors = TicketTypeColors.forTheme(dark: isDark);
+    final typeColor = typeColors.forType(entry.type);
     final statusColor = switch (entry.status) {
       'done' => tokens.statusSuccess,
       'in_progress' => tokens.statusInfo,
@@ -114,7 +120,7 @@ class _TicketRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
-            ClideText(entry.id, color: tokens.globalTextMuted, fontSize: 12),
+            ClideText(entry.id, color: typeColor, fontSize: 12, fontFamily: clideMonoFamily),
             const SizedBox(width: 6),
             Container(
               width: 6,

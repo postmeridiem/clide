@@ -154,6 +154,19 @@ the shared root for all frame surfaces. They resolve to `bgSunken` /
 `textDim` / `border` in the palette. Themes can override them to diverge
 hat from sidebar from status bar if desired.
 
+## Extension-owned domain colors
+
+Extensions that need domain-specific color coding (ticket types, decision
+types, priority levels) should NOT add tokens to `SurfaceTokens`. Instead:
+
+1. Create a color map class in the extension (e.g. `TicketTypeColors`)
+2. Ship dark and light presets, auto-selected via `ClideTheme.of(context).dark`
+3. Store user overrides under `ext.<id>.colors` in settings
+4. Reference: `lib/builtin/tickets/src/ticket_colors.dart`
+
+This keeps the core token surface lean and lets each extension own its
+palette. The pattern scales to any extension needing domain colors.
+
 ## Anti-patterns
 
 - Borrowing another surface's token (`sidebarBackground` for hat bar)
