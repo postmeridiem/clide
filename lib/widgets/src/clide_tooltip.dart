@@ -2,8 +2,6 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:flutter/widgets.dart';
 
-/// Very small tooltip — hover a child to reveal a label. Uses an
-/// OverlayEntry to draw above everything else without Material.
 class ClideTooltip extends StatefulWidget {
   const ClideTooltip({
     super.key,
@@ -30,22 +28,37 @@ class _ClideTooltipState extends State<ClideTooltip> {
     _entry?.remove();
     final box = context.findRenderObject() as RenderBox?;
     if (box == null) return;
-    final offset = box.localToGlobal(Offset(0, box.size.height + 4));
+    final target = box.localToGlobal(Offset.zero);
+    final size = box.size;
+    final screenSize = MediaQuery.of(context).size;
+
     _entry = OverlayEntry(
       builder: (ctx) {
         final tokens = ClideTheme.of(ctx).surface;
-        return Positioned(
-          left: offset.dx,
-          top: offset.dy,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: tokens.tooltipBackground,
-              border: Border.all(color: tokens.tooltipBorder),
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: ClideText(widget.message, color: tokens.tooltipForeground),
+        final tooltip = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: tokens.tooltipBackground,
+            border: Border.all(color: tokens.tooltipBorder),
+            borderRadius: BorderRadius.circular(3),
           ),
+          child: ClideText(widget.message, color: tokens.tooltipForeground, fontSize: 12),
+        );
+
+        final spaceBelow = screenSize.height - target.dy - size.height;
+        final showAbove = spaceBelow < 60;
+
+        if (showAbove) {
+          return Positioned(
+            left: target.dx,
+            bottom: screenSize.height - target.dy + 4,
+            child: tooltip,
+          );
+        }
+        return Positioned(
+          left: target.dx,
+          top: target.dy + size.height + 4,
+          child: tooltip,
         );
       },
     );

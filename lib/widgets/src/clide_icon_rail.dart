@@ -1,6 +1,6 @@
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
-import 'package:clide/widgets/src/clide_tooltip.dart';
+import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideIconRailItem {
@@ -15,7 +15,7 @@ class ClideIconRailItem {
   final String tooltip;
 }
 
-class ClideIconRail extends StatefulWidget {
+class ClideIconRail extends StatelessWidget {
   const ClideIconRail({
     super.key,
     required this.items,
@@ -28,31 +28,19 @@ class ClideIconRail extends StatefulWidget {
   final ValueChanged<String> onSelect;
 
   @override
-  State<ClideIconRail> createState() => _ClideIconRailState();
-}
-
-class _ClideIconRailState extends State<ClideIconRail> {
-  String? _hoveredId;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onExit: (_) => setState(() => _hoveredId = null),
-      child: SizedBox(
-        width: double.infinity,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (final item in widget.items)
-              _RailButton(
-                item: item,
-                active: item.id == widget.activeId,
-                hovered: item.id == _hoveredId,
-                onHover: () => setState(() => _hoveredId = item.id),
-                onTap: () => widget.onSelect(item.id),
-              ),
-          ],
-        ),
+    return SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (final item in items)
+            _RailButton(
+              item: item,
+              active: item.id == activeId,
+              onTap: () => onSelect(item.id),
+            ),
+        ],
       ),
     );
   }
@@ -62,53 +50,42 @@ class _RailButton extends StatelessWidget {
   const _RailButton({
     required this.item,
     required this.active,
-    required this.hovered,
-    required this.onHover,
     required this.onTap,
   });
 
   final ClideIconRailItem item;
   final bool active;
-  final bool hovered;
-  final VoidCallback onHover;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final color = active
-        ? tokens.globalForeground
-        : hovered
-            ? tokens.sidebarForeground
-            : tokens.sidebarSectionHeader;
-
     return Semantics(
       button: true,
       selected: active,
       label: item.tooltip,
-      child: ClideTooltip(
-        message: item.tooltip,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => onHover(),
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: active
-                        ? tokens.tabActiveBorder
-                        : const Color(0x00000000),
-                    width: 2,
-                  ),
+      child: ClideTappable(
+        onTap: onTap,
+        tooltip: item.tooltip,
+        builder: (ctx, hovered, _) {
+          final color = active
+              ? tokens.globalForeground
+              : hovered
+                  ? tokens.sidebarForeground
+                  : tokens.sidebarSectionHeader;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: active ? tokens.tabActiveBorder : const Color(0x00000000),
+                  width: 2,
                 ),
               ),
-              child: ClideIcon(item.icon, size: 16, color: color),
             ),
-          ),
-        ),
+            child: ClideIcon(item.icon, size: 16, color: color),
+          );
+        },
       ),
     );
   }

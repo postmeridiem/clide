@@ -307,7 +307,7 @@ class _ThemeLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClideTappable(
       onTap: () => kernel.commands.execute('theme.pick'),
-      builder: (ctx, hovered) => Row(
+      builder: (ctx, hovered, _) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           ClideText('theme: ', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
