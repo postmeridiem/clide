@@ -1,6 +1,4 @@
-import 'package:clide/builtin/graph/src/graph_view.dart';
 import 'package:clide/extension/extension.dart';
-import 'package:clide/kernel/kernel.dart';
 
 class GraphExtension extends ClideExtension {
   @override
@@ -13,15 +11,5 @@ class GraphExtension extends ClideExtension {
   List<String> get dependsOn => const ['builtin.pql'];
 
   @override
-  List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'graph.view',
-          slot: Slots.contextPanel,
-          title: 'Graph',
-          titleKey: 'tab.graph',
-          i18nNamespace: id,
-          priority: -80,
-          build: (_) => const GraphView(),
-        ),
-      ];
+  List<ContributionPoint> get contributions => const [];
 }
