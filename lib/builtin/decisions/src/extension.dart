@@ -1,3 +1,4 @@
+import 'package:clide/builtin/decisions/src/decision_detail_view.dart';
 import 'package:clide/builtin/decisions/src/decisions_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -8,7 +9,7 @@ class DecisionsExtension extends ClideExtension {
   @override
   String get title => 'Decisions';
   @override
-  String get version => '0.1.0';
+  String get version => '0.2.0';
   @override
   List<String> get dependsOn => const [];
 
@@ -22,6 +23,13 @@ class DecisionsExtension extends ClideExtension {
           i18nNamespace: id,
           priority: -20,
           build: (_) => const DecisionsView(),
+        ),
+        TabContribution(
+          id: 'decisions.detail',
+          slot: Slots.contextPanel,
+          title: 'Decision',
+          priority: -50,
+          build: (_) => const DecisionDetailView(),
         ),
       ];
 }
