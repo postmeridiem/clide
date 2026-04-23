@@ -12,13 +12,15 @@ class DragResizeHandle extends StatefulWidget {
     required this.arrangement,
     required this.slot,
     required this.axis,
-    this.thickness = 4.0,
+    this.thickness = DragResizeHandle.defaultThickness,
   });
 
   final LayoutArrangement arrangement;
   final SlotId slot;
   final Axis axis;
   final double thickness;
+
+  static const defaultThickness = 5.0;
 
   @override
   State<DragResizeHandle> createState() => _DragResizeHandleState();
@@ -32,7 +34,7 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final color = _hovered ? tokens.panelActiveBorder : tokens.panelBorder;
+    final lineColor = _hovered ? tokens.panelActiveBorder : tokens.dividerColor;
 
     return MouseRegion(
       cursor: widget.axis == Axis.horizontal
@@ -51,7 +53,7 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
             child: Container(
               width: widget.axis == Axis.horizontal ? 1 : null,
               height: widget.axis == Axis.vertical ? 1 : null,
-              color: color,
+              color: lineColor,
             ),
           ),
         ),
