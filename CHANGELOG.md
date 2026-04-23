@@ -86,10 +86,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - `files.read` IPC command for reading file content by path.
 
-- pql sidebar restructured: Search tab (PQL DSL query) is the
-  default left tab; Markdown tab (filtered to `.md` files) on the
-  right. Clicking a markdown file opens it in the context panel
-  markdown viewer with bidirectional focus highlighting.
+- pql sidebar restructured: Search tab is the default left tab with
+  ranked text search (debounced, scored results with score bar) and
+  a DSL toggle for raw PQL query mode; Markdown tab (filtered to
+  `.md` files) on the right. Clicking a result opens it in the
+  context panel markdown viewer with bidirectional focus highlighting.
 
 - Graph view in context panel — lists files with inbound/outbound
   link counts from `pql search --connections` (T-39).

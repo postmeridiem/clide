@@ -59,6 +59,12 @@ class PqlClient {
     return _runList(args);
   }
 
+  Future<List<Map<String, Object?>>> search(String terms, {int? limit}) async {
+    final args = ['search', terms];
+    if (limit != null) args.addAll(['--limit', '$limit']);
+    return _runList(args);
+  }
+
   Future<Map<String, Object?>> doctor() async {
     return _runObject(['doctor']);
   }

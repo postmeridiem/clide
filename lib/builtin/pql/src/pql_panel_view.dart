@@ -1,4 +1,4 @@
-/// Sidebar panel for pql — DSL query input and markdown file listing.
+/// Sidebar panel for pql — ranked search, DSL query, and markdown file listing.
 library;
 
 import 'dart:async';
@@ -63,13 +63,9 @@ class _PqlPanelViewState extends State<PqlPanelView> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _ViewTabs(controller: c),
-            if (c.view == PqlView.query)
-              ClideFilterBox(
-                hint: 'PQL query…',
-                debounce: Duration.zero,
-                onChanged: (_) {},
-                onSubmitted: (v) => unawaited(c.runQuery(v)),
-              ),
+            if (c.view == PqlView.query) ...[
+              _SearchInput(controller: c),
+            ],
             if (c.view == PqlView.markdown)
               ClideFilterBox(
                 hint: 'Filter markdown…',
@@ -82,8 +78,8 @@ class _PqlPanelViewState extends State<PqlPanelView> {
               ),
             if (c.loading && c.results.isEmpty)
               const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
-            if (!c.loading && c.results.isEmpty && c.error == null)
-              const Padding(padding: EdgeInsets.all(12), child: ClideText('No results.', muted: true)),
+            if (!c.loading && c.results.isEmpty && c.error == null && c.view == PqlView.markdown)
+              const Padding(padding: EdgeInsets.all(12), child: ClideText('No markdown files found.', muted: true)),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -98,7 +94,9 @@ class _PqlPanelViewState extends State<PqlPanelView> {
                           focused: (f['path'] as String?) == _focusedPath,
                           focusKey: (f['path'] as String?) == _focusedPath ? _focusedKey : null,
                         ),
-                    if (c.view == PqlView.query)
+                    if (c.view == PqlView.query && c.searchMode == SearchMode.search)
+                      for (final r in c.results) _SearchResultRow(entry: r),
+                    if (c.view == PqlView.query && c.searchMode == SearchMode.dsl)
                       for (final r in c.results) _QueryResultRow(entry: r),
                   ],
                 ),
@@ -149,6 +147,125 @@ class _ViewTabs extends StatelessWidget {
         PqlView.query => 'Search',
         PqlView.markdown => 'Markdown',
       };
+}
+
+class _SearchInput extends StatelessWidget {
+  const _SearchInput({required this.controller});
+  final PqlController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final isDsl = controller.searchMode == SearchMode.dsl;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClideFilterBox(
+          hint: isDsl ? 'PQL query…' : 'Search vault…',
+          debounce: isDsl ? Duration.zero : const Duration(milliseconds: 300),
+          onChanged: isDsl ? (_) {} : (v) => unawaited(controller.search(v)),
+          onSubmitted: isDsl ? (v) => unawaited(controller.runQuery(v)) : (v) => unawaited(controller.search(v)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: controller.toggleSearchMode,
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDsl ? tokens.globalFocus.withAlpha(0x30) : null,
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(color: isDsl ? tokens.globalFocus : tokens.panelBorder),
+                    ),
+                    child: ClideText('DSL', fontSize: clideFontBadge, color: isDsl ? tokens.globalFocus : tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              ClideText(
+                isDsl ? 'SQL-like query mode' : 'ranked text search',
+                fontSize: clideFontBadge,
+                muted: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchResultRow extends StatelessWidget {
+  const _SearchResultRow({required this.entry});
+  final Map<String, Object?> entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final path = entry['path'] as String? ?? '';
+    final score = (entry['score'] as num?)?.toDouble() ?? 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: ClideTappable(
+        onTap: () {
+          if (path.endsWith('.md')) {
+            ClideKernel.of(context).messages.publish('builtin.markdown', 'selection', {'path': path});
+          }
+        },
+        builder: (context, hovered, _) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.sidebarItemHover : null,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClideText(path, fontSize: clideFontCaption, color: tokens.sidebarForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 3),
+              _ScoreBar(score: score, tokens: tokens),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreBar extends StatelessWidget {
+  const _ScoreBar({required this.score, required this.tokens});
+  final double score;
+  final SurfaceTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 60,
+          height: 3,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(1.5),
+            child: ColoredBox(
+              color: tokens.panelBorder,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: score.clamp(0, 1),
+                child: ColoredBox(color: tokens.globalFocus),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        ClideText('${(score * 100).round()}%', fontSize: clideFontBadge, muted: true, fontFamily: clideMonoFamily),
+      ],
+    );
+  }
 }
 
 class _FileRow extends StatelessWidget {

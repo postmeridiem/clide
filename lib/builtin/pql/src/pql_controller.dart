@@ -1,7 +1,7 @@
 /// State model for the pql sidebar panel.
 ///
-/// Manages schema cache, query execution, file listing, and
-/// decision/ticket views. All data comes through pql.* IPC verbs.
+/// Manages search, DSL query execution, and markdown file listing.
+/// All data comes through pql.* IPC verbs.
 library;
 
 import 'dart:async';
@@ -11,6 +11,8 @@ import 'package:flutter/foundation.dart';
 
 enum PqlView { query, markdown }
 
+enum SearchMode { search, dsl }
+
 class PqlController extends ChangeNotifier {
   PqlController({required this.ipc});
 
@@ -18,6 +20,9 @@ class PqlController extends ChangeNotifier {
 
   PqlView _view = PqlView.query;
   PqlView get view => _view;
+
+  SearchMode _searchMode = SearchMode.search;
+  SearchMode get searchMode => _searchMode;
 
   String? _error;
   String? get error => _error;
@@ -43,6 +48,40 @@ class PqlController extends ChangeNotifier {
       case PqlView.query:
         break;
     }
+  }
+
+  void toggleSearchMode() {
+    _searchMode = _searchMode == SearchMode.search ? SearchMode.dsl : SearchMode.search;
+    _results = const [];
+    _error = null;
+    notifyListeners();
+  }
+
+  Future<void> search(String terms) async {
+    if (terms.trim().isEmpty) {
+      _results = const [];
+      _error = null;
+      notifyListeners();
+      return;
+    }
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    final r = await ipc.request('pql.search', args: {
+      'terms': terms,
+      'limit': 50,
+    });
+
+    _loading = false;
+    if (!r.ok) {
+      _error = r.error?.message;
+      _results = const [];
+      notifyListeners();
+      return;
+    }
+    _results = _castList(r.data['results']);
+    notifyListeners();
   }
 
   Future<void> loadMarkdownFiles({String? glob}) async {

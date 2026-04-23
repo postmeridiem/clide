@@ -94,6 +94,20 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
     }
   });
 
+  d.register('pql.search', (req) async {
+    final terms = req.args['terms'] as String?;
+    if (terms == null || terms.isEmpty) {
+      return _userError(req.id, 'pql.search requires a terms string');
+    }
+    try {
+      final limit = (req.args['limit'] as num?)?.toInt();
+      final results = await pql.search(terms, limit: limit);
+      return IpcResponse.ok(id: req.id, data: {'results': results});
+    } on PqlException catch (e) {
+      return _pqlError(req.id, e);
+    }
+  });
+
   d.register('pql.doctor', (req) async {
     try {
       final report = await pql.doctor();
