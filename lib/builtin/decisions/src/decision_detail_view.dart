@@ -2,39 +2,31 @@ import 'dart:async';
 
 import 'package:clide/builtin/decisions/src/decision_colors.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 class DecisionDetailView extends StatefulWidget {
-  const DecisionDetailView({super.key});
+  const DecisionDetailView({super.key, this.initialId});
+  final String? initialId;
 
   @override
   State<DecisionDetailView> createState() => _DecisionDetailViewState();
 }
 
 class _DecisionDetailViewState extends State<DecisionDetailView> {
-  StreamSubscription<Message>? _sub;
   Map<String, Object?>? _decision;
   bool _loading = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_sub != null) return;
-    final kernel = ClideKernel.of(context);
-    _sub = kernel.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen((msg) {
-      final id = msg.data['id'] as String?;
-      if (id != null) {
-        kernel.panels.activateTab(Slots.contextPanel, 'decisions.detail');
-        unawaited(_load(id));
-      }
-    });
+    if (widget.initialId != null && _decision == null && !_loading) {
+      unawaited(_load(widget.initialId!));
+    }
   }
 
   @override
   void dispose() {
-    _sub?.cancel();
     super.dispose();
   }
 

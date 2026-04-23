@@ -5,7 +5,8 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 class TicketDetailView extends StatefulWidget {
-  const TicketDetailView({super.key});
+  const TicketDetailView({super.key, this.initialId});
+  final String? initialId;
 
   @override
   State<TicketDetailView> createState() => _TicketDetailViewState();
@@ -20,6 +21,9 @@ class _TicketDetailViewState extends State<TicketDetailView> {
     if (_controller != null) return;
     final kernel = ClideKernel.of(context);
     _controller = TicketDetailController(ipc: kernel.ipc, messages: kernel.messages, panels: kernel.panels);
+    if (widget.initialId != null) {
+      _controller!.load(widget.initialId!);
+    }
   }
 
   @override

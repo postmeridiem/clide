@@ -5,6 +5,7 @@ import 'package:clide/builtin/decisions/src/decisions_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
+import 'package:flutter/foundation.dart' show VoidCallback;
 
 class DecisionsExtension extends ClideExtension {
   @override
@@ -18,6 +19,7 @@ class DecisionsExtension extends ClideExtension {
 
   ClideExtensionContext? _ctx;
   StreamSubscription<Message>? _selectionSub;
+  VoidCallback? _panelListener;
   bool _detailSpawned = false;
 
   @override
@@ -37,27 +39,38 @@ class DecisionsExtension extends ClideExtension {
   Future<void> activate(ClideExtensionContext ctx) async {
     _ctx = ctx;
     _selectionSub = ctx.messages.subscribe(publisher: id, channel: 'selection').listen(_onSelection);
+    _panelListener = () {
+      if (_detailSpawned && ctx.panels.activeTabIn(Slots.contextPanel) != 'decisions.detail') {
+        _despawnDetail();
+      }
+    };
+    ctx.panels.addListener(_panelListener!);
   }
 
   @override
   Future<void> deactivate() async {
     _selectionSub?.cancel();
+    if (_panelListener != null) _ctx?.panels.removeListener(_panelListener!);
     _despawnDetail();
   }
 
   void _onSelection(Message msg) {
     final ctx = _ctx;
     if (ctx == null) return;
-    if (!_detailSpawned) {
-      ctx.panels.contribute(TabContribution(
-        id: 'decisions.detail',
-        slot: Slots.contextPanel,
-        title: 'Decision',
-        priority: -50,
-        build: (_) => const DecisionDetailView(),
-      ));
-      _detailSpawned = true;
+    final selectedId = msg.data['id'] as String?;
+    if (selectedId == null) return;
+
+    if (_detailSpawned) {
+      _despawnDetail();
     }
+    ctx.panels.contribute(TabContribution(
+      id: 'decisions.detail',
+      slot: Slots.contextPanel,
+      title: 'Decision',
+      priority: -50,
+      build: (_) => DecisionDetailView(initialId: selectedId),
+    ));
+    _detailSpawned = true;
     ctx.panels.activateTab(Slots.contextPanel, 'decisions.detail');
   }
 
