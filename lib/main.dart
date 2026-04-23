@@ -170,7 +170,7 @@ String _resolvePtyc(String repoRoot) {
 
 class _BusEventSink implements DaemonEventSink {
   _BusEventSink(this._bus);
-  final EventBus _bus;
+  final DaemonBus _bus;
 
   @override
   void emit(IpcEvent event) {

@@ -2,10 +2,10 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('EventBus', () {
-    late EventBus bus;
+  group('DaemonBus', () {
+    late DaemonBus bus;
 
-    setUp(() => bus = EventBus());
+    setUp(() => bus = DaemonBus());
     tearDown(() => bus.dispose());
 
     test('emit delivers to stream subscribers', () async {

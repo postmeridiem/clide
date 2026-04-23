@@ -7,7 +7,7 @@ import 'package:clide/src/daemon/dispatcher.dart';
 class InProcessClient extends DaemonClient {
   InProcessClient({
     required Logger log,
-    required EventBus events,
+    required DaemonBus events,
     required this.dispatcher,
   }) : super(socketPath: '', log: log, events: events);
 

@@ -8,6 +8,7 @@ import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/extensions_manager.dart';
 import 'package:clide/kernel/src/files.dart';
 import 'package:clide/kernel/src/focus.dart';
@@ -38,6 +39,7 @@ class KernelServices {
     required this.log,
     required this.settings,
     required this.events,
+    required this.messages,
     required this.ipc,
     required this.theme,
     required this.i18n,
@@ -63,7 +65,8 @@ class KernelServices {
 
   final Logger log;
   final SettingsStore settings;
-  final EventBus events;
+  final DaemonBus events;
+  final MessageBus messages;
   final DaemonClient ipc;
   final ThemeController theme;
   final I18n i18n;
@@ -95,11 +98,12 @@ class KernelServices {
     Locale? initialLocale,
     List<Locale> availableLocales = const [Locale('en', 'US')],
     String? socketPath,
-    DaemonClient Function(Logger, EventBus)? daemonClientFactory,
+    DaemonClient Function(Logger, DaemonBus)? daemonClientFactory,
     bool autoStartDaemonClient = true,
   }) async {
     final log = Logger();
-    final events = EventBus();
+    final events = DaemonBus();
+    final messages = MessageBus();
 
     final settings = SettingsStore(appDir: appDir);
     await settings.load();
@@ -147,6 +151,7 @@ class KernelServices {
     final extensions = ExtensionManager(
       log: log,
       events: events,
+      messages: messages,
       settings: settings,
       theme: theme,
       i18n: i18n,
@@ -176,6 +181,7 @@ class KernelServices {
       log: log,
       settings: settings,
       events: events,
+      messages: messages,
       ipc: ipc,
       theme: theme,
       i18n: i18n,
@@ -218,6 +224,7 @@ class KernelServices {
     project.dispose();
     extensions.dispose();
     await log.dispose();
+    messages.dispose();
     await events.dispose();
   }
 }

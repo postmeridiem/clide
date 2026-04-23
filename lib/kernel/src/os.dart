@@ -16,12 +16,12 @@ class OsLifecycleEvent extends ClideEvent {
 }
 
 class OsBridge {
-  OsBridge({required Logger log, required EventBus events})
+  OsBridge({required Logger log, required DaemonBus events})
       : _log = log,
         _events = events;
 
   final Logger _log;
-  final EventBus _events;
+  final DaemonBus _events;
 
   Future<bool> openURL(String url) async {
     final cmd = _openCommand();

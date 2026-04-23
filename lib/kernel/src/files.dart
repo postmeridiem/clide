@@ -31,7 +31,7 @@ class FilesDropped extends ClideEvent {
 /// the service surface real.
 class FileServices {
   FileServices(this._events);
-  final EventBus _events;
+  final DaemonBus _events;
 
   Future<List<String>> pickOpen({
     List<String> extensions = const [],

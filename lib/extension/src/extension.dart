@@ -4,6 +4,7 @@ import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/files.dart';
 import 'package:clide/kernel/src/focus.dart';
 import 'package:clide/kernel/src/i18n/i18n.dart';
@@ -53,7 +54,8 @@ abstract class ClideExtensionContext {
   String get id;
 
   Logger get log;
-  EventBus get events;
+  DaemonBus get events;
+  MessageBus get messages;
   SettingsStore get settings;
   ThemeController get theme;
   I18n get i18n;
@@ -72,6 +74,17 @@ abstract class ClideExtensionContext {
   FocusTracker get focus;
   ProjectManager get project;
   DaemonClient get ipc;
+}
+
+/// Sugar for message bus scoped to this extension's publisher ID.
+extension ClideExtensionContextMessages on ClideExtensionContext {
+  void publish(String channel, Map<String, Object?> data) {
+    messages.publish(id, channel, data);
+  }
+
+  Stream<Message> subscribe({String? publisher, String? channel}) {
+    return messages.subscribe(publisher: publisher, channel: channel);
+  }
 }
 
 /// Sugar for i18n lookups scoped to this extension's namespace.

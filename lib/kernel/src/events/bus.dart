@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:clide/kernel/src/events/types.dart';
 
-class EventBus {
-  EventBus();
+class DaemonBus {
+  DaemonBus();
 
   final StreamController<ClideEventEnvelope> _controller =
       StreamController<ClideEventEnvelope>.broadcast();

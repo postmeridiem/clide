@@ -12,6 +12,7 @@
 library;
 
 export 'src/events/bus.dart';
+export 'src/events/message_bus.dart';
 export 'src/events/types.dart';
 export 'src/ipc/client.dart';
 export 'src/log.dart';

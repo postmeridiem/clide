@@ -17,14 +17,14 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/foundation.dart';
 
 class EditorController extends ChangeNotifier {
-  EditorController({required this.ipc, required EventBus events})
+  EditorController({required this.ipc, required DaemonBus events})
       : _events = events {
     _eventSub = events.on<DaemonEvent>().listen(_onEvent);
   }
 
   final DaemonClient ipc;
   // ignore: unused_field  — kept for future subscription changes
-  final EventBus _events;
+  final DaemonBus _events;
 
   StreamSubscription<DaemonEvent>? _eventSub;
 

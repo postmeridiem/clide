@@ -13,13 +13,13 @@ class DaemonClient extends ChangeNotifier {
   DaemonClient({
     required this.socketPath,
     required Logger log,
-    required EventBus events,
+    required DaemonBus events,
   })  : _log = log,
         _events = events;
 
   final String socketPath;
   final Logger _log;
-  final EventBus _events;
+  final DaemonBus _events;
 
   Socket? _socket;
   bool _connected = false;

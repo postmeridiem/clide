@@ -8,6 +8,7 @@ import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/files.dart';
 import 'package:clide/kernel/src/focus.dart';
@@ -30,6 +31,7 @@ class ExtensionManager extends ChangeNotifier {
   ExtensionManager({
     required this.log,
     required this.events,
+    required this.messages,
     required this.settings,
     required this.theme,
     required this.i18n,
@@ -52,7 +54,8 @@ class ExtensionManager extends ChangeNotifier {
   });
 
   final Logger log;
-  final EventBus events;
+  final DaemonBus events;
+  final MessageBus messages;
   final SettingsStore settings;
   final ThemeController theme;
   final I18n i18n;
@@ -239,7 +242,9 @@ class _ExtensionContext implements ClideExtensionContext {
   @override
   Logger get log => manager.log;
   @override
-  EventBus get events => manager.events;
+  DaemonBus get events => manager.events;
+  @override
+  MessageBus get messages => manager.messages;
   @override
   SettingsStore get settings => manager.settings;
   @override

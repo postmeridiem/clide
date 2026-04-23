@@ -88,3 +88,6 @@ legacy/**/.coverage
 legacy/**/.coverage.*
 .clide/settings.yaml
 .claude/skills/pql/
+.pql/*
+!.pql/pql-plan.json
+!.pql/hooks/

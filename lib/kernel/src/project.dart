@@ -45,14 +45,14 @@ class RecentProject {
 class ProjectManager extends ChangeNotifier {
   ProjectManager({
     required Logger log,
-    required EventBus events,
+    required DaemonBus events,
     required SettingsStore settings,
   })  : _log = log,
         _events = events,
         _settings = settings;
 
   final Logger _log;
-  final EventBus _events;
+  final DaemonBus _events;
   final SettingsStore _settings;
 
   Directory? _current;

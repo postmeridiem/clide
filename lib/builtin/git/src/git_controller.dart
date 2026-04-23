@@ -17,7 +17,7 @@ class GitController extends ChangeNotifier {
   }
 
   final DaemonClient ipc;
-  final EventBus events;
+  final DaemonBus events;
 
   StreamSubscription<DaemonEvent>? _eventSub;
 
