@@ -20,7 +20,7 @@ class DragResizeHandle extends StatefulWidget {
   final Axis axis;
   final double thickness;
 
-  static const defaultThickness = 5.0;
+  static const defaultThickness = 8.0;
 
   @override
   State<DragResizeHandle> createState() => _DragResizeHandleState();
