@@ -157,28 +157,28 @@ static void my_application_activate(GApplication* application) {
         g_autoptr(FlMethodResponse) response = nullptr;
 
         if (g_strcmp0(method, "startDrag") == 0) {
-          FlValue* args = fl_method_call_get_args(method_call);
-          int x = 0, y = 0;
-          if (fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
-            FlValue* vx = fl_value_lookup_string(args, "x");
-            FlValue* vy = fl_value_lookup_string(args, "y");
-            if (vx) x = (int)fl_value_get_int(vx);
-            if (vy) y = (int)fl_value_get_int(vy);
-          }
+          GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(w));
+          GdkSeat* seat = gdk_display_get_default_seat(display);
+          GdkDevice* pointer = gdk_seat_get_pointer(seat);
+          gint x = 0, y = 0;
+          gdk_device_get_position(pointer, nullptr, &x, &y);
           gtk_window_begin_move_drag(w, 1, x, y, GDK_CURRENT_TIME);
           response = FL_METHOD_RESPONSE(
               fl_method_success_response_new(fl_value_new_null()));
         } else if (g_strcmp0(method, "startResize") == 0) {
           FlValue* args = fl_method_call_get_args(method_call);
-          int edge = 7, x = 0, y = 0;
+          int edge = 7;
           if (fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
             FlValue* ve = fl_value_lookup_string(args, "edge");
-            FlValue* vx = fl_value_lookup_string(args, "x");
-            FlValue* vy = fl_value_lookup_string(args, "y");
             if (ve) edge = (int)fl_value_get_int(ve);
-            if (vx) x = (int)fl_value_get_int(vx);
-            if (vy) y = (int)fl_value_get_int(vy);
+          } else if (fl_value_get_type(args) == FL_VALUE_TYPE_INT) {
+            edge = (int)fl_value_get_int(args);
           }
+          GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(w));
+          GdkSeat* seat = gdk_display_get_default_seat(display);
+          GdkDevice* pointer = gdk_seat_get_pointer(seat);
+          gint x = 0, y = 0;
+          gdk_device_get_position(pointer, nullptr, &x, &y);
           static const GdkWindowEdge edges[] = {
             GDK_WINDOW_EDGE_NORTH_WEST, GDK_WINDOW_EDGE_NORTH,
             GDK_WINDOW_EDGE_NORTH_EAST, GDK_WINDOW_EDGE_WEST,
