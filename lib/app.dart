@@ -221,7 +221,10 @@ class _HatBar extends StatelessWidget {
       onPanStart: (_) => kernel.window.startDrag(),
       child: Container(
         height: hatHeight,
-        color: tokens.panelHeader,
+        decoration: BoxDecoration(
+          color: tokens.panelHeader,
+          border: Border(bottom: BorderSide(color: tokens.dividerColor, width: 1)),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           children: [
