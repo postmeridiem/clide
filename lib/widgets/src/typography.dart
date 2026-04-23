@@ -56,6 +56,9 @@ const String clideMonoFamily = 'JetBrainsMono';
 const double clideFontBody = 15;
 const double clideFontCaption = 14;
 const double clideFontMono = 14;
+const double clideFontSmall = 12;
+const double clideFontBadge = 11;
+const double clideLineHeight = 1.25;
 
 /// System fallback chain. Ordered by platform prevalence + quality of
 /// programming-ligature / box-drawing coverage.
