@@ -113,6 +113,26 @@ static void my_application_activate(GApplication* application) {
           gtk_window_close(w);
           response = FL_METHOD_RESPONSE(
               fl_method_success_response_new(fl_value_new_null()));
+        } else if (g_strcmp0(method, "startResize") == 0) {
+          // edge: 0=topLeft 1=top 2=topRight 3=left 4=right
+          //       5=bottomLeft 6=bottom 7=bottomRight
+          FlValue* args = fl_method_call_get_args(method_call);
+          int edge = 7; // default: bottom-right
+          if (fl_value_get_type(args) == FL_VALUE_TYPE_INT) {
+            edge = (int)fl_value_get_int(args);
+          }
+          static const GdkWindowEdge edges[] = {
+            GDK_WINDOW_EDGE_NORTH_WEST, GDK_WINDOW_EDGE_NORTH,
+            GDK_WINDOW_EDGE_NORTH_EAST, GDK_WINDOW_EDGE_WEST,
+            GDK_WINDOW_EDGE_EAST, GDK_WINDOW_EDGE_SOUTH_WEST,
+            GDK_WINDOW_EDGE_SOUTH, GDK_WINDOW_EDGE_SOUTH_EAST,
+          };
+          if (edge >= 0 && edge < 8) {
+            gtk_window_begin_resize_drag(w, edges[edge], 1, 0, 0,
+                                         GDK_CURRENT_TIME);
+          }
+          response = FL_METHOD_RESPONSE(
+              fl_method_success_response_new(fl_value_new_null()));
         } else if (g_strcmp0(method, "isMaximized") == 0) {
           response = FL_METHOD_RESPONSE(fl_method_success_response_new(
               fl_value_new_bool(gtk_window_is_maximized(w))));

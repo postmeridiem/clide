@@ -84,14 +84,17 @@ class _RootShellState extends State<_RootShell> {
         onKeyEvent: _onKey,
         child: ColoredBox(
           color: tokens.globalBackground,
-          child: DialogHost(
-            router: widget.services.dialog,
-            child: Stack(
-              children: [
-                const Positioned.fill(child: RootLayout()),
-                const ClidePalette(),
-                const Positioned.fill(child: _WelcomeOverlay()),
-              ],
+          child: ClideResizeBorder(
+            windowControls: widget.services.window,
+            child: DialogHost(
+              router: widget.services.dialog,
+              child: Stack(
+                children: [
+                  const Positioned.fill(child: RootLayout()),
+                  const ClidePalette(),
+                  const Positioned.fill(child: _WelcomeOverlay()),
+                ],
+              ),
             ),
           ),
         ),

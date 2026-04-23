@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 enum ChromeStyle { seam, prompt, inline }
 
+enum ResizeEdge { topLeft, top, topRight, left, right, bottomLeft, bottom, bottomRight }
+
 class WindowControls extends ChangeNotifier {
   static const _channel = MethodChannel('clide/window');
 
@@ -13,6 +15,14 @@ class WindowControls extends ChangeNotifier {
     if (_style == s) return;
     _style = s;
     notifyListeners();
+  }
+
+  Future<void> startResize(ResizeEdge edge) async {
+    try {
+      await _channel.invokeMethod('startResize', edge.index);
+    } on MissingPluginException {
+      // no-op
+    }
   }
 
   Future<void> startDrag() async {
