@@ -45,7 +45,7 @@ class ClideResizeBorder extends StatelessWidget {
     return MouseRegion(
       cursor: cursor,
       child: GestureDetector(
-        onPanStart: (_) => windowControls.startResize(edge),
+        onPanStart: (d) => windowControls.startResize(edge, d.globalPosition),
         child: const ColoredBox(color: Color(0x00000000)),
       ),
     );

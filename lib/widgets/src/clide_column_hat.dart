@@ -33,7 +33,7 @@ class ColumnHat extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     return GestureDetector(
-      onPanStart: (_) => windowControls.startDrag(),
+      onPanStart: (d) => windowControls.startDrag(d.globalPosition),
       child: Container(
         height: hatHeight,
         color: tokens.panelHeader,

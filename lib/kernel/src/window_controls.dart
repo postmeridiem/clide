@@ -17,19 +17,26 @@ class WindowControls extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> startResize(ResizeEdge edge) async {
+  Future<void> startResize(ResizeEdge edge, Offset screenPosition) async {
     try {
-      await _channel.invokeMethod('startResize', edge.index);
+      await _channel.invokeMethod('startResize', {
+        'edge': edge.index,
+        'x': screenPosition.dx.round(),
+        'y': screenPosition.dy.round(),
+      });
     } on MissingPluginException {
       // no-op
     }
   }
 
-  Future<void> startDrag() async {
+  Future<void> startDrag(Offset screenPosition) async {
     try {
-      await _channel.invokeMethod('startDrag');
+      await _channel.invokeMethod('startDrag', {
+        'x': screenPosition.dx.round(),
+        'y': screenPosition.dy.round(),
+      });
     } on MissingPluginException {
-      // Web or unsupported platform — no-op.
+      // no-op
     }
   }
 

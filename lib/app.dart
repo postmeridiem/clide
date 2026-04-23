@@ -221,7 +221,7 @@ class _HatBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     return GestureDetector(
-      onPanStart: (_) => kernel.window.startDrag(),
+      onPanStart: (d) => kernel.window.startDrag(d.globalPosition),
       child: Container(
         height: hatHeight,
         decoration: BoxDecoration(

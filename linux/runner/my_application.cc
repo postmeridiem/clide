@@ -4,6 +4,12 @@
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
+#ifdef GDK_WINDOWING_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
+#ifdef HAS_WAYLAND_CLIENT
+#include "protocols/xdg-decoration-unstable-v1-client-protocol.h"
+#endif
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -14,40 +20,94 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-// D-057: strip all window decorations after the GdkWindow exists.
-static void remove_decorations(GtkWidget* widget, gpointer data) {
-  (void)data;
+// D-057: xdg-decoration state.
+#ifdef HAS_WAYLAND_CLIENT
+static struct zxdg_decoration_manager_v1* decoration_manager = nullptr;
+
+static void registry_handler(void* data, struct wl_registry* registry,
+                             uint32_t id, const char* interface,
+                             uint32_t version) {
+  if (g_strcmp0(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
+    decoration_manager = (struct zxdg_decoration_manager_v1*)
+        wl_registry_bind(registry, id,
+                         &zxdg_decoration_manager_v1_interface, 1);
+  }
+}
+
+static void registry_remover(void* data, struct wl_registry* registry,
+                             uint32_t id) {}
+
+static const struct wl_registry_listener registry_listener = {
+    registry_handler, registry_remover};
+
+static void request_client_side_decorations(GtkWindow* window) {
+  GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(window));
+  if (!GDK_IS_WAYLAND_DISPLAY(display)) return;
+
+  struct wl_display* wl_display =
+      gdk_wayland_display_get_wl_display(display);
+  struct wl_registry* registry = wl_display_get_registry(wl_display);
+  wl_registry_add_listener(registry, &registry_listener, nullptr);
+  wl_display_roundtrip(wl_display);
+
+  if (decoration_manager == nullptr) {
+    wl_registry_destroy(registry);
+    return;
+  }
+
+  GdkWindow* gdk_win = gtk_widget_get_window(GTK_WIDGET(window));
+  if (gdk_win == nullptr) {
+    wl_registry_destroy(registry);
+    return;
+  }
+
+  struct wl_surface* surface = gdk_wayland_window_get_wl_surface(gdk_win);
+  if (surface == nullptr) {
+    wl_registry_destroy(registry);
+    return;
+  }
+
+  struct zxdg_toplevel_decoration_v1* toplevel_decoration =
+      zxdg_decoration_manager_v1_get_toplevel_decoration(
+          decoration_manager, surface);
+
+  if (toplevel_decoration != nullptr) {
+    zxdg_toplevel_decoration_v1_set_mode(
+        toplevel_decoration,
+        ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE);
+  }
+
+  wl_display_roundtrip(wl_display);
+  wl_registry_destroy(registry);
+}
+#endif
+
+static void on_window_realize(GtkWidget* widget, gpointer data) {
   GdkWindow* gdk_win = gtk_widget_get_window(widget);
   if (gdk_win != nullptr) {
     gdk_window_set_decorations(gdk_win, (GdkWMDecoration)0);
   }
+#ifdef HAS_WAYLAND_CLIENT
+  request_client_side_decorations(GTK_WINDOW(widget));
+#endif
 }
 
-// Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
-  GtkWidget* toplevel = gtk_widget_get_toplevel(GTK_WIDGET(view));
-  remove_decorations(toplevel, nullptr);
-  gtk_widget_show(toplevel);
+  gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
-// Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  // D-057: frameless custom chrome — the Flutter app draws its own
-  // hat bar with drag regions and window buttons.
+  // D-057: frameless custom chrome.
   gtk_window_set_decorated(window, FALSE);
   gtk_window_set_title(window, "clide");
-
-  // Also strip decorations via GDK after realize (catches KDE/KWin
-  // on Wayland which ignores gtk_window_set_decorated).
-  g_signal_connect(window, "realize", G_CALLBACK(remove_decorations), nullptr);
+  g_signal_connect(window, "realize", G_CALLBACK(on_window_realize), nullptr);
 
   gtk_window_set_default_size(window, 1280, 720);
 
-  // Window icon — load from the bundled asset.
   g_autoptr(GError) icon_error = nullptr;
   GdkPixbuf* icon = gdk_pixbuf_new_from_file(
       "data/flutter_assets/assets/logo/clide-logo-256.png", &icon_error);
@@ -62,22 +122,18 @@ static void my_application_activate(GApplication* application) {
 
   FlView* view = fl_view_new(project);
   GdkRGBA background_color;
-  // Background defaults to black, override it here if necessary, e.g. #00000000
-  // for transparent.
   gdk_rgba_parse(&background_color, "#000000");
   fl_view_set_background_color(view, &background_color);
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Show the window when Flutter renders.
-  // Requires the view to be realized so we can start rendering.
   g_signal_connect_swapped(view, "first-frame", G_CALLBACK(first_frame_cb),
                            self);
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
-  // D-057: method channel for window controls (drag, minimize, maximize, close).
+  // D-057: method channel for window controls.
   FlEngine* engine = fl_view_get_engine(view);
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   FlMethodChannel* channel = fl_method_channel_new(
@@ -93,8 +149,38 @@ static void my_application_activate(GApplication* application) {
         g_autoptr(FlMethodResponse) response = nullptr;
 
         if (g_strcmp0(method, "startDrag") == 0) {
-          gtk_window_begin_move_drag(w, 1, 0, 0,
-                                     GDK_CURRENT_TIME);
+          FlValue* args = fl_method_call_get_args(method_call);
+          int x = 0, y = 0;
+          if (fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+            FlValue* vx = fl_value_lookup_string(args, "x");
+            FlValue* vy = fl_value_lookup_string(args, "y");
+            if (vx) x = (int)fl_value_get_int(vx);
+            if (vy) y = (int)fl_value_get_int(vy);
+          }
+          gtk_window_begin_move_drag(w, 1, x, y, GDK_CURRENT_TIME);
+          response = FL_METHOD_RESPONSE(
+              fl_method_success_response_new(fl_value_new_null()));
+        } else if (g_strcmp0(method, "startResize") == 0) {
+          FlValue* args = fl_method_call_get_args(method_call);
+          int edge = 7, x = 0, y = 0;
+          if (fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+            FlValue* ve = fl_value_lookup_string(args, "edge");
+            FlValue* vx = fl_value_lookup_string(args, "x");
+            FlValue* vy = fl_value_lookup_string(args, "y");
+            if (ve) edge = (int)fl_value_get_int(ve);
+            if (vx) x = (int)fl_value_get_int(vx);
+            if (vy) y = (int)fl_value_get_int(vy);
+          }
+          static const GdkWindowEdge edges[] = {
+            GDK_WINDOW_EDGE_NORTH_WEST, GDK_WINDOW_EDGE_NORTH,
+            GDK_WINDOW_EDGE_NORTH_EAST, GDK_WINDOW_EDGE_WEST,
+            GDK_WINDOW_EDGE_EAST, GDK_WINDOW_EDGE_SOUTH_WEST,
+            GDK_WINDOW_EDGE_SOUTH, GDK_WINDOW_EDGE_SOUTH_EAST,
+          };
+          if (edge >= 0 && edge < 8) {
+            gtk_window_begin_resize_drag(w, edges[edge], 1, x, y,
+                                         GDK_CURRENT_TIME);
+          }
           response = FL_METHOD_RESPONSE(
               fl_method_success_response_new(fl_value_new_null()));
         } else if (g_strcmp0(method, "minimize") == 0) {
@@ -113,26 +199,6 @@ static void my_application_activate(GApplication* application) {
           gtk_window_close(w);
           response = FL_METHOD_RESPONSE(
               fl_method_success_response_new(fl_value_new_null()));
-        } else if (g_strcmp0(method, "startResize") == 0) {
-          // edge: 0=topLeft 1=top 2=topRight 3=left 4=right
-          //       5=bottomLeft 6=bottom 7=bottomRight
-          FlValue* args = fl_method_call_get_args(method_call);
-          int edge = 7; // default: bottom-right
-          if (fl_value_get_type(args) == FL_VALUE_TYPE_INT) {
-            edge = (int)fl_value_get_int(args);
-          }
-          static const GdkWindowEdge edges[] = {
-            GDK_WINDOW_EDGE_NORTH_WEST, GDK_WINDOW_EDGE_NORTH,
-            GDK_WINDOW_EDGE_NORTH_EAST, GDK_WINDOW_EDGE_WEST,
-            GDK_WINDOW_EDGE_EAST, GDK_WINDOW_EDGE_SOUTH_WEST,
-            GDK_WINDOW_EDGE_SOUTH, GDK_WINDOW_EDGE_SOUTH_EAST,
-          };
-          if (edge >= 0 && edge < 8) {
-            gtk_window_begin_resize_drag(w, edges[edge], 1, 0, 0,
-                                         GDK_CURRENT_TIME);
-          }
-          response = FL_METHOD_RESPONSE(
-              fl_method_success_response_new(fl_value_new_null()));
         } else if (g_strcmp0(method, "isMaximized") == 0) {
           response = FL_METHOD_RESPONSE(fl_method_success_response_new(
               fl_value_new_bool(gtk_window_is_maximized(w))));
@@ -147,12 +213,10 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
-// Implements GApplication::local_command_line.
 static gboolean my_application_local_command_line(GApplication* application,
                                                   gchar*** arguments,
                                                   int* exit_status) {
   MyApplication* self = MY_APPLICATION(application);
-  // Strip out the first argument as it is the binary name.
   self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
 
   g_autoptr(GError) error = nullptr;
@@ -164,29 +228,17 @@ static gboolean my_application_local_command_line(GApplication* application,
 
   g_application_activate(application);
   *exit_status = 0;
-
   return TRUE;
 }
 
-// Implements GApplication::startup.
 static void my_application_startup(GApplication* application) {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
-
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 
-// Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application shutdown.
-
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
 
-// Implements GObject::dispose.
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
@@ -205,12 +257,7 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {}
 
 MyApplication* my_application_new() {
-  // Set the program name to the application ID, which helps various systems
-  // like GTK and desktop environments map this running application to its
-  // corresponding .desktop file. This ensures better integration by allowing
-  // the application to be recognized beyond its binary name.
   g_set_prgname(APPLICATION_ID);
-
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID, "flags",
                                      G_APPLICATION_NON_UNIQUE, nullptr));
