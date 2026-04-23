@@ -9,14 +9,14 @@ import 'dart:async';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/foundation.dart';
 
-enum PqlView { files, query }
+enum PqlView { query, markdown }
 
 class PqlController extends ChangeNotifier {
   PqlController({required this.ipc});
 
   final DaemonClient ipc;
 
-  PqlView _view = PqlView.files;
+  PqlView _view = PqlView.query;
   PqlView get view => _view;
 
   String? _error;
@@ -38,19 +38,19 @@ class PqlController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     switch (v) {
-      case PqlView.files:
-        unawaited(loadFiles());
+      case PqlView.markdown:
+        unawaited(loadMarkdownFiles());
       case PqlView.query:
         break;
     }
   }
 
-  Future<void> loadFiles({String? glob}) async {
+  Future<void> loadMarkdownFiles({String? glob}) async {
     _loading = true;
     notifyListeners();
 
     final r = await ipc.request('pql.files', args: {
-      if (glob != null) 'glob': glob,
+      'glob': glob ?? '**/*.md',
       'limit': 200,
     });
 

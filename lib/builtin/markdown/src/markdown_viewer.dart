@@ -15,14 +15,19 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
   String? _path;
   String? _content;
   String? _error;
-  StreamSubscription<DaemonEvent>? _eventSub;
+  StreamSubscription<Message>? _selectionSub;
+  StreamSubscription<DaemonEvent>? _editorSub;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_eventSub != null) return;
+    if (_selectionSub != null) return;
     final kernel = ClideKernel.of(context);
-    _eventSub = kernel.events.on<DaemonEvent>().listen((e) {
+    _selectionSub = kernel.messages.subscribe(publisher: 'builtin.markdown', channel: 'load').listen((msg) {
+      final path = msg.data['path'] as String?;
+      if (path != null) _loadFile(path);
+    });
+    _editorSub = kernel.events.on<DaemonEvent>().listen((e) {
       if (e.kind == 'editor.buffer_activated') {
         final path = e.data['path'] as String?;
         if (path != null && path.endsWith('.md')) {
@@ -30,26 +35,13 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
         }
       }
     });
-    final activeTab = kernel.panels.activeTabIn(Slots.workspace);
-    if (activeTab == 'editor.active') {
-      unawaited(_loadActiveBuffer());
-    }
   }
 
   @override
   void dispose() {
-    _eventSub?.cancel();
+    _selectionSub?.cancel();
+    _editorSub?.cancel();
     super.dispose();
-  }
-
-  Future<void> _loadActiveBuffer() async {
-    final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('editor.active');
-    if (!mounted || !resp.ok) return;
-    final path = resp.data['path'] as String?;
-    if (path != null && path.endsWith('.md')) {
-      await _loadFile(path);
-    }
   }
 
   Future<void> _loadFile(String path) async {
@@ -57,6 +49,7 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     final resp = await kernel.ipc.request('files.read', args: {'path': path});
     if (!mounted) return;
     if (resp.ok) {
+      kernel.messages.publish('builtin.markdown', 'focus', {'path': path});
       setState(() {
         _path = path;
         _content = resp.data['content'] as String? ?? '';
@@ -84,7 +77,7 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     if (_content == null) {
       return const Padding(
         padding: EdgeInsets.all(12),
-        child: ClideText('Open a .md file to preview it here.', muted: true),
+        child: ClideText('Select a .md file to preview it here.', muted: true),
       );
     }
     return ClidePaneChrome(
