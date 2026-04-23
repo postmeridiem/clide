@@ -1,4 +1,5 @@
-import 'dart:io' show Platform;
+import 'dart:async';
+import 'dart:io' show Platform, Process, ProcessStartMode;
 
 import 'package:clide/builtin/welcome/src/welcome_view.dart';
 import 'package:clide/extension/src/contribution.dart';
@@ -234,18 +235,7 @@ class _HatBar extends StatelessWidget {
             _LeftHatContent(tokens: tokens, wc: kernel.window),
             Expanded(
               child: Center(
-                child: ListenableBuilder(
-                  listenable: kernel.project,
-                  builder: (ctx, _) {
-                    final name = kernel.project.current?.path.split('/').last;
-                    return ClideText(
-                      name != null ? 'clide > $name' : 'clide',
-                      fontSize: 12,
-                      color: tokens.chromeForeground,
-                      fontFamily: clideMonoFamily,
-                    );
-                  },
-                ),
+                child: _ProjectSwitcherButton(kernel: kernel, tokens: tokens),
               ),
             ),
             _RightHatContent(tokens: tokens, wc: kernel.window),
@@ -348,6 +338,369 @@ class _WinBtnState extends State<_WinBtn> {
           alignment: Alignment.center,
           child: ClideIcon(widget.icon, size: 14, color: _hover && widget.isClose ? const Color(0xFFFFFFFF) : widget.tokens.chromeForeground),
         ),
+      ),
+    );
+  }
+}
+
+class _ProjectSwitcherButton extends StatefulWidget {
+  const _ProjectSwitcherButton({required this.kernel, required this.tokens});
+  final KernelServices kernel;
+  final SurfaceTokens tokens;
+
+  @override
+  State<_ProjectSwitcherButton> createState() => _ProjectSwitcherButtonState();
+}
+
+class _ProjectSwitcherButtonState extends State<_ProjectSwitcherButton> {
+  bool _hover = false;
+
+  void _openSwitcher() {
+    widget.kernel.dialog.show<String>((ctx, dismiss) {
+      return _ProjectSwitcherDropdown(kernel: widget.kernel, onDismiss: dismiss);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.kernel.project,
+      builder: (ctx, _) {
+        final name = widget.kernel.project.current?.path.split('/').last;
+        final label = name != null ? 'clide > $name' : 'clide';
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _openSwitcher,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClideText(label, fontSize: 12, color: _hover ? widget.tokens.globalForeground : widget.tokens.chromeForeground, fontFamily: clideMonoFamily),
+                const SizedBox(width: 4),
+                ClideIcon(PhosphorIcons.caretDown, size: 8, color: widget.tokens.chromeForeground),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProjectSwitcherDropdown extends StatefulWidget {
+  const _ProjectSwitcherDropdown({required this.kernel, required this.onDismiss});
+  final KernelServices kernel;
+  final void Function([String?]) onDismiss;
+
+  @override
+  State<_ProjectSwitcherDropdown> createState() => _ProjectSwitcherDropdownState();
+}
+
+class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
+  String _filter = '';
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode()..requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openProject(String path) async {
+    final ok = await widget.kernel.project.open(path);
+    if (ok) {
+      widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+      widget.onDismiss();
+    }
+  }
+
+  void _closeWorkspace() {
+    widget.kernel.project.close();
+    widget.onDismiss();
+  }
+
+  void _newWindow() {
+    Process.start(Platform.resolvedExecutable, [], mode: ProcessStartMode.detached);
+    widget.onDismiss();
+  }
+
+  void _openFolder() {
+    widget.onDismiss();
+    widget.kernel.dialog.show<String>((ctx, dismiss) {
+      return _OpenFolderDialog(
+        onOpen: (path) async {
+          final ok = await widget.kernel.project.open(path);
+          if (ok) {
+            widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+            dismiss(path);
+          }
+        },
+        onCancel: () => dismiss(),
+      );
+    });
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+      widget.onDismiss();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final recents = widget.kernel.project.recents;
+    final lf = _filter.toLowerCase();
+    final filtered = lf.isEmpty ? recents : recents.where((r) => r.name.toLowerCase().contains(lf) || r.path.toLowerCase().contains(lf)).toList();
+
+    return Focus(
+      focusNode: _focus,
+      onKeyEvent: _onKey,
+      child: Container(
+        width: 380,
+        constraints: const BoxConstraints(maxHeight: 420),
+        decoration: BoxDecoration(
+          color: tokens.dropdownBackground,
+          border: Border.all(color: tokens.dropdownBorder),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClideFilterBox(hint: 'Search projects…', onChanged: (v) => setState(() => _filter = v)),
+            if (filtered.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: ClideText('Recent Projects', fontSize: clideFontCaption, color: tokens.globalTextMuted),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, i) => _RecentProjectRow(
+                    project: filtered[i],
+                    tokens: tokens,
+                    onTap: () => _openProject(filtered[i].path),
+                  ),
+                ),
+              ),
+            ] else
+              const Padding(padding: EdgeInsets.all(12), child: ClideText('No recent projects.', muted: true)),
+            Container(
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: tokens.dividerColor))),
+              child: Column(
+                children: [
+                  _ActionRow(label: 'Open Local Project', shortcut: 'Ctrl+O', tokens: tokens, onTap: _openFolder),
+                  _ActionRow(label: 'New Window', shortcut: 'Ctrl+Shift+N', tokens: tokens, onTap: _newWindow),
+                  if (widget.kernel.project.isOpen)
+                    _ActionRow(label: 'Close Workspace', shortcut: '', tokens: tokens, onTap: _closeWorkspace),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentProjectRow extends StatefulWidget {
+  const _RecentProjectRow({required this.project, required this.tokens, required this.onTap});
+  final RecentProject project;
+  final SurfaceTokens tokens;
+  final VoidCallback onTap;
+
+  @override
+  State<_RecentProjectRow> createState() => _RecentProjectRowState();
+}
+
+class _RecentProjectRowState extends State<_RecentProjectRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          color: _hover ? widget.tokens.listItemHoverBackground : null,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            children: [
+              ClideIcon(PhosphorIcons.folder, size: 14, color: widget.tokens.globalTextMuted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClideText(widget.project.name, fontSize: 14),
+                    if (widget.project.branch != null)
+                      Row(
+                        children: [
+                          ClideText(widget.project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                          ClideText('  ·  ', muted: true, fontSize: 12),
+                          ClideIcon(PhosphorIcons.gitBranch, size: 10, color: widget.tokens.globalTextMuted),
+                          const SizedBox(width: 3),
+                          ClideText(widget.project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        ],
+                      )
+                    else
+                      ClideText(widget.project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                  ],
+                ),
+              ),
+              ClideText(widget.project.timeAgo, muted: true, fontSize: 11),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatefulWidget {
+  const _ActionRow({required this.label, this.shortcut, required this.tokens, required this.onTap});
+  final String label;
+  final String? shortcut;
+  final SurfaceTokens tokens;
+  final VoidCallback onTap;
+
+  @override
+  State<_ActionRow> createState() => _ActionRowState();
+}
+
+class _ActionRowState extends State<_ActionRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          color: _hover ? widget.tokens.listItemHoverBackground : null,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(child: ClideText(widget.label, fontSize: 14)),
+              if (widget.shortcut != null && widget.shortcut!.isNotEmpty)
+                ClideText(widget.shortcut!, fontSize: 12, color: widget.tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenFolderDialog extends StatefulWidget {
+  const _OpenFolderDialog({required this.onOpen, required this.onCancel});
+  final Future<void> Function(String path) onOpen;
+  final VoidCallback onCancel;
+
+  @override
+  State<_OpenFolderDialog> createState() => _OpenFolderDialogState();
+}
+
+class _OpenFolderDialogState extends State<_OpenFolderDialog> {
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final path = _controller.text.trim();
+    if (path.isEmpty) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      await widget.onOpen(path);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Not a git repository');
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      width: 420,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: tokens.modalSurfaceBackground,
+        border: Border.all(color: tokens.modalSurfaceBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ClideText('Open project', fontSize: 16, fontWeight: FontWeight.w600),
+          const SizedBox(height: 4),
+          const ClideText('Enter the path to a git repository.', muted: true, fontSize: 13),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: tokens.panelBackground,
+              border: Border.all(color: tokens.globalBorder),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: EditableText(
+              controller: _controller,
+              focusNode: _focus,
+              style: TextStyle(color: tokens.globalForeground, fontSize: 14, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
+              cursorColor: tokens.globalForeground,
+              backgroundCursorColor: tokens.globalTextMuted,
+              onSubmitted: (_) => unawaited(_submit()),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            ClideText(_error!, color: tokens.statusError, fontSize: 12),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ClideButton(label: 'Cancel', onPressed: widget.onCancel),
+              const SizedBox(width: 8),
+              ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
+            ],
+          ),
+        ],
       ),
     );
   }
