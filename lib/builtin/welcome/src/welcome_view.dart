@@ -54,7 +54,7 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Image.asset('assets/logo/clide-logo-192.png', width: 72, height: 72),
+        Image.asset('assets/logo/logo-192.png', width: 72, height: 72),
         const SizedBox(width: 24),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
