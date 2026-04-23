@@ -84,6 +84,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `clideFontBadge` (11) for sidebar metadata and status badges.
   `clideLineHeight` (1.25) applied app-wide via `DefaultTextStyle`.
 
+- `files.read` IPC command for reading file content by path.
+
+- pql sidebar restructured: Search tab (PQL DSL query) is the
+  default left tab; Markdown tab (filtered to `.md` files) on the
+  right. Clicking a markdown file opens it in the context panel
+  markdown viewer with bidirectional focus highlighting.
+
 - Graph view in context panel — lists files with inbound/outbound
   link counts from `pql search --connections` (T-39).
 
@@ -113,13 +120,20 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `clideFontMono` to match surrounding text weight.
 
 - Default sidebar and context panel widths widened to 400px and
-  420px respectively (previous maximums).
+  420px respectively (previous maximums). Context panel max raised
+  to 1000px.
 
 - Ticket descriptions render through ClideMarkdown instead of plain
   text, with clickable DQRT record links.
 
 - Decision detail view subscribes to the message bus for navigation
   (same pattern as tickets), enabling navigation from any source.
+
+- TreeSitterService is now a shared singleton — eliminates native
+  double-free crashes from multiple WASM engine instances.
+
+- Code block syntax highlighting fixes overlapping tree-sitter spans
+  that caused duplicated text (e.g. `makemake` instead of `make`).
 
 - Context panel drag resize fixed — dragging left now correctly
   grows the right panel instead of shrinking it.
