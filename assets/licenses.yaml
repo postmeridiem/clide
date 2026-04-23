@@ -142,6 +142,39 @@ dependencies:
       wasmtime engine. Source repos are tree-sitter/tree-sitter-<lang>
       on GitHub; sqlite is dhcmrlchtdj/tree-sitter-sqlite (MIT).
 
+  - name: jovial_svg
+    kind: dart-package
+    version: "1.1.26"
+    homepage: https://pub.dev/packages/jovial_svg
+    license: BSD-3-Clause
+    purpose: >-
+      SVG renderer. CustomPaint-based — parses SVG at runtime into
+      a DAG of drawing commands and renders via Canvas. Used for
+      workspace SVG files and the app icon. Format engine, not UI
+      chrome.
+
+  - name: markdown
+    kind: dart-package
+    version: "7.2.2"
+    homepage: https://pub.dev/packages/markdown
+    license: BSD-3-Clause
+    purpose: >-
+      Markdown parser (AST only). Parses GFM (tables, task lists,
+      fenced code blocks) into a node tree. Clide owns the renderer
+      — walks the AST to produce Flutter widgets with tree-sitter
+      syntax highlighting in code blocks.
+
+  - name: flutter_widget_from_html_core
+    kind: dart-package
+    version: "0.17.2"
+    homepage: https://pub.dev/packages/flutter_widget_from_html_core
+    license: MIT
+    purpose: >-
+      HTML-to-widget renderer. Parses HTML into Flutter widgets
+      with no JavaScript execution. Used for rendering HTML content
+      in the viewer. Sandboxed — tag/attribute whitelist enforced
+      at usage site.
+
 # Build-time-only dependencies — test runners, mocks, lints. Tracked
 # here for audit completeness; NOT rendered in the About screen.
 dev_dependencies:

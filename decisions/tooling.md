@@ -32,4 +32,14 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Cost:** Script names have a convention to follow.
 - **Raised by:** 2026-04-21 planning (caught during commit rehearsal).
 
+### D-058: Format engines are adoptable dependencies
+- **Date:** 2026-04-23
+- **Decision:** The "own the rendering stack" guardrail applies to **UI chrome** — panels, tabs, panes, canvas, terminal, layout primitives. **Format engines** — packages that parse or render external file formats (SVG, markdown, HTML, terminal escape sequences, tree-sitter grammars) — are adoptable like any other dependency: vet, exact-pin, CVE-lock, document in `licenses.yaml`. They are not shortcuts for lazy coding; they are well-maintained renderers for formats we didn't invent. The distinction: if it renders *our* UI, we own it; if it renders *someone else's file format*, we adopt a parser/renderer and sandbox it.
+- **Adopted under this rule:** `jovial_svg` (SVG renderer), `markdown` (MD parser; renderer is ours), `flutter_widget_from_html_core` (HTML renderer; sandboxed), `xterm` (terminal emulator), tree-sitter (syntax highlighting). Canvas (`CustomPaint` + `InteractiveViewer`) stays in-house — UI chrome, not a format engine.
+- **Amendment to D-031 (prefer-zero-deps):** D-031's "prefer-zero-deps" still applies — every new dependency needs justification. This record clarifies that format engines clear the justification bar by default. The supply-chain gate (exact-pin, advisory review, `licenses.yaml`) still applies.
+- **Rationale:** Reimplementing SVG, markdown, or VT100 parsing adds months of work for no fidelity gain. tree-sitter already set this precedent. The key is sandboxing: HTML rendering must whitelist tags/attributes; SVG must not execute scripts; markdown rendering goes through our own widget builder so we control the output.
+- **Cost:** Each adopted engine adds transitive dependencies and supply-chain surface. Mitigated by exact-pinning and `make security`.
+- **Cross-reference:** [D-031](#d-031-prefer-zero-deps-exact-pin), [D-042](#d-042-dependencies-documented-in-licensesyaml).
+- **Raised by:** 2026-04-23 format engine evaluation.
+
 ---
