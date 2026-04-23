@@ -46,9 +46,10 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
         onPointerDown: _onDown,
         onPointerMove: _onMove,
         onPointerUp: _onUp,
-        child: SizedBox(
+        child: Container(
           width: widget.axis == Axis.horizontal ? widget.thickness : null,
           height: widget.axis == Axis.vertical ? widget.thickness : null,
+          color: widget.slot == Slots.sidebar ? tokens.sidebarBackground : tokens.panelBackground,
           child: Align(
             alignment: widget.slot == Slots.sidebar ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
