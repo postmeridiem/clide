@@ -6,9 +6,9 @@ import 'package:clide/kernel/src/panels/slot_id.dart';
 /// default-layout extension share one source of truth.
 ///
 /// Columns (px):
-///   sidebar  240 (drag 180–400)
+///   sidebar  400 (drag 180–400)
 ///   center   flex (workspace on top, statusbar below)
-///   context  280 (drag 220–420)
+///   context  420 (drag 220–420)
 ///   statusbar 26 (fixed height strip)
 LayoutPresetContribution classicPreset() => const LayoutPresetContribution(
       id: 'builtin.default-layout.classic',
@@ -17,7 +17,7 @@ LayoutPresetContribution classicPreset() => const LayoutPresetContribution(
         LayoutSlot(
           slot: Slots.sidebar,
           position: SlotPosition.left,
-          defaultSize: 240,
+          defaultSize: 400,
           minSize: 180,
           maxSize: 400,
         ),
@@ -28,7 +28,7 @@ LayoutPresetContribution classicPreset() => const LayoutPresetContribution(
         LayoutSlot(
           slot: Slots.contextPanel,
           position: SlotPosition.right,
-          defaultSize: 280,
+          defaultSize: 420,
           minSize: 220,
           maxSize: 420,
         ),

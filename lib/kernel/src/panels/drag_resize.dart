@@ -72,9 +72,10 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
     final start = _dragStartSize;
     final startPt = _dragStartPointer;
     if (start == null || startPt == null) return;
-    final delta = widget.axis == Axis.horizontal
+    final rawDelta = widget.axis == Axis.horizontal
         ? e.position.dx - startPt.dx
         : e.position.dy - startPt.dy;
+    final delta = widget.slot == Slots.contextPanel ? -rawDelta : rawDelta;
     widget.arrangement.setSize(widget.slot, start + delta);
   }
 

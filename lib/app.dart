@@ -55,6 +55,11 @@ class _RootShell extends StatefulWidget {
 
 class _RootShellState extends State<_RootShell> {
   late final FocusNode _keyFocus;
+  double _textScale = 1.0;
+
+  static const double _scaleStep = 0.05;
+  static const double _scaleMin = 0.6;
+  static const double _scaleMax = 2.0;
 
   @override
   void initState() {
@@ -75,15 +80,18 @@ class _RootShellState extends State<_RootShell> {
       style: TextStyle(
         color: tokens.globalForeground,
         fontSize: 15,
+        height: clideLineHeight,
         fontWeight: clideUiDefaultWeight,
         fontFamily: clideUiFamily,
         fontFamilyFallback: clideUiFamilyFallback,
       ),
-      child: KeyboardListener(
-        focusNode: _keyFocus,
-        autofocus: true,
-        onKeyEvent: _onKey,
-        child: ColoredBox(
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_textScale)),
+        child: KeyboardListener(
+          focusNode: _keyFocus,
+          autofocus: true,
+          onKeyEvent: _onKey,
+          child: ColoredBox(
           color: tokens.globalBackground,
           child: ClideResizeBorder(
             windowControls: widget.services.window,
@@ -107,10 +115,28 @@ class _RootShellState extends State<_RootShell> {
           ),
         ),
       ),
+      ),
     );
   }
 
   void _onKey(KeyEvent event) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      final ctrl = HardwareKeyboard.instance.isControlPressed;
+      if (ctrl) {
+        if (event.logicalKey == LogicalKeyboardKey.equal || event.logicalKey == LogicalKeyboardKey.add) {
+          setState(() => _textScale = (_textScale + _scaleStep).clamp(_scaleMin, _scaleMax));
+          return;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.minus) {
+          setState(() => _textScale = (_textScale - _scaleStep).clamp(_scaleMin, _scaleMax));
+          return;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.digit0) {
+          setState(() => _textScale = 1.0);
+          return;
+        }
+      }
+    }
     final binding = KeybindingResolver.fromKeyEvent(
       event,
       HardwareKeyboard.instance,
@@ -137,8 +163,8 @@ class RootLayout extends StatelessWidget {
         final contextVisible = a.isVisible(Slots.contextPanel);
         final contextCollapsed = a.isCollapsed(Slots.contextPanel);
         final statusVisible = a.isVisible(Slots.statusbar);
-        final sidebarSize = a.sizeOf(Slots.sidebar) ?? 240;
-        final contextSize = a.sizeOf(Slots.contextPanel) ?? 280;
+        final sidebarSize = a.sizeOf(Slots.sidebar) ?? 400;
+        final contextSize = a.sizeOf(Slots.contextPanel) ?? 420;
         final statusHeight = a.sizeOf(Slots.statusbar) ?? 26;
 
         return Column(
