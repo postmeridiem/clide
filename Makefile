@@ -25,6 +25,10 @@ run: ## Launch the Flutter desktop app.
 pubget: ## flutter pub get.
 	flutter pub get
 
+.PHONY: build-check
+build-check: ## Verify native + Dart build compiles (no run).
+	LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter build linux
+
 .PHONY: analyze
 analyze: ## flutter analyze.
 	flutter analyze
