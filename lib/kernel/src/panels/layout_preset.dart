@@ -30,7 +30,7 @@ LayoutPresetContribution classicPreset() => const LayoutPresetContribution(
           position: SlotPosition.right,
           defaultSize: 420,
           minSize: 220,
-          maxSize: 420,
+          maxSize: 1000,
         ),
         LayoutSlot(
           slot: Slots.statusbar,

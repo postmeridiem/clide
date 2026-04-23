@@ -8,6 +8,7 @@ import '../files/ignore.dart';
 import '../files/listing.dart';
 import '../files/watcher.dart';
 import '../ipc/envelope.dart';
+import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
 import 'dispatcher.dart';
 
@@ -62,6 +63,19 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
           'ignorePatterns': files.ignore.length,
         },
       ));
+
+  d.register('files.read', (req) async {
+    final path = req.args['path'] as String?;
+    if (path == null || path.isEmpty) {
+      return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.read requires a path'));
+    }
+    final file = File('${files.root.absolute.path}/$path');
+    if (!file.existsSync()) {
+      return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file not found: $path'));
+    }
+    final content = file.readAsStringSync();
+    return IpcResponse.ok(id: req.id, data: {'path': path, 'content': content});
+  });
 
   d.register('files.ls', (req) async {
     final dir = (req.args['path'] as String?) ?? '';

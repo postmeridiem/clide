@@ -51,7 +51,6 @@ class ClidePaneChrome extends StatelessWidget {
     return ColoredBox(
       color: tokens.panelBackground,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           _Header(
             title: title,

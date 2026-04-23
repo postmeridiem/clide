@@ -892,7 +892,7 @@ class _ContextSlot extends StatelessWidget {
     return Container(
       color: tokens.panelBackground,
       alignment: Alignment.topLeft,
-      padding: const EdgeInsets.fromLTRB(0, 2, 2, 0),
+      padding: const EdgeInsets.only(right: 2),
       child: active.build(context),
     );
   }
