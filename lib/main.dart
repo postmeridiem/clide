@@ -154,6 +154,7 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// catalogs load lazily on activate in later tiers.
 String _resolvePtyc(String repoRoot) {
   final candidates = [
+    '$repoRoot/native/linux-x64/ptyc',
     '$repoRoot/ptyc/bin/ptyc',
     '${Platform.environment['HOME']}/.local/bin/ptyc',
     'ptyc',

@@ -24,7 +24,7 @@ class _ToolStatusItemState extends State<ToolStatusItem> {
 
   Future<void> _check() async {
     final cwd = Directory.current.path;
-    final ptycResult = _exists('$cwd/ptyc/bin/ptyc') || await _which('ptyc');
+    final ptycResult = _exists('$cwd/native/linux-x64/ptyc') || _exists('$cwd/ptyc/bin/ptyc') || await _which('ptyc');
     final pqlResult = await _which('pql');
     if (!mounted) return;
     setState(() {
