@@ -101,4 +101,28 @@ ticket persistence.
 - **Context:** This intersects [D-047](architecture.md#d-047-interaction-model-claude-is-home-layout) (Claude is home) and [D-049](architecture.md#d-049-editor-mode-inline-above-claude-viewer-swap) (editor mode). If focus always snaps to Claude, the user must explicitly re-focus the editor to continue typing.
 - **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 5.
 
+### Q-031: XWayland fallback for frameless — proper Wayland protocol needed
+- **Status:** Open (load-bearing workaround in place)
+- **Question:** The frameless window (D-057) currently forces `GDK_BACKEND=x11` because GTK3 doesn't implement the `xdg-decoration` Wayland protocol and KWin ignores `gtk_window_set_decorated(FALSE)` on native Wayland. When do we replace this with a proper implementation?
+- **Context:** The XWayland fallback works but has tradeoffs: one extra buffer copy per frame, degraded fractional-scaling on HiDPI (125%/150% gets blurry), loss of native Wayland touchpad gestures and per-window DPI, and slightly less reliable cross-app drag-and-drop. For an IDE these are tolerable but not ideal.
+
+  **Current workaround (`Makefile`):**
+  ```
+  GDK_BACKEND=x11 flutter run -d linux
+  ```
+  Also set in the native runner: `gtk_window_set_decorated(window, FALSE)` + `gdk_window_set_decorations(gdk_win, 0)` in `linux/runner/my_application.cc`.
+
+  **Rollback if unstable:** Remove `GDK_BACKEND=x11` from the Makefile `run` target. The OS title bar returns but the app runs on native Wayland. Our hat bar renders below the OS bar (double chrome) until the proper fix lands.
+
+  **Proper fix — bypass GTK, talk `libwayland-client` directly:**
+  1. Link `libwayland-client` in `linux/runner/CMakeLists.txt`.
+  2. Generate protocol headers from `xdg-decoration-unstable-v1.xml` (ships with `wayland-protocols` package) via `wayland-scanner`.
+  3. In `my_application.cc` after window realize: get the `wl_display` via `gdk_wayland_display_get_wl_display()`, bind to `zxdg_decoration_manager_v1` from the registry, get the toplevel decoration object, call `zxdg_toplevel_decoration_v1_set_mode(deco, MODE_CLIENT_SIDE)`.
+  4. ~100 lines C total. Needs `wayland-protocols` as a build dep.
+  5. The `GDK_BACKEND=x11` env var is then removed.
+
+  **Alternative timeline:** Flutter moves to GTK4 (which has built-in xdg-decoration support). Track Flutter issue #94381. When it ships, drop all native decoration code and use `gtk_window_set_decorated(FALSE)` — it will just work.
+
+- **Source:** 2026-04-23 D-057 implementation.
+
 ---
