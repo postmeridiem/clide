@@ -297,34 +297,22 @@ class _StatusLine extends StatelessWidget {
   }
 }
 
-class _ThemeLink extends StatefulWidget {
+class _ThemeLink extends StatelessWidget {
   const _ThemeLink({required this.tokens, required this.kernel, required this.themeName});
   final SurfaceTokens tokens;
   final KernelServices kernel;
   final String themeName;
 
   @override
-  State<_ThemeLink> createState() => _ThemeLinkState();
-}
-
-class _ThemeLinkState extends State<_ThemeLink> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: () => widget.kernel.commands.execute('theme.pick'),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClideText('theme: ', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
-            ClideText(widget.themeName, fontSize: 12, fontFamily: clideMonoFamily, color: _hover ? widget.tokens.globalForeground : widget.tokens.globalFocus),
-          ],
-        ),
+    return ClideTappable(
+      onTap: () => kernel.commands.execute('theme.pick'),
+      builder: (ctx, hovered) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClideText('theme: ', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+          ClideText(themeName, fontSize: 12, fontFamily: clideMonoFamily, color: hovered ? tokens.globalForeground : tokens.globalFocus),
+        ],
       ),
     );
   }
