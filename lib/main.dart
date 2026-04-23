@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clide/app.dart';
 import 'package:clide/builtin/canvas/canvas.dart';
 import 'package:clide/builtin/claude/claude.dart';
@@ -107,6 +109,7 @@ Future<void> main() async {
   await services.extensions.activateAll();
 
   if (!kIsWeb) {
+    unawaited(services.toolCheck.check());
     await services.project.loadRecents();
     var opened = await services.project.openLast();
     if (!opened) {

@@ -87,12 +87,12 @@ class _RootShellState extends State<_RootShell> {
           color: tokens.globalBackground,
           child: ClideResizeBorder(
             windowControls: widget.services.window,
-            child: DialogHost(
-              router: widget.services.dialog,
-              child: Column(
-                children: [
-                  _HatBar(kernel: widget.services),
-                  Expanded(
+            child: Column(
+              children: [
+                _HatBar(kernel: widget.services),
+                Expanded(
+                  child: DialogHost(
+                    router: widget.services.dialog,
                     child: Stack(
                       children: [
                         const Positioned.fill(child: RootLayout()),
@@ -101,8 +101,8 @@ class _RootShellState extends State<_RootShell> {
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

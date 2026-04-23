@@ -57,8 +57,8 @@ class _Header extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          width: 72,
-          height: 72,
+          width: 144,
+          height: 144,
           child: ScalableImageWidget.fromSISource(
             si: ScalableImageSource.fromSvg(rootBundle, 'assets/logo/logo.svg'),
           ),
@@ -272,21 +272,21 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeName = kernel.theme.currentName;
     return ListenableBuilder(
-      listenable: kernel.ipc,
+      listenable: kernel.toolCheck,
       builder: (ctx, _) {
-        final connected = kernel.ipc.isConnected;
-        final themeName = kernel.theme.currentName;
+        final tc = kernel.toolCheck;
         return Row(
           children: [
             ClideText('clide 2.0.0-dev', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
             ClideText('  ·  ', muted: true, fontSize: 12),
-            ClideText(
-              connected ? 'daemon connected' : 'daemon disconnected',
-              fontSize: 12,
-              fontFamily: clideMonoFamily,
-              color: connected ? tokens.statusSuccess : tokens.statusError,
-            ),
+            if (!tc.checked)
+              ClideText('checking…', muted: true, fontSize: 12, fontFamily: clideMonoFamily)
+            else if (tc.allOk)
+              ClideText('application ok', fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusSuccess)
+            else
+              ClideText(tc.errors.join(' · '), fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusWarning),
             ClideText('  ·  ', muted: true, fontSize: 12),
             ClideText('theme: ', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
             ClideText(themeName, fontSize: 12, fontFamily: clideMonoFamily, color: tokens.globalFocus),

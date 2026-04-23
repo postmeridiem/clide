@@ -25,6 +25,7 @@ import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/loader.dart';
+import 'package:clide/kernel/src/tool_check.dart';
 import 'package:clide/kernel/src/tray.dart';
 import 'package:clide/kernel/src/window_controls.dart';
 import 'package:flutter/widgets.dart';
@@ -57,6 +58,7 @@ class KernelServices {
     required this.project,
     required this.extensions,
     required this.window,
+    required this.toolCheck,
   });
 
   final Logger log;
@@ -82,6 +84,7 @@ class KernelServices {
   final ProjectManager project;
   final ExtensionManager extensions;
   final WindowControls window;
+  final ToolCheck toolCheck;
 
   static Future<KernelServices> boot({
     required Directory appDir,
@@ -128,6 +131,7 @@ class KernelServices {
     final net = NetworkStatus();
     final focus = FocusTracker();
     final window = WindowControls();
+    final toolCheck = ToolCheck();
     final project = ProjectManager(
       log: log,
       events: events,
@@ -192,6 +196,7 @@ class KernelServices {
       project: project,
       extensions: extensions,
       window: window,
+      toolCheck: toolCheck,
     );
   }
 
