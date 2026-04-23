@@ -9,7 +9,7 @@ import 'dart:async';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/foundation.dart';
 
-enum PqlView { files, query, decisions, tickets }
+enum PqlView { files, query }
 
 class PqlController extends ChangeNotifier {
   PqlController({required this.ipc});
@@ -40,10 +40,6 @@ class PqlController extends ChangeNotifier {
     switch (v) {
       case PqlView.files:
         unawaited(loadFiles());
-      case PqlView.decisions:
-        unawaited(loadDecisions());
-      case PqlView.tickets:
-        unawaited(loadTickets());
       case PqlView.query:
         break;
     }
@@ -88,41 +84,6 @@ class PqlController extends ChangeNotifier {
       return;
     }
     _results = _castList(r.data['results']);
-    notifyListeners();
-  }
-
-  Future<void> loadDecisions() async {
-    _loading = true;
-    notifyListeners();
-
-    await ipc.request('pql.decisions.sync');
-    final r = await ipc.request('pql.decisions.list');
-
-    _loading = false;
-    if (!r.ok) {
-      _error = r.error?.message;
-      notifyListeners();
-      return;
-    }
-    _error = null;
-    _results = _castList(r.data['decisions']);
-    notifyListeners();
-  }
-
-  Future<void> loadTickets() async {
-    _loading = true;
-    notifyListeners();
-
-    final r = await ipc.request('pql.tickets.board');
-
-    _loading = false;
-    if (!r.ok) {
-      _error = r.error?.message;
-      notifyListeners();
-      return;
-    }
-    _error = null;
-    _results = _castList(r.data['columns']);
     notifyListeners();
   }
 

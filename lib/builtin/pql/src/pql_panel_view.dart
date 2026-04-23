@@ -90,10 +90,6 @@ class _PqlPanelViewState extends State<PqlPanelView> {
                         for (final f in c.results) _FileRow(entry: f),
                       if (c.view == PqlView.query)
                         for (final r in c.results) _QueryResultRow(entry: r),
-                      if (c.view == PqlView.decisions)
-                        for (final d in c.results) _DecisionRow(entry: d),
-                      if (c.view == PqlView.tickets)
-                        for (final col in c.results) _TicketColumn(column: col),
                     ],
                   ),
                 ),
@@ -150,8 +146,6 @@ class _ViewTabs extends StatelessWidget {
   static String _tabLabel(PqlView v) => switch (v) {
         PqlView.files => 'Files',
         PqlView.query => 'Query',
-        PqlView.decisions => 'Decisions',
-        PqlView.tickets => 'Tickets',
       };
 }
 
@@ -211,106 +205,6 @@ class _QueryResultRow extends StatelessWidget {
             ClideText(values, fontSize: clideFontCaption, muted: true, maxLines: 2),
         ],
       ),
-    );
-  }
-}
-
-class _DecisionRow extends StatelessWidget {
-  const _DecisionRow({required this.entry});
-  final Map<String, Object?> entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    final id = entry['id'] as String? ?? '';
-    final title = entry['title'] as String? ?? '';
-    final type = entry['type'] as String? ?? '';
-    final domain = entry['domain'] as String? ?? '';
-
-    final Color idColor = switch (type) {
-      'confirmed' => tokens.statusSuccess,
-      'question' => tokens.statusWarning,
-      'rejected' => tokens.statusError,
-      _ => tokens.sidebarForeground,
-    };
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 44,
-            child: ClideText(id, fontSize: clideFontMono, color: idColor,
-                fontFamily: clideMonoFamily),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: ClideText(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              color: tokens.sidebarForeground,
-            ),
-          ),
-          ClideText(domain, fontSize: clideFontCaption, muted: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _TicketColumn extends StatelessWidget {
-  const _TicketColumn({required this.column});
-  final Map<String, Object?> column;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    final status = column['status'] as String? ?? '';
-    final tickets = (column['tickets'] as List?) ?? const [];
-    if (tickets.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding:
-              const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
-          child: ClideText(
-            '$status (${tickets.length})',
-            fontSize: clideFontCaption,
-            muted: true,
-          ),
-        ),
-        for (final t in tickets)
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 44,
-                  child: ClideText(
-                    (t as Map)['id'] as String? ?? '',
-                    fontSize: clideFontMono,
-                    fontFamily: clideMonoFamily,
-                    color: tokens.statusInfo,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: ClideText(
-                    t['title'] as String? ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    color: tokens.sidebarForeground,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }
