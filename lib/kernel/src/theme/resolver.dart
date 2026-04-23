@@ -50,6 +50,9 @@ class ThemeResolver {
       globalBorder: surface[TokenKeys.globalBorder]!,
       globalFocus: surface[TokenKeys.globalFocus]!,
       globalTextMuted: surface[TokenKeys.globalTextMuted]!,
+      chromeBackground: surface[TokenKeys.chromeBackground]!,
+      chromeForeground: surface[TokenKeys.chromeForeground]!,
+      chromeBorder: surface[TokenKeys.chromeBorder]!,
       panelBackground: surface[TokenKeys.panelBackground]!,
       panelBorder: surface[TokenKeys.panelBorder]!,
       panelActiveBorder: surface[TokenKeys.panelActiveBorder]!,
@@ -196,6 +199,10 @@ const Map<String, List<String>> _defaultSurfaceMap = {
   TokenKeys.globalBorder: ['border', 'semantic.surface'],
   TokenKeys.globalFocus: ['accent', 'semantic.focus'],
   TokenKeys.globalTextMuted: ['textDim', 'semantic.text_muted'],
+  // chrome — frame surfaces (hat bar, sidebar, status bar, spines)
+  TokenKeys.chromeBackground: ['bgSunken', 'semantic.mainchrome'],
+  TokenKeys.chromeForeground: ['textDim', 'semantic.text_muted'],
+  TokenKeys.chromeBorder: ['border', 'semantic.surface'],
   // panel
   TokenKeys.panelBackground: ['bgSunken', 'semantic.mainchrome'],
   TokenKeys.panelBorder: ['border', 'semantic.surface'],

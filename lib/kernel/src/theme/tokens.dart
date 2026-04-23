@@ -17,6 +17,10 @@ class SurfaceTokens {
     required this.globalBorder,
     required this.globalFocus,
     required this.globalTextMuted,
+    // chrome (hat bar, sidebar, status bar, spines — frame surfaces)
+    required this.chromeBackground,
+    required this.chromeForeground,
+    required this.chromeBorder,
     // panel
     required this.panelBackground,
     required this.panelBorder,
@@ -93,6 +97,10 @@ class SurfaceTokens {
   final Color globalBorder;
   final Color globalFocus;
   final Color globalTextMuted;
+
+  final Color chromeBackground;
+  final Color chromeForeground;
+  final Color chromeBorder;
 
   final Color panelBackground;
   final Color panelBorder;
@@ -178,6 +186,11 @@ abstract class TokenKeys {
   static const globalBorder = 'global.border';
   static const globalFocus = 'global.focus';
   static const globalTextMuted = 'global.textMuted';
+
+  // chrome
+  static const chromeBackground = 'chrome.background';
+  static const chromeForeground = 'chrome.foreground';
+  static const chromeBorder = 'chrome.border';
 
   // panel
   static const panelBackground = 'panel.background';
@@ -266,6 +279,9 @@ abstract class TokenKeys {
     globalBorder,
     globalFocus,
     globalTextMuted,
+    chromeBackground,
+    chromeForeground,
+    chromeBorder,
     panelBackground,
     panelBorder,
     panelActiveBorder,

@@ -18,19 +18,19 @@ Never hardcode colors. Never use Material/Cupertino color constants.
 
 Pick tokens based on **where** the widget lives, not what it does.
 
-### Chrome (hat bar, status bar, spines)
+### Chrome (hat bar, status bar, sidebar, context panel, spines, drag handles)
 
 ```
-background   → sidebarBackground
-border       → dividerColor (1px)
-text         → globalTextMuted
+background   → chromeBackground
+text         → chromeForeground
+border       → chromeBorder (1px)
 active text  → globalForeground
 ```
 
 ### Side panels (sidebar, context panel)
 
 ```
-background   → sidebarBackground (left) / panelBackground (right)
+background   → chromeBackground (both sides — they're chrome frame)
 text         → sidebarForeground
 hover        → sidebarItemHover
 selected     → sidebarItemSelected
@@ -149,9 +149,10 @@ The palette layer has these depth primitives:
 - `surface` (`#242838`) — elevated: pane headers, active tabs
 - `surfaceHi` (`#2C3046`) — interactive: hover states, selections
 
-**Pending:** `chromeBackground`/`chromeForeground`/`chromeBorder` tokens
-need to be added to `SurfaceTokens` so hat bar, sidebar, and status bar
-share a named root instead of cross-referencing each other's tokens.
+Chrome tokens (`chromeBackground`/`chromeForeground`/`chromeBorder`) are
+the shared root for all frame surfaces. They resolve to `bgSunken` /
+`textDim` / `border` in the palette. Themes can override them to diverge
+hat from sidebar from status bar if desired.
 
 ## Anti-patterns
 

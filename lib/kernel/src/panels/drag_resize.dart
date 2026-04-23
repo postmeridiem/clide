@@ -49,7 +49,7 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
         child: Container(
           width: widget.axis == Axis.horizontal ? widget.thickness : null,
           height: widget.axis == Axis.vertical ? widget.thickness : null,
-          color: widget.slot == Slots.sidebar ? tokens.sidebarBackground : tokens.panelBackground,
+          color: tokens.chromeBackground,
           child: Align(
             alignment: widget.slot == Slots.sidebar ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(

@@ -177,7 +177,7 @@ class RootLayout extends StatelessWidget {
             if (statusVisible)
               Container(
                 height: statusHeight,
-                decoration: BoxDecoration(border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.dividerColor))),
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder))),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -222,8 +222,8 @@ class _HatBar extends StatelessWidget {
       child: Container(
         height: hatHeight,
         decoration: BoxDecoration(
-          color: tokens.sidebarBackground,
-          border: Border(bottom: BorderSide(color: tokens.dividerColor, width: 1)),
+          color: tokens.chromeBackground,
+          border: Border(bottom: BorderSide(color: tokens.chromeBorder, width: 1)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
@@ -238,7 +238,7 @@ class _HatBar extends StatelessWidget {
                     return ClideText(
                       name != null ? 'clide > $name' : 'clide',
                       fontSize: 12,
-                      color: tokens.globalTextMuted,
+                      color: tokens.chromeForeground,
                       fontFamily: clideMonoFamily,
                     );
                   },
@@ -343,7 +343,7 @@ class _WinBtnState extends State<_WinBtn> {
           width: 36, height: hatHeight,
           color: _hover ? hoverBg : null,
           alignment: Alignment.center,
-          child: ClideIcon(widget.icon, size: 14, color: _hover && widget.isClose ? const Color(0xFFFFFFFF) : widget.tokens.globalTextMuted),
+          child: ClideIcon(widget.icon, size: 14, color: _hover && widget.isClose ? const Color(0xFFFFFFFF) : widget.tokens.chromeForeground),
         ),
       ),
     );
@@ -442,7 +442,7 @@ class _SidebarSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     return Container(
-      color: tokens.sidebarBackground,
+      color: tokens.chromeBackground,
       alignment: Alignment.topLeft,
       padding: const EdgeInsets.fromLTRB(2, 2, 0, 0),
       child: active.build(context),
@@ -579,10 +579,10 @@ class _BottomRail extends StatelessWidget {
       listenable: kernel.panels,
       builder: (ctx, _) {
         final tabs = kernel.panels.tabsFor(slot);
-        if (tabs.isEmpty) return Container(color: tokens.statusBarBackground);
+        if (tabs.isEmpty) return Container(color: tokens.chromeBackground);
         final activeId = kernel.panels.activeTabIn(slot) ?? tabs.first.id;
         return Container(
-          color: tokens.statusBarBackground,
+          color: tokens.chromeBackground,
           child: ClideIconRail(
             items: [
               for (final t in tabs)
@@ -636,7 +636,7 @@ class StatusbarHost extends StatelessWidget {
         final left = items.where((i) => i.priority < 100).toList();
         final right = items.where((i) => i.priority >= 100).toList();
         return Container(
-          color: tokens.statusBarBackground,
+          color: tokens.chromeBackground,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           alignment: Alignment.center,
           child: Row(

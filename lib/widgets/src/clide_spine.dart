@@ -45,7 +45,7 @@ class _ClideSpineState extends State<ClideSpine> {
           child: Container(
             width: ClideSpine.width,
             decoration: BoxDecoration(
-              color: _hovered ? tokens.sidebarItemHover : tokens.sidebarBackground,
+              color: _hovered ? tokens.sidebarItemHover : tokens.chromeBackground,
               border: Border(
                 left: widget.side == SpineSide.right ? borderSide : BorderSide.none,
                 right: widget.side == SpineSide.left ? borderSide : BorderSide.none,
