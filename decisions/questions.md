@@ -16,9 +16,9 @@ open questions with one-line summaries.
 
 ## Load-bearing questions (gate other work)
 
-- **[Q-021](questions-process.md#q-021-pql-absorbs-planning-vs-keeps-separate)** — Pql absorbs planning features vs clide absorbs pql vs separate CLI. Blocks the stopgap sunset and shapes the pql-side planning session.
-- **[Q-022](questions-process.md#q-022-ticket-persistence-strategy)** — Ticket persistence: per-dev only / milestone-committed / markdown-mirrored. Shapes multi-contributor story.
-- **[Q-005](questions-architecture.md#q-005-ipc-wire-format-stability)** — IPC wire-format stability and `schema_version:` in `pubspec.yaml`. Decide when the first real subcommand lands.
-- **[Q-015](questions-process.md#q-015-editor-tab-full-lsp-vs-tree-sitter-only)** — Editor tab: full LSP integration vs tree-sitter-only highlight. Decide during Tier 2.
+- **[Q-21](questions-process.md#q-21-pql-absorbs-planning-vs-keeps-separate)** — Pql absorbs planning features vs clide absorbs pql vs separate CLI. Blocks the stopgap sunset and shapes the pql-side planning session.
+- **[Q-22](questions-process.md#q-22-ticket-persistence-strategy)** — Ticket persistence: per-dev only / milestone-committed / markdown-mirrored. Shapes multi-contributor story.
+- **[Q-5](questions-architecture.md#q-5-ipc-wire-format-stability)** — IPC wire-format stability and `schema_version:` in `pubspec.yaml`. Decide when the first real subcommand lands.
+- **[Q-15](questions-process.md#q-15-editor-tab-full-lsp-vs-tree-sitter-only)** — Editor tab: full LSP integration vs tree-sitter-only highlight. Decide during Tier 2.
 
 ---

@@ -49,7 +49,7 @@ Domain-specific fields (`Kill switch:`, `Evaluation reports:`,
 `Amendment:`, `Cross-reference:`) are additive. Amendments are inline
 and dated: `**Amendment (YYYY-MM-DD):** …`. Cross-references use
 markdown anchor links with the full slug:
-`[D-005](architecture.md#d-005-dart-core-ptyc-peer)`.
+`[D-5](architecture.md#d-5-dart-core-ptyc-peer)`.
 
 Open questions (`Q-NNN`):
 
@@ -73,7 +73,7 @@ Rejected alternatives (`R-NNN`):
 
 ## Claiming an ID
 
-Until the pql planning subcommands land ([`Q-021`](questions-process.md)),
+Until the pql planning subcommands land ([`Q-21`](questions-process.md)),
 claim IDs by inspecting the highest existing `D-NNN` / `Q-NNN` /
 `R-NNN` in the target file and incrementing.
 
@@ -89,7 +89,7 @@ Common queries:
 
 ```bash
 pql decisions list --type confirmed --domain architecture
-pql decisions show D-005 --with-refs
+pql decisions show D-5 --with-refs
 pql decisions coverage     # D-records without tickets
 pql decisions validate     # pre-push parser gate
 pql ticket board           # kanban view of tickets

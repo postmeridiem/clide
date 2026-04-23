@@ -26,51 +26,51 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   pql Query (replaces custom input).
 
 - Interaction model from Wireframe Flows v3: eight new D-records
-  (D-047 through D-054) and five Q-records (Q-026 through Q-030)
+  (D-47 through D-54) and five Q-records (Q-26 through Q-30)
   codifying layout invariants, chrome budget, editor mode, context
   auto-behavior, collapse spine, focus mode, state persistence, and
   the canonical keyboard map.
 
 - Panel collapse spine — collapsed side panels render as a 12px
   vertical spine with rotated label, hover highlight, and badge dot
-  for pending context (D-051, T-030).
+  for pending context (D-51, T-30).
 
 - Focus mode — `Ctrl+.` takes the active panel full-window;
   `Escape` restores the prior layout with collapse states and
-  divider positions intact (D-052, T-031).
+  divider positions intact (D-52, T-31).
 
 - Canonical keyboard shortcuts from the interaction model: collapse
   toggles (`Ctrl+Shift+1/3`), panel focus (`Ctrl+1/2/3`), sidebar
   section switching (`Alt+1–5`), focus mode, and `Escape` dismiss
-  (D-054, T-033).
+  (D-54, T-33).
 
 - Right panel (context) icon rail — bottom section switcher matching
-  the left sidebar rail pattern (D-047, T-034).
+  the left sidebar rail pattern (D-47, T-34).
 
 - Editor-above-Claude mode — `Ctrl+E` opens the editor as a split
   above Claude in the middle column with a draggable divider;
   `Ctrl+W` or `Escape` closes it. Prompt bar Y stays fixed
-  (D-049, T-035).
+  (D-49, T-35).
 
 - Layout state persists across sessions — collapse state, sidebar
   and context panel sizes, active sections, and editor split ratio
-  saved to `.clide/settings.yaml` (D-053, T-032).
+  saved to `.clide/settings.yaml` (D-53, T-32).
 
 - Phosphor Icons font (v2.0.8, MIT) — regular, bold, and fill
   weights. Replaces hand-painted CustomPaint icons in sidebar and
   context panel icon rails.
 
 - Decisions panel in sidebar — lists confirmed D-records from
-  `pql decisions list` with ID and title (T-037).
+  `pql decisions list` with ID and title (T-37).
 
 - Tickets panel in sidebar — lists tickets from `pql ticket list`
-  with status dot color-coded by state (T-037).
+  with status dot color-coded by state (T-37).
 
 - Markdown viewer in context panel — shows raw content of the
-  active .md file, auto-updating on buffer switch (T-038).
+  active .md file, auto-updating on buffer switch (T-38).
 
 - Graph view in context panel — lists files with inbound/outbound
-  link counts from `pql search --connections` (T-039).
+  link counts from `pql search --connections` (T-39).
 
 - Welcome screen redesigned as full-screen overlay with two-column
   layout: START actions (open folder, clone, Claude session) with
@@ -85,7 +85,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Changed
 
 - Workspace renders Claude as the always-visible primary surface
-  instead of showing a tab bar (D-047, D-048). The editor is a
+  instead of showing a tab bar (D-47, D-48). The editor is a
   split overlay, not a tab.
 
 - Syntax highlighting via tree-sitter (dart:ffi to vendored
@@ -99,7 +99,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - Line length set to 160 across .editorconfig and dart formatter.
 
-- Core frame vs shipped extension boundary defined (D-046). Builtins
+- Core frame vs shipped extension boundary defined (D-46). Builtins
   are frame infrastructure only; content extensions are bundled but
   architecturally removable.
 
@@ -121,7 +121,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `.claude/settings.json`.
 
 - pql daemon subsystem (`lib/src/pql/`). `PqlClient` wraps the pql
-  CLI per D-003. IPC verbs `pql.files | meta | backlinks | outlinks
+  CLI per D-3. IPC verbs `pql.files | meta | backlinks | outlinks
   | tags | schema | query | doctor | decisions.sync | decisions.list
   | decisions.show | decisions.coverage | tickets.list | tickets.show
   | tickets.board | plan.status`. 15 new core tests.
@@ -171,7 +171,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   echo-suppression guard avoids clobbering the caret when the
   daemon's authoritative edit echo comes back. Text surface is
   Flutter's `EditableText` primitive — no `TextField` / Material —
-  so the D-007 "no Material root" stance carries into the editor;
+  so the D-7 "no Material root" stance carries into the editor;
   JetBrainsMono via the shared `clideMonoFamily` constants, cursor
   + selection colours bind to the theme.
 
@@ -204,7 +204,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   dispatcher round-trips.
 
 - `builtin.claude` — Tier-1 stub upgraded to the real Claude pane per
-  D-041. Contributes a primary `Claude` tab in the workspace slot that
+  D-41. Contributes a primary `Claude` tab in the workspace slot that
   spawns `tmux new-session -A -s clide-claude-<hash> -- claude` via
   IPC `pane.spawn`, with `<hash>` derived from the git root path so
   reopening the app re-attaches to the running conversation. Primary
@@ -212,8 +212,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   Command `claude.new-secondary` is registered for the palette wiring
   that's coming next. If tmux isn't on PATH, falls back to spawning
   `claude` directly and surfaces "no-tmux · fresh every launch" in
-  the header subtitle. Accompanied by D-041 in
-  [`decisions/architecture.md`](decisions/architecture.md#d-041-claude-panes-one-primary-per-repo-tmux-backed).
+  the header subtitle. Accompanied by D-41 in
+  [`decisions/architecture.md`](decisions/architecture.md#d-41-claude-panes-one-primary-per-repo-tmux-backed).
 
 - `builtin.files` — workspace filesystem panel in the sidebar. Lazy
   tree rooted at the git root, expand/collapse, click-to-open plumbed
@@ -223,7 +223,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   with ignore-file filtering. Ignore set composes clide's built-in
   hide list (`.git/`, `.pql/`, `.clide/`, `.dart_tool/`, `build/`,
   `node_modules/`) with `.gitignore` / `.clideignore` at the root per
-  D-004. `IgnoreSet` + `IgnorePattern` support line-per-pattern, `#`
+  D-4. `IgnoreSet` + `IgnorePattern` support line-per-pattern, `#`
   comments, anchored / directory-only / negated forms, and `**` across
   directories. 11 new unit tests on the matcher; 5 new dispatcher
   tests; 171 app tests still green.
@@ -236,7 +236,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `pane.resize` on viewport change. `initState` → spawn;
   `dispose` → `pane.close`. Error-state surface for "daemon not
   connected" / "shell exited." No Claude-specific behaviour — that
-  lives in `builtin.claude` + D-041.
+  lives in `builtin.claude` + D-41.
 
 - Shared pane widgets under `app/lib/widgets/`: `ClidePtyView` wraps
   `xterm.dart` with clide-theme token bindings, JetBrains Mono as the
@@ -248,15 +248,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   no IPC coupling.
 
 - `xterm: 4.0.0` Dart dependency on the Flutter app — MIT, listed in
-  `licenses.yaml` per D-042. Hand-rolling a VT100 / xterm / truecolour
+  `licenses.yaml` per D-42. Hand-rolling a VT100 / xterm / truecolour
   parser + renderer would be weeks for no fidelity win.
 
-- `Q-023` — open question on SSH-remote development (run clide against
+- `Q-23` — open question on SSH-remote development (run clide against
   a workspace on another host). Local-first stays the Tier-1 target;
   this records the constraint so the daemon / IPC / extension seams
   don't unknowingly accrete local-only assumptions.
 
-- IPC `pane` subsystem in the daemon (per D-006). Commands:
+- IPC `pane` subsystem in the daemon (per D-6). Commands:
   `pane.spawn | list | focus | close | write | resize | tail`. Events:
   `pane.spawned`, `pane.output` (base64-framed), `pane.exit`,
   `pane.resized`, `pane.focused`, `pane.closed`. `PaneRegistry` owns
@@ -281,7 +281,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   verification, idempotent close.
 
 - `ffi: 2.1.3` as a runtime dependency on the Dart core — justified
-  in `pubspec.yaml` + documented in `licenses.yaml` per D-042. Used
+  in `pubspec.yaml` + documented in `licenses.yaml` per D-42. Used
   by `lib/src/pty/ffi/` for `socketpair`, `recvmsg` with `SCM_RIGHTS`,
   `read`/`write` on raw fds, and `ioctl(TIOCSWINSZ)`.
 
@@ -312,7 +312,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `license_file` pointer, and a one-line purpose. Bundled alongside
   the per-dep license texts. The About screen (Tier 6) will render
   this file verbatim. Accompanied by
-  [`D-042`](decisions/tooling.md#d-042-bundled-dependencies-documented-in-licensesyaml):
+  [`D-42`](decisions/tooling.md#d-42-bundled-dependencies-documented-in-licensesyaml):
   adding a dep is a two-step commit (artefact + `licenses.yaml`
   entry in the same changeset).
 
@@ -320,10 +320,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - CLAUDE.md "Dependencies & supply chain" section gains the
   "document every bundled dependency" rule, pointing at
-  `app/assets/licenses.yaml` and `D-042`.
+  `app/assets/licenses.yaml` and `D-42`.
 
 - `ptyc/` — the C PTY-spawn helper, peer of `pql` per
-  [`D-005`](decisions/architecture.md#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer).
+  [`D-5`](decisions/architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer).
   One-shot, libc-only, ~400 LOC. Reads a JSON request on stdin
   (`argv`, optional `cwd`/`env`/`cols`/`rows`), does
   `posix_openpt` + `fork` + `execvp`, and hands the master fd back
@@ -336,10 +336,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `ptyc-build` / `ptyc-clean`.
 
 - Migrated the `docs/ADRs/` content into `decisions/` as D/R records:
-  ADR 0001 → `D-001`, ADR 0002 → `R-002` (superseded by `D-005`), ADR
-  0003 → `D-003`, ADR 0004 → `D-004`, ADR 0005 → `D-005`, ADR 0006 →
-  `D-006`. Titles preserved; ADR 0006's trailing open questions moved
-  to `questions-architecture.md` as `Q-001` / `Q-002` / `Q-003`. The
+  ADR 0001 → `D-1`, ADR 0002 → `R-2` (superseded by `D-5`), ADR
+  0003 → `D-3`, ADR 0004 → `D-4`, ADR 0005 → `D-5`, ADR 0006 →
+  `D-6`. Titles preserved; ADR 0006's trailing open questions moved
+  to `questions-architecture.md` as `Q-1` / `Q-2` / `Q-3`. The
   originals are preserved in git history.
 
 - `decisions/` at the repo root — Q&D record system ported from
@@ -364,8 +364,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   (`tools/scripts/plan ` → `pql `). Ported from settled-reach with
   the Scrum layer stripped; ticket IDs are `T-NNN` (TEXT PKs) and
   there's no `sprints` table. Time-limited per
-  [`D-040`](decisions/process.md#d-040-python-stopgap-under-toolsscriptsplan)
-  / [`R-011`](decisions/rejected.md#r-011-permanent-stopgap).
+  [`D-40`](decisions/process.md#d-40-python-stopgap-under-toolsscriptsplan)
+  / [`R-11`](decisions/rejected.md#r-11-permanent-stopgap).
 
 - `make decisions-validate` — cheap parser dry-run wired into
   `push-check`. Catches malformed records before push.
@@ -373,7 +373,7 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Reserved extension slots — `builtin.decisions`, `builtin.tickets`,
   `builtin.claude-control`. Id-reserving stubs under
   `app/lib/builtin/` with no contributions yet. Implementations land
-  once [`Q-021`](decisions/questions-architecture.md#q-021-pql-absorbs-planning-vs-keeps-separate)
+  once [`Q-21`](decisions/questions-architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate)
   resolves (decisions + tickets) or when the claude-control tier
   arrives (`.claude/` first-class surface — distinct from the
   existing `builtin.claude` PTY-pane stub).
@@ -400,9 +400,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - `tools/scripts/plan` — Python stopgap planning scripts, superseded
   by `pql` 1.0 native `decisions` and `ticket` subcommands. Sunset
   condition from
-  [`D-040`](decisions/process.md#d-040-python-stopgap-under-toolsscriptsplan)
+  [`D-40`](decisions/process.md#d-40-python-stopgap-under-toolsscriptsplan)
   met; deletion per
-  [`R-011`](decisions/rejected.md#r-011-permanent-stopgap).
+  [`R-11`](decisions/rejected.md#r-11-permanent-stopgap).
 
 ### Removed
 

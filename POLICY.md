@@ -63,7 +63,7 @@ This is not a preference. It is the project's architectural stance, documented i
 - **Prefer inlining over depending.** If a package is small and does one thing we need, copy the relevant code (with attribution) rather than taking on the dependency. License permitting, this is usually the right call for utilities under a few hundred lines.
 - **Prefer vendoring over fetching.** When a dependency is unavoidable and small enough to own, fork it into the repo and maintain it ourselves. The dep graph stops at our fence.
 - **Reject deep trees.** A direct dependency that itself has fifteen transitive dependencies is fifteen dependencies we are taking on, not one. Evaluate the whole subtree, not just the top.
-- **Format engines clear the bar.** Packages that parse or render external file formats (SVG, markdown, HTML, terminal escapes, tree-sitter grammars) are adoptable — they are not shortcuts for lazy coding but maintained renderers for specs we didn't write. The distinction: UI chrome (panels, tabs, canvas, layout) we own; someone else's file format we adopt and sandbox. See D-058.
+- **Format engines clear the bar.** Packages that parse or render external file formats (SVG, markdown, HTML, terminal escapes, tree-sitter grammars) are adoptable — they are not shortcuts for lazy coding but maintained renderers for specs we didn't write. The distinction: UI chrome (panels, tabs, canvas, layout) we own; someone else's file format we adopt and sandbox. See D-58.
 
 ### Every dependency is audited
 

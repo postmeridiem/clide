@@ -1,0 +1,2759 @@
+{
+  "exported_at": "2026-04-23T10:05:07Z",
+  "decisions": [
+    {
+      "id": "D-1",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "CLI-first, not MCP",
+      "status": "active",
+      "date": "2026-04-20",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-1",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Authorisation granularity on the IPC socket",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-2",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Back-pressure on event streams",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-2",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Go sidecar",
+      "status": "active",
+      "date": "2026-04-20",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-3",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "pql as supporter tool; clide wraps, never duplicates",
+      "status": "active",
+      "date": "2026-04-20",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-3",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Event persistence + audit/undo",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-3",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "`MaterialApp` root",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-4",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Ignore file strategy",
+      "status": "active",
+      "date": "2026-04-20",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-4",
+      "type": "question",
+      "domain": "architecture",
+      "title": "`.canvas` schema compatibility with Obsidian",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-4",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Flutter `intl` + ARB codegen for i18n",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-5",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Dart core; sidecar dissolved; `ptyc` as pql-peer",
+      "status": "active",
+      "date": "2026-04-20",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-5",
+      "type": "question",
+      "domain": "architecture",
+      "title": "IPC wire-format stability + `schema_version:`",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-5",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Patrol test runner",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-6",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "CLI and event surface contract",
+      "status": "active",
+      "date": "2026-04-20",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-6",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Window chrome \u2014 native frame vs frameless custom",
+      "status": "resolved",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-6",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Nerd-font glyph icons",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-7",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "App root is bare `WidgetsApp`",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-7",
+      "type": "question",
+      "domain": "architecture",
+      "title": "macOS app bundle signing / notarisation",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-7",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "`CupertinoApp` root",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-8",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Feature-first folder layout",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-8",
+      "type": "question",
+      "domain": "extensions",
+      "title": "Extension API shape \u2014 widgets, subcommands, both?",
+      "status": "open",
+      "file_path": "decisions/questions-extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-8",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Riverpod / Provider / BLoC for state",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-9",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Three-tier theme pipeline",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-9",
+      "type": "question",
+      "domain": "extensions",
+      "title": "Lua runtime vendoring",
+      "status": "open",
+      "file_path": "decisions/questions-extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-9",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Port planning tooling into clide",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-10",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "State management \u2014 `ChangeNotifier` + `ListenableBuilder`",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-10",
+      "type": "question",
+      "domain": "extensions",
+      "title": "Extension manifest `schema_version:`",
+      "status": "open",
+      "file_path": "decisions/questions-extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-10",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Python-script stopgap under `tooling/db/`",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-11",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Panel manager is kernel; layout is data; three-column is a preset",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-11",
+      "type": "question",
+      "domain": "testing",
+      "title": "Coverage gates \u2014 hard thresholds vs soft reporting",
+      "status": "open",
+      "file_path": "decisions/questions-testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-11",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "Permanent stopgap",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-12",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Kernel admission rule \u2014 mandatory shared singletons only",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-12",
+      "type": "question",
+      "domain": "testing",
+      "title": "Screen-reader automation (axe-core via Playwright)",
+      "status": "open",
+      "file_path": "decisions/questions-testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "R-12",
+      "type": "rejected",
+      "domain": "rejected",
+      "title": "MaterialApp wrapper from design handoff",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/rejected.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-13",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Git hardcoded in kernel project-loader",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-13",
+      "type": "question",
+      "domain": "accessibility",
+      "title": "Web production-mode a11y",
+      "status": "open",
+      "file_path": "decisions/questions-accessibility.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-14",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Two-tier disable \u2014 kernel locked, everything else extension-shaped",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-14",
+      "type": "question",
+      "domain": "accessibility",
+      "title": "i18n plurals / gender / date-format tooling",
+      "status": "open",
+      "file_path": "decisions/questions-accessibility.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-15",
+      "type": "confirmed",
+      "domain": "extensions",
+      "title": "Extension grain \u2014 container-level, multi-contribution",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-15",
+      "type": "question",
+      "domain": "process",
+      "title": "Editor tab \u2014 full LSP vs tree-sitter-only highlight",
+      "status": "open",
+      "file_path": "decisions/questions-process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-16",
+      "type": "confirmed",
+      "domain": "extensions",
+      "title": "Built-ins in Dart, third-party in sandboxed Lua",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-16",
+      "type": "question",
+      "domain": "process",
+      "title": "`tree-sitter-dart` grammar maintenance",
+      "status": "open",
+      "file_path": "decisions/questions-process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-17",
+      "type": "confirmed",
+      "domain": "extensions",
+      "title": "Panels are extension-shaped from day one",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-17",
+      "type": "question",
+      "domain": "process",
+      "title": "Icon set growth",
+      "status": "open",
+      "file_path": "decisions/questions-process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-18",
+      "type": "confirmed",
+      "domain": "extensions",
+      "title": "YAML for themes + manifests; JSON for i18n catalogs",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-18",
+      "type": "question",
+      "domain": "process",
+      "title": "Theme hot-reload in release builds",
+      "status": "open",
+      "file_path": "decisions/questions-process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-19",
+      "type": "confirmed",
+      "domain": "extensions",
+      "title": "Lua runtime as `ptyc`-peer supporter tool",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-19",
+      "type": "question",
+      "domain": "process",
+      "title": "(withdrawn)",
+      "status": "resolved",
+      "file_path": "decisions/questions-process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-20",
+      "type": "confirmed",
+      "domain": "accessibility",
+      "title": "A11y is a Tier-0 contract",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/accessibility.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-20",
+      "type": "question",
+      "domain": "process",
+      "title": "Kernel DB service \u2014 namespaced SQL access?",
+      "status": "open",
+      "file_path": "decisions/questions-process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-21",
+      "type": "confirmed",
+      "domain": "accessibility",
+      "title": "i18n is a Tier-0 contract (fframe pattern + locale-fallback chain)",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/accessibility.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-21",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Pql absorbs planning vs keeps separate",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-22",
+      "type": "confirmed",
+      "domain": "accessibility",
+      "title": "WCAG-AA contrast gate on bundled themes",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/accessibility.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-22",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Ticket persistence strategy",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-23",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Test pyramid \u2014 seven layers",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-23",
+      "type": "question",
+      "domain": "architecture",
+      "title": "SSH-remote development \u2014 run clide against a remote workspace",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-24",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Golden tests \u2014 primitives only, Alchemist + Ahem",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-25",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Mocks \u2014 mocktail at IO, hand-rolled fakes for ChangeNotifiers",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-25",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Body text face \u2014 mono everywhere vs Josefin Sans UI + mono code",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-26",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Web driver \u2014 raw Playwright + Flutter semantics",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-26",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Small screen layout (< 1000px)",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-27",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Startup regression gate",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-27",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Two-editor split",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-28",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Test organisation \u2014 mirror `lib/` in `test/`",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-28",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Terminal strip scope \u2014 shell only or logs/errors/tests",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-29",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Pre-push gate \u2014 fast layer only",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-29",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Branch picker location",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-30",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Tests are client-side only",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-30",
+      "type": "question",
+      "domain": "architecture",
+      "title": "Focus behavior when editor is dirty and viewer is peeked",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-31",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Prefer-zero-deps, exact-pin",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "Q-31",
+      "type": "question",
+      "domain": "architecture",
+      "title": "XWayland fallback for frameless \u2014 proper Wayland protocol needed",
+      "status": "open",
+      "file_path": "decisions/questions-architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-32",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "CI \u2014 Gitea primary, Linux-only runners, not yet activated",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-33",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Golden-output ignore pattern \u2014 `coverage.*` excludes output, not scripts",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-34",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "Q&D record system",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-35",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "Kanban / waterfall, not Scrum",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-36",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "`.claude/` is committed project surface, managed through the IDE",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-37",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "Commit conventions per git-commit skill",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-38",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "Changelog discipline \u2014 Keep a Changelog 1.1.0",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-39",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "Planning tooling lives in pql, not clide",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-40",
+      "type": "confirmed",
+      "domain": "process",
+      "title": "[SUPERSEDED] Python stopgap under `tools/scripts/plan`",
+      "status": "active",
+      "date": "2026-04-21",
+      "file_path": "decisions/process.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-41",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Claude panes \u2014 one primary per repo, tmux-backed",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-42",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Dependencies documented in `licenses.yaml`",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-43",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Design handoff \u2014 adopt token palettes, reject Material wrapper",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-44",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Four bundled themes \u2014 clide, midnight, paper, terminal",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-45",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Syntax highlighting tokens in the theme pipeline",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-46",
+      "type": "confirmed",
+      "domain": "extensions",
+      "title": "Core frame builtins vs shipped extensions boundary",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/extensions.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-47",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Interaction model \u2014 Claude-is-home layout",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-48",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Chrome budget \u2014 no tabs, no breadcrumbs, keyboard-first",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-49",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Editor mode \u2014 inline above Claude, viewer swap",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-50",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Context auto-behavior \u2014 right panel reacts to Claude",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-51",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Panel collapse \u2014 12px spine with badge",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-52",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Focus mode \u2014 full-window takeover",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-53",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "State persistence across sessions",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-54",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Keyboard map \u2014 canonical shortcuts",
+      "status": "active",
+      "date": "2026-04-22",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-55",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Claude pane internal tabs for multi-session",
+      "status": "active",
+      "date": "2026-04-23",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-56",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Dissolve daemon process; Flutter app hosts IPC server",
+      "status": "active",
+      "date": "2026-04-23",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-57",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "Frameless custom chrome with per-column 24px hats",
+      "status": "active",
+      "date": "2026-04-23",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-04-23 09:37:12"
+    },
+    {
+      "id": "D-58",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Format engines are adoptable dependencies",
+      "status": "active",
+      "date": "2026-04-23",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-04-23 09:37:12"
+    }
+  ],
+  "decision_refs": [
+    {
+      "source_id": "D-1",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Rationale:** Same mental model as pql for the agent \u2014 one tool-use pattern covers both. No MCP runtime to host, authenticate, or keep in sync with client versions. User/Claude parity is easier ..."
+    },
+    {
+      "source_id": "D-3",
+      "target_id": "D-4",
+      "ref_type": "references",
+      "note": "**Decision:** Two complementary rules. **(1) Wrap, don't duplicate.** Clide never re-implements backlinks, ranking, frontmatter parsing, or wikilink resolution for query purposes. If a capability i..."
+    },
+    {
+      "source_id": "D-3",
+      "target_id": "D-39",
+      "ref_type": "references",
+      "note": "**Raised by:** Ported from the claudian lineage. Load-bearing for [D-39](process.md#d-039-planning-tooling-lives-in-pql)."
+    },
+    {
+      "source_id": "D-4",
+      "target_id": "D-3",
+      "ref_type": "references",
+      "note": "**Decision:** One mechanism everywhere: the `ignore_files:` list in `.pql/config.yaml`. Ordered list of gitignore-shaped files; later entries win on per-pattern conflicts. pql defaults to `ignore_f..."
+    },
+    {
+      "source_id": "D-5",
+      "target_id": "D-56",
+      "ref_type": "references",
+      "note": "**Amendment (2026-04-23):** The separate daemon process and two-package layout are dissolved per [D-56](#d-056-dissolve-daemon-process-flutter-app-hosts-ipc-server). Dart-core and ptyc-as-peer pri..."
+    },
+    {
+      "source_id": "D-5",
+      "target_id": "R-2",
+      "ref_type": "references",
+      "note": "**Date:** 2026-04-20 (was ADR 0005; supersedes [R-2](rejected.md#r-002-go-sidecar))"
+    },
+    {
+      "source_id": "D-6",
+      "target_id": "D-1",
+      "ref_type": "references",
+      "note": "**Context:** [D-1](#d-001-cli-first-not-mcp) established that Claude drives clide via a Bash CLI. That decided the *channel* \u2014 it did not define the *surface*. CLAUDE.md stated the rule colloqu..."
+    },
+    {
+      "source_id": "D-6",
+      "target_id": "Q-1",
+      "ref_type": "references",
+      "note": "**Cost:** Replay-buffer memory per subsystem (cheap \u2014 most emit seldom). Back-pressure on firehose streams ([Q-2](questions-architecture.md#q-002-back-pressure-on-event-streams)), authorisation..."
+    },
+    {
+      "source_id": "D-6",
+      "target_id": "Q-2",
+      "ref_type": "references",
+      "note": "**Cost:** Replay-buffer memory per subsystem (cheap \u2014 most emit seldom). Back-pressure on firehose streams ([Q-2](questions-architecture.md#q-002-back-pressure-on-event-streams)), authorisation..."
+    },
+    {
+      "source_id": "D-6",
+      "target_id": "Q-3",
+      "ref_type": "references",
+      "note": "**Cost:** Replay-buffer memory per subsystem (cheap \u2014 most emit seldom). Back-pressure on firehose streams ([Q-2](questions-architecture.md#q-002-back-pressure-on-event-streams)), authorisation..."
+    },
+    {
+      "source_id": "D-6",
+      "target_id": "Q-5",
+      "ref_type": "references",
+      "note": "**Rationale:** Surface is enumerable \u2014 adding a subsystem means adding a row and specifying verbs + events. Wire schema is versioned (`v: 1` starting point; compatibility breaks bump the major an..."
+    },
+    {
+      "source_id": "D-7",
+      "target_id": "D-9",
+      "ref_type": "references",
+      "note": "**Rationale:** Clide is a Linux-primary desktop IDE with a custom theme pipeline and custom primitives (panels, tabs, panes, canvas). Material's implicit theming collides with [D-9](#d-009-three-..."
+    },
+    {
+      "source_id": "D-7",
+      "target_id": "R-3",
+      "ref_type": "references",
+      "note": "**Cost:** We build and own every primitive; no `ElevatedButton` fallback. See [R-3](rejected.md#r-003-materialapp-root) and [R-7](rejected.md#r-007-cupertinoapp-root)."
+    },
+    {
+      "source_id": "D-7",
+      "target_id": "R-7",
+      "ref_type": "references",
+      "note": "**Cost:** We build and own every primitive; no `ElevatedButton` fallback. See [R-3](rejected.md#r-003-materialapp-root) and [R-7](rejected.md#r-007-cupertinoapp-root)."
+    },
+    {
+      "source_id": "D-9",
+      "target_id": "D-22",
+      "ref_type": "references",
+      "note": "**Cost:** Three layers to keep coherent per theme. Contrast gate ([D-22](accessibility.md#d-022-wcag-aa-contrast-gate-on-bundled-themes)) enforces the semantic layer on every bundled theme."
+    },
+    {
+      "source_id": "D-10",
+      "target_id": "D-25",
+      "ref_type": "references",
+      "note": "**Rationale:** SDK-shipped, zero deps, trivial to fake in tests (hand-rolled fakes in [D-25](testing.md#d-025-mocks-mocktail-at-io-plus-hand-rolled-fakes)). Violates [D-31 prefer-zero-deps](tooli..."
+    },
+    {
+      "source_id": "D-10",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Rationale:** SDK-shipped, zero deps, trivial to fake in tests (hand-rolled fakes in [D-25](testing.md#d-025-mocks-mocktail-at-io-plus-hand-rolled-fakes)). Violates [D-31 prefer-zero-deps](tooli..."
+    },
+    {
+      "source_id": "D-10",
+      "target_id": "R-8",
+      "ref_type": "references",
+      "note": "**Rationale:** SDK-shipped, zero deps, trivial to fake in tests (hand-rolled fakes in [D-25](testing.md#d-025-mocks-mocktail-at-io-plus-hand-rolled-fakes)). Violates [D-31 prefer-zero-deps](tooli..."
+    },
+    {
+      "source_id": "D-16",
+      "target_id": "D-19",
+      "ref_type": "references",
+      "note": "**Decision:** Bundled extensions (every `app/lib/builtin/<name>`) are Dart \u2014 they link into the app binary. Third-party extensions (Tier 6) run in sandboxed Lua via the `ptyc`-peer Lua runtime (s..."
+    },
+    {
+      "source_id": "D-18",
+      "target_id": "D-21",
+      "ref_type": "references",
+      "note": "**Decision:** Themes and extension manifests are YAML; i18n catalogues are JSON (fframe parity \u2014 see [D-21](accessibility.md#d-021-i18n-is-a-tier-0-contract))."
+    },
+    {
+      "source_id": "D-21",
+      "target_id": "R-4",
+      "ref_type": "references",
+      "note": "**Rationale:** Flutter's `intl` + ARB codegen is inflexible for plugin-contributed catalogs (see [R-4](rejected.md#r-004-flutter-intl-and-arb-codegen)) \u2014 we need per-extension catalogs that mer..."
+    },
+    {
+      "source_id": "D-23",
+      "target_id": "D-29",
+      "ref_type": "references",
+      "note": "**Cost:** Seven CI jobs; total wall time budgeted at < 15 min. Pre-push runs layers 1-4 (< 90 s \u2014 see [D-29](#d-029-pre-push-gate-fast-layer-only))."
+    },
+    {
+      "source_id": "D-26",
+      "target_id": "D-20",
+      "ref_type": "references",
+      "note": "**Rationale:** Patrol adds a dependency for a capability we get from semantics + Playwright directly. Labels are the a11y tree we already contract to maintain ([D-20](accessibility.md#d-020-a11y-i..."
+    },
+    {
+      "source_id": "D-35",
+      "target_id": "Q-22",
+      "ref_type": "references",
+      "note": "**Cost:** No natural \"sprint close\" event to sync shared state. See [Q-22](questions-process.md#q-022-ticket-persistence-strategy)."
+    },
+    {
+      "source_id": "D-39",
+      "target_id": "D-3",
+      "ref_type": "references",
+      "note": "**Decision:** Planning subcommands (`decisions`, `ticket`, `plan`) land in pql's repo long-term. Clide consumes them via shell-out, matching [D-3](architecture.md)'s wrap-don't-duplicate rule for..."
+    },
+    {
+      "source_id": "D-39",
+      "target_id": "D-40",
+      "ref_type": "references",
+      "note": "**Cost:** Planning features don't ship until pql catches up. Mitigated by [D-40](#d-040-python-stopgap-under-toolsscriptsplan). Gated by [Q-21](questions-process.md#q-021-pql-absorbs-planning-vs-..."
+    },
+    {
+      "source_id": "D-39",
+      "target_id": "Q-21",
+      "ref_type": "references",
+      "note": "**Cost:** Planning features don't ship until pql catches up. Mitigated by [D-40](#d-040-python-stopgap-under-toolsscriptsplan). Gated by [Q-21](questions-process.md#q-021-pql-absorbs-planning-vs-..."
+    },
+    {
+      "source_id": "D-39",
+      "target_id": "R-9",
+      "ref_type": "references",
+      "note": "**Rationale:** A terminal user or a user in VS Code / JetBrains still needs Q&D access. Binding planning tooling to clide-the-Flutter-app would cut them off from their own work \u2014 see [R-9](reje..."
+    },
+    {
+      "source_id": "D-40",
+      "target_id": "R-10",
+      "ref_type": "references",
+      "note": "**Cost:** Python dep on contributors' machines (already present on most Linux dists). One time-limited tool to maintain. See [R-10](rejected.md#r-010-python-script-stopgap-at-toolingdb) for why `t..."
+    },
+    {
+      "source_id": "D-40",
+      "target_id": "R-11",
+      "ref_type": "references",
+      "note": "**Sunset:** Delete the stopgap when pql ships `pql decisions sync | validate | list | show | claim | coverage` + `pql ticket new | list | show | status | assign | block | board` with feature parity..."
+    },
+    {
+      "source_id": "D-41",
+      "target_id": "D-5",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [`D-5`](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (ptyc as the spawn primitive tmux runs under), [`D-6`](#d-006-cli-and-event-surface-contract) (pane.\\* IPC surf..."
+    },
+    {
+      "source_id": "D-41",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [`D-5`](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (ptyc as the spawn primitive tmux runs under), [`D-6`](#d-006-cli-and-event-surface-contract) (pane.\\* IPC surf..."
+    },
+    {
+      "source_id": "D-41",
+      "target_id": "R-9",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [`D-5`](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (ptyc as the spawn primitive tmux runs under), [`D-6`](#d-006-cli-and-event-surface-contract) (pane.\\* IPC surf..."
+    },
+    {
+      "source_id": "D-42",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Rationale:** Complements [D-31](#d-031-prefer-zero-deps-exact-pin). Prefer-zero-deps is a *budget*; `licenses.yaml` is the *visible consequence*. An extra row in the About screen is a review-tim..."
+    },
+    {
+      "source_id": "D-43",
+      "target_id": "D-7",
+      "ref_type": "references",
+      "note": "**Decision:** The claude.ai/design handoff (`docs/claude-design/`) delivers hi-fi mockups, interaction flows, a design system, and four theme palettes (clide, midnight, paper, terminal) as Dart fil..."
+    },
+    {
+      "source_id": "D-43",
+      "target_id": "D-9",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-7](#d-007-app-root-is-bare-widgetsapp), [D-9](#d-009-three-tier-theme-pipeline), [R-12](rejected.md#r-012-materialapp-wrapper-from-design-handoff)."
+    },
+    {
+      "source_id": "D-43",
+      "target_id": "R-12",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-7](#d-007-app-root-is-bare-widgetsapp), [D-9](#d-009-three-tier-theme-pipeline), [R-12](rejected.md#r-012-materialapp-wrapper-from-design-handoff)."
+    },
+    {
+      "source_id": "D-44",
+      "target_id": "D-22",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-43](#d-043-design-handoff-adopt-token-palettes-reject-material-wrapper), [D-22](accessibility.md#d-022-wcag-aa-contrast-gate-on-bundled-themes)."
+    },
+    {
+      "source_id": "D-44",
+      "target_id": "D-43",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-43](#d-043-design-handoff-adopt-token-palettes-reject-material-wrapper), [D-22](accessibility.md#d-022-wcag-aa-contrast-gate-on-bundled-themes)."
+    },
+    {
+      "source_id": "D-45",
+      "target_id": "Q-15",
+      "ref_type": "references",
+      "note": "**Decision:** Add syntax-role colour tokens to `SurfaceTokens`: keyword, type, string, number, comment, method, punctuation. Each bundled theme defines these. The editor and diff views consume them..."
+    },
+    {
+      "source_id": "D-47",
+      "target_id": "D-11",
+      "ref_type": "references",
+      "note": "**Decision:** The prompt bar is pinned to a fixed Y-position in the middle column; every other surface makes room *around* Claude \u2014 never on top, never pushing the prompt off-Y. Three hard rules:..."
+    },
+    {
+      "source_id": "D-47",
+      "target_id": "D-48",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-11](#d-011-panel-manager-is-kernel-layout-is-data-three-column-is-a-preset), [D-48](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first), [D-49](#d-049-editor-mode..."
+    },
+    {
+      "source_id": "D-47",
+      "target_id": "D-49",
+      "ref_type": "references",
+      "note": "**Cost:** The prompt bar invariant constrains future layout presets \u2014 any preset that repositions Claude must explicitly break this rule. Editor mode (see [D-49](#d-049-editor-mode-inline-above-..."
+    },
+    {
+      "source_id": "D-48",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-49](#d-049-editor-mode-inline-above-claude-viewer-swap)."
+    },
+    {
+      "source_id": "D-48",
+      "target_id": "D-49",
+      "ref_type": "references",
+      "note": "**Rationale:** Every pixel of chrome that isn't Claude is a tax on the \"Claude is home\" principle. Tabs and breadcrumbs are navigation affordances for a multi-buffer editor; clide's editor is a sec..."
+    },
+    {
+      "source_id": "D-48",
+      "target_id": "Q-27",
+      "ref_type": "references",
+      "note": "**Decision:** Clide deletes classic IDE chrome: no buffer tabs, no breadcrumbs, no VS Code-style activity bar, no separate status bar row (merged into app strip). Total persistent chrome: 2 edge ar..."
+    },
+    {
+      "source_id": "D-49",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Rationale:** The editor is not a primary surface \u2014 it's a temporary intervention. Claude's prompt bar must never move ([D-47](#d-047-interaction-model-claude-is-home-layout)), so the editor op..."
+    },
+    {
+      "source_id": "D-49",
+      "target_id": "D-48",
+      "ref_type": "references",
+      "note": "**Cost:** Only one file in the editor at a time (no tabs per [D-48](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first)). Power users wanting two files side-by-side must wait for split (se..."
+    },
+    {
+      "source_id": "D-49",
+      "target_id": "Q-27",
+      "ref_type": "references",
+      "note": "**Cost:** Only one file in the editor at a time (no tabs per [D-48](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first)). Power users wanting two files side-by-side must wait for split (se..."
+    },
+    {
+      "source_id": "D-50",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-51](#d-051-panel-collapse-12px-spine-with-badge)."
+    },
+    {
+      "source_id": "D-50",
+      "target_id": "D-51",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-51](#d-051-panel-collapse-12px-spine-with-badge)."
+    },
+    {
+      "source_id": "D-51",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-50](#d-050-context-auto-behavior-right-panel-reacts-to-claude)."
+    },
+    {
+      "source_id": "D-51",
+      "target_id": "D-50",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-50](#d-050-context-auto-behavior-right-panel-reacts-to-claude)."
+    },
+    {
+      "source_id": "D-51",
+      "target_id": "D-53",
+      "ref_type": "references",
+      "note": "**Cost:** The spine replaces the current simple `setVisible(false)` toggle with a real collapsed-state widget. Collapse state must be persisted across sessions (see [D-53](#d-053-state-persistence..."
+    },
+    {
+      "source_id": "D-52",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-53](#d-053-state-persistence-across-sessions)."
+    },
+    {
+      "source_id": "D-52",
+      "target_id": "D-53",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-53](#d-053-state-persistence-across-sessions)."
+    },
+    {
+      "source_id": "D-53",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-51](#d-051-panel-collapse-12px-spine-with-badge), [D-52](#d-052-focus-mode-full-window-takeover)."
+    },
+    {
+      "source_id": "D-53",
+      "target_id": "D-51",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-51](#d-051-panel-collapse-12px-spine-with-badge), [D-52](#d-052-focus-mode-full-window-takeover)."
+    },
+    {
+      "source_id": "D-53",
+      "target_id": "D-52",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-51](#d-051-panel-collapse-12px-spine-with-badge), [D-52](#d-052-focus-mode-full-window-takeover)."
+    },
+    {
+      "source_id": "D-54",
+      "target_id": "D-17",
+      "ref_type": "references",
+      "note": "**Cost:** Some shortcuts may conflict with OS-level bindings on specific Linux desktops; the keybinding resolver ([D-17](extensions.md#d-017-panels-are-extension-shaped-from-day-one)) allows user ..."
+    },
+    {
+      "source_id": "D-54",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-48](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first), [D-52](#d-052-focus-mode-full-window-takeover)."
+    },
+    {
+      "source_id": "D-54",
+      "target_id": "D-48",
+      "ref_type": "references",
+      "note": "**Rationale:** These shortcuts follow the \"keyboard is the primary surface\" principle from [D-48](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first). The set is minimal and covers all lay..."
+    },
+    {
+      "source_id": "D-54",
+      "target_id": "D-52",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout), [D-48](#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first), [D-52](#d-052-focus-mode-full-window-takeover)."
+    },
+    {
+      "source_id": "D-54",
+      "target_id": "Q-26",
+      "ref_type": "references",
+      "note": "**Decision:** Canonical keyboard shortcuts (cross-platform, `\u2318` = `Ctrl` on Linux): `\u2318P` fuzzy find overlay; `\u2318\u21e71` / `\u2318\u21e73` collapse/expand left / right panel; `\u23181` / `\u23182` / `\u23183` f..."
+    },
+    {
+      "source_id": "D-55",
+      "target_id": "D-41",
+      "ref_type": "references",
+      "note": "**Decision:** Multiple Claude sessions share the workspace as internal tabs inside the Claude pane header \u2014 not as workspace-level tabs (which would violate [D-48](#d-048-chrome-budget-no-tabs-n..."
+    },
+    {
+      "source_id": "D-55",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Rationale:** The workspace is Claude's space ([D-47](#d-047-interaction-model-claude-is-home-layout)). Multiple Claude sessions are a Claude concern, not a workspace concern. Internal tabs keep ..."
+    },
+    {
+      "source_id": "D-55",
+      "target_id": "D-48",
+      "ref_type": "references",
+      "note": "**Decision:** Multiple Claude sessions share the workspace as internal tabs inside the Claude pane header \u2014 not as workspace-level tabs (which would violate [D-48](#d-048-chrome-budget-no-tabs-n..."
+    },
+    {
+      "source_id": "D-56",
+      "target_id": "D-1",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-5](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended), [D-41](#d-041-claude-panes-one-primary-per-repo-tmux-backed) (tmux persistence), [D-1](#d-001-cli-fir..."
+    },
+    {
+      "source_id": "D-56",
+      "target_id": "D-5",
+      "ref_type": "references",
+      "note": "**Amendment to [D-5](#d-005-dart-core-sidecar-dissolved-ptyc-as-pql-peer):** D-5's \"two execution modes of one Dart AOT binary\" premise assumed the daemon needed to outlive the app to preserve ..."
+    },
+    {
+      "source_id": "D-56",
+      "target_id": "D-41",
+      "ref_type": "references",
+      "note": "**Decision:** The separate Dart daemon process (`clide --daemon`) and the two-package repo layout (`lib/` core + `app/` Flutter) are dissolved. The Flutter app moves to the repo root (one `pubspec...."
+    },
+    {
+      "source_id": "D-57",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Rationale:** The GTK headerbar wastes 30+ vertical pixels and clashes with the custom theme. Per-column hats add zero net rows \u2014 they reuse the space each column header already occupied. Custom..."
+    },
+    {
+      "source_id": "D-57",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout) (center hat always visible), [D-51](#d-051-panel-collapse-12px-spine-with-badge) (spine-cap behavior)."
+    },
+    {
+      "source_id": "D-57",
+      "target_id": "D-51",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-47](#d-047-interaction-model-claude-is-home-layout) (center hat always visible), [D-51](#d-051-panel-collapse-12px-spine-with-badge) (spine-cap behavior)."
+    },
+    {
+      "source_id": "D-57",
+      "target_id": "Q-6",
+      "ref_type": "resolves",
+      "note": "**Resolves:** [Q-6](questions-architecture.md#q-006-window-chrome-native-frame-vs-frameless-custom)."
+    },
+    {
+      "source_id": "D-58",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Amendment to D-31 (prefer-zero-deps):** D-31's \"prefer-zero-deps\" still applies \u2014 every new dependency needs justification. This record clarifies that format engines clear the justification b..."
+    },
+    {
+      "source_id": "D-58",
+      "target_id": "D-42",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-031-prefer-zero-deps-exact-pin), [D-42](#d-042-dependencies-documented-in-licensesyaml)."
+    },
+    {
+      "source_id": "Q-1",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Source:** ADR 0006 (migrated to [D-6](architecture.md))."
+    },
+    {
+      "source_id": "Q-2",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Source:** ADR 0006 (migrated to [D-6](architecture.md))."
+    },
+    {
+      "source_id": "Q-3",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Source:** ADR 0006 (migrated to [D-6](architecture.md))."
+    },
+    {
+      "source_id": "Q-5",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Context:** Covered partially by [D-6](architecture.md)'s `v: 1` starting point; CLAUDE.md flags this as \"decide when the first real subcommand lands.\""
+    },
+    {
+      "source_id": "Q-6",
+      "target_id": "D-57",
+      "ref_type": "references",
+      "note": "**Status:** Resolved \u2192 [D-57](architecture.md#d-057-frameless-custom-chrome-with-per-column-24px-hats)"
+    },
+    {
+      "source_id": "Q-8",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Question:** Should extensions contribute widgets (panels, tabs, status-bar items), subcommands (CLI verbs), or both? Both is the obvious answer but has a cost in API surface that must be designed..."
+    },
+    {
+      "source_id": "Q-9",
+      "target_id": "D-19",
+      "ref_type": "references",
+      "note": "**Question:** Does the Lua supporter tool ([D-19](extensions.md#d-019-lua-runtime-as-ptyc-peer-supporter-tool)) bundle liblua source (build with the binary) or link system liblua (smaller binary, ..."
+    },
+    {
+      "source_id": "Q-10",
+      "target_id": "Q-5",
+      "ref_type": "references",
+      "note": "**Question:** What's the manifest schema-version scheme and bump policy? Coupled with [Q-5](questions-architecture.md#q-005-ipc-wire-format-stability) (IPC wire format) \u2014 both want a versioning..."
+    },
+    {
+      "source_id": "Q-12",
+      "target_id": "D-22",
+      "ref_type": "references",
+      "note": "**Question:** [D-22](accessibility.md#d-022-wcag-aa-contrast-gate-on-bundled-themes) gates contrast at build time. Do we also run axe-core against the WASM build in Playwright for runtime a11y iss..."
+    },
+    {
+      "source_id": "Q-14",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Question:** fframe's pattern covers straight key\u2192string lookup with variable interpolation. Plurals, gendered forms, and ICU-style date formatting aren't in scope there. Do we add them to the i..."
+    },
+    {
+      "source_id": "Q-16",
+      "target_id": "Q-15",
+      "ref_type": "references",
+      "note": "**Context:** If tree-sitter is the Tier-2 answer ([Q-15](#q-015-editor-tab-full-lsp-vs-tree-sitter-only)), grammar sourcing matters."
+    },
+    {
+      "source_id": "Q-17",
+      "target_id": "R-6",
+      "ref_type": "references",
+      "note": "**Context:** We rejected Nerd-font glyphs ([R-6](rejected.md#r-006-nerd-font-glyph-icons)); something has to fill the gap."
+    },
+    {
+      "source_id": "Q-19",
+      "target_id": "D-40",
+      "ref_type": "references",
+      "note": "**Note:** Earlier floated as \"ticket markdown mirror vs SQLite\" \u2014 no longer a split question. Markdown mirror is tracked in [Q-22](questions-architecture.md#q-022-ticket-persistence-strategy); S..."
+    },
+    {
+      "source_id": "Q-19",
+      "target_id": "Q-22",
+      "ref_type": "references",
+      "note": "**Note:** Earlier floated as \"ticket markdown mirror vs SQLite\" \u2014 no longer a split question. Markdown mirror is tracked in [Q-22](questions-architecture.md#q-022-ticket-persistence-strategy); S..."
+    },
+    {
+      "source_id": "Q-20",
+      "target_id": "D-12",
+      "ref_type": "references",
+      "note": "**Question:** Do extensions get namespaced SQL access to `.clide/clide.db` (tables prefixed `ext_<id>_\u2026`) or stay on the `kernel.settings` key/value facade? Admission-level question ([D-12](arch..."
+    },
+    {
+      "source_id": "Q-21",
+      "target_id": "D-3",
+      "ref_type": "references",
+      "note": "**Question:** Three shapes for planning tooling's long-term home: (A) Pql absorbs planning \u2014 `pql decisions \u2026` + `pql ticket \u2026` subcommands; clide shells out. (B) Clide absorbs pql \u2014 revers..."
+    },
+    {
+      "source_id": "Q-21",
+      "target_id": "D-39",
+      "ref_type": "references",
+      "note": "**Context:** User is leaning (A). This plan assumes (A) without committing. If (A) doesn't land, [D-40](process.md#d-040-python-stopgap-under-toolsscriptsplan)'s sunset condition changes. Gates al..."
+    },
+    {
+      "source_id": "Q-21",
+      "target_id": "D-40",
+      "ref_type": "references",
+      "note": "**Context:** User is leaning (A). This plan assumes (A) without committing. If (A) doesn't land, [D-40](process.md#d-040-python-stopgap-under-toolsscriptsplan)'s sunset condition changes. Gates al..."
+    },
+    {
+      "source_id": "Q-21",
+      "target_id": "R-9",
+      "ref_type": "references",
+      "note": "**Context:** User is leaning (A). This plan assumes (A) without committing. If (A) doesn't land, [D-40](process.md#d-040-python-stopgap-under-toolsscriptsplan)'s sunset condition changes. Gates al..."
+    },
+    {
+      "source_id": "Q-22",
+      "target_id": "Q-21",
+      "ref_type": "references",
+      "note": "**Question:** Once [Q-21](#q-021-pql-absorbs-planning-vs-keeps-separate) resolves in favour of (A), how do tickets handle shared team state? (1) Never commit (per-dev, ephemeral \u2014 works for solo..."
+    },
+    {
+      "source_id": "Q-23",
+      "target_id": "D-5",
+      "ref_type": "references",
+      "note": "**Context:** Surfaced 2026-04-22 during Tier-1 planning. Not a Tier 1 concern \u2014 terminal + Claude panes land local-first \u2014 but the daemon/IPC seam decisions (notably `D-5` and `D-6`) constr..."
+    },
+    {
+      "source_id": "Q-23",
+      "target_id": "D-6",
+      "ref_type": "references",
+      "note": "**Context:** Surfaced 2026-04-22 during Tier-1 planning. Not a Tier 1 concern \u2014 terminal + Claude panes land local-first \u2014 but the daemon/IPC seam decisions (notably `D-5` and `D-6`) constr..."
+    },
+    {
+      "source_id": "Q-27",
+      "target_id": "D-48",
+      "ref_type": "references",
+      "note": "**Context:** [D-48](architecture.md#d-048-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first) deletes buffer tabs. A two-editor split would be the only way to compare files side-by-side without u..."
+    },
+    {
+      "source_id": "Q-30",
+      "target_id": "D-47",
+      "ref_type": "references",
+      "note": "**Context:** This intersects [D-47](architecture.md#d-047-interaction-model-claude-is-home-layout) (Claude is home) and [D-49](architecture.md#d-049-editor-mode-inline-above-claude-viewer-swap) (..."
+    },
+    {
+      "source_id": "Q-30",
+      "target_id": "D-49",
+      "ref_type": "references",
+      "note": "**Context:** This intersects [D-47](architecture.md#d-047-interaction-model-claude-is-home-layout) (Claude is home) and [D-49](architecture.md#d-049-editor-mode-inline-above-claude-viewer-swap) (..."
+    },
+    {
+      "source_id": "Q-31",
+      "target_id": "D-57",
+      "ref_type": "references",
+      "note": "**Question:** The frameless window (D-57) currently forces `GDK_BACKEND=x11` because GTK3 doesn't implement the `xdg-decoration` Wayland protocol and KWin ignores `gtk_window_set_decorated(FALSE)`..."
+    },
+    {
+      "source_id": "R-2",
+      "target_id": "D-5",
+      "ref_type": "references",
+      "note": "**Rejected:** 2026-04-20 (was ADR 0002; superseded by [D-5](architecture.md#d-005-dart-core-ptyc-peer))"
+    },
+    {
+      "source_id": "R-3",
+      "target_id": "D-7",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-7](architecture.md#d-007-app-root-is-bare-widgetsapp)"
+    },
+    {
+      "source_id": "R-3",
+      "target_id": "D-9",
+      "ref_type": "references",
+      "note": "**Reason:** Dragged in Material theming, default icons, and platform chrome that fought the custom three-tier theme pipeline ([D-9](architecture.md#d-009-three-tier-theme-pipeline)). Every bundle..."
+    },
+    {
+      "source_id": "R-4",
+      "target_id": "D-21",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-21](accessibility.md#d-021-i18n-is-a-tier-0-contract)"
+    },
+    {
+      "source_id": "R-5",
+      "target_id": "D-26",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-26](testing.md#d-026-web-driver-raw-playwright-plus-flutter-semantics)"
+    },
+    {
+      "source_id": "R-5",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Reason:** Adds a dependency (violates [D-31](tooling.md#d-031-prefer-zero-deps-exact-pin)) for a capability we get from Playwright + Flutter's own semantics tree. Patrol's value proposition (nat..."
+    },
+    {
+      "source_id": "R-6",
+      "target_id": "Q-17",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [Q-17](questions-process.md#q-017-icon-set-growth)"
+    },
+    {
+      "source_id": "R-7",
+      "target_id": "D-7",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-7](architecture.md#d-007-app-root-is-bare-widgetsapp)"
+    },
+    {
+      "source_id": "R-7",
+      "target_id": "R-3",
+      "ref_type": "references",
+      "note": "**Reason:** iOS-opinionated; wrong shell for a Linux-primary desktop IDE. Same theming-collision problem as [R-3](#r-003-materialapp-root)."
+    },
+    {
+      "source_id": "R-8",
+      "target_id": "D-10",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-10](architecture.md#d-010-state-management-changenotifier)"
+    },
+    {
+      "source_id": "R-8",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Reason:** Violates [D-31](tooling.md#d-031-prefer-zero-deps-exact-pin). `ChangeNotifier` + `ListenableBuilder` ship in the SDK, fake trivially, and cover the state model we need. The ergonomic w..."
+    },
+    {
+      "source_id": "R-9",
+      "target_id": "D-39",
+      "ref_type": "references",
+      "note": "**Reason:** Earlier in the planning session the assumption was \"clide owns Dart subcommands for decisions + tickets.\" That breaks the day a contributor works in a terminal or in VS Code / JetBrains..."
+    },
+    {
+      "source_id": "R-10",
+      "target_id": "D-40",
+      "ref_type": "references",
+      "note": "**Reason:** Location, not language. Settled-reach puts scripts at `tooling/db/` \u2014 copying that path here creates a script-pollution problem: every project using the pattern commits its own copy. ..."
+    },
+    {
+      "source_id": "R-11",
+      "target_id": "D-40",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-40](process.md#d-040-python-stopgap-under-toolsscriptsplan)"
+    },
+    {
+      "source_id": "R-12",
+      "target_id": "D-7",
+      "ref_type": "references",
+      "note": "**Reason:** The design handoff delivers theme files as `MaterialApp`/`ThemeData` Dart classes. This is the delivery format of claude.ai/design, not a design intent. Adopting Material's widget syste..."
+    },
+    {
+      "source_id": "R-12",
+      "target_id": "D-43",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-43](architecture.md#d-043-design-handoff-adopt-token-palettes-reject-material-wrapper)"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "T-1",
+      "type": "task",
+      "title": "validate pql init installation cycle",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-39",
+      "created_at": "2026-04-22 09:41:51",
+      "updated_at": "2026-04-22 11:45:21"
+    },
+    {
+      "id": "T-2",
+      "type": "epic",
+      "title": "Tier 0 \u2014 app + daemon handshake, empty IDE shell",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-7",
+      "created_at": "2026-04-22 11:45:26",
+      "updated_at": "2026-04-22 11:46:33"
+    },
+    {
+      "id": "T-3",
+      "type": "epic",
+      "title": "Tier 1 \u2014 Claude in xterm pane, PTY, session persistence",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-41",
+      "created_at": "2026-04-22 11:45:41",
+      "updated_at": "2026-04-22 11:46:37"
+    },
+    {
+      "id": "T-4",
+      "type": "epic",
+      "title": "Tier 2 \u2014 pane model, editor, active-file awareness, CLI",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-6",
+      "created_at": "2026-04-22 11:45:41",
+      "updated_at": "2026-04-22 11:46:44"
+    },
+    {
+      "id": "T-5",
+      "type": "epic",
+      "title": "Tier 3 \u2014 git panel, diff tab, clide git CLI",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-13",
+      "created_at": "2026-04-22 11:45:41",
+      "updated_at": "2026-04-22 11:46:48"
+    },
+    {
+      "id": "T-6",
+      "type": "epic",
+      "title": "Tier 4 \u2014 pql integration: query panel, file tree, backlinks, problems",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-3",
+      "created_at": "2026-04-22 11:45:41",
+      "updated_at": "2026-04-22 12:03:54"
+    },
+    {
+      "id": "T-7",
+      "type": "epic",
+      "title": "Tier 5 \u2014 canvas and graph view",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-17",
+      "created_at": "2026-04-22 11:45:41",
+      "updated_at": "2026-04-22 11:45:41"
+    },
+    {
+      "id": "T-8",
+      "type": "epic",
+      "title": "Tier 6 \u2014 extension API, settings, theming, distributable builds",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-15",
+      "created_at": "2026-04-22 11:45:41",
+      "updated_at": "2026-04-22 11:45:41"
+    },
+    {
+      "id": "T-9",
+      "type": "task",
+      "title": "Q&D record system + ADR migration",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-34",
+      "created_at": "2026-04-22 11:47:02",
+      "updated_at": "2026-04-22 11:47:11"
+    },
+    {
+      "id": "T-10",
+      "type": "task",
+      "title": "Python stopgap tooling",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-40",
+      "created_at": "2026-04-22 11:47:02",
+      "updated_at": "2026-04-22 11:47:11"
+    },
+    {
+      "id": "T-11",
+      "type": "task",
+      "title": "pql skill install + stopgap removal",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-39",
+      "created_at": "2026-04-22 11:47:02",
+      "updated_at": "2026-04-22 11:47:11"
+    },
+    {
+      "id": "T-12",
+      "type": "task",
+      "title": "bundled dependency licensing",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-42",
+      "created_at": "2026-04-22 11:47:03",
+      "updated_at": "2026-04-22 11:47:11"
+    },
+    {
+      "id": "T-13",
+      "type": "task",
+      "title": "pql query panel \u2014 sidebar tab for vault queries",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-3",
+      "created_at": "2026-04-22 11:47:18",
+      "updated_at": "2026-04-22 12:03:48"
+    },
+    {
+      "id": "T-14",
+      "type": "task",
+      "title": "pql-backed file tree \u2014 replace or augment files.ls with pql files",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-3",
+      "created_at": "2026-04-22 11:47:18",
+      "updated_at": "2026-04-22 12:03:48"
+    },
+    {
+      "id": "T-15",
+      "type": "task",
+      "title": "backlinks panel \u2014 show inbound links to active file",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-3",
+      "created_at": "2026-04-22 11:47:18",
+      "updated_at": "2026-04-22 12:03:48"
+    },
+    {
+      "id": "T-16",
+      "type": "task",
+      "title": "problems panel \u2014 surface pql doctor + validate warnings",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-3",
+      "created_at": "2026-04-22 11:47:18",
+      "updated_at": "2026-04-22 12:03:48"
+    },
+    {
+      "id": "T-17",
+      "type": "task",
+      "title": "add dart doc generation to CI",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-32",
+      "created_at": "2026-04-22 13:26:29",
+      "updated_at": "2026-04-22 13:26:29"
+    },
+    {
+      "id": "T-18",
+      "type": "task",
+      "title": "audit error handling in PTY and IPC critical paths",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-5",
+      "created_at": "2026-04-22 13:26:29",
+      "updated_at": "2026-04-22 13:26:29"
+    },
+    {
+      "id": "T-19",
+      "type": "task",
+      "title": "translate four design themes into YAML theme files",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-44",
+      "created_at": "2026-04-22 14:08:40",
+      "updated_at": "2026-04-22 14:30:05"
+    },
+    {
+      "id": "T-20",
+      "type": "task",
+      "title": "expand SurfaceTokens with syntax highlighting roles",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-45",
+      "created_at": "2026-04-22 14:08:40",
+      "updated_at": "2026-04-22 14:30:05"
+    },
+    {
+      "id": "T-21",
+      "type": "task",
+      "title": "implement welcome screen per hi-fi design",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-43",
+      "created_at": "2026-04-22 14:08:40",
+      "updated_at": "2026-04-22 14:08:40"
+    },
+    {
+      "id": "T-22",
+      "type": "task",
+      "title": "multi-buffer editor tabs",
+      "status": "cancelled",
+      "priority": "medium",
+      "decision_ref": "D-6",
+      "created_at": "2026-04-22 14:08:40",
+      "updated_at": "2026-04-22 20:34:17"
+    },
+    {
+      "id": "T-23",
+      "type": "task",
+      "title": "wire command palette keybinding",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-6",
+      "created_at": "2026-04-22 14:08:40",
+      "updated_at": "2026-04-22 14:08:40"
+    },
+    {
+      "id": "T-24",
+      "type": "task",
+      "title": "secondary Claude pane UI wiring",
+      "status": "backlog",
+      "priority": "medium",
+      "decision_ref": "D-41",
+      "created_at": "2026-04-22 14:08:40",
+      "updated_at": "2026-04-22 14:08:40"
+    },
+    {
+      "id": "T-25",
+      "type": "task",
+      "title": "CI reproducible build for libtree-sitter.so",
+      "description": "BUILD.md at app/native/linux-x64/ has TODO checklist: build from pinned source SHA in CI, record SHA-256, cross-compile for macOS (aarch64, x86_64) and Windows (x86_64). Currently built on contributor machine.",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-04-22 20:14:24",
+      "updated_at": "2026-04-22 20:14:24"
+    },
+    {
+      "id": "T-26",
+      "type": "task",
+      "title": "web-tree-sitter via JS interop for browser builds",
+      "description": "Conditional import behind TreeSitterService: native impl uses dart:ffi to libtree-sitter.so, web impl uses dart:js_interop to web-tree-sitter (official emscripten build from tree-sitter org). Same grammar .wasm files on both platforms. Vendor web-tree-sitter .wasm + JS glue as Flutter web assets, pinned version, added to licenses.yaml.",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-04-22 20:14:33",
+      "updated_at": "2026-04-22 20:14:33"
+    },
+    {
+      "id": "T-27",
+      "type": "task",
+      "title": "migrate shipped extensions from builtin/ to extensions/ per D-46",
+      "description": "D-46 defines the boundary: content extensions (editor, claude, claude-control, markdown, diff, git-ui, pql, canvas, graph, decisions, tickets, todos, problems) move from app/lib/builtin/ to app/lib/extensions/. Incremental \u2014 one at a time, each behind a working build. Extension contract must support bundled Dart extension as a first-class category.",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-04-22 20:14:45",
+      "updated_at": "2026-04-22 20:14:45"
+    },
+    {
+      "id": "T-28",
+      "type": "task",
+      "title": "feed POLICY.md rules into D-records",
+      "description": "POLICY.md (added 2026-04-22) defines rules for: no-network-on-default-launch-path, dependency vetting checklist, vendored binary rebuild process, telemetry prohibition, license compatibility matrix. These need corresponding D-records in decisions/ so the architectural decision trail is complete. Some may overlap with or supersede existing D-records.",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-04-22 20:14:52",
+      "updated_at": "2026-04-22 20:14:52"
+    },
+    {
+      "id": "T-29",
+      "type": "story",
+      "title": "editor respects .editorconfig settings",
+      "description": "When a file is opened in the editor, read .editorconfig from the workspace root and apply: indent_style, indent_size, max_line_length (ruler/wrap guide), end_of_line, trim_trailing_whitespace, insert_final_newline. Parse the INI format ourselves (small, no dep). Glob matching per the EditorConfig spec.",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-04-22 20:17:26",
+      "updated_at": "2026-04-22 20:17:26"
+    },
+    {
+      "id": "T-30",
+      "type": "story",
+      "title": "Implement 12px collapse spine for side panels",
+      "description": "Replace current visibility toggle with a 12px spine widget: rotated label, paper-2 bg, inner-edge border, click-to-expand, badge dot with count for pending context.",
+      "status": "done",
+      "priority": "high",
+      "decision_ref": "D-51",
+      "created_at": "2026-04-22 20:33:53",
+      "updated_at": "2026-04-22 20:38:51"
+    },
+    {
+      "id": "T-31",
+      "type": "story",
+      "title": "Implement focus mode (full-window takeover)",
+      "description": "Focus mode via double-click header, hover \u26f6 glyph, or \u2318. shortcut. Snapshot LayoutArrangement on enter, restore on Esc. Show Esc hint in header.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-52",
+      "created_at": "2026-04-22 20:33:56",
+      "updated_at": "2026-04-22 20:38:51"
+    },
+    {
+      "id": "T-32",
+      "type": "story",
+      "title": "Persist layout state across sessions",
+      "description": "Save collapse state, active sections, pql pane state, editor split ratio, and fuzzy find recent picks to .clide/settings.yaml via SettingsStore. Restore on boot.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-53",
+      "created_at": "2026-04-22 20:33:58",
+      "updated_at": "2026-04-22 21:02:29"
+    },
+    {
+      "id": "T-33",
+      "type": "story",
+      "title": "Wire canonical keyboard shortcuts from interaction model",
+      "description": "Add commands and keybindings: \u2318\u21e71/\u2318\u21e73 collapse, \u23181/\u23182/\u23183 focus panel, \u2318. focus mode, \u23251-5 left section switch, \u2318E editor, \u2318W close editor, Esc dismiss.",
+      "status": "done",
+      "priority": "high",
+      "decision_ref": "D-54",
+      "created_at": "2026-04-22 20:34:01",
+      "updated_at": "2026-04-22 20:38:51"
+    },
+    {
+      "id": "T-34",
+      "type": "story",
+      "title": "Add icon rail to right panel (context section switcher)",
+      "description": "Right panel currently has no bottom icon rail. Add one matching the left sidebar rail pattern: viewer, pql graph, links, images as section tabs.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-47",
+      "created_at": "2026-04-22 20:34:03",
+      "updated_at": "2026-04-22 20:38:51"
+    },
+    {
+      "id": "T-35",
+      "type": "story",
+      "title": "Implement editor-above-Claude mode in middle column",
+      "description": "\u2318E opens editor above Claude with draggable divider, 30-40% height. \u2318W closes. Viewer \u2194 editor swap: \u270e promotes to editor, \ud83d\udc41 demotes to viewer. Prompt bar Y stays fixed.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-49",
+      "created_at": "2026-04-22 20:34:06",
+      "updated_at": "2026-04-22 20:56:58"
+    },
+    {
+      "id": "T-36",
+      "type": "story",
+      "title": "Context auto-behavior: right panel reacts to Claude references",
+      "description": "Parse file references from Claude output. Swap viewer content when right panel is open. Badge on spine when collapsed. Live-sync viewer when editing .md.",
+      "status": "backlog",
+      "priority": "low",
+      "decision_ref": "D-50",
+      "created_at": "2026-04-22 20:34:09",
+      "updated_at": "2026-04-22 20:34:09"
+    },
+    {
+      "id": "T-37",
+      "type": "task",
+      "title": "Contribute tickets & decisions tabs to sidebar",
+      "description": "The decisions and tickets shipped extensions exist as stubs but don't contribute TabContributions to Slots.sidebar yet. Spec lists them as the default left-panel section.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-47",
+      "created_at": "2026-04-22 21:03:40",
+      "updated_at": "2026-04-22 21:16:41"
+    },
+    {
+      "id": "T-38",
+      "type": "task",
+      "title": "Contribute markdown viewer tab to context panel",
+      "description": "The markdown shipped extension exists as a stub but doesn't contribute a TabContribution to Slots.contextPanel. Spec lists viewer as the primary right-panel section.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-47",
+      "created_at": "2026-04-22 21:03:40",
+      "updated_at": "2026-04-22 21:16:41"
+    },
+    {
+      "id": "T-39",
+      "type": "task",
+      "title": "Contribute graph view tab to context panel",
+      "description": "The graph shipped extension exists as a stub but doesn't contribute a TabContribution to Slots.contextPanel. Spec lists pql graph as a right-panel section.",
+      "status": "done",
+      "priority": "medium",
+      "decision_ref": "D-47",
+      "created_at": "2026-04-22 21:03:40",
+      "updated_at": "2026-04-22 21:16:41"
+    },
+    {
+      "id": "T-40",
+      "type": "task",
+      "title": "Add PRs tab to sidebar",
+      "description": "Spec lists PRs as a left-panel section (icon rail position 5). No extension exists yet.",
+      "status": "backlog",
+      "priority": "low",
+      "decision_ref": "D-47",
+      "created_at": "2026-04-22 21:03:40",
+      "updated_at": "2026-04-22 21:03:40"
+    },
+    {
+      "id": "T-41",
+      "type": "task",
+      "title": "Add images tab to context panel",
+      "description": "Spec lists images as a right-panel section. No extension exists yet.",
+      "status": "backlog",
+      "priority": "low",
+      "decision_ref": "D-47",
+      "created_at": "2026-04-22 21:03:40",
+      "updated_at": "2026-04-22 21:03:40"
+    },
+    {
+      "id": "T-42",
+      "type": "task",
+      "title": "Decide diff view placement",
+      "description": "Diff view currently contributes to workspace. Spec doesn't place it. Likely belongs in context panel (viewer) or as an editor overlay. Depends on Q-27.",
+      "status": "backlog",
+      "priority": "low",
+      "decision_ref": "D-48",
+      "created_at": "2026-04-22 21:03:40",
+      "updated_at": "2026-04-22 21:03:40"
+    },
+    {
+      "id": "T-43",
+      "type": "story",
+      "title": "Ship clide tmux.conf for Claude pane sessions",
+      "description": "Bundle a clide-specific tmux.conf (no status bar, large scrollback, zero escape delay, 256color passthrough). Claude pane spawn passes -f to use it. Includes bottom-anchoring via initial escape sequence or shell profile trick after attach.",
+      "status": "backlog",
+      "priority": "high",
+      "decision_ref": "D-41",
+      "created_at": "2026-04-22 22:01:13",
+      "updated_at": "2026-04-22 22:01:13"
+    }
+  ],
+  "ticket_deps": null,
+  "ticket_labels": null,
+  "history": [
+    {
+      "ticket_id": "T-1",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 09:42:11"
+    },
+    {
+      "ticket_id": "T-1",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 09:42:11"
+    },
+    {
+      "ticket_id": "T-1",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:45:21"
+    },
+    {
+      "ticket_id": "T-1",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:45:21"
+    },
+    {
+      "ticket_id": "T-2",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:46:12"
+    },
+    {
+      "ticket_id": "T-2",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:46:16"
+    },
+    {
+      "ticket_id": "T-2",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:46:26"
+    },
+    {
+      "ticket_id": "T-2",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:46:33"
+    },
+    {
+      "ticket_id": "T-3",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:46:37"
+    },
+    {
+      "ticket_id": "T-3",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:46:37"
+    },
+    {
+      "ticket_id": "T-3",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:46:37"
+    },
+    {
+      "ticket_id": "T-3",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:46:37"
+    },
+    {
+      "ticket_id": "T-4",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:46:44"
+    },
+    {
+      "ticket_id": "T-4",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:46:44"
+    },
+    {
+      "ticket_id": "T-4",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:46:44"
+    },
+    {
+      "ticket_id": "T-4",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:46:44"
+    },
+    {
+      "ticket_id": "T-5",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:46:48"
+    },
+    {
+      "ticket_id": "T-5",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:46:48"
+    },
+    {
+      "ticket_id": "T-5",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:46:48"
+    },
+    {
+      "ticket_id": "T-5",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:46:48"
+    },
+    {
+      "ticket_id": "T-6",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:46:52"
+    },
+    {
+      "ticket_id": "T-9",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-9",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-9",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-9",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-10",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-10",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-10",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-10",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-11",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-11",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-11",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-11",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-12",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-12",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-12",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-12",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 11:47:11"
+    },
+    {
+      "ticket_id": "T-6",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 11:52:59"
+    },
+    {
+      "ticket_id": "T-13",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:52:59"
+    },
+    {
+      "ticket_id": "T-14",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:52:59"
+    },
+    {
+      "ticket_id": "T-15",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:52:59"
+    },
+    {
+      "ticket_id": "T-16",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 11:52:59"
+    },
+    {
+      "ticket_id": "T-13",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-13",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-13",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-14",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-14",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-14",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-15",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-15",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-15",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-16",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-16",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-16",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 12:03:48"
+    },
+    {
+      "ticket_id": "T-6",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 12:03:54"
+    },
+    {
+      "ticket_id": "T-6",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 12:03:54"
+    },
+    {
+      "ticket_id": "T-19",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 14:16:39"
+    },
+    {
+      "ticket_id": "T-19",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 14:16:39"
+    },
+    {
+      "ticket_id": "T-20",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 14:16:39"
+    },
+    {
+      "ticket_id": "T-20",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 14:16:39"
+    },
+    {
+      "ticket_id": "T-19",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 14:30:05"
+    },
+    {
+      "ticket_id": "T-19",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 14:30:05"
+    },
+    {
+      "ticket_id": "T-20",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "review",
+      "changed_at": "2026-04-22 14:30:05"
+    },
+    {
+      "ticket_id": "T-20",
+      "field": "status",
+      "old_value": "review",
+      "new_value": "done",
+      "changed_at": "2026-04-22 14:30:05"
+    },
+    {
+      "ticket_id": "T-22",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "cancelled",
+      "changed_at": "2026-04-22 20:34:17"
+    },
+    {
+      "ticket_id": "T-30",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 20:38:42"
+    },
+    {
+      "ticket_id": "T-31",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 20:38:42"
+    },
+    {
+      "ticket_id": "T-33",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 20:38:42"
+    },
+    {
+      "ticket_id": "T-34",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 20:38:42"
+    },
+    {
+      "ticket_id": "T-30",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 20:38:49"
+    },
+    {
+      "ticket_id": "T-31",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 20:38:49"
+    },
+    {
+      "ticket_id": "T-33",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 20:38:49"
+    },
+    {
+      "ticket_id": "T-34",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 20:38:49"
+    },
+    {
+      "ticket_id": "T-30",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 20:38:51"
+    },
+    {
+      "ticket_id": "T-31",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 20:38:51"
+    },
+    {
+      "ticket_id": "T-33",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 20:38:51"
+    },
+    {
+      "ticket_id": "T-34",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 20:38:51"
+    },
+    {
+      "ticket_id": "T-35",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 20:56:58"
+    },
+    {
+      "ticket_id": "T-35",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 20:56:58"
+    },
+    {
+      "ticket_id": "T-35",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 20:56:58"
+    },
+    {
+      "ticket_id": "T-32",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 21:02:29"
+    },
+    {
+      "ticket_id": "T-32",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 21:02:29"
+    },
+    {
+      "ticket_id": "T-32",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 21:02:29"
+    },
+    {
+      "ticket_id": "T-37",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-37",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-37",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-38",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-38",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-38",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-39",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-39",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-04-22 21:16:41"
+    },
+    {
+      "ticket_id": "T-39",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-04-22 21:16:41"
+    }
+  ]
+}
