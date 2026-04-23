@@ -22,6 +22,13 @@ class _GitPanelViewState extends State<GitPanelView> {
   GitController? _controller;
   final TextEditingController _commitMsg = TextEditingController();
   final FocusNode _commitFocus = FocusNode();
+  String _filter = '';
+
+  List<Map<String, Object?>> _applyFilter(List<Map<String, Object?>> entries) {
+    if (_filter.isEmpty) return entries;
+    final lf = _filter.toLowerCase();
+    return entries.where((e) => ((e['path'] as String?) ?? '').toLowerCase().contains(lf)).toList();
+  }
 
   @override
   void didChangeDependencies() {
@@ -66,7 +73,10 @@ class _GitPanelViewState extends State<GitPanelView> {
           label: 'git panel',
           container: true,
           explicitChildNodes: true,
-          child: SingleChildScrollView(
+          child: Column(
+            children: [
+              ClideFilterBox(hint: 'Filter changes…', onChanged: (v) => setState(() => _filter = v)),
+              Expanded(child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -98,13 +108,13 @@ class _GitPanelViewState extends State<GitPanelView> {
                 if (c.conflicted.isNotEmpty)
                   _FileGroup(
                     label: 'Merge conflicts',
-                    entries: c.conflicted,
+                    entries: _applyFilter(c.conflicted),
                     actions: const [],
                   ),
                 if (c.staged.isNotEmpty) ...[
                   _FileGroup(
                     label: 'Staged',
-                    entries: c.staged,
+                    entries: _applyFilter(c.staged),
                     actions: [
                       _GroupAction(
                         label: 'Unstage all',
@@ -122,7 +132,7 @@ class _GitPanelViewState extends State<GitPanelView> {
                 if (c.unstaged.isNotEmpty)
                   _FileGroup(
                     label: 'Changes',
-                    entries: c.unstaged,
+                    entries: _applyFilter(c.unstaged),
                     actions: [
                       _GroupAction(
                         label: 'Stage all',
@@ -135,7 +145,7 @@ class _GitPanelViewState extends State<GitPanelView> {
                 if (c.untracked.isNotEmpty)
                   _FileGroup(
                     label: 'Untracked',
-                    entries: c.untracked,
+                    entries: _applyFilter(c.untracked),
                     actions: [
                       _GroupAction(
                         label: 'Stage all',
@@ -151,7 +161,9 @@ class _GitPanelViewState extends State<GitPanelView> {
                   ),
               ],
             ),
-          ),
+          )),
+          ],
+        ),
         );
       },
     );

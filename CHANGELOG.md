@@ -18,6 +18,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Shared ClideFilterBox widget with search icon, clear button, and
+  debounced input. Applied consistently across all sidebar panes:
+  Files (path filter with flat results), Git (filter staged/unstaged
+  by path), Decisions (filter by ID/title/domain), Tickets (filter
+  by ID/title/status), Problems (filter by source/message), and
+  pql Query (replaces custom input).
+
 - Interaction model from Wireframe Flows v3: eight new D-records
   (D-047 through D-054) and five Q-records (Q-026 through Q-030)
   codifying layout invariants, chrome budget, editor mode, context

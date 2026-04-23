@@ -5,6 +5,8 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
+import 'package:clide/src/files/listing.dart' show FileEntry;
+
 import 'file_tree_controller.dart';
 
 /// Sidebar panel rendering the workspace file tree.
@@ -24,6 +26,7 @@ class FileTreeView extends StatefulWidget {
 
 class _FileTreeViewState extends State<FileTreeView> {
   FileTreeController? _controller;
+  String _filter = '';
 
   @override
   void didChangeDependencies() {
@@ -61,30 +64,44 @@ class _FileTreeViewState extends State<FileTreeView> {
           );
         }
         final rootName = root.split(Platform.pathSeparator).last;
-        return Semantics(
-          label: 'file tree — $rootName',
-          container: true,
-          explicitChildNodes: true,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _DirRow(
-                  name: rootName,
-                  path: '',
-                  controller: c,
-                  depth: 0,
+        return Column(
+          children: [
+            ClideFilterBox(hint: 'Filter files…', onChanged: (v) => setState(() => _filter = v)),
+            Expanded(
+              child: Semantics(
+                label: 'file tree — $rootName',
+                container: true,
+                explicitChildNodes: true,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_filter.isEmpty) ...[
+                        _DirRow(name: rootName, path: '', controller: c, depth: 0),
+                        if (c.isExpanded('')) _Children(path: '', controller: c, depth: 1),
+                      ] else
+                        ..._filteredEntries(c),
+                    ],
+                  ),
                 ),
-                if (c.isExpanded(''))
-                  _Children(path: '', controller: c, depth: 1),
-              ],
+              ),
             ),
-          ),
+          ],
         );
       },
     );
+  }
+
+  List<Widget> _filteredEntries(FileTreeController c) {
+    final lowerFilter = _filter.toLowerCase();
+    final matches = c.allLoadedEntries().where((e) {
+      return e.path.toLowerCase().contains(lowerFilter) || e.name.toLowerCase().contains(lowerFilter);
+    }).toList();
+    return [
+      for (final e in matches) _FilteredFileRow(entry: e),
+    ];
   }
 }
 
@@ -263,6 +280,40 @@ class _RowState extends State<_Row> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilteredFileRow extends StatefulWidget {
+  const _FilteredFileRow({required this.entry});
+  final FileEntry entry;
+
+  @override
+  State<_FilteredFileRow> createState() => _FilteredFileRowState();
+}
+
+class _FilteredFileRowState extends State<_FilteredFileRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          final kernel = ClideKernel.of(context);
+          unawaited(kernel.ipc.request('editor.open', args: {'path': widget.entry.path}));
+        },
+        child: Container(
+          color: _hover ? tokens.sidebarItemHover : null,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+          child: ClideText(widget.entry.path, maxLines: 1, overflow: TextOverflow.ellipsis, color: tokens.sidebarForeground),
         ),
       ),
     );

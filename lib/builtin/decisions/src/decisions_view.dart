@@ -16,6 +16,7 @@ class _DecisionsViewState extends State<DecisionsView> {
   List<_DecisionEntry> _decisions = [];
   String? _error;
   bool _loading = true;
+  String _filter = '';
 
   @override
   void didChangeDependencies() {
@@ -70,12 +71,18 @@ class _DecisionsViewState extends State<DecisionsView> {
         child: ClideText('No decisions found.\nRun `pql decisions sync` to index.', muted: true),
       );
     }
-    return ListView.builder(
-        itemCount: _decisions.length,
-        itemBuilder: (ctx, i) {
-          final d = _decisions[i];
-          return _DecisionRow(entry: d, tokens: tokens);
-        },
+    final lf = _filter.toLowerCase();
+    final filtered = lf.isEmpty ? _decisions : _decisions.where((d) => d.id.toLowerCase().contains(lf) || d.title.toLowerCase().contains(lf) || (d.domain ?? '').toLowerCase().contains(lf)).toList();
+    return Column(
+      children: [
+        ClideFilterBox(hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v)),
+        Expanded(
+          child: ListView.builder(
+            itemCount: filtered.length,
+            itemBuilder: (ctx, i) => _DecisionRow(entry: filtered[i], tokens: tokens),
+          ),
+        ),
+      ],
     );
   }
 }

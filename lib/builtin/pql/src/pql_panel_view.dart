@@ -19,8 +19,6 @@ class PqlPanelView extends StatefulWidget {
 
 class _PqlPanelViewState extends State<PqlPanelView> {
   PqlController? _controller;
-  final TextEditingController _queryInput = TextEditingController();
-  final FocusNode _queryFocus = FocusNode();
 
   @override
   void didChangeDependencies() {
@@ -34,8 +32,6 @@ class _PqlPanelViewState extends State<PqlPanelView> {
   @override
   void dispose() {
     _controller?.dispose();
-    _queryInput.dispose();
-    _queryFocus.dispose();
     super.dispose();
   }
 
@@ -56,10 +52,11 @@ class _PqlPanelViewState extends State<PqlPanelView> {
             children: [
               _ViewTabs(controller: c),
               if (c.view == PqlView.query)
-                _QueryInput(
-                  input: _queryInput,
-                  focus: _queryFocus,
-                  controller: c,
+                ClideFilterBox(
+                  hint: 'PQL query…',
+                  debounce: Duration.zero,
+                  onChanged: (_) {},
+                  onSubmitted: (v) => unawaited(c.runQuery(v)),
                 ),
               if (c.error != null)
                 Padding(
@@ -156,50 +153,6 @@ class _ViewTabs extends StatelessWidget {
         PqlView.decisions => 'Decisions',
         PqlView.tickets => 'Tickets',
       };
-}
-
-class _QueryInput extends StatelessWidget {
-  const _QueryInput({
-    required this.input,
-    required this.focus,
-    required this.controller,
-  });
-
-  final TextEditingController input;
-  final FocusNode focus;
-  final PqlController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Semantics(
-        label: 'pql query',
-        textField: true,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: tokens.globalBorder),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: EditableText(
-            controller: input,
-            focusNode: focus,
-            style: TextStyle(
-              fontFamily: clideMonoFamily,
-              fontSize: clideFontMono,
-              color: tokens.globalForeground,
-            ),
-            cursorColor: tokens.globalFocus,
-            backgroundCursorColor: tokens.globalFocus,
-            maxLines: 1,
-            onSubmitted: (_) =>
-                unawaited(controller.runQuery(input.text)),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _FileRow extends StatefulWidget {

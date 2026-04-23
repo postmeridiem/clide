@@ -38,6 +38,14 @@ class FileTreeController extends ChangeNotifier {
   final Map<String, List<FileEntry>> _entries = {};
   List<FileEntry>? entriesFor(String path) => _entries[path];
 
+  List<FileEntry> allLoadedEntries() {
+    final out = <FileEntry>[];
+    for (final list in _entries.values) {
+      out.addAll(list.where((e) => !e.isDirectory));
+    }
+    return out;
+  }
+
   /// Initial boot: resolve the workspace root, load the root dir,
   /// subscribe to `files.changed` events.
   Future<void> load() async {

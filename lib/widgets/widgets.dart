@@ -7,6 +7,7 @@ library;
 
 export 'src/clide_button.dart';
 export 'src/clide_divider.dart';
+export 'src/clide_filter_box.dart';
 export 'src/clide_icon.dart';
 export 'src/clide_icon_rail.dart';
 export 'src/clide_palette.dart';

@@ -16,6 +16,7 @@ class _TicketsViewState extends State<TicketsView> {
   List<_TicketEntry> _tickets = [];
   String? _error;
   bool _loading = true;
+  String _filter = '';
 
   @override
   void didChangeDependencies() {
@@ -70,12 +71,18 @@ class _TicketsViewState extends State<TicketsView> {
         child: ClideText('No tickets found.\nRun `pql ticket new` to create one.', muted: true),
       );
     }
-    return ListView.builder(
-      itemCount: _tickets.length,
-      itemBuilder: (ctx, i) {
-        final t = _tickets[i];
-        return _TicketRow(entry: t, tokens: tokens);
-      },
+    final lf = _filter.toLowerCase();
+    final filtered = lf.isEmpty ? _tickets : _tickets.where((t) => t.id.toLowerCase().contains(lf) || t.title.toLowerCase().contains(lf) || (t.status ?? '').toLowerCase().contains(lf)).toList();
+    return Column(
+      children: [
+        ClideFilterBox(hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v)),
+        Expanded(
+          child: ListView.builder(
+            itemCount: filtered.length,
+            itemBuilder: (ctx, i) => _TicketRow(entry: filtered[i], tokens: tokens),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -18,6 +18,7 @@ class ProblemsView extends StatefulWidget {
 
 class _ProblemsViewState extends State<ProblemsView> {
   ProblemsController? _controller;
+  String _filter = '';
 
   @override
   void didChangeDependencies() {
@@ -46,66 +47,46 @@ class _ProblemsViewState extends State<ProblemsView> {
           label: 'problems panel',
           container: true,
           explicitChildNodes: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ClideText(
-                        'Problems (${c.problems.length})',
-                        fontSize: clideFontCaption,
-                        color: tokens.sidebarForeground,
-                      ),
-                    ),
-                    Semantics(
-                      button: true,
-                      label: 'refresh problems',
-                      child: GestureDetector(
-                        onTap: () => unawaited(c.refresh()),
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: ClideText(
-                            'Refresh',
-                            fontSize: clideFontCaption,
-                            color: tokens.sidebarForeground,
-                          ),
+          child: () {
+            final lf = _filter.toLowerCase();
+            final filtered = lf.isEmpty ? c.problems : c.problems.where((p) => p.message.toLowerCase().contains(lf) || p.source.toLowerCase().contains(lf)).toList();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClideFilterBox(hint: 'Filter problems…', onChanged: (v) => setState(() => _filter = v)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  child: Row(
+                    children: [
+                      Expanded(child: ClideText('Problems (${filtered.length})', fontSize: clideFontCaption, color: tokens.sidebarForeground)),
+                      Semantics(
+                        button: true,
+                        label: 'refresh problems',
+                        child: GestureDetector(
+                          onTap: () => unawaited(c.refresh()),
+                          child: MouseRegion(cursor: SystemMouseCursors.click, child: ClideText('Refresh', fontSize: clideFontCaption, color: tokens.sidebarForeground)),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (c.loading && c.problems.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: ClideText('Scanning…', muted: true),
-                ),
-              if (!c.loading && c.problems.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: ClideText(
-                    'No problems found.',
-                    muted: true,
-                  ),
-                ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final p in c.problems) _ProblemRow(problem: p),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
+                if (c.loading && c.problems.isEmpty)
+                  const Padding(padding: EdgeInsets.all(12), child: ClideText('Scanning…', muted: true)),
+                if (!c.loading && filtered.isEmpty)
+                  const Padding(padding: EdgeInsets.all(12), child: ClideText('No problems found.', muted: true)),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [for (final p in filtered) _ProblemRow(problem: p)],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }(),
         );
       },
     );
