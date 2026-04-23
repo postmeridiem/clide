@@ -1,3 +1,4 @@
+import 'package:clide/builtin/tickets/src/ticket_detail_view.dart';
 import 'package:clide/builtin/tickets/src/tickets_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -8,7 +9,7 @@ class TicketsExtension extends ClideExtension {
   @override
   String get title => 'Tickets';
   @override
-  String get version => '0.1.0';
+  String get version => '0.2.0';
   @override
   List<String> get dependsOn => const [];
 
@@ -22,6 +23,13 @@ class TicketsExtension extends ClideExtension {
           i18nNamespace: id,
           priority: -10,
           build: (_) => const TicketsView(),
+        ),
+        TabContribution(
+          id: 'tickets.detail',
+          slot: Slots.contextPanel,
+          title: 'Ticket',
+          priority: -60,
+          build: (_) => const TicketDetailView(),
         ),
       ];
 }

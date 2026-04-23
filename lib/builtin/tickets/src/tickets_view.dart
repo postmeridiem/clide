@@ -161,6 +161,7 @@ class _TicketCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: ClideTappable(
+        onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': entry.id}),
         builder: (ctx, hovered, _) => Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
