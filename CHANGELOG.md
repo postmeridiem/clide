@@ -69,6 +69,21 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Markdown viewer in context panel — shows raw content of the
   active .md file, auto-updating on buffer switch (T-38).
 
+- Clickable DQRT record links in markdown — `[D-56]`, `[T-43]` etc.
+  rendered as tappable links that navigate to the decision or ticket
+  detail pane via the message bus.
+
+- Ctrl+Plus / Ctrl+Minus / Ctrl+0 text zoom (5% steps, 60%–200%
+  range) via `MediaQuery.textScaler`. Resets on app restart.
+
+- Sidebar focus indicators — selecting a ticket or decision
+  highlights the active card in the sidebar list, auto-expands the
+  accordion section if collapsed, and scrolls the card into view.
+
+- Typography scale constants `clideFontSmall` (12) and
+  `clideFontBadge` (11) for sidebar metadata and status badges.
+  `clideLineHeight` (1.25) applied app-wide via `DefaultTextStyle`.
+
 - Graph view in context panel — lists files with inbound/outbound
   link counts from `pql search --connections` (T-39).
 
@@ -91,6 +106,23 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Syntax highlighting via tree-sitter (dart:ffi to vendored
   libtree-sitter.so with embedded wasmtime). 48 grammar WASM files,
   48 highlight queries. Colors map to theme syntax tokens.
+
+- ClideMarkdown renderer — inline grouping for tight list items,
+  proper HTML entity unescaping after AST parse, Josefin Sans Light
+  with 1.25 line height, 16px body text. Inline code sized to
+  `clideFontMono` to match surrounding text weight.
+
+- Default sidebar and context panel widths widened to 400px and
+  420px respectively (previous maximums).
+
+- Ticket descriptions render through ClideMarkdown instead of plain
+  text, with clickable DQRT record links.
+
+- Decision detail view subscribes to the message bus for navigation
+  (same pattern as tickets), enabling navigation from any source.
+
+- Context panel drag resize fixed — dragging left now correctly
+  grows the right panel instead of shrinking it.
 
 - POLICY.md — project-wide rules for runtime behavior, dependency
   vetting, vendored binary management, telemetry, and licensing.
