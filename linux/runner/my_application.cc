@@ -25,10 +25,11 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  // D-057: frameless custom chrome. The Flutter app draws its own
-  // per-column hats with drag regions and window buttons.
+  // D-057: frameless custom chrome — the Flutter app draws its own
+  // hat bar with drag regions and window buttons.
   gtk_window_set_decorated(window, FALSE);
   gtk_window_set_title(window, "clide");
+
 
   gtk_window_set_default_size(window, 1280, 720);
 

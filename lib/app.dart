@@ -1,7 +1,10 @@
+import 'dart:io' show Platform;
+
 import 'package:clide/builtin/welcome/src/welcome_view.dart';
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -129,6 +132,7 @@ class RootLayout extends StatelessWidget {
 
         return Column(
           children: [
+            _HatBar(kernel: kernel),
             Expanded(
               child: Row(
                 children: [
@@ -141,10 +145,7 @@ class RootLayout extends StatelessWidget {
                   else if (sidebarVisible) ...[
                     SizedBox(
                       width: sidebarSize,
-                      child: Column(children: [
-                        ColumnHat.left(windowControls: kernel.window),
-                        Expanded(child: SlotHost(slot: Slots.sidebar)),
-                      ]),
+                      child: SlotHost(slot: Slots.sidebar),
                     ),
                     DragResizeHandle(
                       arrangement: a,
@@ -152,14 +153,7 @@ class RootLayout extends StatelessWidget {
                       axis: Axis.horizontal,
                     ),
                   ],
-                  Expanded(child: Column(children: [
-                    ColumnHat.center(
-                      windowControls: kernel.window,
-                      project: kernel.project.current?.path.split('/').last,
-                      branch: null,
-                    ),
-                    const Expanded(child: SlotHost(slot: Slots.workspace)),
-                  ])),
+                  const Expanded(child: SlotHost(slot: Slots.workspace)),
                   if (contextVisible && contextCollapsed)
                     ClideSpine(
                       label: 'context',
@@ -174,10 +168,7 @@ class RootLayout extends StatelessWidget {
                     ),
                     SizedBox(
                       width: contextSize,
-                      child: Column(children: [
-                        ColumnHat.right(windowControls: kernel.window),
-                        Expanded(child: SlotHost(slot: Slots.contextPanel)),
-                      ]),
+                      child: SlotHost(slot: Slots.contextPanel),
                     ),
                   ],
                 ],
@@ -216,6 +207,143 @@ class RootLayout extends StatelessWidget {
       if (t.id == activeTab) return t.title.toLowerCase();
     }
     return 'overview';
+  }
+}
+
+class _HatBar extends StatelessWidget {
+  const _HatBar({required this.kernel});
+  final KernelServices kernel;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return GestureDetector(
+      onPanStart: (_) => kernel.window.startDrag(),
+      child: Container(
+        height: hatHeight,
+        color: tokens.panelHeader,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            _LeftHatContent(tokens: tokens, wc: kernel.window),
+            Expanded(
+              child: Center(
+                child: ListenableBuilder(
+                  listenable: kernel.project,
+                  builder: (ctx, _) {
+                    final name = kernel.project.current?.path.split('/').last;
+                    return ClideText(
+                      name != null ? 'clide > $name' : 'clide',
+                      fontSize: 12,
+                      color: tokens.globalTextMuted,
+                      fontFamily: clideMonoFamily,
+                    );
+                  },
+                ),
+              ),
+            ),
+            _RightHatContent(tokens: tokens, wc: kernel.window),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeftHatContent extends StatelessWidget {
+  const _LeftHatContent({required this.tokens, required this.wc});
+  final SurfaceTokens tokens;
+  final WindowControls wc;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return const SizedBox.shrink();
+    if (!kIsWeb && Platform.isMacOS) {
+      return Row(children: [
+        _TrafficDot(color: const Color(0xFFFF5F57), onTap: wc.close),
+        const SizedBox(width: 6),
+        _TrafficDot(color: const Color(0xFFFEBC2E), onTap: wc.minimize),
+        const SizedBox(width: 6),
+        _TrafficDot(color: const Color(0xFF28C840), onTap: wc.toggleMaximize),
+      ]);
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+class _RightHatContent extends StatelessWidget {
+  const _RightHatContent({required this.tokens, required this.wc});
+  final SurfaceTokens tokens;
+  final WindowControls wc;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return const SizedBox.shrink();
+    if (!kIsWeb && Platform.isMacOS) return const SizedBox.shrink();
+    return Row(children: [
+      _WinBtn(icon: const PhosphorIconPainter(0xe32a), onTap: wc.minimize, tokens: tokens),
+      _WinBtn(icon: const PhosphorIconPainter(0xe45e), onTap: wc.toggleMaximize, tokens: tokens),
+      _WinBtn(icon: PhosphorIcons.xMark, onTap: wc.close, tokens: tokens, isClose: true),
+    ]);
+  }
+}
+
+class _TrafficDot extends StatefulWidget {
+  const _TrafficDot({required this.color, required this.onTap});
+  final Color color;
+  final VoidCallback onTap;
+  @override
+  State<_TrafficDot> createState() => _TrafficDotState();
+}
+
+class _TrafficDotState extends State<_TrafficDot> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Container(
+          width: 12, height: 12,
+          decoration: BoxDecoration(color: _hover ? widget.color : widget.color.withAlpha(0xCC), shape: BoxShape.circle),
+        ),
+      ),
+    );
+  }
+}
+
+class _WinBtn extends StatefulWidget {
+  const _WinBtn({required this.icon, required this.onTap, required this.tokens, this.isClose = false});
+  final ClideIconPainter icon;
+  final VoidCallback onTap;
+  final SurfaceTokens tokens;
+  final bool isClose;
+  @override
+  State<_WinBtn> createState() => _WinBtnState();
+}
+
+class _WinBtnState extends State<_WinBtn> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    final hoverBg = widget.isClose ? const Color(0xFFE81123) : widget.tokens.listItemHoverBackground;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Container(
+          width: 36, height: hatHeight,
+          color: _hover ? hoverBg : null,
+          alignment: Alignment.center,
+          child: ClideIcon(widget.icon, size: 14, color: _hover && widget.isClose ? const Color(0xFFFFFFFF) : widget.tokens.globalTextMuted),
+        ),
+      ),
+    );
   }
 }
 
