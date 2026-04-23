@@ -7,8 +7,11 @@ library;
 
 export 'src/clide_button.dart';
 export 'src/clide_column_hat.dart';
+export 'src/clide_code_block.dart';
 export 'src/clide_divider.dart';
 export 'src/clide_filter_box.dart';
+export 'src/clide_markdown.dart';
+export 'src/clide_svg_view.dart';
 export 'src/clide_icon.dart';
 export 'src/clide_icon_rail.dart';
 export 'src/clide_palette.dart';

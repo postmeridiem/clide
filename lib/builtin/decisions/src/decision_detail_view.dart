@@ -108,15 +108,7 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
           ),
           if (body != null && body.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: tokens.panelBackground,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: tokens.panelBorder),
-              ),
-              child: ClideText(body, fontSize: 13, fontFamily: clideMonoFamily),
-            ),
+            ClideMarkdown(body),
           ],
           if (refs.isNotEmpty) ...[
             const SizedBox(height: 16),

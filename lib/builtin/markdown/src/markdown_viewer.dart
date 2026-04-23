@@ -78,16 +78,12 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
         child: ClideText('Open a .md file to preview it here.', muted: true),
       );
     }
-    final tokens = ClideTheme.of(context).surface;
     return ClidePaneChrome(
       title: _path ?? 'viewer',
       subtitle: '${_content!.split('\n').length} lines',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
-        child: Text(
-          _content!,
-          style: TextStyle(color: tokens.globalForeground, fontSize: 13, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
-        ),
+        child: ClideMarkdown(_content!),
       ),
     );
   }

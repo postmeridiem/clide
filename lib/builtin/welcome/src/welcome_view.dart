@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
-import 'package:jovial_svg/jovial_svg.dart';
 
 class WelcomeView extends StatelessWidget {
   const WelcomeView({super.key});
@@ -56,13 +54,7 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        SizedBox(
-          width: 144,
-          height: 144,
-          child: ScalableImageWidget.fromSISource(
-            si: ScalableImageSource.fromSvg(rootBundle, 'assets/logo/logo.svg'),
-          ),
-        ),
+        const ClideSvgView.asset('assets/logo/logo.svg', width: 144, height: 144),
         const SizedBox(width: 24),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
