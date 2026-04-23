@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clide/builtin/decisions/src/decision_colors.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -16,6 +17,7 @@ class _DecisionsViewState extends State<DecisionsView> {
   String? _error;
   bool _loading = true;
   String _filter = '';
+  final Set<String> _expanded = {'confirmed'};
 
   @override
   void didChangeDependencies() {
@@ -47,33 +49,66 @@ class _DecisionsViewState extends State<DecisionsView> {
     }
   }
 
+  void _toggleSection(String key) {
+    setState(() {
+      if (_expanded.contains(key)) {
+        _expanded.remove(key);
+      } else {
+        _expanded.add(key);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    if (_loading) {
-      return const Center(child: ClideText('Loading decisions...', muted: true));
-    }
-    if (_error != null) {
-      return Padding(
-        padding: const EdgeInsets.all(12),
-        child: ClideText(_error!, muted: true),
-      );
-    }
-    if (_decisions.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: ClideText('No decisions found.\nRun `pql decisions sync` to index.', muted: true),
-      );
-    }
+    if (_loading) return const Center(child: ClideText('Loading decisions...', muted: true));
+    if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
+    if (_decisions.isEmpty) return const Padding(padding: EdgeInsets.all(12), child: ClideText('No decisions found.\nRun `pql decisions sync` to index.', muted: true));
+
     final lf = _filter.toLowerCase();
-    final filtered = lf.isEmpty ? _decisions : _decisions.where((d) => d.id.toLowerCase().contains(lf) || d.title.toLowerCase().contains(lf) || (d.domain ?? '').toLowerCase().contains(lf)).toList();
+    final hasFilter = lf.isNotEmpty;
+    final filtered = hasFilter ? _decisions.where((d) => d.id.toLowerCase().contains(lf) || d.title.toLowerCase().contains(lf) || (d.domain ?? '').toLowerCase().contains(lf) || (d.type ?? '').contains(lf)).toList() : _decisions;
+
+    final confirmed = filtered.where((d) => d.type == 'confirmed').toList();
+    final questions = filtered.where((d) => d.type == 'question').toList();
+    final rejected = filtered.where((d) => d.type == 'rejected').toList();
+
+    final isDark = ClideTheme.of(context).dark;
+    final typeColors = DecisionTypeColors.forTheme(dark: isDark);
+
     return Column(
       children: [
         ClideFilterBox(hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v)),
         Expanded(
-          child: ListView.builder(
-            itemCount: filtered.length,
-            itemBuilder: (ctx, i) => _DecisionRow(entry: filtered[i], tokens: tokens),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (confirmed.isNotEmpty) _AccordionSection(
+                  label: 'CONFIRMED', count: confirmed.length, tokens: tokens,
+                  color: typeColors.confirmed,
+                  expanded: hasFilter || _expanded.contains('confirmed'),
+                  onToggle: () => _toggleSection('confirmed'),
+                  children: [for (final d in confirmed) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors)],
+                ),
+                if (questions.isNotEmpty) _AccordionSection(
+                  label: 'QUESTIONS', count: questions.length, tokens: tokens,
+                  color: typeColors.question,
+                  expanded: hasFilter || _expanded.contains('question'),
+                  onToggle: () => _toggleSection('question'),
+                  children: [for (final d in questions) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors)],
+                ),
+                if (rejected.isNotEmpty) _AccordionSection(
+                  label: 'REJECTED', count: rejected.length, tokens: tokens,
+                  color: typeColors.rejected,
+                  expanded: hasFilter || _expanded.contains('rejected'),
+                  onToggle: () => _toggleSection('rejected'),
+                  children: [for (final d in rejected) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors)],
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -82,37 +117,109 @@ class _DecisionsViewState extends State<DecisionsView> {
 }
 
 class _DecisionEntry {
-  const _DecisionEntry({required this.id, required this.title, this.domain, this.status});
+  const _DecisionEntry({required this.id, required this.title, this.type, this.domain, this.status});
   final String id;
   final String title;
+  final String? type;
   final String? domain;
   final String? status;
 
   factory _DecisionEntry.fromJson(Map<String, dynamic> json) => _DecisionEntry(
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
+        type: json['type'] as String?,
         domain: json['domain'] as String?,
         status: json['status'] as String?,
       );
 }
 
-class _DecisionRow extends StatelessWidget {
-  const _DecisionRow({required this.entry, required this.tokens});
-  final _DecisionEntry entry;
+class _AccordionSection extends StatelessWidget {
+  const _AccordionSection({
+    required this.label, required this.count, required this.tokens,
+    required this.color, required this.expanded, required this.onToggle,
+    required this.children,
+  });
+  final String label;
+  final int count;
   final SurfaceTokens tokens;
+  final Color color;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return ClideTappable(
-      builder: (context, hovered, _) => Container(
-        color: hovered ? tokens.listItemHoverBackground : null,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Row(
-          children: [
-            ClideText(entry.id, color: tokens.globalTextMuted, fontSize: 12),
-            const SizedBox(width: 8),
-            Expanded(child: ClideText(entry.title, fontSize: 13)),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClideTappable(
+          onTap: onToggle,
+          builder: (ctx, hovered, _) => Padding(
+            padding: const EdgeInsets.only(left: 4, top: 10, bottom: 4),
+            child: Row(
+              children: [
+                ClideIcon(expanded ? PhosphorIcons.caretDown : PhosphorIcons.caretRight, size: 10, color: tokens.globalTextMuted),
+                const SizedBox(width: 6),
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                ClideText('$label · $count', fontSize: 11, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+              ],
+            ),
+          ),
+        ),
+        if (expanded) ...children,
+      ],
+    );
+  }
+}
+
+class _DecisionCard extends StatelessWidget {
+  const _DecisionCard({required this.entry, required this.tokens, required this.typeColors});
+  final _DecisionEntry entry;
+  final SurfaceTokens tokens;
+  final DecisionTypeColors typeColors;
+
+  @override
+  Widget build(BuildContext context) {
+    final typeColor = typeColors.forType(entry.type);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: ClideTappable(
+        builder: (ctx, hovered, _) => Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.sidebarItemHover : tokens.panelBackground,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: hovered ? tokens.panelActiveBorder : tokens.panelBorder, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  ClideTooltip(
+                    message: entry.type ?? 'confirmed',
+                    child: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+                  ),
+                  const SizedBox(width: 6),
+                  ClideText(entry.id, fontSize: 11, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  const Spacer(),
+                  if (entry.domain != null)
+                    ClideText(entry.domain!, fontSize: 10, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ClideText(entry.title, fontSize: 13),
+              if (entry.status == 'resolved') ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: tokens.statusSuccess.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
+                  child: ClideText('resolved', fontSize: 10, color: tokens.statusSuccess, fontFamily: clideMonoFamily),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
