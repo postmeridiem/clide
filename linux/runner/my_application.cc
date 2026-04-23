@@ -123,7 +123,7 @@ static void my_application_activate(GApplication* application) {
       g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
       g_autofree gchar* icon_path = g_build_filename(
           exe_dir, "data", "flutter_assets", "assets", "logo",
-          "clide-logo-256.png", nullptr);
+          "clide-taskbar-256.png", nullptr);
       g_autoptr(GError) icon_error = nullptr;
       GdkPixbuf* icon = gdk_pixbuf_new_from_file(icon_path, &icon_error);
       if (icon != nullptr) {
