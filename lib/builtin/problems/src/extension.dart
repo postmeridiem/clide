@@ -1,6 +1,7 @@
 import 'package:clide/builtin/problems/src/problems_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart';
 
 class ProblemsExtension extends ClideExtension {
   @override
@@ -18,6 +19,7 @@ class ProblemsExtension extends ClideExtension {
           id: 'problems.panel',
           slot: Slots.sidebar,
           title: 'Problems',
+          icon: PhosphorIcons.warningCircle,
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: -50,

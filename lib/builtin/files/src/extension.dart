@@ -1,6 +1,7 @@
 import 'package:clide/builtin/files/src/file_tree_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart';
 
 /// Workspace filesystem panel. Contributes a sidebar tab that renders
 /// the workspace file tree rooted at the git root, powered by the
@@ -22,6 +23,7 @@ class FilesExtension extends ClideExtension {
           id: 'files.tree',
           slot: Slots.sidebar,
           title: 'Files',
+          icon: PhosphorIcons.folder,
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: -100,

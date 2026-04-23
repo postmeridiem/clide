@@ -23,6 +23,7 @@ class PanelRegistry extends ChangeNotifier {
   final Map<SlotId, SlotDefinition> _defs = {};
   final Map<SlotId, List<ContributionPoint>> _mounts = {};
   final Map<SlotId, String?> _activeTab = {};
+  final Map<SlotId, List<String>> _order = {};
 
   void registerSlot(SlotDefinition def) {
     _defs[def.id] = def;
@@ -30,14 +31,16 @@ class PanelRegistry extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setTabOrder(SlotId slot, List<String> order) {
+    _order[slot] = order;
+    notifyListeners();
+  }
+
   void contribute(ContributionPoint point) {
     final slot = point.slot;
-    if (slot == null) return; // non-slot contributions go elsewhere
+    if (slot == null) return;
     final list = _mounts.putIfAbsent(slot, () => <ContributionPoint>[]);
     list.add(point);
-    list.sort((a, b) => _priority(a).compareTo(_priority(b)));
-    // first tab-contribution in the sidebar/workspace/context becomes the
-    // default active tab until the user picks another
     if (_activeTab[slot] == null && point is TabContribution) {
       _activeTab[slot] = point.id;
     }
@@ -66,8 +69,20 @@ class PanelRegistry extends ChangeNotifier {
   List<ContributionPoint> contributionsFor(SlotId id) =>
       List.unmodifiable(_mounts[id] ?? const []);
 
-  List<TabContribution> tabsFor(SlotId id) =>
-      contributionsFor(id).whereType<TabContribution>().toList();
+  List<TabContribution> tabsFor(SlotId id) {
+    final tabs = contributionsFor(id).whereType<TabContribution>().toList();
+    final order = _order[id];
+    if (order == null || order.isEmpty) return tabs;
+    tabs.sort((a, b) {
+      final ai = order.indexOf(a.id);
+      final bi = order.indexOf(b.id);
+      if (ai < 0 && bi < 0) return 0;
+      if (ai < 0) return 1;
+      if (bi < 0) return 1;
+      return ai.compareTo(bi);
+    });
+    return tabs;
+  }
 
   String? activeTabIn(SlotId id) => _activeTab[id];
 
@@ -75,13 +90,5 @@ class PanelRegistry extends ChangeNotifier {
     if (_activeTab[id] == tabId) return;
     _activeTab[id] = tabId;
     notifyListeners();
-  }
-
-  int _priority(ContributionPoint p) {
-    if (p is TabContribution) return p.priority;
-    if (p is StatusItemContribution) return p.priority;
-    if (p is ToolbarButtonContribution) return p.priority;
-    if (p is TrayItemContribution) return p.priority;
-    return 0;
   }
 }

@@ -2,6 +2,7 @@ import 'package:clide/builtin/git/src/git_panel_view.dart';
 import 'package:clide/builtin/git/src/git_status_item.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart';
 
 class GitExtension extends ClideExtension {
   @override
@@ -19,6 +20,7 @@ class GitExtension extends ClideExtension {
           id: 'git.panel',
           slot: Slots.sidebar,
           title: 'Git',
+          icon: PhosphorIcons.gitBranch,
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: -80,

@@ -120,6 +120,14 @@ class DefaultLayoutExtension extends ClideExtension {
 
   void _restoreLayout(ClideExtensionContext ctx) {
     final s = ctx.settings;
+    final sidebarOrder = s.get<List>('project.layout.sidebar.order');
+    if (sidebarOrder != null) {
+      ctx.panels.setTabOrder(Slots.sidebar, sidebarOrder.cast<String>());
+    }
+    final contextOrder = s.get<List>('project.layout.context.order');
+    if (contextOrder != null) {
+      ctx.panels.setTabOrder(Slots.contextPanel, contextOrder.cast<String>());
+    }
     final sidebarCollapsed = s.get<bool>(_kSidebarCollapsed);
     if (sidebarCollapsed != null) {
       ctx.arrangement.setCollapsed(Slots.sidebar, sidebarCollapsed);
