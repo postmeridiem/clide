@@ -209,6 +209,21 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
     }
   });
 
+  d.register('pql.tickets.status', (req) async {
+    final rawIds = req.args['ids'];
+    final ids = rawIds is List ? rawIds.cast<String>() : rawIds is String ? [rawIds] : <String>[];
+    final status = req.args['status'] as String?;
+    if (ids.isEmpty || status == null || status.isEmpty) {
+      return _userError(req.id, 'pql.tickets.status requires ids and status');
+    }
+    try {
+      final result = await pql.ticketSetStatus(ids, status);
+      return IpcResponse.ok(id: req.id, data: {'tickets': result});
+    } on PqlException catch (e) {
+      return _pqlError(req.id, e);
+    }
+  });
+
   d.register('pql.tickets.board', (req) async {
     try {
       final board = await pql.ticketBoard(

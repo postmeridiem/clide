@@ -153,9 +153,12 @@ class _StatusControls extends StatelessWidget {
         for (final s in _statuses) ...[
           Expanded(
             child: ClideTappable(
-              onTap: () async {
-                await controller.ipc.request('pql.tickets.status', args: {'ids': detail.id, 'status': s});
-                await controller.load(detail.id);
+              onTap: detail.status == s ? null : () async {
+                final resp = await controller.ipc.request('pql.tickets.status', args: {'ids': [detail.id], 'status': s});
+                if (resp.ok) {
+                  controller.messages.publish('builtin.tickets', 'changed', {'id': detail.id});
+                  await controller.load(detail.id);
+                }
               },
               builder: (ctx, hovered, _) {
                 final active = detail.status == s;
