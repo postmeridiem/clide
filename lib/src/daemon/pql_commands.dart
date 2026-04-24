@@ -202,7 +202,6 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
         id,
         withContext: req.args['withContext'] as bool? ?? false,
         withBlockers: req.args['withBlockers'] as bool? ?? false,
-        withChildren: req.args['withChildren'] as bool? ?? false,
       );
       return IpcResponse.ok(id: req.id, data: result);
     } on PqlException catch (e) {
