@@ -22,6 +22,7 @@ import 'package:clide/kernel/src/os.dart';
 import 'package:clide/kernel/src/panels/arrangement.dart';
 import 'package:clide/kernel/src/panels/registry.dart';
 import 'package:clide/kernel/src/project.dart';
+import 'package:clide/kernel/src/scheduler.dart';
 import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
@@ -61,6 +62,7 @@ class KernelServices {
     required this.extensions,
     required this.window,
     required this.toolCheck,
+    required this.scheduler,
   });
 
   final Logger log;
@@ -88,6 +90,7 @@ class KernelServices {
   final ExtensionManager extensions;
   final WindowControls window;
   final ToolCheck toolCheck;
+  final SchedulerService scheduler;
 
   static Future<KernelServices> boot({
     required Directory appDir,
@@ -136,6 +139,8 @@ class KernelServices {
     final focus = FocusTracker();
     final window = WindowControls();
     final toolCheck = ToolCheck();
+    final scheduler = SchedulerService(events);
+    scheduler.start();
     final project = ProjectManager(
       log: log,
       events: events,
@@ -203,6 +208,7 @@ class KernelServices {
       extensions: extensions,
       window: window,
       toolCheck: toolCheck,
+      scheduler: scheduler,
     );
   }
 
@@ -223,6 +229,7 @@ class KernelServices {
     focus.dispose();
     project.dispose();
     extensions.dispose();
+    scheduler.dispose();
     await log.dispose();
     messages.dispose();
     await events.dispose();

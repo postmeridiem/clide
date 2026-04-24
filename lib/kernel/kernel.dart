@@ -34,6 +34,7 @@ export 'src/notify.dart';
 export 'src/os.dart';
 export 'src/panels/arrangement.dart';
 export 'src/project.dart';
+export 'src/scheduler.dart';
 export 'src/secrets.dart';
 export 'src/tray.dart';
 export 'src/panels/drag_resize.dart';
