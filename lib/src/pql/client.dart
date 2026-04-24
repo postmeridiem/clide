@@ -8,8 +8,6 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-
 class PqlException implements Exception {
   const PqlException(this.message, {this.exitCode = 1, this.stderr = ''});
   final String message;
@@ -126,12 +124,14 @@ class PqlClient {
 
   Future<Map<String, Object?>> ticketShow(
     String id, {
-    bool withDecision = false,
+    bool withContext = false,
     bool withBlockers = false,
+    bool withChildren = false,
   }) async {
     final args = ['ticket', 'show', id];
-    if (withDecision) args.add('--with-decision');
+    if (withContext) args.add('--with-context');
     if (withBlockers) args.add('--with-blockers');
+    if (withChildren) args.add('--with-children');
     return _runObject(args);
   }
 
