@@ -21,6 +21,7 @@ class _PqlPanelViewState extends State<PqlPanelView> {
   String? _focusedPath;
   final _focusedKey = GlobalKey();
   StreamSubscription<Message>? _focusSub;
+  StreamSubscription<DaemonEvent>? _fileSub;
 
   @override
   void didChangeDependencies() {
@@ -42,11 +43,17 @@ class _PqlPanelViewState extends State<PqlPanelView> {
         if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
       });
     });
+    _fileSub = kernel.events.on<DaemonEvent>().where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && (e.data['path'] as String? ?? '').endsWith('.md')).listen((_) {
+      if (_controller?.view == PqlView.markdown) {
+        unawaited(_controller!.loadMarkdownFiles());
+      }
+    });
   }
 
   @override
   void dispose() {
     _focusSub?.cancel();
+    _fileSub?.cancel();
     _controller?.dispose();
     super.dispose();
   }

@@ -19,8 +19,12 @@ class _DecisionsViewState extends State<DecisionsView> {
   String _filter = '';
   String? _focusedId;
   final _focusedKey = GlobalKey();
-  final Set<String> _expanded = {'confirmed'};
+  final Set<String> _pinned = {'confirmed'};
   StreamSubscription<Message>? _focusSub;
+  StreamSubscription<DaemonEvent>? _fileSub;
+  StreamSubscription<SchedulerTick>? _schedulerSub;
+  bool _refreshing = false;
+  bool _pendingRefresh = false;
 
   @override
   void didChangeDependencies() {
@@ -28,9 +32,26 @@ class _DecisionsViewState extends State<DecisionsView> {
     if (_focusSub == null) {
       final kernel = ClideKernel.of(context);
       _focusSub = kernel.messages.subscribe(publisher: 'builtin.decisions', channel: 'focus').listen(_onFocus);
+      _fileSub = kernel.events.on<DaemonEvent>().where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && _isDecisionPath(e.data['path'] as String? ?? '')).listen((_) => _refresh());
+      _schedulerSub = kernel.events.on<SchedulerTick>().where((e) => e.tier == SchedulerTier.oneMinute).listen((_) => _refresh());
     }
     if (!_loading || _decisions.isNotEmpty) return;
     unawaited(_load());
+  }
+
+  static bool _isDecisionPath(String path) => path.startsWith('decisions/') && path.endsWith('.md');
+
+  Future<void> _refresh() async {
+    if (!mounted) return;
+    if (_refreshing) { _pendingRefresh = true; return; }
+    _refreshing = true;
+    _pendingRefresh = false;
+    await _load();
+    _refreshing = false;
+    if (_pendingRefresh && mounted) {
+      _pendingRefresh = false;
+      unawaited(_refresh());
+    }
   }
 
   Future<void> _load() async {
@@ -59,18 +80,22 @@ class _DecisionsViewState extends State<DecisionsView> {
   @override
   void dispose() {
     _focusSub?.cancel();
+    _fileSub?.cancel();
+    _schedulerSub?.cancel();
     super.dispose();
+  }
+
+  bool _isSectionExpanded(String type) {
+    if (_pinned.contains(type)) return true;
+    if (_focusedId == null) return false;
+    final entry = _decisions.where((d) => d.id == _focusedId).firstOrNull;
+    return (entry?.type ?? 'confirmed') == type;
   }
 
   void _onFocus(Message msg) {
     final id = msg.data['id'] as String?;
     if (id == null || id == _focusedId) return;
-    final entry = _decisions.where((d) => d.id == id).firstOrNull;
-    final section = entry?.type ?? 'confirmed';
-    setState(() {
-      _focusedId = id;
-      _expanded.add(section);
-    });
+    setState(() => _focusedId = id);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = _focusedKey.currentContext;
       if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
@@ -79,10 +104,10 @@ class _DecisionsViewState extends State<DecisionsView> {
 
   void _toggleSection(String key) {
     setState(() {
-      if (_expanded.contains(key)) {
-        _expanded.remove(key);
+      if (_pinned.contains(key)) {
+        _pinned.remove(key);
       } else {
-        _expanded.add(key);
+        _pinned.add(key);
       }
     });
   }
@@ -107,31 +132,43 @@ class _DecisionsViewState extends State<DecisionsView> {
 
     return Column(
       children: [
-        ClideFilterBox(hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v)),
+        Row(
+          children: [
+            Expanded(child: ClideFilterBox(hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v))),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ClideTappable(
+                onTap: _refreshing ? null : _refresh,
+                tooltip: 'Refresh decisions',
+                builder: (ctx, hovered, _) => ClideIcon(PhosphorIcons.arrowClockwise, size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+              ),
+            ),
+          ],
+        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (confirmed.isNotEmpty) _AccordionSection(
-                  label: 'CONFIRMED', count: confirmed.length, tokens: tokens,
-                  color: typeColors.confirmed,
-                  expanded: hasFilter || _expanded.contains('confirmed'),
+                if (confirmed.isNotEmpty) ClideAccordion(
+                  label: 'CONFIRMED', count: confirmed.length,
+                  leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColors.confirmed, shape: BoxShape.circle)),
+                  expanded: hasFilter || _isSectionExpanded('confirmed'),
                   onToggle: () => _toggleSection('confirmed'),
                   children: [for (final d in confirmed) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)],
                 ),
-                if (questions.isNotEmpty) _AccordionSection(
-                  label: 'QUESTIONS', count: questions.length, tokens: tokens,
-                  color: typeColors.question,
-                  expanded: hasFilter || _expanded.contains('question'),
+                if (questions.isNotEmpty) ClideAccordion(
+                  label: 'QUESTIONS', count: questions.length,
+                  leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColors.question, shape: BoxShape.circle)),
+                  expanded: hasFilter || _isSectionExpanded('question'),
                   onToggle: () => _toggleSection('question'),
                   children: [for (final d in questions) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)],
                 ),
-                if (rejected.isNotEmpty) _AccordionSection(
-                  label: 'REJECTED', count: rejected.length, tokens: tokens,
-                  color: typeColors.rejected,
-                  expanded: hasFilter || _expanded.contains('rejected'),
+                if (rejected.isNotEmpty) ClideAccordion(
+                  label: 'REJECTED', count: rejected.length,
+                  leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColors.rejected, shape: BoxShape.circle)),
+                  expanded: hasFilter || _isSectionExpanded('rejected'),
                   onToggle: () => _toggleSection('rejected'),
                   children: [for (final d in rejected) _DecisionCard(entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)],
                 ),
@@ -159,46 +196,6 @@ class _DecisionEntry {
         domain: json['domain'] as String?,
         status: json['status'] as String?,
       );
-}
-
-class _AccordionSection extends StatelessWidget {
-  const _AccordionSection({
-    required this.label, required this.count, required this.tokens,
-    required this.color, required this.expanded, required this.onToggle,
-    required this.children,
-  });
-  final String label;
-  final int count;
-  final SurfaceTokens tokens;
-  final Color color;
-  final bool expanded;
-  final VoidCallback onToggle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ClideTappable(
-          onTap: onToggle,
-          builder: (ctx, hovered, _) => Padding(
-            padding: const EdgeInsets.only(left: 4, top: 10, bottom: 4),
-            child: Row(
-              children: [
-                ClideIcon(expanded ? PhosphorIcons.caretDown : PhosphorIcons.caretRight, size: 10, color: tokens.globalTextMuted),
-                const SizedBox(width: 6),
-                Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                ClideText('$label · $count', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
-              ],
-            ),
-          ),
-        ),
-        if (expanded) ...children,
-      ],
-    );
-  }
 }
 
 class _DecisionCard extends StatelessWidget {

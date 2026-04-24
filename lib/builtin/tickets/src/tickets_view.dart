@@ -20,31 +20,40 @@ class _TicketsViewState extends State<TicketsView> {
   String _filter = '';
   String? _focusedId;
   final _focusedKey = GlobalKey();
-  final Set<String> _expanded = {'active', 'backlog'};
+  final Set<String> _pinned = {'in_progress', 'ready', 'backlog'};
   StreamSubscription<Message>? _focusSub;
+  StreamSubscription<SchedulerTick>? _schedulerSub;
+  StreamSubscription<Message>? _changedSub;
+  bool _refreshing = false;
+  bool _pendingRefresh = false;
+
+  bool _isSectionExpanded(String status) {
+    if (_pinned.contains(status)) return true;
+    if (_focusedId == null) return false;
+    final entry = _tickets.where((t) => t.id == _focusedId).firstOrNull;
+    return _sectionForStatus(entry?.status) == status;
+  }
 
   void _toggle(String key) {
     setState(() {
-      if (_expanded.contains(key)) _expanded.remove(key); else _expanded.add(key);
+      if (_pinned.contains(key)) {
+        _pinned.remove(key);
+      } else {
+        _pinned.add(key);
+      }
     });
   }
 
-  static String _sectionForStatus(String? status) => switch (status) {
-        'in_progress' => 'active',
-        'backlog' || 'ready' => 'backlog',
-        'done' => 'done',
-        _ => 'other',
-      };
+  static String _sectionForStatus(String? status) => status ?? 'backlog';
 
   void _onFocus(Message msg) {
     final id = msg.data['id'] as String?;
     if (id == null || id == _focusedId) return;
-    final entry = _tickets.where((t) => t.id == id).firstOrNull;
-    final section = _sectionForStatus(entry?.status);
-    setState(() {
-      _focusedId = id;
-      _expanded.add(section);
-    });
+    _scrollToFocused(id);
+  }
+
+  void _scrollToFocused(String id) {
+    setState(() => _focusedId = id);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = _focusedKey.currentContext;
       if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
@@ -57,6 +66,13 @@ class _TicketsViewState extends State<TicketsView> {
     if (_focusSub == null) {
       final kernel = ClideKernel.of(context);
       _focusSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'focus').listen(_onFocus);
+      _changedSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'changed').listen((msg) {
+        final id = msg.data['id'] as String?;
+        unawaited(_refresh().then((_) {
+          if (id != null && mounted) _scrollToFocused(id);
+        }));
+      });
+      _schedulerSub = kernel.events.on<SchedulerTick>().where((e) => e.tier == SchedulerTier.oneMinute).listen((_) => _refresh());
     }
     if (!_loading || _tickets.isNotEmpty) return;
     unawaited(_load());
@@ -65,7 +81,22 @@ class _TicketsViewState extends State<TicketsView> {
   @override
   void dispose() {
     _focusSub?.cancel();
+    _changedSub?.cancel();
+    _schedulerSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    if (!mounted) return;
+    if (_refreshing) { _pendingRefresh = true; return; }
+    _refreshing = true;
+    _pendingRefresh = false;
+    await _load();
+    _refreshing = false;
+    if (_pendingRefresh && mounted) {
+      _pendingRefresh = false;
+      unawaited(_refresh());
+    }
   }
 
   Future<void> _load() async {
@@ -101,27 +132,62 @@ class _TicketsViewState extends State<TicketsView> {
     final hasFilter = lf.isNotEmpty;
     final filtered = hasFilter ? _tickets.where((t) => t.id.toLowerCase().contains(lf) || t.title.toLowerCase().contains(lf) || (t.status ?? '').contains(lf) || (t.type ?? '').contains(lf)).toList() : _tickets;
 
-    final active = filtered.where((t) => t.status == 'in_progress').toList();
-    final backlog = filtered.where((t) => t.status == 'backlog' || t.status == 'ready').toList();
-    final done = filtered.where((t) => t.status == 'done').toList();
-    final other = filtered.where((t) => t.status == 'cancelled' || t.status == 'review').toList();
+    const sections = [
+      ('in_progress', 'IN PROGRESS'),
+      ('review', 'REVIEW'),
+      ('ready', 'READY'),
+      ('backlog', 'BACKLOG'),
+      ('done', 'DONE'),
+      ('cancelled', 'CANCELLED'),
+    ];
+
+    final byStatus = <String, List<_TicketEntry>>{};
+    for (final t in filtered) {
+      (byStatus[t.status ?? 'backlog'] ??= []).add(t);
+    }
 
     final isDark = ClideTheme.of(context).dark;
     final typeColors = TicketTypeColors.forTheme(dark: isDark);
 
     return Column(
       children: [
-        ClideFilterBox(hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v)),
+        Row(
+          children: [
+            Expanded(child: ClideFilterBox(hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v))),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ClideTappable(
+                onTap: _refreshing ? null : _refresh,
+                tooltip: 'Refresh tickets',
+                builder: (ctx, hovered, _) => ClideIcon(PhosphorIcons.arrowClockwise, size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+              ),
+            ),
+          ],
+        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (active.isNotEmpty) _AccordionSection(label: 'ACTIVE', count: active.length, tokens: tokens, expanded: hasFilter || _expanded.contains('active'), onToggle: () => _toggle('active'), children: [for (final t in active) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
-                if (backlog.isNotEmpty) _AccordionSection(label: 'BACKLOG', count: backlog.length, tokens: tokens, expanded: hasFilter || _expanded.contains('backlog'), onToggle: () => _toggle('backlog'), children: [for (final t in backlog) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
-                if (done.isNotEmpty) _AccordionSection(label: 'DONE', count: done.length, tokens: tokens, expanded: hasFilter || _expanded.contains('done'), onToggle: () => _toggle('done'), children: [for (final t in done) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
-                if (other.isNotEmpty) _AccordionSection(label: 'OTHER', count: other.length, tokens: tokens, expanded: hasFilter || _expanded.contains('other'), onToggle: () => _toggle('other'), children: [for (final t in other) _TicketCard(entry: t, tokens: tokens, typeColors: typeColors, focused: t.id == _focusedId, focusKey: t.id == _focusedId ? _focusedKey : null)]),
+                for (final (status, label) in sections)
+                  if (byStatus[status] case final items? when items.isNotEmpty)
+                    ClideAccordion(
+                      label: label,
+                      count: items.length,
+                      expanded: hasFilter || _isSectionExpanded(status),
+                      onToggle: () => _toggle(status),
+                      children: [
+                        for (final t in items)
+                          _TicketCard(
+                            entry: t,
+                            tokens: tokens,
+                            typeColors: typeColors,
+                            focused: t.id == _focusedId,
+                            focusKey: t.id == _focusedId ? _focusedKey : null,
+                          ),
+                      ],
+                    ),
               ],
             ),
           ),
@@ -148,39 +214,6 @@ class _TicketEntry {
         priority: json['priority'] as String?,
         parentId: json['parent_id'] as String?,
       );
-}
-
-class _AccordionSection extends StatelessWidget {
-  const _AccordionSection({required this.label, required this.count, required this.tokens, required this.expanded, required this.onToggle, required this.children});
-  final String label;
-  final int count;
-  final SurfaceTokens tokens;
-  final bool expanded;
-  final VoidCallback onToggle;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ClideTappable(
-          onTap: onToggle,
-          builder: (ctx, hovered, _) => Padding(
-            padding: const EdgeInsets.only(left: 4, top: 10, bottom: 4),
-            child: Row(
-              children: [
-                ClideIcon(expanded ? PhosphorIcons.caretDown : PhosphorIcons.caretRight, size: 10, color: tokens.globalTextMuted),
-                const SizedBox(width: 6),
-                ClideText('$label · $count', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
-              ],
-            ),
-          ),
-        ),
-        if (expanded) ...children,
-      ],
-    );
-  }
 }
 
 class _TicketCard extends StatelessWidget {
