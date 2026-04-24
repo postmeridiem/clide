@@ -2,11 +2,12 @@
 name: theme-ui
 description: >-
   Token selection guide for clide UI development. Use when building or
-  modifying widgets, panels, pane chrome, status indicators, or any
-  visual surface. Ensures correct background, border, text, and hover
+  modifying widgets, panels, pane chrome, status indicators, icons, or
+  any visual surface. Ensures correct background, border, text, and hover
   tokens are applied per surface type. Triggers on: new widget code,
   theme-related changes, "which token", "what color", color/background
-  questions, visual inconsistency fixes, new panel/pane/view development.
+  questions, visual inconsistency fixes, new panel/pane/view development,
+  adding or looking up Phosphor icons, icon codepoints.
 ---
 
 # Theme-UI — token selection for clide surfaces
@@ -166,6 +167,31 @@ types, priority levels) should NOT add tokens to `SurfaceTokens`. Instead:
 
 This keeps the core token surface lean and lets each extension own its
 palette. The pattern scales to any extension needing domain colors.
+
+## Icons — Phosphor Icons
+
+The app bundles Phosphor Icons (v2.0.8, MIT) as TTF fonts at
+`assets/fonts/phosphor/` (regular, bold, fill weights).
+
+**Codepoint reference:** `assets/fonts/phosphor/codepoints.csv` —
+full mapping of all 1512 icon codepoints to kebab-case and PascalCase
+names. Read this file to look up any icon by name or codepoint.
+
+**Adding an icon:** find the codepoint in `codepoints.csv`, then add
+a `static const` entry to `PhosphorIcons` in
+`lib/widgets/src/icons/phosphor.dart`:
+
+```dart
+static const arrowClockwise = PhosphorIconPainter(0xe036);
+```
+
+Only add icons we actually use — don't bulk-import the full set.
+
+**Using an icon:** `ClideIcon(PhosphorIcons.arrowClockwise, size: 13)`
+or as a `TabContribution` icon field: `icon: PhosphorIcons.lightbulb`.
+
+**Bold weight:** pass `family: 'Phosphor-Bold'` to `PhosphorIconPainter`.
+Fill weight: `family: 'Phosphor-Fill'`.
 
 ## Anti-patterns
 

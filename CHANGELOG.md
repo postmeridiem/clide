@@ -92,6 +92,38 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `.md` files) on the right. Clicking a result opens it in the
   context panel markdown viewer with bidirectional focus highlighting.
 
+- Kernel scheduler service with tiered timers (1min, 10min, 15min,
+  1hr, midnight) running on a background isolate. Emits `SchedulerTick`
+  events on the `DaemonBus`. Extensions subscribe by tier (T-61).
+
+- Auto-refresh for sidebar panels: decisions refresh on file changes
+  to `decisions/*.md` and on 1-minute scheduler tick; tickets refresh
+  on 1-minute tick and on status change events (T-62).
+
+- Manual refresh button (arrowClockwise icon) in decisions, tickets,
+  and pql markdown panels (T-63).
+
+- `ClideAccordion` shared widget — extracted from tickets and
+  decisions views. Supports optional `leading` widget (color dot).
+  Pin/focus accordion logic: manually toggled sections are pinned;
+  the focused item's section auto-opens; unpinned sections without
+  focus auto-collapse.
+
+- Ticket status buttons wired to `pql ticket status` — clicking a
+  status in the detail view transitions the ticket, refreshes the
+  sidebar list, and scrolls the ticket into its new section.
+
+- `pql.tickets.status` IPC command accepting a list of IDs for
+  batch status transitions.
+
+- Ticket sidebar sections split into individual statuses: IN
+  PROGRESS, REVIEW, READY, BACKLOG, DONE, CANCELLED (was four
+  coarse groups).
+
+- Phosphor Icons codepoint reference CSV at
+  `assets/fonts/phosphor/codepoints.csv` — full mapping of all
+  1512 icon glyphs to kebab-case and PascalCase names.
+
 - Graph view in context panel — lists files with inbound/outbound
   link counts from `pql search --connections` (T-39).
 
