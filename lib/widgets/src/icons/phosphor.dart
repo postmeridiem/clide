@@ -42,6 +42,7 @@ abstract class PhosphorIcons {
   static const pencilSimple = PhosphorIconPainter(0xe3b4);
   static const eye = PhosphorIconPainter(0xe220);
   static const eyeSlash = PhosphorIconPainter(0xe224);
+  static const arrowClockwise = PhosphorIconPainter(0xe036);
   static const arrowsOutSimple = PhosphorIconPainter(0xe0a6);
   static const arrowsInSimple = PhosphorIconPainter(0xe09e);
   static const list = PhosphorIconPainter(0xe2f0);

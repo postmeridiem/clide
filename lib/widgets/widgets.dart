@@ -5,6 +5,7 @@
 /// Flutter chrome widgets directly.
 library;
 
+export 'src/clide_accordion.dart';
 export 'src/clide_button.dart';
 export 'src/clide_column_hat.dart';
 export 'src/clide_code_block.dart';
