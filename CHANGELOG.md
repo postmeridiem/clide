@@ -156,6 +156,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   420px respectively (previous maximums). Context panel max raised
   to 1000px.
 
+- Ticket detail loading uses `pql ticket show --with-context` for
+  a single-call fetch of ancestors, decisions, and children.
+  Replaces N+1 parent-chain walk. `--with-decision` and
+  `--with-children` flags consolidated into `--with-context`.
+
 - Ticket descriptions render through ClideMarkdown instead of plain
   text, with clickable DQRT record links.
 

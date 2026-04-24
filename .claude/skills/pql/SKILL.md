@@ -103,7 +103,7 @@ Always `pql decisions sync` before querying if decisions/*.md may have changed.
 |---|---|
 | `pql ticket new <type> "title" [--decision D-NNN] [--priority P]` | Create (emits T-NNN) |
 | `pql ticket list [--status S] [--team T] [--assigned A] [--label L]` | List with filters |
-| `pql ticket show <id> [--with-decision] [--with-blockers] [--with-children]` | Show with joins |
+| `pql ticket show <id> [--with-context] [--with-blockers]` | Show with joins (context = ancestors + decisions + children) |
 | `pql ticket status <id[,id,...]> <new-status>` | Transition (batch via comma-separated IDs) |
 | `pql ticket assign <id> <agent>` | Set assignee |
 | `pql ticket block <id> --by <other>` | Add blocker |
