@@ -109,6 +109,18 @@ dependencies:
       the core PTY wrapper for libc bindings (socketpair, recvmsg with
       SCM_RIGHTS, ioctl). Dart-team maintained; zero transitive deps.
 
+  - name: dugite-native (Git)
+    kind: native-binary
+    version: "2.53.0"
+    homepage: https://github.com/desktop/dugite-native
+    license: GPL-2.0 (Git), MIT (dugite-native build scripts)
+    purpose: >-
+      Self-contained, relocatable Git distribution for macOS/Linux/Windows.
+      Bundled so clide can run git inside the macOS app sandbox without
+      depending on Homebrew or Xcode Command Line Tools. Same approach
+      used by GitHub Desktop and Tower. Binary not committed — downloaded
+      at build time via `make dugite-fetch`.
+
   - name: tree-sitter
     kind: native-shared-lib
     version: "0.26.8"

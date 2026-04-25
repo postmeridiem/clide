@@ -42,4 +42,13 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml).
 - **Raised by:** 2026-04-23 format engine evaluation.
 
+### D-59: Bundled git via dugite-native
+- **Date:** 2026-04-25
+- **Decision:** Ship a self-contained Git binary from [dugite-native](https://github.com/desktop/dugite-native) (the same distribution GitHub Desktop bundles). Downloaded at build time via `make dugite-fetch`, stored under `native/dugite/`, gitignored. The `Toolchain` class resolves to the bundled binary first, falling back to system git on PATH.
+- **Rationale:** The macOS app sandbox blocks execution of Homebrew-installed git (symlinks resolve to Cellar paths that SBPL cannot match without freezing rendering). `/usr/bin/git` is an xcrun shim that refuses to run inside a sandbox. Bundling dugite-native makes clide self-contained — no dependency on Homebrew, Xcode CLT, or system git. The approach is proven: GitHub Desktop, Tower, and other git GUI apps all bundle their own git for the same reason.
+- **Alternatives rejected:** (R) libgit2 via FFI — missing porcelain commands (pull/push/rebase), no hooks, would require rewriting GitClient. (R) Build git from source — dugite-native already does this with better infra. (R) SBPL exceptions for Homebrew — `(subpath "/opt/homebrew")` for process-exec freezes Flutter rendering on macOS 26.
+- **Cost:** ~57 MB download (~199 MB unpacked, stripped at build time). Must track dugite-native releases for security updates. GPL-2.0 (git binary) applies to the bundled artefact, not to clide's MIT code.
+- **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml).
+- **Raised by:** 2026-04-25 macOS sandbox investigation.
+
 ---
