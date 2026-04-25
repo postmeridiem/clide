@@ -10,19 +10,19 @@ class ToolStatusItem extends StatelessWidget {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
     return ListenableBuilder(
-      listenable: kernel.toolCheck,
+      listenable: kernel.toolchain,
       builder: (ctx, _) {
-        final tc = kernel.toolCheck;
-        if (!tc.checked) return const SizedBox.shrink();
+        final tc = kernel.toolchain;
+        if (!tc.resolved) return const SizedBox.shrink();
         if (tc.allOk) {
-          return _chip('ok', tokens.statusSuccess, tokens);
+          return _chip('application ok', tokens.statusSuccess, tokens);
         }
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (var i = 0; i < tc.errors.length; i++) ...[
+            for (var i = 0; i < tc.missing.length; i++) ...[
               if (i > 0) const SizedBox(width: 10),
-              _chip(tc.errors[i], tokens.statusWarning, tokens),
+              _chip('${tc.missing[i]} not found', tokens.statusWarning, tokens),
             ],
           ],
         );

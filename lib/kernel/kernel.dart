@@ -48,5 +48,5 @@ export 'src/theme/palette.dart';
 export 'src/theme/resolver.dart';
 export 'src/theme/semantic.dart';
 export 'src/theme/tokens.dart';
-export 'src/tool_check.dart';
+export 'src/toolchain.dart';
 export 'src/window_controls.dart';

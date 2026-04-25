@@ -8,6 +8,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import '../../kernel/src/toolchain.dart';
+
 class PqlException implements Exception {
   const PqlException(this.message, {this.exitCode = 1, this.stderr = ''});
   final String message;
@@ -19,10 +21,10 @@ class PqlException implements Exception {
 }
 
 class PqlClient {
-  PqlClient({required this.workDir, this.pqlBinary = 'pql'});
+  PqlClient({required this.workDir, required this.toolchain});
 
   final Directory workDir;
-  final String pqlBinary;
+  final Toolchain toolchain;
 
   Future<List<Map<String, Object?>>> files({String? glob, int? limit}) async {
     final args = ['files'];
@@ -165,11 +167,20 @@ class PqlClient {
   }
 
   Future<Object?> _run(List<String> args) async {
-    final r = await Process.run(
-      pqlBinary,
-      args,
-      workingDirectory: workDir.path,
-    );
+    final ProcessResult r;
+    try {
+      r = await Process.run(
+        toolchain.pql,
+        args,
+        workingDirectory: workDir.path,
+      );
+    } on ProcessException catch (e) {
+      throw PqlException(
+        'pql ${args.first}: ${e.message}',
+        exitCode: e.errorCode,
+        stderr: e.toString(),
+      );
+    }
     final stderr = (r.stderr as String).trim();
     // Exit 2 = zero matches — valid empty result, not an error.
     if (r.exitCode != 0 && r.exitCode != 2) {

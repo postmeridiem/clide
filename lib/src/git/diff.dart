@@ -7,6 +7,8 @@ library;
 
 import 'dart:io';
 
+import 'operations.dart' show gitBin;
+
 enum DiffLineKind { context, addition, removal, header }
 
 class DiffLine {
@@ -129,7 +131,7 @@ Future<List<GitDiff>> gitDiff(
     args.addAll(paths);
   }
   final result = await Process.run(
-    'git',
+    gitBin,
     args,
     workingDirectory: workDir.path,
   );

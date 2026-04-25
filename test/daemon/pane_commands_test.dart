@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/kernel/src/toolchain.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/panes/registry.dart';
 import 'package:test/test.dart';
@@ -16,9 +17,8 @@ import 'package:test/test.dart';
 void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
-  final ptycPath = File('ptyc/bin/ptyc').existsSync()
-      ? File('ptyc/bin/ptyc').absolute.path
-      : 'ptyc';
+  final toolchain = Toolchain();
+  toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: Directory.current.path));
 
   group('pane.* dispatch', () {
     late DaemonDispatcher dispatcher;
@@ -28,7 +28,7 @@ void main() {
       final sink = RecordingEventSink();
       registry = PaneRegistry(events: sink);
       dispatcher = DaemonDispatcher();
-      registerPaneCommands(dispatcher, registry);
+      registerPaneCommands(dispatcher, registry, toolchain: toolchain);
     });
 
     tearDown(() => registry.shutdown());
@@ -48,7 +48,7 @@ void main() {
       final r = await call('pane.spawn', {
         'argv': const ['/bin/sh', '-c', 'sleep 0.1'],
         'kind': 'terminal',
-        'ptyc_path': ptycPath,
+        'ptyc_path': toolchain.ptyc,
       });
       expect(r.ok, isTrue, reason: r.error?.message);
       expect(r.data['id'], startsWith('p_'));
@@ -58,12 +58,12 @@ void main() {
     test('pane.list shows spawned panes', () async {
       await call('pane.spawn', {
         'argv': const ['/bin/cat'],
-        'ptyc_path': ptycPath,
+        'ptyc_path': toolchain.ptyc,
       });
       await call('pane.spawn', {
         'argv': const ['/bin/cat'],
         'kind': 'claude',
-        'ptyc_path': ptycPath,
+        'ptyc_path': toolchain.ptyc,
       });
       final r = await call('pane.list', const {});
       final panes = (r.data['panes'] as List).cast<Map>();
@@ -74,7 +74,7 @@ void main() {
     test('pane.write accepts text or bytes_b64', () async {
       final spawn = await call('pane.spawn', {
         'argv': const ['/bin/cat'],
-        'ptyc_path': ptycPath,
+        'ptyc_path': toolchain.ptyc,
       });
       final id = spawn.data['id']! as String;
 
@@ -98,7 +98,7 @@ void main() {
     test('pane.resize + pane.close + pane.focus round-trip', () async {
       final spawn = await call('pane.spawn', {
         'argv': const ['/bin/cat'],
-        'ptyc_path': ptycPath,
+        'ptyc_path': toolchain.ptyc,
       });
       final id = spawn.data['id']! as String;
 

@@ -7,6 +7,8 @@ library;
 
 import 'dart:io';
 
+import 'operations.dart' show gitBin;
+
 enum GitFileState {
   added,
   modified,
@@ -110,11 +112,16 @@ class GitStatus {
 
 /// Run `git status` and parse the result.
 Future<GitStatus> gitStatus(Directory workDir) async {
-  final branchResult = await Process.run(
-    'git',
-    ['status', '--porcelain=v2', '--branch', '-z'],
-    workingDirectory: workDir.path,
-  );
+  final ProcessResult branchResult;
+  try {
+    branchResult = await Process.run(
+      gitBin,
+      ['status', '--porcelain=v2', '--branch', '-z'],
+      workingDirectory: workDir.path,
+    );
+  } on ProcessException {
+    return const GitStatus(branch: null, entries: []);
+  }
 
   String? branch;
   String? upstream;
@@ -138,11 +145,16 @@ Future<GitStatus> gitStatus(Directory workDir) async {
     }
   }
 
-  final result = await Process.run(
-    'git',
-    ['status', '--porcelain=v1', '-z'],
-    workingDirectory: workDir.path,
-  );
+  final ProcessResult result;
+  try {
+    result = await Process.run(
+      gitBin,
+      ['status', '--porcelain=v1', '-z'],
+      workingDirectory: workDir.path,
+    );
+  } on ProcessException {
+    return GitStatus(branch: branch, entries: const [], upstream: upstream, ahead: ahead, behind: behind);
+  }
 
   if (result.exitCode != 0) {
     return GitStatus(
@@ -154,7 +166,7 @@ Future<GitStatus> gitStatus(Directory workDir) async {
     );
   }
 
-  final entries = _parsePorcelainV1(result.stdout as String);
+  final entries = parsePorcelainV1(result.stdout as String);
   return GitStatus(
     branch: branch,
     upstream: upstream,
@@ -164,7 +176,7 @@ Future<GitStatus> gitStatus(Directory workDir) async {
   );
 }
 
-List<GitFileStatus> _parsePorcelainV1(String output) {
+List<GitFileStatus> parsePorcelainV1(String output) {
   if (output.isEmpty) return const [];
   final entries = <GitFileStatus>[];
   final parts = output.split('\x00');

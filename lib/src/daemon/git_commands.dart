@@ -5,11 +5,8 @@
 /// can refresh.
 library;
 
-import 'dart:io';
-
-import '../git/diff.dart';
-import '../git/operations.dart';
-import '../git/status.dart';
+import '../git/client.dart';
+import '../git/operations.dart' show GitException;
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
@@ -17,22 +14,30 @@ import 'dispatcher.dart';
 
 void registerGitCommands(
   DaemonDispatcher d,
-  Directory workDir,
+  GitClient git,
   DaemonEventSink events,
 ) {
   d.register('git.status', (req) async {
-    final status = await gitStatus(workDir);
-    return IpcResponse.ok(id: req.id, data: status.toJson());
+    try {
+      final status = await git.status();
+      return IpcResponse.ok(id: req.id, data: status.toJson());
+    } on GitException catch (e) {
+      return _gitError(req.id, e);
+    }
   });
 
   d.register('git.diff', (req) async {
-    final staged = req.args['staged'] as bool? ?? false;
-    final paths = _pathList(req.args['paths']);
-    final diffs = await gitDiff(workDir, staged: staged, paths: paths);
-    return IpcResponse.ok(id: req.id, data: {
-      'staged': staged,
-      'diffs': [for (final d in diffs) d.toJson()],
-    });
+    try {
+      final staged = req.args['staged'] as bool? ?? false;
+      final paths = _pathList(req.args['paths']);
+      final diffs = await git.diff(staged: staged, paths: paths);
+      return IpcResponse.ok(id: req.id, data: {
+        'staged': staged,
+        'diffs': [for (final d in diffs) d.toJson()],
+      });
+    } on GitException catch (e) {
+      return _gitError(req.id, e);
+    }
   });
 
   d.register('git.stage', (req) async {
@@ -49,7 +54,7 @@ void registerGitCommands(
       );
     }
     try {
-      await gitStage(workDir, paths);
+      await git.stage(paths);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: {'staged': paths});
     } on GitException catch (e) {
@@ -59,7 +64,7 @@ void registerGitCommands(
 
   d.register('git.stage-all', (req) async {
     try {
-      await gitStage(workDir, const []);
+      await git.stage(const []);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: const {'staged': 'all'});
     } on GitException catch (e) {
@@ -70,7 +75,7 @@ void registerGitCommands(
   d.register('git.unstage', (req) async {
     final paths = _pathList(req.args['paths']);
     try {
-      await gitUnstage(workDir, paths);
+      await git.unstage(paths);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: {'unstaged': paths});
     } on GitException catch (e) {
@@ -91,7 +96,7 @@ void registerGitCommands(
       );
     }
     try {
-      await gitStageHunk(workDir, patch);
+      await git.stageHunk(patch);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: const {'applied': true});
     } on GitException catch (e) {
@@ -112,7 +117,7 @@ void registerGitCommands(
       );
     }
     try {
-      await gitUnstageHunk(workDir, patch);
+      await git.unstageHunk(patch);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: const {'applied': true});
     } on GitException catch (e) {
@@ -133,7 +138,7 @@ void registerGitCommands(
       );
     }
     try {
-      await gitDiscard(workDir, paths);
+      await git.discard(paths);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: {'discarded': paths});
     } on GitException catch (e) {
@@ -154,7 +159,7 @@ void registerGitCommands(
       );
     }
     try {
-      final hash = await gitCommit(workDir, message);
+      final hash = await git.commit(message);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: {'hash': hash});
     } on GitException catch (e) {
@@ -166,7 +171,7 @@ void registerGitCommands(
     final message = req.args['message'] as String?;
     final includeUntracked = req.args['includeUntracked'] as bool? ?? false;
     try {
-      await gitStash(workDir, message: message, includeUntracked: includeUntracked);
+      await git.stash(message: message, includeUntracked: includeUntracked);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: const {'stashed': true});
     } on GitException catch (e) {
@@ -176,7 +181,7 @@ void registerGitCommands(
 
   d.register('git.stash-pop', (req) async {
     try {
-      await gitStashPop(workDir);
+      await git.stashPop();
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: const {'popped': true});
     } on GitException catch (e) {
@@ -185,16 +190,20 @@ void registerGitCommands(
   });
 
   d.register('git.log', (req) async {
-    final count = (req.args['count'] as num?)?.toInt() ?? 20;
-    final entries = await gitLog(workDir, count: count);
-    return IpcResponse.ok(id: req.id, data: {
-      'entries': [for (final e in entries) e.toJson()],
-    });
+    try {
+      final count = (req.args['count'] as num?)?.toInt() ?? 20;
+      final entries = await git.log(count: count);
+      return IpcResponse.ok(id: req.id, data: {
+        'entries': [for (final e in entries) e.toJson()],
+      });
+    } on GitException catch (e) {
+      return _gitError(req.id, e);
+    }
   });
 
   d.register('git.pull', (req) async {
     try {
-      final output = await gitPull(workDir);
+      final output = await git.pull();
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: {'output': output});
     } on GitException catch (e) {
@@ -207,12 +216,7 @@ void registerGitCommands(
     final branch = req.args['branch'] as String?;
     final setUpstream = req.args['setUpstream'] as bool? ?? false;
     try {
-      final output = await gitPush(
-        workDir,
-        remote: remote,
-        branch: branch,
-        setUpstream: setUpstream,
-      );
+      final output = await git.push(remote: remote, branch: branch, setUpstream: setUpstream);
       return IpcResponse.ok(id: req.id, data: {'output': output});
     } on GitException catch (e) {
       return _gitError(req.id, e);
@@ -220,13 +224,14 @@ void registerGitCommands(
   });
 
   d.register('git.branches', (req) async {
-    final branches = await gitBranches(workDir);
-    return IpcResponse.ok(id: req.id, data: {
-      'branches': [
-        for (final b in branches)
-          {'name': b.name, 'current': b.current},
-      ],
-    });
+    try {
+      final b = await git.branches();
+      return IpcResponse.ok(id: req.id, data: {
+        'branches': [for (final e in b) {'name': e.name, 'current': e.current}],
+      });
+    } on GitException catch (e) {
+      return _gitError(req.id, e);
+    }
   });
 
   d.register('git.checkout', (req) async {
@@ -242,7 +247,7 @@ void registerGitCommands(
       );
     }
     try {
-      await gitCheckout(workDir, branch);
+      await git.checkout(branch);
       _emitChanged(events);
       return IpcResponse.ok(id: req.id, data: {'branch': branch});
     } on GitException catch (e) {

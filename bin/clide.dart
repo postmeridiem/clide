@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/src/git/client.dart';
 // Daemon-only deep imports — these pull in dart:ffi (PTY) and
 // daemon-subsystem wiring that the Flutter app doesn't need and
 // can't compile for web. See lib/clide.dart for the barrel split.
@@ -142,20 +144,22 @@ Future<void> _runDaemon(List<String> args) async {
     socketPath: socketPath,
     dispatch: dispatcher.dispatch,
   );
-  final ptycPath = _resolvePtycPath();
+  final toolchain = Toolchain();
+  toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: Directory.current.path));
+
   final events = _ServerEventSink(server);
   final registry = PaneRegistry(events: events);
-  registerPaneCommands(dispatcher, registry, defaultPtycPath: ptycPath);
+  registerPaneCommands(dispatcher, registry, toolchain: toolchain);
 
   final files = FilesService.atCwd(events: events);
   registerFilesCommands(dispatcher, files);
 
   final editor = EditorRegistry(events: events, workspaceRoot: files.root);
   registerEditorCommands(dispatcher, editor);
+  final gitClient = GitClient(toolchain: toolchain, workDir: files.root);
+  registerGitCommands(dispatcher, gitClient, events);
 
-  registerGitCommands(dispatcher, files.root, events);
-
-  final pql = PqlClient(workDir: files.root);
+  final pql = PqlClient(workDir: files.root, toolchain: toolchain);
   registerPqlCommands(dispatcher, pql);
 
   final stopping = Completer<void>();

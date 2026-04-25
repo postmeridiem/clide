@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/kernel/src/toolchain.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/pql/client.dart';
 import 'package:test/test.dart';
@@ -10,7 +11,9 @@ void main() {
   late PqlClient pql;
 
   setUp(() {
-    pql = PqlClient(workDir: Directory.current);
+    final toolchain = Toolchain();
+    toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: Directory.current.path));
+    pql = PqlClient(workDir: Directory.current, toolchain: toolchain);
     dispatcher = DaemonDispatcher();
     registerPqlCommands(dispatcher, pql);
   });

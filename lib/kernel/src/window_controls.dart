@@ -65,4 +65,12 @@ class WindowControls extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Opens the native OS directory picker.
+  /// Returns the selected path, or null if the user cancelled.
+  /// Throws [MissingPluginException] if the platform has no handler,
+  /// so callers can fall back to a text-input dialog.
+  Future<String?> pickDirectory() {
+    return _channel.invokeMethod<String>('pickDirectory');
+  }
 }

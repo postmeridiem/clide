@@ -21,6 +21,7 @@ export 'src/editor/buffer.dart';
 export 'src/files/ignore.dart';
 export 'src/files/listing.dart' show FileEntry, listDir;
 export 'src/git/diff.dart' show GitDiff, GitHunk, DiffLine, DiffLineKind;
+export 'src/git/client.dart' show GitClient;
 export 'src/git/operations.dart' show GitLogEntry, GitException;
 export 'src/git/status.dart'
     show GitStatus, GitFileStatus, GitFileState, GitConflictType;

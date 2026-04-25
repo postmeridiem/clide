@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:flutter/widgets.dart';
 
 class WelcomeView extends StatelessWidget {
@@ -105,7 +106,25 @@ class _StartColumn extends StatelessWidget {
     );
   }
 
-  void _openFolder(BuildContext context) {
+  void _openFolder(BuildContext context) async {
+    try {
+      final picked = await kernel.window.pickDirectory();
+      if (picked != null) {
+        final ok = await kernel.project.open(picked);
+        if (ok) {
+          kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+        } else {
+          kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(
+            path: picked,
+            onDismiss: () => dismiss(),
+          ));
+        }
+      }
+      return;
+    } on MissingPluginException {
+      // Platform has no native picker — fall through to text dialog.
+    }
+
     kernel.dialog.show<String>((ctx, dismiss) {
       return _OpenProjectDialog(
         onOpen: (path) async {
@@ -242,20 +261,20 @@ class _StatusLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeName = kernel.theme.currentName;
     return ListenableBuilder(
-      listenable: kernel.toolCheck,
+      listenable: kernel.toolchain,
       builder: (ctx, _) {
-        final tc = kernel.toolCheck;
+        final tc = kernel.toolchain;
         return Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             ClideText('clide 2.0.0-dev', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
             ClideText('  ·  ', muted: true, fontSize: 12),
-            if (!tc.checked)
+            if (!tc.resolved)
               ClideText('checking…', muted: true, fontSize: 12, fontFamily: clideMonoFamily)
             else if (tc.allOk)
               ClideText('application ok', fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusSuccess)
             else
-              ClideText(tc.errors.join(' · '), fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusWarning),
+              ClideText(tc.missing.map((t) => '$t not found').join(' · '), fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusWarning),
             ClideText('  ·  ', muted: true, fontSize: 12),
             _ThemeLink(tokens: tokens, kernel: kernel, themeName: themeName),
           ],
@@ -372,6 +391,48 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
               ClideButton(label: 'Cancel', onPressed: widget.onCancel),
               const SizedBox(width: 8),
               ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotARepoDialog extends StatelessWidget {
+  const _NotARepoDialog({required this.path, required this.onDismiss});
+  final String path;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      width: 420,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: tokens.modalSurfaceBackground,
+        border: Border.all(color: tokens.modalSurfaceBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ClideText('No git repo found', fontSize: 16, fontWeight: FontWeight.w600),
+          const SizedBox(height: 8),
+          ClideText(path, muted: true, fontSize: 13),
+          const SizedBox(height: 8),
+          const ClideText(
+            'A clide project root requires a git repository.',
+            muted: true,
+            fontSize: 13,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ClideButton(label: 'OK', onPressed: () => onDismiss()),
             ],
           ),
         ],

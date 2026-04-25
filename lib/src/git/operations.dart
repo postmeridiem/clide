@@ -7,6 +7,26 @@ library;
 
 import 'dart:io';
 
+import '../pty/env.dart';
+
+/// Resolve git to an absolute path. On macOS the sandbox blocks bare
+/// `git` calls; Homebrew's git is a symlink into Cellar so we need
+/// the real resolved path.
+String get gitBin {
+  _gitBin ??= _resolveGit();
+  return _gitBin!;
+}
+String? _gitBin;
+
+String _resolveGit() {
+  for (final dir in expandedPath.split(':')) {
+    if (dir.isEmpty) continue;
+    final f = File('$dir/git');
+    if (f.existsSync()) return f.resolveSymbolicLinksSync();
+  }
+  return 'git';
+}
+
 class GitException implements Exception {
   const GitException(this.message, {this.stderr = ''});
   final String message;
@@ -52,7 +72,7 @@ Future<void> gitStage(Directory workDir, List<String> paths) async {
     args.add('--');
     args.addAll(paths);
   }
-  final r = await Process.run('git', args, workingDirectory: workDir.path);
+  final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git add failed', stderr: r.stderr as String);
   }
@@ -65,7 +85,7 @@ Future<void> gitUnstage(Directory workDir, List<String> paths) async {
     args.add('--');
     args.addAll(paths);
   }
-  final r = await Process.run('git', args, workingDirectory: workDir.path);
+  final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git reset failed', stderr: r.stderr as String);
   }
@@ -85,7 +105,7 @@ Future<void> gitUnstageHunk(Directory workDir, String patch) async {
 Future<void> gitDiscard(Directory workDir, List<String> paths) async {
   if (paths.isEmpty) return;
   final r = await Process.run(
-    'git',
+    gitBin,
     ['checkout', '--', ...paths],
     workingDirectory: workDir.path,
   );
@@ -102,13 +122,13 @@ Future<String> gitCommit(
 }) async {
   final args = ['commit', '-m', message];
   if (amend) args.add('--amend');
-  final r = await Process.run('git', args, workingDirectory: workDir.path);
+  final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git commit failed', stderr: r.stderr as String);
   }
   // Return the new commit hash.
   final hashResult = await Process.run(
-    'git',
+    gitBin,
     ['rev-parse', 'HEAD'],
     workingDirectory: workDir.path,
   );
@@ -126,7 +146,7 @@ Future<void> gitStash(
     args.addAll(['-m', message]);
   }
   if (includeUntracked) args.add('--include-untracked');
-  final r = await Process.run('git', args, workingDirectory: workDir.path);
+  final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git stash failed', stderr: r.stderr as String);
   }
@@ -135,7 +155,7 @@ Future<void> gitStash(
 /// Pop the top stash entry.
 Future<void> gitStashPop(Directory workDir) async {
   final r = await Process.run(
-    'git',
+    gitBin,
     ['stash', 'pop'],
     workingDirectory: workDir.path,
   );
@@ -150,7 +170,7 @@ Future<List<GitLogEntry>> gitLog(
   int count = 20,
 }) async {
   final r = await Process.run(
-    'git',
+    gitBin,
     [
       'log',
       '--format=%H%x00%h%x00%s%x00%an%x00%aI%x00%b%x01',
@@ -166,7 +186,7 @@ Future<List<GitLogEntry>> gitLog(
 /// Pull from remote.
 Future<String> gitPull(Directory workDir) async {
   final r = await Process.run(
-    'git',
+    gitBin,
     ['pull'],
     workingDirectory: workDir.path,
   );
@@ -187,7 +207,7 @@ Future<String> gitPush(
   if (setUpstream) args.add('-u');
   if (remote != null) args.add(remote);
   if (branch != null) args.add(branch);
-  final r = await Process.run('git', args, workingDirectory: workDir.path);
+  final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git push failed', stderr: r.stderr as String);
   }
@@ -198,7 +218,7 @@ Future<String> gitPush(
 Future<List<({String name, bool current})>> gitBranches(
     Directory workDir) async {
   final r = await Process.run(
-    'git',
+    gitBin,
     ['branch', '--format=%(refname:short)|%(HEAD)'],
     workingDirectory: workDir.path,
   );
@@ -218,7 +238,7 @@ Future<List<({String name, bool current})>> gitBranches(
 /// Checkout a branch.
 Future<void> gitCheckout(Directory workDir, String branch) async {
   final r = await Process.run(
-    'git',
+    gitBin,
     ['checkout', branch],
     workingDirectory: workDir.path,
   );
@@ -230,7 +250,7 @@ Future<void> gitCheckout(Directory workDir, String branch) async {
 /// Get the current branch name.
 Future<String?> gitCurrentBranch(Directory workDir) async {
   final r = await Process.run(
-    'git',
+    gitBin,
     ['symbolic-ref', '--short', 'HEAD'],
     workingDirectory: workDir.path,
   );

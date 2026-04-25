@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clide/app.dart';
+import 'package:clide/test_app.dart';
 import 'package:clide/builtin/canvas/canvas.dart';
 import 'package:clide/builtin/claude/claude.dart';
 import 'package:clide/builtin/claude_control/claude_control.dart';
@@ -28,6 +29,8 @@ import 'dart:io' show Directory, File, Platform;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/kernel/src/ipc/in_process.dart';
+import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/src/git/client.dart';
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
@@ -47,6 +50,13 @@ import 'package:flutter/widgets.dart';
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
 
+  // Test mode: skip the full app, run the test harness instead.
+  const testMode = bool.fromEnvironment('CLIDE_TESTMODE');
+  if (testMode) {
+    runApp(const ClideTestApp());
+    return;
+  }
+
   binding.ensureSemantics();
 
   TreeSitterLib.init();
@@ -54,25 +64,28 @@ Future<void> main() async {
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
 
+  final toolchain = Toolchain();
+
   final services = await KernelServices.boot(
     appDir: appDir,
     bundledThemes: themes,
     i18nLoader: AssetCatalogLoader(bundle: rootBundle),
     preloadNamespaces: _tier0Namespaces,
     autoStartDaemonClient: false,
+    toolchain: toolchain,
     daemonClientFactory: kIsWeb ? null : (log, events) {
       final dispatcher = DaemonDispatcher();
       final eventSink = _BusEventSink(events);
       final filesService = FilesService.atCwd(events: eventSink);
       final workRoot = filesService.root;
-      final ptycPath = _resolvePtyc(workRoot.path);
       final paneRegistry = PaneRegistry(events: eventSink);
-      registerPaneCommands(dispatcher, paneRegistry, defaultPtycPath: ptycPath);
+      registerPaneCommands(dispatcher, paneRegistry, toolchain: toolchain);
       registerFilesCommands(dispatcher, filesService);
       final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
       registerEditorCommands(dispatcher, editorRegistry);
-      registerGitCommands(dispatcher, workRoot, eventSink);
-      final pql = PqlClient(workDir: workRoot);
+      final gitClient = GitClient(toolchain: toolchain, workDir: workRoot);
+      registerGitCommands(dispatcher, gitClient, eventSink);
+      final pql = PqlClient(workDir: workRoot, toolchain: toolchain);
       registerPqlCommands(dispatcher, pql);
       return InProcessClient(log: log, events: events, dispatcher: dispatcher);
     },
@@ -115,7 +128,6 @@ Future<void> main() async {
   await services.extensions.activateAll();
 
   if (!kIsWeb) {
-    unawaited(services.toolCheck.check());
     await services.project.loadRecents();
     var opened = await services.project.openLast();
     if (!opened) {
@@ -127,6 +139,20 @@ Future<void> main() async {
   }
 
   runApp(ClideApp(services: services));
+
+  // Resolve toolchain after the first frame — resolveSymbolicLinksSync()
+  // blocks the merged UI/platform thread on macOS and prevents rendering
+  // if called before runApp.
+  if (!kIsWeb) {
+    // Defer toolchain resolution. On macOS the merged UI/platform thread
+    // cannot tolerate synchronous file I/O or isolate spawning during the
+    // first few frames. A short delay lets Flutter settle first.
+    Future.delayed(const Duration(seconds: 1), () {
+      const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+      final root = workspace.isNotEmpty ? workspace : Directory.current.path;
+      toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: root));
+    });
+  }
 }
 
 /// Resolve the app-settings directory.
@@ -161,18 +187,6 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// Every Tier-0 extension that ships an i18n catalog. Extensions
 /// registered but not active (the 17 stubs) don't preload — their
 /// catalogs load lazily on activate in later tiers.
-String _resolvePtyc(String repoRoot) {
-  final candidates = [
-    '$repoRoot/native/linux-x64/ptyc',
-    '$repoRoot/ptyc/bin/ptyc',
-    '${Platform.environment['HOME']}/.local/bin/ptyc',
-    'ptyc',
-  ];
-  for (final c in candidates) {
-    if (File(c).existsSync()) return c;
-  }
-  return 'ptyc';
-}
 
 class _BusEventSink implements DaemonEventSink {
   _BusEventSink(this._bus);

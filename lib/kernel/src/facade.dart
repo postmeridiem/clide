@@ -27,7 +27,7 @@ import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/loader.dart';
-import 'package:clide/kernel/src/tool_check.dart';
+import 'package:clide/kernel/src/toolchain.dart';
 import 'package:clide/kernel/src/tray.dart';
 import 'package:clide/kernel/src/window_controls.dart';
 import 'package:flutter/widgets.dart';
@@ -61,7 +61,7 @@ class KernelServices {
     required this.project,
     required this.extensions,
     required this.window,
-    required this.toolCheck,
+    required this.toolchain,
     required this.scheduler,
   });
 
@@ -89,7 +89,7 @@ class KernelServices {
   final ProjectManager project;
   final ExtensionManager extensions;
   final WindowControls window;
-  final ToolCheck toolCheck;
+  final Toolchain toolchain;
   final SchedulerService scheduler;
 
   static Future<KernelServices> boot({
@@ -103,6 +103,7 @@ class KernelServices {
     String? socketPath,
     DaemonClient Function(Logger, DaemonBus)? daemonClientFactory,
     bool autoStartDaemonClient = true,
+    Toolchain? toolchain,
   }) async {
     final log = Logger();
     final events = DaemonBus();
@@ -138,13 +139,14 @@ class KernelServices {
     final net = NetworkStatus();
     final focus = FocusTracker();
     final window = WindowControls();
-    final toolCheck = ToolCheck();
+    final tc = toolchain ?? Toolchain();
     final scheduler = SchedulerService(events);
     scheduler.start();
     final project = ProjectManager(
       log: log,
       events: events,
       settings: settings,
+      toolchain: tc,
     );
     final ipc = daemonClientFactory != null
         ? daemonClientFactory(log, events)
@@ -207,7 +209,7 @@ class KernelServices {
       project: project,
       extensions: extensions,
       window: window,
-      toolCheck: toolCheck,
+      toolchain: tc,
       scheduler: scheduler,
     );
   }

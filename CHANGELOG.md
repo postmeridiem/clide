@@ -18,6 +18,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Toolchain — centralized binary resolution replacing five ad-hoc
+  mechanisms. Resolves git, pql, tmux, ptyc, shell once at boot via
+  background isolate. Status bar reads `toolchain.missing` directly.
+
+- GitClient — typed Dart API wrapping all git operations. Every
+  subprocess call goes through `_run()` with toolchain-resolved path
+  and environment. Replaces scattered `Process.run('git', ...)` calls.
+
+- Native directory picker — macOS NSOpenPanel via method channel in
+  AppDelegate, GTK file chooser on Linux. Falls back to text-input
+  dialog on web. Shows "No git repo found" dialog on invalid selection.
+
 - macOS desktop target — OS-detecting Makefile (`make run` works on
   macOS/Linux/Windows), 1280x720 default window, squared app icons,
   sandbox entitlements with SBPL exceptions, `_DARWIN_C_SOURCE` for

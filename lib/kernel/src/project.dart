@@ -5,6 +5,7 @@ import 'package:clide/kernel/src/events/bus.dart';
 import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/settings.dart';
+import 'package:clide/kernel/src/toolchain.dart';
 import 'package:flutter/foundation.dart';
 
 class RecentProject {
@@ -47,13 +48,16 @@ class ProjectManager extends ChangeNotifier {
     required Logger log,
     required DaemonBus events,
     required SettingsStore settings,
+    required Toolchain toolchain,
   })  : _log = log,
         _events = events,
-        _settings = settings;
+        _settings = settings,
+        _toolchain = toolchain;
 
   final Logger _log;
   final DaemonBus _events;
   final SettingsStore _settings;
+  final Toolchain _toolchain;
 
   Directory? _current;
   Directory? get current => _current;
@@ -116,7 +120,7 @@ class ProjectManager extends ChangeNotifier {
 
   Future<String?> resolveWorkspace(String path) async {
     try {
-      final r = await Process.run('git', ['rev-parse', '--show-toplevel'], workingDirectory: path, runInShell: false);
+      final r = await Process.run(_toolchain.git, ['rev-parse', '--show-toplevel'], workingDirectory: path, environment: _toolchain.gitEnv);
       if (r.exitCode != 0) return null;
       final out = (r.stdout as String).trim();
       return out.isEmpty ? null : out;
@@ -128,7 +132,7 @@ class ProjectManager extends ChangeNotifier {
 
   Future<String?> _currentBranch(String root) async {
     try {
-      final r = await Process.run('git', ['rev-parse', '--abbrev-ref', 'HEAD'], workingDirectory: root, runInShell: false);
+      final r = await Process.run(_toolchain.git, ['rev-parse', '--abbrev-ref', 'HEAD'], workingDirectory: root, environment: _toolchain.gitEnv);
       if (r.exitCode != 0) return null;
       final out = (r.stdout as String).trim();
       return out.isEmpty ? null : out;
