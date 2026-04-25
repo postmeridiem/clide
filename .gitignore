@@ -41,7 +41,8 @@ coverage.*
 test/goldens/failures/
 
 # -- pql per-repo state (index + planning DB, rebuilt from markdown) ----
-/.pql/
+/.pql/*
+!/.pql/pql-plan.json
 
 # -- SQLite index files (defensive; should never land at repo root) ----
 *.sqlite
