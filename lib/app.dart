@@ -286,15 +286,7 @@ class _LeftHatContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) return const SizedBox.shrink();
-    if (!kIsWeb && Platform.isMacOS) {
-      return Row(children: [
-        _TrafficDot(color: const Color(0xFFFF5F57), onTap: wc.close),
-        const SizedBox(width: 6),
-        _TrafficDot(color: const Color(0xFFFEBC2E), onTap: wc.minimize),
-        const SizedBox(width: 6),
-        _TrafficDot(color: const Color(0xFF28C840), onTap: wc.toggleMaximize),
-      ]);
-    }
+    // On macOS the native titlebar draws traffic lights; skip duplicates.
     return const SizedBox.shrink();
   }
 }
@@ -432,8 +424,27 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
     widget.onDismiss();
   }
 
-  void _openFolder() {
+  void _openFolder() async {
     widget.onDismiss();
+
+    try {
+      final picked = await widget.kernel.window.pickDirectory();
+      if (picked != null) {
+        final ok = await widget.kernel.project.open(picked);
+        if (ok) {
+          widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+        } else {
+          widget.kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(
+            path: picked,
+            onDismiss: () => dismiss(),
+          ));
+        }
+      }
+      return;
+    } on MissingPluginException {
+      // Fall through to text dialog.
+    }
+
     widget.kernel.dialog.show<String>((ctx, dismiss) {
       return _OpenFolderDialog(
         onOpen: (path) async {
@@ -673,6 +684,48 @@ class _OpenFolderDialogState extends State<_OpenFolderDialog> {
               ClideButton(label: 'Cancel', onPressed: widget.onCancel),
               const SizedBox(width: 8),
               ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotARepoDialog extends StatelessWidget {
+  const _NotARepoDialog({required this.path, required this.onDismiss});
+  final String path;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      width: 420,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: tokens.modalSurfaceBackground,
+        border: Border.all(color: tokens.modalSurfaceBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ClideText('No git repo found', fontSize: 16, fontWeight: FontWeight.w600),
+          const SizedBox(height: 8),
+          ClideText(path, muted: true, fontSize: 13),
+          const SizedBox(height: 8),
+          const ClideText(
+            'A clide project root requires a git repository.',
+            muted: true,
+            fontSize: 13,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ClideButton(label: 'OK', onPressed: () => onDismiss()),
             ],
           ),
         ],
