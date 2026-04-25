@@ -1,4 +1,5 @@
-/// Default environment for PTY-spawned children.
+/// Default environment for PTY-spawned children and subprocess PATH
+/// expansion for macOS GUI apps.
 ///
 /// `xterm.dart` on the UI side + most shells + tmux + Claude CLI all
 /// understand the 24-bit-colour triplet `TERM=xterm-256color` +
@@ -6,6 +7,35 @@
 /// the 256-colour palette and the terminal looks washed out even though
 /// the renderer can do true colour.
 library;
+
+import 'dart:io';
+
+/// On macOS, GUI apps inherit a minimal PATH that omits Homebrew,
+/// ~/.local/bin, and similar directories. This getter returns the
+/// platform PATH with those well-known directories merged in.
+/// On Linux/Windows it returns the PATH unchanged.
+String get expandedPath {
+  _cachedPath ??= _buildExpandedPath();
+  return _cachedPath!;
+}
+
+String? _cachedPath;
+
+String _buildExpandedPath() {
+  final base = Platform.environment['PATH'] ?? '';
+  if (!Platform.isMacOS) return base;
+  final home = Platform.environment['HOME'] ?? '';
+  final extras = <String>[
+    if (home.isNotEmpty) '$home/.local/bin',
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+  ];
+  final existing = base.split(':').toSet();
+  final missing = extras.where((p) => !existing.contains(p));
+  if (missing.isEmpty) return base;
+  return [...missing, ...existing].join(':');
+}
 
 /// Base env clide's daemon builds for every PTY child. Callers merge
 /// with the user's environment before passing to `ptyc` — a child that

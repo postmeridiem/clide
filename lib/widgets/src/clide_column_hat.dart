@@ -57,21 +57,8 @@ class _LeftContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return const SizedBox.expand();
-    final isMac = !kIsWeb && Platform.isMacOS;
-    if (!isMac) return const SizedBox.expand();
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: Row(
-        children: [
-          _TrafficDot(color: const Color(0xFFFF5F57), onTap: wc.close),
-          const SizedBox(width: 6),
-          _TrafficDot(color: const Color(0xFFFEBC2E), onTap: wc.minimize),
-          const SizedBox(width: 6),
-          _TrafficDot(color: const Color(0xFF28C840), onTap: wc.toggleMaximize),
-        ],
-      ),
-    );
+    // On macOS the native titlebar draws traffic lights; skip duplicates.
+    return const SizedBox.expand();
   }
 }
 

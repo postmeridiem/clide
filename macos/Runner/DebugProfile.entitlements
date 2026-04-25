@@ -8,5 +8,24 @@
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<key>com.apple.security.temporary-exception.sbpl</key>
+	<array>
+		<string>(allow process-exec* (literal "/bin/zsh"))</string>
+		<string>(allow process-exec* (literal "/usr/bin/which"))</string>
+		<string>(allow process-exec* (subpath "/Users/jeroenschweitzer/.local/bin"))</string>
+		<string>(allow process-exec* (subpath "/Users/jeroenschweitzer/Projects/clide/ptyc/bin"))</string>
+		<string>(allow process-exec* (subpath "/Users/jeroenschweitzer/Projects/clide/native/dugite"))</string>
+		<string>(allow process-fork)</string>
+		<string>(allow file-read* file-write* (subpath "/Users/jeroenschweitzer/Projects"))</string>
+		<string>(allow file-read* file-write* (subpath "/Users/jeroenschweitzer/projects"))</string>
+		<string>(allow file-read* (subpath "/opt/homebrew"))</string>
+		<string>(allow file-read* (subpath "/Users/jeroenschweitzer/.local"))</string>
+		<string>(allow file-read* (subpath "/Users/jeroenschweitzer/.pql"))</string>
+		<string>(allow file-read* file-write* (subpath "/private/tmp"))</string>
+	</array>
 </dict>
 </plist>

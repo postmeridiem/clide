@@ -5,6 +5,19 @@
 
 INSTALL_DIR ?= $(HOME)/.local/bin
 
+# -- OS detection ------------------------------------------------------------
+# Maps uname to Flutter device/build targets: linux, macos, windows.
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+  FLUTTER_OS := linux
+else ifeq ($(UNAME_S),Darwin)
+  FLUTTER_OS := macos
+else
+  # Windows (MSYS2, Git Bash, Cygwin all report variants with "MINGW"/"MSYS"/"CYGWIN")
+  FLUTTER_OS := windows
+endif
+
 VERSION_BASE ?= $(shell awk -F': *' '/^version:/ {gsub(/[" ]/,"",$$2); print $$2; exit}' pubspec.yaml)
 COMMIT       ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 DIRTY        := $(shell git diff --quiet HEAD 2>/dev/null || echo .dirty)
@@ -19,7 +32,26 @@ help: ## Show this help.
 
 .PHONY: run
 run: ## Launch the Flutter desktop app.
-	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux
+ifeq ($(FLUTTER_OS),linux)
+	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_WORKSPACE=$(CURDIR)
+else
+	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_WORKSPACE=$(CURDIR)
+endif
+
+.PHONY: run-testmode
+run-testmode: ## Launch ClideTestApp (platform integration tests, auto-exits).
+ifeq ($(FLUTTER_OS),linux)
+	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} \
+	  flutter run -d linux --dart-define=CLIDE_WORKSPACE=$(CURDIR) --dart-define=CLIDE_TESTMODE=true 2>&1 \
+	  | tee /tmp/clide-testmode.log & PID=$$!; \
+	  (sleep 60 && kill $$PID 2>/dev/null) & TIMER=$$!; \
+	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; true
+else
+	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_WORKSPACE=$(CURDIR) --dart-define=CLIDE_TESTMODE=true 2>&1 \
+	  | tee /tmp/clide-testmode.log & PID=$$!; \
+	  (sleep 60 && kill $$PID 2>/dev/null) & TIMER=$$!; \
+	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; true
+endif
 
 .PHONY: pubget
 pubget: ## flutter pub get.
@@ -27,7 +59,11 @@ pubget: ## flutter pub get.
 
 .PHONY: build-check
 build-check: ## Verify native + Dart build compiles (no run).
+ifeq ($(FLUTTER_OS),linux)
 	LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter build linux
+else
+	flutter build $(FLUTTER_OS)
+endif
 
 .PHONY: analyze
 analyze: ## flutter analyze.
@@ -85,6 +121,10 @@ ui-smoke: ## Build + serve + run Playwright smoke + stop.
 	tools/ui/serve.sh
 	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test smoke.spec.ts'
 
+.PHONY: build
+build: ## flutter build for the current OS.
+	flutter build $(FLUTTER_OS)
+
 .PHONY: build-linux
 build-linux: ## flutter build linux (desktop bundle).
 	flutter build linux
@@ -92,6 +132,38 @@ build-linux: ## flutter build linux (desktop bundle).
 .PHONY: build-macos
 build-macos: ## flutter build macos (desktop bundle).
 	flutter build macos
+
+# -- dugite-native (bundled git) ------------------------------------------
+
+DUGITE_VERSION := v2.53.0-3
+DUGITE_COMMIT  := f49d009
+
+ifeq ($(FLUTTER_OS),macos)
+  ifeq ($(shell uname -m),arm64)
+    DUGITE_PLATFORM := macOS-arm64
+  else
+    DUGITE_PLATFORM := macOS-x64
+  endif
+else ifeq ($(FLUTTER_OS),linux)
+  DUGITE_PLATFORM := ubuntu-x64
+else
+  DUGITE_PLATFORM := windows-x64
+endif
+
+DUGITE_TAR := dugite-native-v2.53.0-$(DUGITE_COMMIT)-$(DUGITE_PLATFORM).tar.gz
+DUGITE_URL := https://github.com/desktop/dugite-native/releases/download/$(DUGITE_VERSION)/$(DUGITE_TAR)
+DUGITE_DIR := native/dugite
+
+.PHONY: dugite-fetch
+dugite-fetch: ## Download and extract the dugite-native git distribution.
+	@if [ -f $(DUGITE_DIR)/bin/git ]; then echo "dugite already present at $(DUGITE_DIR)/bin/git"; exit 0; fi
+	@mkdir -p $(DUGITE_DIR)
+	curl -sL "$(DUGITE_URL)" | tar xz -C $(DUGITE_DIR)
+	@echo "dugite-native $(DUGITE_VERSION) ($(DUGITE_PLATFORM)) extracted to $(DUGITE_DIR)/"
+
+.PHONY: dugite-clean
+dugite-clean: ## Remove the dugite-native directory.
+	rm -rf $(DUGITE_DIR)
 
 # -- ptyc (C supporter tool) ---------------------------------------------
 

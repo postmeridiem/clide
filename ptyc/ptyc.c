@@ -18,6 +18,9 @@
 
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 600
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE  /* CMSG_SPACE / CMSG_LEN on macOS */
+#endif
 
 #include <ctype.h>
 #include <errno.h>

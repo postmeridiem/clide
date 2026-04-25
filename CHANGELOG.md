@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- macOS desktop target — OS-detecting Makefile (`make run` works on
+  macOS/Linux/Windows), 1280x720 default window, squared app icons,
+  sandbox entitlements with SBPL exceptions, `_DARWIN_C_SOURCE` for
+  ptyc compilation, native traffic dots skipped (macOS titlebar owns
+  them), expanded PATH for Homebrew and `~/.local/bin` on GUI apps.
+
 - Shared ClideFilterBox widget with search icon, clear button, and
   debounced input. Applied consistently across all sidebar panes:
   Files (path filter with flat results), Git (filter staged/unstaged
