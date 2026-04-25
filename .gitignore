@@ -1,3 +1,6 @@
+# -- macOS sandbox (machine-specific paths; template is committed) ------
+/macos/Runner/DebugProfile.entitlements
+
 # -- Flutter / Dart (single package at repo root) -----------------------
 /.dart_tool/
 /.packages
@@ -26,6 +29,9 @@ tools/ui/.serve.pid
 # -- ptyc (C supporter tool) --------------------------------------------
 /ptyc/bin/
 /ptyc/*.o
+
+# -- dugite-native (bundled git, downloaded at build time) ---------------
+/native/dugite/
 
 # -- Test, coverage, profile output ------------------------------------
 *.test

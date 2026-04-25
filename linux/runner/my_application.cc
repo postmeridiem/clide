@@ -219,6 +219,25 @@ static void my_application_activate(GApplication* application) {
         } else if (g_strcmp0(method, "isMaximized") == 0) {
           response = FL_METHOD_RESPONSE(fl_method_success_response_new(
               fl_value_new_bool(gtk_window_is_maximized(w))));
+        } else if (g_strcmp0(method, "pickDirectory") == 0) {
+          GtkWidget* dialog = gtk_file_chooser_dialog_new(
+              "Select a project folder", w,
+              GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+              "_Cancel", GTK_RESPONSE_CANCEL,
+              "_Open", GTK_RESPONSE_ACCEPT,
+              nullptr);
+          gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+          if (res == GTK_RESPONSE_ACCEPT) {
+            g_autofree gchar* folder =
+                gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            g_autoptr(FlValue) val = fl_value_new_string(folder);
+            response = FL_METHOD_RESPONSE(
+                fl_method_success_response_new(val));
+          } else {
+            response = FL_METHOD_RESPONSE(
+                fl_method_success_response_new(fl_value_new_null()));
+          }
+          gtk_widget_destroy(dialog);
         } else {
           response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
         }
