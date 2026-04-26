@@ -478,7 +478,7 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
       focusNode: _focus,
       onKeyEvent: _onKey,
       child: Container(
-        width: 380,
+        width: 480,
         constraints: const BoxConstraints(maxHeight: 420),
         decoration: BoxDecoration(
           color: tokens.dropdownBackground,
@@ -513,10 +513,10 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
               decoration: BoxDecoration(border: Border(top: BorderSide(color: tokens.dividerColor))),
               child: Column(
                 children: [
-                  _ActionRow(label: 'Open Local Project', shortcut: 'Ctrl+O', tokens: tokens, onTap: _openFolder),
-                  _ActionRow(label: 'New Window', shortcut: 'Ctrl+Shift+N', tokens: tokens, onTap: _newWindow),
+                  _ActionRow(label: 'Open Local Project', shortcut: Platform.isMacOS ? '⌘O' : 'Ctrl+O', tokens: tokens, onTap: _openFolder),
+                  _ActionRow(label: 'New Window', shortcut: Platform.isMacOS ? '⌘⇧N' : 'Ctrl+Shift+N', tokens: tokens, onTap: _newWindow),
                   if (widget.kernel.project.isOpen)
-                    _ActionRow(label: 'Close Workspace', shortcut: '', tokens: tokens, onTap: _closeWorkspace),
+                    _ActionRow(label: 'Close Project', shortcut: '', tokens: tokens, onTap: _closeWorkspace),
                 ],
               ),
             ),
