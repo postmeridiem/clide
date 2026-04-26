@@ -1,20 +1,35 @@
 /// ClideTestApp — standalone test harness for platform integration.
 ///
-/// Launched via `make run-testmode`. Runs a table of exec tests against
-/// external binaries, prints results to stdout (captured by the make
-/// target), then exits after 15 seconds. Add test cases here whenever
-/// you need to isolate a platform issue without the full app.
+/// Launched via `make run-testmode`. Runs a table of tests against
+/// external binaries, IPC, and extension lifecycle, prints structured
+/// results to stdout, then exits. Non-zero exit on any failure.
+///
+/// Categories (via CLIDE_TESTMODE dart-define):
+///   true / all  — run every category
+///   toolchain   — binary resolution + exec only
+///   ipc         — IPC dispatcher round-trip only
+///   extensions  — extension register + activate only
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
+import 'builtin/diff/diff.dart';
+import 'builtin/files/files.dart';
+import 'builtin/git/git.dart';
+import 'builtin/terminal/terminal.dart';
+import 'extension/extension.dart' show ClideExtension;
+import 'kernel/kernel.dart';
 import 'kernel/src/toolchain.dart';
+import 'src/daemon/dispatcher.dart';
+import 'src/ipc/envelope.dart';
 import 'src/pty/env.dart' show expandedPath;
 
-const _timeout = Duration(seconds: 15);
+const _timeout = Duration(seconds: 30);
 
 class ClideTestApp extends StatefulWidget {
   const ClideTestApp({super.key});
@@ -33,23 +48,55 @@ class _ClideTestAppState extends State<ClideTestApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _runTests());
     Timer(_timeout, () {
       print('[testmode] timeout reached — exiting');
-      exit(0);
+      exit(1);
     });
   }
 
   Future<void> _runTests() async {
     const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+    const category = String.fromEnvironment('CLIDE_TESTMODE');
     final workDir = workspace.isNotEmpty ? workspace : Directory.current.path;
+
+    final runAll = category.isEmpty || category == 'true' || category == 'all';
+    final runToolchain = runAll || category == 'toolchain';
+    final runIpc = runAll || category == 'ipc';
+    final runExtensions = runAll || category == 'extensions';
 
     print('[testmode] === ClideTestApp starting ===');
     print('[testmode] workspace=$workDir');
     print('[testmode] cwd=${Directory.current.path}');
+    print('[testmode] category=${runAll ? "all" : category}');
     print('[testmode] expandedPath=$expandedPath');
     print('[testmode]');
 
-    // Resolve toolchain
     final tc = Toolchain();
     tc.applyResolved(Toolchain.resolvePaths(workspaceRoot: workDir));
+
+    if (runToolchain) await _runToolchainTests(tc, workDir);
+    if (runIpc) await _runIpcTests(workDir);
+    if (runExtensions) await _runExtensionTests(workDir, tc);
+
+    final passed = _results.where((r) => r.ok).length;
+    final failed = _results.where((r) => !r.ok).length;
+    final failedNames = _results.where((r) => !r.ok).map((r) => r.name).toList();
+
+    print('[testmode] === done ($passed passed, $failed failed, ${_results.length} total) ===');
+    print('[testmode:json] ${jsonEncode({
+      'passed': passed,
+      'failed': failed,
+      'total': _results.length,
+      'failures': failedNames,
+    })}');
+
+    setState(() => _done = true);
+    await Future<void>.delayed(const Duration(seconds: 2));
+    exit(failed > 0 ? 1 : 0);
+  }
+
+  // -- toolchain category ---------------------------------------------------
+
+  Future<void> _runToolchainTests(Toolchain tc, String workDir) async {
+    print('[testmode] --- toolchain ---');
     _log('toolchain.git', tc.git);
     _log('toolchain.pql', tc.pql);
     _log('toolchain.tmux', tc.tmux);
@@ -58,48 +105,171 @@ class _ClideTestAppState extends State<ClideTestApp> {
     _log('toolchain.missing', tc.missing.isEmpty ? 'none' : tc.missing.join(', '));
     print('[testmode]');
 
-    // Existence checks
     await _testExists('git', tc.git);
     await _testExists('pql', tc.pql);
     await _testExists('tmux', tc.tmux);
     await _testExists('ptyc', tc.ptyc);
-    await _testExists('zsh', tc.shell);
+    await _testExists('shell', tc.shell);
     print('[testmode]');
 
-    // Direct exec tests
     await _testExec('git --version', tc.git, ['--version'], workDir);
     await _testExec('pql --version', tc.pql, ['--version'], workDir);
     await _testExec('tmux -V', tc.tmux, ['-V'], workDir);
     await _testExec('ptyc (no args)', tc.ptyc, [], workDir);
-    await _testExec('zsh --version', tc.shell, ['--version'], workDir);
+    await _testExec('shell --version', tc.shell, ['--version'], workDir);
     print('[testmode]');
 
-    // zsh passthrough tests
-    await _testExec('zsh -c git', '/bin/zsh', ['-c', '${tc.git} --version'], workDir);
-    await _testExec('zsh -c pql', '/bin/zsh', ['-c', '${tc.pql} --version'], workDir);
-    await _testExec('zsh -c tmux', '/bin/zsh', ['-c', '${tc.tmux} -V'], workDir);
-    await _testExec('zsh -c git (bare)', '/bin/zsh', ['-c', 'git --version'], workDir);
+    // Shell passthrough — use the resolved shell, not a hardcoded path
+    await _testExec('shell -c git', tc.shell, ['-c', '${tc.git} --version'], workDir);
+    await _testExec('shell -c pql', tc.shell, ['-c', '${tc.pql} --version'], workDir);
+    await _testExec('shell -c tmux', tc.shell, ['-c', '${tc.tmux} -V'], workDir);
+    await _testExec('shell -c git (bare)', tc.shell, ['-c', 'git --version'], workDir);
     print('[testmode]');
 
     // git with env (dugite needs GIT_EXEC_PATH)
-    await _testExec('git --version (with env)', tc.git, ['--version'], workDir, env: tc.gitEnv);
-    await _testExec('git status (with env)', tc.git, ['status', '--porcelain'], workDir, env: tc.gitEnv);
-    await _testExec('git rev-parse (with env)', tc.git, ['rev-parse', '--show-toplevel'], workDir, env: tc.gitEnv);
+    await _testExec('git --version (env)', tc.git, ['--version'], workDir, env: tc.gitEnv);
+    await _testExec('git status (env)', tc.git, ['status', '--porcelain'], workDir, env: tc.gitEnv);
+    await _testExec('git rev-parse (env)', tc.git, ['rev-parse', '--show-toplevel'], workDir, env: tc.gitEnv);
     print('[testmode]');
 
-    print('[testmode] gitEnv = ${tc.gitEnv}');
+    _log('gitEnv', '${tc.gitEnv}');
     print('[testmode]');
-
-    print('[testmode] === done (${_results.length} tests) ===');
-    setState(() => _done = true);
-
-    // Give the UI a moment to render, then exit.
-    await Future<void>.delayed(const Duration(seconds: 3));
-    exit(0);
   }
+
+  // -- ipc category ---------------------------------------------------------
+
+  Future<void> _runIpcTests(String workDir) async {
+    print('[testmode] --- ipc ---');
+    final dispatcher = DaemonDispatcher();
+
+    // ping round-trip
+    final pingReq = IpcRequest(id: 'test-ping-1', cmd: 'ping');
+    final pingResp = await dispatcher.dispatch(pingReq);
+    _addResult(
+      'ipc ping',
+      pingResp.ok && pingResp.data['pong'] == true,
+      pingResp.ok ? 'pong=${pingResp.data['pong']}' : 'error: ${pingResp.error?.message}',
+    );
+
+    // version round-trip
+    final verReq = IpcRequest(id: 'test-ver-1', cmd: 'version');
+    final verResp = await dispatcher.dispatch(verReq);
+    final version = verResp.data['version'];
+    _addResult(
+      'ipc version',
+      verResp.ok && version is String && version.isNotEmpty,
+      'version=$version',
+    );
+
+    // unknown command → notFound
+    final badReq = IpcRequest(id: 'test-bad-1', cmd: 'no_such_command');
+    final badResp = await dispatcher.dispatch(badReq);
+    _addResult(
+      'ipc unknown cmd',
+      !badResp.ok && badResp.error?.kind == 'not_found',
+      badResp.ok ? 'unexpected ok' : 'kind=${badResp.error?.kind}',
+    );
+
+    // envelope encode/decode round-trip
+    final encoded = pingReq.encode();
+    final decoded = IpcMessage.decode(encoded);
+    final isReq = decoded is IpcRequest && decoded.cmd == 'ping' && decoded.id == 'test-ping-1';
+    _addResult('ipc encode/decode', isReq, isReq ? 'round-trip ok' : 'mismatch');
+
+    print('[testmode]');
+  }
+
+  // -- extensions category --------------------------------------------------
+
+  Future<void> _runExtensionTests(String workDir, Toolchain tc) async {
+    print('[testmode] --- extensions ---');
+
+    // Theme loading
+    try {
+      const loader = ThemeLoader();
+      const paths = [
+        'lib/kernel/src/theme/themes/clide.yaml',
+        'lib/kernel/src/theme/themes/midnight.yaml',
+        'lib/kernel/src/theme/themes/paper.yaml',
+        'lib/kernel/src/theme/themes/terminal.yaml',
+      ];
+      for (final p in paths) {
+        final name = p.split('/').last.replaceAll('.yaml', '');
+        try {
+          final theme = await loader.fromAsset(rootBundle, p);
+          _addResult('theme:$name', true, 'loaded (${theme.name})');
+        } catch (e) {
+          _addResult('theme:$name', false, '$e');
+        }
+      }
+    } catch (e) {
+      _addResult('theme:init', false, '$e');
+    }
+
+    // Extension lifecycle — register + activate core built-ins
+    try {
+      final appDir = Directory('/tmp/clide-testmode-${DateTime.now().millisecondsSinceEpoch}');
+      await appDir.create(recursive: true);
+      final themes = <ThemeDefinition>[];
+      try {
+        const loader = ThemeLoader();
+        themes.add(await loader.fromAsset(rootBundle, 'lib/kernel/src/theme/themes/clide.yaml'));
+      } catch (_) {}
+
+      final services = await KernelServices.boot(
+        appDir: appDir,
+        bundledThemes: themes,
+        i18nLoader: AssetCatalogLoader(bundle: rootBundle),
+        preloadNamespaces: const [],
+        autoStartDaemonClient: false,
+        toolchain: tc,
+      );
+
+      final extensions = <ClideExtension>[
+        DiffExtension(),
+        FilesExtension(),
+        GitExtension(),
+        TerminalExtension(),
+      ];
+
+      for (final ext in extensions) {
+        try {
+          services.extensions.register(ext);
+          _addResult('ext:register:${ext.id}', true, 'ok');
+        } catch (e) {
+          _addResult('ext:register:${ext.id}', false, '$e');
+        }
+      }
+
+      try {
+        await services.extensions.activateAll();
+        for (final ext in extensions) {
+          final active = services.extensions.isActivated(ext.id);
+          _addResult('ext:activate:${ext.id}', active, active ? 'active' : 'not active');
+        }
+      } catch (e) {
+        _addResult('ext:activateAll', false, '$e');
+      }
+
+      // Cleanup
+      try { await appDir.delete(recursive: true); } catch (_) {}
+    } catch (e) {
+      _addResult('ext:boot', false, '$e');
+    }
+
+    print('[testmode]');
+  }
+
+  // -- helpers --------------------------------------------------------------
 
   void _log(String key, String value) {
     print('[testmode] $key = $value');
+  }
+
+  void _addResult(String name, bool ok, String output) {
+    final r = _TestResult(name: name, detail: '', ok: ok, output: output);
+    print('[testmode] ${ok ? "PASS" : "FAIL"} | $name | $output');
+    setState(() => _results.add(r));
   }
 
   Future<void> _testExists(String name, String path) async {
@@ -116,7 +286,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
       final stdout = (r.stdout as String).trim();
       final stderr = (r.stderr as String).trim();
       final firstLine = stdout.isNotEmpty ? stdout.split('\n').first : (stderr.isNotEmpty ? stderr.split('\n').first : '(empty)');
-      final ok = r.exitCode == 0 || r.exitCode == 1; // exit 1 is acceptable for some tools
+      final ok = r.exitCode == 0 || r.exitCode == 1;
       final result = _TestResult(name: label, detail: '$bin ${args.join(" ")}', ok: ok, output: 'exit=${r.exitCode} $firstLine');
       print('[testmode] exec  | $label | exit=${r.exitCode} | ${ok ? "OK" : "FAIL"} | $firstLine');
       setState(() => _results.add(result));
@@ -143,7 +313,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
           children: [
             const Text('ClideTestApp', style: TextStyle(color: Color(0xFFCDD6F4), fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
             const SizedBox(height: 4),
-            Text(_done ? 'Done — exiting in 3s' : 'Running tests...', style: const TextStyle(color: Color(0xFF6C7086), fontSize: 13, decoration: TextDecoration.none)),
+            Text(_done ? 'Done — exiting' : 'Running tests...', style: const TextStyle(color: Color(0xFF6C7086), fontSize: 13, decoration: TextDecoration.none)),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
@@ -156,7 +326,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
                       children: [
                         Text(r.ok ? '●' : '●', style: TextStyle(color: r.ok ? const Color(0xFFA6E3A1) : const Color(0xFFF38BA8), fontSize: 12, decoration: TextDecoration.none)),
                         const SizedBox(width: 8),
-                        SizedBox(width: 200, child: Text(r.name, style: const TextStyle(color: Color(0xFFCDD6F4), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none))),
+                        SizedBox(width: 220, child: Text(r.name, style: const TextStyle(color: Color(0xFFCDD6F4), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none))),
                         Expanded(child: Text(r.output, style: const TextStyle(color: Color(0xFF9399B2), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none), overflow: TextOverflow.ellipsis)),
                       ],
                     ),

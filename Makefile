@@ -38,19 +38,27 @@ else
 	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_WORKSPACE=$(CURDIR)
 endif
 
+TESTMODE_CATEGORY ?= all
+
 .PHONY: run-testmode
-run-testmode: ## Launch ClideTestApp (platform integration tests, auto-exits).
+run-testmode: ## Launch ClideTestApp (TESTMODE_CATEGORY=toolchain|ipc|extensions|all).
 ifeq ($(FLUTTER_OS),linux)
-	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} \
-	  flutter run -d linux --dart-define=CLIDE_WORKSPACE=$(CURDIR) --dart-define=CLIDE_TESTMODE=true 2>&1 \
+	@GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} \
+	  flutter run -d linux \
+	    --dart-define=CLIDE_WORKSPACE=$(CURDIR) \
+	    --dart-define=CLIDE_TESTMODE=$(TESTMODE_CATEGORY) 2>&1 \
 	  | tee /tmp/clide-testmode.log & PID=$$!; \
 	  (sleep 60 && kill $$PID 2>/dev/null) & TIMER=$$!; \
-	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; true
+	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; \
+	  grep -q '"failed":0' /tmp/clide-testmode.log
 else
-	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_WORKSPACE=$(CURDIR) --dart-define=CLIDE_TESTMODE=true 2>&1 \
+	@flutter run -d $(FLUTTER_OS) \
+	    --dart-define=CLIDE_WORKSPACE=$(CURDIR) \
+	    --dart-define=CLIDE_TESTMODE=$(TESTMODE_CATEGORY) 2>&1 \
 	  | tee /tmp/clide-testmode.log & PID=$$!; \
 	  (sleep 60 && kill $$PID 2>/dev/null) & TIMER=$$!; \
-	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; true
+	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; \
+	  grep -q '"failed":0' /tmp/clide-testmode.log
 endif
 
 .PHONY: pubget

@@ -51,8 +51,8 @@ Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
 
   // Test mode: skip the full app, run the test harness instead.
-  const testMode = bool.fromEnvironment('CLIDE_TESTMODE');
-  if (testMode) {
+  const testMode = String.fromEnvironment('CLIDE_TESTMODE');
+  if (testMode.isNotEmpty) {
     runApp(const ClideTestApp());
     return;
   }

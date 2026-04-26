@@ -16,6 +16,17 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed desktop binary from `clide_app` to `clide` (Linux + macOS).
+
+- macOS app icon uses the black-circle variant matching the Linux
+  desktop icon.
+
+- ClideTestApp expanded to three test categories (toolchain, ipc,
+  extensions) with JSON summary, non-zero exit on failure, and
+  `make run-testmode TESTMODE_CATEGORY=<cat>` for selective runs.
+
 ### Added
 
 - Toolchain — centralized binary resolution replacing five ad-hoc
