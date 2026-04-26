@@ -33,9 +33,11 @@ TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-120}
 # Run dart test in its own process group so we can kill descendants on
 # timeout. `setsid` starts a new session; `timeout --kill-after` SIGKILLs
 # after SIGTERM if the test ignores it.
-echo "test-core: dart test test/  (timeout ${TIMEOUT_SECONDS}s)"
+CORE_DIRS="test/ipc test/pty test/daemon test/git test/panes test/files test/editor test/cli test/pql"
+
+echo "test-core: dart test ${CORE_DIRS}  (timeout ${TIMEOUT_SECONDS}s)"
 if ! timeout --kill-after=5s "${TIMEOUT_SECONDS}s" \
-     setsid --wait dart test test/ ; then
+     setsid --wait dart test $CORE_DIRS ; then
   rc=$?
   if [[ $rc -eq 124 ]]; then
     echo "test-core: TIMEOUT — killing descendants" >&2

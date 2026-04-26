@@ -5,4 +5,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> a11y suite"
-(cd app && flutter test test/a11y/)
+flutter test test/a11y/

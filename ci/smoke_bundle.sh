@@ -10,10 +10,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-BUNDLE="app/build/linux/x64/release/bundle/clide_app"
+BUNDLE="build/linux/x64/release/bundle/clide"
 
 echo "==> build linux release bundle"
-(cd app && flutter build linux --release)
+flutter build linux --release
 
 if [[ ! -x "$BUNDLE" ]]; then
   echo "smoke: bundle not found at $BUNDLE" >&2

@@ -6,7 +6,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-cd app
 for f in integration_test/*_test.dart; do
   echo "==> integration_test: $f"
   flutter test "$f"
