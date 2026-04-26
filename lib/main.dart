@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:clide/app.dart';
 import 'package:clide/test_app.dart';
 import 'package:clide/builtin/canvas/canvas.dart';
@@ -56,12 +54,11 @@ Future<void> main() async {
   final themes = await _loadBundledThemes();
 
   // Spawn the backend isolate — all subprocess and file I/O runs there.
-  // The main isolate stays free for rendering on the merged UI thread.
+  // Phase 1: resolve toolchain (binary availability only, no workspace).
+  // Phase 2: openProject() initializes services when a project opens.
   const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
-  final workspaceRoot = workspace.isNotEmpty ? workspace : Directory.current.path;
-
   final backend = kIsWeb ? null : await Backend.spawn(
-    workspaceRoot: workspaceRoot,
+    hintRoot: workspace.isNotEmpty ? workspace : null,
     clientFactory: (backendPort) => IsolateClient(
       log: Logger(),
       events: DaemonBus(),
@@ -79,6 +76,12 @@ Future<void> main() async {
     autoStartDaemonClient: false,
     toolchain: toolchain,
     isolateClient: backend?.client,
+    onProjectOpen: backend != null
+        ? (path) => backend.openProject(path)
+        : null,
+    onValidateProject: backend != null
+        ? (path) => backend.validateProject(path)
+        : null,
   );
 
   // Register every built-in. Tier 0 activates only the four that do
@@ -118,25 +121,6 @@ Future<void> main() async {
   await services.extensions.activateAll();
 
   runApp(ClideApp(services: services));
-
-  // macOS merged thread: let several frames paint, then resolve in an
-  // isolate, then load the project. Both the delay AND the isolate are
-  // needed — synchronous file I/O freezes even after frames have painted,
-  // and isolate spawn freezes if done too early.
-  if (!kIsWeb) {
-    const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
-    final root = workspace.isNotEmpty ? workspace : Directory.current.path;
-    toolchain.applyResolved(resolveToolchainPaths(root));
-
-    await services.project.loadRecents();
-    var opened = await services.project.openLast();
-    if (!opened) {
-      opened = await services.project.open(Directory.current.path);
-    }
-    if (opened) {
-      services.panels.activateTab(Slots.workspace, 'claude.primary');
-    }
-  }
 }
 
 /// Resolve the app-settings directory.

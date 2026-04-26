@@ -32,6 +32,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Backend isolate — all subprocess and file I/O runs in a dedicated
   isolate, keeping the merged UI/platform thread on macOS free for
   rendering. Communicates via SendPort using the existing IPC protocol.
+  Two-phase boot: resolve toolchain on spawn, initialize services on
+  project open. Scheduler ticker only runs while a project is active.
 
 - Toolchain — centralized binary resolution replacing five ad-hoc
   mechanisms. Resolves git, pql, tmux, ptyc, shell once at boot via

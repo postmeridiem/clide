@@ -105,6 +105,8 @@ class KernelServices {
     DaemonClient? isolateClient,
     bool autoStartDaemonClient = true,
     Toolchain? toolchain,
+    Future<void> Function(String path)? onProjectOpen,
+    Future<String?> Function(String path)? onValidateProject,
   }) async {
     final log = Logger();
     final events = DaemonBus();
@@ -148,6 +150,8 @@ class KernelServices {
       events: events,
       settings: settings,
       toolchain: tc,
+      onProjectOpen: onProjectOpen,
+      onValidateProject: onValidateProject,
     );
     final ipc = isolateClient
         ?? (daemonClientFactory != null

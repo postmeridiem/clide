@@ -36,9 +36,27 @@ class SchedulerService {
   Isolate? _isolate;
   ReceivePort? _port;
   StreamSubscription<dynamic>? _sub;
+  StreamSubscription<dynamic>? _projectSub;
 
+  /// Listen for project lifecycle events. The periodic ticker only runs
+  /// while a project is open — no wasted cycles on the welcome screen.
   void start() {
-    if (_isolate != null) return;
+    _projectSub = _events.on<ProjectOpened>().listen((_) => _startTicker());
+    _events.on<ProjectClosed>().listen((_) => _stopTicker());
+  }
+
+  /// Start the periodic ticker and fire an immediate first cycle so
+  /// all panels refresh without waiting for the first interval.
+  void _startTicker() {
+    _stopTicker();
+
+    // Immediate first tick for all tiers.
+    for (final tier in SchedulerTier.values) {
+      if (tier == SchedulerTier.midnight) continue;
+      _events.emit(SchedulerTick(tier: tier));
+    }
+
+    // Then start the periodic isolate.
     _port = ReceivePort();
     _sub = _port!.listen((msg) {
       if (msg is String) {
@@ -47,6 +65,15 @@ class SchedulerService {
       }
     });
     Isolate.spawn(_isolateEntry, _port!.sendPort).then((iso) => _isolate = iso);
+  }
+
+  void _stopTicker() {
+    _sub?.cancel();
+    _port?.close();
+    _isolate?.kill(priority: Isolate.immediate);
+    _isolate = null;
+    _port = null;
+    _sub = null;
   }
 
   static void _isolateEntry(SendPort send) {
@@ -67,11 +94,7 @@ class SchedulerService {
   }
 
   void dispose() {
-    _sub?.cancel();
-    _port?.close();
-    _isolate?.kill(priority: Isolate.immediate);
-    _isolate = null;
-    _port = null;
-    _sub = null;
+    _projectSub?.cancel();
+    _stopTicker();
   }
 }

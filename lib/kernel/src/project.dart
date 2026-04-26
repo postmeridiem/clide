@@ -49,15 +49,21 @@ class ProjectManager extends ChangeNotifier {
     required DaemonBus events,
     required SettingsStore settings,
     required Toolchain toolchain,
+    Future<void> Function(String path)? onProjectOpen,
+    Future<String?> Function(String path)? onValidateProject,
   })  : _log = log,
         _events = events,
         _settings = settings,
-        _toolchain = toolchain;
+        _toolchain = toolchain,
+        _onProjectOpen = onProjectOpen,
+        _onValidateProject = onValidateProject;
 
   final Logger _log;
   final DaemonBus _events;
   final SettingsStore _settings;
   final Toolchain _toolchain;
+  final Future<void> Function(String path)? _onProjectOpen;
+  final Future<String?> Function(String path)? _onValidateProject;
 
   Directory? _current;
   Directory? get current => _current;
@@ -81,12 +87,18 @@ class ProjectManager extends ChangeNotifier {
   }
 
   Future<bool> open(String path) async {
-    final root = await resolveWorkspace(path);
+    final root = await resolveProject(path);
     if (root == null) {
       _log.warn('project', 'not a git repo: $path');
       return false;
     }
     _current = Directory(root);
+
+    // Tell the backend isolate to (re)initialize services for this workspace.
+    if (_onProjectOpen != null) {
+      await _onProjectOpen!(root);
+    }
+
     await _settings.setProjectDir(_current);
     await _settings.set<String>('app.lastProject', root);
 
@@ -118,7 +130,13 @@ class ProjectManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> resolveWorkspace(String path) async {
+  Future<String?> resolveProject(String path) async {
+    // Prefer backend validation (runs in the backend isolate, safe from
+    // the merged UI thread). Falls back to direct Process.run for tests
+    // and the CLI binary.
+    if (_onValidateProject != null) {
+      return _onValidateProject!(path);
+    }
     try {
       final r = await Process.run(_toolchain.git, ['rev-parse', '--show-toplevel'], workingDirectory: path, environment: _toolchain.gitEnv);
       if (r.exitCode != 0) return null;
