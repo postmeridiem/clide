@@ -39,6 +39,7 @@ else
 endif
 
 TESTMODE_CATEGORY ?= all
+TESTMODE_TIMEOUT  ?= 60
 
 .PHONY: run-testmode
 run-testmode: ## Launch ClideTestApp (TESTMODE_CATEGORY=toolchain|ipc|extensions|all).
@@ -48,7 +49,7 @@ ifeq ($(FLUTTER_OS),linux)
 	    --dart-define=CLIDE_WORKSPACE=$(CURDIR) \
 	    --dart-define=CLIDE_TESTMODE=$(TESTMODE_CATEGORY) 2>&1 \
 	  | tee /tmp/clide-testmode.log & PID=$$!; \
-	  (sleep 60 && kill $$PID 2>/dev/null) & TIMER=$$!; \
+	  (sleep $(TESTMODE_TIMEOUT) && kill $$PID 2>/dev/null) & TIMER=$$!; \
 	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; \
 	  grep -q '"failed":0' /tmp/clide-testmode.log
 else
@@ -56,7 +57,7 @@ else
 	    --dart-define=CLIDE_WORKSPACE=$(CURDIR) \
 	    --dart-define=CLIDE_TESTMODE=$(TESTMODE_CATEGORY) 2>&1 \
 	  | tee /tmp/clide-testmode.log & PID=$$!; \
-	  (sleep 60 && kill $$PID 2>/dev/null) & TIMER=$$!; \
+	  (sleep $(TESTMODE_TIMEOUT) && kill $$PID 2>/dev/null) & TIMER=$$!; \
 	  wait $$PID 2>/dev/null; kill $$TIMER 2>/dev/null; \
 	  grep -q '"failed":0' /tmp/clide-testmode.log
 endif

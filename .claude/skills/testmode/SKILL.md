@@ -22,10 +22,11 @@ and theme parse errors.
 ## Running
 
 ```bash
-make run-testmode                          # all categories
+make run-testmode                             # all categories, 60s timeout
 make run-testmode TESTMODE_CATEGORY=toolchain
 make run-testmode TESTMODE_CATEGORY=ipc
 make run-testmode TESTMODE_CATEGORY=extensions
+make run-testmode TESTMODE_TIMEOUT=120        # longer timeout for slow builds
 ```
 
 Results go to stdout **and** `/tmp/clide-testmode.log`. The last line
