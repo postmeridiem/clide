@@ -107,9 +107,10 @@ class KernelServices {
     Toolchain? toolchain,
     Future<void> Function(String path)? onProjectOpen,
     Future<String?> Function(String path)? onValidateProject,
+    DaemonBus? sharedBus,
   }) async {
     final log = Logger();
-    final events = DaemonBus();
+    final events = sharedBus ?? DaemonBus();
     final messages = MessageBus();
 
     final settings = SettingsStore(appDir: appDir);

@@ -57,7 +57,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _terminal = Terminal(maxLines: _maxLines);
     _terminal.onOutput = _onOutput;
     _terminal.onResize = _onResize;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _spawn());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _spawnWhenReady());
   }
 
   @override
@@ -76,6 +76,25 @@ class _ClaudePaneState extends State<ClaudePane> {
     // rebuilt (next app launch, or tab reopen), tmux new-session -A
     // re-attaches to the same running claude.
     super.dispose();
+  }
+
+  Future<void> _spawnWhenReady() async {
+    if (!mounted) return;
+    final kernel = ClideKernel.of(context);
+    if (!kernel.project.isOpen) {
+      // Wait for a project to open before spawning.
+      final c = Completer<void>();
+      late final StreamSubscription<ProjectOpened> sub;
+      sub = kernel.events.on<ProjectOpened>().listen((_) {
+        sub.cancel();
+        if (!c.isCompleted) c.complete();
+      });
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () {
+        sub.cancel();
+      });
+      if (!mounted) return;
+    }
+    return _spawn();
   }
 
   Future<void> _spawn() async {

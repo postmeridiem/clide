@@ -57,11 +57,12 @@ Future<void> main() async {
   // Phase 1: resolve toolchain (binary availability only, no workspace).
   // Phase 2: openProject() initializes services when a project opens.
   const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+  final sharedBus = DaemonBus();
   final backend = kIsWeb ? null : await Backend.spawn(
     hintRoot: workspace.isNotEmpty ? workspace : null,
     clientFactory: (backendPort) => IsolateClient(
       log: Logger(),
-      events: DaemonBus(),
+      events: sharedBus,
       backendPort: backendPort,
     ),
   );
@@ -82,6 +83,7 @@ Future<void> main() async {
     onValidateProject: backend != null
         ? (path) => backend.validateProject(path)
         : null,
+    sharedBus: backend != null ? sharedBus : null,
   );
 
   // Register every built-in. Tier 0 activates only the four that do
@@ -119,6 +121,12 @@ Future<void> main() async {
     ..register(ClaudeControlExtension());
 
   await services.extensions.activateAll();
+
+  // Load recents before runApp so the welcome screen shows them.
+  // project.open triggers backend.openProject which initializes services.
+  if (!kIsWeb) {
+    await services.project.loadRecents();
+  }
 
   runApp(ClideApp(services: services));
 }
