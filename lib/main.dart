@@ -25,24 +25,15 @@ import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
-import 'dart:io' show Directory, File, Platform;
+import 'dart:io' show Directory, Platform;
 
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/ipc/in_process.dart';
+import 'package:clide/kernel/src/backend.dart';
+import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/ipc/isolate_client.dart';
+import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/toolchain.dart';
-import 'package:clide/src/git/client.dart';
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
-import 'package:clide/src/daemon/dispatcher.dart';
-import 'package:clide/src/daemon/editor_commands.dart';
-import 'package:clide/src/daemon/files_commands.dart';
-import 'package:clide/src/daemon/git_commands.dart';
-import 'package:clide/src/daemon/pane_commands.dart';
-import 'package:clide/src/daemon/pql_commands.dart';
-import 'package:clide/src/editor/registry.dart' show EditorRegistry;
-import 'package:clide/src/panes/registry.dart';
-import 'package:clide/src/ipc/envelope.dart';
-import 'package:clide/src/panes/event_sink.dart';
-import 'package:clide/src/pql/client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
@@ -64,7 +55,21 @@ Future<void> main() async {
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
 
-  final toolchain = Toolchain();
+  // Spawn the backend isolate — all subprocess and file I/O runs there.
+  // The main isolate stays free for rendering on the merged UI thread.
+  const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+  final workspaceRoot = workspace.isNotEmpty ? workspace : Directory.current.path;
+
+  final backend = kIsWeb ? null : await Backend.spawn(
+    workspaceRoot: workspaceRoot,
+    clientFactory: (backendPort) => IsolateClient(
+      log: Logger(),
+      events: DaemonBus(),
+      backendPort: backendPort,
+    ),
+  );
+
+  final toolchain = backend?.toolchain ?? Toolchain();
 
   final services = await KernelServices.boot(
     appDir: appDir,
@@ -73,22 +78,7 @@ Future<void> main() async {
     preloadNamespaces: _tier0Namespaces,
     autoStartDaemonClient: false,
     toolchain: toolchain,
-    daemonClientFactory: kIsWeb ? null : (log, events) {
-      final dispatcher = DaemonDispatcher();
-      final eventSink = _BusEventSink(events);
-      final filesService = FilesService.atCwd(events: eventSink);
-      final workRoot = filesService.root;
-      final paneRegistry = PaneRegistry(events: eventSink);
-      registerPaneCommands(dispatcher, paneRegistry, toolchain: toolchain);
-      registerFilesCommands(dispatcher, filesService);
-      final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
-      registerEditorCommands(dispatcher, editorRegistry);
-      final gitClient = GitClient(toolchain: toolchain, workDir: workRoot);
-      registerGitCommands(dispatcher, gitClient, eventSink);
-      final pql = PqlClient(workDir: workRoot, toolchain: toolchain);
-      registerPqlCommands(dispatcher, pql);
-      return InProcessClient(log: log, events: events, dispatcher: dispatcher);
-    },
+    isolateClient: backend?.client,
   );
 
   // Register every built-in. Tier 0 activates only the four that do
@@ -127,7 +117,17 @@ Future<void> main() async {
 
   await services.extensions.activateAll();
 
+  runApp(ClideApp(services: services));
+
+  // macOS merged thread: let several frames paint, then resolve in an
+  // isolate, then load the project. Both the delay AND the isolate are
+  // needed — synchronous file I/O freezes even after frames have painted,
+  // and isolate spawn freezes if done too early.
   if (!kIsWeb) {
+    const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+    final root = workspace.isNotEmpty ? workspace : Directory.current.path;
+    toolchain.applyResolved(resolveToolchainPaths(root));
+
     await services.project.loadRecents();
     var opened = await services.project.openLast();
     if (!opened) {
@@ -136,22 +136,6 @@ Future<void> main() async {
     if (opened) {
       services.panels.activateTab(Slots.workspace, 'claude.primary');
     }
-  }
-
-  runApp(ClideApp(services: services));
-
-  // Resolve toolchain after the first frame — resolveSymbolicLinksSync()
-  // blocks the merged UI/platform thread on macOS and prevents rendering
-  // if called before runApp.
-  if (!kIsWeb) {
-    // Defer toolchain resolution. On macOS the merged UI/platform thread
-    // cannot tolerate synchronous file I/O or isolate spawning during the
-    // first few frames. A short delay lets Flutter settle first.
-    Future.delayed(const Duration(seconds: 1), () {
-      const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
-      final root = workspace.isNotEmpty ? workspace : Directory.current.path;
-      toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: root));
-    });
   }
 }
 
@@ -187,21 +171,6 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// Every Tier-0 extension that ships an i18n catalog. Extensions
 /// registered but not active (the 17 stubs) don't preload — their
 /// catalogs load lazily on activate in later tiers.
-
-class _BusEventSink implements DaemonEventSink {
-  _BusEventSink(this._bus);
-  final DaemonBus _bus;
-
-  @override
-  void emit(IpcEvent event) {
-    _bus.emit(DaemonEvent(
-      subsystem: event.subsystem,
-      kind: event.kind,
-      data: event.data,
-      ts: DateTime.now(),
-    ));
-  }
-}
 
 const List<String> _tier0Namespaces = [
   'builtin.default-layout',

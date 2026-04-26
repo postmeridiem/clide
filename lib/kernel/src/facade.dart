@@ -102,6 +102,7 @@ class KernelServices {
     List<Locale> availableLocales = const [Locale('en', 'US')],
     String? socketPath,
     DaemonClient Function(Logger, DaemonBus)? daemonClientFactory,
+    DaemonClient? isolateClient,
     bool autoStartDaemonClient = true,
     Toolchain? toolchain,
   }) async {
@@ -148,13 +149,14 @@ class KernelServices {
       settings: settings,
       toolchain: tc,
     );
-    final ipc = daemonClientFactory != null
-        ? daemonClientFactory(log, events)
-        : DaemonClient(
-            socketPath: socketPath ?? defaultSocketPath(),
-            log: log,
-            events: events,
-          );
+    final ipc = isolateClient
+        ?? (daemonClientFactory != null
+            ? daemonClientFactory(log, events)
+            : DaemonClient(
+                socketPath: socketPath ?? defaultSocketPath(),
+                log: log,
+                events: events,
+              ));
     final extensions = ExtensionManager(
       log: log,
       events: events,

@@ -14,7 +14,9 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate' show Isolate;
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
@@ -133,6 +135,44 @@ class _ClideTestAppState extends State<ClideTestApp> {
     print('[testmode]');
 
     _log('gitEnv', '${tc.gitEnv}');
+    print('[testmode]');
+
+    // Boot sequence simulation tests
+    print('[testmode] --- boot sequence ---');
+
+    await _testAsync('compute(resolveToolchainPaths)', () async {
+      final paths = await compute(resolveToolchainPaths, workDir);
+      return 'git=${paths.git} pql=${paths.pql}';
+    });
+
+    await _testAsync('Isolate.run(resolveToolchainPaths)', () async {
+      final paths = await Isolate.run(() => resolveToolchainPaths(workDir));
+      return 'git=${paths.git} pql=${paths.pql}';
+    });
+
+    await _testAsync('git rev-parse (project.open sim)', () async {
+      final r = await Process.run(tc.git, ['rev-parse', '--show-toplevel'],
+          workingDirectory: workDir, environment: tc.gitEnv);
+      return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
+    });
+
+    await _testAsync('sequential git calls', () async {
+      final r1 = await Process.run(tc.git, ['rev-parse', '--show-toplevel'],
+          workingDirectory: workDir, environment: tc.gitEnv);
+      final r2 = await Process.run(tc.git, ['rev-parse', '--abbrev-ref', 'HEAD'],
+          workingDirectory: workDir, environment: tc.gitEnv);
+      return 'root=${(r1.stdout as String).trim()} branch=${(r2.stdout as String).trim()}';
+    });
+
+    await _testAsync('compute + immediate Process.run', () async {
+      final paths = await compute(resolveToolchainPaths, workDir);
+      final tc2 = Toolchain();
+      tc2.applyResolved(paths);
+      final r = await Process.run(tc2.git, ['rev-parse', '--show-toplevel'],
+          workingDirectory: workDir, environment: tc2.gitEnv);
+      return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
+    });
+
     print('[testmode]');
   }
 
@@ -277,6 +317,17 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final r = _TestResult(name: '$name exists', detail: path, ok: exists, output: exists ? 'yes' : 'NO');
     print('[testmode] exists | $name | path=$path | ${exists ? "yes" : "NO"}');
     setState(() => _results.add(r));
+  }
+
+  Future<void> _testAsync(String label, Future<String> Function() fn) async {
+    try {
+      final result = await fn().timeout(const Duration(seconds: 10));
+      _addResult(label, true, result);
+    } on TimeoutException {
+      _addResult(label, false, 'TIMEOUT (10s)');
+    } catch (e) {
+      _addResult(label, false, '$e');
+    }
   }
 
   Future<void> _testExec(String label, String bin, List<String> args, String workDir, {Map<String, String>? env}) async {
