@@ -6,6 +6,7 @@
 library;
 
 import 'dart:ffi' as ffi;
+import 'dart:io' show Platform;
 
 import 'package:ffi/ffi.dart' as pkg_ffi;
 
@@ -58,21 +59,28 @@ int recvFd(int socketFd) {
       );
     }
 
-    // Parse the first cmsghdr out of the control buffer. We assume a
-    // single SCM_RIGHTS cmsg with one int of payload — that's what
-    // `ptyc` sends and all we ever ask for.
-    final hdr = control.cast<libc.Cmsghdr>().ref;
-    if (hdr.cmsg_level != libc.solSocket || hdr.cmsg_type != libc.scmRights) {
+    // Parse the first cmsghdr out of the control buffer. On macOS,
+    // cmsg_len is socklen_t (4 bytes); on Linux it's size_t (8 bytes).
+    int cmsgLevel, cmsgType, dataOffset;
+    if (Platform.isMacOS) {
+      final hdr = control.cast<libc.CmsghdrDarwin>().ref;
+      cmsgLevel = hdr.cmsg_level;
+      cmsgType = hdr.cmsg_type;
+      dataOffset = ffi.sizeOf<libc.CmsghdrDarwin>();
+    } else {
+      final hdr = control.cast<libc.CmsghdrLinux>().ref;
+      cmsgLevel = hdr.cmsg_level;
+      cmsgType = hdr.cmsg_type;
+      dataOffset = ffi.sizeOf<libc.CmsghdrLinux>();
+    }
+
+    if (cmsgLevel != libc.solSocket || cmsgType != libc.scmRights) {
       throw PtyException(
         'recvmsg',
-        'unexpected cmsg level=${hdr.cmsg_level} type=${hdr.cmsg_type}',
+        'unexpected cmsg level=$cmsgLevel type=$cmsgType',
       );
     }
 
-    // CMSG_DATA starts at the first aligned boundary after the cmsghdr.
-    // On Linux/glibc that's sizeof(cmsghdr) == 16, which is 8-byte
-    // aligned already. We rely on that layout.
-    final dataOffset = ffi.sizeOf<libc.Cmsghdr>();
     final fdPtr = (control + dataOffset).cast<ffi.Int32>();
     return fdPtr.value;
   } finally {

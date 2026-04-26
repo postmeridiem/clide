@@ -11,6 +11,7 @@
 library;
 
 import 'dart:ffi' as ffi;
+import 'dart:io' show Platform;
 
 import 'package:ffi/ffi.dart' as pkg_ffi;
 
@@ -21,8 +22,8 @@ import 'package:ffi/ffi.dart' as pkg_ffi;
 const int afUnix = 1;
 const int sockStream = 1;
 
-const int solSocket = 1; // Linux; macOS = 0xffff
-const int scmRights = 1;
+final int solSocket = Platform.isMacOS ? 0xffff : 1;
+final int scmRights = Platform.isMacOS ? 0x01 : 1;
 
 const int fIoNonblock = 0x800; // O_NONBLOCK — 04000 octal
 const int fGetFl = 3;
@@ -133,7 +134,10 @@ final class Msghdr extends ffi.Struct {
 
 /// POSIX `struct cmsghdr` prefix. We treat the rest of the control
 /// buffer as a raw byte region and compute offsets by hand.
-final class Cmsghdr extends ffi.Struct {
+// On Linux, cmsg_len is size_t (8 bytes on 64-bit).
+// On macOS, cmsg_len is socklen_t (4 bytes, always).
+// Use platform-specific structs.
+final class CmsghdrLinux extends ffi.Struct {
   @ffi.IntPtr()
   external int cmsg_len;
   @ffi.Int32()
@@ -141,6 +145,18 @@ final class Cmsghdr extends ffi.Struct {
   @ffi.Int32()
   external int cmsg_type;
 }
+
+final class CmsghdrDarwin extends ffi.Struct {
+  @ffi.Uint32()
+  external int cmsg_len;
+  @ffi.Int32()
+  external int cmsg_level;
+  @ffi.Int32()
+  external int cmsg_type;
+}
+
+// Alias for backward compatibility — callers use Cmsghdr.
+typedef Cmsghdr = CmsghdrLinux;
 
 /// POSIX `struct winsize` for `TIOCSWINSZ`.
 final class Winsize extends ffi.Struct {
