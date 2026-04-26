@@ -26,6 +26,7 @@ import 'builtin/git/git.dart';
 import 'builtin/terminal/terminal.dart';
 import 'extension/extension.dart' show ClideExtension;
 import 'kernel/kernel.dart';
+import 'src/pty/session.dart';
 import 'kernel/src/toolchain.dart';
 import 'src/daemon/dispatcher.dart';
 import 'src/ipc/envelope.dart';
@@ -63,6 +64,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final runToolchain = runAll || category == 'toolchain';
     final runIpc = runAll || category == 'ipc';
     final runExtensions = runAll || category == 'extensions';
+    final runTerminal = runAll || category == 'terminal';
 
     print('[testmode] === ClideTestApp starting ===');
     print('[testmode] workspace=$workDir');
@@ -77,6 +79,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     if (runToolchain) await _runToolchainTests(tc, workDir);
     if (runIpc) await _runIpcTests(workDir);
     if (runExtensions) await _runExtensionTests(workDir, tc);
+    if (runTerminal) await _runTerminalTests(tc, workDir);
 
     final passed = _results.where((r) => r.ok).length;
     final failed = _results.where((r) => !r.ok).length;
@@ -307,6 +310,76 @@ class _ClideTestAppState extends State<ClideTestApp> {
     } catch (e) {
       _addResult('ext:boot', false, '$e');
     }
+
+    print('[testmode]');
+  }
+
+  // -- terminal category ----------------------------------------------------
+
+  Future<void> _runTerminalTests(Toolchain tc, String workDir) async {
+    print('[testmode] --- terminal ---');
+
+    if (Platform.isMacOS) {
+      // PtySession.spawn() does synchronous FFI calls (socketpair, recvFd)
+      // that block the merged UI/platform thread, preventing Dart timers
+      // from firing. PTY must move to the backend isolate on macOS.
+      _addResult('pty spawn (macOS)', false, 'SKIPPED — FFI blocks merged thread, needs backend isolate');
+      print('[testmode]');
+      return;
+    }
+
+    // Test 1: spawn /bin/echo via PtySession, read output
+    await _testAsync('pty spawn echo', () async {
+      final session = await PtySession.spawn(
+        argv: ['/bin/echo', 'CLIDE_PTY_TEST_OK'],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(bytes.addAll, onDone: () => done.complete());
+      await done.future.timeout(const Duration(seconds: 5));
+      await session.close();
+      final output = utf8.decode(bytes, allowMalformed: true);
+      final ok = output.contains('CLIDE_PTY_TEST_OK');
+      return ok ? 'output contains marker' : 'marker not found in ${output.length} bytes';
+    });
+
+    // Test 2: spawn shell, write a command, verify output
+    await _testAsync('pty spawn shell', () async {
+      final session = await PtySession.spawn(
+        argv: [tc.shell, '-c', 'echo CLIDE_SHELL_TEST'],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(bytes.addAll, onDone: () => done.complete());
+      await done.future.timeout(const Duration(seconds: 5));
+      await session.close();
+      final output = utf8.decode(bytes, allowMalformed: true);
+      final ok = output.contains('CLIDE_SHELL_TEST');
+      return ok ? 'shell output contains marker' : 'marker not found in ${output.length} bytes';
+    });
+
+    // Test 3: spawn interactive shell, write to stdin, verify file creation
+    await _testAsync('pty write to child', () async {
+      final marker = '/tmp/clide-pty-test-${DateTime.now().millisecondsSinceEpoch}';
+      final session = await PtySession.spawn(
+        argv: [tc.shell],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      session.write(utf8.encode('touch $marker && exit\n'));
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(bytes.addAll, onDone: () => done.complete());
+      await done.future.timeout(const Duration(seconds: 5));
+      await session.close();
+      final fileCreated = File(marker).existsSync();
+      if (fileCreated) File(marker).deleteSync();
+      return fileCreated ? 'file created + cleaned up' : 'file not created';
+    });
 
     print('[testmode]');
   }
