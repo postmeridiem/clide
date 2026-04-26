@@ -37,7 +37,7 @@ schema_version: 1
 self:
   name: clide
   version: "2.0.0-dev"
-  homepage: https://git.schweitz.net/jpmschweitzer/clide
+  homepage: https://github.com/postmeridiem/clide
   license: MIT
   license_file: assets/LICENSE
   copyright: "© 2026 Jeroen Schweitzer"

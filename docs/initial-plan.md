@@ -332,8 +332,8 @@ node; Claude can add a node by `clide canvas node …`.
 
 - **Flutter Desktop on Linux + macOS** is the primary target;
   Windows is a stretch goal. Mobile is not a goal.
-- **Gitea remote** (`git.schweitz.net/jpmschweitzer/clide`) remains
-  the canonical host.
+- **GitHub remote** (`github.com/postmeridiem/clide`) is the
+  canonical host.
 - **`pql` stays untouched** for Tiers 0–2; upstream pql work
   happens in pql's repo during Tiers 3–5.
 - **tmux** is optional plumbing the sidecar can compose for team

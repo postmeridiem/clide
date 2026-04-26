@@ -1,24 +1,47 @@
 # clide
 
-A Flutter desktop IDE for Claude Code. Markdown-first content, pql-powered queries, canvas and graph surfaces, a Go sidecar handling PTYs / subprocesses / git / pql. Claude drives the UI through a `clide` CLI.
+A Flutter desktop IDE for Claude Code. Native rendering, terminal-first interaction, pql-powered queries, canvas and graph surfaces. Linux and macOS.
 
-Currently pre-v2.0, scaffolding. The north-star design lives in [`docs/initial-plan.md`](docs/initial-plan.md); architectural decisions are captured in [`docs/ADRs/`](docs/ADRs/). The Python Textual v1.2.0 implementation is archived under [`legacy/`](legacy/) for reference.
+## Architecture
 
-## Three surfaces, one tool
+Single Flutter package at the repo root. The app hosts everything in-process: IPC server, subsystem handlers (pane, files, editor, git, pql), and the extension framework. tmux owns Claude session persistence.
 
-- **`app/`** — Flutter desktop application (Linux / macOS; Windows is a stretch).
-- **`sidecar/`** — Go sidecar/CLI, single binary with two modes: `clide <subcommand>` (one-shot for Claude) and `clide --daemon` (long-running sidecar for the app). Owns PTYs, subprocesses, file watchers, git, pql invocations.
-- **[`pql`](https://github.com/postmeridiem/pql)** — external supporter tool. clide wraps it for every query surface; never re-implements it.
+- **`lib/`** — all Dart code. Kernel services (theme, i18n, settings, panels, commands, focus), UI widgets, built-in extensions, and the extension contract.
+- **`ptyc/`** — small C helper. Spawns a PTY + child and hands the master fd back over `SCM_RIGHTS`. Every pane (shell, tmux, claude, LSP, debug adapter) goes through it.
+- **[pql](https://github.com/postmeridiem/pql)** — external supporter tool. Clide wraps it for every query surface; never re-implements it.
 
-## Why the rebuild?
+Claude drives the UI through a `clide` CLI surface (Bash, not MCP). Every CLI subcommand has a UI affordance and every UI action has a CLI equivalent.
 
-The Python Textual implementation (`legacy/`) proved the pane model but capped at terminal-only rendering. A short-lived experiment (`claudian`, April 2026) explored an Obsidian-plugin approach and was abandoned because Obsidian is Electron, and the user's history with terminal-in-Electron ruled that host out.
+## Built-in extensions
 
-Flutter desktop resolves both constraints: native Skia rendering avoids Electron's failure modes, `xterm.dart` gives us a solid terminal surface, and the pane model can be rebuilt natively. The Obsidian ideas worth keeping (canvas, graph) fold in; everything else (vault concept, inline query tables, plugin ecosystem inheritance) doesn't.
+canvas, claude, claude_control, decisions, diff, editor, extensions_ui, files, git, graph, grammars_core, ipc_status, keybindings_ui, markdown, pql, problems, settings_ui, terminal, theme_picker, tickets, todos, welcome.
+
+## Building
+
+Requires Flutter (stable channel) on the host. One-time setup:
+
+```
+make hooks && flutter pub get
+```
+
+Then:
+
+```
+make run              # launch the desktop app
+make test             # fast suite: analyze + format + unit + widget + golden
+make test-core        # core subsystem tests (IPC, PTY, git, pane registry)
+make test-integration # real app boot integration tests
+make build-linux      # flutter build linux
+make build-macos      # flutter build macos
+make ptyc-build       # build the ptyc PTY-spawn helper
+make push-check       # pre-push gate: decisions + core + fast tests
+```
 
 ## Status
 
-No build yet beyond the repo scaffold. Tier 0 acceptance: sidecar daemon runs, Flutter app connects, empty IDE shell appears with placeholders.
+Pre-v2.0 (`2.0.0-dev`). Interaction model and panel system landed. The Python Textual v1.2.0 predecessor is archived under [`legacy/`](legacy/).
+
+Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Architectural decisions: [`decisions/`](decisions/).
 
 ## License
 

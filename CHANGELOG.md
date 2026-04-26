@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Canonical upstream moved from Gitea to GitHub
+  (`github.com/postmeridiem/clide`).
+
+- README rewritten to reflect current single-process Flutter
+  architecture, built-in extensions, and build commands.
+
 - Renamed desktop binary from `clide_app` to `clide` (Linux + macOS).
 
 - macOS app icon uses the black-circle variant matching the Linux

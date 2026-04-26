@@ -14,7 +14,7 @@ description: >-
   extension framework.
 publish_to: none
 version: 2.0.0-dev
-repository: https://git.schweitz.net/jpmschweitzer/clide
+repository: https://github.com/postmeridiem/clide
 
 # Project metadata (was project.yaml, folded in per D-056).
 # version: above is the single source of truth. The Makefile reads
