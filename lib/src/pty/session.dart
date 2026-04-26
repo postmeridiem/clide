@@ -29,6 +29,12 @@ import 'errors.dart';
 import 'ffi/libc.dart' as libc;
 import 'ffi/scm_rights.dart' as scm;
 
+class _RecvFdArgs {
+  const _RecvFdArgs(this.socketFd, this.sendPort);
+  final int socketFd;
+  final SendPort sendPort;
+}
+
 /// A running PTY child plus its master-fd plumbing.
 class PtySession {
   PtySession._({
@@ -124,7 +130,9 @@ class PtySession {
       await proc.stdin.close();
 
       // Receive the master fd over the parent side of the socketpair.
-      final masterFd = scm.recvFd(parentSock);
+      // recvFd blocks until ptyc sends — run in a child isolate so the
+      // calling isolate's event loop stays responsive.
+      final masterFd = await _recvFdAsync(parentSock);
 
       // Apply initial winsize (ptyc already did this, but doing it
       // again from Dart confirms the wire + gives a place to call it
@@ -227,6 +235,27 @@ class PtySession {
     _readerIsolate = null;
 
     if (!_outputCtrl.isClosed) await _outputCtrl.close();
+  }
+
+  /// Run recvFd in a child isolate so the blocking FFI call doesn't
+  /// stall the calling isolate's event loop.
+  static Future<int> _recvFdAsync(int socketFd) async {
+    final port = ReceivePort();
+    final iso = await Isolate.spawn(_recvFdEntry, _RecvFdArgs(socketFd, port.sendPort));
+    final result = await port.first;
+    iso.kill(priority: Isolate.immediate);
+    port.close();
+    if (result is int) return result;
+    throw PtyException('recvFd', '$result');
+  }
+
+  static void _recvFdEntry(_RecvFdArgs args) {
+    try {
+      final fd = scm.recvFd(args.socketFd);
+      args.sendPort.send(fd);
+    } catch (e) {
+      args.sendPort.send('error: $e');
+    }
   }
 
   // ---------------------------------------------------------------- //

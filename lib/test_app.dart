@@ -26,6 +26,11 @@ import 'builtin/git/git.dart';
 import 'builtin/terminal/terminal.dart';
 import 'extension/extension.dart' show ClideExtension;
 import 'kernel/kernel.dart';
+import 'kernel/src/backend.dart';
+import 'kernel/src/events/bus.dart';
+import 'kernel/src/events/types.dart';
+import 'kernel/src/ipc/isolate_client.dart';
+import 'kernel/src/log.dart';
 import 'src/pty/session.dart';
 import 'kernel/src/toolchain.dart';
 import 'src/daemon/dispatcher.dart';
@@ -319,14 +324,54 @@ class _ClideTestAppState extends State<ClideTestApp> {
   Future<void> _runTerminalTests(Toolchain tc, String workDir) async {
     print('[testmode] --- terminal ---');
 
-    if (Platform.isMacOS) {
-      // PtySession.spawn() does synchronous FFI calls (socketpair, recvFd)
-      // that block the merged UI/platform thread, preventing Dart timers
-      // from firing. PTY must move to the backend isolate on macOS.
-      _addResult('pty spawn (macOS)', false, 'SKIPPED — FFI blocks merged thread, needs backend isolate');
-      print('[testmode]');
-      return;
-    }
+    // On macOS, PtySession FFI blocks the merged thread. Test via
+    // backend isolate IPC instead (same path the real app uses).
+    await _testAsync('pane.spawn via backend', () async {
+      print('[testmode]   spawning backend...');
+      final backend = await Backend.spawn(
+        hintRoot: workDir,
+        clientFactory: (port) => IsolateClient(
+          log: Logger(),
+          events: DaemonBus(),
+          backendPort: port,
+        ),
+      );
+      print('[testmode]   backend ready, opening project...');
+      await backend.openProject(workDir);
+      print('[testmode]   project open, spawning pane...');
+
+      // Spawn a pane running /bin/echo.
+      // Use the shell (allowed by SBPL), not /bin/echo (not allowed).
+      final spawnResp = await backend.client.request('pane.spawn', args: {
+        'argv': [tc.shell, '-c', 'echo CLIDE_BACKEND_PTY_OK'],
+        'kind': 'terminal',
+      });
+      print('[testmode]   spawn response: ok=${spawnResp.ok} ${spawnResp.ok ? spawnResp.data : spawnResp.error?.message}');
+      if (!spawnResp.ok) {
+        backend.dispose();
+        return 'spawn failed: ${spawnResp.error?.message}';
+      }
+      final paneId = spawnResp.data['id'] as String;
+
+      // Collect output events for up to 3 seconds.
+      final outputParts = <String>[];
+      final sub = backend.client.events.on<DaemonEvent>().listen((e) {
+        if (e.subsystem == 'pane' && e.kind == 'pane.output' && e.data['id'] == paneId) {
+          final b64 = e.data['bytes_b64'] as String?;
+          if (b64 != null) outputParts.add(utf8.decode(base64Decode(b64), allowMalformed: true));
+        }
+      });
+      await Future.delayed(const Duration(seconds: 3));
+      await sub.cancel();
+      backend.dispose();
+
+      final output = outputParts.join();
+      final ok = output.contains('CLIDE_BACKEND_PTY_OK');
+      return ok ? 'output contains marker' : 'marker not found in ${output.length} chars: ${output.substring(0, output.length.clamp(0, 100))}';
+    });
+
+    if (!Platform.isMacOS) {
+    // Direct PtySession tests (only on Linux where threads are separate).
 
     // Test 1: spawn /bin/echo via PtySession, read output
     await _testAsync('pty spawn echo', () async {
@@ -380,6 +425,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
       if (fileCreated) File(marker).deleteSync();
       return fileCreated ? 'file created + cleaned up' : 'file not created';
     });
+    } // end !Platform.isMacOS
 
     print('[testmode]');
   }

@@ -26,6 +26,9 @@ class IsolateClient extends DaemonClient {
 
   final SendPort _backendPort;
   final DaemonBus _events;
+
+  /// The event bus that receives events from the backend.
+  DaemonBus get events => _events;
   final Map<String, Completer<IpcResponse>> _pending = {};
   int _nextId = 0;
 
