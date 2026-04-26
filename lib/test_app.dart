@@ -173,6 +173,17 @@ class _ClideTestAppState extends State<ClideTestApp> {
       return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
     });
 
+    // ptyc stdin/stdout test — send a valid request, verify JSON response
+    await _testAsync('ptyc spawn echo', () async {
+      final proc = await Process.start(tc.ptyc, []);
+      // Send a request for /bin/echo — simplest possible child
+      proc.stdin.write('{"argv":["/bin/echo","hello"],"cwd":"/tmp","env":{},"cols":80,"rows":24}');
+      await proc.stdin.close();
+      final stdout = await proc.stdout.transform(const SystemEncoding().decoder).join();
+      final exitCode = await proc.exitCode;
+      return 'exit=$exitCode stdout=${stdout.trim().split('\n').first}';
+    });
+
     print('[testmode]');
   }
 
