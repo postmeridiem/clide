@@ -8,10 +8,11 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import '../ipc/envelope.dart';
-import '../pty/session.dart';
+import '../pty/native_pty.dart';
 import 'event_sink.dart';
 import 'pane.dart';
 
@@ -20,7 +21,7 @@ class PaneRegistry {
 
   final DaemonEventSink events;
   final Map<String, Pane> _panes = {};
-  final Map<String, PtySession> _sessions = {};
+  final Map<String, NativePty> _sessions = {};
   final Map<String, StreamSubscription<Uint8List>> _subs = {};
   int _nextId = 1;
 
@@ -42,16 +43,29 @@ class PaneRegistry {
     int cols = 80,
     int rows = 24,
     String? title,
-    String ptycPath = 'ptyc',
   }) async {
     final id = 'p_${_nextId++}';
-    final session = await PtySession.spawn(
-      argv: argv,
-      cwd: cwd,
-      env: env,
-      cols: cols,
+    final executable = argv.first;
+    final arguments = argv.length > 1 ? argv.sublist(1) : const <String>[];
+
+    // Merge the caller's env on top of the process environment +
+    // terminal defaults, matching the old ptyc contract.
+    final fullEnv = <String, String>{
+      ...Platform.environment,
+      'TERM': 'xterm-256color',
+      'COLORTERM': 'truecolor',
+      'LANG': 'en_US.UTF-8',
+      'LC_ALL': 'en_US.UTF-8',
+      if (env != null) ...env,
+    };
+
+    final session = NativePty.start(
+      executable: executable,
+      arguments: arguments,
+      columns: cols,
       rows: rows,
-      ptycPath: ptycPath,
+      workingDirectory: cwd,
+      environment: fullEnv,
     );
     final pane = Pane(
       id: id,

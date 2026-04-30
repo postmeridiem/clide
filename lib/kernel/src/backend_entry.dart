@@ -98,7 +98,7 @@ void backendEntry(BackendBootMessage boot) {
       registerPqlCommands(dispatcher, pql);
 
       final paneRegistry = PaneRegistry(events: eventSink);
-      registerPaneCommands(dispatcher, paneRegistry, toolchain: toolchain);
+      registerPaneCommands(dispatcher, paneRegistry);
 
       // Tell the frontend the project is active.
       frontendPort.send({

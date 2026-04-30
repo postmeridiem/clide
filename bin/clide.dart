@@ -149,7 +149,7 @@ Future<void> _runDaemon(List<String> args) async {
 
   final events = _ServerEventSink(server);
   final registry = PaneRegistry(events: events);
-  registerPaneCommands(dispatcher, registry, toolchain: toolchain);
+  registerPaneCommands(dispatcher, registry);
 
   final files = FilesService.atCwd(events: events);
   registerFilesCommands(dispatcher, files);

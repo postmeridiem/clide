@@ -25,12 +25,18 @@ import 'builtin/files/files.dart';
 import 'builtin/git/git.dart';
 import 'builtin/terminal/terminal.dart';
 import 'extension/extension.dart' show ClideExtension;
+import 'dart:ffi' as ffi;
+import 'package:ffi/ffi.dart' as pkg_ffi;
 import 'kernel/kernel.dart';
-import 'kernel/src/backend.dart';
+import 'src/pty/ffi/libc.dart' as libc;
 import 'kernel/src/events/bus.dart';
 import 'kernel/src/events/types.dart';
-import 'kernel/src/ipc/isolate_client.dart';
+import 'kernel/src/ipc/in_process.dart';
 import 'kernel/src/log.dart';
+import 'src/daemon/pane_commands.dart';
+import 'src/ipc/envelope.dart';
+import 'src/panes/event_sink.dart';
+import 'src/panes/registry.dart';
 import 'src/pty/session.dart';
 import 'kernel/src/toolchain.dart';
 import 'src/daemon/dispatcher.dart';
@@ -324,54 +330,99 @@ class _ClideTestAppState extends State<ClideTestApp> {
   Future<void> _runTerminalTests(Toolchain tc, String workDir) async {
     print('[testmode] --- terminal ---');
 
-    // On macOS, PtySession FFI blocks the merged thread. Test via
-    // backend isolate IPC instead (same path the real app uses).
-    await _testAsync('pane.spawn via backend', () async {
-      print('[testmode]   spawning backend...');
-      final backend = await Backend.spawn(
-        hintRoot: workDir,
-        clientFactory: (port) => IsolateClient(
-          log: Logger(),
-          events: DaemonBus(),
-          backendPort: port,
-        ),
-      );
-      print('[testmode]   backend ready, opening project...');
-      await backend.openProject(workDir);
-      print('[testmode]   project open, spawning pane...');
+    // Test PTY via InProcessClient — same path as the real app.
+    await _testAsync('pane.spawn via IPC', () async {
+      final dispatcher = DaemonDispatcher();
+      final bus = DaemonBus();
+      final eventSink = _TestEventSink(bus);
+      final workDir2 = Directory(workDir);
+      final paneRegistry = PaneRegistry(events: eventSink);
+      registerPaneCommands(dispatcher, paneRegistry);
+      final ipc = InProcessClient(log: Logger(), events: bus, dispatcher: dispatcher);
 
       // Spawn a pane running /bin/echo.
-      // Use the shell (allowed by SBPL), not /bin/echo (not allowed).
-      final spawnResp = await backend.client.request('pane.spawn', args: {
-        'argv': [tc.shell, '-c', 'echo CLIDE_BACKEND_PTY_OK'],
+      // Use interactive shell — fast-exiting commands lose output on macOS
+      // because the slave closes before we can read the master.
+      final spawnResp = await ipc.request('pane.spawn', args: {
+        'argv': [tc.shell],
         'kind': 'terminal',
       });
-      print('[testmode]   spawn response: ok=${spawnResp.ok} ${spawnResp.ok ? spawnResp.data : spawnResp.error?.message}');
+      print('[testmode]   spawn: ok=${spawnResp.ok} ${spawnResp.ok ? spawnResp.data : spawnResp.error?.message}');
       if (!spawnResp.ok) {
-        backend.dispose();
         return 'spawn failed: ${spawnResp.error?.message}';
       }
       final paneId = spawnResp.data['id'] as String;
 
-      // Collect output events for up to 3 seconds.
+      // Collect pane.output events.
       final outputParts = <String>[];
-      final sub = backend.client.events.on<DaemonEvent>().listen((e) {
+      int eventCount = 0;
+      final sub = bus.on<DaemonEvent>().listen((e) {
+        eventCount++;
         if (e.subsystem == 'pane' && e.kind == 'pane.output' && e.data['id'] == paneId) {
           final b64 = e.data['bytes_b64'] as String?;
           if (b64 != null) outputParts.add(utf8.decode(base64Decode(b64), allowMalformed: true));
         }
       });
       await Future.delayed(const Duration(seconds: 3));
+      print('[testmode]   events=$eventCount output_parts=${outputParts.length} bytes=${outputParts.join().length}');
+      if (outputParts.isNotEmpty) {
+        print('[testmode]   first output: ${outputParts.first.substring(0, outputParts.first.length.clamp(0, 80))}');
+      }
       await sub.cancel();
-      backend.dispose();
+      paneRegistry.shutdown();
 
       final output = outputParts.join();
-      final ok = output.contains('CLIDE_BACKEND_PTY_OK');
-      return ok ? 'output contains marker' : 'marker not found in ${output.length} chars: ${output.substring(0, output.length.clamp(0, 100))}';
+      return output.isNotEmpty ? 'got ${output.length} chars' : 'no output (0 chars)';
+    });
+
+    // Test: does Dart's Process.start inherit socket fds on macOS?
+    await _testAsync('fd inheritance check', () async {
+      final sv = pkg_ffi.calloc<ffi.Int32>(2);
+      libc.socketpair(1, 1, 0, sv); // AF_UNIX, SOCK_STREAM
+      final parent = sv[0];
+      final child = sv[1];
+      pkg_ffi.calloc.free(sv);
+      final proc = await Process.start('/tmp/checkfd', [],
+          environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
+      final stderr = await proc.stderr.transform(utf8.decoder).join();
+      final exit = await proc.exitCode;
+      libc.close(parent);
+      libc.close(child);
+      return 'exit=$exit stderr=${stderr.trim()}';
+    });
+
+    // Direct PtySession test — bypasses IPC, tests fd transfer + reader.
+    await _testAsync('PtySession.spawn direct', () async {
+      final session = await PtySession.spawn(
+        argv: [tc.shell, '-c', 'echo DIRECT_PTY_TEST'],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      print('[testmode]   session pid=${session.pid} masterFd exists');
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(
+        (chunk) {
+          bytes.addAll(chunk);
+          print('[testmode]   got ${chunk.length} bytes');
+        },
+        onDone: () {
+          print('[testmode]   stream done');
+          if (!done.isCompleted) done.complete();
+        },
+        onError: (e) => print('[testmode]   stream error: $e'),
+      );
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {
+        print('[testmode]   timeout waiting for output, got ${bytes.length} bytes so far');
+      });
+      await session.close();
+      final output = utf8.decode(bytes, allowMalformed: true);
+      final ok = output.contains('DIRECT_PTY_TEST');
+      return ok ? 'output=$output' : 'no marker in ${bytes.length} bytes: ${output.substring(0, output.length.clamp(0, 100))}';
     });
 
     if (!Platform.isMacOS) {
-    // Direct PtySession tests (only on Linux where threads are separate).
+    // Additional direct PtySession tests (Linux only — no merged thread).
 
     // Test 1: spawn /bin/echo via PtySession, read output
     await _testAsync('pty spawn echo', () async {
@@ -519,6 +570,21 @@ class _ClideTestAppState extends State<ClideTestApp> {
         ),
       ),
     );
+  }
+}
+
+class _TestEventSink implements DaemonEventSink {
+  _TestEventSink(this._bus);
+  final DaemonBus _bus;
+
+  @override
+  void emit(IpcEvent event) {
+    _bus.emit(DaemonEvent(
+      subsystem: event.subsystem,
+      kind: event.kind,
+      data: event.data,
+      ts: DateTime.now(),
+    ));
   }
 }
 

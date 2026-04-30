@@ -15,11 +15,10 @@ import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/pane.dart';
 import '../panes/registry.dart';
-import '../../kernel/src/toolchain.dart';
 import 'dispatcher.dart';
 
-void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {required Toolchain toolchain}) {
-  d.register('pane.spawn', (req) => _spawn(req, registry, toolchain));
+void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry) {
+  d.register('pane.spawn', (req) => _spawn(req, registry));
   d.register('pane.list', (req) => _list(req, registry));
   d.register('pane.close', (req) => _close(req, registry));
   d.register('pane.write', (req) => _write(req, registry));
@@ -48,14 +47,7 @@ IpcResponse _notFound(String id, String message) => IpcResponse.err(
       ),
     );
 
-Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry, Toolchain toolchain) async {
-  // Wait for toolchain resolution if it hasn't completed yet.
-  if (!toolchain.resolved) {
-    await Future.any([
-      toolchain.waitForResolution(),
-      Future.delayed(const Duration(seconds: 5)),
-    ]);
-  }
+Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
   final args = req.args;
   final rawArgv = args['argv'];
   if (rawArgv is! List || rawArgv.isEmpty) {
@@ -92,7 +84,6 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry, Toolchain tool
       cols: (args['cols'] as num?)?.toInt() ?? 80,
       rows: (args['rows'] as num?)?.toInt() ?? 24,
       title: args['title'] as String?,
-      ptycPath: (args['ptyc_path'] as String?) ?? toolchain.ptyc,
     );
     return IpcResponse.ok(id: req.id, data: pane.toJson());
   } catch (e) {

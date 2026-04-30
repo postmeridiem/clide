@@ -26,11 +26,20 @@ import 'package:clide/builtin/welcome/welcome.dart';
 import 'dart:io' show Directory, Platform;
 
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/backend.dart';
-import 'package:clide/kernel/src/events/bus.dart';
-import 'package:clide/kernel/src/ipc/isolate_client.dart';
-import 'package:clide/kernel/src/log.dart';
+import 'package:clide/kernel/src/ipc/in_process.dart';
 import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/editor_commands.dart';
+import 'package:clide/src/daemon/files_commands.dart';
+import 'package:clide/src/daemon/git_commands.dart';
+import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/daemon/pql_commands.dart';
+import 'package:clide/src/editor/registry.dart' show EditorRegistry;
+import 'package:clide/src/git/client.dart';
+import 'package:clide/src/ipc/envelope.dart';
+import 'package:clide/src/panes/event_sink.dart';
+import 'package:clide/src/panes/registry.dart';
+import 'package:clide/src/pql/client.dart';
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -53,21 +62,14 @@ Future<void> main() async {
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
 
-  // Spawn the backend isolate — all subprocess and file I/O runs there.
-  // Phase 1: resolve toolchain (binary availability only, no workspace).
-  // Phase 2: openProject() initializes services when a project opens.
-  const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
-  final sharedBus = DaemonBus();
-  final backend = kIsWeb ? null : await Backend.spawn(
-    hintRoot: workspace.isNotEmpty ? workspace : null,
-    clientFactory: (backendPort) => IsolateClient(
-      log: Logger(),
-      events: sharedBus,
-      backendPort: backendPort,
-    ),
-  );
-
-  final toolchain = backend?.toolchain ?? Toolchain();
+  // Resolve toolchain + boot daemon inline — same as Linux.
+  // With proper signing (Developer ID), no sandbox or isolate needed.
+  final toolchain = Toolchain();
+  if (!kIsWeb) {
+    const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+    final root = workspace.isNotEmpty ? workspace : Directory.current.path;
+    toolchain.applyResolved(resolveToolchainPaths(root));
+  }
 
   final services = await KernelServices.boot(
     appDir: appDir,
@@ -76,14 +78,22 @@ Future<void> main() async {
     preloadNamespaces: _tier0Namespaces,
     autoStartDaemonClient: false,
     toolchain: toolchain,
-    isolateClient: backend?.client,
-    onProjectOpen: backend != null
-        ? (path) => backend.openProject(path)
-        : null,
-    onValidateProject: backend != null
-        ? (path) => backend.validateProject(path)
-        : null,
-    sharedBus: backend != null ? sharedBus : null,
+    daemonClientFactory: kIsWeb ? null : (log, events) {
+      final dispatcher = DaemonDispatcher();
+      final eventSink = _BusEventSink(events);
+      final filesService = FilesService.atCwd(events: eventSink);
+      final workRoot = filesService.root;
+      final paneRegistry = PaneRegistry(events: eventSink);
+      registerPaneCommands(dispatcher, paneRegistry);
+      registerFilesCommands(dispatcher, filesService);
+      final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
+      registerEditorCommands(dispatcher, editorRegistry);
+      final gitClient = GitClient(toolchain: toolchain, workDir: workRoot);
+      registerGitCommands(dispatcher, gitClient, eventSink);
+      final pql = PqlClient(workDir: workRoot, toolchain: toolchain);
+      registerPqlCommands(dispatcher, pql);
+      return InProcessClient(log: log, events: events, dispatcher: dispatcher);
+    },
   );
 
   // Register every built-in. Tier 0 activates only the four that do
@@ -122,13 +132,33 @@ Future<void> main() async {
 
   await services.extensions.activateAll();
 
-  // Load recents before runApp so the welcome screen shows them.
-  // project.open triggers backend.openProject which initializes services.
   if (!kIsWeb) {
     await services.project.loadRecents();
+    var opened = await services.project.openLast();
+    if (!opened) {
+      opened = await services.project.open(Directory.current.path);
+    }
+    if (opened) {
+      services.panels.activateTab(Slots.workspace, 'claude.primary');
+    }
   }
 
   runApp(ClideApp(services: services));
+}
+
+class _BusEventSink implements DaemonEventSink {
+  _BusEventSink(this._bus);
+  final DaemonBus _bus;
+
+  @override
+  void emit(IpcEvent event) {
+    _bus.emit(DaemonEvent(
+      subsystem: event.subsystem,
+      kind: event.kind,
+      data: event.data,
+      ts: DateTime.now(),
+    ));
+  }
 }
 
 /// Resolve the app-settings directory.
