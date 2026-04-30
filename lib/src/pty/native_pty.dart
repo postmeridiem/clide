@@ -11,7 +11,7 @@ library;
 
 import 'dart:async';
 import 'dart:ffi' as ffi;
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform;
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -120,6 +120,19 @@ class NativePty {
     String? workingDirectory,
     Map<String, String> environment = const {},
   }) {
+    // Resolve bare command names via PATH (execve doesn't search PATH).
+    if (!executable.contains('/')) {
+      final path = environment['PATH'] ?? Platform.environment['PATH'] ?? '';
+      for (final dir in path.split(':')) {
+        if (dir.isEmpty) continue;
+        final candidate = '$dir/$executable';
+        if (File(candidate).existsSync()) {
+          executable = candidate;
+          break;
+        }
+      }
+    }
+
     // Force-resolve FFI functions that run in the child process.
     // Top-level finals are lazy; touching them here ensures the FFI
     // trampolines are compiled before fork() clones the process.
