@@ -242,8 +242,10 @@ class _ClaudePaneState extends State<ClaudePane> {
     _resizeTimer = Timer(const Duration(milliseconds: 150), () {
       final id = _paneId;
       if (id == null) return;
-      print('[resize] cols=$cols rows=$rows');
       _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
+      // tmux doesn't re-read PTY winsize on SIGWINCH — it needs an
+      // explicit refresh-client to update its internal window size.
+      Process.run('tmux', ['refresh-client', '-C', '$cols,$rows']);
     });
   }
 
