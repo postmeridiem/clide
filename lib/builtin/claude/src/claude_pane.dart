@@ -48,6 +48,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   late final Terminal _terminal;
   StreamSubscription<DaemonEvent>? _eventSub;
   String? _paneId;
+  String? _sessionName;
   String? _error;
   String _statusLine = 'attaching…';
 
@@ -119,7 +120,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       repoRoot = (rootResp.data['path'] as String?) ?? repoRoot;
     }
 
-    final sessionName = widget.isPrimary
+    _sessionName = widget.isPrimary
         ? primarySessionName(repoRoot)
         : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
@@ -133,7 +134,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       'new-session',
       '-A',
       '-s',
-      sessionName,
+      _sessionName!,
       '-x', '$cols',
       '-y', '$rows',
     ];
@@ -144,7 +145,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       'cwd': repoRoot,
       'cols': _terminal.viewWidth,
       'rows': _terminal.viewHeight,
-      'title': sessionName,
+      'title': _sessionName,
     });
 
     if (!resp.ok) {
@@ -157,7 +158,7 @@ class _ClaudePaneState extends State<ClaudePane> {
         'cwd': repoRoot,
         'cols': _terminal.viewWidth,
         'rows': _terminal.viewHeight,
-        'title': sessionName,
+        'title': _sessionName,
       });
       if (!resp.ok) {
         setState(() {
@@ -167,7 +168,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       }
       setState(() => _statusLine = 'no-tmux · fresh every launch');
     } else {
-      setState(() => _statusLine = 'tmux · $sessionName');
+      setState(() => _statusLine = 'tmux · $_sessionName');
     }
 
     if (!mounted) return;
@@ -243,9 +244,11 @@ class _ClaudePaneState extends State<ClaudePane> {
       final id = _paneId;
       if (id == null) return;
       _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
-      // tmux doesn't re-read PTY winsize on SIGWINCH — it needs an
-      // explicit refresh-client to update its internal window size.
-      Process.run('tmux', ['refresh-client', '-C', '$cols,$rows']);
+      // tmux sizes windows by client, not PTY winsize. Explicitly
+      // resize the tmux window to match the TerminalView dimensions.
+      if (_sessionName != null) {
+        Process.run('tmux', ['resize-window', '-t', _sessionName!, '-x', '$cols', '-y', '$rows']);
+      }
     });
   }
 
