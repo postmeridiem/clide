@@ -50,10 +50,14 @@ class SchedulerService {
   void _startTicker() {
     _stopTicker();
 
-    // Immediate first tick for all tiers.
+    // Stagger the initial ticks to avoid a rebuild storm on project open.
+    var delay = 0;
     for (final tier in SchedulerTier.values) {
       if (tier == SchedulerTier.midnight) continue;
-      _events.emit(SchedulerTick(tier: tier));
+      Timer(Duration(milliseconds: delay), () {
+        _events.emit(SchedulerTick(tier: tier));
+      });
+      delay += 500;
     }
 
     // Then start the periodic isolate.
