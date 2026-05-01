@@ -52,12 +52,15 @@ class _ClaudePaneState extends State<ClaudePane> {
   String _statusLine = 'attaching…';
 
   @override
+  bool _spawned = false;
+
   void initState() {
     super.initState();
     _terminal = Terminal(maxLines: _maxLines);
     _terminal.onOutput = _onOutput;
     _terminal.onResize = _onResize;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _spawnWhenReady());
+    // Don't spawn here — wait for the first onResize from TerminalView
+    // so the PTY gets real dimensions, not 80x24 defaults.
   }
 
   @override
@@ -201,6 +204,12 @@ class _ClaudePaneState extends State<ClaudePane> {
   }
 
   void _onResize(int cols, int rows, int _, int __) {
+    if (!_spawned) {
+      // First resize — TerminalView has real dimensions now.
+      _spawned = true;
+      _spawnWhenReady();
+      return;
+    }
     final id = _paneId;
     if (id == null) return;
     _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
