@@ -123,10 +123,14 @@ class _ClaudePaneState extends State<ClaudePane> {
         ? primarySessionName(repoRoot)
         : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
-    // TODO: restore tmux+claude once resize is stable.
-    // Bare shell for resize debugging.
-    final shell = Platform.environment['SHELL'] ?? '/bin/zsh';
-    var argv = <String>[shell, '-l'];
+    // tmux-wrapped session for persistence (D-041).
+    var argv = <String>[
+      'tmux',
+      'new-session',
+      '-A',
+      '-s',
+      sessionName,
+    ];
     var resp = await ipc.request('pane.spawn', args: {
       'argv': argv,
       'kind': PaneKind.claude.wire,
