@@ -186,11 +186,13 @@ class _ClaudePaneState extends State<ClaudePane> {
           final b64 = e.data['bytes_b64'];
           if (b64 is String) {
             _outputBuf.write(utf8.decode(base64Decode(b64), allowMalformed: true));
-            // Throttle writes to ~60fps. Multiple PTY reads within a
-            // 16ms window are batched into one terminal.write() call,
-            // preventing split escape sequences from rendering as
-            // garbage between frames.
-            _flushTimer ??= Timer(const Duration(milliseconds: 16), _flushOutput);
+            // Batch all output from the current event loop turn into one
+            // terminal.write() call. scheduleMicrotask runs after all
+            // pending events but before the next frame, so split escape
+            // sequences within the same event batch are reunited.
+            if (_flushTimer == null) {
+              _flushTimer = Timer(Duration.zero, _flushOutput);
+            }
           }
         case 'pane.exit':
           if (widget.isPrimary) {
