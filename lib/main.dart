@@ -66,7 +66,7 @@ Future<void> main() async {
   // With proper signing (Developer ID), no sandbox or isolate needed.
   final toolchain = Toolchain();
   if (!kIsWeb) {
-    const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+    const workspace = String.fromEnvironment('CLIDE_PROJECT');
     final root = workspace.isNotEmpty ? workspace : Directory.current.path;
     toolchain.applyResolved(resolveToolchainPaths(root));
   }

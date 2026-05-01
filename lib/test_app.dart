@@ -67,7 +67,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
   }
 
   Future<void> _runTests() async {
-    const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+    const workspace = String.fromEnvironment('CLIDE_PROJECT');
     const category = String.fromEnvironment('CLIDE_TESTMODE');
     final workDir = workspace.isNotEmpty ? workspace : Directory.current.path;
 

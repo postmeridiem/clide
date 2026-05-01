@@ -30,7 +30,7 @@ import 'package:clide/src/pql/client.dart';
 class BackendBootMessage {
   const BackendBootMessage({required this.frontendPort, this.hintRoot});
   final SendPort frontendPort;
-  /// Optional path hint for initial toolchain resolution (e.g. CLIDE_WORKSPACE).
+  /// Optional path hint for initial toolchain resolution (e.g. CLIDE_PROJECT).
   /// Used to find project-local binaries like dugite before a project opens.
   final String? hintRoot;
 }
