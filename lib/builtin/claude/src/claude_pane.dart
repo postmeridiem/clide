@@ -65,6 +65,7 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   @override
   void dispose() {
+    _resizeTimer?.cancel();
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
@@ -203,6 +204,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _ipc()?.request('pane.write', args: {'id': id, 'text': text});
   }
 
+  Timer? _resizeTimer;
+
   void _onResize(int cols, int rows, int _, int __) {
     if (!_spawned) {
       // First resize — TerminalView has real dimensions now.
@@ -210,9 +213,14 @@ class _ClaudePaneState extends State<ClaudePane> {
       _spawnWhenReady();
       return;
     }
-    final id = _paneId;
-    if (id == null) return;
-    _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
+    // Debounce resize — rapid SIGWINCH during window drag corrupts
+    // the terminal rendering. Wait for the resize to settle.
+    _resizeTimer?.cancel();
+    _resizeTimer = Timer(const Duration(milliseconds: 150), () {
+      final id = _paneId;
+      if (id == null) return;
+      _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
+    });
   }
 
   DaemonClient? _ipc() => _kernel()?.ipc;

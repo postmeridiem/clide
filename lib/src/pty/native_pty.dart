@@ -278,6 +278,10 @@ class NativePty {
       ..ref.wsCol = cols;
     _ioctl(_fd, _kTiocsWinsz, ws);
     calloc.free(ws);
+    // Explicitly signal the child to re-query its terminal size.
+    // macOS should auto-send SIGWINCH on TIOCSWINSZ, but the legacy
+    // Python implementation sent it explicitly for reliability.
+    _nativeKill(pid, 28); // SIGWINCH = 28 on macOS/Linux
   }
 
   /// Send a signal to the child.
