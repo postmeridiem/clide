@@ -66,6 +66,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void dispose() {
     _resizeTimer?.cancel();
+    _flushTimer?.cancel();
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
@@ -122,17 +123,10 @@ class _ClaudePaneState extends State<ClaudePane> {
         ? primarySessionName(repoRoot)
         : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
-    // Try tmux-wrapped first (persistence). Fall back to direct claude
-    // if tmux spawn errors.
-    var argv = <String>[
-      'tmux',
-      'new-session',
-      '-A',
-      '-s',
-      sessionName,
-      '--',
-      'claude',
-    ];
+    // TODO: restore tmux+claude once resize is stable.
+    // Bare shell for resize debugging.
+    final shell = Platform.environment['SHELL'] ?? '/bin/zsh';
+    var argv = <String>[shell, '-l'];
     var resp = await ipc.request('pane.spawn', args: {
       'argv': argv,
       'kind': PaneKind.claude.wire,
@@ -172,6 +166,16 @@ class _ClaudePaneState extends State<ClaudePane> {
     setState(() {});
   }
 
+  final _outputBuf = StringBuffer();
+  Timer? _flushTimer;
+
+  void _flushOutput() {
+    _flushTimer = null;
+    if (_outputBuf.isEmpty) return;
+    _terminal.write(_outputBuf.toString());
+    _outputBuf.clear();
+  }
+
   void _subscribe() {
     final kernel = _kernel();
     if (kernel == null) return;
@@ -181,7 +185,12 @@ class _ClaudePaneState extends State<ClaudePane> {
         case 'pane.output':
           final b64 = e.data['bytes_b64'];
           if (b64 is String) {
-            _terminal.write(utf8.decode(base64Decode(b64), allowMalformed: true));
+            _outputBuf.write(utf8.decode(base64Decode(b64), allowMalformed: true));
+            // Throttle writes to ~60fps. Multiple PTY reads within a
+            // 16ms window are batched into one terminal.write() call,
+            // preventing split escape sequences from rendering as
+            // garbage between frames.
+            _flushTimer ??= Timer(const Duration(milliseconds: 16), _flushOutput);
           }
         case 'pane.exit':
           if (widget.isPrimary) {

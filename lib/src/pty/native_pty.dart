@@ -236,7 +236,7 @@ class NativePty {
         ffi.Int32 Function(ffi.Pointer<_Pollfd>, ffi.Uint32, ffi.Int32),
         int Function(ffi.Pointer<_Pollfd>, int, int)>('poll');
 
-    final buf = malloc<ffi.Uint8>(4096);
+    final buf = malloc<ffi.Uint8>(65536);
     final pfd = calloc<_Pollfd>();
     pfd.ref.fd = fd;
     pfd.ref.events = 0x0001; // POLLIN
@@ -249,7 +249,7 @@ class NativePty {
         if (pfd.ref.revents & 0x0038 != 0 && pfd.ref.revents & 0x0001 == 0) {
           break;
         }
-        final n = rd(fd, buf.cast(), 4096);
+        final n = rd(fd, buf.cast(), 65536);
         if (n <= 0) break;
         port.send(Uint8List.fromList(buf.asTypedList(n)));
       }
