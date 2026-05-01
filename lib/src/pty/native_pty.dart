@@ -276,11 +276,10 @@ class NativePty {
     final ws = calloc<_Winsize>()
       ..ref.wsRow = rows
       ..ref.wsCol = cols;
-    _ioctl(_fd, _kTiocsWinsz, ws);
+    final rc = _ioctl(_fd, _kTiocsWinsz, ws);
     calloc.free(ws);
+    print('[pty-resize] fd=$_fd cols=$cols rows=$rows ioctl=$rc pid=$pid');
     // Explicitly signal the child to re-query its terminal size.
-    // macOS should auto-send SIGWINCH on TIOCSWINSZ, but the legacy
-    // Python implementation sent it explicitly for reliability.
     _nativeKill(pid, 28); // SIGWINCH = 28 on macOS/Linux
   }
 

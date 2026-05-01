@@ -124,13 +124,20 @@ class _ClaudePaneState extends State<ClaudePane> {
         : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
     // tmux-wrapped session for persistence (D-041).
+    // -x/-y set the initial window size; without them tmux defaults
+    // to a huge size when running inside a PTY without a real terminal.
+    final cols = _terminal.viewWidth;
+    final rows = _terminal.viewHeight;
     var argv = <String>[
       'tmux',
       'new-session',
       '-A',
       '-s',
       sessionName,
+      '-x', '$cols',
+      '-y', '$rows',
     ];
+    print('[spawn] cols=${_terminal.viewWidth} rows=${_terminal.viewHeight}');
     var resp = await ipc.request('pane.spawn', args: {
       'argv': argv,
       'kind': PaneKind.claude.wire,
@@ -222,6 +229,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   Timer? _resizeTimer;
 
   void _onResize(int cols, int rows, int _, int __) {
+    print('[onResize] cols=$cols rows=$rows spawned=$_spawned paneId=$_paneId');
     if (!_spawned) {
       // First resize — TerminalView has real dimensions now.
       _spawned = true;
@@ -234,6 +242,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _resizeTimer = Timer(const Duration(milliseconds: 150), () {
       final id = _paneId;
       if (id == null) return;
+      print('[resize] cols=$cols rows=$rows');
       _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
     });
   }
