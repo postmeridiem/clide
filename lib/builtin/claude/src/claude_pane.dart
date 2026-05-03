@@ -29,8 +29,7 @@ class ClaudePane extends StatefulWidget {
     this.isPrimary = true,
     this.secondaryIndex,
     this.showChrome = true,
-  }) : assert(isPrimary || secondaryIndex != null,
-            'secondary panes need an index');
+  }) : assert(isPrimary || secondaryIndex != null, 'secondary panes need an index');
 
   final bool isPrimary;
   final bool showChrome;
@@ -52,9 +51,9 @@ class _ClaudePaneState extends State<ClaudePane> {
   String? _error;
   String _statusLine = 'attaching…';
 
-  @override
   bool _spawned = false;
 
+  @override
   void initState() {
     super.initState();
     _terminal = Terminal(maxLines: _maxLines);
@@ -120,9 +119,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       repoRoot = (rootResp.data['path'] as String?) ?? repoRoot;
     }
 
-    _sessionName = widget.isPrimary
-        ? primarySessionName(repoRoot)
-        : secondarySessionName(repoRoot, widget.secondaryIndex!);
+    _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
     // tmux-wrapped session for persistence (D-041).
     // -x/-y set the initial window size; without them tmux defaults
@@ -135,8 +132,10 @@ class _ClaudePaneState extends State<ClaudePane> {
       '-A',
       '-s',
       _sessionName!,
-      '-x', '$cols',
-      '-y', '$rows',
+      '-x',
+      '$cols',
+      '-y',
+      '$rows',
     ];
     print('[spawn] cols=${_terminal.viewWidth} rows=${_terminal.viewHeight}');
     var resp = await ipc.request('pane.spawn', args: {
@@ -264,9 +263,7 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isPrimary
-        ? 'claude — primary'
-        : 'claude — secondary ${widget.secondaryIndex}';
+    final title = widget.isPrimary ? 'claude — primary' : 'claude — secondary ${widget.secondaryIndex}';
     final body = _error != null
         ? Padding(
             padding: const EdgeInsets.all(16),

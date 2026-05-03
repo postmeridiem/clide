@@ -92,29 +92,29 @@ class _RootShellState extends State<_RootShell> {
           autofocus: true,
           onKeyEvent: _onKey,
           child: ColoredBox(
-          color: tokens.globalBackground,
-          child: ClideResizeBorder(
-            windowControls: widget.services.window,
-            child: Column(
-              children: [
-                _HatBar(kernel: widget.services),
-                Expanded(
-                  child: DialogHost(
-                    router: widget.services.dialog,
-                    child: Stack(
-                      children: [
-                        const Positioned.fill(child: RootLayout()),
-                        const ClidePalette(),
-                        const Positioned.fill(child: _WelcomeOverlay()),
-                      ],
+            color: tokens.globalBackground,
+            child: ClideResizeBorder(
+              windowControls: widget.services.window,
+              child: Column(
+                children: [
+                  _HatBar(kernel: widget.services),
+                  Expanded(
+                    child: DialogHost(
+                      router: widget.services.dialog,
+                      child: Stack(
+                        children: [
+                          const Positioned.fill(child: RootLayout()),
+                          const ClidePalette(),
+                          const Positioned.fill(child: _WelcomeOverlay()),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -308,23 +308,6 @@ class _RightHatContent extends StatelessWidget {
   }
 }
 
-class _TrafficDot extends StatelessWidget {
-  const _TrafficDot({required this.color, required this.onTap});
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClideTappable(
-      onTap: onTap,
-      builder: (context, hovered, _) => Container(
-        width: 12, height: 12,
-        decoration: BoxDecoration(color: hovered ? color : color.withAlpha(0xCC), shape: BoxShape.circle),
-      ),
-    );
-  }
-}
-
 class _WinBtn extends StatelessWidget {
   const _WinBtn({required this.icon, required this.onTap, required this.tokens, this.isClose = false});
   final ClideIconPainter icon;
@@ -338,7 +321,8 @@ class _WinBtn extends StatelessWidget {
     return ClideTappable(
       onTap: onTap,
       builder: (context, hovered, _) => Container(
-        width: 36, height: hatHeight,
+        width: 36,
+        height: hatHeight,
         color: hovered ? hoverBg : null,
         alignment: Alignment.center,
         child: ClideIcon(icon, size: 14, color: hovered && isClose ? const Color(0xFFFFFFFF) : tokens.chromeForeground),
@@ -435,9 +419,9 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
           widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
         } else {
           widget.kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(
-            path: picked,
-            onDismiss: () => dismiss(),
-          ));
+                path: picked,
+                onDismiss: () => dismiss(),
+              ));
         }
       }
       return;
@@ -515,8 +499,7 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
                 children: [
                   _ActionRow(label: 'Open Local Project', shortcut: Platform.isMacOS ? '⌘O' : 'Ctrl+O', tokens: tokens, onTap: _openFolder),
                   _ActionRow(label: 'New Window', shortcut: Platform.isMacOS ? '⌘⇧N' : 'Ctrl+Shift+N', tokens: tokens, onTap: _newWindow),
-                  if (widget.kernel.project.isOpen)
-                    _ActionRow(label: 'Close Project', shortcut: '', tokens: tokens, onTap: _closeWorkspace),
+                  if (widget.kernel.project.isOpen) _ActionRow(label: 'Close Project', shortcut: '', tokens: tokens, onTap: _closeWorkspace),
                 ],
               ),
             ),
@@ -589,8 +572,7 @@ class _ActionRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: ClideText(label, fontSize: 14)),
-            if (shortcut != null && shortcut!.isNotEmpty)
-              ClideText(shortcut!, fontSize: 12, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            if (shortcut != null && shortcut!.isNotEmpty) ClideText(shortcut!, fontSize: 12, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
           ],
         ),
       ),
@@ -629,7 +611,10 @@ class _OpenFolderDialogState extends State<_OpenFolderDialog> {
   Future<void> _submit() async {
     final path = _controller.text.trim();
     if (path.isEmpty) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await widget.onOpen(path);
     } catch (_) {

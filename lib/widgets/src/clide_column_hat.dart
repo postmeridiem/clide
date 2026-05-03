@@ -21,14 +21,12 @@ class ColumnHat extends StatelessWidget {
   final String? projectLabel;
   final String? branchLabel;
 
-  factory ColumnHat.left({required WindowControls windowControls}) =>
-      ColumnHat._(position: HatPosition.left, windowControls: windowControls);
+  factory ColumnHat.left({required WindowControls windowControls}) => ColumnHat._(position: HatPosition.left, windowControls: windowControls);
 
   factory ColumnHat.center({required WindowControls windowControls, String? project, String? branch}) =>
       ColumnHat._(position: HatPosition.center, windowControls: windowControls, projectLabel: project, branchLabel: branch);
 
-  factory ColumnHat.right({required WindowControls windowControls}) =>
-      ColumnHat._(position: HatPosition.right, windowControls: windowControls);
+  factory ColumnHat.right({required WindowControls windowControls}) => ColumnHat._(position: HatPosition.right, windowControls: windowControls);
 
   @override
   Widget build(BuildContext context) {
@@ -97,27 +95,6 @@ class _RightContent extends StatelessWidget {
         _WinButton(icon: const PhosphorIconPainter(0xe45e), onTap: wc.toggleMaximize, tokens: tokens),
         _WinButton(icon: PhosphorIcons.xMark, onTap: wc.close, tokens: tokens, isClose: true),
       ],
-    );
-  }
-}
-
-class _TrafficDot extends StatelessWidget {
-  const _TrafficDot({required this.color, required this.onTap});
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClideTappable(
-      onTap: onTap,
-      builder: (context, hovered, _) => Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: hovered ? color : color.withAlpha(0xCC),
-          shape: BoxShape.circle,
-        ),
-      ),
     );
   }
 }

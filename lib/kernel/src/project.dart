@@ -96,7 +96,7 @@ class ProjectManager extends ChangeNotifier {
 
     // Tell the backend isolate to (re)initialize services for this workspace.
     if (_onProjectOpen != null) {
-      await _onProjectOpen!(root);
+      await _onProjectOpen(root);
     }
 
     await _settings.setProjectDir(_current);
@@ -135,7 +135,7 @@ class ProjectManager extends ChangeNotifier {
     // the merged UI thread). Falls back to direct Process.run for tests
     // and the CLI binary.
     if (_onValidateProject != null) {
-      return _onValidateProject!(path);
+      return _onValidateProject(path);
     }
     try {
       final r = await Process.run(_toolchain.git, ['rev-parse', '--show-toplevel'], workingDirectory: path, environment: _toolchain.gitEnv);

@@ -40,7 +40,6 @@ import 'src/panes/registry.dart';
 import 'src/pty/session.dart';
 import 'kernel/src/toolchain.dart';
 import 'src/daemon/dispatcher.dart';
-import 'src/ipc/envelope.dart';
 import 'src/pty/env.dart' show expandedPath;
 
 const _timeout = Duration(seconds: 30);
@@ -98,11 +97,11 @@ class _ClideTestAppState extends State<ClideTestApp> {
 
     print('[testmode] === done ($passed passed, $failed failed, ${_results.length} total) ===');
     print('[testmode:json] ${jsonEncode({
-      'passed': passed,
-      'failed': failed,
-      'total': _results.length,
-      'failures': failedNames,
-    })}');
+          'passed': passed,
+          'failed': failed,
+          'total': _results.length,
+          'failures': failedNames,
+        })}');
 
     setState(() => _done = true);
     await Future<void>.delayed(const Duration(seconds: 2));
@@ -165,16 +164,13 @@ class _ClideTestAppState extends State<ClideTestApp> {
     });
 
     await _testAsync('git rev-parse (project.open sim)', () async {
-      final r = await Process.run(tc.git, ['rev-parse', '--show-toplevel'],
-          workingDirectory: workDir, environment: tc.gitEnv);
+      final r = await Process.run(tc.git, ['rev-parse', '--show-toplevel'], workingDirectory: workDir, environment: tc.gitEnv);
       return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
     });
 
     await _testAsync('sequential git calls', () async {
-      final r1 = await Process.run(tc.git, ['rev-parse', '--show-toplevel'],
-          workingDirectory: workDir, environment: tc.gitEnv);
-      final r2 = await Process.run(tc.git, ['rev-parse', '--abbrev-ref', 'HEAD'],
-          workingDirectory: workDir, environment: tc.gitEnv);
+      final r1 = await Process.run(tc.git, ['rev-parse', '--show-toplevel'], workingDirectory: workDir, environment: tc.gitEnv);
+      final r2 = await Process.run(tc.git, ['rev-parse', '--abbrev-ref', 'HEAD'], workingDirectory: workDir, environment: tc.gitEnv);
       return 'root=${(r1.stdout as String).trim()} branch=${(r2.stdout as String).trim()}';
     });
 
@@ -182,8 +178,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
       final paths = await compute(resolveToolchainPaths, workDir);
       final tc2 = Toolchain();
       tc2.applyResolved(paths);
-      final r = await Process.run(tc2.git, ['rev-parse', '--show-toplevel'],
-          workingDirectory: workDir, environment: tc2.gitEnv);
+      final r = await Process.run(tc2.git, ['rev-parse', '--show-toplevel'], workingDirectory: workDir, environment: tc2.gitEnv);
       return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
     });
 
@@ -317,7 +312,9 @@ class _ClideTestAppState extends State<ClideTestApp> {
       }
 
       // Cleanup
-      try { await appDir.delete(recursive: true); } catch (_) {}
+      try {
+        await appDir.delete(recursive: true);
+      } catch (_) {}
     } catch (e) {
       _addResult('ext:boot', false, '$e');
     }
@@ -335,7 +332,6 @@ class _ClideTestAppState extends State<ClideTestApp> {
       final dispatcher = DaemonDispatcher();
       final bus = DaemonBus();
       final eventSink = _TestEventSink(bus);
-      final workDir2 = Directory(workDir);
       final paneRegistry = PaneRegistry(events: eventSink);
       registerPaneCommands(dispatcher, paneRegistry);
       final ipc = InProcessClient(log: Logger(), events: bus, dispatcher: dispatcher);
@@ -382,8 +378,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
       final parent = sv[0];
       final child = sv[1];
       pkg_ffi.calloc.free(sv);
-      final proc = await Process.start('/tmp/checkfd', [],
-          environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
+      final proc = await Process.start('/tmp/checkfd', [], environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
       final stderr = await proc.stderr.transform(utf8.decoder).join();
       final exit = await proc.exitCode;
       libc.close(parent);
@@ -422,60 +417,60 @@ class _ClideTestAppState extends State<ClideTestApp> {
     });
 
     if (!Platform.isMacOS) {
-    // Additional direct PtySession tests (Linux only — no merged thread).
+      // Additional direct PtySession tests (Linux only — no merged thread).
 
-    // Test 1: spawn /bin/echo via PtySession, read output
-    await _testAsync('pty spawn echo', () async {
-      final session = await PtySession.spawn(
-        argv: ['/bin/echo', 'CLIDE_PTY_TEST_OK'],
-        cwd: workDir,
-        ptycPath: tc.ptyc,
-      );
-      final bytes = <int>[];
-      final done = Completer<void>();
-      session.output.listen(bytes.addAll, onDone: () => done.complete());
-      await done.future.timeout(const Duration(seconds: 5));
-      await session.close();
-      final output = utf8.decode(bytes, allowMalformed: true);
-      final ok = output.contains('CLIDE_PTY_TEST_OK');
-      return ok ? 'output contains marker' : 'marker not found in ${output.length} bytes';
-    });
+      // Test 1: spawn /bin/echo via PtySession, read output
+      await _testAsync('pty spawn echo', () async {
+        final session = await PtySession.spawn(
+          argv: ['/bin/echo', 'CLIDE_PTY_TEST_OK'],
+          cwd: workDir,
+          ptycPath: tc.ptyc,
+        );
+        final bytes = <int>[];
+        final done = Completer<void>();
+        session.output.listen(bytes.addAll, onDone: () => done.complete());
+        await done.future.timeout(const Duration(seconds: 5));
+        await session.close();
+        final output = utf8.decode(bytes, allowMalformed: true);
+        final ok = output.contains('CLIDE_PTY_TEST_OK');
+        return ok ? 'output contains marker' : 'marker not found in ${output.length} bytes';
+      });
 
-    // Test 2: spawn shell, write a command, verify output
-    await _testAsync('pty spawn shell', () async {
-      final session = await PtySession.spawn(
-        argv: [tc.shell, '-c', 'echo CLIDE_SHELL_TEST'],
-        cwd: workDir,
-        ptycPath: tc.ptyc,
-      );
-      final bytes = <int>[];
-      final done = Completer<void>();
-      session.output.listen(bytes.addAll, onDone: () => done.complete());
-      await done.future.timeout(const Duration(seconds: 5));
-      await session.close();
-      final output = utf8.decode(bytes, allowMalformed: true);
-      final ok = output.contains('CLIDE_SHELL_TEST');
-      return ok ? 'shell output contains marker' : 'marker not found in ${output.length} bytes';
-    });
+      // Test 2: spawn shell, write a command, verify output
+      await _testAsync('pty spawn shell', () async {
+        final session = await PtySession.spawn(
+          argv: [tc.shell, '-c', 'echo CLIDE_SHELL_TEST'],
+          cwd: workDir,
+          ptycPath: tc.ptyc,
+        );
+        final bytes = <int>[];
+        final done = Completer<void>();
+        session.output.listen(bytes.addAll, onDone: () => done.complete());
+        await done.future.timeout(const Duration(seconds: 5));
+        await session.close();
+        final output = utf8.decode(bytes, allowMalformed: true);
+        final ok = output.contains('CLIDE_SHELL_TEST');
+        return ok ? 'shell output contains marker' : 'marker not found in ${output.length} bytes';
+      });
 
-    // Test 3: spawn interactive shell, write to stdin, verify file creation
-    await _testAsync('pty write to child', () async {
-      final marker = '/tmp/clide-pty-test-${DateTime.now().millisecondsSinceEpoch}';
-      final session = await PtySession.spawn(
-        argv: [tc.shell],
-        cwd: workDir,
-        ptycPath: tc.ptyc,
-      );
-      session.write(utf8.encode('touch $marker && exit\n'));
-      final bytes = <int>[];
-      final done = Completer<void>();
-      session.output.listen(bytes.addAll, onDone: () => done.complete());
-      await done.future.timeout(const Duration(seconds: 5));
-      await session.close();
-      final fileCreated = File(marker).existsSync();
-      if (fileCreated) File(marker).deleteSync();
-      return fileCreated ? 'file created + cleaned up' : 'file not created';
-    });
+      // Test 3: spawn interactive shell, write to stdin, verify file creation
+      await _testAsync('pty write to child', () async {
+        final marker = '/tmp/clide-pty-test-${DateTime.now().millisecondsSinceEpoch}';
+        final session = await PtySession.spawn(
+          argv: [tc.shell],
+          cwd: workDir,
+          ptycPath: tc.ptyc,
+        );
+        session.write(utf8.encode('touch $marker && exit\n'));
+        final bytes = <int>[];
+        final done = Completer<void>();
+        session.output.listen(bytes.addAll, onDone: () => done.complete());
+        await done.future.timeout(const Duration(seconds: 5));
+        await session.close();
+        final fileCreated = File(marker).existsSync();
+        if (fileCreated) File(marker).deleteSync();
+        return fileCreated ? 'file created + cleaned up' : 'file not created';
+      });
     } // end !Platform.isMacOS
 
     print('[testmode]');
@@ -513,8 +508,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
 
   Future<void> _testExec(String label, String bin, List<String> args, String workDir, {Map<String, String>? env}) async {
     try {
-      final r = await Process.run(bin, args, workingDirectory: workDir, environment: env)
-          .timeout(const Duration(seconds: 5));
+      final r = await Process.run(bin, args, workingDirectory: workDir, environment: env).timeout(const Duration(seconds: 5));
       final stdout = (r.stdout as String).trim();
       final stderr = (r.stderr as String).trim();
       final firstLine = stdout.isNotEmpty ? stdout.split('\n').first : (stderr.isNotEmpty ? stderr.split('\n').first : '(empty)');
@@ -545,7 +539,8 @@ class _ClideTestAppState extends State<ClideTestApp> {
           children: [
             const Text('ClideTestApp', style: TextStyle(color: Color(0xFFCDD6F4), fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
             const SizedBox(height: 4),
-            Text(_done ? 'Done — exiting' : 'Running tests...', style: const TextStyle(color: Color(0xFF6C7086), fontSize: 13, decoration: TextDecoration.none)),
+            Text(_done ? 'Done — exiting' : 'Running tests...',
+                style: const TextStyle(color: Color(0xFF6C7086), fontSize: 13, decoration: TextDecoration.none)),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
@@ -556,10 +551,17 @@ class _ClideTestAppState extends State<ClideTestApp> {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: [
-                        Text(r.ok ? '●' : '●', style: TextStyle(color: r.ok ? const Color(0xFFA6E3A1) : const Color(0xFFF38BA8), fontSize: 12, decoration: TextDecoration.none)),
+                        Text(r.ok ? '●' : '●',
+                            style: TextStyle(color: r.ok ? const Color(0xFFA6E3A1) : const Color(0xFFF38BA8), fontSize: 12, decoration: TextDecoration.none)),
                         const SizedBox(width: 8),
-                        SizedBox(width: 220, child: Text(r.name, style: const TextStyle(color: Color(0xFFCDD6F4), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none))),
-                        Expanded(child: Text(r.output, style: const TextStyle(color: Color(0xFF9399B2), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none), overflow: TextOverflow.ellipsis)),
+                        SizedBox(
+                            width: 220,
+                            child: Text(r.name,
+                                style: const TextStyle(color: Color(0xFFCDD6F4), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none))),
+                        Expanded(
+                            child: Text(r.output,
+                                style: const TextStyle(color: Color(0xFF9399B2), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none),
+                                overflow: TextOverflow.ellipsis)),
                       ],
                     ),
                   );

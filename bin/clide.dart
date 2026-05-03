@@ -242,10 +242,7 @@ Future<void> _runCliArgs(
   // Responses come back on the same socket. Events may be interleaved
   // (the daemon broadcasts), so we skip events until we see the
   // response whose id matches our request.
-  final lines = socket
-      .cast<List<int>>()
-      .transform(utf8.decoder)
-      .transform(const LineSplitter());
+  final lines = socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
 
   try {
     await for (final line in lines) {
@@ -346,11 +343,14 @@ Future<void> _runGit(List<String> args) async {
       final rest = args.sublist(1);
       final setUpstream = rest.contains('-u');
       final positional = rest.where((a) => a != '-u').toList();
-      await _runCliArgs('git.push', {
-        if (setUpstream) 'setUpstream': true,
-        if (positional.isNotEmpty) 'remote': positional[0],
-        if (positional.length > 1) 'branch': positional[1],
-      }, exitOnOk: true);
+      await _runCliArgs(
+          'git.push',
+          {
+            if (setUpstream) 'setUpstream': true,
+            if (positional.isNotEmpty) 'remote': positional[0],
+            if (positional.length > 1) 'branch': positional[1],
+          },
+          exitOnOk: true);
     default:
       _die('unknown git verb: ${args.first}');
   }
@@ -390,13 +390,11 @@ Future<void> _runTail(List<String> args) async {
   void quit() {
     unawaited(socket.close());
   }
+
   ProcessSignal.sigint.watch().listen((_) => quit());
   ProcessSignal.sigterm.watch().listen((_) => quit());
 
-  final lines = socket
-      .cast<List<int>>()
-      .transform(utf8.decoder)
-      .transform(const LineSplitter());
+  final lines = socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
 
   try {
     await for (final line in lines) {
@@ -426,20 +424,6 @@ void _emitError({
 }) {
   final err = IpcError(code: code, kind: kind, message: message, hint: hint);
   stderr.writeln(jsonEncode(err.toJson()));
-}
-
-String _resolvePtycPath() {
-  final self = Platform.resolvedExecutable;
-  final binDir = File(self).parent.path;
-  final candidates = [
-    '$binDir/../ptyc/bin/ptyc',
-    '$binDir/ptyc',
-    'ptyc',
-  ];
-  for (final c in candidates) {
-    if (File(c).existsSync()) return c;
-  }
-  return 'ptyc';
 }
 
 Never _die(String msg) {
