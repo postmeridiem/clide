@@ -18,10 +18,7 @@ else
   FLUTTER_OS := windows
 endif
 
-VERSION_BASE ?= $(shell awk -F': *' '/^version:/ {gsub(/[" ]/,"",$$2); print $$2; exit}' pubspec.yaml)
-COMMIT       ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
-DIRTY        := $(shell git diff --quiet HEAD 2>/dev/null || echo .dirty)
-VERSION      ?= $(VERSION_BASE)+$(COMMIT)$(DIRTY)
+VERSION      ?= $(shell awk -F': *' '/^version:/ {gsub(/[" ]/,"",$$2); print $$2; exit}' pubspec.yaml)
 DATE         ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 .PHONY: help
@@ -141,6 +138,68 @@ build-linux: ## flutter build linux (desktop bundle).
 .PHONY: build-macos
 build-macos: ## flutter build macos (desktop bundle).
 	flutter build macos
+
+# -- install / uninstall -----------------------------------------------------
+
+# Install prefix. Bundle lands at $(INSTALL_PREFIX)/clide/ with a
+# symlink at $(INSTALL_DIR)/clide pointing into it.
+INSTALL_PREFIX ?= $(HOME)/.local/lib
+
+ifeq ($(FLUTTER_OS),linux)
+  BUNDLE_DIR := build/linux/x64/release/bundle
+else ifeq ($(FLUTTER_OS),macos)
+  BUNDLE_DIR := build/macos/Build/Products/Release/clide.app
+endif
+
+ICON_SIZES := 16 32 48 128 192 256 512
+
+.PHONY: install
+install: build ## Build + install clide to ~/.local (INSTALL_PREFIX, INSTALL_DIR).
+ifeq ($(FLUTTER_OS),linux)
+	@mkdir -p $(INSTALL_PREFIX) $(INSTALL_DIR)
+	rm -rf $(INSTALL_PREFIX)/clide
+	cp -a $(BUNDLE_DIR) $(INSTALL_PREFIX)/clide
+	ln -sf $(INSTALL_PREFIX)/clide/clide $(INSTALL_DIR)/clide
+	@for size in $(ICON_SIZES); do \
+	  dir=$(HOME)/.local/share/icons/hicolor/$${size}x$${size}/apps; \
+	  mkdir -p $$dir; \
+	  cp assets/logo/appicon-$${size}.png $$dir/clide.png; \
+	done
+	@mkdir -p $(HOME)/.local/share/applications
+	@sed 's|Exec=clide|Exec=$(INSTALL_PREFIX)/clide/clide|' linux/clide.desktop \
+	  > $(HOME)/.local/share/applications/clide.desktop
+	@gtk-update-icon-cache -f -t $(HOME)/.local/share/icons/hicolor 2>/dev/null || true
+	@update-desktop-database $(HOME)/.local/share/applications 2>/dev/null || true
+	@echo "installed: $(INSTALL_DIR)/clide -> $(INSTALL_PREFIX)/clide/clide"
+	@echo "desktop:   ~/.local/share/applications/clide.desktop"
+	@echo "version:   $(VERSION)"
+else ifeq ($(FLUTTER_OS),macos)
+	@mkdir -p $(HOME)/Applications
+	rm -rf $(HOME)/Applications/clide.app
+	cp -a $(BUNDLE_DIR) $(HOME)/Applications/clide.app
+	@echo "installed: ~/Applications/clide.app"
+	@echo "version:   $(VERSION)"
+else
+	@echo "install not yet supported on $(FLUTTER_OS)"
+	@exit 1
+endif
+
+.PHONY: uninstall
+uninstall: ## Remove installed clide.
+ifeq ($(FLUTTER_OS),linux)
+	rm -f $(INSTALL_DIR)/clide
+	rm -rf $(INSTALL_PREFIX)/clide
+	rm -f $(HOME)/.local/share/applications/clide.desktop
+	@for size in $(ICON_SIZES); do \
+	  rm -f $(HOME)/.local/share/icons/hicolor/$${size}x$${size}/apps/clide.png; \
+	done
+	@gtk-update-icon-cache -f -t $(HOME)/.local/share/icons/hicolor 2>/dev/null || true
+	@update-desktop-database $(HOME)/.local/share/applications 2>/dev/null || true
+	@echo "uninstalled"
+else ifeq ($(FLUTTER_OS),macos)
+	rm -rf $(HOME)/Applications/clide.app
+	@echo "uninstalled"
+endif
 
 # -- dugite-native (bundled git) ------------------------------------------
 

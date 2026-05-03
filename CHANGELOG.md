@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-05-03
+
 ### Fixed
 
 - PTY FFI constants now platform-dispatched: `TIOCSWINSZ` (`0x80087467`
@@ -50,6 +52,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `make run-testmode TESTMODE_CATEGORY=<cat>` for selective runs.
 
 ### Added
+
+- `make install` / `make uninstall` — builds the release bundle and
+  installs it to `~/.local/` with XDG desktop entry, icon registration
+  at seven sizes, and icon cache refresh. macOS installs to
+  `~/Applications/clide.app`.
 
 - Backend isolate — all subprocess and file I/O runs in a dedicated
   isolate, keeping the merged UI/platform thread on macOS free for

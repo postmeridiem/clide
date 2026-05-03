@@ -13,7 +13,7 @@ description: >-
   UI, subsystem handlers (pane, files, editor, git, pql), and the
   extension framework.
 publish_to: none
-version: 2.0.0-dev
+version: 2.0.0
 repository: https://github.com/postmeridiem/clide
 
 # Project metadata (was project.yaml, folded in per D-056).

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=clide
+Comment=Flutter desktop IDE for Claude Code
+Exec=clide %U
+Icon=clide
+Terminal=false
+Categories=Development;IDE;TextEditor;
+Keywords=code;editor;ide;claude;terminal;
+StartupWMClass=clide
+MimeType=inode/directory;
