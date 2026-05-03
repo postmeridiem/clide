@@ -54,7 +54,6 @@ class Toolchain extends ChangeNotifier {
         if (_git == null) 'git',
         if (_pql == null) 'pql',
         if (_tmux == null) 'tmux',
-        if (_ptyc == null) 'ptyc',
       ];
 
   /// Returns a Future that completes when resolution finishes.

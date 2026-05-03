@@ -68,14 +68,11 @@ class PanelRegistry extends ChangeNotifier {
   List<TabContribution> tabsFor(SlotId id) {
     final tabs = contributionsFor(id).whereType<TabContribution>().toList();
     final order = _order[id];
-    if (order == null || order.isEmpty) {
-      tabs.sort((a, b) => a.priority.compareTo(b.priority));
-      return tabs;
-    }
+    if (order == null || order.isEmpty) return tabs;
     tabs.sort((a, b) {
       final ai = order.indexOf(a.id);
       final bi = order.indexOf(b.id);
-      if (ai < 0 && bi < 0) return a.priority.compareTo(b.priority);
+      if (ai < 0 && bi < 0) return 0;
       if (ai < 0) return 1;
       if (bi < 0) return -1;
       return ai.compareTo(bi);

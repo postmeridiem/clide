@@ -31,11 +31,11 @@ void main() {
       expect(r.contributionsFor(Slots.sidebar), isEmpty);
     });
 
-    test('contribute appends to the slot and orders by priority', () {
+    test('contribute appends to the slot in registration order', () {
       r.contribute(_tab(id: 'a', slot: Slots.sidebar, priority: 10));
       r.contribute(_tab(id: 'b', slot: Slots.sidebar, priority: -5));
       r.contribute(_tab(id: 'c', slot: Slots.sidebar, priority: 0));
-      expect(r.tabsFor(Slots.sidebar).map((t) => t.id), ['b', 'c', 'a']);
+      expect(r.tabsFor(Slots.sidebar).map((t) => t.id), ['a', 'b', 'c']);
     });
 
     test('first tab contribution becomes the active tab', () {
