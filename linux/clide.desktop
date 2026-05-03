@@ -7,5 +7,5 @@ Icon=clide
 Terminal=false
 Categories=Development;IDE;TextEditor;
 Keywords=code;editor;ide;claude;terminal;
-StartupWMClass=clide
+StartupWMClass=net.schweitz.clide
 MimeType=inode/directory;

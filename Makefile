@@ -167,11 +167,11 @@ ifeq ($(FLUTTER_OS),linux)
 	done
 	@mkdir -p $(HOME)/.local/share/applications
 	@sed 's|Exec=clide|Exec=$(INSTALL_PREFIX)/clide/clide|' linux/clide.desktop \
-	  > $(HOME)/.local/share/applications/clide.desktop
+	  > $(HOME)/.local/share/applications/net.schweitz.clide.desktop
 	@gtk-update-icon-cache -f -t $(HOME)/.local/share/icons/hicolor 2>/dev/null || true
 	@update-desktop-database $(HOME)/.local/share/applications 2>/dev/null || true
 	@echo "installed: $(INSTALL_DIR)/clide -> $(INSTALL_PREFIX)/clide/clide"
-	@echo "desktop:   ~/.local/share/applications/clide.desktop"
+	@echo "desktop:   ~/.local/share/applications/net.schweitz.clide.desktop"
 	@echo "version:   $(VERSION)"
 else ifeq ($(FLUTTER_OS),macos)
 	@mkdir -p $(HOME)/Applications
@@ -189,6 +189,7 @@ uninstall: ## Remove installed clide.
 ifeq ($(FLUTTER_OS),linux)
 	rm -f $(INSTALL_DIR)/clide
 	rm -rf $(INSTALL_PREFIX)/clide
+	rm -f $(HOME)/.local/share/applications/net.schweitz.clide.desktop
 	rm -f $(HOME)/.local/share/applications/clide.desktop
 	@for size in $(ICON_SIZES); do \
 	  rm -f $(HOME)/.local/share/icons/hicolor/$${size}x$${size}/apps/clide.png; \

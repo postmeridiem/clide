@@ -1,4 +1,4 @@
-#include "my_application.h"
+#include "clide_app.h"
 
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
@@ -13,12 +13,12 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
-struct _MyApplication {
+struct _ClideApp {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
 };
 
-G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+G_DEFINE_TYPE(ClideApp, clide_app, GTK_TYPE_APPLICATION)
 
 // D-057: KDE server-decoration protocol — request no decorations.
 #ifdef HAS_WAYLAND_CLIENT
@@ -81,7 +81,6 @@ static void request_no_server_decorations(GtkWindow* window) {
   struct org_kde_kwin_server_decoration* deco =
       org_kde_kwin_server_decoration_manager_create(kde_deco_manager, surface);
   if (deco != nullptr) {
-    // Mode 0 = None (no decorations at all)
     org_kde_kwin_server_decoration_request_mode(deco, 0);
     wl_display_roundtrip(wl_dpy);
   }
@@ -100,12 +99,12 @@ static void on_window_realize(GtkWidget* widget, gpointer data) {
 #endif
 }
 
-static void first_frame_cb(MyApplication* self, FlView* view) {
+static void first_frame_cb(ClideApp* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
-static void my_application_activate(GApplication* application) {
-  MyApplication* self = MY_APPLICATION(application);
+static void clide_app_activate(GApplication* application) {
+  ClideApp* self = CLIDE_APP(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -249,10 +248,10 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
-static gboolean my_application_local_command_line(GApplication* application,
-                                                  gchar*** arguments,
-                                                  int* exit_status) {
-  MyApplication* self = MY_APPLICATION(application);
+static gboolean clide_app_local_command_line(GApplication* application,
+                                             gchar*** arguments,
+                                             int* exit_status) {
+  ClideApp* self = CLIDE_APP(application);
   self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
 
   g_autoptr(GError) error = nullptr;
@@ -267,34 +266,34 @@ static gboolean my_application_local_command_line(GApplication* application,
   return TRUE;
 }
 
-static void my_application_startup(GApplication* application) {
-  G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
+static void clide_app_startup(GApplication* application) {
+  G_APPLICATION_CLASS(clide_app_parent_class)->startup(application);
 }
 
-static void my_application_shutdown(GApplication* application) {
-  G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
+static void clide_app_shutdown(GApplication* application) {
+  G_APPLICATION_CLASS(clide_app_parent_class)->shutdown(application);
 }
 
-static void my_application_dispose(GObject* object) {
-  MyApplication* self = MY_APPLICATION(object);
+static void clide_app_dispose(GObject* object) {
+  ClideApp* self = CLIDE_APP(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
-  G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
+  G_OBJECT_CLASS(clide_app_parent_class)->dispose(object);
 }
 
-static void my_application_class_init(MyApplicationClass* klass) {
-  G_APPLICATION_CLASS(klass)->activate = my_application_activate;
+static void clide_app_class_init(ClideAppClass* klass) {
+  G_APPLICATION_CLASS(klass)->activate = clide_app_activate;
   G_APPLICATION_CLASS(klass)->local_command_line =
-      my_application_local_command_line;
-  G_APPLICATION_CLASS(klass)->startup = my_application_startup;
-  G_APPLICATION_CLASS(klass)->shutdown = my_application_shutdown;
-  G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
+      clide_app_local_command_line;
+  G_APPLICATION_CLASS(klass)->startup = clide_app_startup;
+  G_APPLICATION_CLASS(klass)->shutdown = clide_app_shutdown;
+  G_OBJECT_CLASS(klass)->dispose = clide_app_dispose;
 }
 
-static void my_application_init(MyApplication* self) {}
+static void clide_app_init(ClideApp* self) {}
 
-MyApplication* my_application_new() {
+ClideApp* clide_app_new() {
   g_set_prgname(APPLICATION_ID);
-  return MY_APPLICATION(g_object_new(my_application_get_type(),
-                                     "application-id", APPLICATION_ID, "flags",
-                                     G_APPLICATION_NON_UNIQUE, nullptr));
+  return CLIDE_APP(g_object_new(clide_app_get_type(),
+                                "application-id", APPLICATION_ID, "flags",
+                                G_APPLICATION_NON_UNIQUE, nullptr));
 }
