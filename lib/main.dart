@@ -71,6 +71,25 @@ Future<void> main() async {
     toolchain.applyResolved(resolveToolchainPaths(root));
   }
 
+  InProcessClient? ipcClient;
+  DaemonBus? daemonBus;
+
+  DaemonDispatcher _buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot) {
+    final dispatcher = DaemonDispatcher();
+    final eventSink = _BusEventSink(events);
+    final paneRegistry = PaneRegistry(events: eventSink);
+    registerPaneCommands(dispatcher, paneRegistry);
+    final filesService = FilesService(root: workRoot, events: eventSink);
+    registerFilesCommands(dispatcher, filesService);
+    final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
+    registerEditorCommands(dispatcher, editorRegistry);
+    final gitClient = GitClient(toolchain: tc, workDir: workRoot);
+    registerGitCommands(dispatcher, gitClient, eventSink);
+    final pql = PqlClient(workDir: workRoot, toolchain: tc);
+    registerPqlCommands(dispatcher, pql);
+    return dispatcher;
+  }
+
   final services = await KernelServices.boot(
     appDir: appDir,
     bundledThemes: themes,
@@ -81,20 +100,17 @@ Future<void> main() async {
     daemonClientFactory: kIsWeb
         ? null
         : (log, events) {
-            final dispatcher = DaemonDispatcher();
-            final eventSink = _BusEventSink(events);
-            final filesService = FilesService.atCwd(events: eventSink);
-            final workRoot = filesService.root;
-            final paneRegistry = PaneRegistry(events: eventSink);
-            registerPaneCommands(dispatcher, paneRegistry);
-            registerFilesCommands(dispatcher, filesService);
-            final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
-            registerEditorCommands(dispatcher, editorRegistry);
-            final gitClient = GitClient(toolchain: toolchain, workDir: workRoot);
-            registerGitCommands(dispatcher, gitClient, eventSink);
-            final pql = PqlClient(workDir: workRoot, toolchain: toolchain);
-            registerPqlCommands(dispatcher, pql);
-            return InProcessClient(log: log, events: events, dispatcher: dispatcher);
+            daemonBus = events;
+            final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
+            final dispatcher = _buildDispatcher(events, toolchain, workRoot);
+            ipcClient = InProcessClient(log: log, events: events, dispatcher: dispatcher);
+            return ipcClient!;
+          },
+    onProjectOpen: kIsWeb
+        ? null
+        : (path) async {
+            if (ipcClient == null || daemonBus == null) return;
+            ipcClient!.dispatcher = _buildDispatcher(daemonBus!, toolchain, Directory(path));
           },
   );
 

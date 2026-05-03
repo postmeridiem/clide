@@ -8,10 +8,14 @@ class InProcessClient extends DaemonClient {
   InProcessClient({
     required Logger log,
     required DaemonBus events,
-    required this.dispatcher,
-  }) : super(socketPath: '', log: log, events: events);
+    required DaemonDispatcher dispatcher,
+  })  : _dispatcher = dispatcher,
+        super(socketPath: '', log: log, events: events);
 
-  final DaemonDispatcher dispatcher;
+  DaemonDispatcher _dispatcher;
+
+  DaemonDispatcher get dispatcher => _dispatcher;
+  set dispatcher(DaemonDispatcher d) => _dispatcher = d;
   int _nextReqId = 0;
 
   @override
@@ -27,6 +31,6 @@ class InProcessClient extends DaemonClient {
   Future<IpcResponse> request(String cmd, {Map<String, Object?> args = const {}}) {
     final id = '${_nextReqId++}';
     final req = IpcRequest(id: id, cmd: cmd, args: args);
-    return dispatcher.dispatch(req);
+    return _dispatcher.dispatch(req);
   }
 }
