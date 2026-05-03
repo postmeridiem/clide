@@ -142,11 +142,7 @@ class PtySession {
       // Drain ptyc's stdout to parse the success envelope. We don't
       // strictly need it — the fd arriving is proof-of-life — but
       // draining avoids a PIPE accumulating.
-      final stdoutLine = await proc.stdout
-          .transform(const Utf8Decoder())
-          .transform(const LineSplitter())
-          .first
-          .timeout(const Duration(seconds: 5));
+      final stdoutLine = await proc.stdout.transform(const Utf8Decoder()).transform(const LineSplitter()).first.timeout(const Duration(seconds: 5));
       final pid = _extractPid(stdoutLine);
 
       final code = await proc.exitCode;
@@ -317,13 +313,27 @@ class PtySession {
     for (var i = 0; i < s.length; i++) {
       final c = s.codeUnitAt(i);
       switch (c) {
-        case 0x22: b.write(r'\"'); break;
-        case 0x5c: b.write(r'\\'); break;
-        case 0x08: b.write(r'\b'); break;
-        case 0x09: b.write(r'\t'); break;
-        case 0x0a: b.write(r'\n'); break;
-        case 0x0c: b.write(r'\f'); break;
-        case 0x0d: b.write(r'\r'); break;
+        case 0x22:
+          b.write(r'\"');
+          break;
+        case 0x5c:
+          b.write(r'\\');
+          break;
+        case 0x08:
+          b.write(r'\b');
+          break;
+        case 0x09:
+          b.write(r'\t');
+          break;
+        case 0x0a:
+          b.write(r'\n');
+          break;
+        case 0x0c:
+          b.write(r'\f');
+          break;
+        case 0x0d:
+          b.write(r'\r');
+          break;
         default:
           if (c < 0x20) {
             b.write('\\u${c.toRadixString(16).padLeft(4, '0')}');
@@ -388,4 +398,3 @@ void _readerEntrypoint(_ReaderArgs args) {
     pkg_ffi.calloc.free(buf);
   }
 }
-
