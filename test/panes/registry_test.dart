@@ -35,7 +35,6 @@ void main() {
       final pane = await registry.spawn(
         kind: PaneKind.terminal,
         argv: const ['/bin/echo', 'hi'],
-        ptycPath: ptycPath,
       );
 
       expect(pane.id, startsWith('p_'));
@@ -50,7 +49,6 @@ void main() {
       await registry.spawn(
         kind: PaneKind.terminal,
         argv: const ['/bin/echo', 'hello-panes'],
-        ptycPath: ptycPath,
       );
 
       // /bin/echo closes its pty quickly. Wait briefly for output +
@@ -73,7 +71,6 @@ void main() {
       final pane = await registry.spawn(
         kind: PaneKind.terminal,
         argv: const ['/bin/cat'],
-        ptycPath: ptycPath,
       );
 
       final writeCount = registry.write(pane.id, utf8.encode('abc'));
@@ -90,7 +87,6 @@ void main() {
       final pane = await registry.spawn(
         kind: PaneKind.terminal,
         argv: const ['/bin/cat'],
-        ptycPath: ptycPath,
       );
 
       await registry.close(pane.id);
@@ -109,7 +105,6 @@ void main() {
       final pane = await registry.spawn(
         kind: PaneKind.claude,
         argv: const ['/bin/sh', '-c', 'exit 0'],
-        ptycPath: ptycPath,
       );
       expect(pane.kind, PaneKind.claude);
       expect(pane.toJson()['kind'], 'claude');

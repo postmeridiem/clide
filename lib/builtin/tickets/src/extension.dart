@@ -32,6 +32,8 @@ class TicketsExtension extends ClideExtension {
         icon: PhosphorIcons.ticket,
         build: (_) => TicketDetailView(initialId: selectedId),
       ));
+      ctx.arrangement.setVisible(Slots.contextPanel, true);
+      ctx.arrangement.setCollapsed(Slots.contextPanel, false);
       ctx.panels.activateTab(Slots.contextPanel, 'tickets.detail');
     });
   }

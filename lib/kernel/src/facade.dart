@@ -102,11 +102,15 @@ class KernelServices {
     List<Locale> availableLocales = const [Locale('en', 'US')],
     String? socketPath,
     DaemonClient Function(Logger, DaemonBus)? daemonClientFactory,
+    DaemonClient? isolateClient,
     bool autoStartDaemonClient = true,
     Toolchain? toolchain,
+    Future<void> Function(String path)? onProjectOpen,
+    Future<String?> Function(String path)? onValidateProject,
+    DaemonBus? sharedBus,
   }) async {
     final log = Logger();
-    final events = DaemonBus();
+    final events = sharedBus ?? DaemonBus();
     final messages = MessageBus();
 
     final settings = SettingsStore(appDir: appDir);
@@ -147,14 +151,17 @@ class KernelServices {
       events: events,
       settings: settings,
       toolchain: tc,
+      onProjectOpen: onProjectOpen,
+      onValidateProject: onValidateProject,
     );
-    final ipc = daemonClientFactory != null
-        ? daemonClientFactory(log, events)
-        : DaemonClient(
-            socketPath: socketPath ?? defaultSocketPath(),
-            log: log,
-            events: events,
-          );
+    final ipc = isolateClient
+        ?? (daemonClientFactory != null
+            ? daemonClientFactory(log, events)
+            : DaemonClient(
+                socketPath: socketPath ?? defaultSocketPath(),
+                log: log,
+                events: events,
+              ));
     final extensions = ExtensionManager(
       log: log,
       events: events,

@@ -32,6 +32,8 @@ class DecisionsExtension extends ClideExtension {
         icon: PhosphorIcons.lightbulb,
         build: (_) => DecisionDetailView(initialId: selectedId),
       ));
+      ctx.arrangement.setVisible(Slots.contextPanel, true);
+      ctx.arrangement.setCollapsed(Slots.contextPanel, false);
       ctx.panels.activateTab(Slots.contextPanel, 'decisions.detail');
     });
   }

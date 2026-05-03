@@ -54,7 +54,7 @@ class ClidePtyView extends StatelessWidget {
             fontFamily: clideMonoFamily,
             fontFamilyFallback: clideMonoFamilyFallback,
           ),
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.zero,
           backgroundOpacity: 1,
           cursorType: TerminalCursorType.block,
         ),

@@ -48,20 +48,26 @@ class _ClaudePaneState extends State<ClaudePane> {
   late final Terminal _terminal;
   StreamSubscription<DaemonEvent>? _eventSub;
   String? _paneId;
+  String? _sessionName;
   String? _error;
   String _statusLine = 'attaching…';
 
   @override
+  bool _spawned = false;
+
   void initState() {
     super.initState();
     _terminal = Terminal(maxLines: _maxLines);
     _terminal.onOutput = _onOutput;
     _terminal.onResize = _onResize;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _spawn());
+    // Don't spawn here — wait for the first onResize from TerminalView
+    // so the PTY gets real dimensions, not 80x24 defaults.
   }
 
   @override
   void dispose() {
+    _resizeTimer?.cancel();
+    _flushTimer?.cancel();
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
@@ -76,6 +82,25 @@ class _ClaudePaneState extends State<ClaudePane> {
     // rebuilt (next app launch, or tab reopen), tmux new-session -A
     // re-attaches to the same running claude.
     super.dispose();
+  }
+
+  Future<void> _spawnWhenReady() async {
+    if (!mounted) return;
+    final kernel = ClideKernel.of(context);
+    if (!kernel.project.isOpen) {
+      // Wait for a project to open before spawning.
+      final c = Completer<void>();
+      late final StreamSubscription<ProjectOpened> sub;
+      sub = kernel.events.on<ProjectOpened>().listen((_) {
+        sub.cancel();
+        if (!c.isCompleted) c.complete();
+      });
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () {
+        sub.cancel();
+      });
+      if (!mounted) return;
+    }
+    return _spawn();
   }
 
   Future<void> _spawn() async {
@@ -95,28 +120,32 @@ class _ClaudePaneState extends State<ClaudePane> {
       repoRoot = (rootResp.data['path'] as String?) ?? repoRoot;
     }
 
-    final sessionName = widget.isPrimary
+    _sessionName = widget.isPrimary
         ? primarySessionName(repoRoot)
         : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
-    // Try tmux-wrapped first (persistence). Fall back to direct claude
-    // if tmux spawn errors.
+    // tmux-wrapped session for persistence (D-041).
+    // -x/-y set the initial window size; without them tmux defaults
+    // to a huge size when running inside a PTY without a real terminal.
+    final cols = _terminal.viewWidth;
+    final rows = _terminal.viewHeight;
     var argv = <String>[
       'tmux',
       'new-session',
       '-A',
       '-s',
-      sessionName,
-      '--',
-      'claude',
+      _sessionName!,
+      '-x', '$cols',
+      '-y', '$rows',
     ];
+    print('[spawn] cols=${_terminal.viewWidth} rows=${_terminal.viewHeight}');
     var resp = await ipc.request('pane.spawn', args: {
       'argv': argv,
       'kind': PaneKind.claude.wire,
       'cwd': repoRoot,
       'cols': _terminal.viewWidth,
       'rows': _terminal.viewHeight,
-      'title': sessionName,
+      'title': _sessionName,
     });
 
     if (!resp.ok) {
@@ -129,7 +158,7 @@ class _ClaudePaneState extends State<ClaudePane> {
         'cwd': repoRoot,
         'cols': _terminal.viewWidth,
         'rows': _terminal.viewHeight,
-        'title': sessionName,
+        'title': _sessionName,
       });
       if (!resp.ok) {
         setState(() {
@@ -139,7 +168,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       }
       setState(() => _statusLine = 'no-tmux · fresh every launch');
     } else {
-      setState(() => _statusLine = 'tmux · $sessionName');
+      setState(() => _statusLine = 'tmux · $_sessionName');
     }
 
     if (!mounted) return;
@@ -147,6 +176,16 @@ class _ClaudePaneState extends State<ClaudePane> {
     // PID available in resp.data['pid'] if needed for debugging.
     _subscribe();
     setState(() {});
+  }
+
+  final _outputBuf = StringBuffer();
+  Timer? _flushTimer;
+
+  void _flushOutput() {
+    _flushTimer = null;
+    if (_outputBuf.isEmpty) return;
+    _terminal.write(_outputBuf.toString());
+    _outputBuf.clear();
   }
 
   void _subscribe() {
@@ -158,7 +197,14 @@ class _ClaudePaneState extends State<ClaudePane> {
         case 'pane.output':
           final b64 = e.data['bytes_b64'];
           if (b64 is String) {
-            _terminal.write(utf8.decode(base64Decode(b64), allowMalformed: true));
+            _outputBuf.write(utf8.decode(base64Decode(b64), allowMalformed: true));
+            // Batch all output from the current event loop turn into one
+            // terminal.write() call. scheduleMicrotask runs after all
+            // pending events but before the next frame, so split escape
+            // sequences within the same event batch are reunited.
+            if (_flushTimer == null) {
+              _flushTimer = Timer(Duration.zero, _flushOutput);
+            }
           }
         case 'pane.exit':
           if (widget.isPrimary) {
@@ -181,10 +227,29 @@ class _ClaudePaneState extends State<ClaudePane> {
     _ipc()?.request('pane.write', args: {'id': id, 'text': text});
   }
 
+  Timer? _resizeTimer;
+
   void _onResize(int cols, int rows, int _, int __) {
-    final id = _paneId;
-    if (id == null) return;
-    _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
+    print('[onResize] cols=$cols rows=$rows spawned=$_spawned paneId=$_paneId');
+    if (!_spawned) {
+      // First resize — TerminalView has real dimensions now.
+      _spawned = true;
+      _spawnWhenReady();
+      return;
+    }
+    // Debounce resize — rapid SIGWINCH during window drag corrupts
+    // the terminal rendering. Wait for the resize to settle.
+    _resizeTimer?.cancel();
+    _resizeTimer = Timer(const Duration(milliseconds: 150), () {
+      final id = _paneId;
+      if (id == null) return;
+      _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
+      // tmux sizes windows by client, not PTY winsize. Explicitly
+      // resize the tmux window to match the TerminalView dimensions.
+      if (_sessionName != null) {
+        Process.run('tmux', ['resize-window', '-t', _sessionName!, '-x', '$cols', '-y', '$rows']);
+      }
+    });
   }
 
   DaemonClient? _ipc() => _kernel()?.ipc;

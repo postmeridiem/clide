@@ -14,7 +14,9 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate' show Isolate;
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
@@ -23,7 +25,19 @@ import 'builtin/files/files.dart';
 import 'builtin/git/git.dart';
 import 'builtin/terminal/terminal.dart';
 import 'extension/extension.dart' show ClideExtension;
+import 'dart:ffi' as ffi;
+import 'package:ffi/ffi.dart' as pkg_ffi;
 import 'kernel/kernel.dart';
+import 'src/pty/ffi/libc.dart' as libc;
+import 'kernel/src/events/bus.dart';
+import 'kernel/src/events/types.dart';
+import 'kernel/src/ipc/in_process.dart';
+import 'kernel/src/log.dart';
+import 'src/daemon/pane_commands.dart';
+import 'src/ipc/envelope.dart';
+import 'src/panes/event_sink.dart';
+import 'src/panes/registry.dart';
+import 'src/pty/session.dart';
 import 'kernel/src/toolchain.dart';
 import 'src/daemon/dispatcher.dart';
 import 'src/ipc/envelope.dart';
@@ -53,7 +67,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
   }
 
   Future<void> _runTests() async {
-    const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
+    const workspace = String.fromEnvironment('CLIDE_PROJECT');
     const category = String.fromEnvironment('CLIDE_TESTMODE');
     final workDir = workspace.isNotEmpty ? workspace : Directory.current.path;
 
@@ -61,6 +75,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final runToolchain = runAll || category == 'toolchain';
     final runIpc = runAll || category == 'ipc';
     final runExtensions = runAll || category == 'extensions';
+    final runTerminal = runAll || category == 'terminal';
 
     print('[testmode] === ClideTestApp starting ===');
     print('[testmode] workspace=$workDir');
@@ -75,6 +90,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     if (runToolchain) await _runToolchainTests(tc, workDir);
     if (runIpc) await _runIpcTests(workDir);
     if (runExtensions) await _runExtensionTests(workDir, tc);
+    if (runTerminal) await _runTerminalTests(tc, workDir);
 
     final passed = _results.where((r) => r.ok).length;
     final failed = _results.where((r) => !r.ok).length;
@@ -133,6 +149,55 @@ class _ClideTestAppState extends State<ClideTestApp> {
     print('[testmode]');
 
     _log('gitEnv', '${tc.gitEnv}');
+    print('[testmode]');
+
+    // Boot sequence simulation tests
+    print('[testmode] --- boot sequence ---');
+
+    await _testAsync('compute(resolveToolchainPaths)', () async {
+      final paths = await compute(resolveToolchainPaths, workDir);
+      return 'git=${paths.git} pql=${paths.pql}';
+    });
+
+    await _testAsync('Isolate.run(resolveToolchainPaths)', () async {
+      final paths = await Isolate.run(() => resolveToolchainPaths(workDir));
+      return 'git=${paths.git} pql=${paths.pql}';
+    });
+
+    await _testAsync('git rev-parse (project.open sim)', () async {
+      final r = await Process.run(tc.git, ['rev-parse', '--show-toplevel'],
+          workingDirectory: workDir, environment: tc.gitEnv);
+      return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
+    });
+
+    await _testAsync('sequential git calls', () async {
+      final r1 = await Process.run(tc.git, ['rev-parse', '--show-toplevel'],
+          workingDirectory: workDir, environment: tc.gitEnv);
+      final r2 = await Process.run(tc.git, ['rev-parse', '--abbrev-ref', 'HEAD'],
+          workingDirectory: workDir, environment: tc.gitEnv);
+      return 'root=${(r1.stdout as String).trim()} branch=${(r2.stdout as String).trim()}';
+    });
+
+    await _testAsync('compute + immediate Process.run', () async {
+      final paths = await compute(resolveToolchainPaths, workDir);
+      final tc2 = Toolchain();
+      tc2.applyResolved(paths);
+      final r = await Process.run(tc2.git, ['rev-parse', '--show-toplevel'],
+          workingDirectory: workDir, environment: tc2.gitEnv);
+      return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
+    });
+
+    // ptyc stdin/stdout test — send a valid request, verify JSON response
+    await _testAsync('ptyc spawn echo', () async {
+      final proc = await Process.start(tc.ptyc, []);
+      // Send a request for /bin/echo — simplest possible child
+      proc.stdin.write('{"argv":["/bin/echo","hello"],"cwd":"/tmp","env":{},"cols":80,"rows":24}');
+      await proc.stdin.close();
+      final stdout = await proc.stdout.transform(const SystemEncoding().decoder).join();
+      final exitCode = await proc.exitCode;
+      return 'exit=$exitCode stdout=${stdout.trim().split('\n').first}';
+    });
+
     print('[testmode]');
   }
 
@@ -260,6 +325,162 @@ class _ClideTestAppState extends State<ClideTestApp> {
     print('[testmode]');
   }
 
+  // -- terminal category ----------------------------------------------------
+
+  Future<void> _runTerminalTests(Toolchain tc, String workDir) async {
+    print('[testmode] --- terminal ---');
+
+    // Test PTY via InProcessClient — same path as the real app.
+    await _testAsync('pane.spawn via IPC', () async {
+      final dispatcher = DaemonDispatcher();
+      final bus = DaemonBus();
+      final eventSink = _TestEventSink(bus);
+      final workDir2 = Directory(workDir);
+      final paneRegistry = PaneRegistry(events: eventSink);
+      registerPaneCommands(dispatcher, paneRegistry);
+      final ipc = InProcessClient(log: Logger(), events: bus, dispatcher: dispatcher);
+
+      // Spawn a pane running /bin/echo.
+      // Use interactive shell — fast-exiting commands lose output on macOS
+      // because the slave closes before we can read the master.
+      final spawnResp = await ipc.request('pane.spawn', args: {
+        'argv': [tc.shell],
+        'kind': 'terminal',
+      });
+      print('[testmode]   spawn: ok=${spawnResp.ok} ${spawnResp.ok ? spawnResp.data : spawnResp.error?.message}');
+      if (!spawnResp.ok) {
+        return 'spawn failed: ${spawnResp.error?.message}';
+      }
+      final paneId = spawnResp.data['id'] as String;
+
+      // Collect pane.output events.
+      final outputParts = <String>[];
+      int eventCount = 0;
+      final sub = bus.on<DaemonEvent>().listen((e) {
+        eventCount++;
+        if (e.subsystem == 'pane' && e.kind == 'pane.output' && e.data['id'] == paneId) {
+          final b64 = e.data['bytes_b64'] as String?;
+          if (b64 != null) outputParts.add(utf8.decode(base64Decode(b64), allowMalformed: true));
+        }
+      });
+      await Future.delayed(const Duration(seconds: 3));
+      print('[testmode]   events=$eventCount output_parts=${outputParts.length} bytes=${outputParts.join().length}');
+      if (outputParts.isNotEmpty) {
+        print('[testmode]   first output: ${outputParts.first.substring(0, outputParts.first.length.clamp(0, 80))}');
+      }
+      await sub.cancel();
+      paneRegistry.shutdown();
+
+      final output = outputParts.join();
+      return output.isNotEmpty ? 'got ${output.length} chars' : 'no output (0 chars)';
+    });
+
+    // Test: does Dart's Process.start inherit socket fds on macOS?
+    await _testAsync('fd inheritance check', () async {
+      final sv = pkg_ffi.calloc<ffi.Int32>(2);
+      libc.socketpair(1, 1, 0, sv); // AF_UNIX, SOCK_STREAM
+      final parent = sv[0];
+      final child = sv[1];
+      pkg_ffi.calloc.free(sv);
+      final proc = await Process.start('/tmp/checkfd', [],
+          environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
+      final stderr = await proc.stderr.transform(utf8.decoder).join();
+      final exit = await proc.exitCode;
+      libc.close(parent);
+      libc.close(child);
+      return 'exit=$exit stderr=${stderr.trim()}';
+    });
+
+    // Direct PtySession test — bypasses IPC, tests fd transfer + reader.
+    await _testAsync('PtySession.spawn direct', () async {
+      final session = await PtySession.spawn(
+        argv: [tc.shell, '-c', 'echo DIRECT_PTY_TEST'],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      print('[testmode]   session pid=${session.pid} masterFd exists');
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(
+        (chunk) {
+          bytes.addAll(chunk);
+          print('[testmode]   got ${chunk.length} bytes');
+        },
+        onDone: () {
+          print('[testmode]   stream done');
+          if (!done.isCompleted) done.complete();
+        },
+        onError: (e) => print('[testmode]   stream error: $e'),
+      );
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {
+        print('[testmode]   timeout waiting for output, got ${bytes.length} bytes so far');
+      });
+      await session.close();
+      final output = utf8.decode(bytes, allowMalformed: true);
+      final ok = output.contains('DIRECT_PTY_TEST');
+      return ok ? 'output=$output' : 'no marker in ${bytes.length} bytes: ${output.substring(0, output.length.clamp(0, 100))}';
+    });
+
+    if (!Platform.isMacOS) {
+    // Additional direct PtySession tests (Linux only — no merged thread).
+
+    // Test 1: spawn /bin/echo via PtySession, read output
+    await _testAsync('pty spawn echo', () async {
+      final session = await PtySession.spawn(
+        argv: ['/bin/echo', 'CLIDE_PTY_TEST_OK'],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(bytes.addAll, onDone: () => done.complete());
+      await done.future.timeout(const Duration(seconds: 5));
+      await session.close();
+      final output = utf8.decode(bytes, allowMalformed: true);
+      final ok = output.contains('CLIDE_PTY_TEST_OK');
+      return ok ? 'output contains marker' : 'marker not found in ${output.length} bytes';
+    });
+
+    // Test 2: spawn shell, write a command, verify output
+    await _testAsync('pty spawn shell', () async {
+      final session = await PtySession.spawn(
+        argv: [tc.shell, '-c', 'echo CLIDE_SHELL_TEST'],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(bytes.addAll, onDone: () => done.complete());
+      await done.future.timeout(const Duration(seconds: 5));
+      await session.close();
+      final output = utf8.decode(bytes, allowMalformed: true);
+      final ok = output.contains('CLIDE_SHELL_TEST');
+      return ok ? 'shell output contains marker' : 'marker not found in ${output.length} bytes';
+    });
+
+    // Test 3: spawn interactive shell, write to stdin, verify file creation
+    await _testAsync('pty write to child', () async {
+      final marker = '/tmp/clide-pty-test-${DateTime.now().millisecondsSinceEpoch}';
+      final session = await PtySession.spawn(
+        argv: [tc.shell],
+        cwd: workDir,
+        ptycPath: tc.ptyc,
+      );
+      session.write(utf8.encode('touch $marker && exit\n'));
+      final bytes = <int>[];
+      final done = Completer<void>();
+      session.output.listen(bytes.addAll, onDone: () => done.complete());
+      await done.future.timeout(const Duration(seconds: 5));
+      await session.close();
+      final fileCreated = File(marker).existsSync();
+      if (fileCreated) File(marker).deleteSync();
+      return fileCreated ? 'file created + cleaned up' : 'file not created';
+    });
+    } // end !Platform.isMacOS
+
+    print('[testmode]');
+  }
+
   // -- helpers --------------------------------------------------------------
 
   void _log(String key, String value) {
@@ -277,6 +498,17 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final r = _TestResult(name: '$name exists', detail: path, ok: exists, output: exists ? 'yes' : 'NO');
     print('[testmode] exists | $name | path=$path | ${exists ? "yes" : "NO"}');
     setState(() => _results.add(r));
+  }
+
+  Future<void> _testAsync(String label, Future<String> Function() fn) async {
+    try {
+      final result = await fn().timeout(const Duration(seconds: 10));
+      _addResult(label, true, result);
+    } on TimeoutException {
+      _addResult(label, false, 'TIMEOUT (10s)');
+    } catch (e) {
+      _addResult(label, false, '$e');
+    }
   }
 
   Future<void> _testExec(String label, String bin, List<String> args, String workDir, {Map<String, String>? env}) async {
@@ -338,6 +570,21 @@ class _ClideTestAppState extends State<ClideTestApp> {
         ),
       ),
     );
+  }
+}
+
+class _TestEventSink implements DaemonEventSink {
+  _TestEventSink(this._bus);
+  final DaemonBus _bus;
+
+  @override
+  void emit(IpcEvent event) {
+    _bus.emit(DaemonEvent(
+      subsystem: event.subsystem,
+      kind: event.kind,
+      data: event.data,
+      ts: DateTime.now(),
+    ));
   }
 }
 

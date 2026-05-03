@@ -33,9 +33,9 @@ help: ## Show this help.
 .PHONY: run
 run: ## Launch the Flutter desktop app.
 ifeq ($(FLUTTER_OS),linux)
-	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_WORKSPACE=$(CURDIR)
+	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR)
 else
-	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_WORKSPACE=$(CURDIR)
+	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR)
 endif
 
 TESTMODE_CATEGORY ?= all
@@ -46,7 +46,7 @@ run-testmode: ## Launch ClideTestApp (TESTMODE_CATEGORY=toolchain|ipc|extensions
 ifeq ($(FLUTTER_OS),linux)
 	@GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} \
 	  flutter run -d linux \
-	    --dart-define=CLIDE_WORKSPACE=$(CURDIR) \
+	    --dart-define=CLIDE_PROJECT=$(CURDIR) \
 	    --dart-define=CLIDE_TESTMODE=$(TESTMODE_CATEGORY) 2>&1 \
 	  | tee /tmp/clide-testmode.log & PID=$$!; \
 	  (sleep $(TESTMODE_TIMEOUT) && kill $$PID 2>/dev/null) & TIMER=$$!; \
@@ -54,7 +54,7 @@ ifeq ($(FLUTTER_OS),linux)
 	  grep -q '"failed":0' /tmp/clide-testmode.log
 else
 	@flutter run -d $(FLUTTER_OS) \
-	    --dart-define=CLIDE_WORKSPACE=$(CURDIR) \
+	    --dart-define=CLIDE_PROJECT=$(CURDIR) \
 	    --dart-define=CLIDE_TESTMODE=$(TESTMODE_CATEGORY) 2>&1 \
 	  | tee /tmp/clide-testmode.log & PID=$$!; \
 	  (sleep $(TESTMODE_TIMEOUT) && kill $$PID 2>/dev/null) & TIMER=$$!; \

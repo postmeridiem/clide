@@ -10,8 +10,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import '../../src/pty/env.dart' show expandedPath;
-
 /// Serializable result of tool resolution (crosses isolate boundary).
 class ResolvedPaths {
   const ResolvedPaths({
@@ -129,12 +127,29 @@ class Toolchain extends ChangeNotifier {
   }
 
   static String? _findOnPath(String name) {
-    for (final dir in expandedPath.split(':')) {
+    for (final dir in _expandedPath().split(':')) {
       if (dir.isEmpty) continue;
       final f = File('$dir/$name');
       if (f.existsSync()) return f.path;
     }
     return null;
+  }
+
+  /// Build expanded PATH inline — must be self-contained for isolate use.
+  static String _expandedPath() {
+    final base = Platform.environment['PATH'] ?? '';
+    if (!Platform.isMacOS) return base;
+    final home = Platform.environment['HOME'] ?? '';
+    final extras = <String>[
+      if (home.isNotEmpty) '$home/.local/bin',
+      '/opt/homebrew/bin',
+      '/opt/homebrew/sbin',
+      '/usr/local/bin',
+    ];
+    final existing = base.split(':').toSet();
+    final missing = extras.where((p) => !existing.contains(p));
+    if (missing.isEmpty) return base;
+    return [...missing, ...existing].join(':');
   }
 
   static String? _firstExisting(List<String> candidates) {
@@ -143,4 +158,73 @@ class Toolchain extends ChangeNotifier {
     }
     return null;
   }
+}
+
+/// Top-level function for compute/isolate use. Takes a single String
+/// argument (the workspace root) and returns a plain-data result.
+ResolvedPaths resolveToolchainPaths(String workspaceRoot) {
+  final dugite = '$workspaceRoot/native/dugite/bin';
+
+  String? git;
+  Map<String, String>? gitEnv;
+  final dugiteGit = _firstExistingStandalone(['$dugite/git']);
+  if (dugiteGit != null) {
+    git = dugiteGit;
+    final dugiteRoot = File(dugiteGit).parent.parent.path;
+    gitEnv = {
+      'GIT_EXEC_PATH': '$dugiteRoot/libexec/git-core',
+      'GIT_TEMPLATE_DIR': '$dugiteRoot/share/git-core/templates',
+    };
+  } else {
+    git = _findOnPathStandalone('git');
+  }
+
+  return ResolvedPaths(
+    git: git,
+    pql: _findOnPathStandalone('pql'),
+    tmux: _findOnPathStandalone('tmux'),
+    ptyc: _firstExistingStandalone([
+      '$workspaceRoot/ptyc/bin/ptyc',
+      '$workspaceRoot/native/linux-x64/ptyc',
+      '$workspaceRoot/native/macos-arm64/ptyc',
+      '$workspaceRoot/native/macos-x64/ptyc',
+      if (Platform.environment['HOME'] case final home?)
+        '$home/.local/bin/ptyc',
+    ]) ?? _findOnPathStandalone('ptyc'),
+    shell: _findOnPathStandalone(
+        Platform.environment['SHELL']?.split('/').last ?? 'bash'),
+    gitEnv: gitEnv,
+  );
+}
+
+String? _findOnPathStandalone(String name) {
+  for (final dir in _expandedPathStandalone().split(':')) {
+    if (dir.isEmpty) continue;
+    final f = File('$dir/$name');
+    if (f.existsSync()) return f.path;
+  }
+  return null;
+}
+
+String? _firstExistingStandalone(List<String> candidates) {
+  for (final c in candidates) {
+    if (File(c).existsSync()) return c;
+  }
+  return null;
+}
+
+String _expandedPathStandalone() {
+  final base = Platform.environment['PATH'] ?? '';
+  if (!Platform.isMacOS) return base;
+  final home = Platform.environment['HOME'] ?? '';
+  final extras = <String>[
+    if (home.isNotEmpty) '$home/.local/bin',
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+  ];
+  final existing = base.split(':').toSet();
+  final missing = extras.where((p) => !existing.contains(p));
+  if (missing.isEmpty) return base;
+  return [...missing, ...existing].join(':');
 }

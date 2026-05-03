@@ -28,7 +28,7 @@ void main() {
       final sink = RecordingEventSink();
       registry = PaneRegistry(events: sink);
       dispatcher = DaemonDispatcher();
-      registerPaneCommands(dispatcher, registry, toolchain: toolchain);
+      registerPaneCommands(dispatcher, registry);
     });
 
     tearDown(() => registry.shutdown());

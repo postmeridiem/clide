@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-04-26T18:07:54Z",
+  "exported_at": "2026-05-03T19:24:52Z",
   "decisions": [
     {
       "id": "D-1",
@@ -9,7 +9,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-3",
@@ -19,7 +19,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-4",
@@ -29,7 +29,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-5",
@@ -39,7 +39,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-6",
@@ -49,7 +49,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-7",
@@ -59,7 +59,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-8",
@@ -69,7 +69,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-9",
@@ -79,7 +79,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-10",
@@ -89,7 +89,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-11",
@@ -99,7 +99,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-12",
@@ -109,7 +109,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-13",
@@ -119,7 +119,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-14",
@@ -129,7 +129,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-15",
@@ -139,7 +139,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-16",
@@ -149,7 +149,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-17",
@@ -159,7 +159,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-18",
@@ -169,7 +169,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-19",
@@ -179,7 +179,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-20",
@@ -189,7 +189,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-21",
@@ -199,7 +199,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-22",
@@ -209,7 +209,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-23",
@@ -219,7 +219,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-24",
@@ -229,7 +229,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-25",
@@ -239,7 +239,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-26",
@@ -249,7 +249,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-27",
@@ -259,7 +259,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-28",
@@ -269,7 +269,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-29",
@@ -279,7 +279,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-30",
@@ -289,7 +289,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-31",
@@ -299,7 +299,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-32",
@@ -309,7 +309,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-33",
@@ -319,7 +319,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-34",
@@ -329,7 +329,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-35",
@@ -339,7 +339,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-36",
@@ -349,7 +349,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-37",
@@ -359,7 +359,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-38",
@@ -369,7 +369,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-39",
@@ -379,7 +379,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-40",
@@ -389,7 +389,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-41",
@@ -399,7 +399,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-42",
@@ -409,7 +409,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-43",
@@ -419,7 +419,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-44",
@@ -429,7 +429,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-45",
@@ -439,7 +439,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-46",
@@ -449,7 +449,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-47",
@@ -459,7 +459,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-48",
@@ -469,7 +469,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-49",
@@ -479,7 +479,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-50",
@@ -489,7 +489,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-51",
@@ -499,7 +499,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-52",
@@ -509,7 +509,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-53",
@@ -519,7 +519,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-54",
@@ -529,7 +529,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-55",
@@ -539,7 +539,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-56",
@@ -549,7 +549,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-57",
@@ -559,7 +559,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "D-58",
@@ -569,7 +569,17 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
+    },
+    {
+      "id": "D-59",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Bundled git via dugite-native",
+      "status": "active",
+      "date": "2026-04-25",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-1",
@@ -578,7 +588,7 @@
       "title": "Authorisation granularity on the IPC socket",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-2",
@@ -587,7 +597,7 @@
       "title": "Back-pressure on event streams",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-3",
@@ -596,7 +606,7 @@
       "title": "Event persistence + audit/undo",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-4",
@@ -605,7 +615,7 @@
       "title": "`.canvas` schema compatibility with Obsidian",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-5",
@@ -614,7 +624,7 @@
       "title": "IPC wire-format stability + `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-6",
@@ -623,7 +633,7 @@
       "title": "Window chrome — native frame vs frameless custom",
       "status": "resolved",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-7",
@@ -632,7 +642,7 @@
       "title": "macOS app bundle signing / notarisation",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-8",
@@ -641,7 +651,7 @@
       "title": "Extension API shape — widgets, subcommands, both?",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-9",
@@ -650,7 +660,7 @@
       "title": "Lua runtime vendoring",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-10",
@@ -659,7 +669,7 @@
       "title": "Extension manifest `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-11",
@@ -668,7 +678,7 @@
       "title": "Coverage gates — hard thresholds vs soft reporting",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-12",
@@ -677,7 +687,7 @@
       "title": "Screen-reader automation (axe-core via Playwright)",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-13",
@@ -686,7 +696,7 @@
       "title": "Web production-mode a11y",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-14",
@@ -695,7 +705,7 @@
       "title": "i18n plurals / gender / date-format tooling",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-15",
@@ -704,7 +714,7 @@
       "title": "Editor tab — full LSP vs tree-sitter-only highlight",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-16",
@@ -713,7 +723,7 @@
       "title": "`tree-sitter-dart` grammar maintenance",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-17",
@@ -722,7 +732,7 @@
       "title": "Icon set growth",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-18",
@@ -731,7 +741,7 @@
       "title": "Theme hot-reload in release builds",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-19",
@@ -740,7 +750,7 @@
       "title": "(withdrawn)",
       "status": "resolved",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-20",
@@ -749,7 +759,7 @@
       "title": "Kernel DB service — namespaced SQL access?",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-21",
@@ -758,7 +768,7 @@
       "title": "Pql absorbs planning vs keeps separate",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-22",
@@ -767,7 +777,7 @@
       "title": "Ticket persistence strategy",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-23",
@@ -776,7 +786,7 @@
       "title": "SSH-remote development — run clide against a remote workspace",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-25",
@@ -785,7 +795,7 @@
       "title": "Body text face — mono everywhere vs Josefin Sans UI + mono code",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-26",
@@ -794,7 +804,7 @@
       "title": "Small screen layout (\u003c 1000px)",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-27",
@@ -803,7 +813,7 @@
       "title": "Two-editor split",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-28",
@@ -812,7 +822,7 @@
       "title": "Terminal strip scope — shell only or logs/errors/tests",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-29",
@@ -821,7 +831,7 @@
       "title": "Branch picker location",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-30",
@@ -830,7 +840,7 @@
       "title": "Focus behavior when editor is dirty and viewer is peeked",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "Q-31",
@@ -839,7 +849,7 @@
       "title": "XWayland fallback for frameless — proper Wayland protocol needed",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-2",
@@ -849,7 +859,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-3",
@@ -859,7 +869,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-4",
@@ -869,7 +879,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-5",
@@ -879,7 +889,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-6",
@@ -889,7 +899,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-7",
@@ -899,7 +909,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-8",
@@ -909,7 +919,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-9",
@@ -919,7 +929,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-10",
@@ -929,7 +939,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-11",
@@ -939,7 +949,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     },
     {
       "id": "R-12",
@@ -949,7 +959,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-04-25 11:11:15"
+      "synced_at": "2026-04-28 09:52:13"
     }
   ],
   "decision_refs": [
@@ -1356,6 +1366,18 @@
       "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml)."
     },
     {
+      "source_id": "D-59",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml)."
+    },
+    {
+      "source_id": "D-59",
+      "target_id": "D-42",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml)."
+    },
+    {
       "source_id": "D-6",
       "target_id": "D-1",
       "ref_type": "references",
@@ -1672,7 +1694,7 @@
       "priority": "medium",
       "decision_ref": "D-39",
       "created_at": "2026-04-22 09:41:51",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-2",
@@ -1682,7 +1704,7 @@
       "priority": "medium",
       "decision_ref": "D-7",
       "created_at": "2026-04-22 11:45:26",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-3",
@@ -1692,7 +1714,7 @@
       "priority": "medium",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-4",
@@ -1702,7 +1724,7 @@
       "priority": "medium",
       "decision_ref": "D-6",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-5",
@@ -1712,7 +1734,7 @@
       "priority": "medium",
       "decision_ref": "D-13",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-6",
@@ -1722,7 +1744,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-7",
@@ -1732,7 +1754,7 @@
       "priority": "medium",
       "decision_ref": "D-17",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-8",
@@ -1742,7 +1764,7 @@
       "priority": "medium",
       "decision_ref": "D-15",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-9",
@@ -1753,7 +1775,7 @@
       "priority": "medium",
       "decision_ref": "D-34",
       "created_at": "2026-04-22 11:47:02",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-10",
@@ -1764,7 +1786,7 @@
       "priority": "medium",
       "decision_ref": "D-40",
       "created_at": "2026-04-22 11:47:02",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-11",
@@ -1775,7 +1797,7 @@
       "priority": "medium",
       "decision_ref": "D-39",
       "created_at": "2026-04-22 11:47:02",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-12",
@@ -1786,7 +1808,7 @@
       "priority": "medium",
       "decision_ref": "D-42",
       "created_at": "2026-04-22 11:47:03",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-13",
@@ -1797,7 +1819,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-14",
@@ -1808,7 +1830,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-15",
@@ -1819,7 +1841,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-16",
@@ -1830,7 +1852,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-17",
@@ -1841,7 +1863,7 @@
       "priority": "medium",
       "decision_ref": "D-32",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-18",
@@ -1851,7 +1873,7 @@
       "priority": "medium",
       "decision_ref": "D-5",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-19",
@@ -1862,7 +1884,7 @@
       "priority": "medium",
       "decision_ref": "D-44",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-20",
@@ -1873,7 +1895,7 @@
       "priority": "medium",
       "decision_ref": "D-45",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-21",
@@ -1884,7 +1906,7 @@
       "priority": "medium",
       "decision_ref": "D-43",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-22",
@@ -1895,7 +1917,7 @@
       "priority": "medium",
       "decision_ref": "D-6",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-23",
@@ -1906,7 +1928,7 @@
       "priority": "medium",
       "decision_ref": "D-6",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-24",
@@ -1917,7 +1939,7 @@
       "priority": "medium",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-25",
@@ -1928,7 +1950,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:24",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-26",
@@ -1939,7 +1961,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:33",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-27",
@@ -1950,7 +1972,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:45",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-28",
@@ -1961,7 +1983,7 @@
       "status": "in_progress",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:52",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-29",
@@ -1972,7 +1994,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:17:26",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-30",
@@ -1983,7 +2005,7 @@
       "priority": "high",
       "decision_ref": "D-51",
       "created_at": "2026-04-22 20:33:53",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-31",
@@ -1994,7 +2016,7 @@
       "priority": "medium",
       "decision_ref": "D-52",
       "created_at": "2026-04-22 20:33:56",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-32",
@@ -2005,7 +2027,7 @@
       "priority": "medium",
       "decision_ref": "D-53",
       "created_at": "2026-04-22 20:33:58",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-33",
@@ -2016,7 +2038,7 @@
       "priority": "high",
       "decision_ref": "D-54",
       "created_at": "2026-04-22 20:34:01",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-34",
@@ -2027,7 +2049,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 20:34:03",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-35",
@@ -2039,7 +2061,7 @@
       "priority": "medium",
       "decision_ref": "D-49",
       "created_at": "2026-04-22 20:34:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-36",
@@ -2051,7 +2073,7 @@
       "priority": "low",
       "decision_ref": "D-50",
       "created_at": "2026-04-22 20:34:09",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-37",
@@ -2063,7 +2085,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-38",
@@ -2075,7 +2097,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-39",
@@ -2087,7 +2109,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-40",
@@ -2099,7 +2121,7 @@
       "priority": "low",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-41",
@@ -2111,7 +2133,7 @@
       "priority": "low",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-42",
@@ -2123,7 +2145,7 @@
       "priority": "low",
       "decision_ref": "D-48",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-43",
@@ -2135,7 +2157,7 @@
       "priority": "high",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 22:01:13",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-44",
@@ -2145,7 +2167,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:25:26",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-45",
@@ -2156,7 +2178,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:27:28",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-46",
@@ -2166,7 +2188,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:27:58",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-47",
@@ -2177,7 +2199,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:28:43",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-48",
@@ -2187,7 +2209,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:30:09",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-49",
@@ -2197,7 +2219,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:31:35",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-50",
@@ -2207,7 +2229,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:31:48",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-51",
@@ -2217,7 +2239,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-52",
@@ -2227,7 +2249,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-53",
@@ -2237,7 +2259,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-54",
@@ -2247,7 +2269,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-55",
@@ -2257,7 +2279,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-56",
@@ -2267,7 +2289,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-57",
@@ -2277,7 +2299,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-58",
@@ -2287,7 +2309,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-59",
@@ -2297,7 +2319,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-60",
@@ -2307,7 +2329,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-61",
@@ -2317,7 +2339,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-62",
@@ -2327,7 +2349,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-63",
@@ -2337,7 +2359,7 @@
       "status": "in_progress",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-64",
@@ -2347,7 +2369,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-65",
@@ -2357,7 +2379,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-66",
@@ -2367,7 +2389,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     },
     {
       "id": "T-67",
@@ -2377,7 +2399,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-04-25 11:11:15"
+      "updated_at": "2026-04-27 16:54:48"
     }
   ],
   "ticket_deps": null,

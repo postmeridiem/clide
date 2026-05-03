@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:clide/app.dart';
 import 'package:clide/test_app.dart';
 import 'package:clide/builtin/canvas/canvas.dart';
@@ -25,13 +23,11 @@ import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
-import 'dart:io' show Directory, File, Platform;
+import 'dart:io' show Directory, Platform;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/kernel/src/ipc/in_process.dart';
 import 'package:clide/kernel/src/toolchain.dart';
-import 'package:clide/src/git/client.dart';
-import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
@@ -39,10 +35,12 @@ import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
-import 'package:clide/src/panes/registry.dart';
+import 'package:clide/src/git/client.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/panes/event_sink.dart';
+import 'package:clide/src/panes/registry.dart';
 import 'package:clide/src/pql/client.dart';
+import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
@@ -64,7 +62,14 @@ Future<void> main() async {
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
 
+  // Resolve toolchain + boot daemon inline — same as Linux.
+  // With proper signing (Developer ID), no sandbox or isolate needed.
   final toolchain = Toolchain();
+  if (!kIsWeb) {
+    const workspace = String.fromEnvironment('CLIDE_PROJECT');
+    final root = workspace.isNotEmpty ? workspace : Directory.current.path;
+    toolchain.applyResolved(resolveToolchainPaths(root));
+  }
 
   final services = await KernelServices.boot(
     appDir: appDir,
@@ -79,7 +84,7 @@ Future<void> main() async {
       final filesService = FilesService.atCwd(events: eventSink);
       final workRoot = filesService.root;
       final paneRegistry = PaneRegistry(events: eventSink);
-      registerPaneCommands(dispatcher, paneRegistry, toolchain: toolchain);
+      registerPaneCommands(dispatcher, paneRegistry);
       registerFilesCommands(dispatcher, filesService);
       final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
       registerEditorCommands(dispatcher, editorRegistry);
@@ -139,19 +144,20 @@ Future<void> main() async {
   }
 
   runApp(ClideApp(services: services));
+}
 
-  // Resolve toolchain after the first frame — resolveSymbolicLinksSync()
-  // blocks the merged UI/platform thread on macOS and prevents rendering
-  // if called before runApp.
-  if (!kIsWeb) {
-    // Defer toolchain resolution. On macOS the merged UI/platform thread
-    // cannot tolerate synchronous file I/O or isolate spawning during the
-    // first few frames. A short delay lets Flutter settle first.
-    Future.delayed(const Duration(seconds: 1), () {
-      const workspace = String.fromEnvironment('CLIDE_WORKSPACE');
-      final root = workspace.isNotEmpty ? workspace : Directory.current.path;
-      toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: root));
-    });
+class _BusEventSink implements DaemonEventSink {
+  _BusEventSink(this._bus);
+  final DaemonBus _bus;
+
+  @override
+  void emit(IpcEvent event) {
+    _bus.emit(DaemonEvent(
+      subsystem: event.subsystem,
+      kind: event.kind,
+      data: event.data,
+      ts: DateTime.now(),
+    ));
   }
 }
 
@@ -187,21 +193,6 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// Every Tier-0 extension that ships an i18n catalog. Extensions
 /// registered but not active (the 17 stubs) don't preload — their
 /// catalogs load lazily on activate in later tiers.
-
-class _BusEventSink implements DaemonEventSink {
-  _BusEventSink(this._bus);
-  final DaemonBus _bus;
-
-  @override
-  void emit(IpcEvent event) {
-    _bus.emit(DaemonEvent(
-      subsystem: event.subsystem,
-      kind: event.kind,
-      data: event.data,
-      ts: DateTime.now(),
-    ));
-  }
-}
 
 const List<String> _tier0Namespaces = [
   'builtin.default-layout',

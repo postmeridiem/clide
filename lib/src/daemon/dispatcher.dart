@@ -16,6 +16,13 @@ class DaemonDispatcher {
     _handlers[cmd] = handler;
   }
 
+  /// Remove all registered handlers except ping/version.
+  void clear() {
+    _handlers.removeWhere((k, _) => k != 'ping' && k != 'version');
+  }
+
+  bool get isEmpty => _handlers.length <= 2; // only ping + version
+
   Future<IpcResponse> dispatch(IpcRequest req) async {
     final h = _handlers[req.cmd];
     if (h == null) {
