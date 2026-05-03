@@ -56,7 +56,6 @@ class PaneRegistry {
       'COLORTERM': 'truecolor',
       'LANG': 'en_US.UTF-8',
       'LC_ALL': 'en_US.UTF-8',
-      'TERMINFO': '/usr/share/terminfo',
       if (env != null) ...env,
     };
 

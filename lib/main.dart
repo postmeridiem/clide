@@ -78,22 +78,24 @@ Future<void> main() async {
     preloadNamespaces: _tier0Namespaces,
     autoStartDaemonClient: false,
     toolchain: toolchain,
-    daemonClientFactory: kIsWeb ? null : (log, events) {
-      final dispatcher = DaemonDispatcher();
-      final eventSink = _BusEventSink(events);
-      final filesService = FilesService.atCwd(events: eventSink);
-      final workRoot = filesService.root;
-      final paneRegistry = PaneRegistry(events: eventSink);
-      registerPaneCommands(dispatcher, paneRegistry);
-      registerFilesCommands(dispatcher, filesService);
-      final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
-      registerEditorCommands(dispatcher, editorRegistry);
-      final gitClient = GitClient(toolchain: toolchain, workDir: workRoot);
-      registerGitCommands(dispatcher, gitClient, eventSink);
-      final pql = PqlClient(workDir: workRoot, toolchain: toolchain);
-      registerPqlCommands(dispatcher, pql);
-      return InProcessClient(log: log, events: events, dispatcher: dispatcher);
-    },
+    daemonClientFactory: kIsWeb
+        ? null
+        : (log, events) {
+            final dispatcher = DaemonDispatcher();
+            final eventSink = _BusEventSink(events);
+            final filesService = FilesService.atCwd(events: eventSink);
+            final workRoot = filesService.root;
+            final paneRegistry = PaneRegistry(events: eventSink);
+            registerPaneCommands(dispatcher, paneRegistry);
+            registerFilesCommands(dispatcher, filesService);
+            final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
+            registerEditorCommands(dispatcher, editorRegistry);
+            final gitClient = GitClient(toolchain: toolchain, workDir: workRoot);
+            registerGitCommands(dispatcher, gitClient, eventSink);
+            final pql = PqlClient(workDir: workRoot, toolchain: toolchain);
+            registerPqlCommands(dispatcher, pql);
+            return InProcessClient(log: log, events: events, dispatcher: dispatcher);
+          },
   );
 
   // Register every built-in. Tier 0 activates only the four that do
@@ -169,8 +171,13 @@ class _BusEventSink implements DaemonEventSink {
 Future<Directory> _resolveAppDir() async {
   if (kIsWeb) return Directory('/clide-web-no-disk');
   final home = Platform.environment['HOME'] ?? '/tmp';
-  final xdg = Platform.environment['XDG_CONFIG_HOME'] ?? '$home/.config';
-  final dir = Directory('$xdg/clide');
+  final String base;
+  if (Platform.isMacOS) {
+    base = '$home/Library/Application Support';
+  } else {
+    base = Platform.environment['XDG_CONFIG_HOME'] ?? '$home/.config';
+  }
+  final dir = Directory('$base/clide');
   await dir.create(recursive: true);
   return dir;
 }

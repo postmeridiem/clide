@@ -16,7 +16,7 @@ import 'dart:io' show Platform;
 import 'package:ffi/ffi.dart' as pkg_ffi;
 
 // ---------------------------------------------------------------------------
-// Constants (POSIX / Linux)
+// Constants (POSIX — platform-dispatched where Linux/macOS diverge)
 // ---------------------------------------------------------------------------
 
 const int afUnix = 1;
@@ -25,11 +25,11 @@ const int sockStream = 1;
 final int solSocket = Platform.isMacOS ? 0xffff : 1;
 final int scmRights = Platform.isMacOS ? 0x01 : 1;
 
-const int fIoNonblock = 0x800; // O_NONBLOCK — 04000 octal
+final int oNonblock = Platform.isMacOS ? 0x0004 : 0x0800;
 const int fGetFl = 3;
 const int fSetFl = 4;
 
-const int tiocswinsz = 0x5414; // Linux x86_64; macOS differs
+final int tiocswinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
 
 // ---------------------------------------------------------------------------
 // Typedefs
@@ -56,6 +56,17 @@ typedef _RecvmsgC = ffi.IntPtr Function(
 typedef _RecvmsgD = int Function(
   int sockfd,
   ffi.Pointer<Msghdr> msg,
+  int flags,
+);
+
+typedef _RecvmsgDarwinC = ffi.IntPtr Function(
+  ffi.Int32 sockfd,
+  ffi.Pointer<MsghdrDarwin> msg,
+  ffi.Int32 flags,
+);
+typedef _RecvmsgDarwinD = int Function(
+  int sockfd,
+  ffi.Pointer<MsghdrDarwin> msg,
   int flags,
 );
 
@@ -116,8 +127,8 @@ final class Iovec extends ffi.Struct {
   external int iov_len;
 }
 
-/// POSIX `struct msghdr`. Field layout matches Linux/glibc; macOS is
-/// byte-compatible here.
+/// Linux `struct msghdr`. msg_iovlen/msg_controllen are size_t (8 bytes
+/// on 64-bit). macOS uses int/socklen_t (4 bytes) — see MsghdrDarwin.
 final class Msghdr extends ffi.Struct {
   external ffi.Pointer<ffi.Void> msg_name;
   @ffi.Uint32()
@@ -127,6 +138,22 @@ final class Msghdr extends ffi.Struct {
   external int msg_iovlen;
   external ffi.Pointer<ffi.Void> msg_control;
   @ffi.IntPtr()
+  external int msg_controllen;
+  @ffi.Int32()
+  external int msg_flags;
+}
+
+/// macOS `struct msghdr`. msg_iovlen is int (4 bytes), msg_controllen
+/// is socklen_t (4 bytes) — smaller than Linux's size_t fields.
+final class MsghdrDarwin extends ffi.Struct {
+  external ffi.Pointer<ffi.Void> msg_name;
+  @ffi.Uint32()
+  external int msg_namelen;
+  external ffi.Pointer<Iovec> msg_iov;
+  @ffi.Int32()
+  external int msg_iovlen;
+  external ffi.Pointer<ffi.Void> msg_control;
+  @ffi.Uint32()
   external int msg_controllen;
   @ffi.Int32()
   external int msg_flags;
@@ -183,11 +210,11 @@ ffi.DynamicLibrary _openLibc() {
   return ffi.DynamicLibrary.process();
 }
 
-final _SocketpairD socketpair =
-    _libc.lookupFunction<_SocketpairC, _SocketpairD>('socketpair');
+final _SocketpairD socketpair = _libc.lookupFunction<_SocketpairC, _SocketpairD>('socketpair');
 
-final _RecvmsgD recvmsg =
-    _libc.lookupFunction<_RecvmsgC, _RecvmsgD>('recvmsg');
+final _RecvmsgD recvmsgLinux = _libc.lookupFunction<_RecvmsgC, _RecvmsgD>('recvmsg');
+
+final _RecvmsgDarwinD recvmsgDarwin = _libc.lookupFunction<_RecvmsgDarwinC, _RecvmsgDarwinD>('recvmsg');
 
 final _ReadD read = _libc.lookupFunction<_ReadC, _ReadD>('read');
 
@@ -195,11 +222,9 @@ final _WriteD write = _libc.lookupFunction<_WriteC, _WriteD>('write');
 
 final _CloseD close = _libc.lookupFunction<_CloseC, _CloseD>('close');
 
-final _IoctlPtrD ioctlWinsize =
-    _libc.lookupFunction<_IoctlPtrC, _IoctlPtrD>('ioctl');
+final _IoctlPtrD ioctlWinsize = _libc.lookupFunction<_IoctlPtrC, _IoctlPtrD>('ioctl');
 
-final _FcntlIntD fcntlInt =
-    _libc.lookupFunction<_FcntlIntC, _FcntlIntD>('fcntl');
+final _FcntlIntD fcntlInt = _libc.lookupFunction<_FcntlIntC, _FcntlIntD>('fcntl');
 
 /// Resolve `errno` through the platform-appropriate thread-local
 /// accessor. glibc exposes `__errno_location`, musl the same, macOS
@@ -238,8 +263,8 @@ T withBuffer<T>(int bytes, T Function(ffi.Pointer<ffi.Uint8>) action) {
 bool setNonBlocking(int fd) {
   final flags = fcntlInt(fd, fGetFl, 0);
   if (flags < 0) return false;
-  if ((flags & fIoNonblock) != 0) return false;
-  fcntlInt(fd, fSetFl, flags | fIoNonblock);
+  if ((flags & oNonblock) != 0) return false;
+  fcntlInt(fd, fSetFl, flags | oNonblock);
   return true;
 }
 

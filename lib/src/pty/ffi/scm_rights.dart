@@ -29,30 +29,61 @@ int recvFd(int socketFd) {
   final payload = pkg_ffi.calloc<ffi.Uint8>(payloadLen);
   final control = pkg_ffi.calloc<ffi.Uint8>(controlLen);
   final iov = pkg_ffi.calloc<libc.Iovec>();
-  final msg = pkg_ffi.calloc<libc.Msghdr>();
 
   try {
     iov.ref.iov_base = payload;
     iov.ref.iov_len = payloadLen;
 
-    msg.ref.msg_name = ffi.nullptr;
-    msg.ref.msg_namelen = 0;
-    msg.ref.msg_iov = iov;
-    msg.ref.msg_iovlen = 1;
-    msg.ref.msg_control = control.cast();
-    msg.ref.msg_controllen = controlLen;
-    msg.ref.msg_flags = 0;
-
     int received;
-    while (true) {
-      received = libc.recvmsg(socketFd, msg, 0);
-      if (received >= 0) break;
-      final err = libc.errno;
-      if (err == 4 /* EINTR */) continue;
-      throw PtyException('recvmsg', 'recvmsg failed', errno: err);
+    int msgControllen;
+
+    if (Platform.isMacOS) {
+      final msg = pkg_ffi.calloc<libc.MsghdrDarwin>();
+      try {
+        msg.ref.msg_name = ffi.nullptr;
+        msg.ref.msg_namelen = 0;
+        msg.ref.msg_iov = iov;
+        msg.ref.msg_iovlen = 1;
+        msg.ref.msg_control = control.cast();
+        msg.ref.msg_controllen = controlLen;
+        msg.ref.msg_flags = 0;
+
+        while (true) {
+          received = libc.recvmsgDarwin(socketFd, msg, 0);
+          if (received >= 0) break;
+          final err = libc.errno;
+          if (err == 4 /* EINTR */) continue;
+          throw PtyException('recvmsg', 'recvmsg failed', errno: err);
+        }
+        msgControllen = msg.ref.msg_controllen;
+      } finally {
+        pkg_ffi.calloc.free(msg);
+      }
+    } else {
+      final msg = pkg_ffi.calloc<libc.Msghdr>();
+      try {
+        msg.ref.msg_name = ffi.nullptr;
+        msg.ref.msg_namelen = 0;
+        msg.ref.msg_iov = iov;
+        msg.ref.msg_iovlen = 1;
+        msg.ref.msg_control = control.cast();
+        msg.ref.msg_controllen = controlLen;
+        msg.ref.msg_flags = 0;
+
+        while (true) {
+          received = libc.recvmsgLinux(socketFd, msg, 0);
+          if (received >= 0) break;
+          final err = libc.errno;
+          if (err == 4 /* EINTR */) continue;
+          throw PtyException('recvmsg', 'recvmsg failed', errno: err);
+        }
+        msgControllen = msg.ref.msg_controllen;
+      } finally {
+        pkg_ffi.calloc.free(msg);
+      }
     }
 
-    if (received == 0 || msg.ref.msg_controllen < 16) {
+    if (received == 0 || msgControllen < 16) {
       throw const PtyException(
         'recvmsg',
         'peer closed without sending ancillary data',
@@ -84,7 +115,6 @@ int recvFd(int socketFd) {
     final fdPtr = (control + dataOffset).cast<ffi.Int32>();
     return fdPtr.value;
   } finally {
-    pkg_ffi.calloc.free(msg);
     pkg_ffi.calloc.free(iov);
     pkg_ffi.calloc.free(control);
     pkg_ffi.calloc.free(payload);

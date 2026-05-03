@@ -49,42 +49,28 @@ ffi.DynamicLibrary _openLib() {
   return ffi.DynamicLibrary.open('libutil.so.1');
 }
 
-final _forkpty = _dl.lookupFunction<
-    ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Void>, ffi.Pointer<_Winsize>),
-    int Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Void>, ffi.Pointer<_Winsize>)>('forkpty');
+final _forkpty = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>, ffi.Pointer<_Winsize>),
+    int Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>, ffi.Pointer<_Winsize>)>('forkpty');
 
-final _execve = _dl.lookupFunction<
-    ffi.Int32 Function(ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Pointer<ffi.Pointer<ffi.Char>>),
-    int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Pointer<ffi.Char>>,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>)>('execve');
+final _execve = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Pointer<ffi.Pointer<ffi.Char>>),
+    int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Pointer<ffi.Pointer<ffi.Char>>)>('execve');
 
-final _nativeWrite = ffi.DynamicLibrary.process().lookupFunction<
-    ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr),
-    int Function(int, ffi.Pointer<ffi.Void>, int)>('write');
+final _nativeWrite = ffi.DynamicLibrary.process()
+    .lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>('write');
 
-final _nativeClose = ffi.DynamicLibrary.process()
-    .lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('close');
+final _nativeClose = ffi.DynamicLibrary.process().lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('close');
 
-final _ioctl = ffi.DynamicLibrary.process().lookupFunction<
-    ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>),
-    int Function(int, int, ffi.Pointer<_Winsize>)>('ioctl');
+final _ioctl = ffi.DynamicLibrary.process()
+    .lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>), int Function(int, int, ffi.Pointer<_Winsize>)>('ioctl');
 
-final _nativeKill = ffi.DynamicLibrary.process().lookupFunction<
-    ffi.Int32 Function(ffi.Int32, ffi.Int32), int Function(int, int)>('kill');
+final _nativeKill = ffi.DynamicLibrary.process().lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32), int Function(int, int)>('kill');
 
-final _waitpid = ffi.DynamicLibrary.process().lookupFunction<
-    ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Int32>, ffi.Int32),
-    int Function(int, ffi.Pointer<ffi.Int32>, int)>('waitpid');
+final _waitpid = ffi.DynamicLibrary.process()
+    .lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Int32>, ffi.Int32), int Function(int, ffi.Pointer<ffi.Int32>, int)>('waitpid');
 
-final _chdir = ffi.DynamicLibrary.process().lookupFunction<
-    ffi.Int32 Function(ffi.Pointer<ffi.Char>),
-    int Function(ffi.Pointer<ffi.Char>)>('chdir');
+final _chdir = ffi.DynamicLibrary.process().lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>), int Function(ffi.Pointer<ffi.Char>)>('chdir');
 
-final _exit_ = ffi.DynamicLibrary.process().lookupFunction<
-    ffi.Void Function(ffi.Int32), void Function(int)>('_exit');
+final _exit_ = ffi.DynamicLibrary.process().lookupFunction<ffi.Void Function(ffi.Int32), void Function(int)>('_exit');
 
 final int _kTiocsWinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
 const _kSighup = 1;
@@ -153,15 +139,11 @@ class NativePty {
     final envList = environment.entries.toList();
     final envpN = malloc<ffi.Pointer<ffi.Char>>(envList.length + 1);
     for (var i = 0; i < envList.length; i++) {
-      envpN[i] = '${envList[i].key}=${envList[i].value}'
-          .toNativeUtf8(allocator: malloc)
-          .cast();
+      envpN[i] = '${envList[i].key}=${envList[i].value}'.toNativeUtf8(allocator: malloc).cast();
     }
     envpN[envList.length] = ffi.nullptr;
 
-    final wdN = (workingDirectory ?? '/')
-        .toNativeUtf8(allocator: malloc)
-        .cast<ffi.Char>();
+    final wdN = (workingDirectory ?? '/').toNativeUtf8(allocator: malloc).cast<ffi.Char>();
     final fdOut = calloc<ffi.Int32>();
     final ws = calloc<_Winsize>()
       ..ref.wsRow = rows
@@ -171,8 +153,7 @@ class NativePty {
     final pid = _forkpty(fdOut, ffi.nullptr, ffi.nullptr, ws);
 
     if (pid == -1) {
-      _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN,
-          fdOut, ws);
+      _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN, fdOut, ws);
       throw StateError('forkpty() failed');
     }
 
@@ -185,8 +166,7 @@ class NativePty {
 
     // PARENT
     final fd = fdOut.value;
-    _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN,
-        fdOut, ws);
+    _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN, fdOut, ws);
 
     final pty = NativePty._(fd, pid);
     pty._spawnReader();
@@ -195,9 +175,13 @@ class NativePty {
 
   static void _freeAll(
     ffi.Pointer shell,
-    ffi.Pointer<ffi.Pointer<ffi.Char>> argv, int argc,
-    ffi.Pointer<ffi.Pointer<ffi.Char>> envp, int envc,
-    ffi.Pointer wd, ffi.Pointer fdOut, ffi.Pointer ws,
+    ffi.Pointer<ffi.Pointer<ffi.Char>> argv,
+    int argc,
+    ffi.Pointer<ffi.Pointer<ffi.Char>> envp,
+    int envc,
+    ffi.Pointer wd,
+    ffi.Pointer fdOut,
+    ffi.Pointer ws,
   ) {
     malloc.free(shell);
     for (var i = 0; i < argc; i++) malloc.free(argv[i]);
@@ -229,12 +213,8 @@ class NativePty {
   static void _readLoop((SendPort, int) msg) {
     final (port, fd) = msg;
     final dl = ffi.DynamicLibrary.process();
-    final rd = dl.lookupFunction<
-        ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr),
-        int Function(int, ffi.Pointer<ffi.Void>, int)>('read');
-    final poll = dl.lookupFunction<
-        ffi.Int32 Function(ffi.Pointer<_Pollfd>, ffi.Uint32, ffi.Int32),
-        int Function(ffi.Pointer<_Pollfd>, int, int)>('poll');
+    final rd = dl.lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>('read');
+    final poll = dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<_Pollfd>, ffi.Uint32, ffi.Int32), int Function(ffi.Pointer<_Pollfd>, int, int)>('poll');
 
     final buf = malloc<ffi.Uint8>(65536);
     final pfd = calloc<_Pollfd>();
@@ -276,9 +256,8 @@ class NativePty {
     final ws = calloc<_Winsize>()
       ..ref.wsRow = rows
       ..ref.wsCol = cols;
-    final rc = _ioctl(_fd, _kTiocsWinsz, ws);
+    _ioctl(_fd, _kTiocsWinsz, ws);
     calloc.free(ws);
-    print('[pty-resize] fd=$_fd cols=$cols rows=$rows ioctl=$rc pid=$pid');
     // Explicitly signal the child to re-query its terminal size.
     _nativeKill(pid, 28); // SIGWINCH = 28 on macOS/Linux
   }
