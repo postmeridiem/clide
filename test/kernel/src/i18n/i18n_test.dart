@@ -85,8 +85,7 @@ void main() {
       );
     });
 
-    test('falls through to default-locale when current locale is empty',
-        () async {
+    test('falls through to default-locale when current locale is empty', () async {
       final i = build(catalogs: {
         'builtin.x': {
           const Locale('en', 'US'): {
@@ -143,8 +142,7 @@ void main() {
       expect(i.string('k', namespace: 'b', placeholder: '-'), 'B');
     });
 
-    test('setLocale refreshes cached namespaces and notifies listeners',
-        () async {
+    test('setLocale refreshes cached namespaces and notifies listeners', () async {
       final i = build(catalogs: {
         'x': {
           const Locale('en', 'US'): {

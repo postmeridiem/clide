@@ -71,19 +71,14 @@ void main() {
       }
       final lines = <String>[];
       final done = Completer<void>();
-      final sub = socket
-          .cast<List<int>>()
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
+      final sub = socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
         lines.add(line);
         if (lines.length == 5) done.complete();
       });
       await done.future.timeout(const Duration(seconds: 2));
       await sub.cancel();
       await socket.close();
-      final ids =
-          lines.map((l) => (IpcMessage.decode(l) as IpcResponse).id).toSet();
+      final ids = lines.map((l) => (IpcMessage.decode(l) as IpcResponse).id).toSet();
       expect(ids, {'0', '1', '2', '3', '4'});
     });
 
@@ -112,12 +107,7 @@ Future<String> _send(String socketPath, String line) async {
     0,
   );
   socket.writeln(line);
-  final resp = await socket
-      .cast<List<int>>()
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .first
-      .timeout(const Duration(seconds: 2));
+  final resp = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 2));
   await socket.close();
   return resp;
 }

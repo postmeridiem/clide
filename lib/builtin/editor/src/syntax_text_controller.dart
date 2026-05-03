@@ -8,8 +8,7 @@ import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:flutter/widgets.dart';
 
 class SyntaxTextController extends TextEditingController {
-  SyntaxTextController({required TreeSitterService syntax})
-      : _syntax = syntax;
+  SyntaxTextController({required TreeSitterService syntax}) : _syntax = syntax;
 
   final TreeSitterService _syntax;
 
@@ -74,8 +73,7 @@ class SyntaxTextController extends TextEditingController {
 
     // Convert byte offsets to character offsets.
     // Build a byte-to-char map only up to the max byte we need.
-    final spans = _spans.where((s) => s.end <= sourceBytes.length).toList()
-      ..sort((a, b) => a.start != b.start ? a.start - b.start : a.end - b.end);
+    final spans = _spans.where((s) => s.end <= sourceBytes.length).toList()..sort((a, b) => a.start != b.start ? a.start - b.start : a.end - b.end);
 
     if (spans.isEmpty) {
       return TextSpan(text: text, style: style);
@@ -121,9 +119,7 @@ class SyntaxTextController extends TextEditingController {
         continue;
       }
       final spanCharStart = byteToChar[span.start];
-      final spanCharEnd = span.end <= maxByte
-          ? byteToChar[span.end]
-          : source.length;
+      final spanCharEnd = span.end <= maxByte ? byteToChar[span.end] : source.length;
 
       if (spanCharStart < charPos) continue;
 

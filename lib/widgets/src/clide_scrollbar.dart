@@ -47,8 +47,5 @@ class ScrollbarTheme extends InheritedWidget {
   final Color track;
 
   @override
-  bool updateShouldNotify(ScrollbarTheme old) =>
-      slider != old.slider ||
-      sliderHover != old.sliderHover ||
-      track != old.track;
+  bool updateShouldNotify(ScrollbarTheme old) => slider != old.slider || sliderHover != old.sliderHover || track != old.track;
 }

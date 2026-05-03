@@ -18,8 +18,7 @@ class PlugIcon extends ClideIconPainter {
       ..moveTo(0.30, 0.30)
       ..lineTo(0.60, 0.30)
       ..lineTo(0.60, 0.55)
-      ..arcToPoint(const Offset(0.30, 0.55),
-          radius: const Radius.circular(0.15), clockwise: false)
+      ..arcToPoint(const Offset(0.30, 0.55), radius: const Radius.circular(0.15), clockwise: false)
       ..close();
     canvas.drawPath(body, p);
     // cord

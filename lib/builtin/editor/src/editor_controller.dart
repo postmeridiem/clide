@@ -17,8 +17,7 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/foundation.dart';
 
 class EditorController extends ChangeNotifier {
-  EditorController({required this.ipc, required DaemonBus events})
-      : _events = events {
+  EditorController({required this.ipc, required DaemonBus events}) : _events = events {
     _eventSub = events.on<DaemonEvent>().listen(_onEvent);
   }
 
@@ -77,9 +76,7 @@ class EditorController extends ChangeNotifier {
     _activePath = r.data['path']! as String;
     _content = (r.data['content'] as String?) ?? '';
     final sel = r.data['selection'];
-    _selection = sel is Map
-        ? Selection.fromJson(sel.cast<String, Object?>())
-        : const Selection.collapsed(0);
+    _selection = sel is Map ? Selection.fromJson(sel.cast<String, Object?>()) : const Selection.collapsed(0);
     _dirty = (r.data['dirty'] as bool?) ?? false;
     _error = null;
     notifyListeners();

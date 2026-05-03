@@ -45,8 +45,7 @@ class _EditorViewState extends State<EditorView> {
     super.didChangeDependencies();
     if (_controller != null) return;
     final kernel = ClideKernel.of(context);
-    _controller = EditorController(ipc: kernel.ipc, events: kernel.events)
-      ..addListener(_onControllerChanged);
+    _controller = EditorController(ipc: kernel.ipc, events: kernel.events)..addListener(_onControllerChanged);
     unawaited(_controller!.hydrate());
   }
 
@@ -80,29 +79,22 @@ class _EditorViewState extends State<EditorView> {
     final c = _controller;
     if (c == null || c.activeId == null) return;
     final value = _text.value;
-    if (value.text == c.content &&
-        value.selection.baseOffset == c.selection.start &&
-        value.selection.extentOffset == c.selection.end) {
+    if (value.text == c.content && value.selection.baseOffset == c.selection.start && value.selection.extentOffset == c.selection.end) {
       return;
     }
     _lastRemoteContent = value.text;
     c.pushLocalEdit(
       newContent: value.text,
       newSelection: Selection(
-        start: value.selection.start < 0
-            ? value.text.length
-            : value.selection.start,
-        end: value.selection.end < 0
-            ? value.text.length
-            : value.selection.end,
+        start: value.selection.start < 0 ? value.text.length : value.selection.start,
+        end: value.selection.end < 0 ? value.text.length : value.selection.end,
       ),
     );
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    final isCmd = HardwareKeyboard.instance.isMetaPressed ||
-        HardwareKeyboard.instance.isControlPressed;
+    final isCmd = HardwareKeyboard.instance.isMetaPressed || HardwareKeyboard.instance.isControlPressed;
     if (isCmd && event.logicalKey == LogicalKeyboardKey.keyS) {
       unawaited(_controller?.save());
       return KeyEventResult.handled;

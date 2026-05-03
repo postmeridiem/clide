@@ -55,6 +55,5 @@ class ExtensionManifest {
     );
   }
 
-  static Future<ExtensionManifest> fromFile(File f) async =>
-      ExtensionManifest.fromYamlString(await f.readAsString());
+  static Future<ExtensionManifest> fromFile(File f) async => ExtensionManifest.fromYamlString(await f.readAsString());
 }

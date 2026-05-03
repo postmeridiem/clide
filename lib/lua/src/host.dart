@@ -6,8 +6,7 @@ class LuaHost {
 
   /// Boot the vendored liblua. Throws until Tier 6.
   static Future<LuaHost> start() async {
-    throw UnsupportedError(
-        'Lua runtime lands at Tier 6 (supporter tool sibling of ptyc).');
+    throw UnsupportedError('Lua runtime lands at Tier 6 (supporter tool sibling of ptyc).');
   }
 
   Future<void> dispose() async {}

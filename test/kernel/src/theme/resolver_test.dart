@@ -126,8 +126,7 @@ void main() {
           'ext.sqlite.table.background': '#ABCDEF',
         },
       );
-      expect(tokens.extensionTokens['ext.sqlite.table.background'],
-          const Color(0xFFABCDEF));
+      expect(tokens.extensionTokens['ext.sqlite.table.background'], const Color(0xFFABCDEF));
     });
   });
 

@@ -122,8 +122,7 @@ class _TicketHeader extends StatelessWidget {
               const SizedBox(width: 8),
               ClideText(detail.id, fontSize: clideFontSmall, color: typeColor, fontFamily: clideMonoFamily),
               const Spacer(),
-              if (detail.priority != null)
-                ClideText(detail.priority!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+              if (detail.priority != null) ClideText(detail.priority!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
             ],
           ),
           const SizedBox(height: 8),
@@ -153,13 +152,18 @@ class _StatusControls extends StatelessWidget {
         for (final s in _statuses) ...[
           Expanded(
             child: ClideTappable(
-              onTap: detail.status == s ? null : () async {
-                final resp = await controller.ipc.request('pql.tickets.status', args: {'ids': [detail.id], 'status': s});
-                if (resp.ok) {
-                  controller.messages.publish('builtin.tickets', 'changed', {'id': detail.id});
-                  await controller.load(detail.id);
-                }
-              },
+              onTap: detail.status == s
+                  ? null
+                  : () async {
+                      final resp = await controller.ipc.request('pql.tickets.status', args: {
+                        'ids': [detail.id],
+                        'status': s
+                      });
+                      if (resp.ok) {
+                        controller.messages.publish('builtin.tickets', 'changed', {'id': detail.id});
+                        await controller.load(detail.id);
+                      }
+                    },
               builder: (ctx, hovered, _) {
                 final active = detail.status == s;
                 final color = active ? tokens.statusInfo : (hovered ? tokens.globalForeground : tokens.globalTextMuted);

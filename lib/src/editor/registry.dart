@@ -31,8 +31,7 @@ class EditorRegistry {
 
   Iterable<EditorBuffer> get buffers => _buffers.values;
   EditorBuffer? get(String id) => _buffers[id];
-  EditorBuffer? get active =>
-      _activeId == null ? null : _buffers[_activeId!];
+  EditorBuffer? get active => _activeId == null ? null : _buffers[_activeId!];
 
   /// Open a file. If [path] is already open, returns the existing
   /// buffer (no re-read from disk — the in-memory content is the

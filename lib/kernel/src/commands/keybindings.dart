@@ -36,10 +36,7 @@ class Keybinding {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is Keybinding &&
-      other.key == key &&
-      listEquals(other.modifiers, modifiers);
+  bool operator ==(Object other) => other is Keybinding && other.key == key && listEquals(other.modifiers, modifiers);
 
   @override
   int get hashCode => Object.hash(key, Object.hashAll(modifiers));

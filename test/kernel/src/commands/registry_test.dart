@@ -3,8 +3,7 @@ import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-CommandContribution _cmd(String name, Future<IpcResponse> Function() run) =>
-    CommandContribution(
+CommandContribution _cmd(String name, Future<IpcResponse> Function() run) => CommandContribution(
       id: name,
       command: name,
       title: 'cmd $name',

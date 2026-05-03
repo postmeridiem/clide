@@ -90,9 +90,7 @@ class IpcResponse extends IpcMessage {
       id: j['id']! as String,
       ok: ok,
       data: (j['data'] as Map?)?.cast<String, Object?>() ?? const {},
-      error: ok
-          ? null
-          : IpcError.fromJson((j['error'] as Map).cast<String, Object?>()),
+      error: ok ? null : IpcError.fromJson((j['error'] as Map).cast<String, Object?>()),
     );
   }
 }

@@ -15,8 +15,7 @@ void main() {
   group('bin/clide --daemon (subprocess)', () {
     setUpAll(() {
       if (!binary.existsSync()) {
-        markTestSkipped(
-            'bin/clide not built; run `make build` first to enable this suite');
+        markTestSkipped('bin/clide not built; run `make build` first to enable this suite');
       }
     });
 
@@ -41,10 +40,7 @@ void main() {
       // Wait for "listening on ..." on stderr before connecting.
       final ready = Completer<void>();
       final stderrLines = <String>[];
-      final sub = process.stderr
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
+      final sub = process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
         stderrLines.add(line);
         if (line.contains('listening')) ready.complete();
       });
@@ -58,12 +54,7 @@ void main() {
           0,
         ).timeout(const Duration(seconds: 3));
         sock.writeln(IpcRequest(id: '1', cmd: 'ping').encode());
-        final line = await sock
-            .cast<List<int>>()
-            .transform(utf8.decoder)
-            .transform(const LineSplitter())
-            .first
-            .timeout(const Duration(seconds: 3));
+        final line = await sock.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 3));
         await sock.close();
         final resp = IpcMessage.decode(line) as IpcResponse;
         expect(resp.ok, true);
@@ -71,8 +62,7 @@ void main() {
 
         // Clean shutdown
         process.kill(ProcessSignal.sigterm);
-        final exitCode =
-            await process.exitCode.timeout(const Duration(seconds: 3));
+        final exitCode = await process.exitCode.timeout(const Duration(seconds: 3));
         expect(exitCode, 0);
 
         // Socket file should be unlinked

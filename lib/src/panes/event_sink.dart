@@ -22,10 +22,8 @@ class RecordingEventSink implements DaemonEventSink {
   void emit(IpcEvent event) => events.add(event);
 
   /// Convenience: filter to a single subsystem (`pane`, `git`, …).
-  Iterable<IpcEvent> ofSubsystem(String subsystem) =>
-      events.where((e) => e.subsystem == subsystem);
+  Iterable<IpcEvent> ofSubsystem(String subsystem) => events.where((e) => e.subsystem == subsystem);
 
   /// Convenience: filter to a specific `type` (`pane.spawned`, …).
-  Iterable<IpcEvent> ofKind(String kind) =>
-      events.where((e) => e.kind == kind);
+  Iterable<IpcEvent> ofKind(String kind) => events.where((e) => e.kind == kind);
 }

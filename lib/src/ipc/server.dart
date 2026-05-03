@@ -69,11 +69,7 @@ class DaemonServer {
 
   void _handleClient(Socket client) {
     _clients.add(client);
-    client
-        .cast<List<int>>()
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen(
+    client.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).listen(
           (line) => _handleLine(client, line),
           onDone: () => _clients.remove(client),
           onError: (Object e) {

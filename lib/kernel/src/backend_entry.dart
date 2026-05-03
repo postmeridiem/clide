@@ -30,6 +30,7 @@ import 'package:clide/src/pql/client.dart';
 class BackendBootMessage {
   const BackendBootMessage({required this.frontendPort, this.hintRoot});
   final SendPort frontendPort;
+
   /// Optional path hint for initial toolchain resolution (e.g. CLIDE_PROJECT).
   /// Used to find project-local binaries like dugite before a project opens.
   final String? hintRoot;
@@ -61,8 +62,7 @@ void backendEntry(BackendBootMessage boot) {
       final path = message['path'] as String;
       final id = message['id'] as String;
       try {
-        final r = await Process.run(toolchain.git, ['rev-parse', '--show-toplevel'],
-            workingDirectory: path, environment: toolchain.gitEnv);
+        final r = await Process.run(toolchain.git, ['rev-parse', '--show-toplevel'], workingDirectory: path, environment: toolchain.gitEnv);
         if (r.exitCode == 0) {
           final root = (r.stdout as String).trim();
           frontendPort.send({'type': 'project.validated', 'id': id, 'root': root});

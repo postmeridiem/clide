@@ -124,8 +124,7 @@ class ExtensionManager extends ChangeNotifier {
     }
     for (final dep in ext.dependsOn) {
       if (!_activated.contains(dep)) {
-        log.warn(
-            'extensions', 'skipping ${ext.id}: dependency not activated: $dep');
+        log.warn('extensions', 'skipping ${ext.id}: dependency not activated: $dep');
         return;
       }
     }
@@ -140,8 +139,7 @@ class ExtensionManager extends ChangeNotifier {
       notifyListeners();
       log.info('extensions', 'activated $id');
     } catch (e, st) {
-      log.error('extensions', 'activate failed for $id',
-          error: e, stackTrace: st);
+      log.error('extensions', 'activate failed for $id', error: e, stackTrace: st);
     }
   }
 
@@ -159,8 +157,7 @@ class ExtensionManager extends ChangeNotifier {
       notifyListeners();
       log.info('extensions', 'deactivated $id');
     } catch (e, st) {
-      log.error('extensions', 'deactivate failed for $id',
-          error: e, stackTrace: st);
+      log.error('extensions', 'deactivate failed for $id', error: e, stackTrace: st);
     }
   }
 

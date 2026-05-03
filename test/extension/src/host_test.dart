@@ -30,11 +30,9 @@ void main() {
 
     test('discovers extensions from their own subdirs', () async {
       final a = Directory('${root.path}/ext.a')..createSync();
-      await File('${a.path}/manifest.yaml')
-          .writeAsString('id: ext.a\ntitle: A\nversion: 1.0.0\n');
+      await File('${a.path}/manifest.yaml').writeAsString('id: ext.a\ntitle: A\nversion: 1.0.0\n');
       final b = Directory('${root.path}/ext.b')..createSync();
-      await File('${b.path}/manifest.yaml')
-          .writeAsString('id: ext.b\ntitle: B\nversion: 1.2.0\n');
+      await File('${b.path}/manifest.yaml').writeAsString('id: ext.b\ntitle: B\nversion: 1.2.0\n');
       final out = await const ExtensionScanner().discover(root: root);
       expect(out.map((m) => m.id).toSet(), {'ext.a', 'ext.b'});
     });

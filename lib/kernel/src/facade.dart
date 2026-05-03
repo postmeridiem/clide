@@ -154,8 +154,8 @@ class KernelServices {
       onProjectOpen: onProjectOpen,
       onValidateProject: onValidateProject,
     );
-    final ipc = isolateClient
-        ?? (daemonClientFactory != null
+    final ipc = isolateClient ??
+        (daemonClientFactory != null
             ? daemonClientFactory(log, events)
             : DaemonClient(
                 socketPath: socketPath ?? defaultSocketPath(),
@@ -257,13 +257,11 @@ class ClideKernel extends InheritedWidget {
   static KernelServices of(BuildContext context) {
     final w = context.dependOnInheritedWidgetOfExactType<ClideKernel>();
     if (w == null) {
-      throw FlutterError(
-          'ClideKernel.of() called with a context that is not a descendant of a ClideKernel.');
+      throw FlutterError('ClideKernel.of() called with a context that is not a descendant of a ClideKernel.');
     }
     return w.services;
   }
 
   @override
-  bool updateShouldNotify(ClideKernel oldWidget) =>
-      services != oldWidget.services;
+  bool updateShouldNotify(ClideKernel oldWidget) => services != oldWidget.services;
 }

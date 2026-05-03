@@ -136,8 +136,7 @@ class _Children extends StatelessWidget {
                   controller: controller,
                   depth: depth,
                 ),
-                if (controller.isExpanded(e.path))
-                  _Children(path: e.path, controller: controller, depth: depth + 1),
+                if (controller.isExpanded(e.path)) _Children(path: e.path, controller: controller, depth: depth + 1),
               ],
             )
           else
@@ -294,4 +293,3 @@ class _FilteredFileRow extends StatelessWidget {
     );
   }
 }
-

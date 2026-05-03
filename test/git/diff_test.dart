@@ -185,8 +185,7 @@ index abc..def 100644
     });
 
     test('returns unstaged diff after modification', () async {
-      await File('${sandbox.path}/file.txt')
-          .writeAsString('line1\nmodified\n');
+      await File('${sandbox.path}/file.txt').writeAsString('line1\nmodified\n');
       final diffs = await gitDiff(sandbox);
       expect(diffs, hasLength(1));
       expect(diffs.first.path, 'file.txt');
@@ -194,8 +193,7 @@ index abc..def 100644
     });
 
     test('returns staged diff with staged: true', () async {
-      await File('${sandbox.path}/file.txt')
-          .writeAsString('line1\nmodified\n');
+      await File('${sandbox.path}/file.txt').writeAsString('line1\nmodified\n');
       await Process.run(
         'git',
         ['add', 'file.txt'],

@@ -30,6 +30,5 @@ class DecisionTypeColors {
     rejected: Color(0xFFC03030),
   );
 
-  static DecisionTypeColors forTheme({required bool dark}) =>
-      dark ? DecisionTypeColors.dark : DecisionTypeColors.light;
+  static DecisionTypeColors forTheme({required bool dark}) => dark ? DecisionTypeColors.dark : DecisionTypeColors.light;
 }

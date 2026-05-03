@@ -23,8 +23,7 @@ export 'src/files/listing.dart' show FileEntry, listDir;
 export 'src/git/diff.dart' show GitDiff, GitHunk, DiffLine, DiffLineKind;
 export 'src/git/client.dart' show GitClient;
 export 'src/git/operations.dart' show GitLogEntry, GitException;
-export 'src/git/status.dart'
-    show GitStatus, GitFileStatus, GitFileState, GitConflictType;
+export 'src/git/status.dart' show GitStatus, GitFileStatus, GitFileState, GitConflictType;
 export 'src/pql/client.dart' show PqlClient, PqlException;
 export 'src/ipc/envelope.dart';
 export 'src/ipc/paths.dart';

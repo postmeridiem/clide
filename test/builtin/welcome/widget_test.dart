@@ -20,9 +20,7 @@ void main() {
           'builtin.welcome': {
             const Locale('en', 'US'): const {
               'title': {'translation': 'clide'},
-              'subtitle': {
-                'translation': 'Flutter desktop IDE for Claude Code'
-              },
+              'subtitle': {'translation': 'Flutter desktop IDE for Claude Code'},
               'open-project': {'translation': 'Open project'},
               'open-project.hint': {'translation': 'Pick a git repository'},
               'tab.title': {'translation': 'Welcome'},

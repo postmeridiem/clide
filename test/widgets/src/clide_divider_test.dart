@@ -11,16 +11,14 @@ void main() {
     setUp(() async => f = await KernelFixture.create());
     tearDown(() async => f.dispose());
 
-    testWidgets('renders a 1px horizontal container by default',
-        (tester) async {
+    testWidgets('renders a 1px horizontal container by default', (tester) async {
       await tester.pumpWidget(harness(f, const ClideDivider()));
       final c = tester.widget<Container>(find.byType(Container));
       expect(c.constraints?.maxHeight, 1.0);
       expect(c.color, f.services.theme.current.surface.dividerColor);
     });
 
-    testWidgets('vertical axis yields a width-constrained container',
-        (tester) async {
+    testWidgets('vertical axis yields a width-constrained container', (tester) async {
       await tester.pumpWidget(
         harness(f, const ClideDivider(axis: Axis.vertical, thickness: 2)),
       );

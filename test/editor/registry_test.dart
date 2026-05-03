@@ -76,8 +76,7 @@ void main() {
     expect(sink.ofKind('editor.saved'), hasLength(1));
   });
 
-  test('close picks a new active buffer when the active one closes',
-      () async {
+  test('close picks a new active buffer when the active one closes', () async {
     final a = await reg.open('README.md');
     await File('${sandbox.path}/b.txt').writeAsString('two');
     final b = await reg.open('b.txt');

@@ -80,15 +80,13 @@ class ThemeLoader {
       displayName: displayName,
       dark: dark,
       palette: palette,
-      semanticOverride:
-          semantic is Map ? _parseSemantic(semantic, palette) : null,
+      semanticOverride: semantic is Map ? _parseSemantic(semantic, palette) : null,
       surfaceOverride: mergedSurface.isNotEmpty ? mergedSurface : null,
       extensionOverride: extension is Map ? _parseRefMap(extension) : null,
     );
   }
 
-  Future<ThemeDefinition> fromAsset(
-      AssetBundle bundle, String assetPath) async {
+  Future<ThemeDefinition> fromAsset(AssetBundle bundle, String assetPath) async {
     final txt = await bundle.loadString(assetPath);
     final fallback = assetPath.split('/').last.replaceAll('.yaml', '');
     return fromYamlString(txt, fallbackName: fallback);
@@ -115,8 +113,7 @@ SemanticRoles _parseSemantic(Map src, Palette palette) {
   final roles = <String, Color>{};
   src.forEach((k, v) {
     if (v is! String) return;
-    final resolved =
-        v.startsWith('#') ? Palette.parseHex(v) : palette.lookup(v);
+    final resolved = v.startsWith('#') ? Palette.parseHex(v) : palette.lookup(v);
     if (resolved != null) roles['$k'] = resolved;
   });
   return SemanticRoles(roles);

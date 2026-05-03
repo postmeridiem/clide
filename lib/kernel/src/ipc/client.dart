@@ -79,11 +79,7 @@ class DaemonClient extends ChangeNotifier {
       _backoff = const Duration(milliseconds: 200);
       _setConnected(true);
       _log.info('ipc', 'connected to $socketPath');
-      socket
-          .cast<List<int>>()
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen(
+      socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).listen(
         _handleLine,
         onDone: _handleDisconnect,
         onError: (Object e) {
@@ -93,8 +89,7 @@ class DaemonClient extends ChangeNotifier {
         cancelOnError: true,
       );
     } catch (e) {
-      _log.debug(
-          'ipc', 'connect failed ($e); retry in ${_backoff.inMilliseconds}ms');
+      _log.debug('ipc', 'connect failed ($e); retry in ${_backoff.inMilliseconds}ms');
       _scheduleReconnect();
     }
   }

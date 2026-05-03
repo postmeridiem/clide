@@ -37,8 +37,7 @@ class ClideText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final resolved =
-        color ?? (muted ? tokens.globalTextMuted : tokens.globalForeground);
+    final resolved = color ?? (muted ? tokens.globalTextMuted : tokens.globalForeground);
     return Text(
       data,
       maxLines: maxLines,

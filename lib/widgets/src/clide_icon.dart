@@ -52,6 +52,5 @@ class _IconPainterAdapter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _IconPainterAdapter old) =>
-      old.painter != painter || old.color != color;
+  bool shouldRepaint(covariant _IconPainterAdapter old) => old.painter != painter || old.color != color;
 }

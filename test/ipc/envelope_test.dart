@@ -117,8 +117,7 @@ void main() {
     });
 
     test('throws on malformed JSON', () {
-      expect(() => IpcMessage.decode('{this is not json'),
-          throwsA(isA<FormatException>()));
+      expect(() => IpcMessage.decode('{this is not json'), throwsA(isA<FormatException>()));
     });
   });
 }

@@ -56,13 +56,15 @@ class FilesService {
 }
 
 void registerFilesCommands(DaemonDispatcher d, FilesService files) {
-  d.register('files.root', (req) async => IpcResponse.ok(
-        id: req.id,
-        data: {
-          'path': files.root.absolute.path,
-          'ignorePatterns': files.ignore.length,
-        },
-      ));
+  d.register(
+      'files.root',
+      (req) async => IpcResponse.ok(
+            id: req.id,
+            data: {
+              'path': files.root.absolute.path,
+              'ignorePatterns': files.ignore.length,
+            },
+          ));
 
   d.register('files.read', (req) async {
     final path = req.args['path'] as String?;

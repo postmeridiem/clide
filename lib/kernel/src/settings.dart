@@ -53,9 +53,7 @@ class SettingsStore extends ChangeNotifier {
         return _projectValues[key];
       case SettingsScope.ext:
         // project overrides app for the same ext.* key
-        return _projectValues.containsKey(key)
-            ? _projectValues[key]
-            : _appValues[key];
+        return _projectValues.containsKey(key) ? _projectValues[key] : _appValues[key];
     }
   }
 
@@ -66,8 +64,7 @@ class SettingsStore extends ChangeNotifier {
         await _writeFile(_appFile, _appValues);
       case SettingsScope.project:
         if (projectDir == null) {
-          throw StateError(
-              'Cannot set project-scoped key with no project open: $key');
+          throw StateError('Cannot set project-scoped key with no project open: $key');
         }
         _projectValues[key] = value;
         await _writeFile(_projectFile, _projectValues);
@@ -109,8 +106,7 @@ class SettingsStore extends ChangeNotifier {
     if (key.startsWith('app.')) return SettingsScope.app;
     if (key.startsWith('project.')) return SettingsScope.project;
     if (key.startsWith('ext.')) return SettingsScope.ext;
-    throw ArgumentError(
-        'Settings key must start with app.|project.|ext.: "$key"');
+    throw ArgumentError('Settings key must start with app.|project.|ext.: "$key"');
   }
 }
 

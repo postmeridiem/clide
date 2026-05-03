@@ -172,12 +172,8 @@ void main() {
     test('emits ExtensionActivated / ExtensionDeactivated events', () async {
       final activated = <String>[];
       final deactivated = <String>[];
-      final s1 = f.services.events
-          .on<ExtensionActivated>()
-          .listen((e) => activated.add(e.id));
-      final s2 = f.services.events
-          .on<ExtensionDeactivated>()
-          .listen((e) => deactivated.add(e.id));
+      final s1 = f.services.events.on<ExtensionActivated>().listen((e) => activated.add(e.id));
+      final s2 = f.services.events.on<ExtensionDeactivated>().listen((e) => deactivated.add(e.id));
       f.services.extensions.register(_Ext(id: 'e'));
       await f.services.extensions.activateAll();
       await Future<void>.delayed(Duration.zero);

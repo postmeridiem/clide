@@ -68,9 +68,7 @@ class _DiffViewState extends State<DiffView> {
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: ClideText(
-                    c.showStaged
-                        ? 'No staged changes.'
-                        : 'No unstaged changes.',
+                    c.showStaged ? 'No staged changes.' : 'No unstaged changes.',
                     muted: true,
                   ),
                 ),
@@ -81,8 +79,7 @@ class _DiffViewState extends State<DiffView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (final diff in c.diffs)
-                        _FileDiff(diff: diff, controller: c),
+                      for (final diff in c.diffs) _FileDiff(diff: diff, controller: c),
                     ],
                   ),
                 ),
@@ -118,9 +115,7 @@ class _DiffToolbar extends StatelessWidget {
               child: ClideText(
                 'Unstaged',
                 fontSize: clideFontCaption,
-                color: controller.showStaged
-                    ? tokens.globalTextMuted
-                    : tokens.globalForeground,
+                color: controller.showStaged ? tokens.globalTextMuted : tokens.globalForeground,
               ),
             ),
           ),
@@ -134,9 +129,7 @@ class _DiffToolbar extends StatelessWidget {
               child: ClideText(
                 'Staged',
                 fontSize: clideFontCaption,
-                color: controller.showStaged
-                    ? tokens.globalForeground
-                    : tokens.globalTextMuted,
+                color: controller.showStaged ? tokens.globalForeground : tokens.globalTextMuted,
               ),
             ),
           ),
@@ -188,12 +181,8 @@ class _FileDiff extends StatelessWidget {
                   color: tokens.panelHeaderForeground,
                 ),
               ),
-              if (additions > 0)
-                ClideText('+$additions ', fontSize: clideFontCaption,
-                    color: tokens.statusSuccess),
-              if (removals > 0)
-                ClideText('-$removals', fontSize: clideFontCaption,
-                    color: tokens.statusError),
+              if (additions > 0) ClideText('+$additions ', fontSize: clideFontCaption, color: tokens.statusSuccess),
+              if (removals > 0) ClideText('-$removals', fontSize: clideFontCaption, color: tokens.statusError),
             ],
           ),
         ),

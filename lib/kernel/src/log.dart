@@ -23,8 +23,7 @@ class LogRecord {
   @override
   String toString() {
     final lv = level.name.toUpperCase().padRight(5);
-    final buf =
-        StringBuffer('${timestamp.toIso8601String()} $lv [$source] $message');
+    final buf = StringBuffer('${timestamp.toIso8601String()} $lv [$source] $message');
     if (error != null) buf.write(' | error=$error');
     return buf.toString();
   }
@@ -33,33 +32,24 @@ class LogRecord {
 typedef LogSink = void Function(LogRecord);
 
 class Logger {
-  Logger({this.minLevel = LogLevel.info, List<LogSink>? sinks})
-      : _sinks = List<LogSink>.from(sinks ?? <LogSink>[stderrSink]);
+  Logger({this.minLevel = LogLevel.info, List<LogSink>? sinks}) : _sinks = List<LogSink>.from(sinks ?? <LogSink>[stderrSink]);
 
   LogLevel minLevel;
   final List<LogSink> _sinks;
-  final StreamController<LogRecord> _stream =
-      StreamController<LogRecord>.broadcast();
+  final StreamController<LogRecord> _stream = StreamController<LogRecord>.broadcast();
 
   Stream<LogRecord> get records => _stream.stream;
 
   void addSink(LogSink sink) => _sinks.add(sink);
 
-  void trace(String source, String message) =>
-      _emit(LogLevel.trace, source, message);
-  void debug(String source, String message) =>
-      _emit(LogLevel.debug, source, message);
-  void info(String source, String message) =>
-      _emit(LogLevel.info, source, message);
-  void warn(String source, String message, {Object? error}) =>
-      _emit(LogLevel.warn, source, message, error: error);
-  void error(String source, String message,
-          {Object? error, StackTrace? stackTrace}) =>
-      _emit(LogLevel.error, source, message,
-          error: error, stackTrace: stackTrace);
+  void trace(String source, String message) => _emit(LogLevel.trace, source, message);
+  void debug(String source, String message) => _emit(LogLevel.debug, source, message);
+  void info(String source, String message) => _emit(LogLevel.info, source, message);
+  void warn(String source, String message, {Object? error}) => _emit(LogLevel.warn, source, message, error: error);
+  void error(String source, String message, {Object? error, StackTrace? stackTrace}) =>
+      _emit(LogLevel.error, source, message, error: error, stackTrace: stackTrace);
 
-  void _emit(LogLevel level, String source, String message,
-      {Object? error, StackTrace? stackTrace}) {
+  void _emit(LogLevel level, String source, String message, {Object? error, StackTrace? stackTrace}) {
     if (level.index < minLevel.index) return;
     final rec = LogRecord(
       level: level,

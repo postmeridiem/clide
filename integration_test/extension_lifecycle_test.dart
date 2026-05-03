@@ -14,8 +14,7 @@ import '../test/helpers/fake_ipc.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('disable + re-enable an extension mounts/unmounts its UI',
-      (tester) async {
+  testWidgets('disable + re-enable an extension mounts/unmounts its UI', (tester) async {
     final themes = [
       await const ThemeLoader().fromAsset(
         rootBundle,
@@ -31,8 +30,7 @@ void main() {
         'builtin.ipc-status',
         'builtin.default-layout',
       ],
-      daemonClientFactory: (log, events) =>
-          FakeDaemonClient(log: log, events: events),
+      daemonClientFactory: (log, events) => FakeDaemonClient(log: log, events: events),
       autoStartDaemonClient: false,
     );
     services.extensions

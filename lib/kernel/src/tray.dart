@@ -20,8 +20,7 @@ class TrayRegistry extends ChangeNotifier {
   }
 
   Iterable<TrayItemContribution> get items {
-    final sorted = _items.values.toList()
-      ..sort((a, b) => a.priority.compareTo(b.priority));
+    final sorted = _items.values.toList()..sort((a, b) => a.priority.compareTo(b.priority));
     return sorted;
   }
 }

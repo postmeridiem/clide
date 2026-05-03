@@ -49,7 +49,8 @@ class _ProblemsViewState extends State<ProblemsView> {
           explicitChildNodes: true,
           child: () {
             final lf = _filter.toLowerCase();
-            final filtered = lf.isEmpty ? c.problems : c.problems.where((p) => p.message.toLowerCase().contains(lf) || p.source.toLowerCase().contains(lf)).toList();
+            final filtered =
+                lf.isEmpty ? c.problems : c.problems.where((p) => p.message.toLowerCase().contains(lf) || p.source.toLowerCase().contains(lf)).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -64,16 +65,15 @@ class _ProblemsViewState extends State<ProblemsView> {
                         label: 'refresh problems',
                         child: GestureDetector(
                           onTap: () => unawaited(c.refresh()),
-                          child: MouseRegion(cursor: SystemMouseCursors.click, child: ClideText('Refresh', fontSize: clideFontCaption, color: tokens.sidebarForeground)),
+                          child: MouseRegion(
+                              cursor: SystemMouseCursors.click, child: ClideText('Refresh', fontSize: clideFontCaption, color: tokens.sidebarForeground)),
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (c.loading && c.problems.isEmpty)
-                  const Padding(padding: EdgeInsets.all(12), child: ClideText('Scanning…', muted: true)),
-                if (!c.loading && filtered.isEmpty)
-                  const Padding(padding: EdgeInsets.all(12), child: ClideText('No problems found.', muted: true)),
+                if (c.loading && c.problems.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Scanning…', muted: true)),
+                if (!c.loading && filtered.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('No problems found.', muted: true)),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(vertical: 4),

@@ -43,7 +43,10 @@ class _PqlPanelViewState extends State<PqlPanelView> {
         if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
       });
     });
-    _fileSub = kernel.events.on<DaemonEvent>().where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && (e.data['path'] as String? ?? '').endsWith('.md')).listen((_) {
+    _fileSub = kernel.events
+        .on<DaemonEvent>()
+        .where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && (e.data['path'] as String? ?? '').endsWith('.md'))
+        .listen((_) {
       if (_controller?.view == PqlView.markdown) {
         unawaited(_controller!.loadMarkdownFiles());
       }
@@ -83,8 +86,7 @@ class _PqlPanelViewState extends State<PqlPanelView> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption, maxLines: 3),
               ),
-            if (c.loading && c.results.isEmpty)
-              const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+            if (c.loading && c.results.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
             if (!c.loading && c.results.isEmpty && c.error == null && c.view == PqlView.markdown)
               const Padding(padding: EdgeInsets.all(12), child: ClideText('No markdown files found.', muted: true)),
             Expanded(
@@ -318,10 +320,7 @@ class _QueryResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     final name = entry['name'] as String? ?? entry['path'] as String? ?? '';
-    final values = entry.entries
-        .where((e) => e.key != 'name' && e.key != 'path')
-        .map((e) => '${e.key}: ${e.value}')
-        .join(' · ');
+    final values = entry.entries.where((e) => e.key != 'name' && e.key != 'path').map((e) => '${e.key}: ${e.value}').join(' · ');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Column(

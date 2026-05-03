@@ -209,9 +209,7 @@ class GitClient {
 
   Future<ProcessResult> _run(List<String> args) async {
     try {
-      return await Process.run(toolchain.git, args,
-          workingDirectory: workDir.path,
-          environment: toolchain.gitEnv);
+      return await Process.run(toolchain.git, args, workingDirectory: workDir.path, environment: toolchain.gitEnv);
     } on ProcessException catch (e) {
       throw GitException('git ${args.first}: ${e.message}', stderr: e.toString());
     }
@@ -223,9 +221,7 @@ class GitClient {
     if (reverse) args.add('--reverse');
     args.addAll(['--unidiff-zero', '-']);
 
-    final proc = await Process.start(toolchain.git, args,
-        workingDirectory: workDir.path,
-        environment: toolchain.gitEnv);
+    final proc = await Process.start(toolchain.git, args, workingDirectory: workDir.path, environment: toolchain.gitEnv);
     proc.stdin.write(patch);
     await proc.stdin.close();
     final exitCode = await proc.exitCode;

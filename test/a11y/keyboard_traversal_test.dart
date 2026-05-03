@@ -33,14 +33,12 @@ void main() {
       expect(node.hasFocus, isTrue);
     });
 
-    testWidgets('interactive widgets expose tap actions to a11y',
-        (tester) async {
+    testWidgets('interactive widgets expose tap actions to a11y', (tester) async {
       await tester.pumpWidget(
         harness(f, ClideButton(label: 'Save', onPressed: () {})),
       );
       final handle = tester.ensureSemantics();
-      final data =
-          tester.getSemantics(find.byType(ClideButton)).getSemanticsData();
+      final data = tester.getSemantics(find.byType(ClideButton)).getSemanticsData();
       expect(data.hasAction(SemanticsAction.tap), isTrue);
       handle.dispose();
     });

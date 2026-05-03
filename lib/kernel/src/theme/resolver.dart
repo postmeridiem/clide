@@ -65,10 +65,8 @@ class ThemeResolver {
       sidebarSectionHeader: surface[TokenKeys.sidebarSectionHeader]!,
       statusBarBackground: surface[TokenKeys.statusBarBackground]!,
       statusBarForeground: surface[TokenKeys.statusBarForeground]!,
-      statusBarItemActiveBackground:
-          surface[TokenKeys.statusBarItemActiveBackground]!,
-      statusBarItemHoverBackground:
-          surface[TokenKeys.statusBarItemHoverBackground]!,
+      statusBarItemActiveBackground: surface[TokenKeys.statusBarItemActiveBackground]!,
+      statusBarItemHoverBackground: surface[TokenKeys.statusBarItemHoverBackground]!,
       tabBarBackground: surface[TokenKeys.tabBarBackground]!,
       tabActive: surface[TokenKeys.tabActive]!,
       tabInactive: surface[TokenKeys.tabInactive]!,
@@ -84,10 +82,8 @@ class ThemeResolver {
       listItemBackground: surface[TokenKeys.listItemBackground]!,
       listItemForeground: surface[TokenKeys.listItemForeground]!,
       listItemHoverBackground: surface[TokenKeys.listItemHoverBackground]!,
-      listItemSelectedBackground:
-          surface[TokenKeys.listItemSelectedBackground]!,
-      listItemSelectedForeground:
-          surface[TokenKeys.listItemSelectedForeground]!,
+      listItemSelectedBackground: surface[TokenKeys.listItemSelectedBackground]!,
+      listItemSelectedForeground: surface[TokenKeys.listItemSelectedForeground]!,
       scrollbarSlider: surface[TokenKeys.scrollbarSlider]!,
       scrollbarSliderHover: surface[TokenKeys.scrollbarSliderHover]!,
       scrollbarTrack: surface[TokenKeys.scrollbarTrack]!,
@@ -135,9 +131,7 @@ class ThemeResolver {
       // theme never has a null surface color. Themes that omit these
       // will land readable if uninspired.
       roles.putIfAbsent(role, () {
-        return palette.lookup('foreground') ??
-            palette.lookup('background') ??
-            const Color(0xFFFFFFFF);
+        return palette.lookup('foreground') ?? palette.lookup('background') ?? const Color(0xFFFFFFFF);
       });
     }
     return SemanticRoles(roles);

@@ -27,8 +27,7 @@ void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry) {
   d.register('pane.tail', (req) => _tail(req, registry));
 }
 
-IpcResponse _userErr(String id, String message, {String? hint}) =>
-    IpcResponse.err(
+IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
       id: id,
       error: IpcError(
         code: IpcExitCode.userError,
@@ -70,8 +69,7 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
   Map<String, String>? env;
   if (envArg is Map) {
     env = {
-      for (final e in envArg.entries)
-        '${e.key}': '${e.value}',
+      for (final e in envArg.entries) '${e.key}': '${e.value}',
     };
   }
 
@@ -101,7 +99,9 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
 Future<IpcResponse> _list(IpcRequest req, PaneRegistry registry) async {
   return IpcResponse.ok(
     id: req.id,
-    data: {'panes': [for (final p in registry.panes) p.toJson()]},
+    data: {
+      'panes': [for (final p in registry.panes) p.toJson()]
+    },
   );
 }
 

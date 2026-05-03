@@ -4,12 +4,10 @@ import 'package:clide/kernel/kernel.dart';
 /// A DaemonClient that doesn't actually open a socket. Use in tests
 /// that need a connected-state observable but not a real daemon.
 class FakeDaemonClient extends DaemonClient {
-  FakeDaemonClient({required super.log, required super.events})
-      : super(socketPath: '/dev/null/fake-clide.sock');
+  FakeDaemonClient({required super.log, required super.events}) : super(socketPath: '/dev/null/fake-clide.sock');
 
   bool _fakeConnected = false;
-  final Map<String, Future<IpcResponse> Function(Map<String, Object?>)> _stubs =
-      {};
+  final Map<String, Future<IpcResponse> Function(Map<String, Object?>)> _stubs = {};
 
   @override
   bool get isConnected => _fakeConnected;

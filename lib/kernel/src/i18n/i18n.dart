@@ -55,8 +55,7 @@ class I18n extends ChangeNotifier {
     Locale locale,
     Map<String, Object?> catalog,
   ) {
-    _cache.putIfAbsent(
-        namespace, () => <Locale, Map<String, Object?>>{})[locale] = catalog;
+    _cache.putIfAbsent(namespace, () => <Locale, Map<String, Object?>>{})[locale] = catalog;
     notifyListeners();
   }
 

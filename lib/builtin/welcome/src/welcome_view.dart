@@ -115,9 +115,9 @@ class _StartColumn extends StatelessWidget {
           kernel.panels.activateTab(Slots.workspace, 'claude.primary');
         } else {
           kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(
-            path: picked,
-            onDismiss: () => dismiss(),
-          ));
+                path: picked,
+                onDismiss: () => dismiss(),
+              ));
         }
       }
       return;
@@ -163,8 +163,7 @@ class _ActionRow extends StatelessWidget {
             ClideIcon(icon, size: 18, color: tokens.globalTextMuted),
             const SizedBox(width: 14),
             Expanded(child: ClideText(label, fontSize: 15, color: tokens.globalForeground)),
-            if (shortcut != null)
-              ClideText(shortcut!, fontSize: 13, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            if (shortcut != null) ClideText(shortcut!, fontSize: 13, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
           ],
         ),
       ),
@@ -191,8 +190,7 @@ class _RecentColumn extends StatelessWidget {
             if (recents.isEmpty)
               const ClideText('No recent projects.', muted: true, fontSize: 14)
             else
-              for (final r in recents)
-                _RecentRow(project: r, tokens: tokens, onTap: () => _openRecent(r.path)),
+              for (final r in recents) _RecentRow(project: r, tokens: tokens, onTap: () => _openRecent(r.path)),
           ],
         );
       },
@@ -232,7 +230,9 @@ class _RecentRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      Flexible(child: ClideText(project.relativePath, muted: true, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Flexible(
+                          child: ClideText(project.relativePath,
+                              muted: true, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
                       if (project.branch != null) ...[
                         ClideText('  ·  ', muted: true, fontSize: 13),
                         ClideIcon(PhosphorIcons.gitBranch, size: 11, color: tokens.globalTextMuted),
@@ -336,7 +336,10 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
   Future<void> _submit() async {
     final path = _controller.text.trim();
     if (path.isEmpty) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await widget.onOpen(path);
     } catch (_) {

@@ -20,10 +20,7 @@ void main() {
     test('contributes a statusbar item', () async {
       f.services.extensions.register(IpcStatusExtension());
       await f.services.extensions.activateAll();
-      final items = f.services.panels
-          .contributionsFor(Slots.statusbar)
-          .whereType<StatusItemContribution>()
-          .toList();
+      final items = f.services.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
       expect(items, hasLength(1));
       expect(items.first.priority, 100);
     });

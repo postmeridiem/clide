@@ -55,8 +55,7 @@ class ProblemsController extends ChangeNotifier {
       }
       final skill = (doctor.data['skill'] as Map?)?.cast<String, Object?>();
       if (skill != null) {
-        final project =
-            (skill['project'] as Map?)?.cast<String, Object?>();
+        final project = (skill['project'] as Map?)?.cast<String, Object?>();
         if (project != null) {
           final state = project['state'] as String?;
           if (state == 'stale') {

@@ -22,8 +22,7 @@ class ClideClipboard {
     bucket.insert(0, value);
     if (bucket.length > historyLimit) bucket.removeLast();
     if (toPlain != null) {
-      await flutter_services.Clipboard.setData(
-          flutter_services.ClipboardData(text: toPlain(value)));
+      await flutter_services.Clipboard.setData(flutter_services.ClipboardData(text: toPlain(value)));
     }
   }
 
@@ -45,8 +44,7 @@ class ClideClipboard {
   }
 
   Future<void> writePlain(String text) async {
-    await flutter_services.Clipboard.setData(
-        flutter_services.ClipboardData(text: text));
+    await flutter_services.Clipboard.setData(flutter_services.ClipboardData(text: text));
     final bucket = _history.putIfAbsent(String, () => <Object>[]);
     bucket.insert(0, text);
     if (bucket.length > historyLimit) bucket.removeLast();

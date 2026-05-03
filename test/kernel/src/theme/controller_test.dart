@@ -32,10 +32,7 @@ void main() {
 
     test('honors initialName when present', () {
       final c = ThemeController(
-        bundled: [
-          _def('a', const Color(0xFF000000)),
-          _def('b', const Color(0xFF999999))
-        ],
+        bundled: [_def('a', const Color(0xFF000000)), _def('b', const Color(0xFF999999))],
         initialName: 'b',
       );
       expect(c.currentName, 'b');

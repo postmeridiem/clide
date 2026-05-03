@@ -9,8 +9,7 @@ import 'fake_ipc.dart';
 /// No real daemon, no real filesystem outside a temp dir, no asset
 /// bundle — i18n catalogs are passed as literals.
 class KernelFixture {
-  KernelFixture._(
-      {required this.services, required this.ipc, required this.tempDir});
+  KernelFixture._({required this.services, required this.ipc, required this.tempDir});
 
   final KernelServices services;
   final FakeDaemonClient ipc;

@@ -95,7 +95,9 @@ Future<IpcResponse> _activate(IpcRequest req, EditorRegistry r) async {
 Future<IpcResponse> _list(IpcRequest req, EditorRegistry r) async {
   return IpcResponse.ok(
     id: req.id,
-    data: {'buffers': [for (final b in r.buffers) b.toJson()]},
+    data: {
+      'buffers': [for (final b in r.buffers) b.toJson()]
+    },
   );
 }
 
@@ -139,9 +141,7 @@ Future<IpcResponse> _setContent(IpcRequest req, EditorRegistry r) async {
   if (id == null) return _notFound(req.id, 'no active buffer');
   if (r.get(id) == null) return _notFound(req.id, 'no such buffer: $id');
   final content = EditorRegistry.contentFromArgs(req.args);
-  final sel = req.args['selection'] == null
-      ? null
-      : EditorRegistry.selectionFromArgs(req.args['selection']);
+  final sel = req.args['selection'] == null ? null : EditorRegistry.selectionFromArgs(req.args['selection']);
   r.setContent(id, content, selection: sel);
   return IpcResponse.ok(id: req.id, data: {'id': id, 'length': content.length});
 }
@@ -161,4 +161,3 @@ Future<IpcResponse> _close(IpcRequest req, EditorRegistry r) async {
   r.close(id);
   return IpcResponse.ok(id: req.id, data: {'id': id});
 }
-

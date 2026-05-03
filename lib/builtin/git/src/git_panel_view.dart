@@ -76,94 +76,93 @@ class _GitPanelViewState extends State<GitPanelView> {
           child: Column(
             children: [
               ClideFilterBox(hint: 'Filter changes…', onChanged: (v) => setState(() => _filter = v)),
-              Expanded(child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _BranchHeader(controller: c),
-                if (c.error != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
-                    child: ClideText(
-                      c.error!,
-                      color: tokens.statusError,
-                      fontSize: clideFontCaption,
-                      maxLines: 3,
-                    ),
-                  ),
-                if (c.loading && c.isClean)
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: ClideText('Loading…', muted: true),
-                  ),
-                if (!c.loading && c.isClean && c.error == null)
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: ClideText('Nothing to commit, working tree clean.',
-                        muted: true),
-                  ),
-                if (c.conflicted.isNotEmpty)
-                  _FileGroup(
-                    label: 'Merge conflicts',
-                    entries: _applyFilter(c.conflicted),
-                    actions: const [],
-                  ),
-                if (c.staged.isNotEmpty) ...[
-                  _FileGroup(
-                    label: 'Staged',
-                    entries: _applyFilter(c.staged),
-                    actions: [
-                      _GroupAction(
-                        label: 'Unstage all',
-                        onTap: () => unawaited(c.unstage(const [])),
+              Expanded(
+                  child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _BranchHeader(controller: c),
+                    if (c.error != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        child: ClideText(
+                          c.error!,
+                          color: tokens.statusError,
+                          fontSize: clideFontCaption,
+                          maxLines: 3,
+                        ),
+                      ),
+                    if (c.loading && c.isClean)
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: ClideText('Loading…', muted: true),
+                      ),
+                    if (!c.loading && c.isClean && c.error == null)
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: ClideText('Nothing to commit, working tree clean.', muted: true),
+                      ),
+                    if (c.conflicted.isNotEmpty)
+                      _FileGroup(
+                        label: 'Merge conflicts',
+                        entries: _applyFilter(c.conflicted),
+                        actions: const [],
+                      ),
+                    if (c.staged.isNotEmpty) ...[
+                      _FileGroup(
+                        label: 'Staged',
+                        entries: _applyFilter(c.staged),
+                        actions: [
+                          _GroupAction(
+                            label: 'Unstage all',
+                            onTap: () => unawaited(c.unstage(const [])),
+                          ),
+                        ],
+                        onUnstage: (path) => unawaited(c.unstage([path])),
+                      ),
+                      _CommitInput(
+                        commitMsg: _commitMsg,
+                        commitFocus: _commitFocus,
+                        controller: c,
                       ),
                     ],
-                    onUnstage: (path) => unawaited(c.unstage([path])),
-                  ),
-                  _CommitInput(
-                    commitMsg: _commitMsg,
-                    commitFocus: _commitFocus,
-                    controller: c,
-                  ),
-                ],
-                if (c.unstaged.isNotEmpty)
-                  _FileGroup(
-                    label: 'Changes',
-                    entries: _applyFilter(c.unstaged),
-                    actions: [
-                      _GroupAction(
-                        label: 'Stage all',
-                        onTap: () => unawaited(c.stageAll()),
+                    if (c.unstaged.isNotEmpty)
+                      _FileGroup(
+                        label: 'Changes',
+                        entries: _applyFilter(c.unstaged),
+                        actions: [
+                          _GroupAction(
+                            label: 'Stage all',
+                            onTap: () => unawaited(c.stageAll()),
+                          ),
+                        ],
+                        onStage: (path) => unawaited(c.stage([path])),
+                        onDiscard: (path) => _confirmDiscard(context, c, path),
                       ),
-                    ],
-                    onStage: (path) => unawaited(c.stage([path])),
-                    onDiscard: (path) => _confirmDiscard(context, c, path),
-                  ),
-                if (c.untracked.isNotEmpty)
-                  _FileGroup(
-                    label: 'Untracked',
-                    entries: _applyFilter(c.untracked),
-                    actions: [
-                      _GroupAction(
-                        label: 'Stage all',
-                        onTap: () {
-                          final paths = [
-                            for (final e in c.untracked) e['path'] as String,
-                          ];
-                          unawaited(c.stage(paths));
-                        },
+                    if (c.untracked.isNotEmpty)
+                      _FileGroup(
+                        label: 'Untracked',
+                        entries: _applyFilter(c.untracked),
+                        actions: [
+                          _GroupAction(
+                            label: 'Stage all',
+                            onTap: () {
+                              final paths = [
+                                for (final e in c.untracked) e['path'] as String,
+                              ];
+                              unawaited(c.stage(paths));
+                            },
+                          ),
+                        ],
+                        onStage: (path) => unawaited(c.stage([path])),
                       ),
-                    ],
-                    onStage: (path) => unawaited(c.stage([path])),
-                  ),
-              ],
-            ),
-          )),
-          ],
-        ),
+                  ],
+                ),
+              )),
+            ],
+          ),
         );
       },
     );
@@ -369,8 +368,7 @@ class _GitFileRow extends StatelessWidget {
         },
         builder: (context, hovered, _) => Container(
           color: hovered ? tokens.sidebarItemHover : null,
-          padding: const EdgeInsets.only(
-              left: 20, right: 8, top: 2, bottom: 2),
+          padding: const EdgeInsets.only(left: 20, right: 8, top: 2, bottom: 2),
           child: Row(
             children: [
               ClideText(

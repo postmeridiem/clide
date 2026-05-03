@@ -44,8 +44,7 @@ void main() {
     if (sandbox.existsSync()) sandbox.deleteSync(recursive: true);
   });
 
-  Future<IpcResponse> call(String cmd,
-      [Map<String, Object?> args = const {}]) {
+  Future<IpcResponse> call(String cmd, [Map<String, Object?> args = const {}]) {
     return dispatcher.dispatch(IpcRequest(id: '1', cmd: cmd, args: args));
   }
 
@@ -66,7 +65,9 @@ void main() {
 
   test('git.stage + git.status shows staged file', () async {
     await File('${sandbox.path}/new.txt').writeAsString('x');
-    final stage = await call('git.stage', {'paths': ['new.txt']});
+    final stage = await call('git.stage', {
+      'paths': ['new.txt']
+    });
     expect(stage.ok, isTrue);
 
     final r = await call('git.status');
@@ -82,8 +83,12 @@ void main() {
 
   test('git.unstage removes from staging', () async {
     await File('${sandbox.path}/new.txt').writeAsString('x');
-    await call('git.stage', {'paths': ['new.txt']});
-    final unstage = await call('git.unstage', {'paths': ['new.txt']});
+    await call('git.stage', {
+      'paths': ['new.txt']
+    });
+    final unstage = await call('git.unstage', {
+      'paths': ['new.txt']
+    });
     expect(unstage.ok, isTrue);
 
     final r = await call('git.status');
@@ -93,7 +98,9 @@ void main() {
 
   test('git.commit creates a commit', () async {
     await File('${sandbox.path}/c.txt').writeAsString('x');
-    await call('git.stage', {'paths': ['c.txt']});
+    await call('git.stage', {
+      'paths': ['c.txt']
+    });
     final r = await call('git.commit', {'message': 'test commit'});
     expect(r.ok, isTrue);
     expect(r.data['hash'], hasLength(40));
@@ -115,7 +122,9 @@ void main() {
 
   test('git.diff --staged returns staged diffs', () async {
     await File('${sandbox.path}/file.txt').writeAsString('modified\n');
-    await call('git.stage', {'paths': ['file.txt']});
+    await call('git.stage', {
+      'paths': ['file.txt']
+    });
     final r = await call('git.diff', {'staged': true});
     expect(r.ok, isTrue);
     final diffs = r.data['diffs'] as List;
@@ -131,7 +140,9 @@ void main() {
 
   test('git.discard restores a file', () async {
     await File('${sandbox.path}/file.txt').writeAsString('changed');
-    final r = await call('git.discard', {'paths': ['file.txt']});
+    final r = await call('git.discard', {
+      'paths': ['file.txt']
+    });
     expect(r.ok, isTrue);
     final content = await File('${sandbox.path}/file.txt').readAsString();
     expect(content, 'hello\n');
@@ -145,7 +156,9 @@ void main() {
 
   test('mutations emit git.changed events', () async {
     await File('${sandbox.path}/e.txt').writeAsString('x');
-    await call('git.stage', {'paths': ['e.txt']});
+    await call('git.stage', {
+      'paths': ['e.txt']
+    });
     expect(
       sink.events,
       contains(predicate<IpcEvent>((e) => e.kind == 'git.changed')),

@@ -49,10 +49,7 @@ void main() {
     );
     // Wait for the "listening" line on stderr so we know it's ready.
     final ready = Completer<void>();
-    daemon.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
+    daemon.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
       if (!ready.isCompleted && line.contains('listening')) {
         ready.complete();
       }
@@ -62,8 +59,7 @@ void main() {
 
   tearDown(() async {
     daemon.kill(ProcessSignal.sigterm);
-    await daemon.exitCode.timeout(const Duration(seconds: 3),
-        onTimeout: () {
+    await daemon.exitCode.timeout(const Duration(seconds: 3), onTimeout: () {
       daemon.kill(ProcessSignal.sigkill);
       return -1;
     });
@@ -129,10 +125,7 @@ void main() {
     );
 
     final received = <Map<String, Object?>>[];
-    final sub = tail.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
+    final sub = tail.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
       if (line.isEmpty) return;
       received.add(jsonDecode(line) as Map<String, Object?>);
     });
@@ -149,8 +142,7 @@ void main() {
     }
 
     tail.kill(ProcessSignal.sigint);
-    await tail.exitCode.timeout(const Duration(seconds: 2),
-        onTimeout: () {
+    await tail.exitCode.timeout(const Duration(seconds: 2), onTimeout: () {
       tail.kill(ProcessSignal.sigkill);
       return -1;
     });

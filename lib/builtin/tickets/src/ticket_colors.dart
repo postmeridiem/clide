@@ -40,6 +40,5 @@ class TicketTypeColors {
     bug: Color(0xFFC03030),
   );
 
-  static TicketTypeColors forTheme({required bool dark}) =>
-      dark ? TicketTypeColors.dark : TicketTypeColors.light;
+  static TicketTypeColors forTheme({required bool dark}) => dark ? TicketTypeColors.dark : TicketTypeColors.light;
 }

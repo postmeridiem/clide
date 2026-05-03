@@ -26,13 +26,11 @@ void main() {
     testWidgets('muted mode uses globalTextMuted', (tester) async {
       await tester.pumpWidget(harness(f, const ClideText('x', muted: true)));
       final text = tester.widget<Text>(find.byType(Text));
-      expect(
-          text.style!.color, f.services.theme.current.surface.globalTextMuted);
+      expect(text.style!.color, f.services.theme.current.surface.globalTextMuted);
     });
 
     testWidgets('explicit color wins over tokens', (tester) async {
-      await tester.pumpWidget(
-          harness(f, const ClideText('x', color: Color(0xFFAABBCC))));
+      await tester.pumpWidget(harness(f, const ClideText('x', color: Color(0xFFAABBCC))));
       final text = tester.widget<Text>(find.byType(Text));
       expect(text.style!.color, const Color(0xFFAABBCC));
     });

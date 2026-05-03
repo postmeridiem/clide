@@ -47,16 +47,12 @@ Future<List<FileEntry>> listDir({
   required String dir,
   required IgnoreSet ignore,
 }) async {
-  final resolved = dir.isEmpty
-      ? root
-      : Directory('${root.absolute.path}${Platform.pathSeparator}${dir.replaceAll('/', Platform.pathSeparator)}');
+  final resolved = dir.isEmpty ? root : Directory('${root.absolute.path}${Platform.pathSeparator}${dir.replaceAll('/', Platform.pathSeparator)}');
   if (!await resolved.exists()) return const [];
 
   final entries = <FileEntry>[];
   await for (final e in resolved.list(followLinks: false)) {
-    final name = e.uri.pathSegments.isNotEmpty
-        ? e.uri.pathSegments.where((s) => s.isNotEmpty).last
-        : '';
+    final name = e.uri.pathSegments.isNotEmpty ? e.uri.pathSegments.where((s) => s.isNotEmpty).last : '';
     final rel = dir.isEmpty ? name : '$dir/$name';
     final stat = await e.stat();
     final isDir = stat.type == FileSystemEntityType.directory;

@@ -80,8 +80,7 @@ void main() {
       expect(find.text('Cancel'), findsOneWidget);
     });
 
-    testWidgets('tapping a row calls controller.select + onDismiss',
-        (tester) async {
+    testWidgets('tapping a row calls controller.select + onDismiss', (tester) async {
       String? dismissed;
       await tester.pumpWidget(
         harness(

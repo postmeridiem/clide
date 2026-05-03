@@ -44,15 +44,8 @@ class GitFileStatus {
   final String? origPath;
   final GitConflictType? conflictType;
 
-  bool get isStaged =>
-      indexState != null &&
-      indexState != GitFileState.untracked &&
-      indexState != GitFileState.ignored &&
-      !isConflicted;
-  bool get isUnstaged =>
-      workTreeState != null &&
-      workTreeState != GitFileState.untracked &&
-      !isConflicted;
+  bool get isStaged => indexState != null && indexState != GitFileState.untracked && indexState != GitFileState.ignored && !isConflicted;
+  bool get isUnstaged => workTreeState != null && workTreeState != GitFileState.untracked && !isConflicted;
   bool get isUntracked => workTreeState == GitFileState.untracked;
   bool get isConflicted => conflictType != null;
 
@@ -84,14 +77,10 @@ class GitStatus {
   final int behind;
   final List<GitFileStatus> entries;
 
-  List<GitFileStatus> get staged =>
-      entries.where((e) => e.isStaged).toList();
-  List<GitFileStatus> get unstaged =>
-      entries.where((e) => e.isUnstaged).toList();
-  List<GitFileStatus> get untracked =>
-      entries.where((e) => e.isUntracked).toList();
-  List<GitFileStatus> get conflicted =>
-      entries.where((e) => e.isConflicted).toList();
+  List<GitFileStatus> get staged => entries.where((e) => e.isStaged).toList();
+  List<GitFileStatus> get unstaged => entries.where((e) => e.isUnstaged).toList();
+  List<GitFileStatus> get untracked => entries.where((e) => e.isUntracked).toList();
+  List<GitFileStatus> get conflicted => entries.where((e) => e.isConflicted).toList();
 
   bool get isClean => entries.isEmpty;
   bool get hasConflicts => entries.any((e) => e.isConflicted);

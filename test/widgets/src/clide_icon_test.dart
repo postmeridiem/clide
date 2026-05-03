@@ -11,8 +11,7 @@ void main() {
     setUp(() async => f = await KernelFixture.create());
     tearDown(() async => f.dispose());
 
-    testWidgets('sizes a SizedBox + CustomPaint to the given size',
-        (tester) async {
+    testWidgets('sizes a SizedBox + CustomPaint to the given size', (tester) async {
       await tester.pumpWidget(
         harness(f, const ClideIcon(FolderIcon(), size: 24)),
       );

@@ -14,8 +14,7 @@ import '../test/helpers/fake_ipc.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('theme.pick command opens modal; selecting dismisses it',
-      (tester) async {
+  testWidgets('theme.pick command opens modal; selecting dismisses it', (tester) async {
     final themes = [
       await const ThemeLoader().fromAsset(
         rootBundle,
@@ -31,8 +30,7 @@ void main() {
         'builtin.theme-picker',
         'builtin.default-layout',
       ],
-      daemonClientFactory: (log, events) =>
-          FakeDaemonClient(log: log, events: events),
+      daemonClientFactory: (log, events) => FakeDaemonClient(log: log, events: events),
       autoStartDaemonClient: false,
     );
     services.extensions

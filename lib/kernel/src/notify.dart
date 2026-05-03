@@ -29,16 +29,10 @@ class Notifications extends ChangeNotifier {
 
   List<ClideNotification> get active => List.unmodifiable(_active);
 
-  void info(String message, {String? title, Duration? duration}) =>
-      _push(NotificationLevel.info, message, title: title, duration: duration);
-  void warn(String message, {String? title, Duration? duration}) =>
-      _push(NotificationLevel.warning, message,
-          title: title, duration: duration);
-  void error(String message, {String? title, Duration? duration}) =>
-      _push(NotificationLevel.error, message, title: title, duration: duration);
-  void success(String message, {String? title, Duration? duration}) =>
-      _push(NotificationLevel.success, message,
-          title: title, duration: duration);
+  void info(String message, {String? title, Duration? duration}) => _push(NotificationLevel.info, message, title: title, duration: duration);
+  void warn(String message, {String? title, Duration? duration}) => _push(NotificationLevel.warning, message, title: title, duration: duration);
+  void error(String message, {String? title, Duration? duration}) => _push(NotificationLevel.error, message, title: title, duration: duration);
+  void success(String message, {String? title, Duration? duration}) => _push(NotificationLevel.success, message, title: title, duration: duration);
 
   void dismiss(String id) {
     _timers.remove(id)?.cancel();

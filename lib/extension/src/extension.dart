@@ -91,8 +91,7 @@ extension ClideExtensionContextMessages on ClideExtensionContext {
 extension ClideExtensionContextI18n on ClideExtensionContext {
   /// `ctx.t('welcome.title', placeholder: 'clide')` →
   /// `i18n.string('welcome.title', namespace: id, placeholder: 'clide')`.
-  String t(String key, {String? placeholder}) =>
-      i18n.string(key, namespace: id, placeholder: placeholder);
+  String t(String key, {String? placeholder}) => i18n.string(key, namespace: id, placeholder: placeholder);
 
   /// [t] with interpolation replacers.
   String tr(

@@ -16,6 +16,7 @@ String get gitBin {
   _gitBin ??= _resolveGit();
   return _gitBin!;
 }
+
 String? _gitBin;
 
 String _resolveGit() {
@@ -215,8 +216,7 @@ Future<String> gitPush(
 }
 
 /// List local branches. Returns (name, isCurrent) pairs.
-Future<List<({String name, bool current})>> gitBranches(
-    Directory workDir) async {
+Future<List<({String name, bool current})>> gitBranches(Directory workDir) async {
   final r = await Process.run(
     gitBin,
     ['branch', '--format=%(refname:short)|%(HEAD)'],
@@ -302,9 +302,7 @@ Future<void> _applyPatch(
   await proc.stdin.close();
   final exitCode = await proc.exitCode;
   if (exitCode != 0) {
-    final stderr = await proc.stderr
-        .transform(const SystemEncoding().decoder)
-        .join();
+    final stderr = await proc.stderr.transform(const SystemEncoding().decoder).join();
     throw GitException(
       'git apply failed',
       stderr: stderr,

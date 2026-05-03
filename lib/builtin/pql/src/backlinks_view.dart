@@ -61,8 +61,7 @@ class _BacklinksViewState extends State<BacklinksView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: ClideText(
                     c.activePath!.split('/').last,
                     color: tokens.globalForeground,
@@ -70,8 +69,7 @@ class _BacklinksViewState extends State<BacklinksView> {
                 ),
                 if (c.error != null)
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     child: ClideText(
                       c.error!,
                       color: tokens.statusError,
@@ -120,8 +118,7 @@ class _LinkGroup extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding:
-              const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
+          padding: const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
           child: ClideText(
             '$label (${links.length})',
             fontSize: clideFontCaption,
@@ -133,8 +130,7 @@ class _LinkGroup extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 2),
             child: ClideText('None', fontSize: clideFontCaption, muted: true),
           ),
-        for (final link in links)
-          _LinkRow(link: link, pathKey: pathKey),
+        for (final link in links) _LinkRow(link: link, pathKey: pathKey),
       ],
     );
   }
@@ -159,21 +155,17 @@ class _LinkRow extends StatelessWidget {
         onTap: () {
           if (!target.startsWith('http')) {
             final kernel = ClideKernel.of(context);
-            unawaited(
-                kernel.ipc.request('editor.open', args: {'path': target}));
+            unawaited(kernel.ipc.request('editor.open', args: {'path': target}));
           }
         },
         builder: (context, hovered, _) => Container(
           color: hovered ? tokens.sidebarItemHover : null,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
           child: ClideText(
             display,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            color: target.startsWith('http')
-                ? tokens.statusInfo
-                : tokens.sidebarForeground,
+            color: target.startsWith('http') ? tokens.statusInfo : tokens.sidebarForeground,
           ),
         ),
       ),

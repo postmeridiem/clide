@@ -25,9 +25,7 @@ class ThemeController extends ChangeNotifier {
     String? initialName,
   })  : _resolver = resolver,
         _defs = Map.fromEntries(bundled.map((d) => MapEntry(d.name, d))) {
-    final first = initialName != null && _defs.containsKey(initialName)
-        ? initialName
-        : bundled.first.name;
+    final first = initialName != null && _defs.containsKey(initialName) ? initialName : bundled.first.name;
     _currentName = first;
     _current = _build(first);
   }
@@ -89,8 +87,7 @@ class ClideTheme extends InheritedNotifier<ThemeController> {
   static ClideThemeData of(BuildContext context) {
     final w = context.dependOnInheritedWidgetOfExactType<ClideTheme>();
     if (w == null) {
-      throw FlutterError(
-          'ClideTheme.of() called with a context that is not a descendant of a ClideTheme.');
+      throw FlutterError('ClideTheme.of() called with a context that is not a descendant of a ClideTheme.');
     }
     return w.notifier!.current;
   }
@@ -98,8 +95,7 @@ class ClideTheme extends InheritedNotifier<ThemeController> {
   static ThemeController controllerOf(BuildContext context) {
     final w = context.dependOnInheritedWidgetOfExactType<ClideTheme>();
     if (w == null) {
-      throw FlutterError(
-          'ClideTheme.controllerOf() called with a context that is not a descendant of a ClideTheme.');
+      throw FlutterError('ClideTheme.controllerOf() called with a context that is not a descendant of a ClideTheme.');
     }
     return w.notifier!;
   }

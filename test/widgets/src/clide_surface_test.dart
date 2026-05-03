@@ -12,15 +12,13 @@ void main() {
     setUp(() async => f = await KernelFixture.create());
     tearDown(() async => f.dispose());
 
-    testWidgets('default background comes from panelBackground token',
-        (tester) async {
+    testWidgets('default background comes from panelBackground token', (tester) async {
       await tester.pumpWidget(
         harness(f, const ClideSurface(child: Text('x'))),
       );
       final container = tester.widget<Container>(find.byType(Container));
       final decoration = container.decoration as BoxDecoration;
-      expect(
-          decoration.color, f.services.theme.current.surface.panelBackground);
+      expect(decoration.color, f.services.theme.current.surface.panelBackground);
     });
 
     testWidgets('explicit color overrides the token default', (tester) async {

@@ -24,8 +24,7 @@ void main() {
       expect(find.text('Save'), findsOneWidget);
     });
 
-    testWidgets('emits a Semantics node with button: true + label',
-        (tester) async {
+    testWidgets('emits a Semantics node with button: true + label', (tester) async {
       await tester.pumpWidget(
         harness(f, ClideButton(label: 'Commit', onPressed: () {})),
       );
@@ -38,8 +37,7 @@ void main() {
       );
     });
 
-    testWidgets('semanticLabel overrides the visible label for a11y',
-        (tester) async {
+    testWidgets('semanticLabel overrides the visible label for a11y', (tester) async {
       await tester.pumpWidget(
         harness(
           f,
@@ -54,8 +52,7 @@ void main() {
       expect(semantics.label, 'Save document');
     });
 
-    testWidgets('semanticHint propagates to the Semantics node',
-        (tester) async {
+    testWidgets('semanticHint propagates to the Semantics node', (tester) async {
       await tester.pumpWidget(
         harness(
           f,
@@ -75,8 +72,7 @@ void main() {
         harness(f, const ClideButton(label: 'Nope', onPressed: null)),
       );
       final semantics = tester.getSemantics(find.byType(ClideButton));
-      expect(
-          semantics.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
+      expect(semantics.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
     });
 
     testWidgets('tap invokes onPressed', (tester) async {

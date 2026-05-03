@@ -227,7 +227,9 @@ void registerGitCommands(
     try {
       final b = await git.branches();
       return IpcResponse.ok(id: req.id, data: {
-        'branches': [for (final e in b) {'name': e.name, 'current': e.current}],
+        'branches': [
+          for (final e in b) {'name': e.name, 'current': e.current}
+        ],
       });
     } on GitException catch (e) {
       return _gitError(req.id, e);

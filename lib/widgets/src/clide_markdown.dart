@@ -130,7 +130,10 @@ class ClideMarkdown extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
-            children: [for (final c in el.children ?? const []) if (c is md.Element) _buildListItem(c, tokens, onRecordTap, ordered: false)],
+            children: [
+              for (final c in el.children ?? const [])
+                if (c is md.Element) _buildListItem(c, tokens, onRecordTap, ordered: false)
+            ],
           ),
         );
       case 'ol':
@@ -266,12 +269,18 @@ class ClideMarkdown extends StatelessWidget {
       case 'strong':
         return TextSpan(
           style: const TextStyle(fontWeight: FontWeight.w700),
-          children: [for (final c in el.children ?? const []) if (c is md.Text) TextSpan(text: _unescapeHtml(c.text)) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)],
+          children: [
+            for (final c in el.children ?? const [])
+              if (c is md.Text) TextSpan(text: _unescapeHtml(c.text)) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
+          ],
         );
       case 'em':
         return TextSpan(
           style: const TextStyle(fontStyle: FontStyle.italic),
-          children: [for (final c in el.children ?? const []) if (c is md.Text) TextSpan(text: _unescapeHtml(c.text)) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)],
+          children: [
+            for (final c in el.children ?? const [])
+              if (c is md.Text) TextSpan(text: _unescapeHtml(c.text)) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
+          ],
         );
       case 'code':
         return TextSpan(

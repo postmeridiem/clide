@@ -88,6 +88,5 @@ class InMemoryCatalogLoader implements CatalogLoader {
     return const {};
   }
 
-  static bool _eq(Locale a, Locale b) =>
-      a.languageCode == b.languageCode && a.countryCode == b.countryCode;
+  static bool _eq(Locale a, Locale b) => a.languageCode == b.languageCode && a.countryCode == b.countryCode;
 }

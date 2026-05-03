@@ -27,8 +27,7 @@ class Selection {
       );
 
   @override
-  bool operator ==(Object other) =>
-      other is Selection && other.start == start && other.end == end;
+  bool operator ==(Object other) => other is Selection && other.start == start && other.end == end;
 
   @override
   int get hashCode => Object.hash(start, end);

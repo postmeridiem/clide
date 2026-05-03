@@ -109,7 +109,13 @@ class _TabRow extends StatelessWidget {
         decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tokens.dividerColor))),
         child: Row(
           children: [
-            for (var i = 0; i < sessions.length; i++) _Tab(session: sessions[i], active: i == activeIndex, tokens: tokens, onTap: () => onSelect(i), onClose: sessions[i].isPrimary ? null : () => onClose(i)),
+            for (var i = 0; i < sessions.length; i++)
+              _Tab(
+                  session: sessions[i],
+                  active: i == activeIndex,
+                  tokens: tokens,
+                  onTap: () => onSelect(i),
+                  onClose: sessions[i].isPrimary ? null : () => onClose(i)),
             const SizedBox(width: 4),
             _AddButton(tokens: tokens, onTap: onAdd),
             const Spacer(),

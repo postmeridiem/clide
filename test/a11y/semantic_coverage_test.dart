@@ -34,19 +34,15 @@ void main() {
         test('tab contributions carry title + i18n key + namespace', () {
           final tabs = ext.contributions.whereType<TabContribution>().toList();
           for (final t in tabs) {
-            expect(t.title, isNotEmpty,
-                reason: '${ext.id} tab ${t.id} missing English title');
+            expect(t.title, isNotEmpty, reason: '${ext.id} tab ${t.id} missing English title');
             if (t.titleKey != null) {
-              expect(t.i18nNamespace, isNotNull,
-                  reason:
-                      '${ext.id} tab ${t.id} has titleKey but no namespace');
+              expect(t.i18nNamespace, isNotNull, reason: '${ext.id} tab ${t.id} has titleKey but no namespace');
             }
           }
         });
 
         test('command contributions carry stable ids', () {
-          final cmds =
-              ext.contributions.whereType<CommandContribution>().toList();
+          final cmds = ext.contributions.whereType<CommandContribution>().toList();
           for (final c in cmds) {
             expect(c.command, isNotEmpty);
             expect(c.id, isNotEmpty);

@@ -31,8 +31,7 @@ class _ThemePickerViewState extends State<ThemePickerView> {
 
     return Semantics(
       container: true,
-      label: i.string('modal.title',
-          namespace: ThemePickerView.ns, placeholder: 'Select theme'),
+      label: i.string('modal.title', namespace: ThemePickerView.ns, placeholder: 'Select theme'),
       explicitChildNodes: true,
       child: ClideSurface(
         width: 420,
@@ -45,8 +44,7 @@ class _ThemePickerViewState extends State<ThemePickerView> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ClideText(
-              i.string('modal.title',
-                  namespace: ThemePickerView.ns, placeholder: 'Select theme'),
+              i.string('modal.title', namespace: ThemePickerView.ns, placeholder: 'Select theme'),
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -65,9 +63,7 @@ class _ThemePickerViewState extends State<ThemePickerView> {
                         displayName: t.displayName,
                         selected: t.name == currentName,
                         hovered: _hovered == t.name,
-                        hint: i.string('row.select.hint',
-                            namespace: ThemePickerView.ns,
-                            placeholder: 'Activate this theme'),
+                        hint: i.string('row.select.hint', namespace: ThemePickerView.ns, placeholder: 'Activate this theme'),
                         onEnter: () => setState(() => _hovered = t.name),
                         onExit: () => setState(() => _hovered = null),
                         onTap: () {
@@ -84,12 +80,9 @@ class _ThemePickerViewState extends State<ThemePickerView> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 ClideButton(
-                  label: i.string('modal.cancel',
-                      namespace: ThemePickerView.ns, placeholder: 'Cancel'),
-                  semanticHint: i.string('modal.cancel.hint',
-                      namespace: ThemePickerView.ns,
-                      placeholder:
-                          'Close the theme picker without changing the current theme'),
+                  label: i.string('modal.cancel', namespace: ThemePickerView.ns, placeholder: 'Cancel'),
+                  semanticHint:
+                      i.string('modal.cancel.hint', namespace: ThemePickerView.ns, placeholder: 'Close the theme picker without changing the current theme'),
                   onPressed: () => widget.onDismiss(),
                 ),
               ],
@@ -125,14 +118,8 @@ class _ThemeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final bg = selected
-        ? tokens.listItemSelectedBackground
-        : (hovered
-            ? tokens.listItemHoverBackground
-            : tokens.listItemBackground);
-    final fg = selected
-        ? tokens.listItemSelectedForeground
-        : tokens.listItemForeground;
+    final bg = selected ? tokens.listItemSelectedBackground : (hovered ? tokens.listItemHoverBackground : tokens.listItemBackground);
+    final fg = selected ? tokens.listItemSelectedForeground : tokens.listItemForeground;
     return Semantics(
       button: true,
       selected: selected,

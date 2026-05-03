@@ -88,7 +88,10 @@ class _TicketsViewState extends State<TicketsView> {
 
   Future<void> _refresh() async {
     if (!mounted) return;
-    if (_refreshing) { _pendingRefresh = true; return; }
+    if (_refreshing) {
+      _pendingRefresh = true;
+      return;
+    }
     _refreshing = true;
     _pendingRefresh = false;
     await _load();
@@ -130,7 +133,11 @@ class _TicketsViewState extends State<TicketsView> {
 
     final lf = _filter.toLowerCase();
     final hasFilter = lf.isNotEmpty;
-    final filtered = hasFilter ? _tickets.where((t) => t.id.toLowerCase().contains(lf) || t.title.toLowerCase().contains(lf) || (t.status ?? '').contains(lf) || (t.type ?? '').contains(lf)).toList() : _tickets;
+    final filtered = hasFilter
+        ? _tickets
+            .where((t) => t.id.toLowerCase().contains(lf) || t.title.toLowerCase().contains(lf) || (t.status ?? '').contains(lf) || (t.type ?? '').contains(lf))
+            .toList()
+        : _tickets;
 
     const sections = [
       ('in_progress', 'IN PROGRESS'),
@@ -159,7 +166,8 @@ class _TicketsViewState extends State<TicketsView> {
               child: ClideTappable(
                 onTap: _refreshing ? null : _refresh,
                 tooltip: 'Refresh tickets',
-                builder: (ctx, hovered, _) => ClideIcon(PhosphorIcons.arrowClockwise, size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                builder: (ctx, hovered, _) =>
+                    ClideIcon(PhosphorIcons.arrowClockwise, size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
               ),
             ),
           ],

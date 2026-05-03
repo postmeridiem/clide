@@ -139,9 +139,7 @@ class _TerminalPaneState extends State<TerminalPane> {
 
   @override
   Widget build(BuildContext context) {
-    final subtitle = _error != null
-        ? _error!
-        : (_paneId == null ? 'spawning shell…' : 'pid $_pid · ${_paneId!}');
+    final subtitle = _error != null ? _error! : (_paneId == null ? 'spawning shell…' : 'pid $_pid · ${_paneId!}');
 
     return ClidePaneChrome(
       title: 'terminal',

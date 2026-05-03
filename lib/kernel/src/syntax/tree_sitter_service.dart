@@ -96,8 +96,7 @@ class TreeSitterService {
 
     try {
       // Load grammar WASM bytes.
-      final wasmData =
-          await rootBundle.load('assets/grammars/$language.wasm');
+      final wasmData = await rootBundle.load('assets/grammars/$language.wasm');
       final wasmBytes = wasmData.buffer.asUint8List();
 
       // Load into WASM store.
@@ -107,7 +106,11 @@ class TreeSitterService {
       final error = calloc<TSWasmError>();
 
       final lang = lib.wasmStoreLoadLanguage(
-        _store!, nameNative.cast(), wasmNative, wasmBytes.length, error,
+        _store!,
+        nameNative.cast(),
+        wasmNative,
+        wasmBytes.length,
+        error,
       );
 
       calloc.free(wasmNative);
@@ -125,8 +128,7 @@ class TreeSitterService {
       // Load highlight query.
       String? querySource;
       try {
-        querySource =
-            await rootBundle.loadString('assets/queries/$language.scm');
+        querySource = await rootBundle.loadString('assets/queries/$language.scm');
       } catch (_) {}
 
       Pointer<TSQuery> query = nullptr;
@@ -139,7 +141,11 @@ class TreeSitterService {
         final errorType = calloc<Int32>();
 
         query = lib.queryNew(
-          lang, queryNative.cast(), queryLen, errorOffset, errorType,
+          lang,
+          queryNative.cast(),
+          queryLen,
+          errorOffset,
+          errorType,
         );
 
         calloc.free(queryNative);
@@ -205,7 +211,10 @@ class TreeSitterService {
     final sourceNative = source.toNativeUtf8();
     final sourceLen = utf8.encode(source).length;
     final tree = lib.parserParseString(
-      parser, nullptr, sourceNative.cast(), sourceLen,
+      parser,
+      nullptr,
+      sourceNative.cast(),
+      sourceLen,
     );
 
     if (tree == nullptr) {
@@ -266,21 +275,14 @@ class TreeSitterService {
 
   static Color colorForRole(String role, SurfaceTokens tokens) {
     return switch (role) {
-      'keyword' || 'repeat' || 'conditional' || 'include' ||
-      'exception' || 'operator' =>
-        tokens.syntaxKeyword,
+      'keyword' || 'repeat' || 'conditional' || 'include' || 'exception' || 'operator' => tokens.syntaxKeyword,
       'type' || 'type.builtin' || 'constructor' => tokens.syntaxType,
       'string' || 'string.special' => tokens.syntaxString,
       'number' || 'float' || 'boolean' => tokens.syntaxNumber,
       'comment' => tokens.syntaxComment,
-      'function' || 'function.builtin' || 'function.method' ||
-      'method' =>
-        tokens.syntaxMethod,
-      'punctuation.bracket' || 'punctuation.delimiter' ||
-      'punctuation.special' =>
-        tokens.syntaxPunct,
-      'variable' || 'variable.builtin' || 'variable.parameter' =>
-        tokens.globalForeground,
+      'function' || 'function.builtin' || 'function.method' || 'method' => tokens.syntaxMethod,
+      'punctuation.bracket' || 'punctuation.delimiter' || 'punctuation.special' => tokens.syntaxPunct,
+      'variable' || 'variable.builtin' || 'variable.parameter' => tokens.globalForeground,
       'property' || 'field' => tokens.syntaxMethod,
       'constant' || 'constant.builtin' => tokens.syntaxNumber,
       'tag' || 'attribute' => tokens.syntaxKeyword,

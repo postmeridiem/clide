@@ -151,12 +151,13 @@ class _Header extends StatelessWidget {
                   ],
                 ),
               ),
-              if (trailing != null) ...trailing!.map(
-                (w) => Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: w,
+              if (trailing != null)
+                ...trailing!.map(
+                  (w) => Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: w,
+                  ),
                 ),
-              ),
               if (onClose != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 6),

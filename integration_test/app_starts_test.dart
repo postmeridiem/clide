@@ -21,9 +21,7 @@ import '../test/helpers/fake_ipc.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-      'clide app boots with classic 3-column layout + welcome + statusbar',
-      (tester) async {
+  testWidgets('clide app boots with classic 3-column layout + welcome + statusbar', (tester) async {
     final themes = [
       await const ThemeLoader().fromAsset(
         rootBundle,
@@ -40,8 +38,7 @@ void main() {
         'builtin.theme-picker',
         'builtin.default-layout',
       ],
-      daemonClientFactory: (log, events) =>
-          FakeDaemonClient(log: log, events: events),
+      daemonClientFactory: (log, events) => FakeDaemonClient(log: log, events: events),
       autoStartDaemonClient: false,
     );
     services.extensions

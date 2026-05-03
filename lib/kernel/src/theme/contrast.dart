@@ -145,7 +145,6 @@ Color _composite(Color src, Color dst) {
 }
 
 double _relativeLuminance(Color c) {
-  double chan(double v) =>
-      v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+  double chan(double v) => v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
   return 0.2126 * chan(c.r) + 0.7152 * chan(c.g) + 0.0722 * chan(c.b);
 }

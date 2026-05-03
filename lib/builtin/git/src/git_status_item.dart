@@ -140,8 +140,7 @@ class _BranchPickerState extends State<_BranchPicker> {
       _loading = false;
       if (r.ok) {
         _branches = [
-          for (final b in (r.data['branches'] as List? ?? const []))
-            (b as Map).cast<String, Object?>(),
+          for (final b in (r.data['branches'] as List? ?? const [])) (b as Map).cast<String, Object?>(),
         ];
       } else {
         _error = r.error?.message ?? 'failed to load branches';
@@ -197,10 +196,8 @@ class _BranchPickerState extends State<_BranchPicker> {
                 ],
               ),
             ),
-            if (_loading)
-              const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
-            if (_error != null)
-              Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true)),
+            if (_loading) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+            if (_error != null) Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true)),
             if (!_loading && _error == null && _branches.isEmpty)
               const Padding(padding: EdgeInsets.all(12), child: ClideText('No branches found.', muted: true)),
             if (_branches.isNotEmpty)
@@ -266,9 +263,7 @@ class _BranchRow extends StatelessWidget {
                 name,
                 fontFamily: clideMonoFamily,
                 fontSize: clideFontMono,
-                color: current
-                    ? tokens.globalForeground
-                    : tokens.listItemForeground,
+                color: current ? tokens.globalForeground : tokens.listItemForeground,
               ),
             ),
           ],

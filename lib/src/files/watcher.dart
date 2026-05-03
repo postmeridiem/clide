@@ -71,9 +71,9 @@ class FileWatcher {
   Future<void> start() async {
     if (_sub != null) return;
     _sub = root.watch(recursive: true).listen(
-      _onEvent,
-      onError: (Object e, StackTrace _) => _controller.addError(e),
-    );
+          _onEvent,
+          onError: (Object e, StackTrace _) => _controller.addError(e),
+        );
   }
 
   Future<void> stop() async {

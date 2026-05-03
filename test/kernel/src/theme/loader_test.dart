@@ -35,8 +35,7 @@ semantic:
   mainchrome: red
   focus: "#123456"
 ''');
-      expect(
-          def.semanticOverride!.lookup('mainchrome'), const Color(0xFFFF0000));
+      expect(def.semanticOverride!.lookup('mainchrome'), const Color(0xFFFF0000));
       expect(def.semanticOverride!.lookup('focus'), const Color(0xFF123456));
     });
 
