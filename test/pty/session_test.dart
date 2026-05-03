@@ -2,6 +2,12 @@
 ///
 /// Exercises forkpty() end-to-end: spawn → child output through the
 /// reader isolate. Linux + macOS only; skipped elsewhere.
+///
+/// Tagged `forkpty` — must run via `dart test`, not `flutter test`.
+/// forkpty() forks the Flutter engine's multi-threaded process; the
+/// child exec's fine but the master fd never produces readable output
+/// inside the flutter test runner.
+@Tags(['forkpty'])
 library;
 
 import 'dart:async';
@@ -14,16 +20,14 @@ import 'package:test/test.dart';
 void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
-  final shell = Platform.environment['SHELL'] ?? '/bin/zsh';
-
   group('NativePty', () {
     test('spawns shell -c echo and reads output', () async {
       final s = NativePty.start(
-        executable: shell,
-        arguments: ['-l', '-c', 'echo hello-pty'],
+        executable: '/bin/sh',
+        arguments: ['-c', 'echo hello-pty'],
         columns: 80,
         rows: 24,
-        workingDirectory: Platform.environment['HOME'] ?? '/',
+        workingDirectory: '/',
         environment: {
           ...Platform.environment,
           'TERM': 'xterm-256color',
@@ -32,22 +36,25 @@ void main() {
       addTearDown(s.close);
 
       final buf = StringBuffer();
-      s.output.listen((bytes) => buf.write(utf8.decode(bytes, allowMalformed: true)));
+      final done = Completer<void>();
+      s.output.listen(
+        (bytes) => buf.write(utf8.decode(bytes, allowMalformed: true)),
+        onDone: () {
+          if (!done.isCompleted) done.complete();
+        },
+      );
 
-      // Shell exits quickly; give reader up to 3s.
-      for (var i = 0; i < 30 && !buf.toString().contains('hello-pty'); i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      }
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
       expect(buf.toString(), contains('hello-pty'));
     });
 
     test('write sends keystrokes to child', () async {
       final s = NativePty.start(
-        executable: shell,
-        arguments: ['-l'],
+        executable: '/bin/sh',
+        arguments: [],
         columns: 80,
         rows: 24,
-        workingDirectory: Platform.environment['HOME'] ?? '/',
+        workingDirectory: '/',
         environment: {
           ...Platform.environment,
           'TERM': 'xterm-256color',
@@ -58,13 +65,11 @@ void main() {
       final buf = StringBuffer();
       s.output.listen((bytes) => buf.write(utf8.decode(bytes, allowMalformed: true)));
 
-      // Wait for prompt.
-      await Future<void>.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
 
-      // Type a command.
       s.write(utf8.encode('echo write-test-ok\n'));
 
-      for (var i = 0; i < 30 && !buf.toString().contains('write-test-ok'); i++) {
+      for (var i = 0; i < 50 && !buf.toString().contains('write-test-ok'); i++) {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
       expect(buf.toString(), contains('write-test-ok'));
@@ -72,11 +77,11 @@ void main() {
 
     test('close kills child and closes output', () async {
       final s = NativePty.start(
-        executable: shell,
-        arguments: ['-l'],
+        executable: '/bin/sh',
+        arguments: [],
         columns: 80,
         rows: 24,
-        workingDirectory: Platform.environment['HOME'] ?? '/',
+        workingDirectory: '/',
         environment: {
           ...Platform.environment,
           'TERM': 'xterm-256color',

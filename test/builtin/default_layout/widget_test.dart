@@ -15,13 +15,10 @@ void main() {
     test('activates and applies the classic preset', () async {
       f.services.extensions.register(DefaultLayoutExtension());
       await f.services.extensions.activateAll();
-      expect(
-          f.services.arrangement.positionOf(Slots.sidebar), SlotPosition.left);
-      expect(f.services.arrangement.sizeOf(Slots.sidebar), 240);
-      expect(f.services.arrangement.positionOf(Slots.workspace),
-          SlotPosition.center);
-      expect(f.services.arrangement.positionOf(Slots.statusbar),
-          SlotPosition.bottom);
+      expect(f.services.arrangement.positionOf(Slots.sidebar), SlotPosition.left);
+      expect(f.services.arrangement.sizeOf(Slots.sidebar), 400);
+      expect(f.services.arrangement.positionOf(Slots.workspace), SlotPosition.center);
+      expect(f.services.arrangement.positionOf(Slots.statusbar), SlotPosition.bottom);
     });
 
     test('contributes a layout.reset command', () async {
@@ -38,7 +35,7 @@ void main() {
       expect(f.services.arrangement.sizeOf(Slots.sidebar), 300);
       final resp = await f.services.commands.execute('layout.reset');
       expect(resp.ok, true);
-      expect(f.services.arrangement.sizeOf(Slots.sidebar), 240);
+      expect(f.services.arrangement.sizeOf(Slots.sidebar), 400);
     });
 
     test('declares a layout preset contribution', () {

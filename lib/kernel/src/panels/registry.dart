@@ -53,10 +53,7 @@ class PanelRegistry extends ChangeNotifier {
       entry.value.removeWhere((c) => c.id == contributionId);
       if (entry.value.length != before) {
         if (_activeTab[entry.key] == contributionId) {
-          _activeTab[entry.key] =
-              entry.value.whereType<TabContribution>().isEmpty
-                  ? null
-                  : entry.value.whereType<TabContribution>().first.id;
+          _activeTab[entry.key] = entry.value.whereType<TabContribution>().isEmpty ? null : entry.value.whereType<TabContribution>().first.id;
         }
       }
     }
@@ -66,19 +63,21 @@ class PanelRegistry extends ChangeNotifier {
   Iterable<SlotDefinition> get slots => _defs.values;
   SlotDefinition? definitionFor(SlotId id) => _defs[id];
 
-  List<ContributionPoint> contributionsFor(SlotId id) =>
-      List.unmodifiable(_mounts[id] ?? const []);
+  List<ContributionPoint> contributionsFor(SlotId id) => List.unmodifiable(_mounts[id] ?? const []);
 
   List<TabContribution> tabsFor(SlotId id) {
     final tabs = contributionsFor(id).whereType<TabContribution>().toList();
     final order = _order[id];
-    if (order == null || order.isEmpty) return tabs;
+    if (order == null || order.isEmpty) {
+      tabs.sort((a, b) => a.priority.compareTo(b.priority));
+      return tabs;
+    }
     tabs.sort((a, b) {
       final ai = order.indexOf(a.id);
       final bi = order.indexOf(b.id);
-      if (ai < 0 && bi < 0) return 0;
+      if (ai < 0 && bi < 0) return a.priority.compareTo(b.priority);
       if (ai < 0) return 1;
-      if (bi < 0) return 1;
+      if (bi < 0) return -1;
       return ai.compareTo(bi);
     });
     return tabs;

@@ -16,6 +16,22 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- PTY FFI constants now platform-dispatched: `TIOCSWINSZ` (`0x80087467`
+  macOS / `0x5414` Linux), `O_NONBLOCK` (`0x0004` / `0x0800`), and
+  `MsghdrDarwin` struct with correct 4-byte field widths for macOS
+  `recvmsg()`.
+
+- App settings directory uses `~/Library/Application Support/clide` on
+  macOS instead of `~/.config/clide`.
+
+- Removed hardcoded `TERMINFO=/usr/share/terminfo` from pane spawn
+  environment — let the system resolve terminfo per platform.
+
+- Panel `tabsFor()` now sorts by contribution priority when no user
+  order is set.
+
 ### Changed
 
 - Canonical upstream moved from Gitea to GitHub

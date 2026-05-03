@@ -16,10 +16,6 @@ import 'package:test/test.dart';
 void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
-  final ptycPath = File('ptyc/bin/ptyc').existsSync()
-      ? File('ptyc/bin/ptyc').absolute.path
-      : 'ptyc';
-
   group('PaneRegistry', () {
     late RecordingEventSink sink;
     late PaneRegistry registry;
@@ -45,7 +41,7 @@ void main() {
       expect(evt.data['id'], pane.id);
     });
 
-    test('output events base64-encode the child bytes', () async {
+    test('output events base64-encode the child bytes', tags: ['forkpty'], () async {
       await registry.spawn(
         kind: PaneKind.terminal,
         argv: const ['/bin/echo', 'hello-panes'],
@@ -54,16 +50,13 @@ void main() {
       // /bin/echo closes its pty quickly. Wait briefly for output +
       // the resulting pane.exit event to settle.
       for (var i = 0; i < 30; i++) {
-        if (sink.ofKind('pane.output').isNotEmpty &&
-            sink.ofKind('pane.exit').isNotEmpty) break;
+        if (sink.ofKind('pane.output').isNotEmpty && sink.ofKind('pane.exit').isNotEmpty) break;
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
 
       final out = sink.ofKind('pane.output').toList();
       expect(out, isNotEmpty);
-      final decoded = out
-          .map((e) => utf8.decode(base64Decode(e.data['bytes_b64']! as String)))
-          .join();
+      final decoded = out.map((e) => utf8.decode(base64Decode(e.data['bytes_b64']! as String))).join();
       expect(decoded, contains('hello-panes'));
     });
 

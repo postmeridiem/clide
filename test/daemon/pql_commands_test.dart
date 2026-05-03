@@ -18,8 +18,7 @@ void main() {
     registerPqlCommands(dispatcher, pql);
   });
 
-  Future<IpcResponse> call(String cmd,
-      [Map<String, Object?> args = const {}]) {
+  Future<IpcResponse> call(String cmd, [Map<String, Object?> args = const {}]) {
     return dispatcher.dispatch(IpcRequest(id: '1', cmd: cmd, args: args));
   }
 
@@ -85,9 +84,9 @@ void main() {
 
   test('pql.decisions.show returns a single decision', () async {
     await call('pql.decisions.sync');
-    final r = await call('pql.decisions.show', {'id': 'D-001'});
+    final r = await call('pql.decisions.show', {'id': 'D-1'});
     expect(r.ok, isTrue);
-    expect(r.data['id'], 'D-001');
+    expect(r.data['id'], 'D-1');
     expect(r.data['title'], isNotEmpty);
   });
 

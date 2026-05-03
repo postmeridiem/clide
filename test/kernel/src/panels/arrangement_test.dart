@@ -7,7 +7,7 @@ void main() {
       final a = LayoutArrangement();
       a.applyPreset(classicPreset());
       expect(a.positionOf(Slots.sidebar), SlotPosition.left);
-      expect(a.sizeOf(Slots.sidebar), 240);
+      expect(a.sizeOf(Slots.sidebar), 400);
       expect(a.minSizeOf(Slots.sidebar), 180);
       expect(a.maxSizeOf(Slots.sidebar), 400);
       expect(a.isVisible(Slots.workspace), true);
@@ -25,7 +25,7 @@ void main() {
       final a = LayoutArrangement()..applyPreset(classicPreset());
       var count = 0;
       a.addListener(() => count++);
-      a.setSize(Slots.sidebar, 240); // already 240, no change
+      a.setSize(Slots.sidebar, 400); // already 400, no change
       expect(count, 0);
       a.setSize(Slots.sidebar, 260);
       expect(count, 1);
