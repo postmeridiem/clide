@@ -174,18 +174,14 @@ class TerminalViewState extends State<TerminalView> {
     if (event is! PointerScrollEvent) return;
     final lh = renderTerminal.lineHeight;
     if (lh <= 0) return;
-    final position = renderTerminal.getCellOffset(event.localPosition);
     final lines = (event.scrollDelta.dy / lh).round().clamp(-5, 5);
+    // Always send PgUp/PgDown for scroll — the mouse-escape-sequence
+    // path tends to be a no-op in TUI apps (claude, vim) that capture
+    // mouse for other purposes. PgUp/PgDown is the universal scroll.
     for (var i = 0; i < lines.abs(); i++) {
-      final up = lines < 0;
-      final handled = widget.terminal.mouseInput(
-        up ? TerminalMouseButton.wheelUp : TerminalMouseButton.wheelDown,
-        TerminalMouseButtonState.down,
-        position,
+      widget.terminal.keyInput(
+        lines < 0 ? TerminalKey.pageUp : TerminalKey.pageDown,
       );
-      if (!handled && widget.simulateScroll) {
-        widget.terminal.keyInput(up ? TerminalKey.arrowUp : TerminalKey.arrowDown);
-      }
     }
   }
 

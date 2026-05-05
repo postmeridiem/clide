@@ -11,19 +11,6 @@ import 'package:clide/src/terminal/terminal.dart';
 
 import 'session_naming.dart';
 
-/// Claude pane. Opinionated per D-041:
-///
-///   - [isPrimary]=true: the session name is stable per repo
-///     (`clide-claude-<hash>`) so reopening the app re-attaches to a
-///     running `claude` under tmux. No close button rendered —
-///     close-gestures (tab × on the header) minimise, not kill.
-///   - [isPrimary]=false: session name includes a `-N` suffix for
-///     this clide run. Closes normally; `pane.close` kills the tmux
-///     session.
-///
-/// Requires `tmux` on the daemon's PATH. If it isn't there, the pane
-/// falls back to spawning `claude` directly and loses persistence —
-/// an explicit state message lands in the header subtitle.
 class ClaudePane extends StatefulWidget {
   const ClaudePane({
     super.key,
@@ -34,8 +21,6 @@ class ClaudePane extends StatefulWidget {
 
   final bool isPrimary;
   final bool showChrome;
-
-  /// 1-based secondary-session index. Ignored when [isPrimary].
   final int? secondaryIndex;
 
   @override
@@ -44,8 +29,6 @@ class ClaudePane extends StatefulWidget {
 
 class _ClaudePaneState extends State<ClaudePane> {
   static const _maxLines = 50000;
-
-  /// Lazily extracted tmux config asset path.
   static String? _tmuxConfPath;
 
   late final Terminal _terminal;
@@ -61,8 +44,8 @@ class _ClaudePaneState extends State<ClaudePane> {
   void initState() {
     super.initState();
     _terminal = Terminal(maxLines: _maxLines);
-    _terminal.onOutput = _onOutput;
-    _terminal.onResize = _onResize;
+    _terminal.onOutput = _onTerminalOutput;
+    _terminal.onResize = _onTerminalResize;
     // Don't spawn here — wait for the first onResize from TerminalView
     // so the PTY gets real dimensions, not 80x24 defaults.
   }
@@ -75,36 +58,16 @@ class _ClaudePaneState extends State<ClaudePane> {
     _eventSub = null;
     final id = _paneId;
     _paneId = null;
+    // Secondary panes own their tmux session — close on dispose.
+    // Primary panes leave the tmux session alive so the next launch
+    // re-attaches via `tmux new-session -A` (D-041).
     if (id != null && !widget.isPrimary) {
-      // Secondary: killing the pane kills the tmux session too —
-      // that's the D-041 policy ("closing a secondary pops back to
-      // primary"). The daemon's pane.close is idempotent.
       unawaited(_ipc()?.request('pane.close', args: {'id': id}));
     }
-    // Primary: don't close on dispose. The next time this pane is
-    // rebuilt (next app launch, or tab reopen), tmux new-session -A
-    // re-attaches to the same running claude.
     super.dispose();
   }
 
-  Future<void> _spawnWhenReady() async {
-    if (!mounted) return;
-    final kernel = ClideKernel.of(context);
-    if (!kernel.project.isOpen) {
-      // Wait for a project to open before spawning.
-      final c = Completer<void>();
-      late final StreamSubscription<ProjectOpened> sub;
-      sub = kernel.events.on<ProjectOpened>().listen((_) {
-        sub.cancel();
-        if (!c.isCompleted) c.complete();
-      });
-      await c.future.timeout(const Duration(seconds: 10), onTimeout: () {
-        sub.cancel();
-      });
-      if (!mounted) return;
-    }
-    return _spawn();
-  }
+  // -- tmux config extraction -----------------------------------------------
 
   static Future<String?> _ensureTmuxConf() async {
     if (_tmuxConfPath != null) return _tmuxConfPath;
@@ -123,34 +86,48 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
   }
 
+  // -- spawn ----------------------------------------------------------------
+
+  Future<void> _spawnWhenReady() async {
+    if (!mounted) return;
+    final kernel = ClideKernel.of(context);
+    if (!kernel.project.isOpen) {
+      final c = Completer<void>();
+      late final StreamSubscription<ProjectOpened> sub;
+      sub = kernel.events.on<ProjectOpened>().listen((_) {
+        sub.cancel();
+        if (!c.isCompleted) c.complete();
+      });
+      await c.future.timeout(const Duration(seconds: 10), onTimeout: () {
+        sub.cancel();
+      });
+      if (!mounted) return;
+    }
+    return _spawn();
+  }
+
   Future<void> _spawn() async {
     if (!mounted) return;
     final ipc = _ipc();
     if (ipc == null || !ipc.isConnected) {
-      setState(() => _error = 'Daemon not connected. Start `clide --daemon`.');
+      setState(() => _error = 'Daemon not connected.');
       return;
     }
 
-    // Resolve repo root via files.root. If that fails (no daemon, no
-    // git root), fall back to cwd — the session name will just be
-    // based on wherever the daemon is running.
     String repoRoot = Directory.current.path;
     final rootResp = await ipc.request('files.root');
     if (rootResp.ok) {
       repoRoot = (rootResp.data['path'] as String?) ?? repoRoot;
     }
 
-    _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
+    _sessionName = widget.isPrimary
+        ? primarySessionName(repoRoot)
+        : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
     final tmuxConf = await _ensureTmuxConf();
-
-    // tmux-wrapped session for persistence (D-041).
-    // -f loads clide's bundled tmux.conf (T-43): large scrollback,
-    // mouse on, no status bar, zero escape delay.
-    // -x/-y set the initial window size; without them tmux defaults
-    // to a huge size when running inside a PTY without a real terminal.
     final cols = _terminal.viewWidth;
     final rows = _terminal.viewHeight;
+
     var argv = <String>[
       'tmux',
       '-L', 'clide',
@@ -163,33 +140,37 @@ class _ClaudePaneState extends State<ClaudePane> {
       '$cols',
       '-y',
       '$rows',
+      'claude',
     ];
-    print('[spawn] cols=${_terminal.viewWidth} rows=${_terminal.viewHeight}');
+
+    // CLAUDE_CODE_NO_FLICKER=1 enables claude's fullscreen TUI mode:
+    // input box pinned to the bottom of the alt-screen, claude owns
+    // its own scrollback. Removes the need for tmux scroll forwarding.
+    final env = {'CLAUDE_CODE_NO_FLICKER': '1'};
+
     var resp = await ipc.request('pane.spawn', args: {
       'argv': argv,
       'kind': PaneKind.claude.wire,
       'cwd': repoRoot,
-      'cols': _terminal.viewWidth,
-      'rows': _terminal.viewHeight,
+      'cols': cols,
+      'rows': rows,
       'title': _sessionName,
+      'env': env,
     });
 
     if (!resp.ok) {
-      // tmux probably missing — try bare claude so the pane still
-      // works, at the cost of persistence.
       argv = ['claude'];
       resp = await ipc.request('pane.spawn', args: {
         'argv': argv,
         'kind': PaneKind.claude.wire,
         'cwd': repoRoot,
-        'cols': _terminal.viewWidth,
-        'rows': _terminal.viewHeight,
+        'cols': cols,
+        'rows': rows,
         'title': _sessionName,
+        'env': env,
       });
       if (!resp.ok) {
-        setState(() {
-          _error = resp.error?.message ?? 'spawn failed';
-        });
+        setState(() => _error = resp.error?.message ?? 'spawn failed');
         return;
       }
       setState(() => _statusLine = 'no-tmux · fresh every launch');
@@ -199,10 +180,11 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     if (!mounted) return;
     _paneId = resp.data['id'] as String?;
-    // PID available in resp.data['pid'] if needed for debugging.
     _subscribe();
     setState(() {});
   }
+
+  // -- output batching ------------------------------------------------------
 
   final _outputBuf = StringBuffer();
   Timer? _flushTimer;
@@ -224,30 +206,23 @@ class _ClaudePaneState extends State<ClaudePane> {
           final b64 = e.data['bytes_b64'];
           if (b64 is String) {
             _outputBuf.write(utf8.decode(base64Decode(b64), allowMalformed: true));
-            // Batch all output from the current event loop turn into one
-            // terminal.write() call. scheduleMicrotask runs after all
-            // pending events but before the next frame, so split escape
-            // sequences within the same event batch are reunited.
             if (_flushTimer == null) {
               _flushTimer = Timer(Duration.zero, _flushOutput);
             }
           }
         case 'pane.exit':
-          if (widget.isPrimary) {
-            // Primary exiting is unusual — tmux sessions survive
-            // normal disconnects. Surface it but don't auto-respawn;
-            // the user decides.
-            setState(() => _statusLine = 'session exited — restart clide to retry');
-          } else {
-            setState(() => _statusLine = 'session exited');
-          }
+          setState(() => _statusLine = widget.isPrimary
+              ? 'session exited — restart clide to retry'
+              : 'session exited');
         case 'pane.closed':
           _paneId = null;
       }
     });
   }
 
-  void _onOutput(String text) {
+  // -- terminal callbacks ---------------------------------------------------
+
+  void _onTerminalOutput(String text) {
     final id = _paneId;
     if (id == null) return;
     _ipc()?.request('pane.write', args: {'id': id, 'text': text});
@@ -255,28 +230,29 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   Timer? _resizeTimer;
 
-  void _onResize(int cols, int rows, int _, int __) {
-    print('[onResize] cols=$cols rows=$rows spawned=$_spawned paneId=$_paneId');
+  void _onTerminalResize(int cols, int rows, int _, int __) {
     if (!_spawned) {
-      // First resize — TerminalView has real dimensions now.
       _spawned = true;
       _spawnWhenReady();
       return;
     }
-    // Debounce resize — rapid SIGWINCH during window drag corrupts
-    // the terminal rendering. Wait for the resize to settle.
     _resizeTimer?.cancel();
     _resizeTimer = Timer(const Duration(milliseconds: 150), () {
       final id = _paneId;
       if (id == null) return;
       _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
-      // tmux sizes windows by client, not PTY winsize. Explicitly
-      // resize the tmux window to match the TerminalView dimensions.
       if (_sessionName != null) {
-        Process.run('tmux', ['-L', 'clide', 'resize-window', '-t', _sessionName!, '-x', '$cols', '-y', '$rows']);
+        Process.run('tmux', [
+          '-L', 'clide', 'resize-window',
+          '-t', _sessionName!,
+          '-x', '$cols',
+          '-y', '$rows',
+        ]);
       }
     });
   }
+
+  // -- helpers --------------------------------------------------------------
 
   DaemonClient? _ipc() => _kernel()?.ipc;
 
@@ -288,15 +264,20 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
   }
 
+  // -- build ----------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
-    final title = widget.isPrimary ? 'claude — primary' : 'claude — secondary ${widget.secondaryIndex}';
+    final title = widget.isPrimary
+        ? 'claude — primary'
+        : 'claude — secondary ${widget.secondaryIndex}';
+
     final body = _error != null
         ? Padding(
             padding: const EdgeInsets.all(16),
             child: ClideText(_error!, muted: true),
           )
-        : ClidePtyView(terminal: _terminal, label: title);
+        : ClidePtyView(terminal: _terminal, label: title, autofocus: true);
 
     if (!widget.showChrome) return body;
 

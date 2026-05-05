@@ -16,6 +16,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- Mouse wheel scrolling in Claude pane — converts scroll events to
+  PgUp/PgDown so Claude Code (and other TUI apps) scroll their
+  history naturally.
+
 ### Changed
 
 - Inline terminal emulator based on xterm.dart v4.0.0 — replaces the
@@ -23,6 +29,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   three transitive dependencies (xterm, quiver, zmodem).
 - Bundle clide-specific tmux.conf for Claude pane sessions: no status
   bar, 50k scrollback, mouse on, zero escape delay, isolated socket.
+- Claude pane spawns `claude` directly inside tmux with
+  `CLAUDE_CODE_NO_FLICKER=1` to enable Claude's fullscreen TUI mode
+  (input box pinned at the bottom).
 - PTY read buffer increased from 4KB to 64KB.
 - Terminal view 2px padding on all sides.
 - Remove bold JetBrains Mono font registration to prevent glyph width
