@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-05T12:51:04Z",
+  "exported_at": "2026-05-05T12:59:14Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2007,11 +2007,11 @@
       "id": "T-18",
       "type": "task",
       "title": "audit error handling in PTY and IPC critical paths",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "decision_ref": "D-5",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-05-03 20:37:30"
+      "updated_at": "2026-05-05 12:59:05"
     },
     {
       "id": "T-19",
@@ -2291,11 +2291,11 @@
       "parent_id": "T-3",
       "title": "Ship clide tmux.conf for Claude pane sessions",
       "description": "Bundle a clide-specific tmux.conf (no status bar, large scrollback, zero escape delay, 256color passthrough). Claude pane spawn passes -f to use it. Includes bottom-anchoring via initial escape sequence or shell profile trick after attach.",
-      "status": "in_progress",
+      "status": "done",
       "priority": "high",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 22:01:13",
-      "updated_at": "2026-05-03 20:33:10"
+      "updated_at": "2026-05-05 12:51:24"
     },
     {
       "id": "T-44",
@@ -2538,6 +2538,132 @@
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
       "updated_at": "2026-05-03 19:26:04"
+    },
+    {
+      "id": "T-68",
+      "type": "task",
+      "title": "inline terminal emulator (drop xterm.dart dependency)",
+      "status": "done",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:52:48",
+      "updated_at": "2026-05-05 12:53:15"
+    },
+    {
+      "id": "T-69",
+      "type": "story",
+      "title": "Claude pane: fullscreen mode + mouse-wheel scroll",
+      "status": "done",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:52:52",
+      "updated_at": "2026-05-05 12:53:15"
+    },
+    {
+      "id": "T-70",
+      "type": "bug",
+      "title": "Bold text breaks terminal cell grid (workaround: suppress bold)",
+      "status": "done",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:52:56",
+      "updated_at": "2026-05-05 12:53:15"
+    },
+    {
+      "id": "T-71",
+      "type": "task",
+      "title": "PTY read buffer: 4KB → 64KB",
+      "status": "done",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:53:01",
+      "updated_at": "2026-05-05 12:53:15"
+    },
+    {
+      "id": "T-72",
+      "type": "task",
+      "title": "tmux: isolated -L clide socket so user's tmux config doesn't bleed into clide",
+      "status": "done",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:53:05",
+      "updated_at": "2026-05-05 12:53:15"
+    },
+    {
+      "id": "T-73",
+      "type": "task",
+      "title": "ship matching bold weight to restore semantic bold rendering",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:53:21",
+      "updated_at": "2026-05-05 12:53:21"
+    },
+    {
+      "id": "T-74",
+      "type": "task",
+      "title": "forward real mouse events to TUI apps (not just PgUp/PgDown)",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:53:22",
+      "updated_at": "2026-05-05 12:53:22"
+    },
+    {
+      "id": "T-75",
+      "type": "task",
+      "title": "PTY: surface errno from forkpty/execve/write/ioctl failures",
+      "status": "backlog",
+      "priority": "high",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
+    },
+    {
+      "id": "T-76",
+      "type": "task",
+      "title": "PTY: fix resource leaks and reader-isolate races",
+      "status": "backlog",
+      "priority": "high",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
+    },
+    {
+      "id": "T-77",
+      "type": "task",
+      "title": "IPC server: per-request timeout, broadcast logging, stale-socket race",
+      "status": "backlog",
+      "priority": "high",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
+    },
+    {
+      "id": "T-78",
+      "type": "bug",
+      "title": "files.read path traversal — validate paths stay under workspace root",
+      "status": "backlog",
+      "priority": "high",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
+    },
+    {
+      "id": "T-79",
+      "type": "task",
+      "title": "pane.spawn / editor.open: map errno to actionable error kinds",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
+    },
+    {
+      "id": "T-80",
+      "type": "task",
+      "title": "Standardize errno constants + logger in PTY/IPC/daemon",
+      "status": "backlog",
+      "priority": "low",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
+    },
+    {
+      "id": "T-81",
+      "type": "task",
+      "title": "Misc PTY/IPC/git polish (audit medium-priority items)",
+      "status": "backlog",
+      "priority": "low",
+      "created_at": "2026-05-05 12:58:59",
+      "updated_at": "2026-05-05 12:58:59"
     }
   ],
   "ticket_deps": null,
@@ -3709,6 +3835,97 @@
       "old_value": "in_progress",
       "new_value": "done",
       "changed_at": "2026-05-03 20:40:22"
+    },
+    {
+      "ticket_id": "T-43",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:51:24"
+    },
+    {
+      "ticket_id": "T-68",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:11"
+    },
+    {
+      "ticket_id": "T-69",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:11"
+    },
+    {
+      "ticket_id": "T-70",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:11"
+    },
+    {
+      "ticket_id": "T-71",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:11"
+    },
+    {
+      "ticket_id": "T-72",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:11"
+    },
+    {
+      "ticket_id": "T-68",
+      "field": "status",
+      "old_value": "done",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:15"
+    },
+    {
+      "ticket_id": "T-69",
+      "field": "status",
+      "old_value": "done",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:15"
+    },
+    {
+      "ticket_id": "T-70",
+      "field": "status",
+      "old_value": "done",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:15"
+    },
+    {
+      "ticket_id": "T-71",
+      "field": "status",
+      "old_value": "done",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:15"
+    },
+    {
+      "ticket_id": "T-72",
+      "field": "status",
+      "old_value": "done",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:53:15"
+    },
+    {
+      "ticket_id": "T-18",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-05 12:54:39"
+    },
+    {
+      "ticket_id": "T-18",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-05 12:59:05"
     }
   ]
 }
