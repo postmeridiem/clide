@@ -17,6 +17,9 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
+import 'errors.dart';
+import 'ffi/libc.dart' as libc;
+
 // -- structs ----------------------------------------------------------------
 
 final class _Winsize extends ffi.Struct {
@@ -125,6 +128,17 @@ class NativePty {
     final execve = _execve;
     final chdir = _chdir;
     final exit = _exit_;
+    final writeFn = _nativeWrite;
+
+    // Pre-allocate error envelopes the child will write to its stdout
+    // (slave PTY → parent's master fd) before _exit, so the parent's
+    // reader sees a real diagnostic instead of an indistinguishable EOF.
+    final chdirErr = 'clide: chdir failed: $workingDirectory\n'
+        .toNativeUtf8(allocator: malloc);
+    final chdirErrLen = chdirErr.length;
+    final execveErr = 'clide: exec failed: $executable\n'
+        .toNativeUtf8(allocator: malloc);
+    final execveErrLen = execveErr.length;
 
     // Allocate ALL native memory before fork.
     final shellN = executable.toNativeUtf8(allocator: malloc).cast<ffi.Char>();
@@ -153,20 +167,33 @@ class NativePty {
     final pid = _forkpty(fdOut, ffi.nullptr, ffi.nullptr, ws);
 
     if (pid == -1) {
+      // Capture errno BEFORE _freeAll — free() can clobber errno.
+      final err = libc.errno;
       _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN, fdOut, ws);
-      throw StateError('forkpty() failed');
+      malloc.free(chdirErr);
+      malloc.free(execveErr);
+      throw PtyException('forkpty', 'forkpty() failed', errno: err);
     }
 
     if (pid == 0) {
       // CHILD — only pre-resolved FFI calls, no Dart heap.
-      chdir(wdN);
+      // After forkpty(), fd 1 is the slave PTY connected back to the
+      // parent's master fd, so write(1, ...) lands as readable output.
+      if (chdir(wdN) != 0) {
+        writeFn(1, chdirErr.cast(), chdirErrLen);
+        exit(1);
+      }
       execve(shellN, argvN, envpN);
+      // execve only returns on failure.
+      writeFn(1, execveErr.cast(), execveErrLen);
       exit(1);
     }
 
     // PARENT
     final fd = fdOut.value;
     _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN, fdOut, ws);
+    malloc.free(chdirErr);
+    malloc.free(execveErr);
 
     final pty = NativePty._(fd, pid);
     pty._spawnReader();
@@ -240,26 +267,52 @@ class NativePty {
     port.send(null);
   }
 
-  /// Write bytes to the child's stdin.
+  /// Write bytes to the child's stdin. Loops on short writes; throws
+  /// [PtyException] (with errno) on failure. Returns the total bytes
+  /// written, which is always [bytes.length] on success.
   int write(List<int> bytes) {
     if (_dead || bytes.isEmpty) return 0;
     final buf = malloc<ffi.Uint8>(bytes.length);
-    for (var i = 0; i < bytes.length; i++) buf[i] = bytes[i];
-    final n = _nativeWrite(_fd, buf.cast(), bytes.length);
-    malloc.free(buf);
-    return n;
+    try {
+      for (var i = 0; i < bytes.length; i++) buf[i] = bytes[i];
+      var written = 0;
+      while (written < bytes.length) {
+        final n = _nativeWrite(
+          _fd,
+          buf.elementAt(written).cast(),
+          bytes.length - written,
+        );
+        if (n < 0) {
+          final err = libc.errno;
+          if (err == 4 /* EINTR */) continue;
+          if (err == 9 /* EBADF */ || err == 32 /* EPIPE */) _dead = true;
+          throw PtyException('write', 'write to PTY failed', errno: err);
+        }
+        if (n == 0) break;
+        written += n;
+      }
+      return written;
+    } finally {
+      malloc.free(buf);
+    }
   }
 
-  /// Resize the terminal.
+  /// Resize the terminal. Silently no-ops if the fd is already
+  /// closed; flips [_dead] on EBADF so subsequent calls short-circuit.
   void resize({required int cols, required int rows}) {
     if (_dead) return;
     final ws = calloc<_Winsize>()
       ..ref.wsRow = rows
       ..ref.wsCol = cols;
-    _ioctl(_fd, _kTiocsWinsz, ws);
+    final rc = _ioctl(_fd, _kTiocsWinsz, ws);
     calloc.free(ws);
+    if (rc < 0 && libc.errno == 9 /* EBADF */) {
+      _dead = true;
+      return;
+    }
     // Explicitly signal the child to re-query its terminal size.
-    _nativeKill(pid, 28); // SIGWINCH = 28 on macOS/Linux
+    // SIGWINCH = 28 on both macOS and Linux.
+    _nativeKill(pid, 28);
   }
 
   /// Send a signal to the child.

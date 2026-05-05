@@ -27,6 +27,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Terminal cell grid no longer drifts on bold text — bold rendering
   is suppressed at the painter level since synthetic bold (with no
   Bold.ttf registered) shifts glyph advance widths.
+- PTY surfaces errno on `forkpty`, `write`, and `ioctl` failures
+  instead of swallowing them. `execve` failures in the spawned
+  child now write a diagnostic line to the slave PTY before
+  `_exit`, so the parent's reader sees the cause instead of an
+  immediate EOF that looked indistinguishable from clean exit.
+  PTY `write` loops on short writes; both `NativePty.write` and
+  `PtySession.write` now throw `PtyException` on hard errors.
 
 ### Security
 

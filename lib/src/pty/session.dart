@@ -161,7 +161,9 @@ class PtySession {
     }
   }
 
-  /// Send bytes to the child's stdin.
+  /// Send bytes to the child's stdin. Loops on short writes; throws
+  /// [PtyException] (with errno) on failure. Returns total bytes
+  /// written, which equals [bytes.length] on success.
   int write(List<int> bytes) {
     if (isClosed) return 0;
     final buf = pkg_ffi.calloc<ffi.Uint8>(bytes.length);
@@ -169,7 +171,22 @@ class PtySession {
       for (var i = 0; i < bytes.length; i++) {
         buf[i] = bytes[i];
       }
-      return libc.write(_masterFd, buf, bytes.length);
+      var written = 0;
+      while (written < bytes.length) {
+        final n = libc.write(
+          _masterFd,
+          buf.elementAt(written),
+          bytes.length - written,
+        );
+        if (n < 0) {
+          final err = libc.errno;
+          if (err == 4 /* EINTR */) continue;
+          throw PtyException('write', 'write to PTY failed', errno: err);
+        }
+        if (n == 0) break;
+        written += n;
+      }
+      return written;
     } finally {
       pkg_ffi.calloc.free(buf);
     }
