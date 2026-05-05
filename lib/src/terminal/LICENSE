@@ -1,3 +1,17 @@
+clide terminal — derivative work based on xterm.dart v4.0.0.
+
+The terminal emulator code in this directory is derived from xterm.dart
+(https://github.com/TerminalStudio/xterm.dart) and has been modified.
+Changes include: Scrollable removal, quiver dependency replaced with
+hand-rolled LRU, zmodem/debugger/suggestion modules stripped, scroll
+event forwarding rewritten, imports restructured.
+
+The original xterm.dart code is copyright (c) 2020 xuty and licensed
+under the MIT License, reproduced below. This derivative work is part
+of clide and is distributed under clide's MIT license.
+
+------------------------------------------------------------------------
+
 The MIT License (MIT)
 
 Copyright (c) 2020 xuty

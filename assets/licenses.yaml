@@ -53,7 +53,7 @@ dependencies:
     purpose: >-
       Monospace face for terminal panes, diff views, code editors, and
       any other monospace surface.
-    weights_bundled: [Regular, Italic, Bold, BoldItalic]
+    weights_bundled: [Regular, Italic]
 
   - name: Josefin Sans
     kind: font
@@ -87,17 +87,18 @@ dependencies:
       YAML parser for theme files and extension manifests. Justified
       exception to prefer-zero-deps; Dart-team maintained.
 
-  - name: xterm
-    kind: dart-package
+  - name: terminal (based on xterm.dart)
+    kind: inlined-source
     version: "4.0.0"
-    homepage: https://pub.dev/packages/xterm
+    homepage: https://github.com/TerminalStudio/xterm.dart
     license: MIT
+    license_file: lib/src/terminal/LICENSE
     purpose: >-
-      Flutter-native terminal emulator (ANSI / xterm / truecolor
-      parser + renderer). Powers every pane that renders a PTY —
-      general terminal, Claude, diff views running shell commands.
-      Writing a vt100 / ANSI parser is weeks of work for no fidelity
-      gain.
+      Terminal emulator (ANSI / xterm / truecolor parser + renderer).
+      Inlined from xterm.dart v4.0.0 by xuty (MIT) and modified:
+      Scrollable removed, quiver dependency replaced, zmodem/debugger
+      stripped, scroll forwarding rewritten. Original copyright and
+      MIT license preserved in lib/src/terminal/LICENSE.
 
   - name: ffi
     kind: dart-package
