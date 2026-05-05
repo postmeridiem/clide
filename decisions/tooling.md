@@ -51,4 +51,44 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml).
 - **Raised by:** 2026-04-25 macOS sandbox investigation.
 
+### D-60: No network on default launch path
+- **Date:** 2026-04-26
+- **Decision:** clide does not perform network I/O during app startup, library initialization, or first use of any API unless the user has explicitly taken an action whose stated purpose is to cause a network fetch. Opening the app, opening a file, or typing in a buffer are not such actions. Libraries that download native binaries on first import (the `wasm_run` pattern), auto-installing language servers/grammars, CDN-fetched assets, startup telemetry, and unsolicited update checks are all prohibited. Signed, pinned fetches are permitted only when: the URL is hardcoded in the repo, the artifact is verified against a committed hash or signature, the fetch is cached, failure produces a clear error, and the primary function works without the fetch succeeding. If all five cannot be satisfied, vendor the artifact or require explicit user action.
+- **Rationale:** clide's security model claims that app behavior on a user's machine is fully determined by the signed release artifact and the repository state at build time. The moment something is fetched from the network that wasn't audited at build time, the entire sandboxing and trust story collapses. See `POLICY.md` §"The core rule."
+- **Cost:** Some features require vendoring artifacts that other apps would download at first launch. Accepted — the trust boundary is worth the extra build complexity.
+- **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-63](#d-63-vendored-binary-rebuild-process), `POLICY.md`.
+- **Raised by:** 2026-04-26 policy-to-decision migration (T-28).
+
+### D-61: Dependency vetting checklist
+- **Date:** 2026-04-26
+- **Decision:** Before adding any dependency (direct or transitive), verify: (1) **Network behavior** — no network I/O during import, init, or first call; no postinstall scripts that download binaries; check transitive deps with `flutter pub deps`. (2) **Binary provenance** — native binaries must be built from source in the same repo, not fetched from release artifacts. (3) **Maintainership** — single-maintainer packages need explicit sign-off and a documented fallback; packages with no activity in 12+ months require a controlled fork or inlining. (4) **Surface area** — prefer packages that do one thing; a dep adding 15 transitive deps for a 100-line problem should be inlined. (5) **Version pinning** — exact-pinned per D-31, lockfile committed, CVE-checked, source-reviewed, justified in place. (6) **License** — compatible per D-65.
+- **Rationale:** D-31 states the budget; this record codifies the gate each dependency must pass. The checklist exists so agents and human contributors apply the same standard without re-deriving it each time.
+- **Cost:** Longer evaluation cycle for new dependencies. Intentional — the cost of a bad dep is higher.
+- **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-60](#d-60-no-network-on-default-launch-path), [D-65](#d-65-license-compatibility-matrix), `POLICY.md`.
+- **Raised by:** 2026-04-26 policy-to-decision migration (T-28).
+
+### D-62: Dependency removal process
+- **Date:** 2026-04-26
+- **Decision:** A dependency is not removed until all five steps are completed in a single PR: (1) Grep the entire repository for references to the package, its exports, and contributed type names — zero hits outside git history. (2) Regenerate the lockfile. (3) Update `assets/licenses.yaml` to drop the package and any orphaned transitive deps. (4) Remove any vendored artifacts (binaries, prebuilt assets, generated bindings) and delete their `BUILD.md` records. (5) Check for architectural assumptions the dep was carrying — if it justified a data flow, build step, or platform strategy, the replacement must pick up those responsibilities or the relevant D-record must be updated.
+- **Rationale:** "I deleted the line from pubspec.yaml" is the start of a removal, not the end. Partial removals leave orphaned lockfile entries (installed on fresh clones), stale license entries, or orphaned vendored binaries that look legitimate.
+- **Cost:** Removal PRs are larger than the one-line diff suggests. Accepted.
+- **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), `POLICY.md`.
+- **Raised by:** 2026-04-26 policy-to-decision migration (T-28).
+
+### D-63: Vendored binary rebuild process
+- **Date:** 2026-04-26
+- **Decision:** Every vendored native binary has a `BUILD.md` next to it recording: (1) exact upstream source (git URL + commit SHA, not a version tag), (2) full build command with all compile flags, (3) toolchain version (compiler, linker, target triple), (4) expected output size and SHA-256 hash, (5) any patches applied (stored as `.patch` files in the same directory). Rebuilds happen in CI, not on contributor machines. The rebuild PR updates `BUILD.md`, the binaries, and hashes atomically. No binary is committed without a reproducibility record. Security patches to vendored deps are tracked with the same urgency as source-level vulnerabilities. Dropping a platform requires a policy decision; adding one requires adding it to the CI matrix and rebuilding all vendored binaries first.
+- **Rationale:** Vendored binaries are inside the trust boundary — the signed release contains exactly these bytes. Without reproducibility records, a committed binary is unverifiable and therefore untrustworthy.
+- **Cost:** Rebuilds require CI infrastructure and cross-compilation. Currently partially manual (T-25 tracks full CI automation).
+- **Cross-reference:** [D-60](#d-60-no-network-on-default-launch-path), [D-42](#d-42-dependencies-documented-in-licensesyaml), T-25, `POLICY.md`.
+- **Raised by:** 2026-04-26 policy-to-decision migration (T-28).
+
+### D-65: License compatibility matrix
+- **Date:** 2026-04-26
+- **Decision:** clide is MIT-licensed. Every dependency, vendored binary, bundled font, and asset must be compatible and attributed. **Compatible (permissive):** MIT, Apache-2.0, BSD-2/3, ISC, Zlib, Unlicense, CC0. **Compatible with care (copyleft):** MPL-2.0 for libraries; LGPL only for dynamically-linked vendored binaries where users can replace the library. **Not compatible:** GPL for linked code (GPL vendored binaries like git are fine — they ship as separate executables), AGPL, SSPL, "commercial use prohibited," unreviewed custom licenses. Apache-2.0 deps preserve their NOTICE file verbatim. Apache-2.0-with-LLVM-exception requires the exception text specifically. Fonts and icon sets are attributed even if the license doesn't strictly require it. An incompatible or unclear license is disqualifying regardless of technical merit.
+- **Rationale:** The compatibility rules existed in POLICY.md but were not captured as a D-record, making them invisible to the decision-reference system. This record makes them queryable and cross-referenceable.
+- **Cost:** License evaluation adds time to the vetting checklist. Intentional.
+- **Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), [D-61](#d-61-dependency-vetting-checklist), `POLICY.md`.
+- **Raised by:** 2026-04-26 policy-to-decision migration (T-28).
+
 ---

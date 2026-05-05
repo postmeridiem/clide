@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-03T20:29:03Z",
+  "exported_at": "2026-05-05T06:49:53Z",
   "decisions": [
     {
       "id": "D-1",
@@ -9,7 +9,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-3",
@@ -19,7 +19,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-4",
@@ -29,7 +29,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-5",
@@ -39,7 +39,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-6",
@@ -49,7 +49,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-7",
@@ -59,7 +59,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-8",
@@ -69,7 +69,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-9",
@@ -79,7 +79,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-10",
@@ -89,7 +89,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-11",
@@ -99,7 +99,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-12",
@@ -109,7 +109,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-13",
@@ -119,7 +119,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-14",
@@ -129,7 +129,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-15",
@@ -139,7 +139,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-16",
@@ -149,7 +149,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-17",
@@ -159,7 +159,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-18",
@@ -169,7 +169,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-19",
@@ -179,7 +179,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-20",
@@ -189,7 +189,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-21",
@@ -199,7 +199,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-22",
@@ -209,7 +209,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-23",
@@ -219,7 +219,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-24",
@@ -229,7 +229,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-25",
@@ -239,7 +239,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-26",
@@ -249,7 +249,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-27",
@@ -259,7 +259,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-28",
@@ -269,7 +269,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-29",
@@ -279,7 +279,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-30",
@@ -289,7 +289,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-31",
@@ -299,7 +299,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-32",
@@ -309,7 +309,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-33",
@@ -319,7 +319,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-34",
@@ -329,7 +329,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-35",
@@ -339,7 +339,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-36",
@@ -349,7 +349,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-37",
@@ -359,7 +359,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-38",
@@ -369,7 +369,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-39",
@@ -379,7 +379,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-40",
@@ -389,7 +389,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-41",
@@ -399,7 +399,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-42",
@@ -409,7 +409,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-43",
@@ -419,7 +419,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-44",
@@ -429,7 +429,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-45",
@@ -439,7 +439,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-46",
@@ -449,7 +449,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-47",
@@ -459,7 +459,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-48",
@@ -469,7 +469,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-49",
@@ -479,7 +479,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-50",
@@ -489,7 +489,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-51",
@@ -499,7 +499,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-52",
@@ -509,7 +509,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-53",
@@ -519,7 +519,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-54",
@@ -529,7 +529,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-55",
@@ -539,7 +539,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-56",
@@ -549,7 +549,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-57",
@@ -559,7 +559,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-58",
@@ -569,7 +569,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "D-59",
@@ -579,7 +579,67 @@
       "status": "active",
       "date": "2026-04-25",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
+    },
+    {
+      "id": "D-60",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "No network on default launch path",
+      "status": "active",
+      "date": "2026-04-26",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-05-03 20:40:19"
+    },
+    {
+      "id": "D-61",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Dependency vetting checklist",
+      "status": "active",
+      "date": "2026-04-26",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-05-03 20:40:19"
+    },
+    {
+      "id": "D-62",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Dependency removal process",
+      "status": "active",
+      "date": "2026-04-26",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-05-03 20:40:19"
+    },
+    {
+      "id": "D-63",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "Vendored binary rebuild process",
+      "status": "active",
+      "date": "2026-04-26",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-05-03 20:40:19"
+    },
+    {
+      "id": "D-64",
+      "type": "confirmed",
+      "domain": "architecture",
+      "title": "No telemetry — architectural commitment",
+      "status": "active",
+      "date": "2026-05-03",
+      "file_path": "decisions/architecture.md",
+      "synced_at": "2026-05-03 20:40:19"
+    },
+    {
+      "id": "D-65",
+      "type": "confirmed",
+      "domain": "tooling",
+      "title": "License compatibility matrix",
+      "status": "active",
+      "date": "2026-04-26",
+      "file_path": "decisions/tooling.md",
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-1",
@@ -588,7 +648,7 @@
       "title": "Authorisation granularity on the IPC socket",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-2",
@@ -597,7 +657,7 @@
       "title": "Back-pressure on event streams",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-3",
@@ -606,7 +666,7 @@
       "title": "Event persistence + audit/undo",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-4",
@@ -615,7 +675,7 @@
       "title": "`.canvas` schema compatibility with Obsidian",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-5",
@@ -624,7 +684,7 @@
       "title": "IPC wire-format stability + `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-6",
@@ -633,7 +693,7 @@
       "title": "Window chrome — native frame vs frameless custom",
       "status": "resolved",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-7",
@@ -642,7 +702,7 @@
       "title": "macOS app bundle signing / notarisation",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-8",
@@ -651,7 +711,7 @@
       "title": "Extension API shape — widgets, subcommands, both?",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-9",
@@ -660,7 +720,7 @@
       "title": "Lua runtime vendoring",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-10",
@@ -669,7 +729,7 @@
       "title": "Extension manifest `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-11",
@@ -678,7 +738,7 @@
       "title": "Coverage gates — hard thresholds vs soft reporting",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-12",
@@ -687,7 +747,7 @@
       "title": "Screen-reader automation (axe-core via Playwright)",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-13",
@@ -696,7 +756,7 @@
       "title": "Web production-mode a11y",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-14",
@@ -705,7 +765,7 @@
       "title": "i18n plurals / gender / date-format tooling",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-15",
@@ -714,7 +774,7 @@
       "title": "Editor tab — full LSP vs tree-sitter-only highlight",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-16",
@@ -723,7 +783,7 @@
       "title": "`tree-sitter-dart` grammar maintenance",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-17",
@@ -732,7 +792,7 @@
       "title": "Icon set growth",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-18",
@@ -741,7 +801,7 @@
       "title": "Theme hot-reload in release builds",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-19",
@@ -750,7 +810,7 @@
       "title": "(withdrawn)",
       "status": "resolved",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-20",
@@ -759,7 +819,7 @@
       "title": "Kernel DB service — namespaced SQL access?",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-21",
@@ -768,7 +828,7 @@
       "title": "Pql absorbs planning vs keeps separate",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-22",
@@ -777,7 +837,7 @@
       "title": "Ticket persistence strategy",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-23",
@@ -786,7 +846,7 @@
       "title": "SSH-remote development — run clide against a remote workspace",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-25",
@@ -795,7 +855,7 @@
       "title": "Body text face — mono everywhere vs Josefin Sans UI + mono code",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-26",
@@ -804,7 +864,7 @@
       "title": "Small screen layout (\u003c 1000px)",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-27",
@@ -813,7 +873,7 @@
       "title": "Two-editor split",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-28",
@@ -822,7 +882,7 @@
       "title": "Terminal strip scope — shell only or logs/errors/tests",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-29",
@@ -831,7 +891,7 @@
       "title": "Branch picker location",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-30",
@@ -840,7 +900,7 @@
       "title": "Focus behavior when editor is dirty and viewer is peeked",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "Q-31",
@@ -849,7 +909,7 @@
       "title": "XWayland fallback for frameless — proper Wayland protocol needed",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-2",
@@ -859,7 +919,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-3",
@@ -869,7 +929,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-4",
@@ -879,7 +939,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-5",
@@ -889,7 +949,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-6",
@@ -899,7 +959,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-7",
@@ -909,7 +969,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-8",
@@ -919,7 +979,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-9",
@@ -929,7 +989,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-10",
@@ -939,7 +999,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-11",
@@ -949,7 +1009,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     },
     {
       "id": "R-12",
@@ -959,7 +1019,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-03 20:28:13"
+      "synced_at": "2026-05-03 20:40:19"
     }
   ],
   "decision_refs": [
@@ -1406,6 +1466,84 @@
       "target_id": "Q-5",
       "ref_type": "references",
       "note": "**Rationale:** Surface is enumerable — adding a subsystem means adding a row and specifying verbs + events. Wire schema is versioned (`v: 1` starting point; compatibility breaks bump the major an..."
+    },
+    {
+      "source_id": "D-60",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-63](#d-63-vendored-binary-rebuild-process), `POLICY.md`."
+    },
+    {
+      "source_id": "D-60",
+      "target_id": "D-63",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-63](#d-63-vendored-binary-rebuild-process), `POLICY.md`."
+    },
+    {
+      "source_id": "D-61",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Decision:** Before adding any dependency (direct or transitive), verify: (1) **Network behavior** — no network I/O during import, init, or first call; no postinstall scripts that download binar..."
+    },
+    {
+      "source_id": "D-61",
+      "target_id": "D-60",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-60](#d-60-no-network-on-default-launch-path), [D-65](#d-65-license-compatibility-matrix), `POLICY.md`."
+    },
+    {
+      "source_id": "D-61",
+      "target_id": "D-65",
+      "ref_type": "references",
+      "note": "**Decision:** Before adding any dependency (direct or transitive), verify: (1) **Network behavior** — no network I/O during import, init, or first call; no postinstall scripts that download binar..."
+    },
+    {
+      "source_id": "D-62",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), `POLICY.md`."
+    },
+    {
+      "source_id": "D-62",
+      "target_id": "D-42",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), `POLICY.md`."
+    },
+    {
+      "source_id": "D-63",
+      "target_id": "D-42",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-60](#d-60-no-network-on-default-launch-path), [D-42](#d-42-dependencies-documented-in-licensesyaml), T-25, `POLICY.md`."
+    },
+    {
+      "source_id": "D-63",
+      "target_id": "D-60",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-60](#d-60-no-network-on-default-launch-path), [D-42](#d-42-dependencies-documented-in-licensesyaml), T-25, `POLICY.md`."
+    },
+    {
+      "source_id": "D-64",
+      "target_id": "D-60",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-60](tooling.md#d-60-no-network-on-default-launch-path), `POLICY.md`."
+    },
+    {
+      "source_id": "D-65",
+      "target_id": "D-31",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), [D-61](#d-61-dependency-vetting-checklist), `POLICY.md`."
+    },
+    {
+      "source_id": "D-65",
+      "target_id": "D-42",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), [D-61](#d-61-dependency-vetting-checklist), `POLICY.md`."
+    },
+    {
+      "source_id": "D-65",
+      "target_id": "D-61",
+      "ref_type": "references",
+      "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), [D-61](#d-61-dependency-vetting-checklist), `POLICY.md`."
     },
     {
       "source_id": "D-7",
@@ -1859,21 +1997,21 @@
       "type": "task",
       "parent_id": "T-8",
       "title": "add dart doc generation to CI",
-      "status": "backlog",
+      "status": "ready",
       "priority": "medium",
       "decision_ref": "D-32",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:37:03"
     },
     {
       "id": "T-18",
       "type": "task",
       "title": "audit error handling in PTY and IPC critical paths",
-      "status": "backlog",
+      "status": "ready",
       "priority": "medium",
       "decision_ref": "D-5",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:37:30"
     },
     {
       "id": "T-19",
@@ -1902,11 +2040,11 @@
       "type": "task",
       "parent_id": "T-4",
       "title": "implement welcome screen per hi-fi design",
-      "status": "backlog",
+      "status": "ready",
       "priority": "medium",
       "decision_ref": "D-43",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:34:52"
     },
     {
       "id": "T-22",
@@ -1935,11 +2073,11 @@
       "type": "task",
       "parent_id": "T-3",
       "title": "secondary Claude pane UI wiring",
-      "status": "backlog",
+      "status": "ready",
       "priority": "medium",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:36:31"
     },
     {
       "id": "T-25",
@@ -1980,10 +2118,10 @@
       "parent_id": "T-8",
       "title": "feed POLICY.md rules into D-records",
       "description": "POLICY.md (added 2026-04-22) defines rules for: no-network-on-default-launch-path, dependency vetting checklist, vendored binary rebuild process, telemetry prohibition, license compatibility matrix. These need corresponding D-records in decisions/ so the architectural decision trail is complete. Some may overlap with or supersede existing D-records.",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:52",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:40:22"
     },
     {
       "id": "T-29",
@@ -2153,11 +2291,11 @@
       "parent_id": "T-3",
       "title": "Ship clide tmux.conf for Claude pane sessions",
       "description": "Bundle a clide-specific tmux.conf (no status bar, large scrollback, zero escape delay, 256color passthrough). Claude pane spawn passes -f to use it. Includes bottom-anchoring via initial escape sequence or shell profile trick after attach.",
-      "status": "ready",
+      "status": "in_progress",
       "priority": "high",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 22:01:13",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:33:10"
     },
     {
       "id": "T-44",
@@ -2216,10 +2354,10 @@
       "type": "story",
       "title": "native folder picker for Open Workspace",
       "description": "Replace the text input in the welcome screen Open Workspace flow with a native folder picker dialog (gtk_file_chooser on Linux, NSOpenPanel on macOS). Fall back to the text input if the native dialog is unavailable. The selected path should validate as a git repo before opening.",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-04-23 20:31:35",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:33:10"
     },
     {
       "id": "T-50",
@@ -2336,30 +2474,30 @@
       "type": "task",
       "title": "kernel scheduler service with tiered timer events",
       "description": "Add SchedulerService to the kernel with Timer.periodic instances at five tiers (1min, 10min, 15min, 60min, midnight). Emits SchedulerTick events on the DaemonBus. Extensions subscribe and filter by tier.",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:33:10"
     },
     {
       "id": "T-62",
       "type": "story",
       "title": "auto-refresh decisions and tickets on file change and scheduler tick",
       "description": "Decisions panel subscribes to files.changed for decisions/*.md and to the 10-minute scheduler tick. Tickets panel subscribes to files.changed for tickets/ paths and to the 10-minute tick. Both use debounce to coalesce burst events. Keep existing data visible during refresh.",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:33:10"
     },
     {
       "id": "T-63",
       "type": "task",
       "title": "manual refresh button in sidebar panels",
       "description": "Add a small arrowClockwise icon button next to the filter box in decisions, tickets, and pql markdown panels. Triggers immediate data reload. Disabled while refresh is in-flight.",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-03 20:33:10"
     },
     {
       "id": "T-64",
@@ -3501,6 +3639,76 @@
       "old_value": "backlog",
       "new_value": "ready",
       "changed_at": "2026-04-24 08:17:11"
+    },
+    {
+      "ticket_id": "T-43",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-03 20:33:10"
+    },
+    {
+      "ticket_id": "T-49",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-03 20:33:10"
+    },
+    {
+      "ticket_id": "T-61",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-03 20:33:10"
+    },
+    {
+      "ticket_id": "T-62",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "done",
+      "changed_at": "2026-05-03 20:33:10"
+    },
+    {
+      "ticket_id": "T-63",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-03 20:33:10"
+    },
+    {
+      "ticket_id": "T-21",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-05-03 20:34:52"
+    },
+    {
+      "ticket_id": "T-24",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-05-03 20:36:31"
+    },
+    {
+      "ticket_id": "T-17",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-05-03 20:37:03"
+    },
+    {
+      "ticket_id": "T-18",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "ready",
+      "changed_at": "2026-05-03 20:37:30"
+    },
+    {
+      "ticket_id": "T-28",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-03 20:40:22"
     }
   ]
 }

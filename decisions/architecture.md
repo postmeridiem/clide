@@ -235,4 +235,12 @@ Core, rendering, IPC, kernel, panel manager.
 - **Cross-reference:** [D-47](#d-47-interaction-model-claude-is-home-layout) (center hat always visible), [D-51](#d-51-panel-collapse-12px-spine-with-badge) (spine-cap behavior).
 - **Raised by:** 2026-04-23 interaction model refinement.
 
+### D-64: No telemetry — architectural commitment
+- **Date:** 2026-05-03
+- **Decision:** clide does not phone home. No analytics SDKs (Firebase, Sentry, Mixpanel, hand-rolled). No crash reporters that upload automatically — crashes produce local logs the user can read and optionally attach to a manual bug report. No auto-update checks without user action. No license validation calls. No feature flags fetched from a server. No A/B testing, experiments, remote config, or "anonymous usage statistics." This is not a "default off" setting; it is an architectural commitment. Proposals to add telemetry under any framing — opt-in, anonymized, debug-only, "just errors" — are out of scope for this project, full stop.
+- **Rationale:** clide is a space to think, not a surface for data collection. Users installing clide are choosing a tool that does not watch them. That promise is worth more than any data we could collect. The architectural commitment is the feature.
+- **Cost:** No usage data for product decisions; no automated crash triage. Accepted — user trust is the product decision.
+- **Cross-reference:** [D-60](tooling.md#d-60-no-network-on-default-launch-path), `POLICY.md`.
+- **Raised by:** 2026-05-03 policy-to-decision migration (T-28).
+
 ---
