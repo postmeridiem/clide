@@ -2,7 +2,7 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm/xterm.dart';
+import 'package:clide/src/terminal/terminal.dart';
 
 /// Theme-aware terminal view. Wraps xterm.dart's [TerminalView] with
 /// clide token bindings, JetBrainsMono as the face, and a Semantics
@@ -54,7 +54,7 @@ class ClidePtyView extends StatelessWidget {
             fontFamily: clideMonoFamily,
             fontFamilyFallback: clideMonoFamilyFallback,
           ),
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.all(2),
           backgroundOpacity: 1,
           cursorType: TerminalCursorType.block,
         ),

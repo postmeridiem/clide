@@ -7,7 +7,7 @@ import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm/xterm.dart';
+import 'package:clide/src/terminal/terminal.dart';
 
 /// General-purpose terminal pane. Spawns the user's `$SHELL` under the
 /// daemon's PTY (via `pane.spawn`), feeds the `pane.output` event

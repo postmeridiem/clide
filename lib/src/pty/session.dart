@@ -370,7 +370,7 @@ class _ReaderArgs {
 /// each chunk back to the main isolate as a `Uint8List`. Exits on
 /// EOF, close, or error.
 void _readerEntrypoint(_ReaderArgs args) {
-  const chunk = 4096;
+  const chunk = 65536;
   final buf = pkg_ffi.calloc<ffi.Uint8>(chunk);
   try {
     while (true) {

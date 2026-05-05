@@ -37,8 +37,6 @@ dependencies:
 
   yaml: 3.1.3
 
-  xterm: 4.0.0
-
   ffi: 2.1.3
 
   jovial_svg: 1.1.26
@@ -74,6 +72,7 @@ flutter:
     - assets/logo/logo-192.png
     - assets/logo/appicon.svg
     - assets/logo/appicon-256.png
+    - assets/clide.tmux.conf
     - assets/grammars/
     - assets/queries/
 
@@ -95,9 +94,4 @@ flutter:
       fonts:
         - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf
         - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Italic.ttf
-          style: italic
-        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-BoldItalic.ttf
-          weight: 700
           style: italic

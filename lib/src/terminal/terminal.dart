@@ -1,0 +1,36 @@
+// clide terminal — based on xterm.dart v4.0.0 by xuty (MIT).
+// See LICENSE in this directory for the original copyright notice.
+library;
+
+export 'src/core/buffer/buffer.dart';
+export 'src/core/buffer/cell_flags.dart';
+export 'src/core/buffer/cell_offset.dart';
+export 'src/core/buffer/line.dart';
+export 'src/core/buffer/range.dart';
+export 'src/core/buffer/range_block.dart';
+export 'src/core/buffer/range_line.dart';
+export 'src/core/buffer/segment.dart';
+export 'src/core/cell.dart';
+export 'src/core/color.dart';
+export 'src/core/cursor.dart';
+export 'src/core/escape/handler.dart';
+export 'src/core/escape/parser.dart';
+export 'src/core/input/handler.dart';
+export 'src/core/input/keys.dart';
+export 'src/core/mouse/button.dart';
+export 'src/core/mouse/button_state.dart';
+export 'src/core/mouse/handler.dart';
+export 'src/core/mouse/mode.dart';
+export 'src/core/platform.dart';
+export 'src/core/state.dart';
+export 'src/terminal.dart';
+export 'src/terminal_view.dart';
+export 'src/ui/controller.dart';
+export 'src/ui/cursor_type.dart';
+export 'src/ui/keyboard_visibility.dart';
+export 'src/ui/pointer_input.dart';
+export 'src/ui/selection_mode.dart';
+export 'src/ui/shortcut/shortcuts.dart';
+export 'src/ui/terminal_text_style.dart';
+export 'src/ui/terminal_theme.dart';
+export 'src/ui/themes.dart';
