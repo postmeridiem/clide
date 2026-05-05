@@ -5,8 +5,9 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
-import 'package:xterm/xterm.dart';
+import 'package:clide/src/terminal/terminal.dart';
 
 import 'session_naming.dart';
 
@@ -42,7 +43,10 @@ class ClaudePane extends StatefulWidget {
 }
 
 class _ClaudePaneState extends State<ClaudePane> {
-  static const _maxLines = 5000;
+  static const _maxLines = 50000;
+
+  /// Lazily extracted tmux config asset path.
+  static String? _tmuxConfPath;
 
   late final Terminal _terminal;
   StreamSubscription<DaemonEvent>? _eventSub;
@@ -102,6 +106,23 @@ class _ClaudePaneState extends State<ClaudePane> {
     return _spawn();
   }
 
+  static Future<String?> _ensureTmuxConf() async {
+    if (_tmuxConfPath != null) return _tmuxConfPath;
+    try {
+      final content = await rootBundle.loadString('assets/clide.tmux.conf');
+      final dir = Directory(
+        '${Platform.environment['HOME'] ?? '/tmp'}/.config/clide',
+      );
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+      final file = File('${dir.path}/tmux.conf');
+      file.writeAsStringSync(content);
+      _tmuxConfPath = file.path;
+      return _tmuxConfPath;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _spawn() async {
     if (!mounted) return;
     final ipc = _ipc();
@@ -121,13 +142,19 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
+    final tmuxConf = await _ensureTmuxConf();
+
     // tmux-wrapped session for persistence (D-041).
+    // -f loads clide's bundled tmux.conf (T-43): large scrollback,
+    // mouse on, no status bar, zero escape delay.
     // -x/-y set the initial window size; without them tmux defaults
     // to a huge size when running inside a PTY without a real terminal.
     final cols = _terminal.viewWidth;
     final rows = _terminal.viewHeight;
     var argv = <String>[
       'tmux',
+      '-L', 'clide',
+      if (tmuxConf != null) ...['-f', tmuxConf],
       'new-session',
       '-A',
       '-s',
@@ -246,7 +273,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       // tmux sizes windows by client, not PTY winsize. Explicitly
       // resize the tmux window to match the TerminalView dimensions.
       if (_sessionName != null) {
-        Process.run('tmux', ['resize-window', '-t', _sessionName!, '-x', '$cols', '-y', '$rows']);
+        Process.run('tmux', ['-L', 'clide', 'resize-window', '-t', _sessionName!, '-x', '$cols', '-y', '$rows']);
       }
     });
   }
