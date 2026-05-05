@@ -6,6 +6,12 @@ import 'package:clide/src/ipc/envelope.dart';
 
 typedef RequestDispatcher = Future<IpcResponse> Function(IpcRequest request);
 
+/// Default per-request timeout. A handler that doesn't return within
+/// this window gets a `tool_error` response so the connection's read
+/// pipeline isn't blocked indefinitely. Long-running commands (git
+/// pull/push, large pql queries) can override per-command later.
+const Duration _kDefaultRequestTimeout = Duration(seconds: 60);
+
 /// Unix-socket JSON-lines server. Each connection is an independent
 /// bidirectional line-framed stream: client writes requests, daemon
 /// writes responses + events on the same socket.
@@ -13,26 +19,27 @@ class DaemonServer {
   DaemonServer({
     required this.socketPath,
     required this.dispatch,
-  });
+    Duration requestTimeout = _kDefaultRequestTimeout,
+  }) : _requestTimeout = requestTimeout;
 
   final String socketPath;
   final RequestDispatcher dispatch;
+  final Duration _requestTimeout;
 
   ServerSocket? _server;
   final Set<Socket> _clients = {};
 
-  /// Broadcast [event] to every currently-connected client.
-  ///
-  /// Future tuning: per-client subsystem/id filter (`tail --filter
-  /// pane:p_7`). For Tier 1 every client sees everything. Sockets
-  /// that error on write are silently dropped; the client's read side
-  /// will notice the close.
+  /// Broadcast [event] to every currently-connected client. Sockets
+  /// that error on write are dropped — the client's read side will
+  /// notice the close. Errors are logged so silent event loss is
+  /// debuggable.
   void broadcast(IpcEvent event) {
     final line = event.encode();
     for (final c in List<Socket>.from(_clients)) {
       try {
         c.writeln(line);
-      } catch (_) {
+      } catch (e) {
+        stderr.writeln('clide daemon: broadcast write failed (${event.subsystem}.${event.kind}): $e');
         _clients.remove(c);
       }
     }
@@ -43,7 +50,19 @@ class DaemonServer {
     try {
       _server = await ServerSocket.bind(addr, 0);
     } on SocketException {
-      // stale socket from a prior crash — unlink and retry once
+      // Either a stale socket from a prior crash, or a live daemon.
+      // Probe by trying to connect — if a live peer answers, refuse
+      // to start so we don't rip its socket out.
+      try {
+        final probe = await Socket.connect(addr, 0)
+            .timeout(const Duration(milliseconds: 200));
+        await probe.close();
+        throw StateError('clide daemon already running at $socketPath');
+      } on TimeoutException {
+        // No one answered — proceed to unlink and rebind.
+      } on SocketException {
+        // No one listening — proceed to unlink and rebind.
+      }
       try {
         await File(socketPath).delete();
       } catch (_) {}
@@ -92,7 +111,17 @@ class DaemonServer {
     if (msg is! IpcRequest) return;
     IpcResponse resp;
     try {
-      resp = await dispatch(msg);
+      resp = await dispatch(msg).timeout(_requestTimeout);
+    } on TimeoutException {
+      stderr.writeln('clide daemon: dispatch timeout for ${msg.cmd} (${_requestTimeout.inSeconds}s)');
+      resp = IpcResponse.err(
+        id: msg.id,
+        error: IpcError(
+          code: 2,
+          kind: 'tool_error',
+          message: 'request timed out after ${_requestTimeout.inSeconds}s: ${msg.cmd}',
+        ),
+      );
     } catch (e, st) {
       stderr.writeln('clide daemon: dispatch error for ${msg.cmd}: $e\n$st');
       resp = IpcResponse.err(
@@ -104,6 +133,13 @@ class DaemonServer {
         ),
       );
     }
-    client.writeln(resp.encode());
+    try {
+      client.writeln(resp.encode());
+    } catch (e) {
+      // Client disconnected mid-dispatch — drop it so future events
+      // don't try to write to a dead socket.
+      stderr.writeln('clide daemon: response write failed (${msg.cmd}): $e');
+      _clients.remove(client);
+    }
   }
 }

@@ -43,6 +43,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   longer leaks the `ReceivePort` when `Isolate.spawn` throws, and
   `PtySession.spawn` closes the master fd if any post-receive
   step fails.
+- IPC server hardening: per-request 60s timeout (configurable),
+  broadcast/response write failures logged instead of swallowed,
+  client dropped on response-write failure, and the stale-socket
+  retry now probes for a live daemon before unlinking the socket
+  (refusing to start if one answers).
 
 ### Security
 
