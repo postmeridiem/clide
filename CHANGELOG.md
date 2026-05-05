@@ -22,6 +22,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   PgUp/PgDown so Claude Code (and other TUI apps) scroll their
   history naturally.
 
+### Fixed
+
+- Terminal cell grid no longer drifts on bold text — bold rendering
+  is suppressed at the painter level since synthetic bold (with no
+  Bold.ttf registered) shifts glyph advance widths.
+
 ### Changed
 
 - Inline terminal emulator based on xterm.dart v4.0.0 — replaces the

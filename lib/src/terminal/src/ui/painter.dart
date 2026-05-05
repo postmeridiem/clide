@@ -190,9 +190,12 @@ class TerminalPainter {
         color = color.withOpacity(0.5);
       }
 
+      // Skip bold rendering — Flutter's synthetic bold (no Bold.ttf
+      // registered) drifts glyph advance widths slightly, breaking
+      // the cell grid. Color is enough to convey emphasis in TUIs.
       final style = _textStyle.toTextStyle(
         color: color,
-        bold: cellFlags & CellFlags.bold != 0,
+        bold: false,
         italic: cellFlags & CellFlags.italic != 0,
         underline: cellFlags & CellFlags.underline != 0,
       );

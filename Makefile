@@ -170,11 +170,9 @@ ifeq ($(FLUTTER_OS),linux)
 	  > $(HOME)/.local/share/applications/net.schweitz.clide.desktop
 	@gtk-update-icon-cache -f -t $(HOME)/.local/share/icons/hicolor 2>/dev/null || true
 	@update-desktop-database $(HOME)/.local/share/applications 2>/dev/null || true
-	@tmux -L clide kill-server 2>/dev/null || true
 	@echo "installed: $(INSTALL_DIR)/clide -> $(INSTALL_PREFIX)/clide/clide"
 	@echo "desktop:   ~/.local/share/applications/net.schweitz.clide.desktop"
 	@echo "version:   $(VERSION)"
-	@echo "tmux:      clide socket killed (TEMP)"
 else ifeq ($(FLUTTER_OS),macos)
 	@mkdir -p $(HOME)/Applications
 	rm -rf $(HOME)/Applications/clide.app
