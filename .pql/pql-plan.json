@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-05T12:59:14Z",
+  "exported_at": "2026-05-05T13:02:30Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2633,10 +2633,10 @@
       "id": "T-78",
       "type": "bug",
       "title": "files.read path traversal — validate paths stay under workspace root",
-      "status": "backlog",
+      "status": "in_progress",
       "priority": "high",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 12:58:59"
+      "updated_at": "2026-05-05 12:59:50"
     },
     {
       "id": "T-79",
@@ -3926,6 +3926,13 @@
       "old_value": "in_progress",
       "new_value": "done",
       "changed_at": "2026-05-05 12:59:05"
+    },
+    {
+      "ticket_id": "T-78",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-05 12:59:50"
     }
   ]
 }

@@ -28,6 +28,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   is suppressed at the painter level since synthetic bold (with no
   Bold.ttf registered) shifts glyph advance widths.
 
+### Security
+
+- `files.read` and `files.ls` now reject paths that resolve outside
+  the workspace root. Previously a relative path containing `..`
+  could read arbitrary files via path traversal.
+
 ### Changed
 
 - Inline terminal emulator based on xterm.dart v4.0.0 — replaces the

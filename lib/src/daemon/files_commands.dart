@@ -6,6 +6,7 @@ import 'dart:io';
 
 import '../files/ignore.dart';
 import '../files/listing.dart';
+import '../files/path_safety.dart';
 import '../files/watcher.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
@@ -71,7 +72,13 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     if (path == null || path.isEmpty) {
       return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.read requires a path'));
     }
-    final file = File('${files.root.absolute.path}/$path');
+    final String absPath;
+    try {
+      absPath = resolveUnderRoot(files.root, path);
+    } on PathOutsideRoot {
+      return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'));
+    }
+    final file = File(absPath);
     if (!file.existsSync()) {
       return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file not found: $path'));
     }
@@ -81,6 +88,13 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
 
   d.register('files.ls', (req) async {
     final dir = (req.args['path'] as String?) ?? '';
+    if (dir.isNotEmpty) {
+      try {
+        resolveUnderRoot(files.root, dir);
+      } on PathOutsideRoot {
+        return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $dir'));
+      }
+    }
     final entries = await listDir(
       root: files.root,
       dir: dir,
