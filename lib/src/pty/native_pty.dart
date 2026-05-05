@@ -90,6 +90,13 @@ class NativePty {
   final _out = StreamController<Uint8List>.broadcast();
   bool _dead = false;
 
+  /// Tracks the reader isolate's spawn — close() awaits this before
+  /// tearing down so we never race a still-spawning isolate.
+  Future<void>? _readerReady;
+  Isolate? _readerIsolate;
+  ReceivePort? _readerPort;
+  Completer<void>? _readerExited;
+
   NativePty._(this._fd, this.pid);
 
   /// Byte stream of data produced by the child.
@@ -222,13 +229,32 @@ class NativePty {
 
   // -- I/O ------------------------------------------------------------------
 
-  void _spawnReader() async {
+  void _spawnReader() {
+    _readerReady = _spawnReaderAsync();
+  }
+
+  Future<void> _spawnReaderAsync() async {
     final rp = ReceivePort();
-    await Isolate.spawn(_readLoop, (rp.sendPort, _fd));
+    _readerPort = rp;
+    _readerExited = Completer<void>();
+    try {
+      _readerIsolate = await Isolate.spawn(_readLoop, (rp.sendPort, _fd));
+    } catch (e) {
+      // Surface the spawn failure instead of leaving the PTY in a
+      // half-alive state where output never flows but isClosed=false.
+      _dead = true;
+      if (!_out.isClosed) _out.addError(PtyException('reader-spawn', '$e'));
+      rp.close();
+      _readerPort = null;
+      if (!_readerExited!.isCompleted) _readerExited!.complete();
+      return;
+    }
     rp.listen((msg) {
       if (msg == null) {
         if (!_out.isClosed) _out.close();
         rp.close();
+        _readerPort = null;
+        if (!_readerExited!.isCompleted) _readerExited!.complete();
         _reap();
       } else {
         if (!_out.isClosed) _out.add(msg as Uint8List);
@@ -330,12 +356,39 @@ class NativePty {
   }
 
   /// Kill the child and release resources.
+  ///
+  /// Order matters: kill the child first so its slave PTY closes,
+  /// causing the master fd to return EOF. The reader isolate sees
+  /// EOF and exits cleanly. Only then do we close the master fd —
+  /// closing it before the isolate exits creates a window where the
+  /// fd number could be reused and the isolate would briefly poll
+  /// the wrong file.
   Future<void> close() async {
     if (_dead) return;
     _dead = true;
-    _nativeClose(_fd);
+
+    // Make sure the reader is fully spawned before we tear it down —
+    // otherwise close() racing with start() leaves an orphan isolate.
+    await _readerReady;
+
     _nativeKill(pid, _kSighup);
     _nativeKill(pid, 9);
+
+    // Wait for the isolate to send `null` (EOF) — confirms it has
+    // exited its poll loop and won't touch the fd again.
+    if (_readerExited != null) {
+      await _readerExited!.future.timeout(
+        const Duration(milliseconds: 500),
+        onTimeout: () {},
+      );
+    }
+
+    _nativeClose(_fd);
+    _readerIsolate?.kill(priority: Isolate.immediate);
+    _readerIsolate = null;
+    _readerPort?.close();
+    _readerPort = null;
+
     final s = calloc<ffi.Int32>();
     _waitpid(pid, s, 0);
     calloc.free(s);

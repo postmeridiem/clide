@@ -34,6 +34,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   immediate EOF that looked indistinguishable from clean exit.
   PTY `write` loops on short writes; both `NativePty.write` and
   `PtySession.write` now throw `PtyException` on hard errors.
+- PTY teardown order fixed — kill the child first so the master
+  fd returns EOF, await the reader isolate exit, then close the
+  fd. Previously closing the fd while the isolate still polled it
+  could briefly target a reused fd. Reader isolate spawn errors
+  in both `NativePty` and `PtySession` are now surfaced via the
+  output stream instead of silently dropped. `_recvFdAsync` no
+  longer leaks the `ReceivePort` when `Isolate.spawn` throws, and
+  `PtySession.spawn` closes the master fd if any post-receive
+  step fails.
 
 ### Security
 

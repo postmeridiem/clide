@@ -132,31 +132,44 @@ class PtySession {
       // Receive the master fd over the parent side of the socketpair.
       // recvFd blocks until ptyc sends — run in a child isolate so the
       // calling isolate's event loop stays responsive.
-      final masterFd = await _recvFdAsync(parentSock);
-
-      // Apply initial winsize (ptyc already did this, but doing it
-      // again from Dart confirms the wire + gives a place to call it
-      // when resize() lands).
-      libc.setWinsize(masterFd, cols, rows);
-
-      // Drain ptyc's stdout to parse the success envelope. We don't
-      // strictly need it — the fd arriving is proof-of-life — but
-      // draining avoids a PIPE accumulating.
-      final stdoutLine = await proc.stdout.transform(const Utf8Decoder()).transform(const LineSplitter()).first.timeout(const Duration(seconds: 5));
-      final pid = _extractPid(stdoutLine);
-
-      final code = await proc.exitCode;
-      if (code != 0) {
-        final stderr = await proc.stderr.transform(const Utf8Decoder()).join();
-        libc.close(masterFd);
-        throw PtyException('ptyc', 'ptyc exited with code $code: $stderr');
+      final int masterFd;
+      try {
+        masterFd = await _recvFdAsync(parentSock);
+      } catch (_) {
+        proc.kill();
+        rethrow;
       }
 
-      return PtySession._(pid: pid, masterFd: masterFd);
+      // Once we own masterFd, every error path below must close it
+      // before rethrowing. Wrap the rest of the spawn in its own
+      // try/catch so the cleanup is centralized.
+      try {
+        libc.setWinsize(masterFd, cols, rows);
+
+        final stdoutLine = await proc.stdout
+            .transform(const Utf8Decoder())
+            .transform(const LineSplitter())
+            .first
+            .timeout(const Duration(seconds: 5));
+        final pid = _extractPid(stdoutLine);
+
+        final code = await proc.exitCode;
+        if (code != 0) {
+          final stderr = await proc.stderr.transform(const Utf8Decoder()).join();
+          libc.close(masterFd);
+          throw PtyException('ptyc', 'ptyc exited with code $code: $stderr');
+        }
+
+        return PtySession._(pid: pid, masterFd: masterFd);
+      } catch (_) {
+        libc.close(masterFd);
+        rethrow;
+      }
     } finally {
       // parent keeps its own fd until the session is closed; ptyc-side
       // fd is released either way (ptyc has exited by now).
       if (childSock >= 0) libc.close(childSock);
+      if (parentSock >= 0) libc.close(parentSock);
       pkg_ffi.calloc.free(sv);
     }
   }
@@ -254,12 +267,16 @@ class PtySession {
   /// stall the calling isolate's event loop.
   static Future<int> _recvFdAsync(int socketFd) async {
     final port = ReceivePort();
-    final iso = await Isolate.spawn(_recvFdEntry, _RecvFdArgs(socketFd, port.sendPort));
-    final result = await port.first;
-    iso.kill(priority: Isolate.immediate);
-    port.close();
-    if (result is int) return result;
-    throw PtyException('recvFd', '$result');
+    Isolate? iso;
+    try {
+      iso = await Isolate.spawn(_recvFdEntry, _RecvFdArgs(socketFd, port.sendPort));
+      final result = await port.first;
+      if (result is int) return result;
+      throw PtyException('recvFd', '$result');
+    } finally {
+      iso?.kill(priority: Isolate.immediate);
+      port.close();
+    }
   }
 
   static void _recvFdEntry(_RecvFdArgs args) {
@@ -288,7 +305,19 @@ class PtySession {
     Isolate.spawn<_ReaderArgs>(
       _readerEntrypoint,
       _ReaderArgs(fd: _masterFd, sendPort: port.sendPort),
-    ).then((iso) => _readerIsolate = iso);
+    ).then(
+      (iso) => _readerIsolate = iso,
+      onError: (Object e) {
+        // Spawn failure leaves the session unable to ever produce
+        // output. Surface the error and mark the controller closed
+        // so consumers don't hang waiting on the stream.
+        if (!_outputCtrl.isClosed) {
+          _outputCtrl.addError(PtyException('reader-spawn', '$e'));
+          _outputCtrl.close();
+        }
+        if (!_readerExited.isCompleted) _readerExited.complete();
+      },
+    );
   }
 
   // -- request builder ------------------------------------------------------
