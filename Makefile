@@ -106,6 +106,10 @@ test-all: test-core test test-a11y test-integration test-e2e ## Everything, sequ
 coverage: ## flutter test --coverage + lcov summary.
 	ci/test_coverage.sh
 
+.PHONY: coverage-gate
+coverage-gate: ## Coverage gate — fails if total line % < coverage/floor.txt (D-66). Assumes `make test` ran first.
+	ci/coverage_gate.sh
+
 .PHONY: smoke-bundle
 smoke-bundle: ## Build Linux release bundle and run it under xvfb for 5s.
 	ci/smoke_bundle.sh
@@ -276,7 +280,7 @@ decisions-validate: ## Parser dry-run over decisions/*.md.
 	pql decisions validate
 
 .PHONY: push-check
-push-check: decisions-validate test-core test test-a11y ## Pre-push gate.
+push-check: decisions-validate test-core test test-a11y coverage-gate ## Pre-push gate.
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks.

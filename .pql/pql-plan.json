@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T20:29:23Z",
+  "exported_at": "2026-05-06T20:44:43Z",
   "decisions": [
     {
       "id": "D-1",
@@ -9,7 +9,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-3",
@@ -19,7 +19,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-4",
@@ -29,7 +29,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-5",
@@ -39,7 +39,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-6",
@@ -49,7 +49,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-7",
@@ -59,7 +59,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-8",
@@ -69,7 +69,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-9",
@@ -79,7 +79,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-10",
@@ -89,7 +89,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-11",
@@ -99,7 +99,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-12",
@@ -109,7 +109,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-13",
@@ -119,7 +119,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-14",
@@ -129,7 +129,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-15",
@@ -139,7 +139,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-16",
@@ -149,7 +149,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-17",
@@ -159,7 +159,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-18",
@@ -169,7 +169,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-19",
@@ -179,7 +179,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-20",
@@ -189,7 +189,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-21",
@@ -199,7 +199,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-22",
@@ -209,7 +209,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-23",
@@ -219,7 +219,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-24",
@@ -229,7 +229,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-25",
@@ -239,7 +239,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-26",
@@ -249,7 +249,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-27",
@@ -259,7 +259,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-28",
@@ -269,7 +269,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-29",
@@ -279,7 +279,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-30",
@@ -289,7 +289,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-31",
@@ -299,7 +299,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-32",
@@ -309,7 +309,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-33",
@@ -319,7 +319,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-34",
@@ -329,7 +329,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-35",
@@ -339,7 +339,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-36",
@@ -349,7 +349,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-37",
@@ -359,7 +359,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-38",
@@ -369,7 +369,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-39",
@@ -379,7 +379,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-40",
@@ -389,7 +389,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-41",
@@ -399,7 +399,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-42",
@@ -409,7 +409,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-43",
@@ -419,7 +419,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-44",
@@ -429,7 +429,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-45",
@@ -439,7 +439,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-46",
@@ -449,7 +449,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-47",
@@ -459,7 +459,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-48",
@@ -469,7 +469,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-49",
@@ -479,7 +479,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-50",
@@ -489,7 +489,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-51",
@@ -499,7 +499,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-52",
@@ -509,7 +509,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-53",
@@ -519,7 +519,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-54",
@@ -529,7 +529,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-55",
@@ -539,7 +539,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-56",
@@ -549,7 +549,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-57",
@@ -559,7 +559,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-58",
@@ -569,7 +569,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-59",
@@ -579,7 +579,7 @@
       "status": "active",
       "date": "2026-04-25",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-60",
@@ -589,7 +589,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-61",
@@ -599,7 +599,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-62",
@@ -609,7 +609,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-63",
@@ -619,7 +619,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-64",
@@ -629,7 +629,7 @@
       "status": "active",
       "date": "2026-05-03",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "D-65",
@@ -639,7 +639,17 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
+    },
+    {
+      "id": "D-66",
+      "type": "confirmed",
+      "domain": "testing",
+      "title": "Line coverage gate at 95%, ratcheted from current",
+      "status": "active",
+      "date": "2026-05-06",
+      "file_path": "decisions/testing.md",
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-1",
@@ -648,7 +658,7 @@
       "title": "Authorisation granularity on the IPC socket",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-2",
@@ -657,7 +667,7 @@
       "title": "Back-pressure on event streams",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-3",
@@ -666,7 +676,7 @@
       "title": "Event persistence + audit/undo",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-4",
@@ -675,7 +685,7 @@
       "title": "`.canvas` schema compatibility with Obsidian",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-5",
@@ -684,7 +694,7 @@
       "title": "IPC wire-format stability + `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-6",
@@ -693,7 +703,7 @@
       "title": "Window chrome — native frame vs frameless custom",
       "status": "resolved",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-7",
@@ -702,7 +712,7 @@
       "title": "macOS app bundle signing / notarisation",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-8",
@@ -711,7 +721,7 @@
       "title": "Extension API shape — widgets, subcommands, both?",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-9",
@@ -720,7 +730,7 @@
       "title": "Lua runtime vendoring",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-10",
@@ -729,7 +739,7 @@
       "title": "Extension manifest `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-11",
@@ -738,7 +748,7 @@
       "title": "Coverage gates — hard thresholds vs soft reporting",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-12",
@@ -747,7 +757,7 @@
       "title": "Screen-reader automation (axe-core via Playwright)",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-13",
@@ -756,7 +766,7 @@
       "title": "Web production-mode a11y",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-14",
@@ -765,7 +775,7 @@
       "title": "i18n plurals / gender / date-format tooling",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-15",
@@ -774,7 +784,7 @@
       "title": "Editor tab — full LSP vs tree-sitter-only highlight",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-16",
@@ -783,7 +793,7 @@
       "title": "`tree-sitter-dart` grammar maintenance",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-17",
@@ -792,7 +802,7 @@
       "title": "Icon set growth",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-18",
@@ -801,7 +811,7 @@
       "title": "Theme hot-reload in release builds",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-19",
@@ -810,7 +820,7 @@
       "title": "(withdrawn)",
       "status": "resolved",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-20",
@@ -819,7 +829,7 @@
       "title": "Kernel DB service — namespaced SQL access?",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-21",
@@ -828,7 +838,7 @@
       "title": "Pql absorbs planning vs keeps separate",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-22",
@@ -837,7 +847,7 @@
       "title": "Ticket persistence strategy",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-23",
@@ -846,7 +856,7 @@
       "title": "SSH-remote development — run clide against a remote workspace",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-25",
@@ -855,7 +865,7 @@
       "title": "Body text face — mono everywhere vs Josefin Sans UI + mono code",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-26",
@@ -864,7 +874,7 @@
       "title": "Small screen layout (\u003c 1000px)",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-27",
@@ -873,7 +883,7 @@
       "title": "Two-editor split",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-28",
@@ -882,7 +892,7 @@
       "title": "Terminal strip scope — shell only or logs/errors/tests",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-29",
@@ -891,7 +901,7 @@
       "title": "Branch picker location",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-30",
@@ -900,7 +910,7 @@
       "title": "Focus behavior when editor is dirty and viewer is peeked",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "Q-31",
@@ -909,7 +919,7 @@
       "title": "XWayland fallback for frameless — proper Wayland protocol needed",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-2",
@@ -919,7 +929,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-3",
@@ -929,7 +939,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-4",
@@ -939,7 +949,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-5",
@@ -949,7 +959,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-6",
@@ -959,7 +969,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-7",
@@ -969,7 +979,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-8",
@@ -979,7 +989,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-9",
@@ -989,7 +999,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-10",
@@ -999,7 +1009,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-11",
@@ -1009,7 +1019,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     },
     {
       "id": "R-12",
@@ -1019,7 +1029,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 20:27:32"
+      "synced_at": "2026-05-06 20:36:42"
     }
   ],
   "decision_refs": [
@@ -1544,6 +1554,12 @@
       "target_id": "D-61",
       "ref_type": "references",
       "note": "**Cross-reference:** [D-31](#d-31-prefer-zero-deps-exact-pin), [D-42](#d-42-dependencies-documented-in-licensesyaml), [D-61](#d-61-dependency-vetting-checklist), `POLICY.md`."
+    },
+    {
+      "source_id": "D-66",
+      "target_id": "D-29",
+      "ref_type": "references",
+      "note": "**Cost:** Pre-push wall time grows by `flutter test --coverage` (currently ≈11 s on this tree). Acceptable within D-29's \u003c 90 s budget; reassess if it slips. Floor bumps require an explicit edit ..."
     },
     {
       "source_id": "D-7",
@@ -2593,20 +2609,20 @@
       "type": "task",
       "title": "ship matching bold weight to restore semantic bold rendering",
       "description": "Workaround in T-70 / `lib/src/terminal/src/ui/painter.dart` suppresses bold rendering entirely because Flutter`s synthetic bold drifts glyph advance widths and breaks the monospace cell grid. We lose semantic bold (bash prompts, emphasis in TUIs) as a side effect.\n\n**Acceptance:**\n- A bold-weight monospace face ships alongside the regular weight, with verified-equal advance widths at clide`s render size (cell-grid stable on bold).\n- The painter`s `bold: false` override is reverted; bold attributes from terminal escapes render visually bold.\n- Test: render a known-mixed-weight buffer and assert paragraph maxIntrinsicWidth matches the regular-weight measurement (cell drift = 0).\n\n**Options to evaluate:**\n- Re-add JetBrainsMono-Bold.ttf once we`ve verified its advance widths actually equal the Regular file at our cellSize. (We dropped it because the synthetic-bold issue obscured whether the bundled Bold actually matched.)\n- Switch to a variable JetBrainsMono and request a specific weight axis position.\n- Pick a different mono font whose Bold has guaranteed-equal advance (Berkeley Mono, IBM Plex Mono).\n\n---\nRefinement (2026-05-06):\n\nInvestigation showed the perceived over-bolding in the Claude pane was synthetic-bold smearing (Flutter overpaints when no Bold.ttf is registered), not aggressive-but-legitimate bold. Visual A/B confirms a real bold face renders crisp emphasis without smearing. No per-pane renderer config needed.\n\n**Concrete fix shape:**\n1. `pubspec.yaml` (family JetBrainsMono): register `JetBrainsMono-Bold.ttf` with `weight: 700` and `JetBrainsMono-BoldItalic.ttf` with `weight: 700, style: italic`. Files are already on disk under `assets/fonts/jetbrains_mono/`.\n2. `assets/licenses.yaml` JetBrainsMono entry: update `weights_bundled` to `[Regular, Italic, Bold, BoldItalic]` per D-42 (must match what is actually wired into the font family).\n3. `lib/src/terminal/src/ui/painter.dart:198`: revert the `bold: false` override and delete the now-stale comment block at lines 193-195.\n4. Test: render a mixed-weight buffer and assert `paragraph.maxIntrinsicWidth` matches the all-regular measurement (cell drift = 0). If parity fails, the fallback options stay open (variable JetBrainsMono / Berkeley Mono / IBM Plex Mono).\n\nWorkaround comment (`Skip bold rendering — Flutter`s synthetic bold...`) goes away in step 3.",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:53:21",
-      "updated_at": "2026-05-06 16:13:39"
+      "updated_at": "2026-05-06 20:29:28"
     },
     {
       "id": "T-74",
       "type": "task",
       "title": "forward real mouse events to TUI apps (not just PgUp/PgDown)",
       "description": "Mouse wheel scroll is currently translated to PgUp/PgDown key input in `lib/src/terminal/src/terminal_view.dart` as a pragmatic workaround — TUIs that capture mouse events without binding the wheel get a no-op otherwise. The downside: any TUI that does its own wheel handling (selection, click-to-position) loses the actual mouse coordinates because all we send is keyboard.\n\n**Acceptance:**\n- The terminal forwards `PointerScrollEvent` and click/drag/release as proper xterm mouse-protocol escape sequences (CSI `M` / SGR variant per the report mode the inner program declared via `?1000h` / `?1006h`).\n- Tested with `vim` (mouse mode `a`), `htop`, `less` — all should respond to mouse selection / click correctly.\n- Falls back to PgUp/PgDown only when the inner program has not declared a mouse mode.\n- The `mouseInput` API on `Terminal` is wired through `Listener.onPointerSignal` instead of being bypassed.\n\n**Why this isn`t the default already:** the bypass was the cheapest fix to get scroll working at all when the multitab/Scrollable ate scroll events. With those fixes landed, the right-shaped mouse forwarding is the proper next step.",
-      "status": "in_progress",
+      "status": "ready",
       "priority": "medium",
       "created_at": "2026-05-05 12:53:22",
-      "updated_at": "2026-05-06 16:13:39"
+      "updated_at": "2026-05-06 20:40:13"
     },
     {
       "id": "T-75",
@@ -2740,6 +2756,29 @@
       "decision_ref": "D-59",
       "created_at": "2026-05-06 14:34:35",
       "updated_at": "2026-05-06 15:10:35"
+    },
+    {
+      "id": "T-89",
+      "type": "epic",
+      "title": "drive line coverage from 35% to 95%",
+      "description": "Today: total line coverage **34.9%** (2984/8549 lines). Per area:\n\n| area | hit / total | % |\n|---|---|---|\n| `lib/src/terminal/` | 12 / 3167 | **0.4%** |\n| `lib/widgets/` | 537 / 1184 | 45.4% |\n| `lib/src/pql/` | 45 / 94 | 47.9% |\n| `lib/builtin/` | 269 / 550 | 48.9% |\n| `lib/kernel/` | 889 / 1691 | 52.6% |\n| `lib/src/daemon/` | 320 / 584 | 54.8% |\n| `lib/src/pty/` | 130 / 216 | 60.2% |\n| `lib/src/git/` | 356 / 518 | 68.7% |\n| `lib/src/ipc/` | 110 / 156 | 70.5% |\n| `lib/src/files/` | 98 / 133 | 73.7% |\n| `lib/extension/` | 41 / 54 | 75.9% |\n| `lib/src/editor/` | 107 / 129 | 82.9% |\n| `lib/src/panes/` | 70 / 73 | 95.9% |\n\nThe dominant hole is `lib/src/terminal/` — the terminal emulator code. Header still credits xterm.dart upstream, but per CLAUDE.md (\"Own the rendering stack\") and the explicit guidance attached to this epic: in-tree code is owned, no carve-outs, same coverage bar.\n\n**End state:**\n- Total line coverage ≥ 95% (no per-area carve-outs).\n- Pre-push gate hard-fails on coverage drops via a committed floor (`coverage/floor.txt`); floor ratchets up only.\n- Per D-66 the gate lands at the *current* floor in the first child ticket; subsequent floor bumps come with the test-writing children.\n\n**Acceptance criteria for closing this epic:**\n1. `coverage/floor.txt` reads `95` (or higher).\n2. `flutter test --coverage --exclude-tags forkpty` produces ≥95% line coverage.\n3. The pre-push gate computes coverage and rejects pushes below the floor.\n4. No new `// ignore:` / `// ignore_for_file:` / analysis-options excludes were added to dodge the gate. Any suppression added during this campaign needs explicit approval and an inline reason at the suppression site.\n\n**Strategy / child shape:**\nThe gate plumbing lands first so future test additions are visible as floor bumps. Then per-area sweeps — biggest holes first because they move the global number fastest, but each area is its own child ticket with its own scope.\n\n1. **Gate plumbing** (first child) — install the ratchet, lock in current floor, expose `make coverage-gate` and wire it into `make push-check`.\n2. **`lib/src/terminal/` sweep** (second child, by far the largest) — likely splits into sub-children once the area's structure is mapped (parser, buffer, painter, gesture handling, mouse reporting, escape sequences, cell-grid measurement, etc.).\n3. **Per-area sweeps** — claim a child ticket when starting an area; close when the area hits 95%. Order by impact: terminal → widgets → pql → builtin → kernel → daemon → pty → git → ipc → files → extension → editor.\n4. **Final ratchet** — once total ≥ 95%, set floor to 95 and close the epic.\n\n**Out of scope:**\n- Branch coverage (lcov data is weak for branch on Dart; line coverage is the contract).\n- Integration / E2E coverage (only widget + unit feed lcov).\n- `lib/test_app.dart` exclusion: verify in the gate child whether Dart's coverage tooling already excludes it; if not, decide explicitly rather than carve it out silently.\n\n**Cross-references:** D-66 (this epic's decision record), D-29 (pre-push gate scope), \"Own the rendering stack\" guardrail (CLAUDE.md).\n",
+      "status": "in_progress",
+      "priority": "high",
+      "decision_ref": "D-66",
+      "created_at": "2026-05-06 20:36:42",
+      "updated_at": "2026-05-06 20:40:16"
+    },
+    {
+      "id": "T-90",
+      "type": "task",
+      "parent_id": "T-89",
+      "title": "install ratcheting coverage gate at current floor",
+      "description": "First child of T-89. Locks in the no-regression contract before any test-writing children land — so subsequent floor bumps are explicit and reviewable.\n\n**What lands:**\n\n1. **`coverage/floor.txt`** — committed file containing today's actual line-coverage number (currently `34` after rounding down from 34.9% to give a small margin against measurement jitter; the gate child re-measures on first install and writes the exact number it observes minus 1 if needed).\n2. **`ci/coverage_gate.sh`** — runs `flutter test --coverage --exclude-tags forkpty`, parses `coverage/lcov.info` (sum of LH / sum of LF * 100), compares to `coverage/floor.txt`, exits non-zero if below, prints the actual percentage either way.\n3. **`Makefile` `coverage-gate` target** — wraps `ci/coverage_gate.sh` for local use.\n4. **`make push-check`** — adds `coverage-gate` to its dependency list. Pre-push hook (already wired via `.githooks/pre-push`) picks this up automatically.\n5. **`coverage/README.md`** — short note explaining the floor file, how to bump it (rule: bump only in the same commit that adds covering tests, with the bump reflecting the measured improvement), and the link to D-66.\n\n**Acceptance:**\n- `make coverage-gate` passes on a clean checkout (floor matches reality).\n- `make push-check` includes the gate.\n- A test deletion would fail `make coverage-gate` (verify by experiment, not just by reading the script — invariant has to actually hold).\n- Pre-push hook runs the gate (verify by attempting a deliberately-failing push and seeing it blocked).\n- `coverage/lcov.info` is gitignored (it's regenerated on every run; only `floor.txt` is committed).\n\n**Out of scope:**\n- Bumping the floor toward 95% — that's the test-writing children's job.\n- Branch coverage — D-66 explicitly excludes.\n- Per-area floors — D-66 chose a single global floor for simplicity.\n\n**Notes:**\n- `lcov` CLI is not installed on this dev machine; parser must be self-contained (awk or python). Don't introduce `lcov` as a dependency of the gate.\n- `coverage/lcov.info` is the standard Dart output path of `flutter test --coverage`. Don't relocate.\n- `flutter test --coverage` runs all tests including `forkpty`-tagged ones, which fail under the flutter test runner (see comment in `test/pty/session_test.dart`); `--exclude-tags forkpty` matches `ci/test.sh`. Forkpty-tagged tests don't currently feed lcov because they run via `dart test`; check whether their coverage can be merged later (separate ticket if not).\n",
+      "status": "in_progress",
+      "priority": "high",
+      "decision_ref": "D-66",
+      "created_at": "2026-05-06 20:38:14",
+      "updated_at": "2026-05-06 20:40:16"
     }
   ],
   "ticket_deps": null,
@@ -4285,6 +4324,73 @@
       "old_value": "backlog",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 16:13:39"
+    },
+    {
+      "ticket_id": "T-73",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-06 20:29:28"
+    },
+    {
+      "ticket_id": "T-89",
+      "field": "description",
+      "new_value": "Today: total line coverage **34.9%** (2984/8549 lines). Per area:\n\n| area | hit / total | % |\n|---|---|---|\n| `lib/src/terminal/` | 12 / 3167 | **0.4%** |\n| `lib/widgets/` | 537 / 1184 | 45.4% |\n| `lib/src/pql/` | 45 / 94 | 47.9% |\n| `lib/builtin/` | 269 / 550 | 48.9% |\n| `lib/kernel/` | 889 / 1691 | 52.6% |\n| `lib/src/daemon/` | 320 / 584 | 54.8% |\n| `lib/src/pty/` | 130 / 216 | 60.2% |\n| `lib/src/git/` | 356 / 518 | 68.7% |\n| `lib/src/ipc/` | 110 / 156 | 70.5% |\n| `lib/src/files/` | 98 / 133 | 73.7% |\n| `lib/extension/` | 41 / 54 | 75.9% |\n| `lib/src/editor/` | 107 / 129 | 82.9% |\n| `lib/src/panes/` | 70 / 73 | 95.9% |\n\nThe dominant hole is `lib/src/terminal/` — the terminal emulator code. Header still credits xterm.dart upstream, but per CLAUDE.md (\"Own the rendering stack\") and the explicit guidance attached to this epic: in-tree code is owned, no carve-outs, same coverage bar.\n\n**End state:**\n- Total line coverage ≥ 95% (no per-area carve-outs).\n- Pre-push gate hard-fails on coverage drops via a committed floor (`coverage/floor.txt`); floor ratchets up only.\n- Per D-66 the gate lands at the *current* floor in the first child ticket; subsequent floor bumps come with the test-writing children.\n\n**Acceptance criteria for closing this epic:**\n1. `coverage/floor.txt` reads `95` (or higher).\n2. `flutter test --coverage --exclude-tags forkpty` produces ≥95% line coverage.\n3. The pre-push gate computes coverage and rejects pushes below the floor.\n4. No new `// ignore:` / `// ignore_for_file:` / analysis-options excludes were added to dodge the gate. Any suppression added during this campaign needs explicit approval and an inline reason at the suppression site.\n\n**Strategy / child shape:**\nThe gate plumbing lands first so future test additions are visible as floor bumps. Then per-area sweeps — biggest holes first because they move the global number fastest, but each area is its own child ticket with its own scope.\n\n1. **Gate plumbing** (first child) — install the ratchet, lock in current floor, expose `make coverage-gate` and wire it into `make push-check`.\n2. **`lib/src/terminal/` sweep** (second child, by far the largest) — likely splits into sub-children once the area's structure is mapped (parser, buffer, painter, gesture handling, mouse reporting, escape sequences, cell-grid measurement, etc.).\n3. **Per-area sweeps** — claim a child ticket when starting an area; close when the area hits 95%. Order by impact: terminal → widgets → pql → builtin → kernel → daemon → pty → git → ipc → files → extension → editor.\n4. **Final ratchet** — once total ≥ 95%, set floor to 95 and close the epic.\n\n**Out of scope:**\n- Branch coverage (lcov data is weak for branch on Dart; line coverage is the contract).\n- Integration / E2E coverage (only widget + unit feed lcov).\n- `lib/test_app.dart` exclusion: verify in the gate child whether Dart's coverage tooling already excludes it; if not, decide explicitly rather than carve it out silently.\n\n**Cross-references:** D-66 (this epic's decision record), D-29 (pre-push gate scope), \"Own the rendering stack\" guardrail (CLAUDE.md).\n",
+      "changed_at": "2026-05-06 20:37:40"
+    },
+    {
+      "ticket_id": "T-90",
+      "field": "parent_id",
+      "new_value": "T-89",
+      "changed_at": "2026-05-06 20:38:24"
+    },
+    {
+      "ticket_id": "T-90",
+      "field": "description",
+      "new_value": "First child of T-89. Locks in the no-regression contract before any test-writing children land — so subsequent floor bumps are explicit and reviewable.\n\n**What lands:**\n\n1. **`coverage/floor.txt`** — committed file containing today's actual line-coverage number (currently `34` after rounding down from 34.9% to give a small margin against measurement jitter; the gate child re-measures on first install and writes the exact number it observes minus 1 if needed).\n2. **`ci/coverage_gate.sh`** — runs `flutter test --coverage --exclude-tags forkpty`, parses `coverage/lcov.info` (sum of LH / sum of LF * 100), compares to `coverage/floor.txt`, exits non-zero if below, prints the actual percentage either way.\n3. **`Makefile` `coverage-gate` target** — wraps `ci/coverage_gate.sh` for local use.\n4. **`make push-check`** — adds `coverage-gate` to its dependency list. Pre-push hook (already wired via `.githooks/pre-push`) picks this up automatically.\n5. **`coverage/README.md`** — short note explaining the floor file, how to bump it (rule: bump only in the same commit that adds covering tests, with the bump reflecting the measured improvement), and the link to D-66.\n\n**Acceptance:**\n- `make coverage-gate` passes on a clean checkout (floor matches reality).\n- `make push-check` includes the gate.\n- A test deletion would fail `make coverage-gate` (verify by experiment, not just by reading the script — invariant has to actually hold).\n- Pre-push hook runs the gate (verify by attempting a deliberately-failing push and seeing it blocked).\n- `coverage/lcov.info` is gitignored (it's regenerated on every run; only `floor.txt` is committed).\n\n**Out of scope:**\n- Bumping the floor toward 95% — that's the test-writing children's job.\n- Branch coverage — D-66 explicitly excludes.\n- Per-area floors — D-66 chose a single global floor for simplicity.\n\n**Notes:**\n- `lcov` CLI is not installed on this dev machine; parser must be self-contained (awk or python). Don't introduce `lcov` as a dependency of the gate.\n- `coverage/lcov.info` is the standard Dart output path of `flutter test --coverage`. Don't relocate.\n- `flutter test --coverage` runs all tests including `forkpty`-tagged ones, which fail under the flutter test runner (see comment in `test/pty/session_test.dart`); `--exclude-tags forkpty` matches `ci/test.sh`. Forkpty-tagged tests don't currently feed lcov because they run via `dart test`; check whether their coverage can be merged later (separate ticket if not).\n",
+      "changed_at": "2026-05-06 20:39:05"
+    },
+    {
+      "ticket_id": "T-74",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "ready",
+      "changed_at": "2026-05-06 20:39:45"
+    },
+    {
+      "ticket_id": "T-89",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 20:39:45"
+    },
+    {
+      "ticket_id": "T-90",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 20:39:45"
+    },
+    {
+      "ticket_id": "T-74",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "ready",
+      "changed_at": "2026-05-06 20:40:13"
+    },
+    {
+      "ticket_id": "T-89",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 20:40:16"
+    },
+    {
+      "ticket_id": "T-90",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 20:40:16"
     }
   ]
 }

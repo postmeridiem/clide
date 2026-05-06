@@ -60,4 +60,12 @@ Test pyramid, drivers, client-side constraint.
 - **Cost:** pql / daemon / extension tests stand up real subprocesses and real sockets locally — no mocked network convenience.
 - **Raised by:** 2026-04-21 planning.
 
+### D-66: Line coverage gate at 95%, ratcheted from current
+- **Date:** 2026-05-06
+- **Decision:** The pre-push gate runs `flutter test --coverage --exclude-tags forkpty`, parses `coverage/lcov.info`, and hard-fails if total line coverage drops below a committed floor at `coverage/floor.txt`. The floor starts at the actual current coverage (≈35%, dragged down by `lib/src/terminal/`'s 0.4%) and only ever ratchets up. The end target is 95%; getting there is tracked as a campaign of deliberate floor bumps under one epic ticket. **No carve-outs** — code under `lib/` is owned regardless of file-header attribution, including the terminal emulator port. Branch coverage is not gated (Dart's lcov output models it weakly). Lint suppressions to dodge the gate are never acceptable.
+- **Rationale:** A flat 95% threshold today blocks every push; an informational coverage report rots into noise. The committed-floor ratchet makes "don't make it worse" the durable rule and turns the journey to 95% into explicit, reviewed bumps rather than a single overnight cliff. Excluding `forkpty`-tagged tests matches `ci/test.sh` (forkpty + flutter test runner are incompatible — see `test/pty/session_test.dart`).
+- **Cost:** Pre-push wall time grows by `flutter test --coverage` (currently ≈11 s on this tree). Acceptable within D-29's < 90 s budget; reassess if it slips. Floor bumps require an explicit edit to `coverage/floor.txt` in the same commit that adds tests — so contributors can't silently raise it.
+- **Cross-reference:** [D-29](#d-29-pre-push-gate-fast-layer-only).
+- **Raised by:** 2026-05-06 — coverage triage during T-73 follow-up.
+
 ---

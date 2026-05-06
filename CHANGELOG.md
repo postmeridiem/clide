@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Pre-push coverage gate — `make push-check` (and the
+  `.githooks/pre-push` hook that calls it) now runs
+  `ci/coverage_gate.sh`, which fails if total line coverage drops
+  below the `coverage_floor:` value in `pubspec.yaml`. The floor
+  starts at 34% (today's measured floor) and only ratchets up; the
+  end target is 95% (D-66). `ci/test.sh` now writes
+  `coverage/lcov.info` as a side effect of the unit/widget/golden
+  run so the gate adds no extra test invocation.
 - Staged `dart doc` CI job — generates and uploads an HTML API
   reference for the public `lib/` surface. The step wraps
   `dart doc --validate-links` and grep-fails the build on any warning,
