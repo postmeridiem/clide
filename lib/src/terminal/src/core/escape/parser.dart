@@ -175,17 +175,17 @@ class EscapeParser {
     return true;
   }
 
-  /// `ESC >` Reset Application Keypad Mode (DECKPNM)
+  /// `ESC =` Set Application Keypad Mode (DECKPAM)
   ///
-  /// https://terminalguide.namepad.de/seq/a_esc_x3c_greater_than/
+  /// https://terminalguide.namepad.de/seq/a_esc_x3d_equals/
   bool _escHandleSetAppKeypadMode() {
     handler.setAppKeypadMode(true);
     return true;
   }
 
-  /// `ESC =` Set Application Keypad Mode (DECKPAM)
+  /// `ESC >` Reset Application Keypad Mode (DECKPNM)
   ///
-  /// https://terminalguide.namepad.de/seq/a_esc_x3d_equals/
+  /// https://terminalguide.namepad.de/seq/a_esc_x3c_greater_than/
   bool _escHandleResetAppKeypadMode() {
     handler.setAppKeypadMode(false);
     return true;
@@ -982,7 +982,6 @@ class EscapeParser {
       case 66:
         return handler.setAppKeypadMode(enabled);
       case 1000:
-      case 10061000:
         return enabled ? handler.setMouseMode(MouseMode.upDownScroll) : handler.setMouseMode(MouseMode.none);
       case 1001:
         return enabled ? handler.setMouseMode(MouseMode.upDownScroll) : handler.setMouseMode(MouseMode.none);
