@@ -18,7 +18,8 @@ void main() {
       expect(a.hashCode, b.hashCode);
       expect(a.isEqual(b), isTrue);
       expect(identical(a, a), isTrue); // hits the identity branch in ==
-      expect(a == 'CellOffset(3, 5)', isFalse); // hits the type-mismatch branch
+      const Object notACellOffset = 'CellOffset(3, 5)';
+      expect(a == notACellOffset, isFalse); // hits the type-mismatch branch
     });
 
     test('inequality for different coordinates', () {
@@ -119,7 +120,8 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
-      expect(a == 'segment', isFalse);
+      const Object notASegment = 'segment';
+      expect(a == notASegment, isFalse);
       expect(identical(a, a), isTrue);
     });
 
@@ -217,7 +219,8 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
-      expect(a == 'line range', isFalse);
+      const Object notALineRange = 'line range';
+      expect(a == notALineRange, isFalse);
       expect(identical(a, a), isTrue);
       expect(a.toString(), startsWith('Line Range('));
     });
@@ -304,7 +307,8 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
-      expect(a == 'block range', isFalse);
+      const Object notABlockRange = 'block range';
+      expect(a == notABlockRange, isFalse);
       expect(identical(a, a), isTrue);
       expect(a.toString(), startsWith('Block Range('));
     });
@@ -330,7 +334,8 @@ void main() {
       expect(a, b); // same begin + end via base ==
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
-      expect(a == 'not a range', isFalse); // type-mismatch branch
+      const Object notARange = 'not a range';
+      expect(a == notARange, isFalse); // type-mismatch branch
       expect(identical(a, a), isTrue);
       expect(a.toString(), 'Range(CellOffset(0, 0), CellOffset(1, 1))');
     });

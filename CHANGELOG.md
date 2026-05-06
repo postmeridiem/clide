@@ -45,6 +45,16 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   mounted via IndexedStack so switching tabs preserves their state
   (PTY connections, scroll position, etc.).
 
+### Fixed
+
+- `BufferLine.removeCells` / `insertCells` / `dispose` no longer skip
+  anchors due to concurrent list modification during iteration —
+  surfaced by unit tests added under T-91. Anchors disposed inside
+  the loop were unhooking themselves from the same list the loop was
+  iterating, causing later anchors to be silently skipped (no
+  reposition, no dispose) and leaving the buffer in an inconsistent
+  state. Iteration now snapshots the list first.
+
 ### Changed
 
 - Terminal panes now render bold attributes with a real bold weight —
