@@ -28,6 +28,7 @@ These are load-bearing. Violating any means the design is wrong, not the rule.
 - **Repo-is-the-workspace.** The git repo root is the workspace — no parallel "vault" concept.
 - **Ignore discipline.** Single knob: `ignore_files:` in `.pql/config.yaml`, ordered layering. See [`D-4`](decisions/architecture.md#d-4-ignore-file-strategy).
 - **Decision discipline.** All architectural choices live in `decisions/<domain>.md` as `D-NNN` records. Open questions as `Q-NNN`. Rejected alternatives as `R-NNN`. Claim new IDs via `pql decisions claim D <domain> "title"`. See [`decisions/README.md`](decisions/README.md).
+- **No pre-existing excuse.** Solo-dev repo — every failure encountered is yours to fix, regardless of who introduced it. If `make test` is red, a golden is broken, or `flutter analyze` shows a warning when you start working, the order is: **fix it first, then your work**. If you genuinely can't fix it in scope (separate ticket, large sweep, missing context), stop and surface it before continuing — don't push on top of broken state. "It was already broken" is not a reason to add more on top.
 
 ## Repo layout
 
