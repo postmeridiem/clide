@@ -29,16 +29,12 @@ import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart' as pkg_ffi;
 import 'kernel/kernel.dart';
 import 'src/pty/ffi/libc.dart' as libc;
-import 'kernel/src/events/bus.dart';
-import 'kernel/src/events/types.dart';
 import 'kernel/src/ipc/in_process.dart';
-import 'kernel/src/log.dart';
 import 'src/daemon/pane_commands.dart';
 import 'src/ipc/envelope.dart';
 import 'src/panes/event_sink.dart';
 import 'src/panes/registry.dart';
 import 'src/pty/session.dart';
-import 'kernel/src/toolchain.dart';
 import 'src/daemon/dispatcher.dart';
 import 'src/pty/env.dart' show expandedPath;
 
@@ -53,14 +49,21 @@ class ClideTestApp extends StatefulWidget {
 
 class _ClideTestAppState extends State<ClideTestApp> {
   final List<_TestResult> _results = [];
+  // Wired through the kernel logger so testmode output goes through
+  // the same plumbing as production code. Sink stays default (stderr);
+  // `make run-testmode` pipes 2>&1 so the harness still grep-checks
+  // the structured `[testmode:json]` line.
+  final _logger = Logger();
   bool _done = false;
+
+  void _say(String message) => _logger.info('testmode', message);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _runTests());
     Timer(_timeout, () {
-      print('[testmode] timeout reached — exiting');
+      _say('timeout reached — exiting');
       exit(1);
     });
   }
@@ -76,12 +79,12 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final runExtensions = runAll || category == 'extensions';
     final runTerminal = runAll || category == 'terminal';
 
-    print('[testmode] === ClideTestApp starting ===');
-    print('[testmode] workspace=$workDir');
-    print('[testmode] cwd=${Directory.current.path}');
-    print('[testmode] category=${runAll ? "all" : category}');
-    print('[testmode] expandedPath=$expandedPath');
-    print('[testmode]');
+    _say('=== ClideTestApp starting ===');
+    _say('workspace=$workDir');
+    _say('cwd=${Directory.current.path}');
+    _say('category=${runAll ? "all" : category}');
+    _say('expandedPath=$expandedPath');
+    _say('');
 
     final tc = Toolchain();
     tc.applyResolved(Toolchain.resolvePaths(workspaceRoot: workDir));
@@ -95,13 +98,19 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final failed = _results.where((r) => !r.ok).length;
     final failedNames = _results.where((r) => !r.ok).map((r) => r.name).toList();
 
-    print('[testmode] === done ($passed passed, $failed failed, ${_results.length} total) ===');
-    print('[testmode:json] ${jsonEncode({
-          'passed': passed,
-          'failed': failed,
-          'total': _results.length,
-          'failures': failedNames,
-        })}');
+    _say('=== done ($passed passed, $failed failed, ${_results.length} total) ===');
+    // Emitted under a distinct source so the harness's grep
+    // (`make run-testmode` checks for `"failed":0`) keeps working
+    // without depending on the human-readable lines above.
+    _logger.info(
+      'testmode:json',
+      jsonEncode({
+        'passed': passed,
+        'failed': failed,
+        'total': _results.length,
+        'failures': failedNames,
+      }),
+    );
 
     setState(() => _done = true);
     await Future<void>.delayed(const Duration(seconds: 2));
@@ -111,47 +120,47 @@ class _ClideTestAppState extends State<ClideTestApp> {
   // -- toolchain category ---------------------------------------------------
 
   Future<void> _runToolchainTests(Toolchain tc, String workDir) async {
-    print('[testmode] --- toolchain ---');
+    _say('--- toolchain ---');
     _log('toolchain.git', tc.git);
     _log('toolchain.pql', tc.pql);
     _log('toolchain.tmux', tc.tmux);
     _log('toolchain.ptyc', tc.ptyc);
     _log('toolchain.shell', tc.shell);
     _log('toolchain.missing', tc.missing.isEmpty ? 'none' : tc.missing.join(', '));
-    print('[testmode]');
+    _say('');
 
     await _testExists('git', tc.git);
     await _testExists('pql', tc.pql);
     await _testExists('tmux', tc.tmux);
     await _testExists('ptyc', tc.ptyc);
     await _testExists('shell', tc.shell);
-    print('[testmode]');
+    _say('');
 
     await _testExec('git --version', tc.git, ['--version'], workDir);
     await _testExec('pql --version', tc.pql, ['--version'], workDir);
     await _testExec('tmux -V', tc.tmux, ['-V'], workDir);
     await _testExec('ptyc (no args)', tc.ptyc, [], workDir);
     await _testExec('shell --version', tc.shell, ['--version'], workDir);
-    print('[testmode]');
+    _say('');
 
     // Shell passthrough — use the resolved shell, not a hardcoded path
     await _testExec('shell -c git', tc.shell, ['-c', '${tc.git} --version'], workDir);
     await _testExec('shell -c pql', tc.shell, ['-c', '${tc.pql} --version'], workDir);
     await _testExec('shell -c tmux', tc.shell, ['-c', '${tc.tmux} -V'], workDir);
     await _testExec('shell -c git (bare)', tc.shell, ['-c', 'git --version'], workDir);
-    print('[testmode]');
+    _say('');
 
     // git with env (dugite needs GIT_EXEC_PATH)
     await _testExec('git --version (env)', tc.git, ['--version'], workDir, env: tc.gitEnv);
     await _testExec('git status (env)', tc.git, ['status', '--porcelain'], workDir, env: tc.gitEnv);
     await _testExec('git rev-parse (env)', tc.git, ['rev-parse', '--show-toplevel'], workDir, env: tc.gitEnv);
-    print('[testmode]');
+    _say('');
 
     _log('gitEnv', '${tc.gitEnv}');
-    print('[testmode]');
+    _say('');
 
     // Boot sequence simulation tests
-    print('[testmode] --- boot sequence ---');
+    _say('--- boot sequence ---');
 
     await _testAsync('compute(resolveToolchainPaths)', () async {
       final paths = await compute(resolveToolchainPaths, workDir);
@@ -193,13 +202,13 @@ class _ClideTestAppState extends State<ClideTestApp> {
       return 'exit=$exitCode stdout=${stdout.trim().split('\n').first}';
     });
 
-    print('[testmode]');
+    _say('');
   }
 
   // -- ipc category ---------------------------------------------------------
 
   Future<void> _runIpcTests(String workDir) async {
-    print('[testmode] --- ipc ---');
+    _say('--- ipc ---');
     final dispatcher = DaemonDispatcher();
 
     // ping round-trip
@@ -236,13 +245,13 @@ class _ClideTestAppState extends State<ClideTestApp> {
     final isReq = decoded is IpcRequest && decoded.cmd == 'ping' && decoded.id == 'test-ping-1';
     _addResult('ipc encode/decode', isReq, isReq ? 'round-trip ok' : 'mismatch');
 
-    print('[testmode]');
+    _say('');
   }
 
   // -- extensions category --------------------------------------------------
 
   Future<void> _runExtensionTests(String workDir, Toolchain tc) async {
-    print('[testmode] --- extensions ---');
+    _say('--- extensions ---');
 
     // Theme loading
     try {
@@ -319,13 +328,13 @@ class _ClideTestAppState extends State<ClideTestApp> {
       _addResult('ext:boot', false, '$e');
     }
 
-    print('[testmode]');
+    _say('');
   }
 
   // -- terminal category ----------------------------------------------------
 
   Future<void> _runTerminalTests(Toolchain tc, String workDir) async {
-    print('[testmode] --- terminal ---');
+    _say('--- terminal ---');
 
     // Test PTY via InProcessClient — same path as the real app.
     await _testAsync('pane.spawn via IPC', () async {
@@ -343,7 +352,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
         'argv': [tc.shell],
         'kind': 'terminal',
       });
-      print('[testmode]   spawn: ok=${spawnResp.ok} ${spawnResp.ok ? spawnResp.data : spawnResp.error?.message}');
+      _say('  spawn: ok=${spawnResp.ok} ${spawnResp.ok ? spawnResp.data : spawnResp.error?.message}');
       if (!spawnResp.ok) {
         return 'spawn failed: ${spawnResp.error?.message}';
       }
@@ -360,9 +369,9 @@ class _ClideTestAppState extends State<ClideTestApp> {
         }
       });
       await Future.delayed(const Duration(seconds: 3));
-      print('[testmode]   events=$eventCount output_parts=${outputParts.length} bytes=${outputParts.join().length}');
+      _say('  events=$eventCount output_parts=${outputParts.length} bytes=${outputParts.join().length}');
       if (outputParts.isNotEmpty) {
-        print('[testmode]   first output: ${outputParts.first.substring(0, outputParts.first.length.clamp(0, 80))}');
+        _say('  first output: ${outputParts.first.substring(0, outputParts.first.length.clamp(0, 80))}');
       }
       await sub.cancel();
       paneRegistry.shutdown();
@@ -393,22 +402,22 @@ class _ClideTestAppState extends State<ClideTestApp> {
         cwd: workDir,
         ptycPath: tc.ptyc,
       );
-      print('[testmode]   session pid=${session.pid} masterFd exists');
+      _say('  session pid=${session.pid} masterFd exists');
       final bytes = <int>[];
       final done = Completer<void>();
       session.output.listen(
         (chunk) {
           bytes.addAll(chunk);
-          print('[testmode]   got ${chunk.length} bytes');
+          _say('  got ${chunk.length} bytes');
         },
         onDone: () {
-          print('[testmode]   stream done');
+          _say('  stream done');
           if (!done.isCompleted) done.complete();
         },
-        onError: (e) => print('[testmode]   stream error: $e'),
+        onError: (e) => _say('  stream error: $e'),
       );
       await done.future.timeout(const Duration(seconds: 5), onTimeout: () {
-        print('[testmode]   timeout waiting for output, got ${bytes.length} bytes so far');
+        _say('  timeout waiting for output, got ${bytes.length} bytes so far');
       });
       await session.close();
       final output = utf8.decode(bytes, allowMalformed: true);
@@ -473,25 +482,25 @@ class _ClideTestAppState extends State<ClideTestApp> {
       });
     } // end !Platform.isMacOS
 
-    print('[testmode]');
+    _say('');
   }
 
   // -- helpers --------------------------------------------------------------
 
   void _log(String key, String value) {
-    print('[testmode] $key = $value');
+    _say('$key = $value');
   }
 
   void _addResult(String name, bool ok, String output) {
     final r = _TestResult(name: name, detail: '', ok: ok, output: output);
-    print('[testmode] ${ok ? "PASS" : "FAIL"} | $name | $output');
+    _say('${ok ? "PASS" : "FAIL"} | $name | $output');
     setState(() => _results.add(r));
   }
 
   Future<void> _testExists(String name, String path) async {
     final exists = File(path).existsSync();
     final r = _TestResult(name: '$name exists', detail: path, ok: exists, output: exists ? 'yes' : 'NO');
-    print('[testmode] exists | $name | path=$path | ${exists ? "yes" : "NO"}');
+    _say('exists | $name | path=$path | ${exists ? "yes" : "NO"}');
     setState(() => _results.add(r));
   }
 
@@ -514,15 +523,15 @@ class _ClideTestAppState extends State<ClideTestApp> {
       final firstLine = stdout.isNotEmpty ? stdout.split('\n').first : (stderr.isNotEmpty ? stderr.split('\n').first : '(empty)');
       final ok = r.exitCode == 0 || r.exitCode == 1;
       final result = _TestResult(name: label, detail: '$bin ${args.join(" ")}', ok: ok, output: 'exit=${r.exitCode} $firstLine');
-      print('[testmode] exec  | $label | exit=${r.exitCode} | ${ok ? "OK" : "FAIL"} | $firstLine');
+      _say('exec  | $label | exit=${r.exitCode} | ${ok ? "OK" : "FAIL"} | $firstLine');
       setState(() => _results.add(result));
     } on ProcessException catch (e) {
       final result = _TestResult(name: label, detail: '$bin ${args.join(" ")}', ok: false, output: 'ProcessException: ${e.message}');
-      print('[testmode] exec  | $label | EXCEPTION | ${e.message}');
+      _say('exec  | $label | EXCEPTION | ${e.message}');
       setState(() => _results.add(result));
     } on TimeoutException {
       final result = _TestResult(name: label, detail: '$bin ${args.join(" ")}', ok: false, output: 'TIMEOUT (5s)');
-      print('[testmode] exec  | $label | TIMEOUT');
+      _say('exec  | $label | TIMEOUT');
       setState(() => _results.add(result));
     }
   }
