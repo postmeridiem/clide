@@ -52,6 +52,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   on the clide socket, honouring D-41's "closing a secondary kills
   that tmux session" lifecycle. Previously `pane.close` only killed
   the ptyc-spawned tmux client and the server-side session leaked.
+- Cold-start reap: every clide launch kills any leftover secondary
+  tmux sessions for the current repo before spawning new ones, so
+  D-41's "secondary numbering resets between runs" holds even after
+  an abrupt previous exit (kill -9, crash, force-quit).
+- `claude.kill-all-sessions` command now actually kills the
+  server-side tmux sessions for the repo, not just the panes.
 - Terminal cell grid no longer drifts on bold text — bold rendering
   is suppressed at the painter level since synthetic bold (with no
   Bold.ttf registered) shifts glyph advance widths.
