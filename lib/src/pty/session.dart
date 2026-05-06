@@ -184,7 +184,7 @@ class PtySession {
       while (written < bytes.length) {
         final n = libc.write(
           _masterFd,
-          buf.elementAt(written),
+          buf + written,
           bytes.length - written,
         );
         if (n < 0) {

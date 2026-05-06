@@ -1,6 +1,5 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
-import 'dart:collection';
 import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
@@ -8,7 +7,7 @@ import 'package:flutter/widgets.dart';
 class _LruCache<K, V> {
   _LruCache(this._maxSize);
   final int _maxSize;
-  final _map = LinkedHashMap<K, V>();
+  final _map = <K, V>{};
 
   V? operator [](K key) {
     final value = _map.remove(key);

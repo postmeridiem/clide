@@ -214,9 +214,7 @@ class _ClaudePaneState extends State<ClaudePane> {
           final b64 = e.data['bytes_b64'];
           if (b64 is String) {
             _outputBuf.write(utf8.decode(base64Decode(b64), allowMalformed: true));
-            if (_flushTimer == null) {
-              _flushTimer = Timer(Duration.zero, _flushOutput);
-            }
+            _flushTimer ??= Timer(Duration.zero, _flushOutput);
           }
         case 'pane.exit':
           setState(() => _statusLine = widget.isPrimary ? 'session exited — restart clide to retry' : 'session exited');

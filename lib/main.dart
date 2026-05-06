@@ -73,7 +73,7 @@ Future<void> main() async {
   InProcessClient? ipcClient;
   DaemonBus? daemonBus;
 
-  DaemonDispatcher _buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot) {
+  DaemonDispatcher buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
     final paneRegistry = PaneRegistry(events: eventSink);
@@ -101,7 +101,7 @@ Future<void> main() async {
         : (log, events) {
             daemonBus = events;
             final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
-            final dispatcher = _buildDispatcher(events, toolchain, workRoot);
+            final dispatcher = buildDispatcher(events, toolchain, workRoot);
             ipcClient = InProcessClient(log: log, events: events, dispatcher: dispatcher);
             return ipcClient!;
           },
@@ -109,7 +109,7 @@ Future<void> main() async {
         ? null
         : (path) async {
             if (ipcClient == null || daemonBus == null) return;
-            ipcClient!.dispatcher = _buildDispatcher(daemonBus!, toolchain, Directory(path));
+            ipcClient!.dispatcher = buildDispatcher(daemonBus!, toolchain, Directory(path));
           },
   );
 

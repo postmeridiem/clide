@@ -123,8 +123,9 @@ class _DecisionsViewState extends State<DecisionsView> {
     final tokens = ClideTheme.of(context).surface;
     if (_loading) return const Center(child: ClideText('Loading decisions...', muted: true));
     if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
-    if (_decisions.isEmpty)
+    if (_decisions.isEmpty) {
       return const Padding(padding: EdgeInsets.all(12), child: ClideText('No decisions found.\nRun `pql decisions sync` to index.', muted: true));
+    }
 
     final lf = _filter.toLowerCase();
     final hasFilter = lf.isNotEmpty;

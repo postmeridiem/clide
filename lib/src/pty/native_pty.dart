@@ -216,9 +216,13 @@ class NativePty {
     ffi.Pointer ws,
   ) {
     malloc.free(shell);
-    for (var i = 0; i < argc; i++) malloc.free(argv[i]);
+    for (var i = 0; i < argc; i++) {
+      malloc.free(argv[i]);
+    }
     malloc.free(argv);
-    for (var i = 0; i < envc; i++) malloc.free(envp[i]);
+    for (var i = 0; i < envc; i++) {
+      malloc.free(envp[i]);
+    }
     malloc.free(envp);
     malloc.free(wd);
     calloc.free(fdOut);
@@ -298,12 +302,14 @@ class NativePty {
     if (_dead || bytes.isEmpty) return 0;
     final buf = malloc<ffi.Uint8>(bytes.length);
     try {
-      for (var i = 0; i < bytes.length; i++) buf[i] = bytes[i];
+      for (var i = 0; i < bytes.length; i++) {
+        buf[i] = bytes[i];
+      }
       var written = 0;
       while (written < bytes.length) {
         final n = _nativeWrite(
           _fd,
-          buf.elementAt(written).cast(),
+          (buf + written).cast(),
           bytes.length - written,
         );
         if (n < 0) {

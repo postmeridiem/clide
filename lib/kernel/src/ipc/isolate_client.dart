@@ -13,16 +13,15 @@ import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/events/bus.dart';
 import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/ipc/client.dart';
-import 'package:clide/kernel/src/log.dart';
 
 class IsolateClient extends DaemonClient {
   IsolateClient({
-    required Logger log,
-    required DaemonBus events,
+    required super.log,
+    required super.events,
     required SendPort backendPort,
   })  : _backendPort = backendPort,
         _events = events,
-        super(socketPath: '', log: log, events: events);
+        super(socketPath: '');
 
   final SendPort _backendPort;
   final DaemonBus _events;

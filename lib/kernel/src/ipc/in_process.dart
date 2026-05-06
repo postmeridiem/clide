@@ -1,20 +1,14 @@
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/ipc/client.dart';
-import 'package:clide/kernel/src/events/bus.dart';
-import 'package:clide/kernel/src/log.dart';
 
 class InProcessClient extends DaemonClient {
   InProcessClient({
-    required Logger log,
-    required DaemonBus events,
-    required DaemonDispatcher dispatcher,
-  })  : _dispatcher = dispatcher,
-        super(socketPath: '', log: log, events: events);
+    required super.log,
+    required super.events,
+    required this.dispatcher,
+  }) : super(socketPath: '');
 
-  DaemonDispatcher _dispatcher;
-
-  DaemonDispatcher get dispatcher => _dispatcher;
-  set dispatcher(DaemonDispatcher d) => _dispatcher = d;
+  DaemonDispatcher dispatcher;
   int _nextReqId = 0;
 
   @override
@@ -30,6 +24,6 @@ class InProcessClient extends DaemonClient {
   Future<IpcResponse> request(String cmd, {Map<String, Object?> args = const {}}) {
     final id = '${_nextReqId++}';
     final req = IpcRequest(id: id, cmd: cmd, args: args);
-    return _dispatcher.dispatch(req);
+    return dispatcher.dispatch(req);
   }
 }
