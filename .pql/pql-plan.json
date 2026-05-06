@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T13:21:08Z",
+  "exported_at": "2026-05-06T13:38:19Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2073,11 +2073,11 @@
       "type": "task",
       "parent_id": "T-3",
       "title": "secondary Claude pane UI wiring",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-06 12:20:58"
+      "updated_at": "2026-05-06 13:21:15"
     },
     {
       "id": "T-25",
@@ -2691,6 +2691,24 @@
       "priority": "medium",
       "created_at": "2026-05-06 10:16:02",
       "updated_at": "2026-05-06 12:17:27"
+    },
+    {
+      "id": "T-85",
+      "type": "task",
+      "title": "consolidate theme-ui into ui-design skill with theme/surface/geometry/icons references",
+      "status": "in_progress",
+      "priority": "medium",
+      "created_at": "2026-05-06 13:28:58",
+      "updated_at": "2026-05-06 13:29:05"
+    },
+    {
+      "id": "T-86",
+      "type": "task",
+      "title": "codify UI spacing constants (gaps, paddings, control sizes)",
+      "status": "backlog",
+      "priority": "medium",
+      "created_at": "2026-05-06 13:28:58",
+      "updated_at": "2026-05-06 13:28:58"
     }
   ],
   "ticket_deps": null,
@@ -4065,6 +4083,20 @@
       "old_value": "ready",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 12:20:58"
+    },
+    {
+      "ticket_id": "T-24",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-06 13:21:15"
+    },
+    {
+      "ticket_id": "T-85",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 13:29:05"
     }
   ]
 }

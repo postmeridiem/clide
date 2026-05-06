@@ -28,6 +28,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   type, supports pinned/non-closeable tabs (primary), drag-reorder,
   close × on hover, and an optional `+` add button. Used by the
   Claude pane to render primary + secondaries.
+- `MultitabPane.keepAlive` mode — when set, all entry bodies stay
+  mounted via IndexedStack so switching tabs preserves their state
+  (PTY connections, scroll position, etc.).
+
+### Changed
+
+- Claude pane uses `MultitabPane` for primary + secondaries — drops
+  ~100 lines of bespoke tab-strip code, gains drag-to-reorder.
 
 ### Changed
 
