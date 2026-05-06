@@ -78,7 +78,14 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
       - run: dart pub get
-      - run: dart doc --validate-links
+      - name: dart doc --validate-links (fail on warning)
+        run: |
+          set -o pipefail
+          dart doc --validate-links 2>&1 | tee dartdoc.log
+          if grep -q "^  warning:" dartdoc.log; then
+            echo "::error::dartdoc emitted warnings — see log above"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: dart-api-docs
