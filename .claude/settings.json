@@ -29,7 +29,8 @@
       "Bash(flutter *)",
       "Bash(make *)",
       "Bash(pql)",
-      "Bash(pql *)"
+      "Bash(pql *)",
+      "Bash(awk *)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
