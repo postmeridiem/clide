@@ -1,0 +1,11 @@
+#!/bin/sh
+# --- pql plan import ---
+# Auto-installed by pql init. Imports planning state when the
+# snapshot file changes on pull/merge. Safe no-op if pql is absent.
+if command -v pql >/dev/null 2>&1; then
+    changed=$(git diff-tree -r --name-only ORIG_HEAD HEAD -- .pql/pql-plan.json 2>/dev/null)
+    if [ -n "$changed" ]; then
+        pql plan import 2>/dev/null
+    fi
+fi
+# --- end pql ---

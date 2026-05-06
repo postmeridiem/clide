@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T14:48:06Z",
+  "exported_at": "2026-05-06T15:18:24Z",
   "decisions": [
     {
       "id": "D-1",
@@ -9,7 +9,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-3",
@@ -19,7 +19,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-4",
@@ -29,7 +29,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-5",
@@ -39,7 +39,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-6",
@@ -49,7 +49,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-7",
@@ -59,7 +59,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-8",
@@ -69,7 +69,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-9",
@@ -79,7 +79,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-10",
@@ -89,7 +89,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-11",
@@ -99,7 +99,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-12",
@@ -109,7 +109,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-13",
@@ -119,7 +119,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-14",
@@ -129,7 +129,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-15",
@@ -139,7 +139,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-16",
@@ -149,7 +149,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-17",
@@ -159,7 +159,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-18",
@@ -169,7 +169,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-19",
@@ -179,7 +179,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-20",
@@ -189,7 +189,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-21",
@@ -199,7 +199,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-22",
@@ -209,7 +209,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-23",
@@ -219,7 +219,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-24",
@@ -229,7 +229,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-25",
@@ -239,7 +239,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-26",
@@ -249,7 +249,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-27",
@@ -259,7 +259,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-28",
@@ -269,7 +269,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-29",
@@ -279,7 +279,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-30",
@@ -289,7 +289,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-31",
@@ -299,7 +299,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-32",
@@ -309,7 +309,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-33",
@@ -319,7 +319,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-34",
@@ -329,7 +329,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-35",
@@ -339,7 +339,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-36",
@@ -349,7 +349,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-37",
@@ -359,7 +359,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-38",
@@ -369,7 +369,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-39",
@@ -379,7 +379,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-40",
@@ -389,7 +389,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-41",
@@ -399,7 +399,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-42",
@@ -409,7 +409,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-43",
@@ -419,7 +419,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-44",
@@ -429,7 +429,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-45",
@@ -439,7 +439,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-46",
@@ -449,7 +449,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-47",
@@ -459,7 +459,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-48",
@@ -469,7 +469,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-49",
@@ -479,7 +479,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-50",
@@ -489,7 +489,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-51",
@@ -499,7 +499,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-52",
@@ -509,7 +509,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-53",
@@ -519,7 +519,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-54",
@@ -529,7 +529,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-55",
@@ -539,7 +539,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-56",
@@ -549,7 +549,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-57",
@@ -559,7 +559,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-58",
@@ -569,7 +569,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-59",
@@ -579,7 +579,7 @@
       "status": "active",
       "date": "2026-04-25",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-60",
@@ -589,7 +589,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-61",
@@ -599,7 +599,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-62",
@@ -609,7 +609,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-63",
@@ -619,7 +619,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-64",
@@ -629,7 +629,7 @@
       "status": "active",
       "date": "2026-05-03",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "D-65",
@@ -639,7 +639,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-1",
@@ -648,7 +648,7 @@
       "title": "Authorisation granularity on the IPC socket",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-2",
@@ -657,7 +657,7 @@
       "title": "Back-pressure on event streams",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-3",
@@ -666,7 +666,7 @@
       "title": "Event persistence + audit/undo",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-4",
@@ -675,7 +675,7 @@
       "title": "`.canvas` schema compatibility with Obsidian",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-5",
@@ -684,7 +684,7 @@
       "title": "IPC wire-format stability + `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-6",
@@ -693,7 +693,7 @@
       "title": "Window chrome — native frame vs frameless custom",
       "status": "resolved",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-7",
@@ -702,7 +702,7 @@
       "title": "macOS app bundle signing / notarisation",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-8",
@@ -711,7 +711,7 @@
       "title": "Extension API shape — widgets, subcommands, both?",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-9",
@@ -720,7 +720,7 @@
       "title": "Lua runtime vendoring",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-10",
@@ -729,7 +729,7 @@
       "title": "Extension manifest `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-11",
@@ -738,7 +738,7 @@
       "title": "Coverage gates — hard thresholds vs soft reporting",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-12",
@@ -747,7 +747,7 @@
       "title": "Screen-reader automation (axe-core via Playwright)",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-13",
@@ -756,7 +756,7 @@
       "title": "Web production-mode a11y",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-14",
@@ -765,7 +765,7 @@
       "title": "i18n plurals / gender / date-format tooling",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-06 14:37:05"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-15",
@@ -774,7 +774,7 @@
       "title": "Editor tab — full LSP vs tree-sitter-only highlight",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-16",
@@ -783,7 +783,7 @@
       "title": "`tree-sitter-dart` grammar maintenance",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-17",
@@ -792,7 +792,7 @@
       "title": "Icon set growth",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-18",
@@ -801,7 +801,7 @@
       "title": "Theme hot-reload in release builds",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-19",
@@ -810,7 +810,7 @@
       "title": "(withdrawn)",
       "status": "resolved",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-20",
@@ -819,7 +819,7 @@
       "title": "Kernel DB service — namespaced SQL access?",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-21",
@@ -828,7 +828,7 @@
       "title": "Pql absorbs planning vs keeps separate",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-22",
@@ -837,7 +837,7 @@
       "title": "Ticket persistence strategy",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-23",
@@ -846,7 +846,7 @@
       "title": "SSH-remote development — run clide against a remote workspace",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-25",
@@ -855,7 +855,7 @@
       "title": "Body text face — mono everywhere vs Josefin Sans UI + mono code",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-26",
@@ -864,7 +864,7 @@
       "title": "Small screen layout (\u003c 1000px)",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-27",
@@ -873,7 +873,7 @@
       "title": "Two-editor split",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-28",
@@ -882,7 +882,7 @@
       "title": "Terminal strip scope — shell only or logs/errors/tests",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-29",
@@ -891,7 +891,7 @@
       "title": "Branch picker location",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-30",
@@ -900,7 +900,7 @@
       "title": "Focus behavior when editor is dirty and viewer is peeked",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "Q-31",
@@ -909,7 +909,7 @@
       "title": "XWayland fallback for frameless — proper Wayland protocol needed",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-2",
@@ -919,7 +919,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-3",
@@ -929,7 +929,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-4",
@@ -939,7 +939,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-5",
@@ -949,7 +949,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-6",
@@ -959,7 +959,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-7",
@@ -969,7 +969,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-8",
@@ -979,7 +979,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-9",
@@ -989,7 +989,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-10",
@@ -999,7 +999,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-11",
@@ -1009,7 +1009,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     },
     {
       "id": "R-12",
@@ -1019,7 +1019,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 14:37:06"
+      "synced_at": "2026-05-06 15:06:40"
     }
   ],
   "decision_refs": [
@@ -1832,7 +1832,7 @@
       "priority": "medium",
       "decision_ref": "D-39",
       "created_at": "2026-04-22 09:41:51",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-2",
@@ -1842,7 +1842,7 @@
       "priority": "medium",
       "decision_ref": "D-7",
       "created_at": "2026-04-22 11:45:26",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-3",
@@ -1852,7 +1852,7 @@
       "priority": "medium",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-4",
@@ -1862,7 +1862,7 @@
       "priority": "medium",
       "decision_ref": "D-6",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-5",
@@ -1872,7 +1872,7 @@
       "priority": "medium",
       "decision_ref": "D-13",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-6",
@@ -1882,27 +1882,29 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-7",
       "type": "epic",
       "title": "Tier 5 — canvas and graph view",
+      "description": "Tier 5 of the build plan: bring the canvas pane (Obsidian-style spatial whiteboard) and the graph view (force-directed view of vault links) to feature parity.\n\n**Canvas pane (`builtin.canvas`):**\n- Render `.canvas` files (Obsidian-compatible JSON) — nodes (note, text, group, image), edges, layout state.\n- Pan/zoom via `InteractiveViewer`; node selection, drag, resize.\n- Edit affordances: add note from file picker, add text node, draw edge between nodes.\n- Persist layout back to the `.canvas` file on disk.\n\n**Graph view (`builtin.graph`):**\n- Force-directed layout of the current vault (or a filtered subset) — nodes are notes, edges are wikilinks.\n- Hover highlights connected subgraph; click opens the note in the editor.\n- Filter pane: tag include/exclude, file glob, depth-from-active.\n- pql provides the link data (`pql backlinks` / `pql outlinks`); rendering owned in-app.\n\nBoth panes use the existing `MultitabPane` (T-83) for tab management once they ship. Each lives in its own slot per D-47 (canvas in workspace, graph in context panel).",
       "status": "backlog",
       "priority": "medium",
       "decision_ref": "D-17",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:08:37"
     },
     {
       "id": "T-8",
       "type": "epic",
       "title": "Tier 6 — extension API, settings, theming, distributable builds",
+      "description": "Tier 6 of the build plan: the things that make clide a real product instead of a working prototype.\n\n**Extension API (third-party Lua):**\n- The Lua runtime supporter tool (D-19) lands as a peer of pql/ptyc.\n- Manifest schema, capability gating, sandboxed FS/IPC access.\n- Same TabContribution / CommandContribution / etc. surface as built-in Dart extensions (D-15).\n- Marketplace / distribution story is OUT OF SCOPE for Tier 6 — local-install only.\n\n**Settings UI (`builtin.settings-ui`):**\n- Schema-driven settings panel reading from the kernel SettingsStore.\n- Render strategy: form fields keyed off the schema each subsystem registers.\n- Edits write back to `.clide/settings.yaml`.\n\n**Theming UI (`builtin.theme-picker` extends):**\n- Live preview of the four bundled themes (D-44).\n- Custom theme: import YAML, validate against schema, register at runtime.\n- Per-component override surface (long horizon).\n\n**Distributable builds:**\n- AppImage / Flatpak for Linux, .dmg for macOS — see T-46.\n- Self-update mechanism — see T-47.\n- License manifest auto-regen as part of the release build.\n\nBig epic — children land incrementally. Most concrete child tickets already exist; this is the umbrella.",
       "status": "backlog",
       "priority": "medium",
       "decision_ref": "D-15",
       "created_at": "2026-04-22 11:45:41",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:08:53"
     },
     {
       "id": "T-9",
@@ -1913,7 +1915,7 @@
       "priority": "medium",
       "decision_ref": "D-34",
       "created_at": "2026-04-22 11:47:02",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-10",
@@ -1924,7 +1926,7 @@
       "priority": "medium",
       "decision_ref": "D-40",
       "created_at": "2026-04-22 11:47:02",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-11",
@@ -1935,7 +1937,7 @@
       "priority": "medium",
       "decision_ref": "D-39",
       "created_at": "2026-04-22 11:47:02",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-12",
@@ -1946,7 +1948,7 @@
       "priority": "medium",
       "decision_ref": "D-42",
       "created_at": "2026-04-22 11:47:03",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-13",
@@ -1957,7 +1959,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-14",
@@ -1968,7 +1970,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-15",
@@ -1979,7 +1981,7 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-16",
@@ -1990,18 +1992,19 @@
       "priority": "medium",
       "decision_ref": "D-3",
       "created_at": "2026-04-22 11:47:18",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-17",
       "type": "task",
       "parent_id": "T-8",
       "title": "add dart doc generation to CI",
+      "description": "Wire `dart doc` into the CI pipeline so the public API surface (everything in lib/*.dart barrel exports) renders to HTML on every push to main.\n\n**Acceptance:**\n- New CI step in `.gitea/workflows/test.yml` runs `dart doc lib/` and uploads the generated `doc/api/` artefact.\n- Documentation comments on public APIs are validated (no broken references); `dart doc --validate-links` part of the run.\n- Generated docs published somewhere browsable — Gitea Pages, GitHub Pages once the repo moves, or an S3-style static host (decision deferred until Gitea actions land per D-32).\n\n**Not in scope:** writing missing docstrings (separate sweep), private-API docs, package.json-style metadata for pub.dev (we never publish to pub.dev — single binary).",
       "status": "ready",
       "priority": "medium",
       "decision_ref": "D-32",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-05-03 20:37:03"
+      "updated_at": "2026-05-06 15:08:22"
     },
     {
       "id": "T-18",
@@ -2011,7 +2014,7 @@
       "priority": "medium",
       "decision_ref": "D-5",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-05-05 12:59:05"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-19",
@@ -2022,7 +2025,7 @@
       "priority": "medium",
       "decision_ref": "D-44",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-20",
@@ -2033,7 +2036,7 @@
       "priority": "medium",
       "decision_ref": "D-45",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-21",
@@ -2044,7 +2047,7 @@
       "priority": "medium",
       "decision_ref": "D-43",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-06 09:17:22"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-22",
@@ -2055,18 +2058,19 @@
       "priority": "medium",
       "decision_ref": "D-6",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-23",
       "type": "task",
       "parent_id": "T-4",
       "title": "wire command palette keybinding",
+      "description": "D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.\n\n**Acceptance:**\n- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.\n- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.\n- Commands listed are everything registered via `CommandContribution` across all activated extensions.\n- Fuzzy match against command title; recent / pinned commands float to the top.\n\n**Implementation hints:**\n- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).\n- Keybinding goes in `lib/kernel/src/commands/keybindings.dart` per the D-54 keymap.\n- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).",
       "status": "backlog",
       "priority": "medium",
       "decision_ref": "D-6",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:09:05"
     },
     {
       "id": "T-24",
@@ -2077,7 +2081,7 @@
       "priority": "medium",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-06 13:21:15"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-25",
@@ -2088,7 +2092,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:24",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-26",
@@ -2099,7 +2103,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:33",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-27",
@@ -2110,7 +2114,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:45",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-28",
@@ -2121,7 +2125,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-04-22 20:14:52",
-      "updated_at": "2026-05-03 20:40:22"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-29",
@@ -2132,7 +2136,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-22 20:17:26",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-30",
@@ -2143,7 +2147,7 @@
       "priority": "high",
       "decision_ref": "D-51",
       "created_at": "2026-04-22 20:33:53",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-31",
@@ -2154,7 +2158,7 @@
       "priority": "medium",
       "decision_ref": "D-52",
       "created_at": "2026-04-22 20:33:56",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-32",
@@ -2165,7 +2169,7 @@
       "priority": "medium",
       "decision_ref": "D-53",
       "created_at": "2026-04-22 20:33:58",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-33",
@@ -2176,7 +2180,7 @@
       "priority": "high",
       "decision_ref": "D-54",
       "created_at": "2026-04-22 20:34:01",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-34",
@@ -2187,7 +2191,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 20:34:03",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-35",
@@ -2199,7 +2203,7 @@
       "priority": "medium",
       "decision_ref": "D-49",
       "created_at": "2026-04-22 20:34:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-36",
@@ -2211,7 +2215,7 @@
       "priority": "low",
       "decision_ref": "D-50",
       "created_at": "2026-04-22 20:34:09",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-37",
@@ -2223,7 +2227,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-38",
@@ -2235,7 +2239,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-39",
@@ -2247,7 +2251,7 @@
       "priority": "medium",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-40",
@@ -2259,7 +2263,7 @@
       "priority": "low",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-41",
@@ -2271,7 +2275,7 @@
       "priority": "low",
       "decision_ref": "D-47",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-42",
@@ -2283,7 +2287,7 @@
       "priority": "low",
       "decision_ref": "D-48",
       "created_at": "2026-04-22 21:03:40",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-43",
@@ -2295,7 +2299,7 @@
       "priority": "high",
       "decision_ref": "D-41",
       "created_at": "2026-04-22 22:01:13",
-      "updated_at": "2026-05-05 12:51:24"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-44",
@@ -2305,7 +2309,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:25:26",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-45",
@@ -2316,7 +2320,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:27:28",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-46",
@@ -2326,7 +2330,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:27:58",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-47",
@@ -2337,7 +2341,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:28:43",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-48",
@@ -2347,7 +2351,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:30:09",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-49",
@@ -2357,7 +2361,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-04-23 20:31:35",
-      "updated_at": "2026-05-03 20:33:10"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-50",
@@ -2367,7 +2371,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:31:48",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-51",
@@ -2377,7 +2381,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-52",
@@ -2387,7 +2391,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-53",
@@ -2397,7 +2401,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-54",
@@ -2407,7 +2411,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-55",
@@ -2417,7 +2421,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-56",
@@ -2427,7 +2431,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-57",
@@ -2437,7 +2441,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-58",
@@ -2447,7 +2451,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-59",
@@ -2457,7 +2461,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-60",
@@ -2467,7 +2471,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-23 20:32:06",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-61",
@@ -2477,7 +2481,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 20:33:10"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-62",
@@ -2487,7 +2491,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 20:33:10"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-63",
@@ -2497,7 +2501,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 20:33:10"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-64",
@@ -2507,7 +2511,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-65",
@@ -2517,7 +2521,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-66",
@@ -2527,7 +2531,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-67",
@@ -2537,7 +2541,7 @@
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-04-24 06:34:16",
-      "updated_at": "2026-05-03 19:26:04"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-68",
@@ -2546,7 +2550,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:52:48",
-      "updated_at": "2026-05-05 12:53:15"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-69",
@@ -2555,7 +2559,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:52:52",
-      "updated_at": "2026-05-05 12:53:15"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-70",
@@ -2564,7 +2568,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:52:56",
-      "updated_at": "2026-05-05 12:53:15"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-71",
@@ -2573,7 +2577,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:53:01",
-      "updated_at": "2026-05-05 12:53:15"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-72",
@@ -2582,25 +2586,27 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:53:05",
-      "updated_at": "2026-05-05 12:53:15"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-73",
       "type": "task",
       "title": "ship matching bold weight to restore semantic bold rendering",
+      "description": "Workaround in T-70 / `lib/src/terminal/src/ui/painter.dart` suppresses bold rendering entirely because Flutter`s synthetic bold drifts glyph advance widths and breaks the monospace cell grid. We lose semantic bold (bash prompts, emphasis in TUIs) as a side effect.\n\n**Acceptance:**\n- A bold-weight monospace face ships alongside the regular weight, with verified-equal advance widths at clide`s render size (cell-grid stable on bold).\n- The painter`s `bold: false` override is reverted; bold attributes from terminal escapes render visually bold.\n- Test: render a known-mixed-weight buffer and assert paragraph maxIntrinsicWidth matches the regular-weight measurement (cell drift = 0).\n\n**Options to evaluate:**\n- Re-add JetBrainsMono-Bold.ttf once we`ve verified its advance widths actually equal the Regular file at our cellSize. (We dropped it because the synthetic-bold issue obscured whether the bundled Bold actually matched.)\n- Switch to a variable JetBrainsMono and request a specific weight axis position.\n- Pick a different mono font whose Bold has guaranteed-equal advance (Berkeley Mono, IBM Plex Mono).\n\nLink-back: T-70 is the workaround; this is the proper fix.",
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-05-05 12:53:21",
-      "updated_at": "2026-05-05 12:53:21"
+      "updated_at": "2026-05-06 15:09:20"
     },
     {
       "id": "T-74",
       "type": "task",
       "title": "forward real mouse events to TUI apps (not just PgUp/PgDown)",
+      "description": "Mouse wheel scroll is currently translated to PgUp/PgDown key input in `lib/src/terminal/src/terminal_view.dart` as a pragmatic workaround — TUIs that capture mouse events without binding the wheel get a no-op otherwise. The downside: any TUI that does its own wheel handling (selection, click-to-position) loses the actual mouse coordinates because all we send is keyboard.\n\n**Acceptance:**\n- The terminal forwards `PointerScrollEvent` and click/drag/release as proper xterm mouse-protocol escape sequences (CSI `M` / SGR variant per the report mode the inner program declared via `?1000h` / `?1006h`).\n- Tested with `vim` (mouse mode `a`), `htop`, `less` — all should respond to mouse selection / click correctly.\n- Falls back to PgUp/PgDown only when the inner program has not declared a mouse mode.\n- The `mouseInput` API on `Terminal` is wired through `Listener.onPointerSignal` instead of being bypassed.\n\n**Why this isn`t the default already:** the bypass was the cheapest fix to get scroll working at all when the multitab/Scrollable ate scroll events. With those fixes landed, the right-shaped mouse forwarding is the proper next step.",
       "status": "backlog",
       "priority": "medium",
       "created_at": "2026-05-05 12:53:22",
-      "updated_at": "2026-05-05 12:53:22"
+      "updated_at": "2026-05-06 15:09:36"
     },
     {
       "id": "T-75",
@@ -2609,7 +2615,7 @@
       "status": "done",
       "priority": "high",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 13:07:29"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-76",
@@ -2618,7 +2624,7 @@
       "status": "done",
       "priority": "high",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 13:10:50"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-77",
@@ -2627,7 +2633,7 @@
       "status": "done",
       "priority": "high",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 13:12:20"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-78",
@@ -2636,7 +2642,7 @@
       "status": "done",
       "priority": "high",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 13:02:34"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-79",
@@ -2645,34 +2651,37 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-06 07:56:10"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-80",
       "type": "task",
       "title": "Standardize errno constants + logger in PTY/IPC/daemon",
+      "description": "From the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md). Two cleanup items rolled together:\n\n**Errno constants (audit item #23):**\n- Magic numbers (`4` for EINTR, `9` for EBADF, `28` for SIGWINCH, `1` for SIGHUP, `32` for EPIPE) appear inline across `lib/src/pty/session.dart` and `lib/src/pty/native_pty.dart`.\n- Centralize them in `lib/src/pty/errors.dart` or a sibling `posix.dart` as named constants.\n- Existing `lib/src/ipc/errno_mapping.dart` already has a `PosixErrno` class — extend it or move to a shared location both layers import from.\n\n**Logger standardization (audit item #22, partial #26):**\n- `lib/src/ipc/server.dart` uses `stderr.writeln(...)` directly; the rest of the daemon either uses no logger or a custom one.\n- The Flutter-host process often consumes stderr, so log lines disappear silently.\n- Pick one logger interface (kernel `log` already exists for the app side), wire `DaemonServer` and the daemon-side handlers to use it.\n- Dispatch error messages should prefix with the request `cmd` so log correlation works (audit item #26).\n\n**Out of scope for this ticket:** changes to log-LEVEL policy, log retention, log files vs stderr — pure substitution job.",
       "status": "backlog",
       "priority": "low",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 12:58:59"
+      "updated_at": "2026-05-06 15:09:50"
     },
     {
       "id": "T-81",
       "type": "task",
       "title": "Misc PTY/IPC/git polish (audit medium-priority items)",
+      "description": "Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:\n\n- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.\n- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.\n- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.\n- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 \u003c= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.\n- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.\n- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.\n- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.\n- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.\n\nLand each as a small focused commit; ticket closes when all items above are merged.",
       "status": "backlog",
       "priority": "low",
       "created_at": "2026-05-05 12:58:59",
-      "updated_at": "2026-05-05 12:58:59"
+      "updated_at": "2026-05-06 15:10:09"
     },
     {
       "id": "T-82",
       "type": "task",
       "title": "add Catppuccin theme to bundled themes",
+      "description": "User request: ship a Catppuccin theme alongside the four bundled themes (clide, midnight, paper, terminal — D-44).\n\n**Acceptance:**\n- New theme YAML at `lib/kernel/src/theme/themes/catppuccin.yaml` (or split for the four Catppuccin flavours: latte / frappe / macchiato / mocha — pick one or all four; recommend Mocha as the dark default and Latte for the light variant).\n- Tokens populated for every key in `SurfaceTokens` (lib/kernel/src/theme/tokens.dart) — chrome, panels, tabs, list items, status colours, syntax tokens (D-45).\n- WCAG-AA contrast gate (D-22) passes against the theme.\n- Listed in `assets/licenses.yaml` with the upstream license (MIT) and attribution.\n- Theme picker (`builtin.theme-picker`) shows it in the live-switch menu.\n\n**Source palettes:** https://github.com/catppuccin/catppuccin#-palette — official hex values, don`t paraphrase.\n\n**Why now:** test user request; also a good exercise for any future user-contributed theme since Catppuccin is the most common one to ask for.",
       "status": "backlog",
       "priority": "low",
       "created_at": "2026-05-06 08:30:15",
-      "updated_at": "2026-05-06 08:30:15"
+      "updated_at": "2026-05-06 15:10:22"
     },
     {
       "id": "T-83",
@@ -2681,7 +2690,7 @@
       "status": "done",
       "priority": "high",
       "created_at": "2026-05-06 09:17:39",
-      "updated_at": "2026-05-06 10:12:48"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-84",
@@ -2690,7 +2699,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-06 10:16:02",
-      "updated_at": "2026-05-06 12:17:27"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-85",
@@ -2699,7 +2708,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-06 13:28:58",
-      "updated_at": "2026-05-06 13:38:38"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-86",
@@ -2708,7 +2717,7 @@
       "status": "done",
       "priority": "medium",
       "created_at": "2026-05-06 13:28:58",
-      "updated_at": "2026-05-06 13:45:12"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-87",
@@ -2719,17 +2728,18 @@
       "priority": "high",
       "decision_ref": "D-41",
       "created_at": "2026-05-06 13:46:07",
-      "updated_at": "2026-05-06 13:46:29"
+      "updated_at": "2026-05-06 15:06:40"
     },
     {
       "id": "T-88",
       "type": "task",
       "title": "track dugite-native upstream releases for security updates",
+      "description": "D-59 (bundled git via dugite-native) costs out: \"Must track dugite-native releases for security updates.\" Up to today this lived only in the D-record prose with no tracking — clean-house v1 flagged it as RULE-SUNSET-WITHOUT-TICKET.\n\n**Acceptance:**\n- A periodic check (manual or scheduled) compares the bundled `native/dugite/` SHA against the latest release at https://github.com/desktop/dugite-native/releases.\n- When a new release lands with a CVE label or fixes a CVE-tagged git release, schedule a bump; otherwise track the version drift.\n- Bumps follow D-63: rebuild with the new SHA, update `BUILD.md`, update `assets/licenses.yaml` if the dugite or git version changed, refresh the binary in `native/dugite/`.\n\n**Periodicity:** quarterly check is enough during normal operation; faster on git CVE announcements (subscribe to https://github.com/git/git/security/advisories, https://github.com/desktop/dugite-native/security/advisories).\n\n**Out of scope:** the rebuild itself is T-25 (CI reproducible build for libtree-sitter.so) — same shape applies to dugite. This ticket is the calendar; T-25 is the machine.",
       "status": "backlog",
       "priority": "low",
       "decision_ref": "D-59",
       "created_at": "2026-05-06 14:34:35",
-      "updated_at": "2026-05-06 14:34:35"
+      "updated_at": "2026-05-06 15:10:35"
     }
   ],
   "ticket_deps": null,
@@ -4152,6 +4162,66 @@
       "old_value": "backlog",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 13:46:29"
+    },
+    {
+      "ticket_id": "T-17",
+      "field": "description",
+      "new_value": "Wire `dart doc` into the CI pipeline so the public API surface (everything in lib/*.dart barrel exports) renders to HTML on every push to main.\n\n**Acceptance:**\n- New CI step in `.gitea/workflows/test.yml` runs `dart doc lib/` and uploads the generated `doc/api/` artefact.\n- Documentation comments on public APIs are validated (no broken references); `dart doc --validate-links` part of the run.\n- Generated docs published somewhere browsable — Gitea Pages, GitHub Pages once the repo moves, or an S3-style static host (decision deferred until Gitea actions land per D-32).\n\n**Not in scope:** writing missing docstrings (separate sweep), private-API docs, package.json-style metadata for pub.dev (we never publish to pub.dev — single binary).",
+      "changed_at": "2026-05-06 15:08:22"
+    },
+    {
+      "ticket_id": "T-7",
+      "field": "description",
+      "new_value": "Tier 5 of the build plan: bring the canvas pane (Obsidian-style spatial whiteboard) and the graph view (force-directed view of vault links) to feature parity.\n\n**Canvas pane (`builtin.canvas`):**\n- Render `.canvas` files (Obsidian-compatible JSON) — nodes (note, text, group, image), edges, layout state.\n- Pan/zoom via `InteractiveViewer`; node selection, drag, resize.\n- Edit affordances: add note from file picker, add text node, draw edge between nodes.\n- Persist layout back to the `.canvas` file on disk.\n\n**Graph view (`builtin.graph`):**\n- Force-directed layout of the current vault (or a filtered subset) — nodes are notes, edges are wikilinks.\n- Hover highlights connected subgraph; click opens the note in the editor.\n- Filter pane: tag include/exclude, file glob, depth-from-active.\n- pql provides the link data (`pql backlinks` / `pql outlinks`); rendering owned in-app.\n\nBoth panes use the existing `MultitabPane` (T-83) for tab management once they ship. Each lives in its own slot per D-47 (canvas in workspace, graph in context panel).",
+      "changed_at": "2026-05-06 15:08:37"
+    },
+    {
+      "ticket_id": "T-8",
+      "field": "description",
+      "new_value": "Tier 6 of the build plan: the things that make clide a real product instead of a working prototype.\n\n**Extension API (third-party Lua):**\n- The Lua runtime supporter tool (D-19) lands as a peer of pql/ptyc.\n- Manifest schema, capability gating, sandboxed FS/IPC access.\n- Same TabContribution / CommandContribution / etc. surface as built-in Dart extensions (D-15).\n- Marketplace / distribution story is OUT OF SCOPE for Tier 6 — local-install only.\n\n**Settings UI (`builtin.settings-ui`):**\n- Schema-driven settings panel reading from the kernel SettingsStore.\n- Render strategy: form fields keyed off the schema each subsystem registers.\n- Edits write back to `.clide/settings.yaml`.\n\n**Theming UI (`builtin.theme-picker` extends):**\n- Live preview of the four bundled themes (D-44).\n- Custom theme: import YAML, validate against schema, register at runtime.\n- Per-component override surface (long horizon).\n\n**Distributable builds:**\n- AppImage / Flatpak for Linux, .dmg for macOS — see T-46.\n- Self-update mechanism — see T-47.\n- License manifest auto-regen as part of the release build.\n\nBig epic — children land incrementally. Most concrete child tickets already exist; this is the umbrella.",
+      "changed_at": "2026-05-06 15:08:53"
+    },
+    {
+      "ticket_id": "T-23",
+      "field": "description",
+      "new_value": "D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.\n\n**Acceptance:**\n- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.\n- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.\n- Commands listed are everything registered via `CommandContribution` across all activated extensions.\n- Fuzzy match against command title; recent / pinned commands float to the top.\n\n**Implementation hints:**\n- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).\n- Keybinding goes in `lib/kernel/src/commands/keybindings.dart` per the D-54 keymap.\n- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).",
+      "changed_at": "2026-05-06 15:09:05"
+    },
+    {
+      "ticket_id": "T-73",
+      "field": "description",
+      "new_value": "Workaround in T-70 / `lib/src/terminal/src/ui/painter.dart` suppresses bold rendering entirely because Flutter`s synthetic bold drifts glyph advance widths and breaks the monospace cell grid. We lose semantic bold (bash prompts, emphasis in TUIs) as a side effect.\n\n**Acceptance:**\n- A bold-weight monospace face ships alongside the regular weight, with verified-equal advance widths at clide`s render size (cell-grid stable on bold).\n- The painter`s `bold: false` override is reverted; bold attributes from terminal escapes render visually bold.\n- Test: render a known-mixed-weight buffer and assert paragraph maxIntrinsicWidth matches the regular-weight measurement (cell drift = 0).\n\n**Options to evaluate:**\n- Re-add JetBrainsMono-Bold.ttf once we`ve verified its advance widths actually equal the Regular file at our cellSize. (We dropped it because the synthetic-bold issue obscured whether the bundled Bold actually matched.)\n- Switch to a variable JetBrainsMono and request a specific weight axis position.\n- Pick a different mono font whose Bold has guaranteed-equal advance (Berkeley Mono, IBM Plex Mono).\n\nLink-back: T-70 is the workaround; this is the proper fix.",
+      "changed_at": "2026-05-06 15:09:20"
+    },
+    {
+      "ticket_id": "T-74",
+      "field": "description",
+      "new_value": "Mouse wheel scroll is currently translated to PgUp/PgDown key input in `lib/src/terminal/src/terminal_view.dart` as a pragmatic workaround — TUIs that capture mouse events without binding the wheel get a no-op otherwise. The downside: any TUI that does its own wheel handling (selection, click-to-position) loses the actual mouse coordinates because all we send is keyboard.\n\n**Acceptance:**\n- The terminal forwards `PointerScrollEvent` and click/drag/release as proper xterm mouse-protocol escape sequences (CSI `M` / SGR variant per the report mode the inner program declared via `?1000h` / `?1006h`).\n- Tested with `vim` (mouse mode `a`), `htop`, `less` — all should respond to mouse selection / click correctly.\n- Falls back to PgUp/PgDown only when the inner program has not declared a mouse mode.\n- The `mouseInput` API on `Terminal` is wired through `Listener.onPointerSignal` instead of being bypassed.\n\n**Why this isn`t the default already:** the bypass was the cheapest fix to get scroll working at all when the multitab/Scrollable ate scroll events. With those fixes landed, the right-shaped mouse forwarding is the proper next step.",
+      "changed_at": "2026-05-06 15:09:36"
+    },
+    {
+      "ticket_id": "T-80",
+      "field": "description",
+      "new_value": "From the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md). Two cleanup items rolled together:\n\n**Errno constants (audit item #23):**\n- Magic numbers (`4` for EINTR, `9` for EBADF, `28` for SIGWINCH, `1` for SIGHUP, `32` for EPIPE) appear inline across `lib/src/pty/session.dart` and `lib/src/pty/native_pty.dart`.\n- Centralize them in `lib/src/pty/errors.dart` or a sibling `posix.dart` as named constants.\n- Existing `lib/src/ipc/errno_mapping.dart` already has a `PosixErrno` class — extend it or move to a shared location both layers import from.\n\n**Logger standardization (audit item #22, partial #26):**\n- `lib/src/ipc/server.dart` uses `stderr.writeln(...)` directly; the rest of the daemon either uses no logger or a custom one.\n- The Flutter-host process often consumes stderr, so log lines disappear silently.\n- Pick one logger interface (kernel `log` already exists for the app side), wire `DaemonServer` and the daemon-side handlers to use it.\n- Dispatch error messages should prefix with the request `cmd` so log correlation works (audit item #26).\n\n**Out of scope for this ticket:** changes to log-LEVEL policy, log retention, log files vs stderr — pure substitution job.",
+      "changed_at": "2026-05-06 15:09:50"
+    },
+    {
+      "ticket_id": "T-81",
+      "field": "description",
+      "new_value": "Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:\n\n- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.\n- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.\n- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.\n- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 \u003c= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.\n- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.\n- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.\n- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.\n- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.\n\nLand each as a small focused commit; ticket closes when all items above are merged.",
+      "changed_at": "2026-05-06 15:10:09"
+    },
+    {
+      "ticket_id": "T-82",
+      "field": "description",
+      "new_value": "User request: ship a Catppuccin theme alongside the four bundled themes (clide, midnight, paper, terminal — D-44).\n\n**Acceptance:**\n- New theme YAML at `lib/kernel/src/theme/themes/catppuccin.yaml` (or split for the four Catppuccin flavours: latte / frappe / macchiato / mocha — pick one or all four; recommend Mocha as the dark default and Latte for the light variant).\n- Tokens populated for every key in `SurfaceTokens` (lib/kernel/src/theme/tokens.dart) — chrome, panels, tabs, list items, status colours, syntax tokens (D-45).\n- WCAG-AA contrast gate (D-22) passes against the theme.\n- Listed in `assets/licenses.yaml` with the upstream license (MIT) and attribution.\n- Theme picker (`builtin.theme-picker`) shows it in the live-switch menu.\n\n**Source palettes:** https://github.com/catppuccin/catppuccin#-palette — official hex values, don`t paraphrase.\n\n**Why now:** test user request; also a good exercise for any future user-contributed theme since Catppuccin is the most common one to ask for.",
+      "changed_at": "2026-05-06 15:10:22"
+    },
+    {
+      "ticket_id": "T-88",
+      "field": "description",
+      "new_value": "D-59 (bundled git via dugite-native) costs out: \"Must track dugite-native releases for security updates.\" Up to today this lived only in the D-record prose with no tracking — clean-house v1 flagged it as RULE-SUNSET-WITHOUT-TICKET.\n\n**Acceptance:**\n- A periodic check (manual or scheduled) compares the bundled `native/dugite/` SHA against the latest release at https://github.com/desktop/dugite-native/releases.\n- When a new release lands with a CVE label or fixes a CVE-tagged git release, schedule a bump; otherwise track the version drift.\n- Bumps follow D-63: rebuild with the new SHA, update `BUILD.md`, update `assets/licenses.yaml` if the dugite or git version changed, refresh the binary in `native/dugite/`.\n\n**Periodicity:** quarterly check is enough during normal operation; faster on git CVE announcements (subscribe to https://github.com/git/git/security/advisories, https://github.com/desktop/dugite-native/security/advisories).\n\n**Out of scope:** the rebuild itself is T-25 (CI reproducible build for libtree-sitter.so) — same shape applies to dugite. This ticket is the calendar; T-25 is the machine.",
+      "changed_at": "2026-05-06 15:10:35"
     }
   ]
 }
