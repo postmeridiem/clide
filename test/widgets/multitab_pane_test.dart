@@ -151,5 +151,96 @@ void main() {
       );
       expect(find.byKey(const ValueKey('body-a')), findsNothing);
     });
+
+    testWidgets('drag a tab onto another to reorder', (tester) async {
+      final c = MultitabController<String>(initial: [entry('a'), entry('b'), entry('c')]);
+      await tester.pumpWidget(
+        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
+      );
+
+      // Drag tab 'a' to where tab 'c' sits.
+      final from = tester.getCenter(find.text('a'));
+      final to = tester.getCenter(find.text('c'));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(to);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(c.entries.map((e) => e.id), ['b', 'c', 'a']);
+    });
+
+    testWidgets('drag respects pinned barrier', (tester) async {
+      final c = MultitabController<String>(initial: [
+        entry('p', reorderable: false),
+        entry('a'),
+        entry('b'),
+      ]);
+      await tester.pumpWidget(
+        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
+      );
+
+      // Try to drag 'a' before pinned 'p' — controller's barrier
+      // logic should reject and the order stays.
+      final from = tester.getCenter(find.text('a'));
+      final to = tester.getCenter(find.text('p'));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(to);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(c.entries.map((e) => e.id), ['p', 'a', 'b']);
+    });
+
+    testWidgets('pinned tabs are not draggable', (tester) async {
+      final c = MultitabController<String>(initial: [
+        entry('p', reorderable: false),
+        entry('a'),
+      ]);
+      await tester.pumpWidget(
+        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
+      );
+
+      // Attempt to drag pinned 'p' to position of 'a'.
+      final from = tester.getCenter(find.text('p'));
+      final to = tester.getCenter(find.text('a'));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(to);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Order unchanged; pinned tab refused to be dragged.
+      expect(c.entries.map((e) => e.id), ['p', 'a']);
+    });
+
+    testWidgets('allowReorder=false disables drag entirely', (tester) async {
+      final c = MultitabController<String>(initial: [entry('a'), entry('b')]);
+      await tester.pumpWidget(
+        harness(
+          f,
+          MultitabPane<String>(
+            controller: c,
+            bodyBuilder: body,
+            allowReorder: false,
+          ),
+        ),
+      );
+
+      final from = tester.getCenter(find.text('a'));
+      final to = tester.getCenter(find.text('b'));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(to);
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(c.entries.map((e) => e.id), ['a', 'b']);
+    });
   });
 }

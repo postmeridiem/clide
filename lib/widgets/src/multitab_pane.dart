@@ -94,26 +94,151 @@ class _TabStrip<T> extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            for (final entry in entries)
-              _Tab<T>(
-                entry: entry,
-                active: entry.id == activeId,
-                onSelect: () => controller.activate(entry.id),
-                onClose: entry.closeable
+            for (var i = 0; i < entries.length; i++)
+              _ReorderableTab<T>(
+                entry: entries[i],
+                index: i,
+                active: entries[i].id == activeId,
+                allowReorder: allowReorder,
+                onSelect: () => controller.activate(entries[i].id),
+                onClose: entries[i].closeable
                     ? () {
                         if (onCloseRequested != null) {
-                          onCloseRequested!(entry);
+                          onCloseRequested!(entries[i]);
                         } else {
-                          controller.remove(entry.id);
+                          controller.remove(entries[i].id);
                         }
                       }
                     : null,
+                onReorderTo: (draggedId) =>
+                    controller.reorder(draggedId, i),
                 tabHeight: tabHeight,
               ),
             if (onAddRequested != null)
               _AddButton(onTap: onAddRequested!, tabHeight: tabHeight),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Wraps a [_Tab] with [Draggable] (when [allowReorder] is true and the
+/// entry itself permits reorder) and [DragTarget] (always — the
+/// controller's barrier logic decides whether a drop actually moves
+/// the tab). Drop target inserts the dragged id at this tab's index.
+class _ReorderableTab<T> extends StatefulWidget {
+  const _ReorderableTab({
+    required this.entry,
+    required this.index,
+    required this.active,
+    required this.allowReorder,
+    required this.onSelect,
+    required this.onClose,
+    required this.onReorderTo,
+    required this.tabHeight,
+  });
+
+  final MultitabEntry<T> entry;
+  final int index;
+  final bool active;
+  final bool allowReorder;
+  final VoidCallback onSelect;
+  final VoidCallback? onClose;
+  final void Function(String draggedId) onReorderTo;
+  final double tabHeight;
+
+  @override
+  State<_ReorderableTab<T>> createState() => _ReorderableTabState<T>();
+}
+
+class _ReorderableTabState<T> extends State<_ReorderableTab<T>> {
+  bool _isDropTarget = false;
+
+  bool get _draggable => widget.allowReorder && widget.entry.reorderable;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+
+    final tabContent = _Tab<T>(
+      entry: widget.entry,
+      active: widget.active,
+      onSelect: widget.onSelect,
+      onClose: widget.onClose,
+      tabHeight: widget.tabHeight,
+    );
+
+    Widget result = DragTarget<String>(
+      onWillAcceptWithDetails: (d) {
+        if (d.data == widget.entry.id) return false;
+        return widget.allowReorder;
+      },
+      onMove: (_) {
+        if (!_isDropTarget) setState(() => _isDropTarget = true);
+      },
+      onLeave: (_) {
+        if (_isDropTarget) setState(() => _isDropTarget = false);
+      },
+      onAcceptWithDetails: (d) {
+        setState(() => _isDropTarget = false);
+        widget.onReorderTo(d.data);
+      },
+      builder: (context, _, __) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 2,
+            height: widget.tabHeight,
+            child: ColoredBox(
+              color: _isDropTarget ? tokens.panelActiveBorder : const Color(0x00000000),
+            ),
+          ),
+          tabContent,
+        ],
+      ),
+    );
+
+    if (_draggable) {
+      result = Draggable<String>(
+        data: widget.entry.id,
+        axis: Axis.horizontal,
+        feedback: _DragFeedback(
+          title: widget.entry.title,
+          tabHeight: widget.tabHeight,
+        ),
+        childWhenDragging: Opacity(opacity: 0.4, child: tabContent),
+        child: result,
+      );
+    }
+
+    return result;
+  }
+}
+
+class _DragFeedback extends StatelessWidget {
+  const _DragFeedback({required this.title, required this.tabHeight});
+  final String title;
+  final double tabHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Container(
+      height: tabHeight,
+      constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: tokens.panelHeader,
+        border: Border.all(color: tokens.panelActiveBorder),
+      ),
+      child: ClideText(
+        title,
+        fontSize: 12,
+        color: tokens.tabActiveForeground,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

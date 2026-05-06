@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T10:12:42Z",
+  "exported_at": "2026-05-06T12:17:16Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2678,15 +2678,24 @@
       "id": "T-83",
       "type": "task",
       "title": "design reusable sortable tab system for multitab panes",
-      "status": "in_progress",
+      "status": "done",
       "priority": "high",
       "created_at": "2026-05-06 09:17:39",
-      "updated_at": "2026-05-06 09:17:50"
+      "updated_at": "2026-05-06 10:12:48"
+    },
+    {
+      "id": "T-84",
+      "type": "task",
+      "title": "MultitabPane: drag-to-reorder gesture wiring",
+      "status": "in_progress",
+      "priority": "medium",
+      "created_at": "2026-05-06 10:16:02",
+      "updated_at": "2026-05-06 10:17:57"
     }
   ],
   "ticket_deps": [
     {
-      "blocker_id": "T-83",
+      "blocker_id": "T-84",
       "blocked_id": "T-24"
     }
   ],
@@ -4033,6 +4042,20 @@
       "old_value": "backlog",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 09:17:50"
+    },
+    {
+      "ticket_id": "T-83",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-06 10:12:48"
+    },
+    {
+      "ticket_id": "T-84",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 10:17:57"
     }
   ]
 }
