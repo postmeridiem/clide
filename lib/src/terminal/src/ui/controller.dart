@@ -117,9 +117,7 @@ class TerminalController with ChangeNotifier {
   @internal
   bool shouldSendPointerInput(PointerInput pointerInput) {
     // Always return false if pointer input is suspended.
-    return _suspendPointerInputs
-        ? false
-        : _pointerInputs.inputs.contains(pointerInput);
+    return _suspendPointerInputs ? false : _pointerInputs.inputs.contains(pointerInput);
   }
 
   /// Creates a new highlight on the terminal from [p1] to [p2] with the given

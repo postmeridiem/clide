@@ -68,8 +68,7 @@ class Keytab {
         continue;
       }
 
-      if (record.appCursorKeys != null &&
-          record.appCursorKeys != appCursorKeys) {
+      if (record.appCursorKeys != null && record.appCursorKeys != appCursorKeys) {
         continue;
       }
 

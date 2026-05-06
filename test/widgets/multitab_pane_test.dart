@@ -20,8 +20,7 @@ MultitabEntry<String> entry(String id, {bool closeable = true, bool reorderable 
   );
 }
 
-Widget body(BuildContext _, MultitabEntry<String> e) =>
-    SizedBox(key: ValueKey('body-${e.id}'), child: Text('body:${e.payload}'));
+Widget body(BuildContext _, MultitabEntry<String> e) => SizedBox(key: ValueKey('body-${e.id}'), child: Text('body:${e.payload}'));
 
 /// Stateful tap-counter body. Preserves a per-id count across rebuilds
 /// in a static map so the test can assert state survival across tab

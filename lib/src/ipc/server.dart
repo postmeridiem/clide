@@ -54,8 +54,7 @@ class DaemonServer {
       // Probe by trying to connect — if a live peer answers, refuse
       // to start so we don't rip its socket out.
       try {
-        final probe = await Socket.connect(addr, 0)
-            .timeout(const Duration(milliseconds: 200));
+        final probe = await Socket.connect(addr, 0).timeout(const Duration(milliseconds: 200));
         await probe.close();
         throw StateError('clide daemon already running at $socketPath');
       } on TimeoutException {

@@ -572,9 +572,7 @@ class Buffer {
         continue;
       }
       final line = lines[segment.line];
-      if (!(segment.line == range.begin.y ||
-          segment.line == 0 ||
-          line.isWrapped)) {
+      if (!(segment.line == range.begin.y || segment.line == 0 || line.isWrapped)) {
         builder.write("\n");
       }
       builder.write(line.getText(segment.start, segment.end));

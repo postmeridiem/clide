@@ -144,12 +144,10 @@ class _TabStrip<T> extends StatelessWidget {
                         }
                       }
                     : null,
-                onReorderTo: (draggedId) =>
-                    controller.reorder(draggedId, i),
+                onReorderTo: (draggedId) => controller.reorder(draggedId, i),
                 tabHeight: tabHeight,
               ),
-            if (onAddRequested != null)
-              _AddButton(onTap: onAddRequested!, tabHeight: tabHeight),
+            if (onAddRequested != null) _AddButton(onTap: onAddRequested!, tabHeight: tabHeight),
           ],
         ),
       ),
@@ -404,12 +402,9 @@ class _AddButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: hovered ? tokens.listItemHoverBackground : null,
           ),
-          child: ClideText('+',
-              fontSize: clideIconStandard,
-              color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+          child: ClideText('+', fontSize: clideIconStandard, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
         ),
       ),
     );
   }
 }
-

@@ -14,8 +14,7 @@ typedef TmuxRunner = Future<ProcessResult> Function(List<String> args);
 
 TmuxRunner tmuxRunner = _defaultRunner;
 
-Future<ProcessResult> _defaultRunner(List<String> args) =>
-    Process.run('tmux', args);
+Future<ProcessResult> _defaultRunner(List<String> args) => Process.run('tmux', args);
 
 const _socket = ['-L', 'clide'];
 
@@ -30,11 +29,7 @@ Future<void> killSession(String name) async {
 Future<List<String>> listClideSessions() async {
   final r = await tmuxRunner([..._socket, 'list-sessions', '-F', '#{session_name}']);
   if (r.exitCode != 0) return const [];
-  return (r.stdout as String)
-      .split('\n')
-      .map((s) => s.trim())
-      .where((s) => s.isNotEmpty)
-      .toList();
+  return (r.stdout as String).split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
 }
 
 /// Kill every secondary clide-claude session whose name begins with

@@ -18,19 +18,13 @@ Map<ShortcutActivator, Intent> get defaultTerminalShortcuts {
 }
 
 final _defaultShortcuts = {
-  SingleActivator(LogicalKeyboardKey.keyC, control: true, shift: true):
-      CopySelectionTextIntent.copy,
-  SingleActivator(LogicalKeyboardKey.keyV, control: true):
-      const PasteTextIntent(SelectionChangedCause.keyboard),
-  SingleActivator(LogicalKeyboardKey.keyA, control: true):
-      const SelectAllTextIntent(SelectionChangedCause.keyboard),
+  SingleActivator(LogicalKeyboardKey.keyC, control: true, shift: true): CopySelectionTextIntent.copy,
+  SingleActivator(LogicalKeyboardKey.keyV, control: true): const PasteTextIntent(SelectionChangedCause.keyboard),
+  SingleActivator(LogicalKeyboardKey.keyA, control: true): const SelectAllTextIntent(SelectionChangedCause.keyboard),
 };
 
 final _defaultAppleShortcuts = {
-  SingleActivator(LogicalKeyboardKey.keyC, meta: true):
-      CopySelectionTextIntent.copy,
-  SingleActivator(LogicalKeyboardKey.keyV, meta: true):
-      const PasteTextIntent(SelectionChangedCause.keyboard),
-  SingleActivator(LogicalKeyboardKey.keyA, meta: true):
-      const SelectAllTextIntent(SelectionChangedCause.keyboard),
+  SingleActivator(LogicalKeyboardKey.keyC, meta: true): CopySelectionTextIntent.copy,
+  SingleActivator(LogicalKeyboardKey.keyV, meta: true): const PasteTextIntent(SelectionChangedCause.keyboard),
+  SingleActivator(LogicalKeyboardKey.keyA, meta: true): const SelectAllTextIntent(SelectionChangedCause.keyboard),
 };

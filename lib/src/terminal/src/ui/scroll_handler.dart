@@ -21,12 +21,10 @@ class TerminalScrollGestureHandler extends StatefulWidget {
   final Widget child;
 
   @override
-  State<TerminalScrollGestureHandler> createState() =>
-      _TerminalScrollGestureHandlerState();
+  State<TerminalScrollGestureHandler> createState() => _TerminalScrollGestureHandlerState();
 }
 
-class _TerminalScrollGestureHandlerState
-    extends State<TerminalScrollGestureHandler> {
+class _TerminalScrollGestureHandlerState extends State<TerminalScrollGestureHandler> {
   var isAltBuffer = false;
   var _lastPointerPosition = Offset.zero;
 

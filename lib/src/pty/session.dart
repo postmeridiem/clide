@@ -146,11 +146,7 @@ class PtySession {
       try {
         libc.setWinsize(masterFd, cols, rows);
 
-        final stdoutLine = await proc.stdout
-            .transform(const Utf8Decoder())
-            .transform(const LineSplitter())
-            .first
-            .timeout(const Duration(seconds: 5));
+        final stdoutLine = await proc.stdout.transform(const Utf8Decoder()).transform(const LineSplitter()).first.timeout(const Duration(seconds: 5));
         final pid = _extractPid(stdoutLine);
 
         final code = await proc.exitCode;

@@ -173,8 +173,7 @@ class CtrlInputHandler implements TerminalInputHandler {
 
     final key = event.key;
 
-    if (key.index >= TerminalKey.keyA.index &&
-        key.index <= TerminalKey.keyZ.index) {
+    if (key.index >= TerminalKey.keyA.index && key.index <= TerminalKey.keyZ.index) {
       final input = key.index - TerminalKey.keyA.index + 1;
       return String.fromCharCode(input);
     }
@@ -200,8 +199,7 @@ class AltInputHandler implements TerminalInputHandler {
 
     final key = event.key;
 
-    if (key.index >= TerminalKey.keyA.index &&
-        key.index <= TerminalKey.keyZ.index) {
+    if (key.index >= TerminalKey.keyA.index && key.index <= TerminalKey.keyZ.index) {
       final charCode = key.index - TerminalKey.keyA.index + 65;
       final input = [0x1b, charCode];
       return String.fromCharCodes(input);

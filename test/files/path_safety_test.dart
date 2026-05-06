@@ -31,18 +31,15 @@ void main() {
     });
 
     test('rejects ../etc/passwd traversal', () {
-      expect(() => resolveUnderRoot(root, '../../../etc/passwd'),
-          throwsA(isA<PathOutsideRoot>()));
+      expect(() => resolveUnderRoot(root, '../../../etc/passwd'), throwsA(isA<PathOutsideRoot>()));
     });
 
     test('rejects traversal that lands at filesystem root', () {
-      expect(() => resolveUnderRoot(root, '../'),
-          throwsA(isA<PathOutsideRoot>()));
+      expect(() => resolveUnderRoot(root, '../'), throwsA(isA<PathOutsideRoot>()));
     });
 
     test('rejects sibling-directory traversal', () {
-      expect(() => resolveUnderRoot(root, '../sibling/file'),
-          throwsA(isA<PathOutsideRoot>()));
+      expect(() => resolveUnderRoot(root, '../sibling/file'), throwsA(isA<PathOutsideRoot>()));
     });
 
     test('allows internal `..` that stays under root', () {
@@ -56,8 +53,7 @@ void main() {
       final twin = Directory('${root.parent.path}/${root.uri.pathSegments.where((s) => s.isNotEmpty).last}_twin');
       try {
         twin.createSync();
-        expect(() => resolveUnderRoot(root, '../${twin.uri.pathSegments.where((s) => s.isNotEmpty).last}/file'),
-            throwsA(isA<PathOutsideRoot>()));
+        expect(() => resolveUnderRoot(root, '../${twin.uri.pathSegments.where((s) => s.isNotEmpty).last}/file'), throwsA(isA<PathOutsideRoot>()));
       } finally {
         if (twin.existsSync()) twin.deleteSync(recursive: true);
       }

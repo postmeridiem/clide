@@ -20,8 +20,7 @@ class KeyboardVisibilty extends StatefulWidget {
   KeyboardVisibiltyState createState() => KeyboardVisibiltyState();
 }
 
-class KeyboardVisibiltyState extends State<KeyboardVisibilty>
-    with WidgetsBindingObserver {
+class KeyboardVisibiltyState extends State<KeyboardVisibilty> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();

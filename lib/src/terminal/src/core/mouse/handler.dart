@@ -69,8 +69,7 @@ class ClickMouseHandler implements TerminalMouseHandler {
     switch (event.state.mouseMode) {
       case MouseMode.clickOnly:
         // Only clicks and only the first 3 buttons are reported.
-        if (event.buttonState == TerminalMouseButtonState.down &&
-            (event.button.id < 3)) {
+        if (event.buttonState == TerminalMouseButtonState.down && (event.button.id < 3)) {
           return MouseReporter.report(
             event.button,
             event.buttonState,
@@ -101,8 +100,7 @@ class UpDownMouseHandler implements TerminalMouseHandler {
       case MouseMode.upDownScrollDrag:
       case MouseMode.upDownScrollMove:
         // Up events are never reported for mouse wheel buttons.
-        if (event.button.isWheel &&
-            event.buttonState == TerminalMouseButtonState.up) {
+        if (event.button.isWheel && event.buttonState == TerminalMouseButtonState.up) {
           return null;
         }
         return MouseReporter.report(

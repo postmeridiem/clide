@@ -129,9 +129,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       repoRoot = (rootResp.data['path'] as String?) ?? repoRoot;
     }
 
-    _sessionName = widget.isPrimary
-        ? primarySessionName(repoRoot)
-        : secondarySessionName(repoRoot, widget.secondaryIndex!);
+    _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
     final tmuxConf = await _ensureTmuxConf();
     final cols = _terminal.viewWidth;
@@ -139,7 +137,8 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     var argv = <String>[
       'tmux',
-      '-L', 'clide',
+      '-L',
+      'clide',
       if (tmuxConf != null) ...['-f', tmuxConf],
       'new-session',
       '-A',
@@ -220,9 +219,7 @@ class _ClaudePaneState extends State<ClaudePane> {
             }
           }
         case 'pane.exit':
-          setState(() => _statusLine = widget.isPrimary
-              ? 'session exited — restart clide to retry'
-              : 'session exited');
+          setState(() => _statusLine = widget.isPrimary ? 'session exited — restart clide to retry' : 'session exited');
         case 'pane.closed':
           _paneId = null;
       }
@@ -252,10 +249,15 @@ class _ClaudePaneState extends State<ClaudePane> {
       _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
       if (_sessionName != null) {
         Process.run('tmux', [
-          '-L', 'clide', 'resize-window',
-          '-t', _sessionName!,
-          '-x', '$cols',
-          '-y', '$rows',
+          '-L',
+          'clide',
+          'resize-window',
+          '-t',
+          _sessionName!,
+          '-x',
+          '$cols',
+          '-y',
+          '$rows',
         ]);
       }
     });
@@ -277,9 +279,7 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isPrimary
-        ? 'claude — primary'
-        : 'claude — secondary ${widget.secondaryIndex}';
+    final title = widget.isPrimary ? 'claude — primary' : 'claude — secondary ${widget.secondaryIndex}';
 
     final body = _error != null
         ? Padding(

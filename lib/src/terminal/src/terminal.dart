@@ -50,8 +50,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   void Function(String data)? onOutput;
 
   /// Function that is called when the dimensions of the terminal change.
-  void Function(int width, int height, int pixelWidth, int pixelHeight)?
-      onResize;
+  void Function(int width, int height, int pixelWidth, int pixelHeight)? onResize;
 
   /// The [TerminalInputHandler] used by this terminal. [defaultInputHandler] is
   /// used when not specified. User of this class can provide their own

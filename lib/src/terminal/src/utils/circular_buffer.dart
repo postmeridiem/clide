@@ -3,8 +3,7 @@
 /// A circular buffer in which elements know their index in the buffer.
 class IndexAwareCircularBuffer<T extends IndexedItem> {
   /// Creates a new circular list with the specified [maxLength].
-  IndexAwareCircularBuffer(int maxLength)
-      : _array = List<T?>.filled(maxLength, null);
+  IndexAwareCircularBuffer(int maxLength) : _array = List<T?>.filled(maxLength, null);
 
   /// The backing array for this list. Length is always equal to [maxLength].
   late List<T?> _array;

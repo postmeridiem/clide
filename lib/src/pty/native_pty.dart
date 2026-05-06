@@ -140,11 +140,9 @@ class NativePty {
     // Pre-allocate error envelopes the child will write to its stdout
     // (slave PTY → parent's master fd) before _exit, so the parent's
     // reader sees a real diagnostic instead of an indistinguishable EOF.
-    final chdirErr = 'clide: chdir failed: $workingDirectory\n'
-        .toNativeUtf8(allocator: malloc);
+    final chdirErr = 'clide: chdir failed: $workingDirectory\n'.toNativeUtf8(allocator: malloc);
     final chdirErrLen = chdirErr.length;
-    final execveErr = 'clide: exec failed: $executable\n'
-        .toNativeUtf8(allocator: malloc);
+    final execveErr = 'clide: exec failed: $executable\n'.toNativeUtf8(allocator: malloc);
     final execveErrLen = execveErr.length;
 
     // Allocate ALL native memory before fork.
