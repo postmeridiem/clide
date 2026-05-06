@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T20:44:43Z",
+  "exported_at": "2026-05-06T20:47:49Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2774,11 +2774,11 @@
       "parent_id": "T-89",
       "title": "install ratcheting coverage gate at current floor",
       "description": "First child of T-89. Locks in the no-regression contract before any test-writing children land — so subsequent floor bumps are explicit and reviewable.\n\n**What lands:**\n\n1. **`coverage/floor.txt`** — committed file containing today's actual line-coverage number (currently `34` after rounding down from 34.9% to give a small margin against measurement jitter; the gate child re-measures on first install and writes the exact number it observes minus 1 if needed).\n2. **`ci/coverage_gate.sh`** — runs `flutter test --coverage --exclude-tags forkpty`, parses `coverage/lcov.info` (sum of LH / sum of LF * 100), compares to `coverage/floor.txt`, exits non-zero if below, prints the actual percentage either way.\n3. **`Makefile` `coverage-gate` target** — wraps `ci/coverage_gate.sh` for local use.\n4. **`make push-check`** — adds `coverage-gate` to its dependency list. Pre-push hook (already wired via `.githooks/pre-push`) picks this up automatically.\n5. **`coverage/README.md`** — short note explaining the floor file, how to bump it (rule: bump only in the same commit that adds covering tests, with the bump reflecting the measured improvement), and the link to D-66.\n\n**Acceptance:**\n- `make coverage-gate` passes on a clean checkout (floor matches reality).\n- `make push-check` includes the gate.\n- A test deletion would fail `make coverage-gate` (verify by experiment, not just by reading the script — invariant has to actually hold).\n- Pre-push hook runs the gate (verify by attempting a deliberately-failing push and seeing it blocked).\n- `coverage/lcov.info` is gitignored (it's regenerated on every run; only `floor.txt` is committed).\n\n**Out of scope:**\n- Bumping the floor toward 95% — that's the test-writing children's job.\n- Branch coverage — D-66 explicitly excludes.\n- Per-area floors — D-66 chose a single global floor for simplicity.\n\n**Notes:**\n- `lcov` CLI is not installed on this dev machine; parser must be self-contained (awk or python). Don't introduce `lcov` as a dependency of the gate.\n- `coverage/lcov.info` is the standard Dart output path of `flutter test --coverage`. Don't relocate.\n- `flutter test --coverage` runs all tests including `forkpty`-tagged ones, which fail under the flutter test runner (see comment in `test/pty/session_test.dart`); `--exclude-tags forkpty` matches `ci/test.sh`. Forkpty-tagged tests don't currently feed lcov because they run via `dart test`; check whether their coverage can be merged later (separate ticket if not).\n",
-      "status": "in_progress",
+      "status": "done",
       "priority": "high",
       "decision_ref": "D-66",
       "created_at": "2026-05-06 20:38:14",
-      "updated_at": "2026-05-06 20:40:16"
+      "updated_at": "2026-05-06 20:44:47"
     }
   ],
   "ticket_deps": null,
@@ -4391,6 +4391,13 @@
       "old_value": "in_progress",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 20:40:16"
+    },
+    {
+      "ticket_id": "T-90",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-06 20:44:47"
     }
   ]
 }

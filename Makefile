@@ -102,12 +102,8 @@ test-e2e: ## End-to-end Playwright smoke.
 .PHONY: test-all
 test-all: test-core test test-a11y test-integration test-e2e ## Everything, sequentially.
 
-.PHONY: coverage
-coverage: ## flutter test --coverage + lcov summary.
-	ci/test_coverage.sh
-
 .PHONY: coverage-gate
-coverage-gate: ## Coverage gate — fails if total line % < coverage/floor.txt (D-66). Assumes `make test` ran first.
+coverage-gate: ## Coverage gate — fails if total line % < pubspec.yaml `coverage_floor:` (D-66). Assumes `make test` ran first.
 	ci/coverage_gate.sh
 
 .PHONY: smoke-bundle
