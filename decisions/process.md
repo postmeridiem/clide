@@ -43,7 +43,7 @@ Q&D record system itself, kanban, commit conventions, changelog.
 - **Date:** 2026-04-21
 - **Decision:** Planning subcommands (`decisions`, `ticket`, `plan`) land in pql's repo long-term. Clide consumes them via shell-out, matching [D-3](architecture.md)'s wrap-don't-duplicate rule for pql. Clide does not grow Dart subcommands for planning.
 - **Rationale:** A terminal user or a user in VS Code / JetBrains still needs Q&D access. Binding planning tooling to clide-the-Flutter-app would cut them off from their own work — see [R-9](rejected.md#r-9-port-planning-tooling-into-clide). pql is already the CLI, already universal, already wrapped by clide.
-- **Cost:** Planning features don't ship until pql catches up. Mitigated by [D-40](#d-40-python-stopgap-under-toolsscriptsplan). Gated by [Q-21](questions-process.md#q-21-pql-absorbs-planning-vs-keeps-separate).
+- **Cost:** Planning features don't ship until pql catches up. Mitigated by [D-40](#d-40-superseded-python-stopgap-under-toolsscriptsplan). Gated by [Q-21](questions-process.md#q-21-pql-absorbs-planning-vs-keeps-separate).
 - **Raised by:** 2026-04-21 planning.
 
 ### D-40: [SUPERSEDED] Python stopgap under `tools/scripts/plan`

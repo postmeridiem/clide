@@ -8,7 +8,7 @@ A11y + i18n are Tier-0 contracts, not Tier-6 polish.
 - **Date:** 2026-04-21
 - **Decision:** Every widget primitive wraps its interaction surface in a `Semantics` node at the point of creation. A11y coverage is a test-time gate (`ci/test_a11y.sh`), not a post-hoc polish pass. `ensureSemantics()` fires at app boot; Flutter's semantics tree is always populated.
 - **Rationale:** Retrofitting a11y onto a grown UI is what every project that skips this promises to do later and then doesn't. Making it a Tier-0 contract costs one `Semantics` line per primitive and a semantic-coverage test; postponing costs a rewrite.
-- **Cost:** Widget authors maintain correct labels; tests reject new primitives without semantics. Enforced by `app/test/a11y/` coverage tests.
+- **Cost:** Widget authors maintain correct labels; tests reject new primitives without semantics. Enforced by `test/a11y/` coverage tests.
 - **Raised by:** 2026-04-21 planning.
 
 ### D-21: i18n is a Tier-0 contract (fframe pattern + locale-fallback chain)

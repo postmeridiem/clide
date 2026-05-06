@@ -16,7 +16,7 @@ Tooling-domain questions currently live here too. Split into
 ### Q-16: `tree-sitter-dart` grammar maintenance
 - **Status:** Open
 - **Question:** `UserNobody14/tree-sitter-dart` is archived. `nielsenko/tree-sitter-dart` is the maintained fork. Do we pin `nielsenko/`, mirror it in-repo, or lean on the Dart analyzer's own semantic output and skip tree-sitter for Dart?
-- **Context:** If tree-sitter is the Tier-2 answer ([Q-15](#q-15-editor-tab-full-lsp-vs-tree-sitter-only)), grammar sourcing matters.
+- **Context:** If tree-sitter is the Tier-2 answer ([Q-15](#q-15-editor-tab-full-lsp-vs-tree-sitter-only-highlight)), grammar sourcing matters.
 - **Source:** 2026-04-21 planning.
 
 ### Q-17: Icon set growth

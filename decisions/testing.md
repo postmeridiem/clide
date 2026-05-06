@@ -41,7 +41,7 @@ Test pyramid, drivers, client-side constraint.
 
 ### D-28: Test organisation — mirror `lib/` in `test/`
 - **Date:** 2026-04-21
-- **Decision:** Every test file lives at the same relative path as its subject. `app/lib/kernel/src/i18n/catalog_loader.dart` pairs with `app/test/kernel/i18n/catalog_loader_test.dart`. No separate `unit/` vs `widget/` directories; test type is detected by what the test imports.
+- **Decision:** Every test file lives at the same relative path as its subject. `lib/kernel/src/i18n/catalog_loader.dart` pairs with `test/kernel/i18n/catalog_loader_test.dart`. No separate `unit/` vs `widget/` directories; test type is detected by what the test imports.
 - **Rationale:** Matching paths makes "jump to test" predictable in any editor. Type-by-imports matches how `flutter test` already works.
 - **Cost:** Large feature folders mirror into large test folders. Acceptable.
 - **Raised by:** 2026-04-21 planning.
