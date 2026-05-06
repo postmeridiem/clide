@@ -1,0 +1,166 @@
+title: MultitabPane — architecture {
+  near: top-center
+  shape: text
+  style.font-size: 24
+  style.bold: true
+}
+
+direction: down
+
+host: ClaudePane (host) {
+  shape: rectangle
+  style.fill: "#13161c"
+  style.stroke: "#7c5cff"
+  style.font-color: "#e8ecf2"
+
+  state: ChangeNotifier — owns lifecycle {
+    shape: rectangle
+    style.fill: "#0e1014"
+    style.stroke: "#262a32"
+    style.font-color: "#a0a8b8"
+  }
+}
+
+widget: MultitabPane<T> (widget) {
+  shape: rectangle
+  style.fill: "#13161c"
+  style.stroke: "#262a32"
+  style.font-color: "#e8ecf2"
+
+  shell: builds tabstrip + body shell {
+    shape: rectangle
+    style.fill: "#0e1014"
+    style.stroke: "#262a32"
+    style.font-color: "#a0a8b8"
+  }
+}
+
+controller: MultitabController<T> {
+  shape: rectangle
+  style.fill: "#13161c"
+  style.stroke: "#262a32"
+  style.font-color: "#e8ecf2"
+
+  api: |md
+    add(entry)
+    remove(id)
+    activate(id)
+    reorder(id, idx)
+  | {
+    style.font-color: "#a0a8b8"
+  }
+}
+
+entries: List<MultitabEntry<T>> {
+  shape: rectangle
+  style.fill: "#0e1014"
+  style.stroke: "#262a32"
+  style.font-color: "#a0a8b8"
+
+  primary: primary {
+    shape: rectangle
+    style.fill: "#1a1f28"
+    style.stroke: "#7c5cff"
+    style.font-color: "#e8ecf2"
+    closeable\: false: { shape: text; style.font-color: "#7a8294"; style.font-size: 10 }
+    reorderable\: false: { shape: text; style.font-color: "#7a8294"; style.font-size: 10 }
+  }
+  sec1: secondary 1 {
+    shape: rectangle
+    style.fill: "#13161c"
+    style.stroke: "#262a32"
+    style.font-color: "#a0a8b8"
+  }
+  sec2: secondary 2 {
+    shape: rectangle
+    style.fill: "#13161c"
+    style.stroke: "#262a32"
+    style.font-color: "#a0a8b8"
+  }
+}
+
+ipc: kernel.claude / IPC {
+  shape: rectangle
+  style.fill: "#13161c"
+  style.stroke: "#5a8c5a"
+  style.font-color: "#e8ecf2"
+
+  spawn: spawnSecondary() {
+    shape: rectangle
+    style.fill: "#0e1014"
+    style.stroke: "#262a32"
+    style.font-color: "#a0a8b8"
+  }
+  close: closeSecondary(ref) {
+    shape: rectangle
+    style.fill: "#0e1014"
+    style.stroke: "#262a32"
+    style.font-color: "#a0a8b8"
+  }
+}
+
+host -> controller: owns {
+  style.stroke: "#7a8294"
+  style.font-color: "#7a8294"
+}
+host -> widget: builds with {
+  style.stroke: "#7a8294"
+  style.font-color: "#7a8294"
+}
+controller -> entries: holds {
+  style.stroke: "#7a8294"
+  style.font-color: "#7a8294"
+}
+widget -> controller: subscribes (Listenable) {
+  style.stroke: "#7c5cff"
+  style.font-color: "#a0a8b8"
+}
+
+widget -> host: onAddRequested() {
+  style.stroke: "#d97757"
+  style.font-color: "#d97757"
+}
+widget -> host: onCloseRequested(entry) {
+  style.stroke: "#d97757"
+  style.font-color: "#d97757"
+}
+
+host -> ipc: routes user intent {
+  style.stroke: "#5a8c5a"
+  style.font-color: "#5a8c5a"
+}
+ipc.spawn -> entries.sec2: appends new entry {
+  style.stroke: "#5a8c5a"
+  style.font-color: "#5a8c5a"
+}
+ipc.close -> entries.sec1: removes entry {
+  style.stroke: "#d97757"
+  style.font-color: "#d97757"
+}
+
+note: |md
+  ### Boundary
+
+  **Widget** is generic. It knows
+  about `MultitabEntry<T>` and routes
+  user gestures back to the host. It
+  never touches PTY, IPC, or session
+  naming.
+
+  **Host** owns the controller and
+  decides what `add` / `close` mean
+  in the domain — for Claude that's
+  spawning/killing tmux sessions
+  via IPC.
+
+  This boundary is what makes the
+  widget reusable: any pane that
+  needs N runtime instances can
+  drop it in with their own host
+  and payload type.
+| {
+  shape: rectangle
+  style.fill: "#13161c"
+  style.stroke: "#262a32"
+  style.font-color: "#a0a8b8"
+}

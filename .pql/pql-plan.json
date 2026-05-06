@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T09:14:06Z",
+  "exported_at": "2026-05-06T10:04:42Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2040,11 +2040,11 @@
       "type": "task",
       "parent_id": "T-4",
       "title": "implement welcome screen per hi-fi design",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "decision_ref": "D-43",
       "created_at": "2026-04-22 14:08:40",
-      "updated_at": "2026-05-03 20:34:52"
+      "updated_at": "2026-05-06 09:17:22"
     },
     {
       "id": "T-22",
@@ -2673,9 +2673,23 @@
       "priority": "low",
       "created_at": "2026-05-06 08:30:15",
       "updated_at": "2026-05-06 08:30:15"
+    },
+    {
+      "id": "T-83",
+      "type": "task",
+      "title": "design reusable sortable tab system for multitab panes",
+      "status": "in_progress",
+      "priority": "high",
+      "created_at": "2026-05-06 09:17:39",
+      "updated_at": "2026-05-06 09:17:50"
     }
   ],
-  "ticket_deps": null,
+  "ticket_deps": [
+    {
+      "blocker_id": "T-83",
+      "blocked_id": "T-24"
+    }
+  ],
   "ticket_labels": null,
   "history": [
     {
@@ -4005,6 +4019,20 @@
       "old_value": "in_progress",
       "new_value": "done",
       "changed_at": "2026-05-06 07:56:10"
+    },
+    {
+      "ticket_id": "T-21",
+      "field": "status",
+      "old_value": "ready",
+      "new_value": "done",
+      "changed_at": "2026-05-06 09:17:22"
+    },
+    {
+      "ticket_id": "T-83",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 09:17:50"
     }
   ]
 }

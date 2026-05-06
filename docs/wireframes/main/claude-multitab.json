@@ -1,0 +1,209 @@
+{
+  "name": "Claude Pane — multitab",
+  "shapes": {
+    "canvas": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 1100, "height": 720,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+
+    "pane-header": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 40, "width": 1100, "height": 36,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "pane-title": {
+      "type": "Text",
+      "parent": "pane-header",
+      "left": 56, "top": 50,
+      "text": "claude — secondary 2",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "pane-subtitle": {
+      "type": "Text",
+      "parent": "pane-header",
+      "left": 56, "top": 64,
+      "text": "tmux · clide-claude-var-mnt-data-projects-clide-2",
+      "fontColor": "#7a8294",
+      "fontSize": 10
+    },
+
+    "tabstrip": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 76, "width": 1100, "height": 32,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+
+    "tab-primary": {
+      "type": "Rectangle",
+      "parent": "tabstrip",
+      "left": 56, "top": 80, "width": 132, "height": 28,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028",
+      "corners": [4, 4, 0, 0]
+    },
+    "tab-primary-pin": {
+      "type": "Text",
+      "parent": "tab-primary",
+      "left": 64, "top": 86,
+      "text": "📌",
+      "fontColor": "#7a8294",
+      "fontSize": 10
+    },
+    "tab-primary-text": {
+      "type": "Text",
+      "parent": "tab-primary",
+      "left": 84, "top": 86,
+      "text": "primary",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "tab-sec-1": {
+      "type": "Rectangle",
+      "parent": "tabstrip",
+      "left": 192, "top": 80, "width": 132, "height": 28,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028",
+      "corners": [4, 4, 0, 0]
+    },
+    "tab-sec-1-text": {
+      "type": "Text",
+      "parent": "tab-sec-1",
+      "left": 204, "top": 86,
+      "text": "secondary 1",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "tab-sec-1-close": {
+      "type": "Text",
+      "parent": "tab-sec-1",
+      "left": 304, "top": 86,
+      "text": "×",
+      "fontColor": "#5a6478",
+      "fontSize": 14
+    },
+
+    "tab-sec-2": {
+      "type": "Rectangle",
+      "parent": "tabstrip",
+      "left": 328, "top": 80, "width": 132, "height": 28,
+      "fillColor": "#1a1f28",
+      "strokeColor": "#7c5cff",
+      "corners": [4, 4, 0, 0]
+    },
+    "tab-sec-2-text": {
+      "type": "Text",
+      "parent": "tab-sec-2",
+      "left": 340, "top": 86,
+      "text": "secondary 2",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "tab-sec-2-close": {
+      "type": "Text",
+      "parent": "tab-sec-2",
+      "left": 440, "top": 86,
+      "text": "×",
+      "fontColor": "#a0a8b8",
+      "fontSize": 14
+    },
+
+    "tab-add": {
+      "type": "Rectangle",
+      "parent": "tabstrip",
+      "left": 464, "top": 80, "width": 28, "height": 28,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028",
+      "corners": [4, 4, 0, 0]
+    },
+    "tab-add-glyph": {
+      "type": "Text",
+      "parent": "tab-add",
+      "left": 474, "top": 86,
+      "text": "+",
+      "fontColor": "#7a8294",
+      "fontSize": 14
+    },
+
+    "active-divider": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 108, "width": 1100, "height": 2,
+      "fillColor": "#7c5cff",
+      "strokeColor": "#7c5cff"
+    },
+
+    "body": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 110, "width": 1100, "height": 650,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "body-banner-name": {
+      "type": "Text",
+      "parent": "body",
+      "left": 56, "top": 132,
+      "text": "Claude Code  v2.1.128",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "body-banner-meta": {
+      "type": "Text",
+      "parent": "body",
+      "left": 56, "top": 148,
+      "text": "Opus 4.7 (1M context)  ·  fresh secondary session",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+
+    "body-msg-prompt": {
+      "type": "Text",
+      "parent": "body",
+      "left": 56, "top": 200,
+      "text": "› dig into the failing test in test/pty/session_test.dart",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "body-msg-resp": {
+      "type": "Text",
+      "parent": "body",
+      "left": 56, "top": 226,
+      "text": "● Looking at the write-keystrokes test. The shell process\n  starts but the echo doesn't appear in the output stream.\n  Let me trace the write path…",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+
+    "prompt-divider": {
+      "type": "Rectangle",
+      "parent": "body",
+      "left": 40, "top": 700, "width": 1100, "height": 1,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "prompt": {
+      "type": "Text",
+      "parent": "body",
+      "left": 56, "top": 712,
+      "text": "›  Try \"run the test in this pane\"",
+      "fontColor": "#5a6478",
+      "fontSize": 12
+    },
+
+    "anno": {
+      "type": "Text",
+      "parent": "canvas",
+      "left": 720, "top": 80,
+      "text": "active tab gets accent border + bottom rule",
+      "fontColor": "#5a6478",
+      "fontSize": 10
+    }
+  }
+}
