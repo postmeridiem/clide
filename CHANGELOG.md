@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Staged `dart doc` CI job — generates and uploads an HTML API
+  reference for the public `lib/` surface, with `--validate-links` to
+  fail the build on broken references. Inert with the rest of the
+  workflow until Gitea Actions activates.
 - Mouse wheel scrolling in Claude pane — converts scroll events to
   PgUp/PgDown so Claude Code (and other TUI apps) scroll their
   history naturally.

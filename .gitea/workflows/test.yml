@@ -69,3 +69,17 @@ jobs:
       - run: (cd app && flutter pub get)
       - run: (cd tools/ui && npm install && npx playwright install --with-deps chromium)
       - run: ci/test_e2e.sh
+
+  docs:
+    name: dart doc (lib API)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: dart pub get
+      - run: dart doc --validate-links
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dart-api-docs
+          path: doc/api/
