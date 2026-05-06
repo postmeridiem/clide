@@ -12,9 +12,11 @@ library;
 import 'dart:convert';
 
 import '../ipc/envelope.dart';
+import '../ipc/errno_mapping.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/pane.dart';
 import '../panes/registry.dart';
+import '../pty/errors.dart';
 import 'dispatcher.dart';
 
 void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry) {
@@ -84,6 +86,26 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
       title: args['title'] as String?,
     );
     return IpcResponse.ok(id: req.id, data: pane.toJson());
+  } on PtyException catch (e) {
+    final errno = e.errno;
+    if (errno != null) {
+      return IpcResponse.err(
+        id: req.id,
+        error: errnoToIpcError(
+          errno: errno,
+          op: 'pane.spawn',
+          target: argv.isNotEmpty ? argv.first : null,
+        ),
+      );
+    }
+    return IpcResponse.err(
+      id: req.id,
+      error: IpcError(
+        code: IpcExitCode.toolError,
+        kind: IpcErrorKind.toolError,
+        message: 'pane.spawn failed: ${e.message}',
+      ),
+    );
   } catch (e) {
     return IpcResponse.err(
       id: req.id,

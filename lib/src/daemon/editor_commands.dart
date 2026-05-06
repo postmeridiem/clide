@@ -9,8 +9,11 @@
 /// one-to-one onto these in `bin/clide.dart`.
 library;
 
+import 'dart:io' show FileSystemException;
+
 import '../editor/registry.dart';
 import '../ipc/envelope.dart';
+import '../ipc/errno_mapping.dart';
 import '../ipc/schema_v1.dart';
 import 'dispatcher.dart';
 
@@ -64,6 +67,22 @@ Future<IpcResponse> _open(IpcRequest req, EditorRegistry r) async {
   try {
     final buf = await r.open(path);
     return IpcResponse.ok(id: req.id, data: buf.toJson());
+  } on FileSystemException catch (e) {
+    final errno = e.osError?.errorCode;
+    if (errno != null) {
+      return IpcResponse.err(
+        id: req.id,
+        error: errnoToIpcError(errno: errno, op: 'editor.open', target: path),
+      );
+    }
+    return IpcResponse.err(
+      id: req.id,
+      error: IpcError(
+        code: IpcExitCode.toolError,
+        kind: IpcErrorKind.toolError,
+        message: 'editor.open failed: ${e.message}',
+      ),
+    );
   } catch (e) {
     return IpcResponse.err(
       id: req.id,

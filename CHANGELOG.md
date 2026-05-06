@@ -48,6 +48,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   client dropped on response-write failure, and the stale-socket
   retry now probes for a live daemon before unlinking the socket
   (refusing to start if one answers).
+- `pane.spawn` and `editor.open` now map POSIX errno values to
+  actionable IPC error kinds. ENOENT → `not_found`, EACCES/EPERM
+  → `user_error` with a permissions hint, EISDIR/ENOTDIR/EEXIST
+  → distinct user-error/conflict, EMFILE/ENFILE → `tool_error`
+  with a "fd limit hit" hint. Previously every spawn/open failure
+  was an indistinguishable `tool_error`.
 
 ### Security
 
