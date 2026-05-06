@@ -16,8 +16,6 @@ class _LineBuilder {
 
   int get length => _length;
 
-  bool get isEmpty => _length == 0;
-
   bool get isNotEmpty => _length != 0;
 
   /// Adds a range of cells from [src] to the builder. Anchors within the range

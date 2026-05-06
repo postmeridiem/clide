@@ -81,7 +81,7 @@ class CursorStyle {
 
   bool get isFaint => (attrs & CellAttr.faint) != 0;
 
-  bool get isItalis => (attrs & CellAttr.italic) != 0;
+  bool get isItalic => (attrs & CellAttr.italic) != 0;
 
   bool get isUnderline => (attrs & CellAttr.underline) != 0;
 
