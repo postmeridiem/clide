@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T15:48:03Z",
+  "exported_at": "2026-05-06T15:58:06Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2000,11 +2000,11 @@
       "parent_id": "T-8",
       "title": "add dart doc generation to CI",
       "description": "Wire `dart doc` into the CI pipeline so the public API surface (everything in lib/*.dart barrel exports) renders to HTML on every push to main.\n\n**Acceptance:**\n- New CI step in `.gitea/workflows/test.yml` runs `dart doc lib/` and uploads the generated `doc/api/` artefact.\n- Documentation comments on public APIs are validated (no broken references); `dart doc --validate-links` part of the run.\n- Generated docs published somewhere browsable — Gitea Pages, GitHub Pages once the repo moves, or an S3-style static host (decision deferred until Gitea actions land per D-32).\n\n**Not in scope:** writing missing docstrings (separate sweep), private-API docs, package.json-style metadata for pub.dev (we never publish to pub.dev — single binary).",
-      "status": "done",
+      "status": "in_progress",
       "priority": "medium",
       "decision_ref": "D-32",
       "created_at": "2026-04-22 13:26:29",
-      "updated_at": "2026-05-06 15:45:51"
+      "updated_at": "2026-05-06 15:51:26"
     },
     {
       "id": "T-18",
@@ -4250,6 +4250,13 @@
       "old_value": "in_progress",
       "new_value": "done",
       "changed_at": "2026-05-06 15:45:51"
+    },
+    {
+      "ticket_id": "T-17",
+      "field": "status",
+      "old_value": "done",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 15:51:26"
     }
   ]
 }
