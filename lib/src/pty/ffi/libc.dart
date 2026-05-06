@@ -10,6 +10,24 @@
 /// set against the Win32 API (named pipes instead of unix sockets).
 library;
 
+// File-wide analyzer exceptions, with reason — see CLAUDE.md
+// no-lint-suppression rule. These are the textbook FFI-binding
+// case where the lints work against the file's purpose:
+//
+// * `non_constant_identifier_names` — struct field names map 1:1
+//   to POSIX (`man 2 socketpair`, `recvmsg`, `iovec`, `msghdr`).
+//   Keeping snake_case makes the code greppable against the spec
+//   and the field offsets readable next to the C ABI. Dart FFI
+//   layout depends on declaration order + types, not names, so
+//   this is purely a readability call.
+// * `library_private_types_in_public_api` — the C / Dart function-
+//   signature typedefs (`_SocketpairC`, `_SocketpairDart`, etc.)
+//   are implementation details consumed only by the public
+//   `lookupFunction<...>()` calls in this file. Promoting them
+//   to public would just add noise to the import surface.
+//
+// ignore_for_file: non_constant_identifier_names, library_private_types_in_public_api
+
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
 
