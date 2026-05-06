@@ -136,7 +136,8 @@ class I18n extends ChangeNotifier {
   }
 
   /// [string] + naive `replaceAll` interpolation per replacer.
-  /// Matches fframe: replacers whose [from] isn't present are silent no-ops.
+  /// Matches fframe: replacers whose [I18nReplacer.from] isn't present
+  /// are silent no-ops.
   String interpolated(
     String key, {
     required String namespace,

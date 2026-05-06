@@ -39,10 +39,10 @@ make push-check       # pre-push gate: decisions + core + fast tests
 
 ## Status
 
-Pre-v2.0 (`2.0.0-dev`). Interaction model and panel system landed. The Python Textual v1.2.0 predecessor is archived under [`legacy/`](legacy/).
+Pre-v2.0 (`2.0.0-dev`). Interaction model and panel system landed. The Python Textual v1.2.0 predecessor is archived under [`legacy/`](https://github.com/postmeridiem/clide/tree/main/legacy).
 
-Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Architectural decisions: [`decisions/`](decisions/).
+Design doc: [`docs/initial-plan.md`](https://github.com/postmeridiem/clide/blob/main/docs/initial-plan.md). Architectural decisions: [`decisions/`](https://github.com/postmeridiem/clide/tree/main/decisions).
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](https://github.com/postmeridiem/clide/blob/main/LICENSE).

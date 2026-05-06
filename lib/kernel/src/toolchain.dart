@@ -1,8 +1,8 @@
 /// Centralized binary resolution for external tools.
 ///
-/// Resolution runs in a background isolate via [resolvePaths] to avoid
-/// blocking the merged UI/platform thread on macOS. The result is
-/// applied on the main thread via [applyResolved].
+/// Resolution runs in a background isolate via [Toolchain.resolvePaths]
+/// to avoid blocking the merged UI/platform thread on macOS. The result
+/// is applied on the main thread via [Toolchain.applyResolved].
 library;
 
 import 'dart:async';

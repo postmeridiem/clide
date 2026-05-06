@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'claude_pane.dart';
 
 /// Hosts the primary Claude pane plus N user-spawned secondary
-/// sessions per [D-41]. Uses [MultitabPane] for the tab strip
+/// sessions per D-41. Uses [MultitabPane] for the tab strip
 /// (drag-reorder, close ×, + button) and [IndexedStack]-mode
 /// keep-alive so switching tabs doesn't tear down the underlying
 /// PTY-backed terminal.

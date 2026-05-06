@@ -2,8 +2,8 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:flutter/widgets.dart';
 
 /// Stateless painter producing a single-color icon. Every icon in
-/// [icons/] subclasses this; widgets wrap with [ClideIcon] for size +
-/// color-from-theme.
+/// `widgets/src/icons/` subclasses this; widgets wrap with [ClideIcon]
+/// for size + color-from-theme.
 abstract class ClideIconPainter {
   const ClideIconPainter();
 

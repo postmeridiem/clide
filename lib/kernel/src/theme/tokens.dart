@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart';
 ///
 /// The token surface grows as features need more of it. Every token
 /// declared here must have a default resolution in
-/// [DefaultSurfaceMap] so legacy palette-only themes produce a complete
-/// SurfaceTokens without declaring the full surface.
+/// `_defaultSurfaceMap` (resolver.dart) so legacy palette-only themes
+/// produce a complete SurfaceTokens without declaring the full surface.
 @immutable
 class SurfaceTokens {
   const SurfaceTokens({

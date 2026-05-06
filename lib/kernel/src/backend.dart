@@ -1,8 +1,8 @@
 /// Manages the backend isolate lifecycle.
 ///
 /// Two-phase boot:
-///   1. [spawn] — starts the isolate, resolves toolchain (binary checks only).
-///   2. [openWorkspace] — initializes services for a specific project root.
+///   1. [Backend.spawn] — starts the isolate, resolves toolchain (binary checks only).
+///   2. [Backend.openProject] — initializes services for a specific project root.
 library;
 
 import 'dart:async';
@@ -34,7 +34,7 @@ class Backend {
   int _validateId = 0;
 
   /// Spawn the backend isolate. Returns when the toolchain is resolved.
-  /// No services are active yet — call [openWorkspace] to activate.
+  /// No services are active yet — call [openProject] to activate.
   static Future<Backend> spawn({
     required IsolateClient Function(SendPort backendPort) clientFactory,
     String? hintRoot,
