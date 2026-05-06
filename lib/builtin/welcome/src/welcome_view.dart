@@ -12,35 +12,109 @@ class WelcomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    return Stack(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 850),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Header(tokens: tokens),
-                const SizedBox(height: 56),
-                Row(
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Tips card sits below the START/RECENT row when there's room
+        // for it; on shorter viewports the two centered columns win
+        // and the tips drop out cleanly.
+        final showTips = c.maxHeight > 640;
+        return Stack(
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 850),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _StartColumn(tokens: tokens, kernel: kernel)),
-                    const SizedBox(width: 56),
-                    Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
+                    _Header(tokens: tokens),
+                    const SizedBox(height: 56),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _StartColumn(tokens: tokens, kernel: kernel)),
+                        const SizedBox(width: 56),
+                        Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
+                      ],
+                    ),
+                    if (showTips) ...[
+                      const SizedBox(height: 48),
+                      _TipsCard(tokens: tokens),
+                    ],
                   ],
                 ),
+              ),
+            ),
+            Positioned(
+              left: 64,
+              right: 64,
+              bottom: 24,
+              child: _StatusLine(tokens: tokens, kernel: kernel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TipsCard extends StatelessWidget {
+  const _TipsCard({required this.tokens});
+  final SurfaceTokens tokens;
+
+  static const _tips = <(String, String)>[
+    ('Quick open', '⌘P'),
+    ('Command palette', '⌘⇧P'),
+    ('Toggle sidebar', '⌘B'),
+    ('Toggle context', '⌘J'),
+    ('Switch theme', '⌘K ⌘T'),
+    ('New Claude session', '⌘⇧C'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    // Split tips into two rows of three so the card lays out as a
+    // 3-column grid matching the START/RECENT proportions above.
+    final firstRow = _tips.sublist(0, 3);
+    final secondRow = _tips.sublist(3);
+
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
+          color: tokens.panelBackground,
+          border: Border.all(color: tokens.panelBorder),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClideText('TIPS', fontSize: 12, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            const SizedBox(height: 14),
+            _tipRow(firstRow),
+            const SizedBox(height: 8),
+            _tipRow(secondRow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tipRow(List<(String, String)> tips) {
+    return Row(
+      children: [
+        for (var i = 0; i < tips.length; i++) ...[
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: ClideText(tips[i].$1, fontSize: 13, color: tokens.globalTextMuted)),
+                ClideText(tips[i].$2, fontSize: 12, color: tokens.globalForeground, fontFamily: clideMonoFamily),
               ],
             ),
           ),
-        ),
-        Positioned(
-          left: 64,
-          right: 64,
-          bottom: 24,
-          child: _StatusLine(tokens: tokens, kernel: kernel),
-        ),
+          if (i < tips.length - 1) const SizedBox(width: 24),
+        ],
       ],
     );
   }

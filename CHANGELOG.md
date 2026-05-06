@@ -21,6 +21,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Mouse wheel scrolling in Claude pane — converts scroll events to
   PgUp/PgDown so Claude Code (and other TUI apps) scroll their
   history naturally.
+- Welcome screen Tips card — six common keybindings shown below the
+  START / RECENT row when the viewport is tall enough.
+
+### Changed
+
+- Tagline reads "IDE for Claude Code CLI" everywhere (welcome
+  subtitle, README, CLAUDE.md, pubspec, web manifest, CLI banner).
 
 ### Fixed
 
