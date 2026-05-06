@@ -1,0 +1,3 @@
+#!/bin/sh
+# pql: source .pql/hooks/pre-commit (planning-state auto-export)
+. "$(git rev-parse --show-toplevel)/.pql/hooks/pre-commit"
