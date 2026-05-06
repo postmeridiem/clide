@@ -4,11 +4,22 @@ Principles for placing icons, buttons, and text inside controls.
 Apply when building tab strips, list items, buttons with affordances,
 or anything where actions sit next to content.
 
-> Numeric values in this doc will move to `ClideSpacing` constants
-> (`lib/widgets/src/spacing.dart`) — see T-86. Until then, the
-> constants used in the codebase: `12` (text inset), `6` (icon
-> breathing), `8` (standard gap), `4` (tight gap), `16` (icon hit
-> area), `28` (button / row height).
+> Constants live in `lib/widgets/src/spacing.dart` — pull from there
+> instead of inlining literals:
+>
+> | Concept                 | Constant                |
+> |-------------------------|-------------------------|
+> | Hairline (2px)          | `clideInsetHairline`    |
+> | Tight inset (4px)       | `clideInsetTight`       |
+> | Uniform icon margin (6) | `clideInsetIcon`        |
+> | Standard inset (8px)    | `clideInsetStandard`    |
+> | Text-content inset (12) | `clideInsetText`        |
+> | Tight / standard gap    | `clideGapTight` / `clideGapStandard` |
+> | Section / major gap     | `clideGapSection` / `clideGapMajor` |
+> | Micro icon (10)         | `clideIconMicro`        |
+> | Standard icon (14)      | `clideIconStandard`     |
+> | Hit-target (16)         | `clideIconHitTarget`    |
+> | Control height (28)     | `clideControlHeight`    |
 
 ## Uniform inner spacing rule
 

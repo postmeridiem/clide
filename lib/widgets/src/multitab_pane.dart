@@ -4,6 +4,7 @@ import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/icons/x.dart';
 import 'package:clide/widgets/src/multitab_controller.dart';
+import 'package:clide/widgets/src/spacing.dart';
 import 'package:flutter/widgets.dart';
 
 typedef MultitabBuilder<T> = Widget Function(BuildContext context, MultitabEntry<T> entry);
@@ -27,7 +28,7 @@ class MultitabPane<T> extends StatelessWidget {
     this.onAddRequested,
     this.allowReorder = true,
     this.keepAlive = false,
-    this.tabHeight = 28,
+    this.tabHeight = clideControlHeight,
   });
 
   final MultitabController<T> controller;
@@ -321,13 +322,13 @@ class _TabState<T> extends State<_Tab<T>> {
           builder: (context, _, __) => Container(
             constraints: BoxConstraints(minWidth: 96, maxWidth: 200),
             height: widget.tabHeight,
-            // Left margin stays at 12 (text breathing room).
-            // Right margin matches the close button's vertical
-            // breathing room ((tabHeight − iconSize) / 2 ≈ 6) so the
-            // gap around the icon is uniform on top, bottom, and right.
+            // Left: text inset (title breathing room).
+            // Right: when there's a close button, match its uniform
+            // icon margin so top/bottom/right are equal — see the
+            // ui-design `geometry.md` "no double-edge padding" rule.
             padding: EdgeInsets.only(
-              left: 12,
-              right: widget.onClose != null ? 6 : 12,
+              left: clideInsetText,
+              right: widget.onClose != null ? clideInsetIcon : clideInsetText,
             ),
             decoration: BoxDecoration(
               color: bg,
@@ -351,14 +352,14 @@ class _TabState<T> extends State<_Tab<T>> {
                 ),
                 // Right column: close icon, fixed natural width.
                 if (widget.onClose != null) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: clideGapStandard),
                   Opacity(
                     opacity: _hovered || widget.active ? 1.0 : 0.0,
                     child: ClideTappable(
                       onTap: widget.onClose,
                       builder: (context, hovered, _) => Container(
-                        width: 16,
-                        height: 16,
+                        width: clideIconHitTarget,
+                        height: clideIconHitTarget,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: hovered ? tokens.listItemHoverBackground : null,
@@ -366,7 +367,7 @@ class _TabState<T> extends State<_Tab<T>> {
                         ),
                         child: ClideIcon(
                           const CloseIcon(),
-                          size: 10,
+                          size: clideIconMicro,
                           color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
                         ),
                       ),
@@ -397,14 +398,14 @@ class _AddButton extends StatelessWidget {
       child: ClideTappable(
         onTap: onTap,
         builder: (context, hovered, _) => Container(
-          width: 28,
+          width: clideControlHeight,
           height: tabHeight,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: hovered ? tokens.listItemHoverBackground : null,
           ),
           child: ClideText('+',
-              fontSize: 14,
+              fontSize: clideIconStandard,
               color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
         ),
       ),

@@ -36,6 +36,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - Claude pane uses `MultitabPane` for primary + secondaries — drops
   ~100 lines of bespoke tab-strip code, gains drag-to-reorder.
+- UI spacing constants live in `lib/widgets/src/spacing.dart` —
+  `clideInset*` for paddings, `clideGap*` for sibling distances,
+  `clideIcon*` / `clideControlHeight` for control sizes. Inline
+  pixel literals replaced where they were repeated.
 
 ### Changed
 

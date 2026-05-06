@@ -1,9 +1,14 @@
+import 'package:clide/widgets/src/icons/x.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/kernel_fixture.dart';
 import '../helpers/widget_harness.dart';
+
+Finder _closeIcons() => find.byWidgetPredicate(
+      (w) => w is ClideIcon && w.painter is CloseIcon,
+    );
 
 MultitabEntry<String> entry(String id, {bool closeable = true, bool reorderable = true}) {
   return MultitabEntry<String>(
@@ -119,7 +124,7 @@ void main() {
       // A pinned tab has no close target; a closeable one does (it's
       // hidden via Opacity until hover, but still in the tree).
       // Two tabs total, one × glyph for 's'.
-      expect(find.text('×'), findsOneWidget);
+      expect(_closeIcons(), findsOneWidget);
     });
 
     testWidgets('default close behavior removes the entry', (tester) async {
@@ -130,7 +135,7 @@ void main() {
         harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
       );
 
-      await tester.tap(find.text('×'));
+      await tester.tap(_closeIcons());
       await tester.pumpAndSettle();
 
       expect(c.entries.map((e) => e.id), ['p']);
@@ -151,7 +156,7 @@ void main() {
       );
 
       // Both tabs are closeable; tap the first × encountered.
-      await tester.tap(find.text('×').first);
+      await tester.tap(_closeIcons().first);
       await tester.pumpAndSettle();
 
       expect(closed, isNotNull);

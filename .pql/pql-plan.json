@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T13:38:19Z",
+  "exported_at": "2026-05-06T13:45:07Z",
   "decisions": [
     {
       "id": "D-1",
@@ -2696,19 +2696,19 @@
       "id": "T-85",
       "type": "task",
       "title": "consolidate theme-ui into ui-design skill with theme/surface/geometry/icons references",
-      "status": "in_progress",
+      "status": "done",
       "priority": "medium",
       "created_at": "2026-05-06 13:28:58",
-      "updated_at": "2026-05-06 13:29:05"
+      "updated_at": "2026-05-06 13:38:38"
     },
     {
       "id": "T-86",
       "type": "task",
       "title": "codify UI spacing constants (gaps, paddings, control sizes)",
-      "status": "backlog",
+      "status": "in_progress",
       "priority": "medium",
       "created_at": "2026-05-06 13:28:58",
-      "updated_at": "2026-05-06 13:28:58"
+      "updated_at": "2026-05-06 13:38:44"
     }
   ],
   "ticket_deps": null,
@@ -4097,6 +4097,20 @@
       "old_value": "backlog",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 13:29:05"
+    },
+    {
+      "ticket_id": "T-85",
+      "field": "status",
+      "old_value": "in_progress",
+      "new_value": "done",
+      "changed_at": "2026-05-06 13:38:38"
+    },
+    {
+      "ticket_id": "T-86",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-06 13:38:44"
     }
   ]
 }

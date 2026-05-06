@@ -28,6 +28,7 @@ export 'src/multitab_pane.dart';
 export 'src/clide_tappable.dart';
 export 'src/clide_text.dart';
 export 'src/clide_tooltip.dart';
+export 'src/spacing.dart';
 export 'src/typography.dart';
 export 'src/icons/check.dart';
 export 'src/icons/chevron.dart';
