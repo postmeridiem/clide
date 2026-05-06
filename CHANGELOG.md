@@ -23,6 +23,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   history naturally.
 - Welcome screen Tips card — six common keybindings shown below the
   START / RECENT row when the viewport is tall enough.
+- `MultitabPane` widget + `MultitabController` for panes that host
+  N runtime tab instances of the same kind. Generic over a payload
+  type, supports pinned/non-closeable tabs (primary), drag-reorder
+  (planned), close × on hover, and an optional `+` add button. Used
+  by the Claude pane to render primary + secondaries.
 
 ### Changed
 

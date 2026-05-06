@@ -23,6 +23,8 @@ export 'src/clide_scrollbar.dart';
 export 'src/clide_spine.dart';
 export 'src/clide_surface.dart';
 export 'src/clide_tab_bar.dart';
+export 'src/multitab_controller.dart';
+export 'src/multitab_pane.dart';
 export 'src/clide_tappable.dart';
 export 'src/clide_text.dart';
 export 'src/clide_tooltip.dart';
