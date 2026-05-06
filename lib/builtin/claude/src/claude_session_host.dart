@@ -1,9 +1,13 @@
-import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 import 'claude_pane.dart';
 
+/// Hosts the primary Claude pane plus N user-spawned secondary
+/// sessions per [D-41]. Uses [MultitabPane] for the tab strip
+/// (drag-reorder, close ×, + button) and [IndexedStack]-mode
+/// keep-alive so switching tabs doesn't tear down the underlying
+/// PTY-backed terminal.
 class ClaudeSessionHost extends StatefulWidget {
   const ClaudeSessionHost({super.key});
 
@@ -12,175 +16,67 @@ class ClaudeSessionHost extends StatefulWidget {
 }
 
 class ClaudeSessionHostState extends State<ClaudeSessionHost> {
-  final List<_Session> _sessions = [];
-  int _activeIndex = 0;
+  static const _primaryId = 'primary';
+
+  late final MultitabController<_Session> _controller;
   int _nextSecondary = 1;
 
   @override
   void initState() {
     super.initState();
-    _sessions.add(_Session(isPrimary: true, label: 'primary'));
+    _controller = MultitabController<_Session>(
+      initial: [
+        MultitabEntry<_Session>(
+          id: _primaryId,
+          title: 'primary',
+          payload: const _Session(isPrimary: true),
+          // Primary persists across clide restarts and never gets a
+          // close affordance (D-41).
+          closeable: false,
+          reorderable: false,
+        ),
+      ],
+    );
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Public entry point used by the `claude.new-secondary` command.
   void addSecondary() {
     final index = _nextSecondary++;
-    setState(() {
-      _sessions.add(_Session(isPrimary: false, secondaryIndex: index, label: 'session $index'));
-      _activeIndex = _sessions.length - 1;
-    });
-  }
-
-  void _close(int index) {
-    if (index < 0 || index >= _sessions.length) return;
-    if (_sessions[index].isPrimary) return;
-    setState(() {
-      _sessions.removeAt(index);
-      if (_activeIndex >= _sessions.length) _activeIndex = _sessions.length - 1;
-      if (_activeIndex < 0) _activeIndex = 0;
-    });
+    _controller.add(MultitabEntry<_Session>(
+      id: 'secondary-$index',
+      title: 'session $index',
+      payload: _Session(isPrimary: false, secondaryIndex: index),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    final showTabs = _sessions.length > 1;
-
-    return Column(
-      children: [
-        if (showTabs)
-          _TabRow(
-            sessions: _sessions,
-            activeIndex: _activeIndex,
-            tokens: tokens,
-            onSelect: (i) => setState(() => _activeIndex = i),
-            onClose: _close,
-            onAdd: addSecondary,
-          ),
-        Expanded(
-          child: IndexedStack(
-            index: _activeIndex,
-            children: [
-              for (final s in _sessions)
-                ClaudePane(
-                  key: s.key,
-                  isPrimary: s.isPrimary,
-                  secondaryIndex: s.secondaryIndex,
-                  showChrome: !showTabs,
-                ),
-            ],
-          ),
-        ),
-      ],
+    return MultitabPane<_Session>(
+      controller: _controller,
+      keepAlive: true,
+      onAddRequested: addSecondary,
+      bodyBuilder: (ctx, entry) {
+        final s = entry.payload;
+        return ClaudePane(
+          isPrimary: s.isPrimary,
+          secondaryIndex: s.secondaryIndex,
+          // The MultitabPane already provides the tab strip header;
+          // suppressing the ClaudePane's own chrome avoids a double row.
+          showChrome: false,
+        );
+      },
     );
   }
 }
 
 class _Session {
-  _Session({required this.isPrimary, this.secondaryIndex, required this.label}) : key = GlobalKey();
+  const _Session({required this.isPrimary, this.secondaryIndex});
   final bool isPrimary;
   final int? secondaryIndex;
-  final String label;
-  final GlobalKey key;
-}
-
-class _TabRow extends StatelessWidget {
-  const _TabRow({
-    required this.sessions,
-    required this.activeIndex,
-    required this.tokens,
-    required this.onSelect,
-    required this.onClose,
-    required this.onAdd,
-  });
-
-  final List<_Session> sessions;
-  final int activeIndex;
-  final SurfaceTokens tokens;
-  final ValueChanged<int> onSelect;
-  final ValueChanged<int> onClose;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onDoubleTap: onAdd,
-      child: Container(
-        height: 28,
-        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tokens.dividerColor))),
-        child: Row(
-          children: [
-            for (var i = 0; i < sessions.length; i++)
-              _Tab(
-                  session: sessions[i],
-                  active: i == activeIndex,
-                  tokens: tokens,
-                  onTap: () => onSelect(i),
-                  onClose: sessions[i].isPrimary ? null : () => onClose(i)),
-            const SizedBox(width: 4),
-            _AddButton(tokens: tokens, onTap: onAdd),
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Tab extends StatelessWidget {
-  const _Tab({required this.session, required this.active, required this.tokens, required this.onTap, this.onClose});
-  final _Session session;
-  final bool active;
-  final SurfaceTokens tokens;
-  final VoidCallback onTap;
-  final VoidCallback? onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClideTappable(
-      onTap: onTap,
-      builder: (context, hovered, _) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: hovered && !active ? tokens.tabInactive : null,
-          border: Border(bottom: BorderSide(color: active ? tokens.tabActiveBorder : const Color(0x00000000), width: 2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClideText(
-              session.label,
-              fontSize: 12,
-              color: active ? tokens.tabActiveForeground : tokens.tabInactiveForeground,
-              fontFamily: clideMonoFamily,
-            ),
-            if (onClose != null) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: onClose,
-                child: ClideIcon(PhosphorIcons.xMark, size: 10, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.tokens, required this.onTap});
-  final SurfaceTokens tokens;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClideTappable(
-      onTap: onTap,
-      tooltip: 'New session',
-      builder: (context, hovered, _) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: ClideText('+', fontSize: 14, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
-      ),
-    );
-  }
 }
