@@ -114,13 +114,11 @@ bool _isKeyDefine(String line) {
 }
 
 Iterable<KeytabToken> _parseKeyboardNameDefine(String line) sync* {
+  // Caller has already gated on `_isKeyboardNameDefine`, so the leading
+  // word is guaranteed to be 'keyboard'. Just consume it.
   final reader = LineReader(line.trim());
-
-  if (reader.readString() == 'keyboard') {
-    yield KeytabToken(KeytabTokenType.keyboard, 'keyboard');
-  } else {
-    throw TokenizeError();
-  }
+  reader.readString();
+  yield KeytabToken(KeytabTokenType.keyboard, 'keyboard');
 
   reader.skipWhitespace();
 
@@ -128,13 +126,10 @@ Iterable<KeytabToken> _parseKeyboardNameDefine(String line) sync* {
 }
 
 Iterable<KeytabToken> _parseKeyDefine(String line) sync* {
+  // Caller has already gated on `_isKeyDefine`.
   final reader = LineReader(line.trim());
-
-  if (reader.readString() == 'key') {
-    yield KeytabToken(KeytabTokenType.keyDefine, 'key');
-  } else {
-    throw TokenizeError();
-  }
+  reader.readString();
+  yield KeytabToken(KeytabTokenType.keyDefine, 'key');
 
   reader.skipWhitespace();
 

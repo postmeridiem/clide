@@ -55,9 +55,8 @@ class KeytabParser {
   }
 
   void _parseName(TokensReader reader) {
-    if (reader.take()!.type != KeytabTokenType.keyboard) {
-      throw ParseError();
-    }
+    // Caller (`addTokens`) has already gated on the keyboard token type.
+    reader.take();
 
     final name = reader.take()!;
     if (name.type != KeytabTokenType.input) {
@@ -68,9 +67,8 @@ class KeytabParser {
   }
 
   void _parseKeyDefine(TokensReader reader) {
-    if (reader.take()!.type != KeytabTokenType.keyDefine) {
-      throw ParseError();
-    }
+    // Caller has already gated on the keyDefine token type.
+    reader.take();
 
     final keyName = reader.take()!;
 
