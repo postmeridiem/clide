@@ -1,6 +1,8 @@
 import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
+import 'package:clide/widgets/src/icons/x.dart';
 import 'package:clide/widgets/src/multitab_controller.dart';
 import 'package:flutter/widgets.dart';
 
@@ -24,6 +26,7 @@ class MultitabPane<T> extends StatelessWidget {
     this.onCloseRequested,
     this.onAddRequested,
     this.allowReorder = true,
+    this.keepAlive = false,
     this.tabHeight = 28,
   });
 
@@ -32,6 +35,15 @@ class MultitabPane<T> extends StatelessWidget {
   final MultitabEntryCallback<T>? onCloseRequested;
   final VoidCallback? onAddRequested;
   final bool allowReorder;
+
+  /// When true, all entry bodies stay mounted across tab switches
+  /// (via [IndexedStack]). Use this for tabs that own long-lived
+  /// state — PTY-backed sessions, editor buffers, anything where
+  /// rebuilding from scratch on every switch loses state. Default
+  /// is false: only the active body builds, switching disposes the
+  /// old body and rebuilds the new one.
+  final bool keepAlive;
+
   final double tabHeight;
 
   @override
@@ -39,8 +51,10 @@ class MultitabPane<T> extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
+        final entries = controller.entries;
         final active = controller.active;
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _TabStrip<T>(
               controller: controller,
@@ -49,19 +63,35 @@ class MultitabPane<T> extends StatelessWidget {
               allowReorder: allowReorder,
               tabHeight: tabHeight,
             ),
-            Expanded(
-              child: active == null
-                  ? const SizedBox.expand()
-                  : KeyedSubtree(
-                      // Key by id so swapping the active tab rebuilds
-                      // body state cleanly instead of mutating in place.
-                      key: ValueKey('multitab-body-${active.id}'),
-                      child: bodyBuilder(context, active),
-                    ),
-            ),
+            Expanded(child: _body(context, entries, active)),
           ],
         );
       },
+    );
+  }
+
+  Widget _body(BuildContext context, List<MultitabEntry<T>> entries, MultitabEntry<T>? active) {
+    if (active == null || entries.isEmpty) return const SizedBox.expand();
+    if (!keepAlive) {
+      // Single-body mode: rebuild on every active change. Key by id
+      // so a stable body widget tree gets a fresh State on switch.
+      return KeyedSubtree(
+        key: ValueKey('multitab-body-${active.id}'),
+        child: bodyBuilder(context, active),
+      );
+    }
+    // Keep-alive mode: every body stays mounted; switching is just
+    // an IndexedStack index change. Bodies preserve their State.
+    final activeIndex = entries.indexWhere((e) => e.id == active.id);
+    return IndexedStack(
+      index: activeIndex < 0 ? 0 : activeIndex,
+      children: [
+        for (final entry in entries)
+          KeyedSubtree(
+            key: ValueKey('multitab-body-${entry.id}'),
+            child: bodyBuilder(context, entry),
+          ),
+      ],
     );
   }
 }
@@ -89,7 +119,10 @@ class _TabStrip<T> extends StatelessWidget {
 
     return Container(
       height: tabHeight,
-      color: tokens.tabBarBackground,
+      decoration: BoxDecoration(
+        color: tokens.tabBarBackground,
+        border: Border(bottom: BorderSide(color: tokens.dividerColor)),
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -288,7 +321,14 @@ class _TabState<T> extends State<_Tab<T>> {
           builder: (context, _, __) => Container(
             constraints: BoxConstraints(minWidth: 96, maxWidth: 200),
             height: widget.tabHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            // Left margin stays at 12 (text breathing room).
+            // Right margin matches the close button's vertical
+            // breathing room ((tabHeight − iconSize) / 2 ≈ 6) so the
+            // gap around the icon is uniform on top, bottom, and right.
+            padding: EdgeInsets.only(
+              left: 12,
+              right: widget.onClose != null ? 6 : 12,
+            ),
             decoration: BoxDecoration(
               color: bg,
               border: Border(
@@ -298,9 +338,9 @@ class _TabState<T> extends State<_Tab<T>> {
               ),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Flexible(
+                // Left column: title, takes all remaining space.
+                Expanded(
                   child: ClideText(
                     widget.entry.title,
                     fontSize: 12,
@@ -309,6 +349,7 @@ class _TabState<T> extends State<_Tab<T>> {
                     maxLines: 1,
                   ),
                 ),
+                // Right column: close icon, fixed natural width.
                 if (widget.onClose != null) ...[
                   const SizedBox(width: 8),
                   Opacity(
@@ -323,8 +364,11 @@ class _TabState<T> extends State<_Tab<T>> {
                           color: hovered ? tokens.listItemHoverBackground : null,
                           borderRadius: BorderRadius.circular(2),
                         ),
-                        child: ClideText('×',
-                            fontSize: 14, color: tokens.globalTextMuted),
+                        child: ClideIcon(
+                          const CloseIcon(),
+                          size: 10,
+                          color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
+                        ),
                       ),
                     ),
                   ),

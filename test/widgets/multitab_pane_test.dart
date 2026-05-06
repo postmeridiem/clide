@@ -18,6 +18,33 @@ MultitabEntry<String> entry(String id, {bool closeable = true, bool reorderable 
 Widget body(BuildContext _, MultitabEntry<String> e) =>
     SizedBox(key: ValueKey('body-${e.id}'), child: Text('body:${e.payload}'));
 
+/// Stateful tap-counter body. Preserves a per-id count across rebuilds
+/// in a static map so the test can assert state survival across tab
+/// switches.
+class _CountingBody extends StatefulWidget {
+  const _CountingBody({required this.id});
+  final String id;
+
+  @override
+  State<_CountingBody> createState() => _CountingBodyState();
+}
+
+class _CountingBodyState extends State<_CountingBody> {
+  static final Map<String, int> counts = {};
+
+  void _bump() => setState(() => counts[widget.id] = (counts[widget.id] ?? 0) + 1);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: ValueKey('counting-${widget.id}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: _bump,
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
 void main() {
   group('MultitabPane', () {
     late KernelFixture f;
@@ -216,6 +243,58 @@ void main() {
 
       // Order unchanged; pinned tab refused to be dragged.
       expect(c.entries.map((e) => e.id), ['p', 'a']);
+    });
+
+    testWidgets('keepAlive: inactive bodies stay mounted (state preserved)', (tester) async {
+      final c = MultitabController<String>(initial: [entry('a'), entry('b')]);
+      await tester.pumpWidget(
+        harness(
+          f,
+          MultitabPane<String>(
+            controller: c,
+            bodyBuilder: (ctx, e) => _CountingBody(id: e.id),
+            keepAlive: true,
+          ),
+        ),
+      );
+
+      // Both bodies are in the tree (b is offstage in IndexedStack).
+      expect(find.byKey(const ValueKey('counting-a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('counting-b'), skipOffstage: false), findsOneWidget);
+
+      // Increment counter on body 'a' (it's the active one, visible).
+      await tester.tap(find.byKey(const ValueKey('counting-a')));
+      await tester.pumpAndSettle();
+      expect(_CountingBodyState.counts['a'], 1);
+
+      // Switch to b. Body 'a' stays mounted; switch back and the
+      // counter is preserved (would be 0 if 'a' had been rebuilt).
+      await tester.tap(find.text('b'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('a'));
+      await tester.pumpAndSettle();
+      expect(_CountingBodyState.counts['a'], 1);
+    });
+
+    testWidgets('default mode disposes inactive bodies', (tester) async {
+      final c = MultitabController<String>(initial: [entry('a'), entry('b')]);
+      await tester.pumpWidget(
+        harness(
+          f,
+          MultitabPane<String>(
+            controller: c,
+            bodyBuilder: (ctx, e) => _CountingBody(id: 'd-${e.id}'),
+          ),
+        ),
+      );
+      expect(find.byKey(const ValueKey('counting-d-a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('counting-d-b')), findsNothing);
+
+      await tester.tap(find.text('b'));
+      await tester.pumpAndSettle();
+      // a's body is gone from the tree; b's is in.
+      expect(find.byKey(const ValueKey('counting-d-a')), findsNothing);
+      expect(find.byKey(const ValueKey('counting-d-b')), findsOneWidget);
     });
 
     testWidgets('allowReorder=false disables drag entirely', (tester) async {
