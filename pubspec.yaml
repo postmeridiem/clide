@@ -1,4 +1,4 @@
-# clide — Flutter desktop IDE for Claude Code.
+# clide — IDE for Claude Code CLI.
 #
 # Single source of truth for project metadata and dependencies.
 # The Flutter app hosts everything in-process (D-056); tmux owns
@@ -9,8 +9,8 @@
 
 name: clide
 description: >-
-  Flutter desktop IDE for Claude Code. One Dart package covering the
-  UI, subsystem handlers (pane, files, editor, git, pql), and the
+  IDE for Claude Code CLI. One Dart package covering the UI,
+  subsystem handlers (pane, files, editor, git, pql), and the
   extension framework.
 publish_to: none
 version: 2.0.0

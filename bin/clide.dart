@@ -89,7 +89,7 @@ Future<void> main(List<String> argv) async {
 
 void _printHelp(IOSink sink) {
   sink.writeln('''
-clide $clideVersion — Flutter desktop IDE for Claude Code.
+clide $clideVersion — IDE for Claude Code CLI.
 
 Usage:
   clide --daemon          Run the long-running daemon process.

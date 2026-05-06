@@ -20,7 +20,7 @@ void main() {
           'builtin.welcome': {
             const Locale('en', 'US'): const {
               'title': {'translation': 'clide'},
-              'subtitle': {'translation': 'Flutter desktop IDE for Claude Code'},
+              'subtitle': {'translation': 'IDE for Claude Code CLI'},
               'open-project': {'translation': 'Open project'},
               'open-project.hint': {'translation': 'Pick a git repository'},
               'tab.title': {'translation': 'Welcome'},
@@ -44,7 +44,7 @@ void main() {
     testWidgets('WelcomeView renders title + subtitle + start actions', (tester) async {
       await tester.pumpWidget(harness(f, const WelcomeView()));
       expect(find.text('clide'), findsOneWidget);
-      expect(find.text('Flutter desktop IDE for Claude Code'), findsOneWidget);
+      expect(find.text('IDE for Claude Code CLI'), findsOneWidget);
       expect(find.text('Open folder…'), findsOneWidget);
     });
   });

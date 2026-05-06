@@ -61,7 +61,7 @@ class _Header extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClideText('clide', fontSize: 52, fontWeight: FontWeight.w300, color: tokens.globalForeground),
-            ClideText('Flutter desktop IDE for Claude Code', muted: true, fontSize: 16),
+            ClideText('IDE for Claude Code CLI', muted: true, fontSize: 16),
           ],
         ),
       ],

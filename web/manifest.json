@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#21262f",
     "theme_color": "#00a3d2",
-    "description": "Flutter desktop IDE for Claude Code.",
+    "description": "IDE for Claude Code CLI.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

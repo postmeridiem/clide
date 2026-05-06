@@ -1,6 +1,6 @@
 # clide
 
-A Flutter desktop IDE for Claude Code. Native rendering, terminal-first interaction, pql-powered queries, canvas and graph surfaces. Linux and macOS.
+An IDE for Claude Code CLI. Native rendering, terminal-first interaction, pql-powered queries, canvas and graph surfaces. Linux and macOS.
 
 ## Architecture
 
