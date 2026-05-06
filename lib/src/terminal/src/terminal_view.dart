@@ -8,8 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:clide/src/terminal/src/core/buffer/cell_offset.dart';
 
 import 'package:clide/src/terminal/src/core/input/keys.dart';
-import 'package:clide/src/terminal/src/core/mouse/button.dart';
-import 'package:clide/src/terminal/src/core/mouse/button_state.dart';
 import 'package:clide/src/terminal/src/terminal.dart';
 import 'package:clide/src/terminal/src/ui/controller.dart';
 import 'package:clide/src/terminal/src/ui/cursor_type.dart';
@@ -167,8 +165,7 @@ class TerminalViewState extends State<TerminalView> {
 
   late ScrollController _scrollController;
 
-  RenderTerminal get renderTerminal =>
-      _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
+  RenderTerminal get renderTerminal => _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
 
   void _onPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
@@ -306,10 +303,8 @@ class TerminalViewState extends State<TerminalView> {
       terminalController: _controller,
       onTapUp: _onTapUp,
       onTapDown: _onTapDown,
-      onSecondaryTapDown:
-          widget.onSecondaryTapDown != null ? _onSecondaryTapDown : null,
-      onSecondaryTapUp:
-          widget.onSecondaryTapUp != null ? _onSecondaryTapUp : null,
+      onSecondaryTapDown: widget.onSecondaryTapDown != null ? _onSecondaryTapDown : null,
+      onSecondaryTapUp: widget.onSecondaryTapUp != null ? _onSecondaryTapUp : null,
       readOnly: widget.readOnly,
       child: child,
     );
@@ -344,8 +339,7 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   Rect get globalCursorRect {
-    return renderTerminal.localToGlobal(renderTerminal.cursorOffset) &
-        renderTerminal.cellSize;
+    return renderTerminal.localToGlobal(renderTerminal.cursorOffset) & renderTerminal.cellSize;
   }
 
   void _onTapUp(TapUpDetails details) {
