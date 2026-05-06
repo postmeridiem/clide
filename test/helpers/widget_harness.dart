@@ -22,7 +22,10 @@ Widget harness(KernelFixture fixture, Widget child) {
           data: const MediaQueryData(),
           child: Overlay(
             initialEntries: [
-              OverlayEntry(builder: (_) => child),
+              OverlayEntry(
+                canSizeOverlay: true,
+                builder: (_) => child,
+              ),
             ],
           ),
         ),
