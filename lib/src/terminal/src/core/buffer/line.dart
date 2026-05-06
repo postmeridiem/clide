@@ -179,8 +179,9 @@ class BufferLine with IndexedItem {
     }
 
     // Update anchors, remove anchors that are inside the removed range.
-    for (var i = 0; i < _anchors.length; i++) {
-      final anchor = _anchors[i];
+    // Iterate over a snapshot — anchor.dispose() removes itself from
+    // _anchors, so a live for-loop would skip later entries.
+    for (final anchor in _anchors.toList()) {
       if (anchor.x >= start) {
         if (anchor.x < start + count) {
           anchor.dispose();
@@ -218,8 +219,9 @@ class BufferLine with IndexedItem {
     }
 
     // Update anchors, move anchors that are after the inserted range.
-    for (var i = 0; i < _anchors.length; i++) {
-      final anchor = _anchors[i];
+    // Iterate over a snapshot — anchor.dispose() removes itself from
+    // _anchors, so a live for-loop would skip later entries.
+    for (final anchor in _anchors.toList()) {
       if (anchor.x >= start + count) {
         anchor.reposition(anchor.x + count);
 
@@ -352,7 +354,8 @@ class BufferLine with IndexedItem {
   }
 
   void dispose() {
-    for (final anchor in _anchors) {
+    // Snapshot — anchor.dispose() removes itself from _anchors.
+    for (final anchor in _anchors.toList()) {
       anchor.dispose();
     }
   }
