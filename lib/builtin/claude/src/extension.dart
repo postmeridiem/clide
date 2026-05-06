@@ -1,5 +1,7 @@
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
+import 'package:clide/builtin/claude/src/session_naming.dart';
+import 'package:clide/builtin/claude/src/tmux_session.dart' as tmux;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';

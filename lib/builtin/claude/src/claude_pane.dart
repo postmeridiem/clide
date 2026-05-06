@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:clide/src/terminal/terminal.dart';
 
 import 'session_naming.dart';
+import 'tmux_session.dart' as tmux;
 
 class ClaudePane extends StatefulWidget {
   const ClaudePane({
@@ -57,12 +58,20 @@ class _ClaudePaneState extends State<ClaudePane> {
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
+    final sessionName = _sessionName;
     _paneId = null;
     // Secondary panes own their tmux session — close on dispose.
     // Primary panes leave the tmux session alive so the next launch
-    // re-attaches via `tmux new-session -A` (D-041).
+    // re-attaches via `tmux new-session -A` (D-41).
+    //
+    // pane.close kills the ptyc-spawned tmux *client*; the tmux server
+    // keeps the session alive. We need an explicit kill-session for
+    // secondaries to actually disappear (D-41 close semantics).
     if (id != null && !widget.isPrimary) {
       unawaited(_ipc()?.request('pane.close', args: {'id': id}));
+      if (sessionName != null) {
+        unawaited(tmux.killSession(sessionName));
+      }
     }
     super.dispose();
   }

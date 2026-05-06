@@ -48,6 +48,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Closing a secondary Claude pane tab now kills its tmux session
+  on the clide socket, honouring D-41's "closing a secondary kills
+  that tmux session" lifecycle. Previously `pane.close` only killed
+  the ptyc-spawned tmux client and the server-side session leaked.
 - Terminal cell grid no longer drifts on bold text — bold rendering
   is suppressed at the painter level since synthetic bold (with no
   Bold.ttf registered) shifts glyph advance widths.
