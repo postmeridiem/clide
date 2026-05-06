@@ -39,6 +39,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Terminal panes now render bold attributes with a real bold weight —
+  bundled JetBrainsMono Bold + BoldItalic are registered with the
+  `JetBrainsMono` family at `weight: 700`. The painter's bold
+  suppression workaround (added when only Regular + Italic were wired
+  and Flutter's synthetic bold drifted advance widths) is gone.
 - Claude pane uses `MultitabPane` for primary + secondaries — drops
   ~100 lines of bespoke tab-strip code, gains drag-to-reorder.
 - UI spacing constants live in `lib/widgets/src/spacing.dart` —

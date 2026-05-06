@@ -53,7 +53,7 @@ dependencies:
     purpose: >-
       Monospace face for terminal panes, diff views, code editors, and
       any other monospace surface.
-    weights_bundled: [Regular, Italic]
+    weights_bundled: [Regular, Italic, Bold, BoldItalic]
 
   - name: Josefin Sans
     kind: font

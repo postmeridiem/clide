@@ -126,8 +126,7 @@ class TerminalPainter {
 
   @pragma('vm:prefer-inline')
   void paintHighlight(Canvas canvas, Offset offset, int length, Color color) {
-    final endOffset =
-        offset.translate(length * _cellSize.width, _cellSize.height);
+    final endOffset = offset.translate(length * _cellSize.width, _cellSize.height);
 
     final paint = Paint()
       ..color = color
@@ -182,20 +181,15 @@ class TerminalPainter {
     if (paragraph == null) {
       final cellFlags = cellData.flags;
 
-      var color = cellFlags & CellFlags.inverse == 0
-          ? resolveForegroundColor(cellData.foreground)
-          : resolveBackgroundColor(cellData.background);
+      var color = cellFlags & CellFlags.inverse == 0 ? resolveForegroundColor(cellData.foreground) : resolveBackgroundColor(cellData.background);
 
       if (cellData.flags & CellFlags.faint != 0) {
         color = color.withOpacity(0.5);
       }
 
-      // Skip bold rendering — Flutter's synthetic bold (no Bold.ttf
-      // registered) drifts glyph advance widths slightly, breaking
-      // the cell grid. Color is enough to convey emphasis in TUIs.
       final style = _textStyle.toTextStyle(
         color: color,
-        bold: false,
+        bold: cellFlags & CellFlags.bold != 0,
         italic: cellFlags & CellFlags.italic != 0,
         underline: cellFlags & CellFlags.underline != 0,
       );
