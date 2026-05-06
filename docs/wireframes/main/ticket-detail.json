@@ -1,0 +1,269 @@
+{
+  "name": "Main View — ticket detail in context",
+  "shapes": {
+    "canvas": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 1400, "height": 860,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 40, "width": 1400, "height": 36,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar-text": {
+      "type": "Text",
+      "parent": "title-bar",
+      "left": 720, "top": 50,
+      "text": "clide › clide ⌄",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "sidebar": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 76, "width": 360, "height": 786,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "section": {
+      "type": "Text",
+      "parent": "sidebar",
+      "left": 56, "top": 96,
+      "text": "▾  IN PROGRESS  ·  1",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "ticket-selected": {
+      "type": "Rectangle",
+      "parent": "sidebar",
+      "left": 56, "top": 122, "width": 328, "height": 64,
+      "fillColor": "#1a1f28",
+      "strokeColor": "#7c5cff",
+      "corners": [4, 4, 4, 4]
+    },
+    "ticket-selected-id": {
+      "type": "Text",
+      "parent": "ticket-selected",
+      "left": 70, "top": 134,
+      "text": "● T-24 ← T-3",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+    "ticket-selected-title": {
+      "type": "Text",
+      "parent": "ticket-selected",
+      "left": 70, "top": 156,
+      "text": "secondary Claude pane UI wiring",
+      "fontColor": "#e8ecf2",
+      "fontSize": 13
+    },
+
+    "section-2": {
+      "type": "Text",
+      "parent": "sidebar",
+      "left": 56, "top": 210,
+      "text": "▾  READY  ·  3",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "ticket-other-1": {
+      "type": "Text",
+      "parent": "sidebar",
+      "left": 70, "top": 240,
+      "text": "● T-17  add dart doc generation to CI",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "ticket-other-2": {
+      "type": "Text",
+      "parent": "sidebar",
+      "left": 70, "top": 264,
+      "text": "● T-21  implement welcome screen…",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "claude-pane": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 400, "top": 76, "width": 540, "height": 786,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "claude-header": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 400, "top": 76, "width": 540, "height": 36,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "claude-title": {
+      "type": "Text",
+      "parent": "claude-header",
+      "left": 416, "top": 86,
+      "text": "claude — primary",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-msg": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 416, "top": 142,
+      "text": "› let's pick T-24 next\n\n● T-24 selected. Detail loaded in the right panel.\n  This ticket wires up the secondary Claude pane UI —\n  see D-41 for the spawn/close semantics.",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-prompt-divider": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 400, "top": 800, "width": 540, "height": 1,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "claude-prompt": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 416, "top": 808,
+      "text": "›  Try \"start it\"",
+      "fontColor": "#5a6478",
+      "fontSize": 12
+    },
+
+    "context-panel": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 940, "top": 76, "width": 500, "height": 786,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "ticket-id": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 96,
+      "text": "T-24  ·  task  ·  ready",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "ticket-title": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 118,
+      "text": "secondary Claude pane UI wiring",
+      "fontColor": "#e8ecf2",
+      "fontSize": 18
+    },
+
+    "field-parent": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 162,
+      "text": "Parent",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "field-parent-val": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 162,
+      "text": "T-3 — Tier 1 — Claude in xterm pane, PTY, session",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "field-decision": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 188,
+      "text": "Decision",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "field-decision-val": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 188,
+      "text": "D-41 — Claude panes — one primary per repo, tmux-backed",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "field-priority": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 214,
+      "text": "Priority",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "field-priority-val": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 214,
+      "text": "medium",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "field-created": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 240,
+      "text": "Created",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "field-created-val": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 240,
+      "text": "2026-04-22",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "desc-label": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 296,
+      "text": "DESCRIPTION",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "desc-body": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 956, "top": 324,
+      "text": "Wire the secondary Claude pane spawn flow into the\nUI: a “new Claude session” affordance in the pane\nchrome, secondary numbering (-1, -2 …), close-to-\nprimary focus collapse, and the visual distinction\nbetween primary and secondary in the pane header.",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "actions": {
+      "type": "Rectangle",
+      "parent": "context-panel",
+      "left": 956, "top": 760, "width": 468, "height": 36,
+      "fillColor": "#0e1014",
+      "strokeColor": "#262a32",
+      "corners": [4, 4, 4, 4]
+    },
+    "action-start": {
+      "type": "Text",
+      "parent": "actions",
+      "left": 974, "top": 770,
+      "text": "▶  Start  (status → in_progress)",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+
+    "status-branch": {
+      "type": "Text",
+      "parent": "canvas",
+      "left": 56, "top": 880,
+      "text": "⑂ main ↑5",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    }
+  }
+}

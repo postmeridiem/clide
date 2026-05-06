@@ -1,0 +1,131 @@
+{
+  "name": "Main View — focus mode",
+  "shapes": {
+    "canvas": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 1400, "height": 860,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 40, "width": 1400, "height": 36,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar-text": {
+      "type": "Text",
+      "parent": "title-bar",
+      "left": 720, "top": 50,
+      "text": "clide › clide ⌄  —  focus mode",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "esc-hint": {
+      "type": "Text",
+      "parent": "title-bar",
+      "left": 1340, "top": 50,
+      "text": "Esc to exit",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+
+    "claude-pane": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 76, "width": 1400, "height": 786,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "claude-header": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 40, "top": 76, "width": 1400, "height": 36,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "claude-title": {
+      "type": "Text",
+      "parent": "claude-header",
+      "left": 56, "top": 86,
+      "text": "claude — primary",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-subtitle": {
+      "type": "Text",
+      "parent": "claude-header",
+      "left": 56, "top": 100,
+      "text": "tmux · clide-claude-var-mnt-data-projects-clide  ·  focus",
+      "fontColor": "#7a8294",
+      "fontSize": 10
+    },
+
+    "claude-banner-icon": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 56, "top": 142,
+      "text": "▰▰",
+      "fontColor": "#d97757",
+      "fontSize": 12
+    },
+    "claude-banner-name": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 82, "top": 142,
+      "text": "Claude Code  v2.1.128",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-banner-meta": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 82, "top": 158,
+      "text": "Opus 4.7 (1M context) with high effort  ·  Claude Max",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+
+    "claude-msg-1-prompt": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 56, "top": 230,
+      "text": "› switch to focus mode for the next push",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "claude-msg-1-resp": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 56, "top": 258,
+      "text": "● Focus mode entered. Esc to exit. Sidebar and context\n  panel are hidden — Claude pane fills the workspace.",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+
+    "claude-prompt-divider": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 40, "top": 800, "width": 1400, "height": 1,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "claude-prompt-caret": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 56, "top": 808,
+      "text": "›",
+      "fontColor": "#7a8294",
+      "fontSize": 16
+    },
+    "claude-prompt-placeholder": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 80, "top": 810,
+      "text": "Try \"go full screen\"",
+      "fontColor": "#5a6478",
+      "fontSize": 12
+    }
+  }
+}

@@ -95,3 +95,6 @@ legacy/**/.coverage
 legacy/**/.coverage.*
 .clide/settings.yaml
 .claude/skills/pql/
+
+# frame0-wireframe local ID ↔ Frame0 ID mapping; per-machine state.
+docs/wireframes/**/.*.idmap.json

@@ -1,0 +1,155 @@
+{
+  "name": "Main View — sidebar collapsed",
+  "shapes": {
+    "canvas": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 1400, "height": 860,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 40, "width": 1400, "height": 36,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar-text": {
+      "type": "Text",
+      "parent": "title-bar",
+      "left": 720, "top": 50,
+      "text": "clide › clide ⌄",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "spine-left": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 76, "width": 12, "height": 786,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "spine-left-label": {
+      "type": "Text",
+      "parent": "spine-left",
+      "left": 44, "top": 220,
+      "text": "TICKETS",
+      "fontColor": "#7a8294",
+      "fontSize": 9
+    },
+    "spine-left-badge": {
+      "type": "Ellipse",
+      "parent": "spine-left",
+      "left": 43, "top": 96, "width": 6, "height": 6,
+      "fillColor": "#d97757",
+      "strokeColor": "#d97757"
+    },
+
+    "claude-pane": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 52, "top": 76, "width": 1008, "height": 786,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "claude-header": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 52, "top": 76, "width": 1008, "height": 36,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "claude-title": {
+      "type": "Text",
+      "parent": "claude-header",
+      "left": 68, "top": 86,
+      "text": "claude — primary",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-subtitle": {
+      "type": "Text",
+      "parent": "claude-header",
+      "left": 68, "top": 100,
+      "text": "tmux · sidebar collapsed (⌘⇧1) — Tickets has activity",
+      "fontColor": "#7a8294",
+      "fontSize": 10
+    },
+
+    "claude-banner": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 68, "top": 142,
+      "text": "Claude Code  v2.1.128  ·  Opus 4.7 (1M context)",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+
+    "claude-msg": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 68, "top": 200,
+      "text": "› hide the sidebar, I want more room\n\n● Sidebar collapsed to a 12px spine. Activity badge\n  on the spine indicates new ticket changes — click\n  the spine or press ⌘⇧1 to expand.",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+
+    "claude-prompt-divider": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 52, "top": 800, "width": 1008, "height": 1,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "claude-prompt": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 68, "top": 808,
+      "text": "›  Try \"show the sidebar again\"",
+      "fontColor": "#5a6478",
+      "fontSize": 12
+    },
+
+    "context-panel": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 1060, "top": 76, "width": 380, "height": 786,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "context-section": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 96,
+      "text": "▾  VIEWER",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "context-empty": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 134,
+      "text": "Open a file to preview.",
+      "fontColor": "#7a8294",
+      "fontSize": 12
+    },
+
+    "status-branch": {
+      "type": "Text",
+      "parent": "canvas",
+      "left": 56, "top": 880,
+      "text": "⑂ main ↑5",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "status-app": {
+      "type": "Text",
+      "parent": "canvas",
+      "left": 700, "top": 880,
+      "text": "● application ok",
+      "fontColor": "#5a8c5a",
+      "fontSize": 11
+    }
+  }
+}

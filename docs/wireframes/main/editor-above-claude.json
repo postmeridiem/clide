@@ -1,0 +1,231 @@
+{
+  "name": "Main View — editor above Claude",
+  "shapes": {
+    "canvas": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 1400, "height": 860,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 40, "width": 1400, "height": 36,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "title-bar-text": {
+      "type": "Text",
+      "parent": "title-bar",
+      "left": 720, "top": 50,
+      "text": "clide › clide ⌄  ·  src/welcome/welcome_view.dart  ●",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+
+    "sidebar": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 76, "width": 280, "height": 786,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "sidebar-section": {
+      "type": "Text",
+      "parent": "sidebar",
+      "left": 56, "top": 96,
+      "text": "▾  FILES",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "files-tree": {
+      "type": "Text",
+      "parent": "sidebar",
+      "left": 56, "top": 124,
+      "text": "▸ assets\n▸ bin\n▾ lib\n  ▾ builtin\n    ▾ welcome\n      ▾ src\n        welcome_view.dart\n        extension.dart\n  ▸ kernel\n  ▸ widgets",
+      "fontColor": "#a0a8b8",
+      "fontSize": 12
+    },
+    "sidebar-rail": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 40, "top": 822, "width": 280, "height": 40,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+
+    "editor-pane": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 320, "top": 76, "width": 740, "height": 320,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "editor-header": {
+      "type": "Rectangle",
+      "parent": "editor-pane",
+      "left": 320, "top": 76, "width": 740, "height": 36,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "editor-title": {
+      "type": "Text",
+      "parent": "editor-header",
+      "left": 336, "top": 86,
+      "text": "✎  welcome_view.dart  ●",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "editor-demote": {
+      "type": "Text",
+      "parent": "editor-header",
+      "left": 1024, "top": 86,
+      "text": "👁  ⌘W",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "editor-line-1": {
+      "type": "Text",
+      "parent": "editor-pane",
+      "left": 336, "top": 130,
+      "text": "  1  class _TipsCard extends StatelessWidget {",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+    "editor-line-2": {
+      "type": "Text",
+      "parent": "editor-pane",
+      "left": 336, "top": 148,
+      "text": "  2    const _TipsCard({required this.tokens});",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+    "editor-line-3": {
+      "type": "Text",
+      "parent": "editor-pane",
+      "left": 336, "top": 166,
+      "text": "  3    final SurfaceTokens tokens;",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+    "editor-line-4": {
+      "type": "Text",
+      "parent": "editor-pane",
+      "left": 336, "top": 184,
+      "text": "  4",
+      "fontColor": "#5a6478",
+      "fontSize": 11
+    },
+    "editor-line-5": {
+      "type": "Text",
+      "parent": "editor-pane",
+      "left": 336, "top": 202,
+      "text": "  5    static const _tips = <(String, String)>[",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+    "editor-line-6": {
+      "type": "Text",
+      "parent": "editor-pane",
+      "left": 336, "top": 220,
+      "text": "  6      ('Quick open', '⌘P'),",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+
+    "divider": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 320, "top": 396, "width": 740, "height": 4,
+      "fillColor": "#262a32",
+      "strokeColor": "#262a32"
+    },
+
+    "claude-pane": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 320, "top": 400, "width": 740, "height": 462,
+      "fillColor": "#0e1014",
+      "strokeColor": "#1c2028"
+    },
+    "claude-header": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 320, "top": 400, "width": 740, "height": 36,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "claude-title": {
+      "type": "Text",
+      "parent": "claude-header",
+      "left": 336, "top": 410,
+      "text": "claude — primary",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-conv": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 336, "top": 460,
+      "text": "› refactor _TipsCard into its own file\n\n● Moved _TipsCard to lib/builtin/welcome/src/tips_card.dart.\n  Re-exported from welcome_view.dart for backwards compat.\n  Updated test/builtin/welcome/widget_test.dart to import\n  the new path.",
+      "fontColor": "#e8ecf2",
+      "fontSize": 12
+    },
+    "claude-prompt-divider": {
+      "type": "Rectangle",
+      "parent": "claude-pane",
+      "left": 320, "top": 800, "width": 740, "height": 1,
+      "fillColor": "#1c2028",
+      "strokeColor": "#1c2028"
+    },
+    "claude-prompt": {
+      "type": "Text",
+      "parent": "claude-pane",
+      "left": 336, "top": 808,
+      "text": "›  Try \"run the tests\"",
+      "fontColor": "#5a6478",
+      "fontSize": 12
+    },
+
+    "context-panel": {
+      "type": "Rectangle",
+      "parent": "canvas",
+      "left": 1060, "top": 76, "width": 380, "height": 786,
+      "fillColor": "#13161c",
+      "strokeColor": "#1c2028"
+    },
+    "context-section": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 96,
+      "text": "▾  PREVIEW",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "context-doc": {
+      "type": "Text",
+      "parent": "context-panel",
+      "left": 1080, "top": 134,
+      "text": "Welcome screen\n\nThe first surface a user sees when no project is\nopen, or after closing one.\n\nLayout: centered max-850px column with logo +\nwordmark, START / RECENT row, and (when the\nviewport is tall enough) a TIPS card spanning\nthe full width.",
+      "fontColor": "#a0a8b8",
+      "fontSize": 11
+    },
+
+    "status-branch": {
+      "type": "Text",
+      "parent": "canvas",
+      "left": 56, "top": 880,
+      "text": "⑂ main ↑5  ·  3 modified",
+      "fontColor": "#7a8294",
+      "fontSize": 11
+    },
+    "status-app": {
+      "type": "Text",
+      "parent": "canvas",
+      "left": 700, "top": 880,
+      "text": "● application ok",
+      "fontColor": "#5a8c5a",
+      "fontSize": 11
+    }
+  }
+}

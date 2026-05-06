@@ -1,4 +1,25 @@
-# clide · design handoff
+# clide · design handoff (superseded reference)
+
+> **Status (2026-05-06):** Reference-only. The implementation has
+> moved past these mockups. The canonical wireframe set now lives at
+> [`docs/wireframes/`](../wireframes/), generated from the actual
+> implementation via the `frame0-wireframe` skill.
+>
+> Update wireframes there, not here.
+>
+> **Why kept:** the design tokens under `tokens/` and `themes/` still
+> feed the runtime themes (per [D-43](../../decisions/architecture.md#d-43-design-handoff-adopt-token-palettes-reject-material-wrapper)
+> / [D-44](../../decisions/architecture.md#d-44-four-bundled-themes-clide-midnight-paper-terminal)).
+> The HTMLs and PNGs are kept for historical context.
+>
+> **What changed since:** welcome screen has logo-with-wordmark and a
+> Tips card spanning both columns; status line with theme switcher
+> lives at the bottom right; Claude pane runs in fullscreen mode
+> (`CLAUDE_CODE_NO_FLICKER=1`) so the input box is pinned by Claude
+> Code itself; tmux uses an isolated `-L clide` socket with bundled
+> config; sidebar layout follows D-47's "Claude is home" model.
+
+---
 
 Bundle for importing into the clide repo and driving further work with Claude Code.
 
