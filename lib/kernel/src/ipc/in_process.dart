@@ -2,7 +2,6 @@ import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/ipc/client.dart';
 import 'package:clide/kernel/src/events/bus.dart';
 import 'package:clide/kernel/src/log.dart';
-import 'package:clide/src/daemon/dispatcher.dart';
 
 class InProcessClient extends DaemonClient {
   InProcessClient({

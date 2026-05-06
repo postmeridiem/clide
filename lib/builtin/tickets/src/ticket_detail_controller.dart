@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:flutter/foundation.dart';
 
 class TicketDetail {

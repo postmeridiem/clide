@@ -1,5 +1,4 @@
 import 'package:clide/builtin/ipc_status/ipc_status.dart';
-import 'package:clide/builtin/ipc_status/src/status_item.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';

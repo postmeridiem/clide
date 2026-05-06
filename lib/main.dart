@@ -27,7 +27,6 @@ import 'dart:io' show Directory, Platform;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/kernel/src/ipc/in_process.dart';
-import 'package:clide/kernel/src/toolchain.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';

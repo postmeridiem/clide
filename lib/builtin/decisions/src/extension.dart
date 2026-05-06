@@ -4,7 +4,6 @@ import 'package:clide/builtin/decisions/src/decision_detail_view.dart';
 import 'package:clide/builtin/decisions/src/decisions_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 
 class DecisionsExtension extends ClideExtension {

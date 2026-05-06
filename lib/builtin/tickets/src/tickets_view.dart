@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:clide/builtin/tickets/src/ticket_colors.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 

@@ -4,7 +4,6 @@ import 'package:clide/builtin/tickets/src/ticket_detail_view.dart';
 import 'package:clide/builtin/tickets/src/tickets_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 
 class TicketsExtension extends ClideExtension {

@@ -14,7 +14,6 @@ import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/toolchain.dart';
-import 'package:clide/src/git/client.dart';
 // Daemon-only deep imports — these pull in dart:ffi (PTY) and
 // daemon-subsystem wiring that the Flutter app doesn't need and
 // can't compile for web. See lib/clide.dart for the barrel split.
@@ -25,7 +24,6 @@ import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/panes/registry.dart';
-import 'package:clide/src/pql/client.dart';
 
 Future<void> main(List<String> argv) async {
   if (argv.isEmpty) {
