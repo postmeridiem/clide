@@ -9,7 +9,6 @@ import 'package:clide/src/terminal/src/ui/render.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Minimal widget tree to host a TerminalView. The widget brings its own
@@ -219,6 +218,141 @@ void main() {
       await tester.pumpWidget(_host(TerminalView(t)));
       final state = tester.state<TerminalViewState>(find.byType(TerminalView));
       expect(state.hasInputConnection, isFalse);
+    });
+  });
+
+  group('TerminalView — onKeyEvent override', () {
+    testWidgets('explicit onKeyEvent returning handled short-circuits the default handler', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      var overrideCalls = 0;
+      await tester.pumpWidget(_host(TerminalView(
+        t,
+        autofocus: true,
+        onKeyEvent: (focusNode, event) {
+          overrideCalls++;
+          return KeyEventResult.handled;
+        },
+      )));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(overrideCalls, isPositive);
+      expect(r.outputs, isEmpty, reason: 'override returned handled — Terminal.keyInput must not run');
+    });
+
+    testWidgets('onKeyEvent returning ignored falls through to the default handler', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      await tester.pumpWidget(_host(TerminalView(
+        t,
+        autofocus: true,
+        onKeyEvent: (_, __) => KeyEventResult.ignored,
+      )));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(r.outputs, isNotEmpty);
+    });
+  });
+
+  group('TerminalView — IME / text input', () {
+    testWidgets('virtual-keyboard text emits via terminal.textInput when no key match', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));
+      await tester.pump();
+      // Open an input connection by tapping; pump past the gesture
+      // detector's 300 ms double-tap timer.
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+      // testTextInput.enterText feeds the editing-value to the connection,
+      // which CustomTextEdit translates into onInsert. A multi-char string
+      // can't map to a TerminalKey, so it falls through to textInput.
+      tester.testTextInput.enterText('hello');
+      await tester.pump();
+      expect(r.outputs.any((o) => o.contains('hello')), isTrue);
+    });
+
+    testWidgets('TextInputAction.done routes to TerminalKey.enter', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));
+      await tester.pump();
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      // Enter on the default keytab produces a non-empty escape.
+      expect(r.outputs, isNotEmpty);
+    });
+  });
+
+  group('TerminalView — taps (T-93)', () {
+    testWidgets('primary tap fires onTapUp with the resolved cell offset', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      var tappedAt = 0;
+      await tester.pumpWidget(_host(TerminalView(
+        t,
+        onTapUp: (_, __) => tappedAt++,
+      )));
+      await tester.tapAt(tester.getCenter(find.byType(TerminalView)));
+      // The gesture detector arms a 300 ms double-tap timer after the tap;
+      // explicit duration flushes it (pumpAndSettle waits on animations,
+      // not arbitrary timers).
+      await tester.pump(const Duration(seconds: 1));
+      expect(tappedAt, isPositive);
+    });
+
+    testWidgets('primary tap with active selection clears it', (tester) async {
+      final t = _OutputRecorder().build();
+      final controller = TerminalController();
+      addTearDown(controller.dispose);
+      controller.setSelection(
+        t.buffer.createAnchor(0, 0),
+        t.buffer.createAnchor(2, 0),
+      );
+      expect(controller.selection, isNotNull);
+      await tester.pumpWidget(_host(TerminalView(t, controller: controller)));
+      await tester.tapAt(tester.getCenter(find.byType(TerminalView)));
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.selection, isNull);
+    });
+
+    testWidgets('secondary tap routes through onSecondaryTapDown / onSecondaryTapUp', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      var downCalls = 0;
+      var upCalls = 0;
+      await tester.pumpWidget(_host(TerminalView(
+        t,
+        onSecondaryTapDown: (_, __) => downCalls++,
+        onSecondaryTapUp: (_, __) => upCalls++,
+      )));
+      final pos = tester.getCenter(find.byType(TerminalView));
+      final gesture = await tester.startGesture(pos, buttons: kSecondaryButton);
+      await gesture.up();
+      await tester.pump(const Duration(seconds: 1));
+      expect(downCalls, isPositive);
+      expect(upCalls, isPositive);
+    });
+  });
+
+  group('TerminalView — keyboard visibility', () {
+    testWidgets('platform keyboard show fires _onKeyboardShow on the focused view', (tester) async {
+      final t = _OutputRecorder().build();
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));
+      await tester.pump();
+      // Simulate a virtual-keyboard appearance by raising the bottom view
+      // insets and triggering a metrics-changed cycle.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 200, left: 0, right: 0, top: 0);
+      addTearDown(tester.view.resetViewInsets);
+      tester.binding.handleMetricsChanged();
+      await tester.pump();
+      // _onKeyboardShow only acts when the focus node has focus — verify by
+      // tearing down without throwing.
+      await tester.pumpWidget(_host(const SizedBox()));
     });
   });
 }

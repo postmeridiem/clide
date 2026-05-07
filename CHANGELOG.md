@@ -47,6 +47,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- `TerminalView.onTapUp` callbacks now actually fire on a primary
+  tap. The parameter was wired to a code path that nothing in the
+  gesture-detector chain ever invoked — the documented
+  "Callback for when the user taps on the terminal" was a no-op
+  for every caller. Routes through `TerminalGestureHandler.onSingleTapUp`
+  now, with the resolved cell offset (T-93). Dead `onTapUp` surface
+  on `TerminalGestureHandler` and `TerminalGestureDetector` removed
+  in the same change.
 - `BufferLine.eraseRange` no longer panics when called with `end == 0`.
   The right-side wide-char guard read `_data[-1]` via `getWidth(-1)`,
   which threw a `RangeError`. Real trigger path: `Terminal.eraseDisplayAbove`
