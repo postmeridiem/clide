@@ -18,6 +18,15 @@ class _LineBuilder {
 
   bool get isNotEmpty => _length != 0;
 
+  /// True when the result line carries at least one CellAnchor. Used by
+  /// [_LineReflow.finish] to flush an otherwise-empty trailing line when
+  /// the tail-anchor branch in `_addPart` reparented an anchor onto it
+  /// — without this guard the anchor would point to a `BufferLine` that
+  /// reflow never emits, the selection controller's `extent.attached`
+  /// check would fail, and the selection would silently vanish on resize
+  /// (T-92).
+  bool get hasAnchors => _result.anchors.isNotEmpty;
+
   /// Adds a range of cells from [src] to the builder. Anchors within the range
   /// will be reparented to the new line returned by [take].
   void add(BufferLine src, int start, int length) {
@@ -152,7 +161,11 @@ class _LineReflow {
 
   /// Finalizes the reflow operation and returns the result.
   List<BufferLine> finish() {
-    if (_builder.isNotEmpty) {
+    // Emit the trailing builder line if it has content OR if it's
+    // carrying an anchor. The latter keeps tail-anchored selections
+    // (e.g. SelectAllTextIntent's end anchor at x=viewWidth) attached
+    // to a line that's actually in the reflow output (T-92).
+    if (_builder.isNotEmpty || _builder.hasAnchors) {
       _lines.add(_builder.take(wrapped: _lines.isNotEmpty));
     }
 

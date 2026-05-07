@@ -354,17 +354,30 @@ void main() {
       expect(out[0].getCodePoint(3), 0);
     });
 
-    test('anchors on the source line tail (past trimmedLength) get reparented', () {
-      // The post-loop branch in `_addPart` reparents anchors whose x sits
-      // beyond the trimmed-content range — the empty tail of an over-wide
-      // source line. The anchor moves off the source onto whichever
-      // builder line was active at the time, regardless of whether that
-      // builder line ends up emitted — so the only contract we can rely
-      // on is that the anchor no longer points to the source.
+    test('anchors on the source line tail (past trimmedLength) land on a line in the result (T-92)', () {
+      // The post-loop tail-anchor branch in `_addPart` reparents the
+      // anchor onto the active builder line. The fix in T-92 makes
+      // `finish()` emit that builder line when it has anchors, even if
+      // it's otherwise empty — so the anchor's `line` is guaranteed to
+      // be in the reflow result and stays attached after replaceWith.
       final src = line(12, 'abcdefgh'); // width 12, content 8
       final tail = src.createAnchor(10); // past trimmedLength (8)
-      reflow(ring([src]), 12, 4);
-      expect(tail.line, isNot(equals(src)));
+      final out = reflow(ring([src]), 12, 4);
+      expect(tail.line, isNotNull);
+      expect(out.contains(tail.line), isTrue);
+    });
+
+    test('SelectAllTextIntent-shaped end anchor survives shrink (T-92 regression)', () {
+      // Models the actual bug path: SelectAllTextIntent (actions.dart)
+      // creates an end anchor at x = viewWidth on the last buffer line.
+      // Resizing narrower must not silently drop the selection.
+      final src = line(12, 'short');
+      final endAnchor = src.createAnchor(12); // viewWidth, past trimmedLength
+      final out = reflow(ring([src]), 12, 4);
+      expect(out.contains(endAnchor.line), isTrue,
+          reason: 'end anchor must land on a line that survives '
+              'lines.replaceWith — otherwise selection.attached is false '
+              'and the selection silently vanishes after resize.');
     });
 
     test('inner wide-char clamp during _addPart leaves the wide cell to the next iteration', () {

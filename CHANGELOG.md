@@ -47,6 +47,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Terminal selections no longer silently disappear when the terminal is
+  resized narrower. Reflow's tail-anchor handler used to reparent
+  anchors past the source's trimmed-content range onto a builder line
+  that was never emitted, leaving them detached from the visible
+  buffer; the selection controller's `extent.attached` check then
+  returned null and the highlight vanished. Common trigger paths:
+  Ctrl+A (select-all) followed by a width change, and mouse drag
+  selections that extended past the end of a partially-filled line
+  (T-92).
 - `BufferLine.removeCells` / `insertCells` / `dispose` no longer skip
   anchors due to concurrent list modification during iteration —
   surfaced by unit tests added under T-91. Anchors disposed inside

@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-05-06T22:03:19Z",
+  "exported_at": "2026-05-07T05:58:44Z",
   "decisions": [
     {
       "id": "D-1",
@@ -9,7 +9,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-3",
@@ -19,7 +19,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-4",
@@ -29,7 +29,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-5",
@@ -39,7 +39,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-6",
@@ -49,7 +49,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-7",
@@ -59,7 +59,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-8",
@@ -69,7 +69,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-9",
@@ -79,7 +79,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-10",
@@ -89,7 +89,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-11",
@@ -99,7 +99,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-12",
@@ -109,7 +109,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-13",
@@ -119,7 +119,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-14",
@@ -129,7 +129,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-15",
@@ -139,7 +139,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-16",
@@ -149,7 +149,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-17",
@@ -159,7 +159,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-18",
@@ -169,7 +169,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-19",
@@ -179,7 +179,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-20",
@@ -189,7 +189,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-21",
@@ -199,7 +199,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-22",
@@ -209,7 +209,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/accessibility.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-23",
@@ -219,7 +219,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-24",
@@ -229,7 +229,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-25",
@@ -239,7 +239,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-26",
@@ -249,7 +249,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-27",
@@ -259,7 +259,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-28",
@@ -269,7 +269,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-29",
@@ -279,7 +279,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-30",
@@ -289,7 +289,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-31",
@@ -299,7 +299,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-32",
@@ -309,7 +309,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-33",
@@ -319,7 +319,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-34",
@@ -329,7 +329,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-35",
@@ -339,7 +339,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-36",
@@ -349,7 +349,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-37",
@@ -359,7 +359,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-38",
@@ -369,7 +369,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-39",
@@ -379,7 +379,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-40",
@@ -389,7 +389,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-41",
@@ -399,7 +399,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-42",
@@ -409,7 +409,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-43",
@@ -419,7 +419,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-44",
@@ -429,7 +429,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-45",
@@ -439,7 +439,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-46",
@@ -449,7 +449,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-47",
@@ -459,7 +459,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-48",
@@ -469,7 +469,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-49",
@@ -479,7 +479,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-50",
@@ -489,7 +489,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-51",
@@ -499,7 +499,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-52",
@@ -509,7 +509,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-53",
@@ -519,7 +519,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-54",
@@ -529,7 +529,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-55",
@@ -539,7 +539,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-56",
@@ -549,7 +549,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-57",
@@ -559,7 +559,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-58",
@@ -569,7 +569,7 @@
       "status": "active",
       "date": "2026-04-23",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-59",
@@ -579,7 +579,7 @@
       "status": "active",
       "date": "2026-04-25",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-60",
@@ -589,7 +589,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-61",
@@ -599,7 +599,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-62",
@@ -609,7 +609,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-63",
@@ -619,7 +619,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-64",
@@ -629,7 +629,7 @@
       "status": "active",
       "date": "2026-05-03",
       "file_path": "decisions/architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-65",
@@ -639,7 +639,7 @@
       "status": "active",
       "date": "2026-04-26",
       "file_path": "decisions/tooling.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "D-66",
@@ -649,7 +649,7 @@
       "status": "active",
       "date": "2026-05-06",
       "file_path": "decisions/testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-1",
@@ -658,7 +658,7 @@
       "title": "Authorisation granularity on the IPC socket",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-2",
@@ -667,7 +667,7 @@
       "title": "Back-pressure on event streams",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-3",
@@ -676,7 +676,7 @@
       "title": "Event persistence + audit/undo",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-4",
@@ -685,7 +685,7 @@
       "title": "`.canvas` schema compatibility with Obsidian",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-5",
@@ -694,7 +694,7 @@
       "title": "IPC wire-format stability + `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-6",
@@ -703,7 +703,7 @@
       "title": "Window chrome — native frame vs frameless custom",
       "status": "resolved",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-7",
@@ -712,7 +712,7 @@
       "title": "macOS app bundle signing / notarisation",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-8",
@@ -721,7 +721,7 @@
       "title": "Extension API shape — widgets, subcommands, both?",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-9",
@@ -730,7 +730,7 @@
       "title": "Lua runtime vendoring",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-10",
@@ -739,7 +739,7 @@
       "title": "Extension manifest `schema_version:`",
       "status": "open",
       "file_path": "decisions/questions-extensions.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-11",
@@ -748,7 +748,7 @@
       "title": "Coverage gates — hard thresholds vs soft reporting",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-12",
@@ -757,7 +757,7 @@
       "title": "Screen-reader automation (axe-core via Playwright)",
       "status": "open",
       "file_path": "decisions/questions-testing.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-13",
@@ -766,7 +766,7 @@
       "title": "Web production-mode a11y",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-14",
@@ -775,7 +775,7 @@
       "title": "i18n plurals / gender / date-format tooling",
       "status": "open",
       "file_path": "decisions/questions-accessibility.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-15",
@@ -784,7 +784,7 @@
       "title": "Editor tab — full LSP vs tree-sitter-only highlight",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-16",
@@ -793,7 +793,7 @@
       "title": "`tree-sitter-dart` grammar maintenance",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-17",
@@ -802,7 +802,7 @@
       "title": "Icon set growth",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-18",
@@ -811,7 +811,7 @@
       "title": "Theme hot-reload in release builds",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-19",
@@ -820,7 +820,7 @@
       "title": "(withdrawn)",
       "status": "resolved",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-20",
@@ -829,7 +829,7 @@
       "title": "Kernel DB service — namespaced SQL access?",
       "status": "open",
       "file_path": "decisions/questions-process.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-21",
@@ -838,7 +838,7 @@
       "title": "Pql absorbs planning vs keeps separate",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-22",
@@ -847,7 +847,7 @@
       "title": "Ticket persistence strategy",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-23",
@@ -856,7 +856,7 @@
       "title": "SSH-remote development — run clide against a remote workspace",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-25",
@@ -865,7 +865,7 @@
       "title": "Body text face — mono everywhere vs Josefin Sans UI + mono code",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-26",
@@ -874,7 +874,7 @@
       "title": "Small screen layout (\u003c 1000px)",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-27",
@@ -883,7 +883,7 @@
       "title": "Two-editor split",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-28",
@@ -892,7 +892,7 @@
       "title": "Terminal strip scope — shell only or logs/errors/tests",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-29",
@@ -901,7 +901,7 @@
       "title": "Branch picker location",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-30",
@@ -910,7 +910,7 @@
       "title": "Focus behavior when editor is dirty and viewer is peeked",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "Q-31",
@@ -919,7 +919,7 @@
       "title": "XWayland fallback for frameless — proper Wayland protocol needed",
       "status": "open",
       "file_path": "decisions/questions-architecture.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-2",
@@ -929,7 +929,7 @@
       "status": "active",
       "date": "2026-04-20",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-3",
@@ -939,7 +939,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-4",
@@ -949,7 +949,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-5",
@@ -959,7 +959,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-6",
@@ -969,7 +969,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-7",
@@ -979,7 +979,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-8",
@@ -989,7 +989,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-9",
@@ -999,7 +999,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-10",
@@ -1009,7 +1009,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-11",
@@ -1019,7 +1019,7 @@
       "status": "active",
       "date": "2026-04-21",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     },
     {
       "id": "R-12",
@@ -1029,7 +1029,7 @@
       "status": "active",
       "date": "2026-04-22",
       "file_path": "decisions/rejected.md",
-      "synced_at": "2026-05-06 22:01:32"
+      "synced_at": "2026-05-07 05:57:38"
     }
   ],
   "decision_refs": [
@@ -2791,6 +2791,16 @@
       "decision_ref": "D-66",
       "created_at": "2026-05-06 20:49:47",
       "updated_at": "2026-05-06 20:50:32"
+    },
+    {
+      "id": "T-92",
+      "type": "bug",
+      "title": "reflow tail-anchor reparenting can dangle on partially-filled lines",
+      "description": "**File:** `lib/src/terminal/src/core/reflow.dart` (`_LineReflow._addPart`).\n\n**Bug:** Anchors whose x-coordinate sits past the source line's `trimmedLength` get reparented onto whatever `_builder._result` is active at that moment. After the main reparenting loop has run with `lineFilled` on the final iteration, `_builder.take()` has already moved the filled line into `_lines` and reset `_result` to a fresh empty `BufferLine`. The post-loop block (lines 144-150 in the current source) then reparents the tail anchor onto that fresh empty line. If no further content lands in the builder before `finish()` exits — which is the case whenever the post-loop block fires on a non-wrapped logical line — the empty builder line is never appended to `_lines`, and the anchor ends up pointing to a `BufferLine` that the reflow result never includes.\n\n**Trigger paths in production code:**\n\n1. `SelectAllTextIntent` (`lib/src/terminal/src/ui/shortcut/actions.dart:60-63`) creates the end anchor at `x = terminal.viewWidth`. That is *exactly* the past-trimmedLength position for every partially-filled line in the buffer. Any user who Ctrl+A's and then resizes the terminal narrower hits the bug for every short line in the scrollback.\n2. `selectCharacters` / mouse drag selection (`lib/src/terminal/src/ui/render.dart:286-298`) — anchors are clamped to `[0, viewWidth-1]` but can sit past `trimmedLength` on a partially-filled line. Drag past content end + resize narrower trips the bug.\n3. `selectWord` (`render.dart:264-275`) — `getWordBoundary` walks until a separator OR `viewWidth`, so the end anchor of a near-edge word can land at `x = viewWidth` and trip the bug on resize.\n\n**Symptom:** selection extents lose track of content after a width change. Visible highlight stops moving with the underlying selection, or extents disappear off the rendered buffer entirely. No exception is thrown — the dangling anchor still has a valid `BufferLine` reference, it just isn't on a line in the visible buffer.\n\n**Acceptance:**\n- New unit test in `test/terminal/core/core_test.dart` (or a sibling) that:\n  - Constructs a partially-filled source line and an anchor past `trimmedLength`,\n  - Runs reflow shrink,\n  - Asserts the anchor's owning line is *in the reflow output list*, not dangling.\n- The existing widget-level select-all behaviour still works on resize: a Ctrl+A across the buffer followed by a narrower resize keeps the selection's end anchor pointing to a line in the reflowed result.\n- No regression in the existing reflow tests (the tail-clamp cases, wide-char boundaries, multi-line wrapped runs).\n\n**Investigation notes (do not skip):**\n\nThe fix is conceptually small — the reparented tail anchor must land on a line that gets emitted. Two candidate shapes:\n\n- **Skip the reparent entirely.** Anchors past `trimmedLength` arguably shouldn't survive a shrink that drops their column. Risk: callers expect every anchor on the source to be reparented somewhere; silently disposing them changes semantics.\n- **Force `finish()` to flush the builder line.** Whenever the tail-anchor branch fired during `_addPart`, set a flag, and have `finish()` emit the builder line even if `isEmpty`. Risk: empty trailing lines start showing up in the reflow result, which would break callers that assume reflow returns only content lines (resize loop in `Buffer.resize` pads to viewport height after, so an extra empty might be benign there but worth checking).\n\nDon't pick one without re-reading the full reflow flow + every caller of `reflow()`. The selection round-trip is also tested at the widget layer indirectly — verify `make test-a11y` still passes after the change.\n\n**Surfaced from:** T-91 test sweep (commit 3196c49). The 100% coverage on reflow.dart was achieved by exercising this branch but explicitly *not* asserting on the resulting line being in the output — see the test comment.\n\n**Cross-references:** T-91 (epic parent for the test sweep that found this), T-89 (coverage epic), the test in `test/terminal/core/core_test.dart` group `reflow` named \"anchors on the source line tail (past trimmedLength) get reparented\" documents the current (buggy) behaviour.\n",
+      "status": "in_progress",
+      "priority": "high",
+      "created_at": "2026-05-07 05:51:48",
+      "updated_at": "2026-05-07 05:56:47"
     }
   ],
   "ticket_deps": null,
@@ -4429,6 +4439,19 @@
       "old_value": "backlog",
       "new_value": "in_progress",
       "changed_at": "2026-05-06 20:50:32"
+    },
+    {
+      "ticket_id": "T-92",
+      "field": "description",
+      "new_value": "**File:** `lib/src/terminal/src/core/reflow.dart` (`_LineReflow._addPart`).\n\n**Bug:** Anchors whose x-coordinate sits past the source line's `trimmedLength` get reparented onto whatever `_builder._result` is active at that moment. After the main reparenting loop has run with `lineFilled` on the final iteration, `_builder.take()` has already moved the filled line into `_lines` and reset `_result` to a fresh empty `BufferLine`. The post-loop block (lines 144-150 in the current source) then reparents the tail anchor onto that fresh empty line. If no further content lands in the builder before `finish()` exits — which is the case whenever the post-loop block fires on a non-wrapped logical line — the empty builder line is never appended to `_lines`, and the anchor ends up pointing to a `BufferLine` that the reflow result never includes.\n\n**Trigger paths in production code:**\n\n1. `SelectAllTextIntent` (`lib/src/terminal/src/ui/shortcut/actions.dart:60-63`) creates the end anchor at `x = terminal.viewWidth`. That is *exactly* the past-trimmedLength position for every partially-filled line in the buffer. Any user who Ctrl+A's and then resizes the terminal narrower hits the bug for every short line in the scrollback.\n2. `selectCharacters` / mouse drag selection (`lib/src/terminal/src/ui/render.dart:286-298`) — anchors are clamped to `[0, viewWidth-1]` but can sit past `trimmedLength` on a partially-filled line. Drag past content end + resize narrower trips the bug.\n3. `selectWord` (`render.dart:264-275`) — `getWordBoundary` walks until a separator OR `viewWidth`, so the end anchor of a near-edge word can land at `x = viewWidth` and trip the bug on resize.\n\n**Symptom:** selection extents lose track of content after a width change. Visible highlight stops moving with the underlying selection, or extents disappear off the rendered buffer entirely. No exception is thrown — the dangling anchor still has a valid `BufferLine` reference, it just isn't on a line in the visible buffer.\n\n**Acceptance:**\n- New unit test in `test/terminal/core/core_test.dart` (or a sibling) that:\n  - Constructs a partially-filled source line and an anchor past `trimmedLength`,\n  - Runs reflow shrink,\n  - Asserts the anchor's owning line is *in the reflow output list*, not dangling.\n- The existing widget-level select-all behaviour still works on resize: a Ctrl+A across the buffer followed by a narrower resize keeps the selection's end anchor pointing to a line in the reflowed result.\n- No regression in the existing reflow tests (the tail-clamp cases, wide-char boundaries, multi-line wrapped runs).\n\n**Investigation notes (do not skip):**\n\nThe fix is conceptually small — the reparented tail anchor must land on a line that gets emitted. Two candidate shapes:\n\n- **Skip the reparent entirely.** Anchors past `trimmedLength` arguably shouldn't survive a shrink that drops their column. Risk: callers expect every anchor on the source to be reparented somewhere; silently disposing them changes semantics.\n- **Force `finish()` to flush the builder line.** Whenever the tail-anchor branch fired during `_addPart`, set a flag, and have `finish()` emit the builder line even if `isEmpty`. Risk: empty trailing lines start showing up in the reflow result, which would break callers that assume reflow returns only content lines (resize loop in `Buffer.resize` pads to viewport height after, so an extra empty might be benign there but worth checking).\n\nDon't pick one without re-reading the full reflow flow + every caller of `reflow()`. The selection round-trip is also tested at the widget layer indirectly — verify `make test-a11y` still passes after the change.\n\n**Surfaced from:** T-91 test sweep (commit 3196c49). The 100% coverage on reflow.dart was achieved by exercising this branch but explicitly *not* asserting on the resulting line being in the output — see the test comment.\n\n**Cross-references:** T-91 (epic parent for the test sweep that found this), T-89 (coverage epic), the test in `test/terminal/core/core_test.dart` group `reflow` named \"anchors on the source line tail (past trimmedLength) get reparented\" documents the current (buggy) behaviour.\n",
+      "changed_at": "2026-05-07 05:52:26"
+    },
+    {
+      "ticket_id": "T-92",
+      "field": "status",
+      "old_value": "backlog",
+      "new_value": "in_progress",
+      "changed_at": "2026-05-07 05:56:47"
     }
   ]
 }
