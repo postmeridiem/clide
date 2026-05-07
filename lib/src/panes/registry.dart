@@ -1,6 +1,6 @@
-/// [PaneRegistry] — daemon-side state for all live panes.
+/// [PaneRegistry] — backend-side state for all live panes.
 ///
-/// Owns the [PtySession] per pane, generates `p_N` ids, and forwards
+/// Owns the [NativePty] per pane, generates `p_N` ids, and forwards
 /// pty output + lifecycle changes as IPC events via a [DaemonEventSink].
 /// Pane commands (pane.spawn / list / write / resize / close) resolve
 /// against this registry; extension UIs subscribe to the emitted events.
@@ -31,10 +31,6 @@ class PaneRegistry {
   Pane? get(String id) => _panes[id];
 
   /// Spawn a child under a PTY and wire its output to events.
-  ///
-  /// [ptycPath] is plumbed through to [PtySession.spawn]; callers that
-  /// have a dev-built `ptyc/bin/ptyc` or a non-PATH install can point
-  /// at it explicitly.
   Future<Pane> spawn({
     required PaneKind kind,
     required List<String> argv,
@@ -49,7 +45,7 @@ class PaneRegistry {
     final arguments = argv.length > 1 ? argv.sublist(1) : const <String>[];
 
     // Merge the caller's env on top of the process environment +
-    // terminal defaults, matching the old ptyc contract.
+    // Terminal defaults for the PTY child.
     final fullEnv = <String, String>{
       ...Platform.environment,
       'TERM': 'xterm-256color',

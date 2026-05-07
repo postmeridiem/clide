@@ -6,7 +6,7 @@ Test pyramid, drivers, client-side constraint.
 
 ### D-23: Test pyramid — seven layers
 - **Date:** 2026-04-21
-- **Decision:** The pyramid has seven layers: unit (pure Dart) → widget (pumped + find) → golden (visual primitives) → a11y (semantics coverage + keyboard + contrast + i18n) → integration (`flutter test integration_test/`) → E2E (Playwright driving the WASM build + `clide --daemon` subprocess) → startup-smoke (`ci/smoke_bundle.sh`: build Linux release, run under xvfb for 5 s).
+- **Decision:** The pyramid has seven layers: unit (pure Dart) → widget (pumped + find) → golden (visual primitives) → a11y (semantics coverage + keyboard + contrast + i18n) → integration (`flutter test integration_test/`) → E2E (Playwright driving the WASM build) → startup-smoke (`ci/smoke_bundle.sh`: build Linux release, run under xvfb for 5 s).
 - **Rationale:** Each layer catches a distinct regression class. Skipping any layer means that class ships unprotected. Pushed back when earlier rounds proposed "just widget + E2E"; widget can't catch paint regressions (that's golden), E2E can't catch a11y tree drift (that's semantics).
 - **Cost:** Seven CI jobs; total wall time budgeted at < 15 min. Pre-push runs layers 1-4 (< 90 s — see [D-29](#d-29-pre-push-gate-fast-layer-only)).
 - **Raised by:** 2026-04-21 planning.

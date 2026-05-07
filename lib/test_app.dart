@@ -34,7 +34,6 @@ import 'src/daemon/pane_commands.dart';
 import 'src/ipc/envelope.dart';
 import 'src/panes/event_sink.dart';
 import 'src/panes/registry.dart';
-import 'src/pty/session.dart';
 import 'src/daemon/dispatcher.dart';
 import 'src/pty/env.dart' show expandedPath;
 
@@ -124,7 +123,6 @@ class _ClideTestAppState extends State<ClideTestApp> {
     _log('toolchain.git', tc.git);
     _log('toolchain.pql', tc.pql);
     _log('toolchain.tmux', tc.tmux);
-    _log('toolchain.ptyc', tc.ptyc);
     _log('toolchain.shell', tc.shell);
     _log('toolchain.missing', tc.missing.isEmpty ? 'none' : tc.missing.join(', '));
     _say('');
@@ -132,14 +130,12 @@ class _ClideTestAppState extends State<ClideTestApp> {
     await _testExists('git', tc.git);
     await _testExists('pql', tc.pql);
     await _testExists('tmux', tc.tmux);
-    await _testExists('ptyc', tc.ptyc);
     await _testExists('shell', tc.shell);
     _say('');
 
     await _testExec('git --version', tc.git, ['--version'], workDir);
     await _testExec('pql --version', tc.pql, ['--version'], workDir);
     await _testExec('tmux -V', tc.tmux, ['-V'], workDir);
-    await _testExec('ptyc (no args)', tc.ptyc, [], workDir);
     await _testExec('shell --version', tc.shell, ['--version'], workDir);
     _say('');
 
@@ -189,17 +185,6 @@ class _ClideTestAppState extends State<ClideTestApp> {
       tc2.applyResolved(paths);
       final r = await Process.run(tc2.git, ['rev-parse', '--show-toplevel'], workingDirectory: workDir, environment: tc2.gitEnv);
       return 'exit=${r.exitCode} ${(r.stdout as String).trim()}';
-    });
-
-    // ptyc stdin/stdout test — send a valid request, verify JSON response
-    await _testAsync('ptyc spawn echo', () async {
-      final proc = await Process.start(tc.ptyc, []);
-      // Send a request for /bin/echo — simplest possible child
-      proc.stdin.write('{"argv":["/bin/echo","hello"],"cwd":"/tmp","env":{},"cols":80,"rows":24}');
-      await proc.stdin.close();
-      final stdout = await proc.stdout.transform(const SystemEncoding().decoder).join();
-      final exitCode = await proc.exitCode;
-      return 'exit=$exitCode stdout=${stdout.trim().split('\n').first}';
     });
 
     _say('');
@@ -394,93 +379,6 @@ class _ClideTestAppState extends State<ClideTestApp> {
       libc.close(child);
       return 'exit=$exit stderr=${stderr.trim()}';
     });
-
-    // Direct PtySession test — bypasses IPC, tests fd transfer + reader.
-    await _testAsync('PtySession.spawn direct', () async {
-      final session = await PtySession.spawn(
-        argv: [tc.shell, '-c', 'echo DIRECT_PTY_TEST'],
-        cwd: workDir,
-        ptycPath: tc.ptyc,
-      );
-      _say('  session pid=${session.pid} masterFd exists');
-      final bytes = <int>[];
-      final done = Completer<void>();
-      session.output.listen(
-        (chunk) {
-          bytes.addAll(chunk);
-          _say('  got ${chunk.length} bytes');
-        },
-        onDone: () {
-          _say('  stream done');
-          if (!done.isCompleted) done.complete();
-        },
-        onError: (e) => _say('  stream error: $e'),
-      );
-      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {
-        _say('  timeout waiting for output, got ${bytes.length} bytes so far');
-      });
-      await session.close();
-      final output = utf8.decode(bytes, allowMalformed: true);
-      final ok = output.contains('DIRECT_PTY_TEST');
-      return ok ? 'output=$output' : 'no marker in ${bytes.length} bytes: ${output.substring(0, output.length.clamp(0, 100))}';
-    });
-
-    if (!Platform.isMacOS) {
-      // Additional direct PtySession tests (Linux only — no merged thread).
-
-      // Test 1: spawn /bin/echo via PtySession, read output
-      await _testAsync('pty spawn echo', () async {
-        final session = await PtySession.spawn(
-          argv: ['/bin/echo', 'CLIDE_PTY_TEST_OK'],
-          cwd: workDir,
-          ptycPath: tc.ptyc,
-        );
-        final bytes = <int>[];
-        final done = Completer<void>();
-        session.output.listen(bytes.addAll, onDone: () => done.complete());
-        await done.future.timeout(const Duration(seconds: 5));
-        await session.close();
-        final output = utf8.decode(bytes, allowMalformed: true);
-        final ok = output.contains('CLIDE_PTY_TEST_OK');
-        return ok ? 'output contains marker' : 'marker not found in ${output.length} bytes';
-      });
-
-      // Test 2: spawn shell, write a command, verify output
-      await _testAsync('pty spawn shell', () async {
-        final session = await PtySession.spawn(
-          argv: [tc.shell, '-c', 'echo CLIDE_SHELL_TEST'],
-          cwd: workDir,
-          ptycPath: tc.ptyc,
-        );
-        final bytes = <int>[];
-        final done = Completer<void>();
-        session.output.listen(bytes.addAll, onDone: () => done.complete());
-        await done.future.timeout(const Duration(seconds: 5));
-        await session.close();
-        final output = utf8.decode(bytes, allowMalformed: true);
-        final ok = output.contains('CLIDE_SHELL_TEST');
-        return ok ? 'shell output contains marker' : 'marker not found in ${output.length} bytes';
-      });
-
-      // Test 3: spawn interactive shell, write to stdin, verify file creation
-      await _testAsync('pty write to child', () async {
-        final marker = '/tmp/clide-pty-test-${DateTime.now().millisecondsSinceEpoch}';
-        final session = await PtySession.spawn(
-          argv: [tc.shell],
-          cwd: workDir,
-          ptycPath: tc.ptyc,
-        );
-        session.write(utf8.encode('touch $marker && exit\n'));
-        final bytes = <int>[];
-        final done = Completer<void>();
-        session.output.listen(bytes.addAll, onDone: () => done.complete());
-        await done.future.timeout(const Duration(seconds: 5));
-        await session.close();
-        final fileCreated = File(marker).existsSync();
-        if (fileCreated) File(marker).deleteSync();
-        return fileCreated ? 'file created + cleaned up' : 'file not created';
-      });
-    } // end !Platform.isMacOS
 
     _say('');
   }

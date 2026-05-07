@@ -28,7 +28,6 @@
 		<string>(allow process-exec* (literal "__SHELL__"))</string>
 		<string>(allow process-exec* (literal "/usr/bin/which"))</string>
 		<string>(allow process-exec* (subpath "__HOMEDIR__/.local/bin"))</string>
-		<string>(allow process-exec* (subpath "__PROJECTS__/clide/ptyc/bin"))</string>
 		<string>(allow process-exec* (subpath "__PROJECTS__/clide/native/dugite"))</string>
 		<string>(allow process-fork)</string>
 		<string>(allow file-read* file-write* (subpath "__PROJECTS__"))</string>

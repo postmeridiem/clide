@@ -1,9 +1,7 @@
 /// Raw FFI bindings to the libc functions the PTY wrapper needs.
 ///
-/// `dart:io` covers neither `socketpair(2)`, `recvmsg(2)` with ancillary
-/// data, nor read/write on arbitrary file descriptors — the three
-/// things the [`ptyc`](../../../ptyc/README.md) fd-transfer protocol
-/// requires. FFI is the minimum tool for the job.
+/// `dart:io` doesn't expose `forkpty`, `read`/`write` on raw fds,
+/// `ioctl`, or `poll` — FFI is the minimum tool for the job.
 ///
 /// Linux + macOS only for now. Windows is covered by platform checks
 /// higher up; when Windows support lands it'll need a parallel binding

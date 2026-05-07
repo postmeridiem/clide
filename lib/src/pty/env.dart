@@ -37,10 +37,10 @@ String _buildExpandedPath() {
   return [...missing, ...existing].join(':');
 }
 
-/// Base env clide's daemon builds for every PTY child. Callers merge
-/// with the user's environment before passing to `ptyc` — a child that
-/// needs user env like `HOME` / `USER` / `SHELL` still gets them; the
-/// keys here override the ones the child cares about.
+/// Base env clide builds for every PTY child. Callers merge with the
+/// user's environment — a child that needs user env like `HOME` /
+/// `USER` / `SHELL` still gets them; the keys here override the ones
+/// the child cares about.
 const Map<String, String> clidePtyEnvDefaults = {
   'TERM': 'xterm-256color',
   'COLORTERM': 'truecolor',

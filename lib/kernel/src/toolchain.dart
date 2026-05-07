@@ -16,7 +16,6 @@ class ResolvedPaths {
     this.git,
     this.pql,
     this.tmux,
-    this.ptyc,
     this.shell,
     this.gitEnv,
   });
@@ -24,7 +23,6 @@ class ResolvedPaths {
   final String? git;
   final String? pql;
   final String? tmux;
-  final String? ptyc;
   final String? shell;
   final Map<String, String>? gitEnv;
 }
@@ -33,7 +31,6 @@ class Toolchain extends ChangeNotifier {
   String? _git;
   String? _pql;
   String? _tmux;
-  String? _ptyc;
   String? _shell;
   Map<String, String>? _gitEnv;
   bool _resolved = false;
@@ -41,7 +38,6 @@ class Toolchain extends ChangeNotifier {
   String get git => _git ?? 'git';
   String get pql => _pql ?? 'pql';
   String get tmux => _tmux ?? 'tmux';
-  String get ptyc => _ptyc ?? 'ptyc';
   String get shell => _shell ?? '/bin/bash';
 
   /// Extra environment variables for git (e.g. GIT_EXEC_PATH for dugite).
@@ -76,7 +72,6 @@ class Toolchain extends ChangeNotifier {
     _git = p.git;
     _pql = p.pql;
     _tmux = p.tmux;
-    _ptyc = p.ptyc;
     _shell = p.shell;
     _gitEnv = p.gitEnv;
     _resolved = true;
@@ -106,20 +101,10 @@ class Toolchain extends ChangeNotifier {
     final tmux = _findOnPath('tmux');
     final shell = _findOnPath(Platform.environment['SHELL']?.split('/').last ?? 'bash');
 
-    final ptyc = _firstExisting([
-          '$workspaceRoot/ptyc/bin/ptyc',
-          '$workspaceRoot/native/linux-x64/ptyc',
-          '$workspaceRoot/native/macos-arm64/ptyc',
-          '$workspaceRoot/native/macos-x64/ptyc',
-          if (Platform.environment['HOME'] case final home?) '$home/.local/bin/ptyc',
-        ]) ??
-        _findOnPath('ptyc');
-
     return ResolvedPaths(
       git: git,
       pql: pql,
       tmux: tmux,
-      ptyc: ptyc,
       shell: shell,
       gitEnv: gitEnv,
     );
@@ -182,14 +167,6 @@ ResolvedPaths resolveToolchainPaths(String workspaceRoot) {
     git: git,
     pql: _findOnPathStandalone('pql'),
     tmux: _findOnPathStandalone('tmux'),
-    ptyc: _firstExistingStandalone([
-          '$workspaceRoot/ptyc/bin/ptyc',
-          '$workspaceRoot/native/linux-x64/ptyc',
-          '$workspaceRoot/native/macos-arm64/ptyc',
-          '$workspaceRoot/native/macos-x64/ptyc',
-          if (Platform.environment['HOME'] case final home?) '$home/.local/bin/ptyc',
-        ]) ??
-        _findOnPathStandalone('ptyc'),
     shell: _findOnPathStandalone(Platform.environment['SHELL']?.split('/').last ?? 'bash'),
     gitEnv: gitEnv,
   );

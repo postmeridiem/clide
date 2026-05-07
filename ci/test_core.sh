@@ -20,11 +20,6 @@ if ! command -v dart >/dev/null; then
   exit 2
 fi
 
-if ! command -v ptyc >/dev/null && [[ ! -x "ptyc/bin/ptyc" ]]; then
-  echo "test-core: building ptyc (required by PTY tests)"
-  make -C ptyc >/dev/null
-fi
-
 # Hard timeout (seconds). The PTY tests should finish in <5s; IPC/daemon
 # tests are faster still. 120s is generous for CI warmup, tiny for a
 # hang.
@@ -33,7 +28,7 @@ TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-120}
 # Run dart test in its own process group so we can kill descendants on
 # timeout. `setsid` starts a new session; `timeout --kill-after` SIGKILLs
 # after SIGTERM if the test ignores it.
-CORE_DIRS="test/ipc test/pty test/daemon test/git test/panes test/files test/editor test/cli test/pql"
+CORE_DIRS="test/ipc test/pty test/daemon test/git test/panes test/files test/editor test/pql"
 
 echo "test-core: dart test ${CORE_DIRS}  (timeout ${TIMEOUT_SECONDS}s)"
 if ! timeout --kill-after=5s "${TIMEOUT_SECONDS}s" \
@@ -42,7 +37,6 @@ if ! timeout --kill-after=5s "${TIMEOUT_SECONDS}s" \
   if [[ $rc -eq 124 ]]; then
     echo "test-core: TIMEOUT — killing descendants" >&2
     pkill -9 -f "dart test test/" 2>/dev/null || true
-    pkill -9 -f "ptyc" 2>/dev/null || true
     exit 1
   fi
   exit $rc

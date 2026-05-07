@@ -2,8 +2,8 @@
 /// travels cleanly into the Flutter app (which can't depend on
 /// `dart:ffi`-using code for the web build).
 ///
-/// The daemon's [PaneRegistry] keeps a parallel `PtySession` keyed on
-/// [id] and mutates [isClosed] when the session exits.
+/// [PaneRegistry] keeps a parallel [NativePty] keyed on [id] and
+/// mutates [isClosed] when the session exits.
 library;
 
 /// Kind of a pane. Keep this enum small and explicit — each kind

@@ -64,7 +64,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     // Primary panes leave the tmux session alive so the next launch
     // re-attaches via `tmux new-session -A` (D-41).
     //
-    // pane.close kills the ptyc-spawned tmux *client*; the tmux server
+    // pane.close kills the PTY-spawned tmux *client*; the tmux server
     // keeps the session alive. We need an explicit kill-session for
     // secondaries to actually disappear (D-41 close semantics).
     if (id != null && !widget.isPrimary) {

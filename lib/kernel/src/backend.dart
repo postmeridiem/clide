@@ -60,7 +60,6 @@ class Backend {
             git: tcData['git'] as String?,
             pql: tcData['pql'] as String?,
             tmux: tcData['tmux'] as String?,
-            ptyc: tcData['ptyc'] as String?,
             shell: tcData['shell'] as String?,
             gitEnv: (tcData['gitEnv'] as Map?)?.cast<String, String>(),
           ));
@@ -86,7 +85,6 @@ class Backend {
             git: tcData['git'] as String?,
             pql: tcData['pql'] as String?,
             tmux: tcData['tmux'] as String?,
-            ptyc: tcData['ptyc'] as String?,
             shell: tcData['shell'] as String?,
             gitEnv: (tcData['gitEnv'] as Map?)?.cast<String, String>(),
           ));

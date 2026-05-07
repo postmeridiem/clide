@@ -1,8 +1,8 @@
 /// Unit tests for [PaneRegistry].
 ///
 /// Exercises spawn / list / write / resize / close against the real
-/// `ptyc` binary (small enough, and realistic enough, to not be worth
-/// mocking). Events are captured via [RecordingEventSink].
+/// NativePty (forkpty via FFI). Events are captured via
+/// [RecordingEventSink].
 library;
 
 import 'dart:async';

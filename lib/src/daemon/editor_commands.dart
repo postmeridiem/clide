@@ -6,7 +6,7 @@
 ///   editor.read editor.set-selection editor.set-content
 ///
 /// Single-word CLI shortcuts (`clide open`, `clide active`, …) map
-/// one-to-one onto these in `bin/clide.dart`.
+/// one-to-one onto these via the IPC dispatch layer.
 library;
 
 import 'dart:io' show FileSystemException;

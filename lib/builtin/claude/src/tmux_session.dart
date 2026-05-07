@@ -1,6 +1,6 @@
 /// tmux server interactions for Claude panes (D-41 lifecycle).
 ///
-/// `pane.close` only kills the ptyc-spawned tmux *client*; tmux is
+/// `pane.close` only kills the PTY-spawned tmux *client*; tmux is
 /// client/server, so the server-side session keeps running after the
 /// client disconnects. To honour D-41 ("closing a secondary kills that
 /// tmux session" + "secondary numbering resets between clide runs"),

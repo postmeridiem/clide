@@ -234,40 +234,11 @@ dugite-fetch: ## Download and extract the dugite-native git distribution.
 dugite-clean: ## Remove the dugite-native directory.
 	rm -rf $(DUGITE_DIR)
 
-# -- ptyc (C supporter tool) ---------------------------------------------
-
-PTYC_PRESENT := $(shell test -f ptyc/Makefile && echo yes || echo no)
-
-.PHONY: ptyc-build
-ptyc-build: ## Build the ptyc PTY-spawn helper.
-ifeq ($(PTYC_PRESENT),yes)
-	$(MAKE) -C ptyc
-else
-	@echo "(ptyc/ not scaffolded yet; skipping)"
-endif
-
-.PHONY: ptyc-test
-ptyc-test: ## Run ptyc smoke tests (SCM_RIGHTS round-trip).
-ifeq ($(PTYC_PRESENT),yes)
-	$(MAKE) -C ptyc test
-else
-	@echo "(ptyc/ not scaffolded yet; skipping)"
-endif
-
-.PHONY: ptyc-clean
-ptyc-clean: ## Clean ptyc build artefacts.
-ifeq ($(PTYC_PRESENT),yes)
-	$(MAKE) -C ptyc clean
-else
-	@echo "(ptyc/ not scaffolded yet; skipping)"
-endif
-
 # -- security -------------------------------------------------------------
 
 .PHONY: security
-security: ## Dart advisory review + ptyc source review.
-	@echo "security: Dart advisories reviewed manually before pubspec.yaml bumps;"
-	@echo "         ptyc is reviewed by reading it (tiny libc-only C)."
+security: ## Dart advisory review.
+	@echo "security: Dart advisories reviewed manually before pubspec.yaml bumps."
 
 # -- pre-push gate --------------------------------------------------------
 
@@ -288,6 +259,5 @@ hooks: ## Install the repo's git hooks.
 .PHONY: clean
 clean: ## Remove build artefacts.
 	rm -rf build .dart_tool
-	$(MAKE) ptyc-clean
 
 .DEFAULT_GOAL := help

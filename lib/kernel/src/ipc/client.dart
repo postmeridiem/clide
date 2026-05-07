@@ -58,7 +58,6 @@ class DaemonClient extends ChangeNotifier {
           code: IpcExitCode.toolError,
           kind: IpcErrorKind.toolError,
           message: 'daemon not connected',
-          hint: 'is `clide --daemon` running?',
         ),
       ));
     }

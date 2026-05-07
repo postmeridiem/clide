@@ -5,9 +5,9 @@
 /// core library stays Flutter-free per D-005.
 library;
 
-/// A PTY operation failed. [op] identifies the step (`recvmsg`,
-/// `socketpair`, `ptyc`, etc.); [errno] is POSIX errno when the
-/// failure came from a syscall, otherwise `null`.
+/// A PTY operation failed. [op] identifies the step (`forkpty`,
+/// `read`, `ioctl`, etc.); [errno] is POSIX errno when the failure
+/// came from a syscall, otherwise `null`.
 class PtyException implements Exception {
   const PtyException(this.op, this.message, {this.errno});
 

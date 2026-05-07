@@ -26,10 +26,6 @@ tools/ui/test-results/
 tools/ui/playwright-report/
 tools/ui/.serve.pid
 
-# -- ptyc (C supporter tool) --------------------------------------------
-/ptyc/bin/
-/ptyc/*.o
-
 # -- dugite-native (bundled git, downloaded at build time) ---------------
 /native/dugite/
 

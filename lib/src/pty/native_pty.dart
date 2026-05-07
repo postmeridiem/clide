@@ -1,8 +1,7 @@
-/// Native PTY via forkpty() — replaces the ptyc helper binary.
+/// Native PTY via forkpty().
 ///
 /// Uses Dart FFI to call forkpty() directly. The master fd stays
-/// in-process (no socketpair, no SCM_RIGHTS). The reader isolate
-/// uses poll() for clean shutdown.
+/// in-process. The reader isolate uses poll() for clean shutdown.
 ///
 /// Based on the pty-spike proof-of-concept. Platform-aware:
 ///   macOS: forkpty in libSystem (DynamicLibrary.process)
@@ -82,8 +81,6 @@ const _kWnohang = 1;
 // -- NativePty --------------------------------------------------------------
 
 /// A pseudo-terminal backed by forkpty() via Dart FFI.
-///
-/// Drop-in replacement for the old ptyc-based PtySession.
 class NativePty {
   final int _fd;
   final int pid;

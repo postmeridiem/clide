@@ -45,8 +45,8 @@ void backendEntry(BackendBootMessage boot) {
   late Toolchain toolchain;
 
   // Phase 1: resolve toolchain — just find binaries, don't init services.
-  // We need a project root for ptyc/dugite paths. Use a sensible
-  // default; the real project comes from project.open.
+  // We need a project root for dugite paths. Use a sensible default;
+  // the real project comes from project.open.
   final resolveRoot = boot.hintRoot ?? Platform.environment['HOME'] ?? '/tmp';
   toolchain = Toolchain();
   toolchain.applyResolved(resolveToolchainPaths(resolveRoot));
@@ -78,7 +78,7 @@ void backendEntry(BackendBootMessage boot) {
       final workDir = Directory(projectPath);
 
       // Re-resolve toolchain with the actual project root (finds
-      // dugite in native/dugite/, ptyc in ptyc/bin/, etc.)
+      // dugite in native/dugite/, etc.)
       toolchain = Toolchain();
       toolchain.applyResolved(resolveToolchainPaths(projectPath));
 
@@ -138,7 +138,6 @@ Map<String, Object?> _serializeToolchain(Toolchain tc) => {
       'git': tc.git,
       'pql': tc.pql,
       'tmux': tc.tmux,
-      'ptyc': tc.ptyc,
       'shell': tc.shell,
       'gitEnv': tc.gitEnv,
       'missing': tc.missing,

@@ -62,7 +62,7 @@ class _TerminalPaneState extends State<TerminalPane> {
     if (!mounted) return;
     final ipc = _kernelIpc();
     if (ipc == null || !ipc.isConnected) {
-      setState(() => _error = 'Daemon not connected. Start `clide --daemon`.');
+      setState(() => _error = 'Backend not connected.');
       return;
     }
 

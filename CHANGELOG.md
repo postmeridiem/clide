@@ -16,6 +16,26 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Removed
+
+- **`bin/clide.dart` + `DaemonServer`** — completing the D-56 dissolution.
+  The separate daemon process was dissolved on 2026-04-23 but the entry
+  point and socket server class were never actually deleted. Gone now,
+  along with orphaned tests (`test/cli/`, `test/daemon/subprocess_test`,
+  `test/daemon/in_process_test`), stale i18n strings, and "start
+  `clide --daemon`" error messages.
+- **`ptyc/` source tree + `PtySession` + `scm_rights.dart`** — PTY
+  spawning migrated to Dart FFI `forkpty()` (`NativePty`) but the old
+  C helper and its Dart wiring were never cleaned up. Removed from
+  toolchain resolution, `ToolCheck` gate, backend serialization,
+  testmode harness, CI scripts, Makefile, and sandbox entitlements.
+  D-5 amended to record the retirement.
+- CI golden images (`test/goldens/goldens/ci/`) — Skia anti-aliasing
+  of geometric shapes differs between macOS and Linux even with the
+  Ahem font, so a single set of CI goldens can't serve both platforms.
+  Replaced with platform-keyed goldens (`goldens/linux/`,
+  `goldens/macos/`), each only compared on its own OS.
+
 ### Added
 
 - Pre-push coverage gate — `make push-check` (and the
