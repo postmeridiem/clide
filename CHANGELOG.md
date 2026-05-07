@@ -47,6 +47,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- `BufferLine.eraseRange` no longer panics when called with `end == 0`.
+  The right-side wide-char guard read `_data[-1]` via `getWidth(-1)`,
+  which threw a `RangeError`. Real trigger path: `Terminal.eraseDisplayAbove`
+  with the cursor at column 0 — common after `ESC[H\x1b[1J`
+  (home + erase-above) sequences that many TUIs emit on redraw.
 - Terminal selections no longer silently disappear when the terminal is
   resized narrower. Reflow's tail-anchor handler used to reparent
   anchors past the source's trimmed-content range onto a builder line

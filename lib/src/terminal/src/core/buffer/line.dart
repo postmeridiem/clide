@@ -142,8 +142,11 @@ class BufferLine with IndexedItem {
       eraseCell(start - 1, style);
     }
 
-    // reset cell one to the right if end is second cell of a wide char
-    if (end < _length && getWidth(end - 1) == 2) {
+    // reset cell one to the right if end is second cell of a wide char.
+    // Mirror the `start > 0` guard above so eraseRange(0, 0, ...) (used
+    // by eraseLineToCursor when the cursor sits at column 0) doesn't read
+    // _data[-1] via getWidth(-1).
+    if (end > 0 && end < _length && getWidth(end - 1) == 2) {
       eraseCell(end - 1, style);
     }
 

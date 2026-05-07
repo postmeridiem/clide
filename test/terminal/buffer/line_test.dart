@@ -177,6 +177,15 @@ void main() {
       expect(l.getContent(0), 0);
     });
 
+    test('eraseRange(0, 0, ...) does not panic when called at column 0', () {
+      // Surfaced by Terminal.eraseDisplayAbove when the cursor sits at
+      // column 0: eraseLineToCursor → eraseRange(0, _cursorX, ...) with
+      // _cursorX == 0. Without the `end > 0` guard, the right-side
+      // wide-char check reads _data[-1] via getWidth(-1).
+      final l = BufferLine(4);
+      l.eraseRange(0, 0, _styleEmpty);
+    });
+
     test('extends one cell right when end-1 is the second cell of a wide char', () {
       final l = BufferLine(4);
       l.setCell(0, _aChar, 1, _styleEmpty);
