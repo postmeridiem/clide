@@ -1,5 +1,12 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
+// `BMP_COMBINING`, `HIGH_COMBINING`, `BMP_WIDE`, `HIGH_WIDE` are the
+// names used by the upstream Unicode 11 wcwidth tables (xterm.dart
+// vendored from the standard wcwidth implementation). Renaming them
+// to lowerCamelCase would force every diff against an updated upstream
+// table to be re-translated; keep the spec-shaped names so future
+// re-vendoring is a verbatim paste.
+//
 // ignore_for_file: constant_identifier_names
 
 import 'dart:typed_data';

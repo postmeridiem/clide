@@ -1,5 +1,12 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
+// The constants below mirror the historical ASCII control-character
+// names from RFC 20 / ISO 646 (NULL, SOH, STX, ETX, EOT, ENQ, ACK, BEL,
+// BS, HT, LF, VT, FF, CR, SO, SI, DLE, DC1..4, NAK, SYN, ETB, CAN, EM,
+// SUB, ESC, FS, GS, RS, US, DEL). Renaming them to lowerCamelCase
+// would diverge from every spec, man page, and upstream reference the
+// reader is likely to consult — the lint works against the file.
+//
 // ignore_for_file: constant_identifier_names
 
 abstract class Ascii {
