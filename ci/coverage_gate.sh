@@ -44,7 +44,7 @@ if (( measured_int < floor )); then
 fi
 
 if (( measured_int > floor )); then
-  echo "==> coverage gate OK: ${measured}% (floor ${floor}%) — ${measured_int}% available; consider bumping coverage/floor.txt to ${measured_int}"
+  echo "==> coverage gate OK: ${measured}% (floor ${floor}%) — ${measured_int}% available; consider bumping pubspec.yaml coverage_floor: to ${measured_int}"
 else
   echo "==> coverage gate OK: ${measured}% (floor ${floor}%)"
 fi
