@@ -339,6 +339,85 @@ void main() {
     });
   });
 
+  group('TerminalView — selection gestures', () {
+    // Cover the gesture_handler.dart selection paths and the gesture_detector
+    // double-tap detection branch. Each test sets up a TerminalView with a
+    // controller it can inspect; the gestures are wired into the
+    // RenderTerminal which mutates `controller.selection`.
+    // Empty cells (codepoint 0) and ASCII space are word separators in
+    // `defaultWordSeparators`, so taps must land on a non-separator cell for
+    // selectWord to return non-null. Write a wide stripe of 'a's at row 0
+    // and tap near the top-left so the gesture lands on actual content.
+    Offset contentPosition(WidgetTester tester) {
+      final tl = tester.getTopLeft(find.byType(TerminalView));
+      return tl + const Offset(20, 5);
+    }
+
+    testWidgets('double-tap sets a word selection on the controller', (tester) async {
+      final t = _OutputRecorder().build();
+      t.write('a' * 30);
+      final controller = TerminalController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_host(TerminalView(t, controller: controller)));
+      await tester.pump();
+      final pos = contentPosition(tester);
+      // Two tap-up cycles within kDoubleTapTimeout (~300 ms). The second
+      // tap-down hits the within-tolerance branch in gesture_detector and
+      // fires onDoubleTapDown, which in turn calls renderTerminal.selectWord.
+      await tester.tapAt(pos);
+      await tester.tapAt(pos);
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.selection, isNotNull);
+    });
+
+    testWidgets('long-press (touch) selects a word', (tester) async {
+      final t = _OutputRecorder().build();
+      t.write('a' * 30);
+      final controller = TerminalController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_host(TerminalView(t, controller: controller)));
+      await tester.pump();
+      final pos = contentPosition(tester);
+      final gesture = await tester.startGesture(pos, kind: PointerDeviceKind.touch);
+      // LongPressGestureRecognizer's threshold is kLongPressTimeout (~500 ms);
+      // pump past it to win the gesture.
+      await tester.pump(const Duration(milliseconds: 600));
+      // onLongPressStart → renderTerminal.selectWord → controller.selection set.
+      expect(controller.selection, isNotNull);
+      // Move during long-press → onLongPressMoveUpdate, second branch of
+      // selectWord with two offsets.
+      await gesture.moveBy(const Offset(40, 0));
+      await tester.pump();
+      expect(controller.selection, isNotNull);
+      await gesture.up();
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('mouse drag selects characters (selectCharacters branch)', (tester) async {
+      final t = _OutputRecorder().build();
+      t.write('a' * 30);
+      final controller = TerminalController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_host(TerminalView(t, controller: controller)));
+      await tester.pump();
+      final pos = contentPosition(tester);
+      final gesture = await tester.startGesture(pos, kind: PointerDeviceKind.mouse);
+      // PanGestureRecognizer needs movement beyond kPanSlop to win — push
+      // past it before reading the selection.
+      await gesture.moveBy(const Offset(40, 0));
+      await tester.pump();
+      // onDragStart fired with mouse kind → selectCharacters(from); subsequent
+      // onDragUpdate → selectCharacters(from, to). Either way, controller has
+      // a selection.
+      expect(controller.selection, isNotNull);
+      await gesture.moveBy(const Offset(20, 0));
+      await tester.pump();
+      expect(controller.selection, isNotNull);
+      await gesture.up();
+      await tester.pump(const Duration(seconds: 1));
+    });
+  });
+
   group('TerminalView — keyboard visibility', () {
     testWidgets('platform keyboard show fires _onKeyboardShow on the focused view', (tester) async {
       final t = _OutputRecorder().build();
