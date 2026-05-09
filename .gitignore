@@ -105,3 +105,4 @@ legacy/**/.coverage.*
 .pql/*
 !.pql/hooks/
 !.pql/changelog/
+!.pql/pql-plan.json

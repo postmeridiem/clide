@@ -1,0 +1,3 @@
+#!/bin/sh
+# pql: source .pql/hooks/post-checkout (rebuild pql.db on branch checkout)
+. "$(git rev-parse --show-toplevel)/.pql/hooks/post-checkout"

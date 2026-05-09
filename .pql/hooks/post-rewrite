@@ -1,0 +1,8 @@
+#!/bin/sh
+# --- pql plan rebuild (post-rewrite) ---
+# Auto-installed by pql init. Fires after rebase / amend, both of
+# which can rewrite the local view of the changelog. Rebuild is
+# safe and deterministic; incremental replay would miss removals.
+echo "pql: rebuilding planning database after rewrite..." >&2
+pql plan rebuild >/dev/null 2>&1 || true
+# --- end pql ---

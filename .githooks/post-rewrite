@@ -1,0 +1,3 @@
+#!/bin/sh
+# pql: source .pql/hooks/post-rewrite (rebuild pql.db after rebase / amend)
+. "$(git rev-parse --show-toplevel)/.pql/hooks/post-rewrite"

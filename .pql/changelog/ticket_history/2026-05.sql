@@ -553,3 +553,558 @@ The `PanGestureRecognizer` in `TerminalGestureDetector` is registered with `supp
 
 **Cross-references:** T-91 (epic parent), T-93 (same shape on `onTapUp`), T-89 (coverage epic).
 ', NULL, '2026-05-08 11:01:01', '2026-05-08 11:01:01', '2026-05-08 11:01:01', NULL, '8088d054dd8c7946075ed6325724dfb3', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-62', 'status', 'backlog', 'done', NULL, '2026-05-03 20:33:10', '2026-05-03 20:33:10', '2026-05-03 20:33:10', NULL, '43c1103bad9839fbd2c8058f147cfcba', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-61', 'status', 'backlog', 'done', NULL, '2026-05-03 20:33:10', '2026-05-03 20:33:10', '2026-05-03 20:33:10', NULL, '65fbf26149226f3fc9c06a446bfa9f41', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-49', 'status', 'backlog', 'done', NULL, '2026-05-03 20:33:10', '2026-05-03 20:33:10', '2026-05-03 20:33:10', NULL, '98b648e7a4a82730e43677c7320c8b0d', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-63', 'status', 'in_progress', 'done', NULL, '2026-05-03 20:33:10', '2026-05-03 20:33:10', '2026-05-03 20:33:10', NULL, 'c8b03bf5dadfdc5cb22bc5961919dc23', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-43', 'status', 'ready', 'in_progress', NULL, '2026-05-03 20:33:10', '2026-05-03 20:33:10', '2026-05-03 20:33:10', NULL, 'fdc5453ac922809e479b6b3418ed7755', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-21', 'status', 'backlog', 'ready', NULL, '2026-05-03 20:34:52', '2026-05-03 20:34:52', '2026-05-03 20:34:52', NULL, '6da16f33a6aa1e1db733a0a02900e0c1', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-24', 'status', 'backlog', 'ready', NULL, '2026-05-03 20:36:31', '2026-05-03 20:36:31', '2026-05-03 20:36:31', NULL, 'd15ac0c4b6c7b6057243edcfbf7086f1', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-17', 'status', 'backlog', 'ready', NULL, '2026-05-03 20:37:03', '2026-05-03 20:37:03', '2026-05-03 20:37:03', NULL, '3f6f22aa9e420ec2fc869f2530df4c46', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-18', 'status', 'backlog', 'ready', NULL, '2026-05-03 20:37:30', '2026-05-03 20:37:30', '2026-05-03 20:37:30', NULL, 'e6f3d8bda62656d17b174c8b9933dabc', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-28', 'status', 'in_progress', 'done', NULL, '2026-05-03 20:40:22', '2026-05-03 20:40:22', '2026-05-03 20:40:22', NULL, '9ace75c4346f321670f7024eebfa0fb9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-43', 'status', 'in_progress', 'done', NULL, '2026-05-05 12:51:24', '2026-05-05 12:51:24', '2026-05-05 12:51:24', NULL, 'adedfd3ad28b56cf4e57e20bce3ec497', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-68', 'status', 'backlog', 'done', NULL, '2026-05-05 12:53:11', '2026-05-05 12:53:11', '2026-05-05 12:53:11', NULL, '60751203904229cc5846ea313f747846', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-70', 'status', 'backlog', 'done', NULL, '2026-05-05 12:53:11', '2026-05-05 12:53:11', '2026-05-05 12:53:11', NULL, '618b3042be98eecae2168446ffd2bfa6', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-71', 'status', 'backlog', 'done', NULL, '2026-05-05 12:53:11', '2026-05-05 12:53:11', '2026-05-05 12:53:11', NULL, '65e4ebb4c60a0feb7c2dec82f0c3faa1', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-72', 'status', 'backlog', 'done', NULL, '2026-05-05 12:53:11', '2026-05-05 12:53:11', '2026-05-05 12:53:11', NULL, 'a3ac83b6f85fbcf6b44a4b0c28c79803', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-69', 'status', 'backlog', 'done', NULL, '2026-05-05 12:53:11', '2026-05-05 12:53:11', '2026-05-05 12:53:11', NULL, 'b427c00df34390343af95fcd285a09bd', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-70', 'status', 'done', 'done', NULL, '2026-05-05 12:53:15', '2026-05-05 12:53:15', '2026-05-05 12:53:15', NULL, '48865da069da205e0cf7ae7dd8caf27d', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-72', 'status', 'done', 'done', NULL, '2026-05-05 12:53:15', '2026-05-05 12:53:15', '2026-05-05 12:53:15', NULL, '680e39c278e717327dc2557e625abc1b', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-68', 'status', 'done', 'done', NULL, '2026-05-05 12:53:15', '2026-05-05 12:53:15', '2026-05-05 12:53:15', NULL, '8f1ea30ab9663ac07c04fe404937a9fd', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-71', 'status', 'done', 'done', NULL, '2026-05-05 12:53:15', '2026-05-05 12:53:15', '2026-05-05 12:53:15', NULL, '9284c52dba3b76b117e8d3a97420dd6a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-69', 'status', 'done', 'done', NULL, '2026-05-05 12:53:15', '2026-05-05 12:53:15', '2026-05-05 12:53:15', NULL, 'e5c9d41027d52b8fbe7edcc684130c2e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-18', 'status', 'ready', 'in_progress', NULL, '2026-05-05 12:54:39', '2026-05-05 12:54:39', '2026-05-05 12:54:39', NULL, 'd8d87b2a3ea7073edde2157f6c90791e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-18', 'status', 'in_progress', 'done', NULL, '2026-05-05 12:59:05', '2026-05-05 12:59:05', '2026-05-05 12:59:05', NULL, '3ddd60cd6e2f138e184b3e4e8f892a21', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-78', 'status', 'backlog', 'in_progress', NULL, '2026-05-05 12:59:50', '2026-05-05 12:59:50', '2026-05-05 12:59:50', NULL, 'a1e1b2c66830239411cac289bcb13050', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-78', 'status', 'in_progress', 'done', NULL, '2026-05-05 13:02:34', '2026-05-05 13:02:34', '2026-05-05 13:02:34', NULL, 'ffe86cc4530e722c0622fbd4095d0f08', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-75', 'status', 'backlog', 'in_progress', NULL, '2026-05-05 13:02:40', '2026-05-05 13:02:40', '2026-05-05 13:02:40', NULL, '3d48174c87be388f391611a4c9ebc4b0', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-75', 'status', 'in_progress', 'done', NULL, '2026-05-05 13:07:29', '2026-05-05 13:07:29', '2026-05-05 13:07:29', NULL, '579e4939f630479b5987b47de2106ca9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-76', 'status', 'backlog', 'in_progress', NULL, '2026-05-05 13:07:34', '2026-05-05 13:07:34', '2026-05-05 13:07:34', NULL, 'd56b93ae20653ab26c0a99ab7c28fa69', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-76', 'status', 'in_progress', 'done', NULL, '2026-05-05 13:10:50', '2026-05-05 13:10:50', '2026-05-05 13:10:50', NULL, '5c98774f501f1a6c7bef328c3cd8c5b1', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-77', 'status', 'backlog', 'in_progress', NULL, '2026-05-05 13:10:57', '2026-05-05 13:10:57', '2026-05-05 13:10:57', NULL, '8558d256a078bda0713c7045d7f1c2bb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-77', 'status', 'in_progress', 'done', NULL, '2026-05-05 13:12:20', '2026-05-05 13:12:20', '2026-05-05 13:12:20', NULL, 'aabaf34b3e5982ab7be5c07051e2c1e7', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-79', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 07:45:02', '2026-05-06 07:45:02', '2026-05-06 07:45:02', NULL, 'e5e0baef07bf6908200527c340130a2e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-79', 'status', 'in_progress', 'done', NULL, '2026-05-06 07:56:10', '2026-05-06 07:56:10', '2026-05-06 07:56:10', NULL, '3069b52fc53518956fc0dc7792aa2e9c', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-21', 'status', 'ready', 'done', NULL, '2026-05-06 09:17:22', '2026-05-06 09:17:22', '2026-05-06 09:17:22', NULL, '56b24bfcf31543cbde7e5c1af8055989', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-83', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 09:17:50', '2026-05-06 09:17:50', '2026-05-06 09:17:50', NULL, 'cb9fc3d3f6cc5858ce9af1f377257b26', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-83', 'status', 'in_progress', 'done', NULL, '2026-05-06 10:12:48', '2026-05-06 10:12:48', '2026-05-06 10:12:48', NULL, '133758a6509278aaada7d8f03ac72ae4', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-84', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 10:17:57', '2026-05-06 10:17:57', '2026-05-06 10:17:57', NULL, '8991e0669094e0969787881506f373dc', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-84', 'status', 'in_progress', 'done', NULL, '2026-05-06 12:17:27', '2026-05-06 12:17:27', '2026-05-06 12:17:27', NULL, '8dd4f7dba893357485c6a8293e49765e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-24', 'status', 'ready', 'in_progress', NULL, '2026-05-06 12:20:58', '2026-05-06 12:20:58', '2026-05-06 12:20:58', NULL, 'e9f7ebbd02eb9bf7f3faf10dca1cf8e1', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-24', 'status', 'in_progress', 'done', NULL, '2026-05-06 13:21:15', '2026-05-06 13:21:15', '2026-05-06 13:21:15', NULL, '661729cdc568efa42627ea20bfcbeddb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-85', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 13:29:05', '2026-05-06 13:29:05', '2026-05-06 13:29:05', NULL, 'adb576167325591e1ec5e095a38bc6cb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-85', 'status', 'in_progress', 'done', NULL, '2026-05-06 13:38:38', '2026-05-06 13:38:38', '2026-05-06 13:38:38', NULL, '4062a1b9aed02d2749b8fd079b6cd6a9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-86', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 13:38:44', '2026-05-06 13:38:44', '2026-05-06 13:38:44', NULL, '668f49fb8c27e4acf51144970d8cccb5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-86', 'status', 'in_progress', 'done', NULL, '2026-05-06 13:45:12', '2026-05-06 13:45:12', '2026-05-06 13:45:12', NULL, '28dcd4602bb47f5ca1a8be7ecffd2597', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-87', 'description', NULL, 'D-41 lifecycle contract: "closing a secondary kills that tmux session" and "secondary numbering (-1, -2, ...) resets between clide runs since ephemeral state is lost" — the second clause only holds if non-primary tmux sessions are reaped on app shutdown.
+
+Neither happens today.
+
+**Gap 1 — tab close is UI-only.** `ClaudeSessionHostState` (lib/builtin/claude/src/claude_session_host.dart:18) builds tabs via MultitabController; closing a secondary just removes the entry. No `tmux kill-session` shellout anywhere in lib/builtin/claude/ or lib/src/pty/ (verified by grep for `kill-session` / `killSession` / `tmux kill`).
+
+**Gap 2 — app shutdown leaks secondaries.** Nothing reaps `clide-claude-<repohash>-N` sessions when the app exits. Repro: spawn two secondaries, quit clide, `tmux -L clide list-sessions` still shows them. Confirmed live: 4 sessions on the clide socket (primary + -1, -2, -3) survived prior runs.
+
+**Acceptance:**
+- Closing a secondary tab in the Claude pane runs `tmux -L clide kill-session -t <name>` for that secondary''s session name (use existing `secondarySessionName(repoRoot, n)`).
+- App shutdown enumerates `clide-claude-<repohash>-*` sessions on the clide socket and kills the non-primary ones. Primary is left detached (D-41 explicit).
+- `_nextSecondary` index policy: keep the in-process counter for the running app; cold-start always begins at 1 because secondary sessions are gone.
+- Add a test that exercises the close path and asserts the kill-session command was invoked (mock the tmux runner).
+
+**Out of scope:** primary lifecycle (unchanged — survives shutdown by design), general-purpose terminal panes (no tmux wrapping per D-41), Windows behaviour.', NULL, '2026-05-06 13:46:26', '2026-05-06 13:46:26', '2026-05-06 13:46:26', NULL, 'c7dbde5c6c6c89492665abdff0f59be4', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-87', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 13:46:29', '2026-05-06 13:46:29', '2026-05-06 13:46:29', NULL, '9d047426e61ddd7d29072333da718c03', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-17', 'description', NULL, 'Wire `dart doc` into the CI pipeline so the public API surface (everything in lib/*.dart barrel exports) renders to HTML on every push to main.
+
+**Acceptance:**
+- New CI step in `.gitea/workflows/test.yml` runs `dart doc lib/` and uploads the generated `doc/api/` artefact.
+- Documentation comments on public APIs are validated (no broken references); `dart doc --validate-links` part of the run.
+- Generated docs published somewhere browsable — Gitea Pages, GitHub Pages once the repo moves, or an S3-style static host (decision deferred until Gitea actions land per D-32).
+
+**Not in scope:** writing missing docstrings (separate sweep), private-API docs, package.json-style metadata for pub.dev (we never publish to pub.dev — single binary).', NULL, '2026-05-06 15:08:22', '2026-05-06 15:08:22', '2026-05-06 15:08:22', NULL, '396d0d316f7ee331776d4547f9b54b9a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-7', 'description', NULL, 'Tier 5 of the build plan: bring the canvas pane (Obsidian-style spatial whiteboard) and the graph view (force-directed view of vault links) to feature parity.
+
+**Canvas pane (`builtin.canvas`):**
+- Render `.canvas` files (Obsidian-compatible JSON) — nodes (note, text, group, image), edges, layout state.
+- Pan/zoom via `InteractiveViewer`; node selection, drag, resize.
+- Edit affordances: add note from file picker, add text node, draw edge between nodes.
+- Persist layout back to the `.canvas` file on disk.
+
+**Graph view (`builtin.graph`):**
+- Force-directed layout of the current vault (or a filtered subset) — nodes are notes, edges are wikilinks.
+- Hover highlights connected subgraph; click opens the note in the editor.
+- Filter pane: tag include/exclude, file glob, depth-from-active.
+- pql provides the link data (`pql backlinks` / `pql outlinks`); rendering owned in-app.
+
+Both panes use the existing `MultitabPane` (T-83) for tab management once they ship. Each lives in its own slot per D-47 (canvas in workspace, graph in context panel).', NULL, '2026-05-06 15:08:37', '2026-05-06 15:08:37', '2026-05-06 15:08:37', NULL, '1a91dfb3b80a90e5dd6d84b3df9afef8', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-8', 'description', NULL, 'Tier 6 of the build plan: the things that make clide a real product instead of a working prototype.
+
+**Extension API (third-party Lua):**
+- The Lua runtime supporter tool (D-19) lands as a peer of pql/ptyc.
+- Manifest schema, capability gating, sandboxed FS/IPC access.
+- Same TabContribution / CommandContribution / etc. surface as built-in Dart extensions (D-15).
+- Marketplace / distribution story is OUT OF SCOPE for Tier 6 — local-install only.
+
+**Settings UI (`builtin.settings-ui`):**
+- Schema-driven settings panel reading from the kernel SettingsStore.
+- Render strategy: form fields keyed off the schema each subsystem registers.
+- Edits write back to `.clide/settings.yaml`.
+
+**Theming UI (`builtin.theme-picker` extends):**
+- Live preview of the four bundled themes (D-44).
+- Custom theme: import YAML, validate against schema, register at runtime.
+- Per-component override surface (long horizon).
+
+**Distributable builds:**
+- AppImage / Flatpak for Linux, .dmg for macOS — see T-46.
+- Self-update mechanism — see T-47.
+- License manifest auto-regen as part of the release build.
+
+Big epic — children land incrementally. Most concrete child tickets already exist; this is the umbrella.', NULL, '2026-05-06 15:08:53', '2026-05-06 15:08:53', '2026-05-06 15:08:53', NULL, '55bf0c36dc75468fa6a1d3caf532c2e9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'description', NULL, 'D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.
+
+**Acceptance:**
+- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.
+- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.
+- Commands listed are everything registered via `CommandContribution` across all activated extensions.
+- Fuzzy match against command title; recent / pinned commands float to the top.
+
+**Implementation hints:**
+- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).
+- Keybinding goes in `lib/kernel/src/commands/keybindings.dart` per the D-54 keymap.
+- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).', NULL, '2026-05-06 15:09:05', '2026-05-06 15:09:05', '2026-05-06 15:09:05', NULL, '352e6c0b2af96f63924ad1d1ef4c80f9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-73', 'description', NULL, 'Workaround in T-70 / `lib/src/terminal/src/ui/painter.dart` suppresses bold rendering entirely because Flutter`s synthetic bold drifts glyph advance widths and breaks the monospace cell grid. We lose semantic bold (bash prompts, emphasis in TUIs) as a side effect.
+
+**Acceptance:**
+- A bold-weight monospace face ships alongside the regular weight, with verified-equal advance widths at clide`s render size (cell-grid stable on bold).
+- The painter`s `bold: false` override is reverted; bold attributes from terminal escapes render visually bold.
+- Test: render a known-mixed-weight buffer and assert paragraph maxIntrinsicWidth matches the regular-weight measurement (cell drift = 0).
+
+**Options to evaluate:**
+- Re-add JetBrainsMono-Bold.ttf once we`ve verified its advance widths actually equal the Regular file at our cellSize. (We dropped it because the synthetic-bold issue obscured whether the bundled Bold actually matched.)
+- Switch to a variable JetBrainsMono and request a specific weight axis position.
+- Pick a different mono font whose Bold has guaranteed-equal advance (Berkeley Mono, IBM Plex Mono).
+
+Link-back: T-70 is the workaround; this is the proper fix.', NULL, '2026-05-06 15:09:20', '2026-05-06 15:09:20', '2026-05-06 15:09:20', NULL, '780a2a4a39f15c3ba81648ceb6fdba37', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-74', 'description', NULL, 'Mouse wheel scroll is currently translated to PgUp/PgDown key input in `lib/src/terminal/src/terminal_view.dart` as a pragmatic workaround — TUIs that capture mouse events without binding the wheel get a no-op otherwise. The downside: any TUI that does its own wheel handling (selection, click-to-position) loses the actual mouse coordinates because all we send is keyboard.
+
+**Acceptance:**
+- The terminal forwards `PointerScrollEvent` and click/drag/release as proper xterm mouse-protocol escape sequences (CSI `M` / SGR variant per the report mode the inner program declared via `?1000h` / `?1006h`).
+- Tested with `vim` (mouse mode `a`), `htop`, `less` — all should respond to mouse selection / click correctly.
+- Falls back to PgUp/PgDown only when the inner program has not declared a mouse mode.
+- The `mouseInput` API on `Terminal` is wired through `Listener.onPointerSignal` instead of being bypassed.
+
+**Why this isn`t the default already:** the bypass was the cheapest fix to get scroll working at all when the multitab/Scrollable ate scroll events. With those fixes landed, the right-shaped mouse forwarding is the proper next step.', NULL, '2026-05-06 15:09:36', '2026-05-06 15:09:36', '2026-05-06 15:09:36', NULL, '31108dcc7844bf74515dfc1cda0993e9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-80', 'description', NULL, 'From the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md). Two cleanup items rolled together:
+
+**Errno constants (audit item #23):**
+- Magic numbers (`4` for EINTR, `9` for EBADF, `28` for SIGWINCH, `1` for SIGHUP, `32` for EPIPE) appear inline across `lib/src/pty/session.dart` and `lib/src/pty/native_pty.dart`.
+- Centralize them in `lib/src/pty/errors.dart` or a sibling `posix.dart` as named constants.
+- Existing `lib/src/ipc/errno_mapping.dart` already has a `PosixErrno` class — extend it or move to a shared location both layers import from.
+
+**Logger standardization (audit item #22, partial #26):**
+- `lib/src/ipc/server.dart` uses `stderr.writeln(...)` directly; the rest of the daemon either uses no logger or a custom one.
+- The Flutter-host process often consumes stderr, so log lines disappear silently.
+- Pick one logger interface (kernel `log` already exists for the app side), wire `DaemonServer` and the daemon-side handlers to use it.
+- Dispatch error messages should prefix with the request `cmd` so log correlation works (audit item #26).
+
+**Out of scope for this ticket:** changes to log-LEVEL policy, log retention, log files vs stderr — pure substitution job.', NULL, '2026-05-06 15:09:50', '2026-05-06 15:09:50', '2026-05-06 15:09:50', NULL, 'e4255ebfc7f9bd8537ced342f2925d77', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-81', 'description', NULL, 'Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:
+
+- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.
+- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.
+- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.
+- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 <= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.
+- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.
+- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.
+- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.
+- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.
+
+Land each as a small focused commit; ticket closes when all items above are merged.', NULL, '2026-05-06 15:10:09', '2026-05-06 15:10:09', '2026-05-06 15:10:09', NULL, 'ad1a34f56d30171570970965b5ef3560', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-82', 'description', NULL, 'User request: ship a Catppuccin theme alongside the four bundled themes (clide, midnight, paper, terminal — D-44).
+
+**Acceptance:**
+- New theme YAML at `lib/kernel/src/theme/themes/catppuccin.yaml` (or split for the four Catppuccin flavours: latte / frappe / macchiato / mocha — pick one or all four; recommend Mocha as the dark default and Latte for the light variant).
+- Tokens populated for every key in `SurfaceTokens` (lib/kernel/src/theme/tokens.dart) — chrome, panels, tabs, list items, status colours, syntax tokens (D-45).
+- WCAG-AA contrast gate (D-22) passes against the theme.
+- Listed in `assets/licenses.yaml` with the upstream license (MIT) and attribution.
+- Theme picker (`builtin.theme-picker`) shows it in the live-switch menu.
+
+**Source palettes:** https://github.com/catppuccin/catppuccin#-palette — official hex values, don`t paraphrase.
+
+**Why now:** test user request; also a good exercise for any future user-contributed theme since Catppuccin is the most common one to ask for.', NULL, '2026-05-06 15:10:22', '2026-05-06 15:10:22', '2026-05-06 15:10:22', NULL, '0a750764071d26afaa1821ca9ee2f3bf', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-88', 'description', NULL, 'D-59 (bundled git via dugite-native) costs out: "Must track dugite-native releases for security updates." Up to today this lived only in the D-record prose with no tracking — clean-house v1 flagged it as RULE-SUNSET-WITHOUT-TICKET.
+
+**Acceptance:**
+- A periodic check (manual or scheduled) compares the bundled `native/dugite/` SHA against the latest release at https://github.com/desktop/dugite-native/releases.
+- When a new release lands with a CVE label or fixes a CVE-tagged git release, schedule a bump; otherwise track the version drift.
+- Bumps follow D-63: rebuild with the new SHA, update `BUILD.md`, update `assets/licenses.yaml` if the dugite or git version changed, refresh the binary in `native/dugite/`.
+
+**Periodicity:** quarterly check is enough during normal operation; faster on git CVE announcements (subscribe to https://github.com/git/git/security/advisories, https://github.com/desktop/dugite-native/security/advisories).
+
+**Out of scope:** the rebuild itself is T-25 (CI reproducible build for libtree-sitter.so) — same shape applies to dugite. This ticket is the calendar; T-25 is the machine.', NULL, '2026-05-06 15:10:35', '2026-05-06 15:10:35', '2026-05-06 15:10:35', NULL, '49050e00e3787be467be278d157bb69e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-87', 'status', 'in_progress', 'done', NULL, '2026-05-06 15:39:53', '2026-05-06 15:39:53', '2026-05-06 15:39:53', NULL, '0d9f946e59752f061cc431121ac0f708', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-17', 'status', 'ready', 'in_progress', NULL, '2026-05-06 15:39:53', '2026-05-06 15:39:53', '2026-05-06 15:39:53', NULL, '4a53482a4ec3d3938e8b0bdfd0d9f4d6', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-73', 'status', 'backlog', 'ready', NULL, '2026-05-06 15:39:53', '2026-05-06 15:39:53', '2026-05-06 15:39:53', NULL, 'e4e9ad42effcd95445b086c527f3471c', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-17', 'status', 'in_progress', 'done', NULL, '2026-05-06 15:45:51', '2026-05-06 15:45:51', '2026-05-06 15:45:51', NULL, '0b148a1ff820009a9e2f533ee6fef7f9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-17', 'status', 'done', 'in_progress', NULL, '2026-05-06 15:51:26', '2026-05-06 15:51:26', '2026-05-06 15:51:26', NULL, '79dc3457b9819570fbd35d7cffb80e0d', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-17', 'status', 'in_progress', 'done', NULL, '2026-05-06 15:58:30', '2026-05-06 15:58:30', '2026-05-06 15:58:30', NULL, '78f6f98d8e4b94f6f0fd49f324ee057a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-73', 'description', 'Workaround in T-70 / `lib/src/terminal/src/ui/painter.dart` suppresses bold rendering entirely because Flutter`s synthetic bold drifts glyph advance widths and breaks the monospace cell grid. We lose semantic bold (bash prompts, emphasis in TUIs) as a side effect.
+
+**Acceptance:**
+- A bold-weight monospace face ships alongside the regular weight, with verified-equal advance widths at clide`s render size (cell-grid stable on bold).
+- The painter`s `bold: false` override is reverted; bold attributes from terminal escapes render visually bold.
+- Test: render a known-mixed-weight buffer and assert paragraph maxIntrinsicWidth matches the regular-weight measurement (cell drift = 0).
+
+**Options to evaluate:**
+- Re-add JetBrainsMono-Bold.ttf once we`ve verified its advance widths actually equal the Regular file at our cellSize. (We dropped it because the synthetic-bold issue obscured whether the bundled Bold actually matched.)
+- Switch to a variable JetBrainsMono and request a specific weight axis position.
+- Pick a different mono font whose Bold has guaranteed-equal advance (Berkeley Mono, IBM Plex Mono).
+
+Link-back: T-70 is the workaround; this is the proper fix.', 'Workaround in T-70 / `lib/src/terminal/src/ui/painter.dart` suppresses bold rendering entirely because Flutter`s synthetic bold drifts glyph advance widths and breaks the monospace cell grid. We lose semantic bold (bash prompts, emphasis in TUIs) as a side effect.
+
+**Acceptance:**
+- A bold-weight monospace face ships alongside the regular weight, with verified-equal advance widths at clide`s render size (cell-grid stable on bold).
+- The painter`s `bold: false` override is reverted; bold attributes from terminal escapes render visually bold.
+- Test: render a known-mixed-weight buffer and assert paragraph maxIntrinsicWidth matches the regular-weight measurement (cell drift = 0).
+
+**Options to evaluate:**
+- Re-add JetBrainsMono-Bold.ttf once we`ve verified its advance widths actually equal the Regular file at our cellSize. (We dropped it because the synthetic-bold issue obscured whether the bundled Bold actually matched.)
+- Switch to a variable JetBrainsMono and request a specific weight axis position.
+- Pick a different mono font whose Bold has guaranteed-equal advance (Berkeley Mono, IBM Plex Mono).
+
+---
+Refinement (2026-05-06):
+
+Investigation showed the perceived over-bolding in the Claude pane was synthetic-bold smearing (Flutter overpaints when no Bold.ttf is registered), not aggressive-but-legitimate bold. Visual A/B confirms a real bold face renders crisp emphasis without smearing. No per-pane renderer config needed.
+
+**Concrete fix shape:**
+1. `pubspec.yaml` (family JetBrainsMono): register `JetBrainsMono-Bold.ttf` with `weight: 700` and `JetBrainsMono-BoldItalic.ttf` with `weight: 700, style: italic`. Files are already on disk under `assets/fonts/jetbrains_mono/`.
+2. `assets/licenses.yaml` JetBrainsMono entry: update `weights_bundled` to `[Regular, Italic, Bold, BoldItalic]` per D-42 (must match what is actually wired into the font family).
+3. `lib/src/terminal/src/ui/painter.dart:198`: revert the `bold: false` override and delete the now-stale comment block at lines 193-195.
+4. Test: render a mixed-weight buffer and assert `paragraph.maxIntrinsicWidth` matches the all-regular measurement (cell drift = 0). If parity fails, the fallback options stay open (variable JetBrainsMono / Berkeley Mono / IBM Plex Mono).
+
+Workaround comment (`Skip bold rendering — Flutter`s synthetic bold...`) goes away in step 3.', NULL, '2026-05-06 16:13:35', '2026-05-06 16:13:35', '2026-05-06 16:13:35', NULL, 'baa15a2631bef74a4c1f732cee12de1c', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-73', 'status', 'ready', 'in_progress', NULL, '2026-05-06 16:13:39', '2026-05-06 16:13:39', '2026-05-06 16:13:39', NULL, '8e3c8ef2cfa48a2805eef455ec8f5830', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-74', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 16:13:39', '2026-05-06 16:13:39', '2026-05-06 16:13:39', NULL, 'eb816113ca1ef0ef3514af5f8d3391d3', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-73', 'status', 'in_progress', 'done', NULL, '2026-05-06 20:29:28', '2026-05-06 20:29:28', '2026-05-06 20:29:28', NULL, 'ba203ed16c6e042457e8e751bf56932a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-89', 'description', NULL, 'Today: total line coverage **34.9%** (2984/8549 lines). Per area:
+
+| area | hit / total | % |
+|---|---|---|
+| `lib/src/terminal/` | 12 / 3167 | **0.4%** |
+| `lib/widgets/` | 537 / 1184 | 45.4% |
+| `lib/src/pql/` | 45 / 94 | 47.9% |
+| `lib/builtin/` | 269 / 550 | 48.9% |
+| `lib/kernel/` | 889 / 1691 | 52.6% |
+| `lib/src/daemon/` | 320 / 584 | 54.8% |
+| `lib/src/pty/` | 130 / 216 | 60.2% |
+| `lib/src/git/` | 356 / 518 | 68.7% |
+| `lib/src/ipc/` | 110 / 156 | 70.5% |
+| `lib/src/files/` | 98 / 133 | 73.7% |
+| `lib/extension/` | 41 / 54 | 75.9% |
+| `lib/src/editor/` | 107 / 129 | 82.9% |
+| `lib/src/panes/` | 70 / 73 | 95.9% |
+
+The dominant hole is `lib/src/terminal/` — the terminal emulator code. Header still credits xterm.dart upstream, but per CLAUDE.md ("Own the rendering stack") and the explicit guidance attached to this epic: in-tree code is owned, no carve-outs, same coverage bar.
+
+**End state:**
+- Total line coverage ≥ 95% (no per-area carve-outs).
+- Pre-push gate hard-fails on coverage drops via a committed floor (`coverage/floor.txt`); floor ratchets up only.
+- Per D-66 the gate lands at the *current* floor in the first child ticket; subsequent floor bumps come with the test-writing children.
+
+**Acceptance criteria for closing this epic:**
+1. `coverage/floor.txt` reads `95` (or higher).
+2. `flutter test --coverage --exclude-tags forkpty` produces ≥95% line coverage.
+3. The pre-push gate computes coverage and rejects pushes below the floor.
+4. No new `// ignore:` / `// ignore_for_file:` / analysis-options excludes were added to dodge the gate. Any suppression added during this campaign needs explicit approval and an inline reason at the suppression site.
+
+**Strategy / child shape:**
+The gate plumbing lands first so future test additions are visible as floor bumps. Then per-area sweeps — biggest holes first because they move the global number fastest, but each area is its own child ticket with its own scope.
+
+1. **Gate plumbing** (first child) — install the ratchet, lock in current floor, expose `make coverage-gate` and wire it into `make push-check`.
+2. **`lib/src/terminal/` sweep** (second child, by far the largest) — likely splits into sub-children once the area''s structure is mapped (parser, buffer, painter, gesture handling, mouse reporting, escape sequences, cell-grid measurement, etc.).
+3. **Per-area sweeps** — claim a child ticket when starting an area; close when the area hits 95%. Order by impact: terminal → widgets → pql → builtin → kernel → daemon → pty → git → ipc → files → extension → editor.
+4. **Final ratchet** — once total ≥ 95%, set floor to 95 and close the epic.
+
+**Out of scope:**
+- Branch coverage (lcov data is weak for branch on Dart; line coverage is the contract).
+- Integration / E2E coverage (only widget + unit feed lcov).
+- `lib/test_app.dart` exclusion: verify in the gate child whether Dart''s coverage tooling already excludes it; if not, decide explicitly rather than carve it out silently.
+
+**Cross-references:** D-66 (this epic''s decision record), D-29 (pre-push gate scope), "Own the rendering stack" guardrail (CLAUDE.md).
+', NULL, '2026-05-06 20:37:40', '2026-05-06 20:37:40', '2026-05-06 20:37:40', NULL, 'c5f416e95632e206449476de472fc4e5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-90', 'parent_id', NULL, 'T-89', NULL, '2026-05-06 20:38:24', '2026-05-06 20:38:24', '2026-05-06 20:38:24', NULL, '11840a870c33e5e94b6adcd3cfb5f10a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-90', 'description', NULL, 'First child of T-89. Locks in the no-regression contract before any test-writing children land — so subsequent floor bumps are explicit and reviewable.
+
+**What lands:**
+
+1. **`coverage/floor.txt`** — committed file containing today''s actual line-coverage number (currently `34` after rounding down from 34.9% to give a small margin against measurement jitter; the gate child re-measures on first install and writes the exact number it observes minus 1 if needed).
+2. **`ci/coverage_gate.sh`** — runs `flutter test --coverage --exclude-tags forkpty`, parses `coverage/lcov.info` (sum of LH / sum of LF * 100), compares to `coverage/floor.txt`, exits non-zero if below, prints the actual percentage either way.
+3. **`Makefile` `coverage-gate` target** — wraps `ci/coverage_gate.sh` for local use.
+4. **`make push-check`** — adds `coverage-gate` to its dependency list. Pre-push hook (already wired via `.githooks/pre-push`) picks this up automatically.
+5. **`coverage/README.md`** — short note explaining the floor file, how to bump it (rule: bump only in the same commit that adds covering tests, with the bump reflecting the measured improvement), and the link to D-66.
+
+**Acceptance:**
+- `make coverage-gate` passes on a clean checkout (floor matches reality).
+- `make push-check` includes the gate.
+- A test deletion would fail `make coverage-gate` (verify by experiment, not just by reading the script — invariant has to actually hold).
+- Pre-push hook runs the gate (verify by attempting a deliberately-failing push and seeing it blocked).
+- `coverage/lcov.info` is gitignored (it''s regenerated on every run; only `floor.txt` is committed).
+
+**Out of scope:**
+- Bumping the floor toward 95% — that''s the test-writing children''s job.
+- Branch coverage — D-66 explicitly excludes.
+- Per-area floors — D-66 chose a single global floor for simplicity.
+
+**Notes:**
+- `lcov` CLI is not installed on this dev machine; parser must be self-contained (awk or python). Don''t introduce `lcov` as a dependency of the gate.
+- `coverage/lcov.info` is the standard Dart output path of `flutter test --coverage`. Don''t relocate.
+- `flutter test --coverage` runs all tests including `forkpty`-tagged ones, which fail under the flutter test runner (see comment in `test/pty/session_test.dart`); `--exclude-tags forkpty` matches `ci/test.sh`. Forkpty-tagged tests don''t currently feed lcov because they run via `dart test`; check whether their coverage can be merged later (separate ticket if not).
+', NULL, '2026-05-06 20:39:05', '2026-05-06 20:39:05', '2026-05-06 20:39:05', NULL, 'a7af4c58b2e4ccbc80d128d6ba64ba0a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-90', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 20:39:45', '2026-05-06 20:39:45', '2026-05-06 20:39:45', NULL, '74247471621e8f69e888066727cffcda', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-89', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 20:39:45', '2026-05-06 20:39:45', '2026-05-06 20:39:45', NULL, 'a81a6e3ef23af1c113f46e467fdde278', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-74', 'status', 'in_progress', 'ready', NULL, '2026-05-06 20:39:45', '2026-05-06 20:39:45', '2026-05-06 20:39:45', NULL, 'e2692b0d73a61655c310846dda2b2ae2', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-74', 'status', 'ready', 'ready', NULL, '2026-05-06 20:40:13', '2026-05-06 20:40:13', '2026-05-06 20:40:13', NULL, 'cabddbfab05fa8c3e3705311f895d619', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-90', 'status', 'in_progress', 'in_progress', NULL, '2026-05-06 20:40:16', '2026-05-06 20:40:16', '2026-05-06 20:40:16', NULL, '02f69af134363ce27d815ad3081379f3', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-89', 'status', 'in_progress', 'in_progress', NULL, '2026-05-06 20:40:16', '2026-05-06 20:40:16', '2026-05-06 20:40:16', NULL, '9695c13174226c39e5bf059d88d8e855', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-90', 'status', 'in_progress', 'done', NULL, '2026-05-06 20:44:47', '2026-05-06 20:44:47', '2026-05-06 20:44:47', NULL, '8d3f9f4effc90eacfcefd2701a33ede6', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-91', 'parent_id', NULL, 'T-89', NULL, '2026-05-06 20:49:47', '2026-05-06 20:49:47', '2026-05-06 20:49:47', NULL, 'baf63005fb488a699872715061d2473c', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-91', 'description', NULL, 'Second child of T-89. The dominant coverage hole — `lib/src/terminal/` is 12 / 3167 lines (0.4%), about 56% of the global gap.
+
+**Today''s distribution within `lib/src/terminal/src/`:**
+
+| sub-area | hit / total | % | shape |
+|---|---|---|---|
+| `core/buffer/` | 0 / 581 | 0.0% | pure data structures |
+| `core/escape/` | 1 / 473 | 0.2% | pure parser logic |
+| `core/input/` | 4 / 292 | 1.4% | key + keytab tables |
+| `core/(root)` | 0 / 188 | 0.0% | callback wiring |
+| `core/mouse/` | 3 / 51 | 5.9% | encoder logic |
+| `ui/` | 3 / 823 | 0.4% | painters + render objects |
+| `(root)` | 0 / 471 | 0.0% | `Terminal` + `TerminalView` |
+| `utils/` | 1 / 251 | 0.4% | circular buffer etc. |
+
+**Strategy — pure logic first, then UI:**
+
+1. **`core/buffer/`** (581 lines, biggest single chunk, all pure Dart) — line/segment/cell models, scrollback math, range queries. Unit tests exercise the data structure directly.
+2. **`core/escape/`** (473 lines, pure state machine) — feed ANSI/VT byte streams in, assert the resulting buffer/cursor state. Reusable corpus from xterm.js / xterm.dart upstream is fair game.
+3. **`core/input/`** (292 lines) — key + keytab tables; assert mapping from logical key to escape bytes per terminal mode.
+4. **`core/mouse/`** (51 lines) — encoder for SGR-1006 / X11 mouse protocols. Small, fast.
+5. **`utils/`** (251 lines) — circular buffer + helpers; trivial unit tests.
+6. **`(root)`** (`terminal.dart`, `terminal_view.dart`, 471 lines) — orchestration; some unit-testable, some needs widget tests.
+7. **`ui/`** (823 lines) — painters and render objects; widget + golden tests. Hardest, most pixel-sensitive.
+
+**Acceptance:**
+- `lib/src/terminal/` line coverage ≥ 95%.
+- All tests fast (<5 s for the area''s test files combined; no real PTY shell-out).
+- Helper fixtures live in `test/terminal/_helpers/` if they get reused across files.
+- Per D-66, no `// ignore:` directives or analysis_options excludes added to dodge coverage.
+- `coverage_floor:` in `pubspec.yaml` is bumped in lockstep — every commit that adds covering tests bumps the floor by the measured delta (rounded down to the integer below the new percentage).
+
+**Strategy on commit cadence:**
+Land tests in batches per sub-area (one commit per `core/buffer/`, `core/escape/`, etc.). Each batch:
+- Adds tests under `test/terminal/<sub-area>/`.
+- Re-measures coverage, bumps `coverage_floor:` to the new integer (or as high as the gate currently allows).
+- Documents in CHANGELOG under "Changed" (test-only changes can also fold into one CHANGELOG entry per area).
+
+**Out of scope:**
+- Refactoring `lib/src/terminal/` for testability — if a piece is genuinely untestable, surface it (don''t silence it). Code under `lib/` is owned regardless of upstream attribution; refactor to make it testable rather than carving it out.
+- Branch coverage (D-66 explicitly excludes).
+- Mouse / keyboard *protocol* round-trips against real TUIs (that''s T-74 and integration work).
+
+**Cross-references:** D-66 (coverage gate), T-89 (epic), T-90 (gate plumbing).
+', NULL, '2026-05-06 20:50:29', '2026-05-06 20:50:29', '2026-05-06 20:50:29', NULL, 'a165eb2d32141e72feb1ffdf9d98d58e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-91', 'status', 'backlog', 'in_progress', NULL, '2026-05-06 20:50:32', '2026-05-06 20:50:32', '2026-05-06 20:50:32', NULL, 'da5f03732cdcd40106cf47c852191706', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-92', 'description', NULL, '**File:** `lib/src/terminal/src/core/reflow.dart` (`_LineReflow._addPart`).
+
+**Bug:** Anchors whose x-coordinate sits past the source line''s `trimmedLength` get reparented onto whatever `_builder._result` is active at that moment. After the main reparenting loop has run with `lineFilled` on the final iteration, `_builder.take()` has already moved the filled line into `_lines` and reset `_result` to a fresh empty `BufferLine`. The post-loop block (lines 144-150 in the current source) then reparents the tail anchor onto that fresh empty line. If no further content lands in the builder before `finish()` exits — which is the case whenever the post-loop block fires on a non-wrapped logical line — the empty builder line is never appended to `_lines`, and the anchor ends up pointing to a `BufferLine` that the reflow result never includes.
+
+**Trigger paths in production code:**
+
+1. `SelectAllTextIntent` (`lib/src/terminal/src/ui/shortcut/actions.dart:60-63`) creates the end anchor at `x = terminal.viewWidth`. That is *exactly* the past-trimmedLength position for every partially-filled line in the buffer. Any user who Ctrl+A''s and then resizes the terminal narrower hits the bug for every short line in the scrollback.
+2. `selectCharacters` / mouse drag selection (`lib/src/terminal/src/ui/render.dart:286-298`) — anchors are clamped to `[0, viewWidth-1]` but can sit past `trimmedLength` on a partially-filled line. Drag past content end + resize narrower trips the bug.
+3. `selectWord` (`render.dart:264-275`) — `getWordBoundary` walks until a separator OR `viewWidth`, so the end anchor of a near-edge word can land at `x = viewWidth` and trip the bug on resize.
+
+**Symptom:** selection extents lose track of content after a width change. Visible highlight stops moving with the underlying selection, or extents disappear off the rendered buffer entirely. No exception is thrown — the dangling anchor still has a valid `BufferLine` reference, it just isn''t on a line in the visible buffer.
+
+**Acceptance:**
+- New unit test in `test/terminal/core/core_test.dart` (or a sibling) that:
+  - Constructs a partially-filled source line and an anchor past `trimmedLength`,
+  - Runs reflow shrink,
+  - Asserts the anchor''s owning line is *in the reflow output list*, not dangling.
+- The existing widget-level select-all behaviour still works on resize: a Ctrl+A across the buffer followed by a narrower resize keeps the selection''s end anchor pointing to a line in the reflowed result.
+- No regression in the existing reflow tests (the tail-clamp cases, wide-char boundaries, multi-line wrapped runs).
+
+**Investigation notes (do not skip):**
+
+The fix is conceptually small — the reparented tail anchor must land on a line that gets emitted. Two candidate shapes:
+
+- **Skip the reparent entirely.** Anchors past `trimmedLength` arguably shouldn''t survive a shrink that drops their column. Risk: callers expect every anchor on the source to be reparented somewhere; silently disposing them changes semantics.
+- **Force `finish()` to flush the builder line.** Whenever the tail-anchor branch fired during `_addPart`, set a flag, and have `finish()` emit the builder line even if `isEmpty`. Risk: empty trailing lines start showing up in the reflow result, which would break callers that assume reflow returns only content lines (resize loop in `Buffer.resize` pads to viewport height after, so an extra empty might be benign there but worth checking).
+
+Don''t pick one without re-reading the full reflow flow + every caller of `reflow()`. The selection round-trip is also tested at the widget layer indirectly — verify `make test-a11y` still passes after the change.
+
+**Surfaced from:** T-91 test sweep (commit 3196c49). The 100% coverage on reflow.dart was achieved by exercising this branch but explicitly *not* asserting on the resulting line being in the output — see the test comment.
+
+**Cross-references:** T-91 (epic parent for the test sweep that found this), T-89 (coverage epic), the test in `test/terminal/core/core_test.dart` group `reflow` named "anchors on the source line tail (past trimmedLength) get reparented" documents the current (buggy) behaviour.
+', NULL, '2026-05-07 05:52:26', '2026-05-07 05:52:26', '2026-05-07 05:52:26', NULL, '1e8625251297bbad6ee96d80b05b606b', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-92', 'status', 'backlog', 'in_progress', NULL, '2026-05-07 05:56:47', '2026-05-07 05:56:47', '2026-05-07 05:56:47', NULL, '3fd3c03fde722d5d5c30813b2ce42822', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-92', 'status', 'in_progress', 'done', NULL, '2026-05-07 05:58:51', '2026-05-07 05:58:51', '2026-05-07 05:58:51', NULL, '4ffd69490cbda8da72a60b642182213a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-93', 'description', NULL, '**File:** `lib/src/terminal/src/ui/terminal_view.dart` + `gesture/gesture_handler.dart` + `gesture/gesture_detector.dart`.
+
+**Bug:** The `TerminalView.onTapUp` callback parameter (declared at `terminal_view.dart:91`, documented as "Callback for when the user taps on the terminal") is wired to a path that is never executed. Internal trace:
+
+1. `TerminalView.build` passes `onTapUp: _onTapUp` to `TerminalGestureHandler` (terminal_view.dart:304).
+2. `TerminalGestureHandler.build` forwards via `onTapUp: widget.onTapUp` to `TerminalGestureDetector` (gesture_handler.dart:67).
+3. `TerminalGestureDetector._handleTapUp` (gesture_detector.dart:84) fires only `widget.onSingleTapUp`, never `widget.onTapUp`. The `onTapUp` field on `TerminalGestureDetector` is declared (gesture_detector.dart:31) but never invoked.
+
+Independently, `TerminalGestureHandler` exposes an `onSingleTapUp` parameter that *is* properly wired (handler line 139 calls `_tapUp(widget.onSingleTapUp, ...)`), but `TerminalView` never passes a value for it.
+
+Net result: the public `TerminalView.onTapUp` API is silently a no-op. Any caller passing `onTapUp:` to `TerminalView` thinks they registered for tap notifications, but the callback never fires.
+
+**Trigger paths in production:**
+
+`TerminalView.onTapUp` is called by anyone who wants to intercept terminal taps (e.g. for a custom click-to-position cursor, hyperlink detection, click telemetry). Surfaced during T-91''s TerminalView widget tests: a test that registered `onTapUp` via `tester.tap` confirmed the callback never fires.
+
+**Acceptance:**
+- `TerminalView.onTapUp` fires on every tap up over the widget (or only confirmed single taps — pick one and document the contract; both shapes are reasonable for terminal selection).
+- `TerminalView.onSingleTapUp` either becomes a public parameter on `TerminalView` (mirroring TerminalGestureHandler), or the docstring on `onTapUp` is clarified to match what actually happens.
+- New widget test in `test/terminal/terminal_view_test.dart` that registers a callback, taps with `tester.tap` + `pumpAndSettle`, and asserts the callback ran with the resolved `CellOffset`.
+- Any pre-existing internal use of `TerminalGestureDetector.onTapUp` vs. `onSingleTapUp` should be reviewed: pick one canonical hook for "tap completed" and remove the other, or document the difference.
+
+**Investigation notes:**
+
+- `TerminalGestureDetector` declares both `onTapUp` and `onSingleTapUp` (lines 31 / 33). Only the latter is ever invoked. The `onTapUp` field is therefore dead surface.
+- The cleanest fix shape: have `_handleTapUp` (gesture_detector.dart:84) call `widget.onTapUp` *in addition to* (or instead of) `widget.onSingleTapUp`, depending on the desired contract:
+  - **Option A** — fire `onTapUp` on every up event (raw); fire `onSingleTapUp` only on confirmed singles. Most flexible.
+  - **Option B** — collapse to a single hook (`onTapUp`) and remove `onSingleTapUp`. Simpler but loses the double-tap distinction.
+- Either option needs verification against the existing single/double-tap timer flow. Don''t pick without re-reading how `_isDoubleTap` is used.
+
+**Surfaced from:** T-91 test sweep on `terminal_view.dart`. Documented in the test file as "skipped — see T-93".
+
+**Cross-references:** T-91 (epic parent for the test sweep that found this), T-89 (coverage epic), the `onTapUp` test stubbed in `test/terminal/terminal_view_test.dart` will become live once the wiring is fixed.
+', NULL, '2026-05-07 06:34:22', '2026-05-07 06:34:22', '2026-05-07 06:34:22', NULL, 'e549f5ed0e98298ba308aa75a3f674c5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-93', 'description', '**File:** `lib/src/terminal/src/ui/terminal_view.dart` + `gesture/gesture_handler.dart` + `gesture/gesture_detector.dart`.
+
+**Bug:** The `TerminalView.onTapUp` callback parameter (declared at `terminal_view.dart:91`, documented as "Callback for when the user taps on the terminal") is wired to a path that is never executed. Internal trace:
+
+1. `TerminalView.build` passes `onTapUp: _onTapUp` to `TerminalGestureHandler` (terminal_view.dart:304).
+2. `TerminalGestureHandler.build` forwards via `onTapUp: widget.onTapUp` to `TerminalGestureDetector` (gesture_handler.dart:67).
+3. `TerminalGestureDetector._handleTapUp` (gesture_detector.dart:84) fires only `widget.onSingleTapUp`, never `widget.onTapUp`. The `onTapUp` field on `TerminalGestureDetector` is declared (gesture_detector.dart:31) but never invoked.
+
+Independently, `TerminalGestureHandler` exposes an `onSingleTapUp` parameter that *is* properly wired (handler line 139 calls `_tapUp(widget.onSingleTapUp, ...)`), but `TerminalView` never passes a value for it.
+
+Net result: the public `TerminalView.onTapUp` API is silently a no-op. Any caller passing `onTapUp:` to `TerminalView` thinks they registered for tap notifications, but the callback never fires.
+
+**Trigger paths in production:**
+
+`TerminalView.onTapUp` is called by anyone who wants to intercept terminal taps (e.g. for a custom click-to-position cursor, hyperlink detection, click telemetry). Surfaced during T-91''s TerminalView widget tests: a test that registered `onTapUp` via `tester.tap` confirmed the callback never fires.
+
+**Acceptance:**
+- `TerminalView.onTapUp` fires on every tap up over the widget (or only confirmed single taps — pick one and document the contract; both shapes are reasonable for terminal selection).
+- `TerminalView.onSingleTapUp` either becomes a public parameter on `TerminalView` (mirroring TerminalGestureHandler), or the docstring on `onTapUp` is clarified to match what actually happens.
+- New widget test in `test/terminal/terminal_view_test.dart` that registers a callback, taps with `tester.tap` + `pumpAndSettle`, and asserts the callback ran with the resolved `CellOffset`.
+- Any pre-existing internal use of `TerminalGestureDetector.onTapUp` vs. `onSingleTapUp` should be reviewed: pick one canonical hook for "tap completed" and remove the other, or document the difference.
+
+**Investigation notes:**
+
+- `TerminalGestureDetector` declares both `onTapUp` and `onSingleTapUp` (lines 31 / 33). Only the latter is ever invoked. The `onTapUp` field is therefore dead surface.
+- The cleanest fix shape: have `_handleTapUp` (gesture_detector.dart:84) call `widget.onTapUp` *in addition to* (or instead of) `widget.onSingleTapUp`, depending on the desired contract:
+  - **Option A** — fire `onTapUp` on every up event (raw); fire `onSingleTapUp` only on confirmed singles. Most flexible.
+  - **Option B** — collapse to a single hook (`onTapUp`) and remove `onSingleTapUp`. Simpler but loses the double-tap distinction.
+- Either option needs verification against the existing single/double-tap timer flow. Don''t pick without re-reading how `_isDoubleTap` is used.
+
+**Surfaced from:** T-91 test sweep on `terminal_view.dart`. Documented in the test file as "skipped — see T-93".
+
+**Cross-references:** T-91 (epic parent for the test sweep that found this), T-89 (coverage epic), the `onTapUp` test stubbed in `test/terminal/terminal_view_test.dart` will become live once the wiring is fixed.
+', '**File:** `lib/src/terminal/src/terminal_view.dart` (param + wiring) + `lib/src/terminal/src/ui/gesture/gesture_handler.dart` (pass-through) + `lib/src/terminal/src/ui/gesture/gesture_detector.dart` (dead field).
+
+**Bug:** `TerminalView.onTapUp` is documented as "Callback for when the user taps on the terminal" but is wired to a code path that is never executed:
+
+1. `TerminalView.build` passes `onTapUp: _onTapUp` to `TerminalGestureHandler` (terminal_view.dart:304).
+2. `TerminalGestureHandler.build` forwards via `onTapUp: widget.onTapUp` to `TerminalGestureDetector` (gesture_handler.dart:67).
+3. `TerminalGestureDetector._handleTapUp` (gesture_detector.dart:84) fires only `widget.onSingleTapUp`, never `widget.onTapUp`. The `onTapUp` field on `TerminalGestureDetector` (declared at line 31) is never invoked anywhere in the file.
+
+The `_onTapUp` method on `TerminalViewState` itself is also dead — it''s only referenced from the dead-field path above.
+
+**Two layers of "dead" here:**
+
+- The **wiring** is dead — nothing inside the terminal renderer calls into `widget.onTapUp` after the field is set.
+- The **public API surface** has zero in-tree callers. The single `TerminalView` callsite is `lib/widgets/src/clide_pty_view.dart`, and it doesn''t pass any tap callback.
+
+So no production code depends on this parameter; nothing observable changes regardless of which way it gets resolved. (TerminalView''s `onSecondaryTapDown` / `onSecondaryTapUp` are wired correctly — `TapGestureRecognizer.onSecondaryTap*` fires them directly. Only `onTapUp` is bad.)
+
+**Two clean resolutions:**
+
+- **A. Fix the wiring.** Call `widget.onTapUp` from `_handleTapUp` (gesture_detector.dart:84) so the parameter does what its docstring claims. Risk: the existing `onSingleTapUp` semantics (gated on `!_isDoubleTap`) need a clearly-defined relationship to `onTapUp` — pick one of:
+  - `onTapUp` fires on every tap up (raw); `onSingleTapUp` fires only on confirmed singles.
+  - Collapse the two into a single hook and document the contract.
+- **B. Delete the dead surface.** Remove `onTapUp` from `TerminalView`, `TerminalGestureHandler`, and `TerminalGestureDetector` (plus the `_onTapUp` method on `TerminalViewState`). Cleanest because no caller is broken — the surface is documented but unused. If a future caller wants tap notifications, expose `onSingleTapUp` (which works) or re-add `onTapUp` *with wiring* at that point.
+
+Recommendation: **option B**. The "remove unused public API" pattern matches the no-pre-existing-excuse / dead-code cleanups in this campaign (the keytab-token defensive throws, the `_LineBuilder.isEmpty` getter, the `_buildDispatcher` rename). If a feature is needed later, add it back deliberately with tests and a real caller.
+
+**Acceptance:**
+
+- Either:
+  - **A:** `TerminalView.onTapUp` fires on every tap up; new widget test in `test/terminal/terminal_view_test.dart` verifies the callback runs with a `CellOffset`. Document the contract on the docstring.
+  - **B:** `TerminalView.onTapUp` parameter removed; `_onTapUp` method on `TerminalViewState` removed; `onTapUp` parameter on `TerminalGestureHandler` removed; `onTapUp` field + setter on `TerminalGestureDetector` removed. Existing tests still pass.
+- No regression in secondary-tap behaviour (those parameters are wired correctly via `TapGestureRecognizer.onSecondary*`).
+
+**Surfaced from:** T-91 test sweep on `terminal_view.dart`. The widget test that registered `onTapUp` and tapped via `tester.tap` confirmed the callback never fires regardless of `pumpAndSettle` / gesture flushing.
+
+**Cross-references:** T-91 (epic parent), T-89 (coverage epic).
+', NULL, '2026-05-07 06:35:32', '2026-05-07 06:35:32', '2026-05-07 06:35:32', NULL, '2f51a45e06d526d9b47dbc617ea965f8', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-93', 'status', 'backlog', 'in_progress', NULL, '2026-05-07 06:45:24', '2026-05-07 06:45:24', '2026-05-07 06:45:24', NULL, '82fb868231b1806c9a1cd802110856f7', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-93', 'status', 'in_progress', 'done', NULL, '2026-05-07 19:04:55', '2026-05-07 19:04:55', '2026-05-07 19:04:55', NULL, 'bc269d5f335553e768041e72019dc3b0', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-94', 'status', 'backlog', 'cancelled', NULL, '2026-05-07 19:08:52', '2026-05-07 19:08:52', '2026-05-07 19:08:52', NULL, '5f534e88c93e7eef4ad838692ee7b725', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-95', 'description', NULL, '**File:** `lib/src/terminal/src/ui/gesture/gesture_handler.dart` (build wiring + state-method body) + `lib/src/terminal/src/ui/gesture/gesture_detector.dart` (dead public API).
+
+**Bug:** Middle-clicks ("tertiary tap") are routed through the wrong handler chain, and even the unreachable target carries a button-enum typo. Same shape as T-93 but on a different gesture pair.
+
+Trace:
+
+1. `TerminalGestureHandler.build` (gesture_handler.dart:65–82) wires:
+   ```dart
+   onTertiaryTapDown: onSecondaryTapDown,
+   onTertiaryTapUp: onSecondaryTapUp,
+   ```
+   Right-hand sides are the state''s `onSecondaryTapDown` / `onSecondaryTapUp` *methods* (lines 138–144), not the tertiary equivalents. So a middle-click reaches `_tapDown(widget.onSecondaryTapDown, details, TerminalMouseButton.right)` — i.e. fires the **secondary** callback with **button=right**.
+2. The state''s `onTertiaryTapDown` and `onTertiaryTapUp` methods (lines 147–152) are therefore **dead** — they''re declared but never invoked anywhere.
+3. `onTertiaryTapUp` at line 152 has a copy-paste error: `TerminalMouseButton.right` where the function is named tertiary and the comment paragraph clearly intends middle. Even if the wiring were correct, the button reported on tertiary-up would be wrong.
+4. The `onTertiaryTapDown` / `onTertiaryTapUp` *parameters* on `TerminalGestureHandler` (lines 24–25, 45–47) and `TerminalGestureDetector` (lines 13–14, 30–31) are **dead public surface** — no in-tree caller passes them, like T-93''s `onTapUp`.
+
+**Two layers of "dead" again:**
+
+- The wiring is wrong, so middle-clicks dispatch as if they were right-clicks.
+- The public API to receive proper middle-click notifications doesn''t reach any caller, so even if a consumer passes `onTertiaryTapDown:` to `TerminalView`, it would do nothing today (TerminalView doesn''t expose tertiary callbacks).
+
+**User-visible impact:**
+
+A consumer relying on right-click for context-menu behaviour on `TerminalView` will accidentally trigger that menu on middle-click as well, which is wrong on every desktop platform (middle-click is conventionally paste / scroll-wheel-button). Tests of secondary-tap will pass for both right- and middle-clicks, masking the issue.
+
+**Resolutions, like T-93:**
+
+- **A. Fix the wiring + typo.** In `TerminalGestureHandler.build`, change `onTertiaryTapDown: onSecondaryTapDown` to `onTertiaryTapDown: onTertiaryTapDown` (and same for Up). Fix line 152''s `TerminalMouseButton.right` → `middle`. Adds a parameter on `TerminalView` (`onTertiaryTapDown` / `onTertiaryTapUp`) so consumers can register middle-click handlers. Test surfaces the new path.
+- **B. Delete the dead surface.** Remove `onTertiaryTapDown` / `onTertiaryTapUp` parameters from both `TerminalGestureHandler` and `TerminalGestureDetector`, plus the state''s tertiary methods. If middle-click ever needs distinct handling, add it back deliberately. Cleanest because no caller depends on tertiary today.
+
+Recommendation: **option B**. Same logic as T-93''s recommendation — the surface is documented but unwired and unused. Adding it back later with a real consumer + tests is cheaper than fixing dead surface today.
+
+**Aside:** there''s a related dead branch in `onDragStart` (line 176):
+```dart
+details.kind == PointerDeviceKind.mouse
+    ? renderTerminal.selectCharacters(details.localPosition)
+    : renderTerminal.selectWord(details.localPosition);
+```
+The `PanGestureRecognizer` in `TerminalGestureDetector` is registered with `supportedDevices: {PointerDeviceKind.mouse}` (gesture_detector.dart:143) — so non-mouse drags can''t reach `onDragStart`. The `selectWord` else-branch is unreachable through the current wiring. Consider removing it as part of the same cleanup pass, or extending PanGestureRecognizer to accept touch.
+
+**Acceptance:**
+
+- Either:
+  - **A:** Tertiary tap parameters on `TerminalView` exist and fire on middle-click with `button=middle`. Regression test verifies a middle click reaches the user callback with the resolved cell offset.
+  - **B:** `onTertiaryTapDown` / `onTertiaryTapUp` removed from `TerminalGestureHandler`, `TerminalGestureDetector`, and the state''s tertiary methods. Existing tests still pass.
+- The `selectWord` branch in `onDragStart` is either reachable (extend PanGestureRecognizer.supportedDevices) or removed.
+
+**Surfaced from:** T-91 ui/ gesture sweep. The `onTertiaryTap*` lines (gesture_handler.dart:147-152) showed as uncovered in the lcov diff — the gestures sweep skipped writing tests for them because they''re unreachable production code.
+
+**Cross-references:** T-91 (epic parent), T-93 (same shape on `onTapUp`), T-89 (coverage epic).
+', NULL, '2026-05-08 11:01:01', '2026-05-08 11:01:01', '2026-05-08 11:01:01', NULL, '8088d054dd8c7946075ed6325724dfb3', 1) ON CONFLICT(hash) DO NOTHING;
