@@ -48,9 +48,9 @@ ticket persistence.
 - **Source:** 2026-04-21 planning.
 
 ### Q-21: Pql absorbs planning vs keeps separate
-- **Status:** Open
-- **Question:** Three shapes for planning tooling's long-term home: (A) Pql absorbs planning — `pql decisions …` + `pql ticket …` subcommands; clide shells out. (B) Clide absorbs pql — reverse [D-3](architecture.md), one big Dart tool. (C) Separate new binary just for planning.
-- **Context:** User is leaning (A). This plan assumes (A) without committing. If (A) doesn't land, [D-40](process.md#d-40-python-stopgap-under-toolsscriptsplan)'s sunset condition changes. Gates all tooling work. Integration constraints that shape this question are captured in [D-39](process.md#d-39-planning-tooling-lives-in-pql) / [R-9](rejected.md#r-9-port-planning-tooling-into-clide).
+- **Status:** Resolved → [D-3](../decisions/architecture.md#d-3-pql-as-supporter-tool-clide-wraps-never-duplicates) + [D-39](../decisions/process.md#d-39-planning-tooling-lives-in-pql-not-clide)
+- **Question:** Three shapes for planning tooling's long-term home: (A) Pql absorbs planning — `pql decisions …` + `pql ticket …` subcommands; clide shells out. (B) Clide absorbs pql — reverse [D-3](../decisions/architecture.md#d-3-pql-as-supporter-tool-clide-wraps-never-duplicates), one big Dart tool. (C) Separate new binary just for planning.
+- **Context:** Resolved 2026-05-11 in favour of (A). pql 1.4.30 ships full planning surface (`pql decisions …`, `pql ticket …`, `pql plan …`). Clide consumes via shell-out under `lib/src/pql/`. D-39 already encoded the intent; D-3 the wrap-don't-duplicate rule. The Python stopgap ([D-40](../decisions/process.md#d-40-superseded-python-stopgap-under-toolsscriptsplan)) was sunset on schedule.
 - **Source:** 2026-04-21 planning.
 
 ### Q-23: SSH-remote development — run clide against a remote workspace
@@ -60,9 +60,9 @@ ticket persistence.
 - **Source:** 2026-04-22 planning (user-raised).
 
 ### Q-22: Ticket persistence strategy
-- **Status:** Open
+- **Status:** Resolved → [D-67](../decisions/process.md#d-67-pql-changelog-files-are-committed-alongside-code)
 - **Question:** Once [Q-21](#q-21-pql-absorbs-planning-vs-keeps-separate) resolves in favour of (A), how do tickets handle shared team state? (1) Never commit (per-dev, ephemeral — works for solo). (2) Commit on milestone (settled-reach's sprint-close pattern — kanban has no natural equivalent, `release` or `tier-cut` is the closest). (3) Markdown mirror — every mutation writes `tickets/T-NNN.md` alongside SQLite; git-legible authoritative record; DB is rebuildable. (3) is probably the eventual answer.
-- **Context:** Kanban's lack of a sync event breaks settled-reach's SQLite-authoritative approach the moment two devs collaborate.
+- **Context:** Resolved 2026-05-11 → option (3), evolved. Pql 1.4.x reshaped ticket persistence into append-only per-month `.pql/changelog/<table>/<YYYY-MM>.sql` files with inline LWW guards. Committed alongside code; `pql.db` rebuildable from changelog + `governance/*.md`. Clide migrated on 2026-05-09.
 - **Source:** 2026-04-21 planning.
 
 ### Q-25: Body text face — mono everywhere vs Josefin Sans UI + mono code

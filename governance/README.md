@@ -108,6 +108,7 @@ You might also want, project-permitting:
 - [D-64: No telemetry — architectural commitment](decisions/architecture.md#d-64-no-telemetry--architectural-commitment) — _architecture_
 - [D-65: License compatibility matrix](decisions/tooling.md#d-65-license-compatibility-matrix) — _tooling_
 - [D-66: Line coverage gate at 95%, ratcheted from current](decisions/testing.md#d-66-line-coverage-gate-at-95-ratcheted-from-current) — _testing_
+- [D-67: Pql changelog files are committed alongside code](decisions/process.md#d-67-pql-changelog-files-are-committed-alongside-code) — _process_
 
 ## Open questions
 

@@ -53,6 +53,15 @@ Q&D record system itself, kanban, commit conventions, changelog.
 - **Rationale:** Planning tooling must work day one. Pql's Go implementation won't land for at least a cycle or two. Without a stopgap, the convention lives on paper; with one, tickets + decisions are queryable from today. Same schema means migration is call-site find-replace (`tools/scripts/plan ` → `pql `), no data migration.
 - **Cost:** Python dep on contributors' machines (already present on most Linux dists). One time-limited tool to maintain. See [R-10](rejected.md#r-10-python-script-stopgap-at-toolingdb) for why `tools/scripts/plan` and not `tooling/db/`.
 - **Raised by:** 2026-04-21 planning.
-- **Amendment (2026-04-22):** Sunset condition met. pql 1.0.0 ships full feature parity. Stopgap deleted per [R-11](rejected.md#r-11-permanent-stopgap).
+- **Amendment (2026-04-22):** Sunset condition met. pql 1.0.0 ships full feature parity. Stopgap deleted per [R-11](../rejected/process.md#r-11-permanent-stopgap).
+
+### D-67: Pql changelog files are committed alongside code
+- **Date:** 2026-05-11
+- **Decision:** Clide commits `.pql/changelog/{tickets,ticket_history,ticket_deps,ticket_labels}/<YYYY-MM>.sql` files alongside source changes. `pql.db` itself stays gitignored — it's the local replay target, rebuildable from changelog + `governance/*.md` on any clone. Pre-commit hook auto-stages the changelog deltas; post-merge / post-checkout / post-rewrite hooks replay them into `pql.db`.
+- **Rationale:** Resolves [Q-22](../questions/architecture.md#q-22-ticket-persistence-strategy). The single-file `pql-plan.json` snapshot model couldn't merge concurrent edits cleanly (every ticket flip rewrote the same JSON). Pql 1.4.x reshaped persistence into append-only per-month SQL files with inline LWW guards, which is option (3) of Q-22 (markdown/SQL mirror, git-legible, DB rebuildable) evolved into a form that merges by default. Clide migrated to it on 2026-05-09 (`01a99ed`, `d162ba2`).
+- **Cost:** Each user-visible commit also carries the matching changelog diff. The auto-stage hook handles it. Changelog files grow monotonically across commits even on no-change exports — minor file-size cost, no replay-correctness impact (LWW dedupes on import).
+- **Resolves:** [Q-22](../questions/architecture.md#q-22-ticket-persistence-strategy).
+- **Cross-references:** [D-3](architecture.md#d-3-pql-as-supporter-tool-clide-wraps-never-duplicates), [D-39](#d-39-planning-tooling-lives-in-pql-not-clide).
+- **Raised by:** 2026-05-11; cleanup after pql D-21 / governance/ migration.
 
 ---
