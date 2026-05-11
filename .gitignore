@@ -103,6 +103,4 @@ legacy/**/.coverage.*
 # frame0-wireframe local ID ↔ Frame0 ID mapping; per-machine state.
 *.idmap.json
 .pql/*
-!.pql/hooks/
 !.pql/changelog/
-!.pql/pql-plan.json
