@@ -11,7 +11,7 @@ An IDE for Claude Code CLI. Single Flutter package at the repo root.
 
 tmux owns Claude session persistence (D-41) — the app re-attaches on restart via `tmux new-session -A`. Native rendering — markdown, canvas, graph — is Dart/Flutter (`CustomPaint` + widgets), not third-party packages.
 
-Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Decisions: [`decisions/`](decisions/) (`D-NNN` confirmed, `Q-NNN` open, `R-NNN` rejected — see [`decisions/README.md`](decisions/README.md)). Python Textual predecessor under [`legacy/`](legacy/).
+Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Decisions: [`governance/`](governance/) (`D-NNN` confirmed, `Q-NNN` open, `R-NNN` rejected — see [`governance/README.md`](governance/README.md)). Python Textual predecessor under [`legacy/`](legacy/).
 
 ## Guardrails
 
@@ -19,14 +19,14 @@ These are load-bearing. Violating any means the design is wrong, not the rule.
 
 - **Flutter desktop is the host. No Electron, ever.** Web target may work as a happy accident — don't compromise desktop fidelity for it. If we ship a web build at all, prefer Flutter's **WebAssembly (CanvasKit/Skwasm) compile** over the JS/HTML renderer. `xterm.dart` is the terminal renderer; markdown, canvas, graph are custom `CustomPaint`/widget components.
 - **Single process.** The Flutter app hosts everything in-process: IPC server, subsystem handlers (pane, files, editor, git, pql), extensions. No separate daemon binary (D-56 dissolved it).
-- **CLI-first, not MCP.** Claude talks via Bash (`clide ...`), matching pql's contract. See [`D-1`](decisions/architecture.md#d-1-cli-first-not-mcp).
-- **Dart is the core; pql fills the query gap.** PTY spawning is native Dart FFI (`forkpty`). `pql` (Go) handles vault queries. No second "core language." See [`D-5`](decisions/architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended by D-56).
+- **CLI-first, not MCP.** Claude talks via Bash (`clide ...`), matching pql's contract. See [`D-1`](governance/decisions/architecture.md#d-1-cli-first-not-mcp).
+- **Dart is the core; pql fills the query gap.** PTY spawning is native Dart FFI (`forkpty`). `pql` (Go) handles vault queries. No second "core language." See [`D-5`](governance/decisions/architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended by D-56).
 - **Own the rendering stack.** PTY (via Dart FFI), markdown renderer, graph, canvas — all clide-owned, not pulled from opinionated packages.
-- **User/Claude parity.** Every CLI subcommand has a UI affordance, and every UI action has a CLI. See [`D-6`](decisions/architecture.md#d-6-cli-and-event-surface-contract).
-- **pql: wrap, don't duplicate.** Pql logic only lives in `lib/src/pql/` (pure shell-outs). Clide owns pql's `ignore_files:` config key; it never touches pql's `.pql/` index/cache data. See [`D-3`](decisions/architecture.md#d-3-pql-as-supporter-tool-clide-wraps-never-duplicates).
+- **User/Claude parity.** Every CLI subcommand has a UI affordance, and every UI action has a CLI. See [`D-6`](governance/decisions/architecture.md#d-6-cli-and-event-surface-contract).
+- **pql: wrap, don't duplicate.** Pql logic only lives in `lib/src/pql/` (pure shell-outs). Clide owns pql's `ignore_files:` config key; it never touches pql's `.pql/` index/cache data. See [`D-3`](governance/decisions/architecture.md#d-3-pql-as-supporter-tool-clide-wraps-never-duplicates).
 - **Repo-is-the-workspace.** The git repo root is the workspace — no parallel "vault" concept.
-- **Ignore discipline.** Single knob: `ignore_files:` in `.pql/config.yaml`, ordered layering. See [`D-4`](decisions/architecture.md#d-4-ignore-file-strategy).
-- **Decision discipline.** All architectural choices live in `decisions/<domain>.md` as `D-NNN` records. Open questions as `Q-NNN`. Rejected alternatives as `R-NNN`. Claim new IDs via `pql decisions claim D <domain> "title"`. See [`decisions/README.md`](decisions/README.md).
+- **Ignore discipline.** Single knob: `ignore_files:` in `.pql/config.yaml`, ordered layering. See [`D-4`](governance/decisions/architecture.md#d-4-ignore-file-strategy).
+- **Decision discipline.** All architectural choices live in `governance/decisions/<domain>.md` as `D-NNN` records. Open questions as `Q-NNN` under `governance/questions/<domain>.md`. Rejected alternatives as `R-NNN` under `governance/rejected/<domain>.md`. Claim new IDs via `pql decisions claim D <domain> "title"`. See [`governance/README.md`](governance/README.md).
 - **No pre-existing excuse.** Solo-dev repo — every failure encountered is yours to fix, regardless of who introduced it. If `make test` is red, a golden is broken, or `flutter analyze` shows a warning when you start working, the order is: **fix it first, then your work**. If you genuinely can't fix it in scope (separate ticket, large sweep, missing context), stop and surface it before continuing — don't push on top of broken state. "It was already broken" is not a reason to add more on top.
 
 ## Repo layout
@@ -46,7 +46,7 @@ test/                    # All tests (core subsystems + widgets + goldens + a11y
 assets/                  # Fonts, themes, grammars, licenses, logo
 linux/, macos/, web/     # Flutter platform directories
 native/                  # Vendored native libs (libtree-sitter.so, dugite)
-decisions/               # D/Q/R records
+governance/              # D/Q/R records (decisions/, questions/, rejected/ subdirs)
 docs/                    # Design docs, wireframes
 legacy/                  # Python Textual clide v1.2 (frozen)
 ```
@@ -54,7 +54,7 @@ legacy/                  # Python Textual clide v1.2 (frozen)
 ## Dependencies & supply chain
 
 - **Prefer-zero-deps.** Flutter-SDK widgets first; third-party packages need justification. What stays is exact-pinned in `pubspec.yaml` (no caret ranges). Advisories reviewed before every bump; `pubspec.lock` committed.
-- **Document every bundled dependency.** Listed in [`assets/licenses.yaml`](assets/licenses.yaml) with name, kind, version, homepage, license, and purpose. Adding a dep is a two-step commit: add the artefact **and** the `licenses.yaml` entry. See [`D-42`](decisions/tooling.md#d-42-bundled-dependencies-documented-in-licensesyaml).
+- **Document every bundled dependency.** Listed in [`assets/licenses.yaml`](assets/licenses.yaml) with name, kind, version, homepage, license, and purpose. Adding a dep is a two-step commit: add the artefact **and** the `licenses.yaml` entry. See [`D-42`](governance/decisions/tooling.md#d-42-bundled-dependencies-documented-in-licensesyaml).
 - **Native deps (dugite, libtree-sitter):** vendored in `native/`, pinned by SHA. Bumps follow the same advisory-review + `licenses.yaml` rule.
 
 ## Commands
@@ -82,4 +82,4 @@ One-time setup on a fresh clone: `make hooks && flutter pub get` once Flutter is
 
 ## Open questions
 
-Open questions live under [`decisions/questions-*.md`](decisions/questions.md).
+Open questions live under [`governance/questions/`](governance/questions/).

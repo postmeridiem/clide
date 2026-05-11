@@ -243,7 +243,7 @@ security: ## Dart advisory review.
 # -- pre-push gate --------------------------------------------------------
 
 .PHONY: decisions-validate
-decisions-validate: ## Parser dry-run over decisions/*.md.
+decisions-validate: ## Parser dry-run over governance/{decisions,questions,rejected}/*.md.
 	pql decisions validate
 
 .PHONY: push-check

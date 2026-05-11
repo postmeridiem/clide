@@ -8,7 +8,7 @@ Date: 2026-05-06
 
 Some panes need to host multiple, dynamically-spawned views of the
 same kind. The first concrete case is the Claude pane: per
-[D-41](../../decisions/architecture.md#d-41-claude-panes-one-primary-per-repo-tmux-backed),
+[D-41](../../governance/decisions/architecture.md#d-41-claude-panes-one-primary-per-repo-tmux-backed),
 each repo has exactly one **primary** Claude pane plus zero or more
 **secondary** panes spawned at runtime. The user needs a way to:
 
@@ -31,7 +31,7 @@ diff/preview surfaces) can adopt it without reinventing tab strips.
 - Replacing `TabContribution`. Slot-host tabs are static-by-design;
   this widget is for inside-a-tab dynamism.
 - Window-level tab management (browser-style "tear off into a window").
-- Editor multi-buffer tabs. [D-48](../../decisions/architecture.md#d-48-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first)
+- Editor multi-buffer tabs. [D-48](../../governance/decisions/architecture.md#d-48-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first)
   rejected those; revisiting is a separate decision.
 
 ## API sketch

@@ -8,8 +8,8 @@
 > Update wireframes there, not here.
 >
 > **Why kept:** the design tokens under `tokens/` and `themes/` still
-> feed the runtime themes (per [D-43](../../decisions/architecture.md#d-43-design-handoff-adopt-token-palettes-reject-material-wrapper)
-> / [D-44](../../decisions/architecture.md#d-44-four-bundled-themes-clide-midnight-paper-terminal)).
+> feed the runtime themes (per [D-43](../../governance/decisions/architecture.md#d-43-design-handoff-adopt-token-palettes-reject-material-wrapper)
+> / [D-44](../../governance/decisions/architecture.md#d-44-four-bundled-themes-clide-midnight-paper-terminal)).
 > The HTMLs and PNGs are kept for historical context.
 >
 > **What changed since:** welcome screen has logo-with-wordmark and a

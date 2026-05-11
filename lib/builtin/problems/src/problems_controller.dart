@@ -87,7 +87,7 @@ class ProblemsController extends ChangeNotifier {
       if (broken > 0) {
         found.add(Problem(
           source: 'decisions',
-          message: '$broken broken cross-reference(s) in decisions/',
+          message: '$broken broken cross-reference(s) in governance/',
           hint: 'Run: pql decisions validate',
         ));
       }

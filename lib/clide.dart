@@ -1,8 +1,8 @@
 /// clide — Dart core library.
 ///
 /// See:
-///   * `decisions/architecture.md` `D-005` — layout + language rationale.
-///   * `decisions/architecture.md` `D-006` — CLI + event contract.
+///   * `governance/decisions/architecture.md` `D-005` — layout + language rationale.
+///   * `governance/decisions/architecture.md` `D-006` — CLI + event contract.
 library;
 
 // Flutter-app-visible surface. Deliberately **does not** export the
