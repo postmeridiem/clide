@@ -149,6 +149,10 @@ class DaemonClient extends ChangeNotifier {
   void _setConnected(bool v) {
     if (_connected == v) return;
     _connected = v;
+    // Skip side-effects (event emit + notifyListeners) after dispose —
+    // the socket stream's onDone can fire post-dispose and would
+    // otherwise hit ChangeNotifier's "used after disposed" assert.
+    if (_disposed) return;
     _events.emit(DaemonConnectionChanged(connected: v));
     notifyListeners();
   }
