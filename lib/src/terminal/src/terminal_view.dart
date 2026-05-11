@@ -15,7 +15,6 @@ import 'package:clide/src/terminal/src/ui/custom_text_edit.dart';
 import 'package:clide/src/terminal/src/ui/gesture/gesture_handler.dart';
 import 'package:clide/src/terminal/src/ui/input_map.dart';
 import 'package:clide/src/terminal/src/ui/keyboard_listener.dart';
-import 'package:clide/src/terminal/src/ui/keyboard_visibility.dart';
 import 'package:clide/src/terminal/src/ui/render.dart';
 import 'package:clide/src/terminal/src/ui/shortcut/actions.dart';
 import 'package:clide/src/terminal/src/ui/shortcut/shortcuts.dart';
@@ -32,7 +31,6 @@ class TerminalView extends StatefulWidget {
     this.textStyle = const TerminalStyle(),
     this.textScaler,
     this.padding,
-    this.scrollController,
     this.autoResize = true,
     this.backgroundOpacity = 1,
     this.focusNode,
@@ -66,11 +64,8 @@ class TerminalView extends StatefulWidget {
 
   final TextScaler? textScaler;
 
-  /// Padding around the inner [Scrollable] widget.
+  /// Padding around the terminal viewport.
   final EdgeInsets? padding;
-
-  /// Scroll controller for the inner [Scrollable] widget.
-  final ScrollController? scrollController;
 
   /// Should this widget automatically notify the underlying terminal when its
   /// size changes. [true] by default.
@@ -155,15 +150,11 @@ class TerminalViewState extends State<TerminalView> {
 
   final _customTextEditKey = GlobalKey<CustomTextEditState>();
 
-  final _scrollableKey = GlobalKey<ScrollableState>();
-
   final _viewportKey = GlobalKey();
 
   String? _composingText;
 
   late TerminalController _controller;
-
-  late ScrollController _scrollController;
 
   RenderTerminal get renderTerminal => _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
 
@@ -186,7 +177,6 @@ class TerminalViewState extends State<TerminalView> {
   void initState() {
     _focusNode = widget.focusNode ?? FocusNode();
     _controller = widget.controller ?? TerminalController();
-    _scrollController = widget.scrollController ?? ScrollController();
     _shortcutManager = ShortcutManager(
       shortcuts: widget.shortcuts ?? defaultTerminalShortcuts,
     );
@@ -207,12 +197,6 @@ class TerminalViewState extends State<TerminalView> {
       }
       _controller = widget.controller ?? TerminalController();
     }
-    if (oldWidget.scrollController != widget.scrollController) {
-      if (oldWidget.scrollController == null) {
-        _scrollController.dispose();
-      }
-      _scrollController = widget.scrollController ?? ScrollController();
-    }
     _shortcutManager.shortcuts = widget.shortcuts ?? defaultTerminalShortcuts;
     super.didUpdateWidget(oldWidget);
   }
@@ -224,9 +208,6 @@ class TerminalViewState extends State<TerminalView> {
     }
     if (widget.controller == null) {
       _controller.dispose();
-    }
-    if (widget.scrollController == null) {
-      _scrollController.dispose();
     }
     _shortcutManager.dispose();
     super.dispose();
@@ -260,13 +241,9 @@ class TerminalViewState extends State<TerminalView> {
         keyboardAppearance: widget.keyboardAppearance,
         deleteDetection: widget.deleteDetection,
         onInsert: _onInsert,
-        onDelete: () {
-          _scrollToBottom();
-          widget.terminal.keyInput(TerminalKey.backspace);
-        },
+        onDelete: () => widget.terminal.keyInput(TerminalKey.backspace),
         onComposing: _onComposing,
         onAction: (action) {
-          _scrollToBottom();
           if (action == TextInputAction.done) {
             widget.terminal.keyInput(TerminalKey.enter);
           }
@@ -290,11 +267,6 @@ class TerminalViewState extends State<TerminalView> {
     child = TerminalActions(
       terminal: widget.terminal,
       controller: _controller,
-      child: child,
-    );
-
-    child = KeyboardVisibilty(
-      onKeyboardShow: _onKeyboardShow,
       child: child,
     );
 
@@ -384,8 +356,6 @@ class TerminalViewState extends State<TerminalView> {
     if (!consumed) {
       widget.terminal.textInput(text);
     }
-
-    _scrollToBottom();
   }
 
   void _onComposing(String? text) {
@@ -425,30 +395,11 @@ class TerminalViewState extends State<TerminalView> {
       shift: HardwareKeyboard.instance.isShiftPressed,
     );
 
-    if (handled) {
-      _scrollToBottom();
-    }
-
     return handled ? KeyEventResult.handled : KeyEventResult.ignored;
-  }
-
-  void _onKeyboardShow() {
-    if (_focusNode.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom();
-      });
-    }
   }
 
   void _onEditableRect(Rect rect, Rect caretRect) {
     _customTextEditKey.currentState?.setEditableRect(rect, caretRect);
-  }
-
-  void _scrollToBottom() {
-    final position = _scrollableKey.currentState?.position;
-    if (position != null) {
-      position.jumpTo(position.maxScrollExtent);
-    }
   }
 }
 

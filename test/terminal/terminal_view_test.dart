@@ -43,22 +43,19 @@ void main() {
       expect(state.renderTerminal, isA<RenderTerminal>());
     });
 
-    testWidgets('uses the supplied controller / focusNode / scrollController without disposing them', (tester) async {
+    testWidgets('uses the supplied controller / focusNode without disposing them', (tester) async {
       final t = _OutputRecorder().build();
       final controller = TerminalController();
       final focus = FocusNode();
-      final scroll = ScrollController();
       addTearDown(() {
         controller.dispose();
         focus.dispose();
-        scroll.dispose();
       });
 
       await tester.pumpWidget(_host(TerminalView(
         t,
         controller: controller,
         focusNode: focus,
-        scrollController: scroll,
       )));
       // Tear down via removing the widget; supplied controllers should NOT
       // throw on later use (the state didn't dispose them).
@@ -156,15 +153,6 @@ void main() {
       final external = TerminalController();
       addTearDown(external.dispose);
       await tester.pumpWidget(_host(TerminalView(t, controller: external)));
-      expect(find.byType(TerminalView), findsOneWidget);
-    });
-
-    testWidgets('swapping scrollController disposes the old auto-created one', (tester) async {
-      final t = _OutputRecorder().build();
-      await tester.pumpWidget(_host(TerminalView(t)));
-      final external = ScrollController();
-      addTearDown(external.dispose);
-      await tester.pumpWidget(_host(TerminalView(t, scrollController: external)));
       expect(find.byType(TerminalView), findsOneWidget);
     });
   });
@@ -471,23 +459,6 @@ void main() {
       tester.testTextInput.enterText('a');
       await tester.pump();
       expect(r.outputs, isNotEmpty);
-    });
-  });
-
-  group('TerminalView — keyboard visibility', () {
-    testWidgets('platform keyboard show fires _onKeyboardShow on the focused view', (tester) async {
-      final t = _OutputRecorder().build();
-      await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));
-      await tester.pump();
-      // Simulate a virtual-keyboard appearance by raising the bottom view
-      // insets and triggering a metrics-changed cycle.
-      tester.view.viewInsets = const FakeViewPadding(bottom: 200, left: 0, right: 0, top: 0);
-      addTearDown(tester.view.resetViewInsets);
-      tester.binding.handleMetricsChanged();
-      await tester.pump();
-      // _onKeyboardShow only acts when the focus node has focus — verify by
-      // tearing down without throwing.
-      await tester.pumpWidget(_host(const SizedBox()));
     });
   });
 }
