@@ -1,8 +1,0 @@
-#!/bin/sh
-# --- pql plan export ---
-# Auto-installed by pql init. Exports planning state and stages the
-# snapshot so it lands in the same commit as the change that produced
-# it. The absolute pql path is baked in at install time — re-run
-# 'pql init' if the binary moves.
-pql plan export --stage 2>/dev/null || true
-# --- end pql ---
