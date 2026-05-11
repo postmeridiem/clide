@@ -11,7 +11,6 @@ import 'package:clide/src/terminal/src/ui/controller.dart';
 import 'package:clide/src/terminal/src/ui/cursor_type.dart';
 import 'package:clide/src/terminal/src/ui/terminal_text_style.dart';
 import 'package:clide/src/terminal/src/ui/themes.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

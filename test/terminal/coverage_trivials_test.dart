@@ -35,13 +35,13 @@ void main() {
 
   test('Buffer.resize pads reflow output up to the new height', () {
     final t = Terminal(maxLines: 200, onOutput: (_) {});
-    // Write content narrower than the new width — reflow should produce
-    // fewer lines than newHeight, triggering the pad-with-empty-lines
-    // branch in buffer.dart.
-    t.write('abc\r\n');
-    // Resize to a wide + tall viewport.
-    t.resize(40, 50, 8, 16);
-    expect(t.buffer.lines.length, greaterThanOrEqualTo(50));
+    // Setup: narrow viewport with wrapped continuation lines. Widening
+    // collapses them in reflow → output rows < newHeight → the
+    // pad-with-empty-lines branch in Buffer.resize runs.
+    t.resize(5, 30, 8, 16);
+    t.write('aaaaaaaaaaaaaaaaaaaa'); // wraps 4 times
+    t.resize(80, 30, 8, 16); // widen, same height
+    expect(t.buffer.lines.length, 30);
   });
 
   test('TerminalPainter.paintLine handles wide (CJK) cells without skipping the skip', () {

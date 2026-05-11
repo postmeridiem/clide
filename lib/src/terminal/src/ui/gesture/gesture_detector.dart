@@ -13,8 +13,6 @@ class TerminalGestureDetector extends StatefulWidget {
     this.onTapDown,
     this.onSecondaryTapDown,
     this.onSecondaryTapUp,
-    this.onTertiaryTapDown,
-    this.onTertiaryTapUp,
     this.onLongPressStart,
     this.onLongPressMoveUpdate,
     this.onLongPressUp,
@@ -34,10 +32,6 @@ class TerminalGestureDetector extends StatefulWidget {
   final GestureTapUpCallback? onSecondaryTapUp;
 
   final GestureTapDownCallback? onDoubleTapDown;
-
-  final GestureTapDownCallback? onTertiaryTapDown;
-
-  final GestureTapUpCallback? onTertiaryTapUp;
 
   final GestureLongPressStartCallback? onLongPressStart;
 
@@ -112,9 +106,7 @@ class _TerminalGestureDetectorState extends State<TerminalGestureDetector> {
           ..onTapDown = _handleTapDown
           ..onTapUp = _handleTapUp
           ..onSecondaryTapDown = widget.onSecondaryTapDown
-          ..onSecondaryTapUp = widget.onSecondaryTapUp
-          ..onTertiaryTapDown = widget.onTertiaryTapDown
-          ..onTertiaryTapUp = widget.onTertiaryTapUp;
+          ..onSecondaryTapUp = widget.onSecondaryTapUp;
       },
     );
 

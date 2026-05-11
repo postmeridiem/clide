@@ -1,6 +1,5 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:clide/src/terminal/src/core/mouse/button.dart';
 import 'package:clide/src/terminal/src/core/mouse/button_state.dart';
@@ -20,8 +19,6 @@ class TerminalGestureHandler extends StatefulWidget {
     this.onTapDown,
     this.onSecondaryTapDown,
     this.onSecondaryTapUp,
-    this.onTertiaryTapDown,
-    this.onTertiaryTapUp,
     this.readOnly = false,
   });
 
@@ -38,10 +35,6 @@ class TerminalGestureHandler extends StatefulWidget {
   final GestureTapDownCallback? onSecondaryTapDown;
 
   final GestureTapUpCallback? onSecondaryTapUp;
-
-  final GestureTapDownCallback? onTertiaryTapDown;
-
-  final GestureTapUpCallback? onTertiaryTapUp;
 
   final bool readOnly;
 
@@ -65,8 +58,6 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       onTapDown: onTapDown,
       onSecondaryTapDown: onSecondaryTapDown,
       onSecondaryTapUp: onSecondaryTapUp,
-      onTertiaryTapDown: onSecondaryTapDown,
-      onTertiaryTapUp: onSecondaryTapUp,
       onLongPressStart: onLongPressStart,
       onLongPressMoveUpdate: onLongPressMoveUpdate,
       // onLongPressUp: onLongPressUp,
@@ -144,14 +135,6 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
     _tapUp(widget.onSecondaryTapUp, details, TerminalMouseButton.right);
   }
 
-  void onTertiaryTapDown(TapDownDetails details) {
-    _tapDown(widget.onTertiaryTapDown, details, TerminalMouseButton.middle);
-  }
-
-  void onTertiaryTapUp(TapUpDetails details) {
-    _tapUp(widget.onTertiaryTapUp, details, TerminalMouseButton.right);
-  }
-
   void onDoubleTapDown(TapDownDetails details) {
     renderTerminal.selectWord(details.localPosition);
   }
@@ -172,8 +155,10 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   void onDragStart(DragStartDetails details) {
     _lastDragStartDetails = details;
-
-    details.kind == PointerDeviceKind.mouse ? renderTerminal.selectCharacters(details.localPosition) : renderTerminal.selectWord(details.localPosition);
+    // PanGestureRecognizer in TerminalGestureDetector only registers
+    // PointerDeviceKind.mouse, so we know the drag came from a mouse and
+    // characters are the right selection unit.
+    renderTerminal.selectCharacters(details.localPosition);
   }
 
   void onDragUpdate(DragUpdateDetails details) {
