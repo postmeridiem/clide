@@ -169,15 +169,6 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
     }
   });
 
-  d.register('pql.decisions.coverage', (req) async {
-    try {
-      final gaps = await pql.decisionCoverage();
-      return IpcResponse.ok(id: req.id, data: {'gaps': gaps});
-    } on PqlException catch (e) {
-      return _pqlError(req.id, e);
-    }
-  });
-
   d.register('pql.tickets.list', (req) async {
     try {
       final results = await pql.ticketList(

@@ -95,13 +95,6 @@ void main() {
     expect(r.error!.kind, 'user_error');
   });
 
-  test('pql.decisions.coverage returns gaps', () async {
-    await call('pql.decisions.sync');
-    final r = await call('pql.decisions.coverage');
-    expect(r.ok, isTrue);
-    expect(r.data.containsKey('gaps'), isTrue);
-  });
-
   test('pql.tickets.board returns columns', () async {
     final r = await call('pql.tickets.board');
     expect(r.ok, isTrue);

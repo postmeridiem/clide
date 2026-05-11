@@ -106,10 +106,6 @@ class PqlClient {
     return _runObject(['decisions', 'read', id]);
   }
 
-  Future<List<Map<String, Object?>>> decisionCoverage() async {
-    return _runList(['decisions', 'coverage']);
-  }
-
   Future<List<Map<String, Object?>>> ticketList({
     String? status,
     String? team,
