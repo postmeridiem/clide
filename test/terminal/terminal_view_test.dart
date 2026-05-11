@@ -418,6 +418,62 @@ void main() {
     });
   });
 
+  group('TerminalView — keyboard / IME tail paths', () {
+    // These cover the last few lines in terminal_view.dart that the existing
+    // tests didn't quite touch: the onDelete callback wired into
+    // CustomTextEdit, the hardwareKeyboardOnly tap branch that requests
+    // focus directly, and the _onInsert path where the inserted character
+    // maps to a TerminalKey (key != null).
+
+    testWidgets('backspace via deleteDetection runs onDelete (scroll + keyInput)', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true, deleteDetection: true)));
+      await tester.pump();
+      // deleteDetection seeds the editing value with two spaces; shrinking
+      // it below that length triggers CustomTextEdit.onDelete, which fires
+      // _scrollToBottom + Terminal.keyInput(backspace) in TerminalView.
+      tester.testTextInput.updateEditingValue(const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      ));
+      await tester.pump();
+      // Backspace produces a non-empty escape sequence (^?).
+      expect(r.outputs, isNotEmpty);
+    });
+
+    testWidgets('tap on hardwareKeyboardOnly view requests focus on the focus node', (tester) async {
+      final t = _OutputRecorder().build();
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      await tester.pumpWidget(_host(TerminalView(
+        t,
+        hardwareKeyboardOnly: true,
+        focusNode: focus,
+      )));
+      // Tap with no selection-clear short-circuit — the else-branch of
+      // _onTapUp routes through _focusNode.requestFocus when
+      // hardwareKeyboardOnly is set (no CustomTextEdit to delegate to).
+      await tester.tapAt(tester.getCenter(find.byType(TerminalView)));
+      await tester.pump(const Duration(seconds: 1));
+      expect(focus.hasFocus, isTrue);
+    });
+
+    testWidgets('single-char IME insert routes through keyInput when the char maps to a TerminalKey', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true)));
+      await tester.pump();
+      await tester.tap(find.byType(TerminalView));
+      await tester.pump(const Duration(seconds: 1));
+      // 'a' is a single char that maps to TerminalKey.a — _onInsert hits
+      // the key != null branch and calls terminal.keyInput first.
+      tester.testTextInput.enterText('a');
+      await tester.pump();
+      expect(r.outputs, isNotEmpty);
+    });
+  });
+
   group('TerminalView — keyboard visibility', () {
     testWidgets('platform keyboard show fires _onKeyboardShow on the focused view', (tester) async {
       final t = _OutputRecorder().build();
