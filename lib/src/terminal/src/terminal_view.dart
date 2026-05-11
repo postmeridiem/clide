@@ -48,7 +48,6 @@ class TerminalView extends StatefulWidget {
     this.onKeyEvent,
     this.readOnly = false,
     this.hardwareKeyboardOnly = false,
-    this.simulateScroll = true,
   });
 
   /// The underlying terminal that this widget renders.
@@ -131,13 +130,6 @@ class TerminalView extends StatefulWidget {
   /// True if only hardware keyboard events should be used as input. This will
   /// also prevent any on-screen keyboard to be shown.
   final bool hardwareKeyboardOnly;
-
-  /// If true, when the terminal is in alternate buffer (for example running
-  /// vim, man, etc), if the application does not declare that it can handle
-  /// scrolling, the terminal will simulate scrolling by sending up/down arrow
-  /// keys to the application. This is standard behavior for most terminal
-  /// emulators. True by default.
-  final bool simulateScroll;
 
   @override
   State<TerminalView> createState() => TerminalViewState();
