@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
+import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,6 +112,34 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Cancel'));
       await tester.pumpAndSettle();
       expect(dismissed, isNull);
+    });
+
+    test('_pick before activate returns a not-activated error', () async {
+      // Reach the command's run callback without going through activate —
+      // _ctx is still null, so _pick hits the defensive error branch.
+      final ext = ThemePickerExtension();
+      final cmd = ext.contributions.whereType<CommandContribution>().single;
+      final resp = await cmd.run(const []);
+      expect(resp.ok, isFalse);
+      expect(resp.error?.message, contains('not activated'));
+    });
+
+    testWidgets('_pick (after activate) opens a dialog and resolves the user selection', (tester) async {
+      f.services.extensions.register(ThemePickerExtension());
+      await f.services.extensions.activateAll();
+      // Pump a tree so dialog has a parent BuildContext to render under.
+      await tester.pumpWidget(harness(f, const SizedBox()));
+      await tester.pump();
+      // Kick off the command. _pick awaits ctx.dialog.show; the future
+      // resolves once dialog is dismissed.
+      final responseFuture = f.services.commands.execute('theme.pick');
+      await tester.pump();
+      expect(f.services.dialog.isOpen, isTrue);
+      // Simulate user picking 'forest' and closing.
+      f.services.dialog.dismiss('forest');
+      final resp = await responseFuture;
+      expect(resp.ok, isTrue);
+      expect(resp.data['selected'], 'forest');
     });
   });
 }
