@@ -29,6 +29,17 @@ void main() {
       return i;
     }
 
+    test('locale getters reflect constructor arguments', () {
+      final i = build(
+        catalogs: const {},
+        initial: const Locale('nl', 'NL'),
+        defaultLocale: const Locale('en', 'US'),
+      );
+      expect(i.currentLocale, const Locale('nl', 'NL'));
+      expect(i.defaultLocale, const Locale('en', 'US'));
+      expect(i.availableLocales, [const Locale('en', 'US'), const Locale('nl', 'NL')]);
+    });
+
     test('missing key with placeholder returns placeholder', () async {
       final i = build(catalogs: const {});
       await i.ensureNamespaceLoaded('builtin.x');
