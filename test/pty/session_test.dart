@@ -95,5 +95,98 @@ void main() {
       await done.future.timeout(const Duration(seconds: 3));
       expect(s.isClosed, isTrue);
     });
+
+    test('bare command name resolves via the PATH env var', () async {
+      // 'sh' is a bare command; without resolution, execve would fail.
+      final s = NativePty.start(
+        executable: 'sh',
+        arguments: ['-c', 'echo path-resolution-ok'],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {
+          ...Platform.environment,
+          'TERM': 'xterm-256color',
+        },
+      );
+      addTearDown(s.close);
+      final buf = StringBuffer();
+      final done = Completer<void>();
+      s.output.listen(
+        (b) => buf.write(utf8.decode(b, allowMalformed: true)),
+        onDone: () {
+          if (!done.isCompleted) done.complete();
+        },
+      );
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
+      expect(buf.toString(), contains('path-resolution-ok'));
+    });
+
+    test('non-existent workingDirectory produces the chdir-failed diagnostic', () async {
+      // chdir() fails in the child → writes diagnostic + _exit(1).
+      final s = NativePty.start(
+        executable: '/bin/sh',
+        arguments: ['-c', 'echo should-not-run'],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/tmp/clide-no-such-dir-${DateTime.now().microsecondsSinceEpoch}',
+        environment: {
+          ...Platform.environment,
+          'TERM': 'xterm-256color',
+        },
+      );
+      addTearDown(s.close);
+      final buf = StringBuffer();
+      final done = Completer<void>();
+      s.output.listen(
+        (b) => buf.write(utf8.decode(b, allowMalformed: true)),
+        onDone: () {
+          if (!done.isCompleted) done.complete();
+        },
+      );
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
+      expect(buf.toString(), contains('chdir failed'));
+    });
+
+    test('non-existent executable produces the exec-failed diagnostic', () async {
+      final s = NativePty.start(
+        executable: '/tmp/clide-no-such-binary-${DateTime.now().microsecondsSinceEpoch}',
+        arguments: const [],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {
+          ...Platform.environment,
+          'TERM': 'xterm-256color',
+        },
+      );
+      addTearDown(s.close);
+      final buf = StringBuffer();
+      final done = Completer<void>();
+      s.output.listen(
+        (b) => buf.write(utf8.decode(b, allowMalformed: true)),
+        onDone: () {
+          if (!done.isCompleted) done.complete();
+        },
+      );
+      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
+      expect(buf.toString(), contains('exec failed'));
+    });
+
+    test('resize on a live PTY does not throw', () async {
+      final s = NativePty.start(
+        executable: '/bin/sh',
+        arguments: ['-c', 'sleep 0.5'],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {
+          ...Platform.environment,
+          'TERM': 'xterm-256color',
+        },
+      );
+      addTearDown(s.close);
+      s.resize(cols: 120, rows: 30);
+    });
   });
 }
