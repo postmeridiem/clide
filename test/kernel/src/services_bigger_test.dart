@@ -75,25 +75,14 @@ void main() {
   });
 
   group('OsBridge', () {
-    test('openURL returns false for an unsupported / unknown URL', () async {
-      final bridge = OsBridge(
-        log: Logger(minLevel: LogLevel.error),
-        events: DaemonBus(),
-      );
-      // Use a scheme/path that xdg-open / open won't actually handle to
-      // get a non-zero exit. Either an error or false is acceptable.
-      final ok = await bridge.openURL('clide://does-not-exist');
-      expect(ok, anyOf(isFalse, isTrue));
-    });
-
-    test('reveal returns false for an unsupported / non-existent path', () async {
-      final bridge = OsBridge(
-        log: Logger(minLevel: LogLevel.error),
-        events: DaemonBus(),
-      );
-      final ok = await bridge.reveal('/tmp/clide-no-such-file-${DateTime.now().microsecondsSinceEpoch}');
-      expect(ok, anyOf(isFalse, isTrue));
-    });
+    // openURL / reveal aren't exercised end-to-end here — they spawn
+    // real xdg-open / open / explorer processes, which on a desktop
+    // session surface a system error dialog ("Could not read file …")
+    // even when the URL is bogus. We're not in a sandbox that swallows
+    // those, so the test would visibly nag the user. Coverage of the
+    // command-shape branches is good enough via `fire` + the platform-
+    // dispatch (left to integration tests where a real OS dispatcher
+    // is wanted).
 
     test('fire emits an OsLifecycleEvent on the bus', () async {
       final bus = DaemonBus();
