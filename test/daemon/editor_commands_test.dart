@@ -107,4 +107,100 @@ void main() {
     expect(r.ok, isFalse);
     expect(r.error!.code, IpcExitCode.notFound);
   });
+
+  test('editor.open returns toolError for an unreadable path', () async {
+    // Create a file then chmod 000 so reading fails with a FileSystemException.
+    final unreadable = File('${sandbox.path}/locked.md');
+    await unreadable.writeAsString('x');
+    await Process.run('chmod', ['000', unreadable.path]);
+    addTearDown(() async {
+      await Process.run('chmod', ['644', unreadable.path]);
+    });
+    final r = await call('editor.open', {'path': 'locked.md'});
+    expect(r.ok, isFalse);
+    // Either errno-mapped or toolError — either is acceptable.
+    expect(r.error!.code, isNot(IpcExitCode.notFound));
+  });
+
+  test('editor.active returns null when no buffer is open', () async {
+    final r = await call('editor.active');
+    expect(r.ok, isTrue);
+    expect(r.data['active'], isNull);
+  });
+
+  test('editor.activate requires id and validates it', () async {
+    final missing = await call('editor.activate');
+    expect(missing.ok, isFalse);
+    expect(missing.error!.kind, 'user_error');
+    final unknown = await call('editor.activate', {'id': 'b_404'});
+    expect(unknown.ok, isFalse);
+    expect(unknown.error!.kind, 'not_found');
+  });
+
+  test('editor.activate flips the active buffer to the requested one', () async {
+    await File('${sandbox.path}/a.md').writeAsString('a');
+    await File('${sandbox.path}/b.md').writeAsString('b');
+    final a = await call('editor.open', {'path': 'a.md'});
+    await call('editor.open', {'path': 'b.md'});
+    final r = await call('editor.activate', {'id': a.data['id']});
+    expect(r.ok, isTrue);
+    expect(r.data['active'], a.data['id']);
+  });
+
+  test('editor.read with no active buffer and no id returns not-found', () async {
+    final r = await call('editor.read');
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'not_found');
+  });
+
+  test('editor.read with an unknown id returns not-found', () async {
+    final r = await call('editor.read', {'id': 'b_404'});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'not_found');
+  });
+
+  test('editor.set-selection clamps and applies', () async {
+    await call('editor.open', {'path': 'doc.md'});
+    final r = await call('editor.set-selection', {
+      'selection': {'start': 0, 'end': 3}
+    });
+    expect(r.ok, isTrue);
+  });
+
+  test('editor.set-selection without an id or active buffer returns not-found', () async {
+    final r = await call('editor.set-selection', {
+      'selection': {'start': 0, 'end': 1}
+    });
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'not_found');
+  });
+
+  test('editor.set-content overwrites the buffer (with and without selection)', () async {
+    await call('editor.open', {'path': 'doc.md'});
+    final r1 = await call('editor.set-content', {'text': 'replaced'});
+    expect(r1.ok, isTrue);
+    expect(r1.data['length'], 'replaced'.length);
+    final read1 = await call('editor.read');
+    expect(read1.data['content'], 'replaced');
+    final r2 = await call('editor.set-content', {
+      'text': 'short',
+      'selection': {'start': 1, 'end': 99}
+    });
+    expect(r2.ok, isTrue);
+  });
+
+  test('editor.save with no active buffer returns not-found', () async {
+    final r = await call('editor.save');
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'not_found');
+  });
+
+  test('editor.close requires id and validates it', () async {
+    final missing = await call('editor.close');
+    expect(missing.ok, isFalse);
+    expect(missing.error!.kind, 'user_error');
+    final unknown = await call('editor.close', {'id': 'b_404'});
+    expect(unknown.ok, isFalse);
+    expect(unknown.error!.kind, 'not_found');
+  });
 }

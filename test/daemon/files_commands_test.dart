@@ -78,4 +78,54 @@ void main() {
     expect(r.ok, isTrue);
     expect(r.data['subscribed'], isTrue);
   });
+
+  test('files.read returns the file content', () async {
+    final r = await call('files.read', const {'path': 'README.md'});
+    expect(r.ok, isTrue);
+    expect(r.data['content'], 'hi');
+    expect(r.data['path'], 'README.md');
+  });
+
+  test('files.read without a path returns toolError', () async {
+    final r = await call('files.read', const {});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, IpcErrorKind.toolError);
+    expect(r.error!.message, contains('path'));
+  });
+
+  test('files.read with an empty string path returns toolError', () async {
+    final r = await call('files.read', const {'path': ''});
+    expect(r.ok, isFalse);
+  });
+
+  test('files.read with a path outside the root is rejected', () async {
+    final r = await call('files.read', const {'path': '../escape.txt'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('outside workspace'));
+  });
+
+  test('files.read returns toolError for a missing file', () async {
+    final r = await call('files.read', const {'path': 'does-not-exist.md'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('not found'));
+  });
+
+  test('files.ls with a path outside the root is rejected', () async {
+    final r = await call('files.ls', const {'path': '../escape'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('outside workspace'));
+  });
+
+  test('files.watch is idempotent: a second call still acks subscription', () async {
+    final r1 = await call('files.watch', const {});
+    final r2 = await call('files.watch', const {});
+    expect(r1.ok, isTrue);
+    expect(r2.ok, isTrue);
+  });
+
+  test('FilesService.atCwd resolves a workspace root', () {
+    final svc = FilesService.atCwd(events: RecordingEventSink());
+    expect(svc.root.existsSync(), isTrue);
+    addTearDown(svc.shutdown);
+  });
 }

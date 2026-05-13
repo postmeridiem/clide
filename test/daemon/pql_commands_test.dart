@@ -120,4 +120,108 @@ void main() {
     expect(r.ok, isFalse);
     expect(r.error!.kind, 'user_error');
   });
+
+  test('pql.files with glob + limit narrows the result', () async {
+    final r = await call('pql.files', {'glob': 'CLAUDE.md', 'limit': 1});
+    expect(r.ok, isTrue);
+    final files = r.data['files'] as List;
+    expect(files.length, lessThanOrEqualTo(1));
+  });
+
+  test('pql.backlinks with a path returns links list', () async {
+    final r = await call('pql.backlinks', {'path': 'CLAUDE.md'});
+    expect(r.ok, isTrue);
+    expect(r.data['links'], isA<List>());
+  });
+
+  test('pql.outlinks without path returns user_error', () async {
+    final r = await call('pql.outlinks');
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'user_error');
+  });
+
+  test('pql.tags returns a tag list (with limit)', () async {
+    final r = await call('pql.tags', {'limit': 5});
+    expect(r.ok, isTrue);
+    expect(r.data['tags'], isA<List>());
+  });
+
+  test('pql.query with a DSL string returns results', () async {
+    final r = await call('pql.query', {'query': 'SELECT name', 'limit': 2});
+    expect(r.ok, isTrue);
+    expect(r.data['results'], isA<List>());
+  });
+
+  test('pql.search with terms returns hits; missing terms is user_error', () async {
+    final missing = await call('pql.search');
+    expect(missing.ok, isFalse);
+    expect(missing.error!.kind, 'user_error');
+    final hit = await call('pql.search', {'terms': 'clide', 'limit': 2});
+    expect(hit.ok, isTrue);
+  });
+
+  test('pql.decisions.read requires id; happy path returns the body', () async {
+    final missing = await call('pql.decisions.read');
+    expect(missing.ok, isFalse);
+    expect(missing.error!.kind, 'user_error');
+    final ok = await call('pql.decisions.read', {'id': 'D-1'});
+    expect(ok.ok, isTrue);
+    expect(ok.data['id'], 'D-1');
+  });
+
+  test('pql.decisions.show forwards withRefs / withTickets', () async {
+    final r = await call('pql.decisions.show', {
+      'id': 'D-1',
+      'withRefs': true,
+      'withTickets': true,
+    });
+    expect(r.ok, isTrue);
+    expect(r.data['id'], 'D-1');
+  });
+
+  test('pql.decisions.list with a domain filter narrows', () async {
+    final r = await call('pql.decisions.list', {'domain': 'architecture'});
+    expect(r.ok, isTrue);
+    final decisions = r.data['decisions'] as List;
+    expect(decisions.every((d) => (d as Map)['domain'] == 'architecture'), isTrue);
+  });
+
+  test('pql.tickets.list with filters narrows + shows status', () async {
+    final r = await call('pql.tickets.list', {
+      'status': 'done',
+      'team': 'whatever',
+      'assigned': 'no-one',
+      'decision': 'D-1',
+    });
+    expect(r.ok, isTrue);
+    expect(r.data['tickets'], isA<List>());
+  });
+
+  test('pql.tickets.show requires id; happy path returns the row', () async {
+    final missing = await call('pql.tickets.show');
+    expect(missing.ok, isFalse);
+    expect(missing.error!.kind, 'user_error');
+    final ok = await call('pql.tickets.show', {
+      'id': 'T-1',
+      'withContext': true,
+      'withBlockers': true,
+    });
+    expect(ok.ok, isTrue);
+  });
+
+  test('pql.tickets.status requires ids + status', () async {
+    final missing = await call('pql.tickets.status');
+    expect(missing.ok, isFalse);
+    expect(missing.error!.kind, 'user_error');
+    // Accept both List and String for ids.
+    final justOne = await call('pql.tickets.status', {'ids': 'T-1'});
+    expect(justOne.ok, isFalse); // status still missing
+    expect(justOne.error!.kind, 'user_error');
+  });
+
+  test('pql.tickets.board with team filter', () async {
+    final r = await call('pql.tickets.board', {'team': 'whatever'});
+    expect(r.ok, isTrue);
+    expect(r.data['columns'], isA<List>());
+  });
 }

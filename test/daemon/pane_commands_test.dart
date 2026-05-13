@@ -111,5 +111,86 @@ void main() {
       expect(r.ok, isTrue);
       expect(r.data['subscribed'], isTrue);
     });
+
+    test('pane.spawn rejects non-string argv entries', () async {
+      final r = await call('pane.spawn', const {
+        'argv': ['/bin/sh', 42]
+      });
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('strings'));
+    });
+
+    test('pane.spawn rejects an unknown kind', () async {
+      final r = await call('pane.spawn', const {
+        'argv': ['/bin/cat'],
+        'kind': 'no-such-kind',
+      });
+      expect(r.ok, isFalse);
+      expect(r.error!.kind, 'user_error');
+    });
+
+    test('pane.spawn passes env through as strings', () async {
+      final r = await call('pane.spawn', {
+        'argv': const ['/bin/sh', '-c', 'env'],
+        'env': const {'FOO': 'bar'},
+      });
+      expect(r.ok, isTrue, reason: r.error?.message);
+    });
+
+    test('pane.close requires id and validates it', () async {
+      final missing = await call('pane.close', const {});
+      expect(missing.ok, isFalse);
+      expect(missing.error!.kind, 'user_error');
+      final unknown = await call('pane.close', const {'id': 'p_404'});
+      expect(unknown.ok, isFalse);
+      expect(unknown.error!.kind, 'not_found');
+    });
+
+    test('pane.write requires id and validates it', () async {
+      final missing = await call('pane.write', const {'text': 'x'});
+      expect(missing.ok, isFalse);
+      expect(missing.error!.kind, 'user_error');
+    });
+
+    test('pane.write requires bytes_b64 or text', () async {
+      final spawn = await call('pane.spawn', {
+        'argv': const ['/bin/cat'],
+      });
+      final id = spawn.data['id']! as String;
+      final r = await call('pane.write', {'id': id});
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('bytes_b64 or text'));
+    });
+
+    test('pane.write rejects malformed base64', () async {
+      final spawn = await call('pane.spawn', {
+        'argv': const ['/bin/cat'],
+      });
+      final id = spawn.data['id']! as String;
+      final r = await call('pane.write', {'id': id, 'bytes_b64': 'not-base64!!!'});
+      expect(r.ok, isFalse);
+      expect(r.error!.message, contains('base64'));
+    });
+
+    test('pane.resize requires all three of id / cols / rows', () async {
+      final r = await call('pane.resize', const {'id': 'p_1'});
+      expect(r.ok, isFalse);
+      expect(r.error!.kind, 'user_error');
+    });
+
+    test('pane.resize on unknown id is not-found', () async {
+      final r = await call('pane.resize', const {'id': 'p_404', 'cols': 80, 'rows': 24});
+      expect(r.ok, isFalse);
+      expect(r.error!.code, IpcExitCode.notFound);
+    });
+
+    test('pane.focus requires id and validates it', () async {
+      final missing = await call('pane.focus', const {});
+      expect(missing.ok, isFalse);
+      expect(missing.error!.kind, 'user_error');
+      final unknown = await call('pane.focus', const {'id': 'p_404'});
+      expect(unknown.ok, isFalse);
+      expect(unknown.error!.kind, 'not_found');
+    });
   });
 }
