@@ -52,6 +52,46 @@ void main() {
       r.dismiss(1); // close
       expect(calls, 2);
     });
+
+    test('current getter exposes the active builder while open', () {
+      final r = DialogRouter();
+      expect(r.current, isNull);
+      r.show<int>((ctx, _) => const SizedBox());
+      expect(r.current, isNotNull);
+      r.dismiss();
+      expect(r.current, isNull);
+    });
+
+    testWidgets('DialogHost renders the child + the dialog over a backdrop', (tester) async {
+      final r = DialogRouter();
+      await tester.pumpWidget(Directionality(
+        textDirection: TextDirection.ltr,
+        child: DialogHost(
+          router: r,
+          child: const ColoredBox(color: Color(0xFF111111), child: SizedBox.expand()),
+        ),
+      ));
+      await tester.pump();
+      // No dialog open yet — backdrop + modal not present.
+      expect(find.byType(GestureDetector), findsNothing);
+      // Open one.
+      final future = r.show<String>((ctx, dismiss) {
+        return GestureDetector(
+          onTap: () => dismiss('inner'),
+          child: const SizedBox(width: 100, height: 100),
+        );
+      });
+      await tester.pump();
+      // Backdrop + inner-wrapper + my own each add a GestureDetector.
+      expect(find.byType(GestureDetector), findsAtLeast(2));
+      // Dismiss programmatically — the future completes with null.
+      r.dismiss();
+      final result = await future;
+      expect(result, isNull);
+      // After dismiss, no GestureDetector remains.
+      await tester.pump();
+      expect(find.byType(GestureDetector), findsNothing);
+    });
   });
 
   group('FileServices stub', () {
@@ -70,6 +110,8 @@ void main() {
       final e = await got.timeout(const Duration(seconds: 1));
       expect(e.paths, ['/a.txt', '/b.txt']);
       expect(e.slot, Slots.workspace);
+      expect(e.subsystem, 'files');
+      expect(e.kind, 'dropped');
       expect(e.payload()['slot'], Slots.workspace.value);
     });
   });

@@ -67,5 +67,18 @@ void main() {
       expect(a, hasLength(1));
       expect(b, hasLength(1));
     });
+
+    test('trace records emit at minLevel.trace + are filtered above it', () {
+      final got = <LogRecord>[];
+      final log = Logger(minLevel: LogLevel.trace, sinks: [got.add]);
+      log.trace('s', 'low-level detail');
+      expect(got, hasLength(1));
+      expect(got.first.level, LogLevel.trace);
+      // Same call at info-level is filtered.
+      got.clear();
+      final filtered = Logger(minLevel: LogLevel.info, sinks: [got.add]);
+      filtered.trace('s', 'still detail');
+      expect(got, isEmpty);
+    });
   });
 }
