@@ -93,4 +93,62 @@ void main() {
     expect(buf.content, isEmpty);
     expect(buf.dirty, isFalse);
   });
+
+  test('activate(unknown id) is a no-op; activate(known) flips the active buffer', () async {
+    final a = await reg.open('README.md');
+    final b = await reg.open('NEW.md');
+    // b is currently active.
+    expect(reg.active, same(b));
+    sink.events.clear();
+    reg.activate('does-not-exist'); // no-op, no emit
+    expect(sink.ofKind('editor.active-changed'), isEmpty);
+    reg.activate(a.id);
+    expect(reg.active, same(a));
+    expect(sink.ofKind('editor.active-changed'), hasLength(1));
+  });
+
+  test('setContent with explicit selection clamps + emits editor.edited replace', () async {
+    final buf = await reg.open('README.md');
+    sink.events.clear();
+    reg.setContent(buf.id, 'short', selection: const Selection(start: 1, end: 99));
+    expect(buf.content, 'short');
+    // 99 clamped to content.length (5).
+    expect(buf.selection.end, 5);
+    expect(buf.dirty, isTrue);
+    final emitted = sink.ofKind('editor.edited').single;
+    expect(emitted.data['kind'], 'replace');
+    expect(emitted.data['length'], 5);
+  });
+
+  test('setContent without selection clamps the existing selection to the new content', () async {
+    final buf = await reg.open('README.md');
+    reg.setSelection(buf.id, const Selection(start: 6, end: 8));
+    expect(buf.selection.start, 6);
+    reg.setContent(buf.id, 'XY'); // shorter than the selection's offsets
+    expect(buf.content, 'XY');
+    expect(buf.selection.start, 2);
+    expect(buf.selection.end, 2);
+  });
+
+  test('setContent on a missing id is a silent no-op', () {
+    sink.events.clear();
+    reg.setContent('no-such-id', 'whatever');
+    expect(sink.events, isEmpty);
+  });
+
+  test('contentFromArgs decodes content_b64 when text is absent', () {
+    expect(EditorRegistry.contentFromArgs({'text': 'plain'}), 'plain');
+    expect(
+      EditorRegistry.contentFromArgs({'content_b64': 'aGVsbG8='}),
+      'hello',
+    );
+    expect(EditorRegistry.contentFromArgs(const {}), '');
+  });
+
+  test('Selection hashCode + toString round-trip and serialise', () {
+    const s = Selection(start: 3, end: 7);
+    expect(s.hashCode, const Selection(start: 3, end: 7).hashCode);
+    expect(s.hashCode, isNot(equals(const Selection(start: 3, end: 8).hashCode)));
+    expect(s.toString(), 'Selection(3-7)');
+  });
 }
