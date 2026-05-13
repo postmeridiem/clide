@@ -90,5 +90,91 @@ void main() {
       await store.set<String>('app.k', 'v');
       expect(count, greaterThanOrEqualTo(1));
     });
+
+    test('project-scoped set + get round-trip when projectDir is configured', () async {
+      final project = await Directory.systemTemp.createTemp('clide_settings_project_');
+      addTearDown(() => project.deleteSync(recursive: true));
+      await store.setProjectDir(project);
+      await store.set<int>('project.foo.bar', 7);
+      expect(store.get<int>('project.foo.bar'), 7);
+      // Persisted on disk.
+      final file = File('${project.path}/.clide/settings.yaml');
+      expect(file.existsSync(), isTrue);
+      // Reload sees the value.
+      await store.load();
+      expect(store.get<int>('project.foo.bar'), 7);
+    });
+
+    test('setting a project-scoped key without a project throws StateError', () async {
+      expect(
+        () async => store.set<int>('project.unset', 1),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('ext.* keys default to app scope; project overrides app for the same key', () async {
+      await store.set<String>('ext.foo.bar', 'app-value');
+      expect(store.get<String>('ext.foo.bar'), 'app-value');
+      // With a project open, the project value wins.
+      final project = await Directory.systemTemp.createTemp('clide_settings_extp_');
+      addTearDown(() => project.deleteSync(recursive: true));
+      await store.setProjectDir(project);
+      // Inject a project-scoped ext value via the on-disk file (simulating
+      // a per-project override).
+      final pfile = File('${project.path}/.clide/settings.yaml');
+      await pfile.parent.create(recursive: true);
+      await pfile.writeAsString('ext:\n  foo:\n    bar: project-value\n');
+      await store.load();
+      expect(store.get<String>('ext.foo.bar'), 'project-value');
+    });
+
+    test('setProjectDir(null) clears the project values', () async {
+      final project = await Directory.systemTemp.createTemp('clide_settings_clear_');
+      addTearDown(() => project.deleteSync(recursive: true));
+      await store.setProjectDir(project);
+      await store.set<int>('project.x', 1);
+      await store.setProjectDir(null);
+      expect(store.get<int>('project.x'), isNull);
+    });
+
+    test('YAML emitter handles every scalar / collection branch', () async {
+      // Null, list of mixed types, bool, num, string with special chars,
+      // empty string, empty map → exercises _emitScalar + _emit.
+      await store.set<Object>('app.bool', true);
+      await store.set<Object>('app.num', 42);
+      await store.set<Object>('app.str.simple', 'hi');
+      await store.set<Object>('app.str.special', 'has:colon and # hash');
+      await store.set<Object>('app.str.empty', '');
+      await store.set<Object>('app.list', [1, 'two', null, false]);
+      // Round-trip through reload.
+      await store.load();
+      expect(store.get<bool>('app.bool'), isTrue);
+      expect(store.get<int>('app.num'), 42);
+      expect(store.get<String>('app.str.simple'), 'hi');
+      expect(store.get<String>('app.str.special'), 'has:colon and # hash');
+      expect(store.get<String>('app.str.empty'), '');
+      expect(store.get<List>('app.list'), [1, 'two', null, false]);
+    });
+
+    test('load tolerates a malformed YAML file', () async {
+      // Write garbage to the on-disk app settings, then load.
+      final f = File('${tmp.path}/settings.yaml');
+      await f.writeAsString(': : : not yaml');
+      await store.load();
+      // No exception; in-memory store is empty.
+      expect(store.get<int>('app.anything'), isNull);
+    });
+
+    test('load returns empty when the settings file is blank or missing', () async {
+      // File missing → empty.
+      final f = File('${tmp.path}/settings.yaml');
+      if (f.existsSync()) await f.delete();
+      await store.load();
+      expect(store.get<int>('app.foo'), isNull);
+      // Blank file → empty.
+      await f.writeAsString('');
+      await store.load();
+      expect(store.get<int>('app.foo'), isNull);
+    });
   });
 }
