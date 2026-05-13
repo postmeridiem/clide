@@ -18,7 +18,7 @@ repository: https://github.com/postmeridiem/clide
 
 # Pre-push line-coverage floor. Ratchets up only — see D-66.
 # Reading: `awk -F: '/^coverage_floor:/ {gsub(/ /,"",$2); print $2}' pubspec.yaml`.
-coverage_floor: 80
+coverage_floor: 81
 
 # Project metadata (was project.yaml, folded in per D-056).
 # version: above is the single source of truth. The Makefile reads
