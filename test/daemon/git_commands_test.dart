@@ -188,4 +188,111 @@ void main() {
     content = await File('${sandbox.path}/file.txt').readAsString();
     expect(content, 'stash-me');
   });
+
+  test('git.diff with explicit paths narrows the result', () async {
+    await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
+    await File('${sandbox.path}/other.txt').writeAsString('o');
+    final r = await call('git.diff', {
+      'paths': ['file.txt']
+    });
+    expect(r.ok, isTrue);
+    final diffs = r.data['diffs'] as List;
+    expect(diffs, hasLength(1));
+  });
+
+  test('git.stage-hunk requires a non-empty patch', () async {
+    final missing = await call('git.stage-hunk');
+    expect(missing.ok, isFalse);
+    expect(missing.error?.kind, IpcErrorKind.userError);
+    final empty = await call('git.stage-hunk', {'patch': ''});
+    expect(empty.ok, isFalse);
+  });
+
+  test('git.unstage-hunk requires a non-empty patch', () async {
+    final missing = await call('git.unstage-hunk');
+    expect(missing.ok, isFalse);
+    expect(missing.error?.kind, IpcErrorKind.userError);
+  });
+
+  test('git.stage-hunk + git.unstage-hunk round-trip a real patch', () async {
+    await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
+    final p = await Process.run('git', ['diff', '-U0'], workingDirectory: sandbox.path);
+    final patch = p.stdout as String;
+    final staged = await call('git.stage-hunk', {'patch': patch});
+    expect(staged.ok, isTrue);
+    final unstaged = await call('git.unstage-hunk', {'patch': patch});
+    expect(unstaged.ok, isTrue);
+  });
+
+  test('git.stage-hunk surfaces GitException as a tool error', () async {
+    final r = await call('git.stage-hunk', {'patch': 'not a valid patch\n'});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
+
+  test('git.branches lists the local branches', () async {
+    await Process.run('git', ['branch', 'feature/a'], workingDirectory: sandbox.path);
+    final r = await call('git.branches');
+    expect(r.ok, isTrue);
+    final branches = r.data['branches'] as List;
+    expect(branches.map((b) => (b as Map)['name']), containsAll(['feature/a']));
+  });
+
+  test('git.checkout requires a branch name', () async {
+    final missing = await call('git.checkout');
+    expect(missing.ok, isFalse);
+    expect(missing.error?.kind, IpcErrorKind.userError);
+    final empty = await call('git.checkout', {'branch': ''});
+    expect(empty.ok, isFalse);
+  });
+
+  test('git.checkout switches branches', () async {
+    await Process.run('git', ['branch', 'next'], workingDirectory: sandbox.path);
+    final r = await call('git.checkout', {'branch': 'next'});
+    expect(r.ok, isTrue);
+    expect(r.data['branch'], 'next');
+  });
+
+  test('git.checkout to an unknown branch surfaces a tool error', () async {
+    final r = await call('git.checkout', {'branch': 'no-such-branch'});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
+
+  test('git.log accepts an explicit count', () async {
+    final r = await call('git.log', {'count': 5});
+    expect(r.ok, isTrue);
+    final entries = r.data['entries'] as List;
+    expect(entries, isNotEmpty);
+  });
+
+  test('git.push to no remote surfaces a tool error', () async {
+    final r = await call('git.push');
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
+
+  test('git.pull with no remote surfaces a tool error', () async {
+    final r = await call('git.pull');
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
+
+  test('git.push + git.pull against a local bare remote return output', () async {
+    final remote = await Directory.systemTemp.createTemp('clide-git-cmd-remote-');
+    addTearDown(() => remote.deleteSync(recursive: true));
+    await Process.run('git', ['init', '--bare'], workingDirectory: remote.path);
+    await Process.run('git', ['remote', 'add', 'origin', remote.path], workingDirectory: sandbox.path);
+    final pushed = await call('git.push', {'remote': 'origin', 'branch': 'HEAD', 'setUpstream': true});
+    expect(pushed.ok, isTrue);
+    final pulled = await call('git.pull');
+    expect(pulled.ok, isTrue);
+  });
+
+  test('git.stage accepts a string single-path arg', () async {
+    await File('${sandbox.path}/new.txt').writeAsString('x');
+    // _pathList accepts a String, wrapping it as a singleton.
+    final r = await call('git.stage', {'paths': 'new.txt'});
+    expect(r.ok, isTrue);
+  });
 }
