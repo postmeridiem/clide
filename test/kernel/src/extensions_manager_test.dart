@@ -184,5 +184,99 @@ void main() {
       await s1.cancel();
       await s2.cancel();
     });
+
+    test('TrayItemContribution lands in TrayRegistry; deactivate removes it', () async {
+      f.services.extensions.register(_Ext(
+        id: 'tray-ext',
+        contributions: [
+          const TrayItemContribution(
+            id: 'tray-ext.item',
+            label: 'Item',
+            onSelected: _noop,
+          ),
+        ],
+      ));
+      await f.services.extensions.activateAll();
+      expect(f.services.tray.items.map((i) => i.id), contains('tray-ext.item'));
+      await f.services.extensions.deactivate('tray-ext');
+      expect(f.services.tray.items, isEmpty);
+    });
+
+    test('StatusItem + ToolbarButton contributions activate and deactivate cleanly', () async {
+      f.services.extensions.register(_Ext(
+        id: 'status-and-toolbar',
+        contributions: [
+          StatusItemContribution(
+            id: 'status-and-toolbar.status',
+            priority: 1,
+            build: (_) => const SizedBox.shrink(),
+          ),
+          ToolbarButtonContribution(
+            id: 'status-and-toolbar.btn',
+            label: 'B',
+            onPressed: () {},
+          ),
+        ],
+      ));
+      await f.services.extensions.activateAll();
+      // Both contributions register through PanelRegistry.contributionsFor.
+      expect(f.services.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>(), hasLength(1));
+      await f.services.extensions.deactivate('status-and-toolbar');
+      expect(f.services.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>(), isEmpty);
+    });
+
+    test('LayoutPresetContribution is accepted (no kernel-side wiring) and survives deactivate', () async {
+      // LayoutPresetContribution is consumed by the default-layout
+      // extension's own activate(); the manager's add/remove just hit
+      // the no-op case branch.
+      f.services.extensions.register(_Ext(
+        id: 'preset-only',
+        contributions: [
+          const LayoutPresetContribution(
+            id: 'preset-only.default',
+            displayName: 'Preset only',
+            slots: [],
+          ),
+        ],
+      ));
+      await f.services.extensions.activateAll();
+      await f.services.extensions.deactivate('preset-only');
+    });
+
+    test('extension context exposes every kernel service via passthrough getters', () async {
+      ClideExtensionContext? captured;
+      f.services.extensions.register(_Ext(
+        id: 'ctx-capture',
+        onActivate: (ctx) async {
+          captured = ctx;
+        },
+      ));
+      await f.services.extensions.activateAll();
+      final ctx = captured!;
+      expect(ctx.id, 'ctx-capture');
+      expect(ctx.log, same(f.services.log));
+      expect(ctx.events, same(f.services.events));
+      expect(ctx.messages, same(f.services.messages));
+      expect(ctx.settings, same(f.services.settings));
+      expect(ctx.theme, same(f.services.theme));
+      expect(ctx.i18n, same(f.services.i18n));
+      expect(ctx.panels, same(f.services.panels));
+      expect(ctx.arrangement, same(f.services.arrangement));
+      expect(ctx.commands, same(f.services.commands));
+      expect(ctx.palette, same(f.services.palette));
+      expect(ctx.clipboard, same(f.services.clipboard));
+      expect(ctx.files, same(f.services.files));
+      expect(ctx.notify, same(f.services.notify));
+      expect(ctx.dialog, same(f.services.dialog));
+      expect(ctx.tray, same(f.services.tray));
+      expect(ctx.secrets, same(f.services.secrets));
+      expect(ctx.os, same(f.services.os));
+      expect(ctx.net, same(f.services.net));
+      expect(ctx.focus, same(f.services.focus));
+      expect(ctx.project, same(f.services.project));
+      expect(ctx.ipc, same(f.services.ipc));
+    });
   });
 }
+
+void _noop() {}
