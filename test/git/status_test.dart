@@ -92,4 +92,45 @@ void main() {
     expect(status.ahead, isZero);
     expect(status.behind, isZero);
   });
+
+  test('branch.upstream + branch.ab populate upstream/ahead/behind', () async {
+    final remote = await Directory.systemTemp.createTemp('clide-status-remote-');
+    addTearDown(() => remote.deleteSync(recursive: true));
+    await Process.run('git', ['init', '--bare'], workingDirectory: remote.path);
+    await Process.run('git', ['remote', 'add', 'origin', remote.path], workingDirectory: sandbox.path);
+    await Process.run('git', ['push', '-u', 'origin', 'HEAD'], workingDirectory: sandbox.path);
+    // Add a commit so we have ahead > 0.
+    await File('${sandbox.path}/ahead.txt').writeAsString('x');
+    await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
+    await Process.run('git', ['commit', '-m', 'ahead'], workingDirectory: sandbox.path);
+    final s = await gitStatus(sandbox);
+    expect(s.upstream, contains('origin/'));
+    expect(s.ahead, 1);
+    expect(s.behind, 0);
+  });
+
+  test('gitStatus on a non-git directory returns an empty branchless status', () async {
+    final notGit = await Directory.systemTemp.createTemp('clide-status-not-');
+    addTearDown(() => notGit.deleteSync(recursive: true));
+    final s = await gitStatus(notGit);
+    expect(s.entries, isEmpty);
+  });
+
+  test('rename in porcelain output captures the original path', () async {
+    await File('${sandbox.path}/a.txt').writeAsString('content\n');
+    await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
+    await Process.run('git', ['commit', '-m', 'add a'], workingDirectory: sandbox.path);
+    await Process.run('git', ['mv', 'a.txt', 'renamed.txt'], workingDirectory: sandbox.path);
+    final s = await gitStatus(sandbox);
+    final renamed = s.entries.firstWhere((e) => e.path == 'renamed.txt');
+    expect(renamed.origPath, 'a.txt');
+  });
+
+  test('parsePorcelainV1 handles empty input + short / empty parts', () {
+    expect(parsePorcelainV1(''), isEmpty);
+    // 'X' is too short (< 4 chars), should be skipped.
+    expect(parsePorcelainV1('X\x00'), isEmpty);
+    // Empty token-only input — skipped.
+    expect(parsePorcelainV1('\x00'), isEmpty);
+  });
 }

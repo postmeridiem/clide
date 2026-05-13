@@ -207,5 +207,96 @@ index abc..def 100644
       final diffs = await gitDiff(sandbox);
       expect(diffs, isEmpty);
     });
+
+    test('paths argument narrows the diff to that file', () async {
+      await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
+      await File('${sandbox.path}/other.txt').writeAsString('o\n');
+      final scoped = await gitDiff(sandbox, paths: ['file.txt']);
+      expect(scoped, hasLength(1));
+      expect(scoped.first.path, 'file.txt');
+    });
+
+    test('returns empty on a non-git directory (exit != 0)', () async {
+      final notGit = await Directory.systemTemp.createTemp('clide-diff-not-');
+      addTearDown(() => notGit.deleteSync(recursive: true));
+      expect(await gitDiff(notGit), isEmpty);
+    });
+  });
+
+  group('GitHunk shape', () {
+    test('toPatch round-trips header + every line kind', () {
+      const hunk = GitHunk(
+        header: '@@ -1,3 +1,4 @@ ctx',
+        oldStart: 1,
+        oldCount: 3,
+        newStart: 1,
+        newCount: 4,
+        lines: [
+          DiffLine(kind: DiffLineKind.context, text: 'line1', oldLineNo: 1, newLineNo: 1),
+          DiffLine(kind: DiffLineKind.removal, text: 'line2', oldLineNo: 2),
+          DiffLine(kind: DiffLineKind.addition, text: 'line2-new', newLineNo: 2),
+          DiffLine(kind: DiffLineKind.header, text: r'\ No newline at end of file'),
+        ],
+      );
+      final patch = hunk.toPatch();
+      expect(patch, contains('@@ -1,3 +1,4 @@ ctx'));
+      expect(patch, contains(' line1'));
+      expect(patch, contains('-line2'));
+      expect(patch, contains('+line2-new'));
+      expect(patch, contains(r'\ No newline at end of file'));
+    });
+
+    test('GitDiff.toJson serialises with optional oldPath only when set', () {
+      const withOld = GitDiff(path: 'b.txt', oldPath: 'a.txt', hunks: [], isRenamed: true);
+      expect(withOld.toJson().containsKey('oldPath'), isTrue);
+      const noOld = GitDiff(path: 'b.txt', hunks: []);
+      expect(noOld.toJson().containsKey('oldPath'), isFalse);
+    });
+  });
+
+  group('parseDiffOutput — edge cases', () {
+    test('skips lines outside any diff --git block', () {
+      const output = '''pre-diff garbage
+another non-diff line
+diff --git a/f.txt b/f.txt
+--- a/f.txt
++++ b/f.txt
+@@ -1 +1 @@
+-old
++new
+''';
+      final diffs = parseDiffOutput(output);
+      expect(diffs, hasLength(1));
+    });
+
+    test('captures the "\\ No newline at end of file" marker as a header line', () {
+      const output = '''diff --git a/f.txt b/f.txt
+--- a/f.txt
++++ b/f.txt
+@@ -1,1 +1,1 @@
+-old
++new
+\\ No newline at end of file
+''';
+      final diffs = parseDiffOutput(output);
+      expect(diffs, hasLength(1));
+      final hunk = diffs.first.hunks.single;
+      expect(hunk.lines.any((l) => l.kind == DiffLineKind.header), isTrue);
+    });
+
+    test('skips a malformed @@ header (parseHunk returns null)', () {
+      const output = '''diff --git a/f.txt b/f.txt
+--- a/f.txt
++++ b/f.txt
+@@ not a valid hunk header @@
+@@ -1 +1 @@
+-old
++new
+''';
+      final diffs = parseDiffOutput(output);
+      expect(diffs, hasLength(1));
+      // Only the valid @@ produces a hunk.
+      expect(diffs.first.hunks, hasLength(1));
+    });
   });
 }
