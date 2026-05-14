@@ -72,5 +72,39 @@ void main() {
       ));
       expect(r.tabsFor(Slots.sidebar), isEmpty);
     });
+
+    test('setTabOrder sorts tabsFor by the supplied order; unknown ids sink', () {
+      final r = PanelRegistry();
+      r.registerSlot(const SlotDefinition(id: Slots.sidebar, position: SlotPosition.left));
+      r.contribute(_tab(id: 'a', slot: Slots.sidebar));
+      r.contribute(_tab(id: 'b', slot: Slots.sidebar));
+      r.contribute(_tab(id: 'c', slot: Slots.sidebar));
+      expect(r.tabsFor(Slots.sidebar).map((t) => t.id), ['a', 'b', 'c']);
+      r.setTabOrder(Slots.sidebar, ['c', 'a']);
+      expect(r.tabsFor(Slots.sidebar).map((t) => t.id), ['c', 'a', 'b']);
+    });
+
+    test('definitionFor returns the SlotDefinition by id', () {
+      final r = PanelRegistry();
+      const def = SlotDefinition(id: Slots.sidebar, position: SlotPosition.left);
+      r.registerSlot(def);
+      expect(r.definitionFor(Slots.sidebar), def);
+      expect(r.definitionFor(const SlotId('nope')), isNull);
+    });
+  });
+
+  group('SlotId', () {
+    test('equality + hashCode are value-based', () {
+      const a = SlotId('foo');
+      const b = SlotId('foo');
+      const c = SlotId('bar');
+      expect(a == b, isTrue);
+      expect(a.hashCode, b.hashCode);
+      expect(a == c, isFalse);
+    });
+
+    test('toString embeds the value', () {
+      expect(const SlotId('foo').toString(), contains('foo'));
+    });
   });
 }
