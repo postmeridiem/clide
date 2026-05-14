@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -58,6 +60,22 @@ void main() {
     test('dispose shuts down IPC + notifiers without throwing', () async {
       final f = await KernelFixture.create();
       await f.dispose();
+    });
+
+    testWidgets('ClideKernel.of throws a FlutterError when no ancestor exists', (tester) async {
+      late Object captured;
+      await tester.pumpWidget(Directionality(
+        textDirection: TextDirection.ltr,
+        child: Builder(builder: (ctx) {
+          try {
+            ClideKernel.of(ctx);
+          } catch (e) {
+            captured = e;
+          }
+          return const SizedBox();
+        }),
+      ));
+      expect(captured, isA<FlutterError>());
     });
   });
 }
