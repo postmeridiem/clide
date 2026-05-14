@@ -5,15 +5,14 @@ library;
 
 import 'dart:io';
 
-import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/pql/client.dart';
 import 'package:test/test.dart';
 
 void main() {
   late PqlClient pql;
   setUp(() {
-    final toolchain = Toolchain();
-    toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: Directory.current.path));
+    final toolchain = ToolchainView.resolved(resolveToolchainPaths(Directory.current.path));
     pql = PqlClient(workDir: Directory.current, toolchain: toolchain);
   });
 
@@ -123,9 +122,8 @@ void main() {
 
   group('PqlClient — error surface', () {
     test('non-existent pql binary raises a PqlException with ProcessException details', () async {
-      final t = Toolchain();
       // Inject a bad path — Process.run will throw ProcessException.
-      t.applyResolved(const ResolvedPaths(pql: '/tmp/clide-no-such-pql-binary'));
+      final t = ToolchainView.resolved(const ResolvedPaths(pql: '/tmp/clide-no-such-pql-binary'));
       final bad = PqlClient(workDir: Directory.current, toolchain: t);
       try {
         await bad.files();

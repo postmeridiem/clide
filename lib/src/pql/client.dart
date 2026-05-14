@@ -8,7 +8,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import '../../kernel/src/toolchain.dart';
+import '../../kernel/src/toolchain_paths.dart';
 
 class PqlException implements Exception {
   const PqlException(this.message, {this.exitCode = 1, this.stderr = ''});
@@ -24,7 +24,7 @@ class PqlClient {
   PqlClient({required this.workDir, required this.toolchain});
 
   final Directory workDir;
-  final Toolchain toolchain;
+  final ToolchainView toolchain;
 
   Future<List<Map<String, Object?>>> files({String? glob, int? limit}) async {
     final args = ['files'];

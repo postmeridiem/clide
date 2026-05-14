@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:clide/clide.dart';
-import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:test/test.dart';
 
@@ -33,8 +33,7 @@ void main() {
 
     sink = RecordingEventSink();
     dispatcher = DaemonDispatcher();
-    final toolchain = Toolchain();
-    toolchain.applyResolved(Toolchain.resolvePaths(workspaceRoot: sandbox.path));
+    final toolchain = ToolchainView.resolved(resolveToolchainPaths(sandbox.path));
     final gitClient = GitClient(toolchain: toolchain, workDir: sandbox);
     registerGitCommands(dispatcher, gitClient, sink);
   });

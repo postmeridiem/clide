@@ -1,4 +1,4 @@
-/// Typed git client backed by [Toolchain].
+/// Typed git client backed by a [ToolchainView].
 ///
 /// Every subprocess call goes through [_run] which uses the resolved
 /// absolute binary path from the toolchain. Parsing is delegated to
@@ -7,7 +7,7 @@ library;
 
 import 'dart:io';
 
-import '../../kernel/src/toolchain.dart';
+import '../../kernel/src/toolchain_paths.dart';
 import 'diff.dart' show GitDiff, parseDiffOutput;
 import 'operations.dart' show GitException, GitLogEntry;
 import 'status.dart';
@@ -15,7 +15,7 @@ import 'status.dart';
 class GitClient {
   GitClient({required this.toolchain, required this.workDir});
 
-  final Toolchain toolchain;
+  final ToolchainView toolchain;
   final Directory workDir;
 
   // -- queries --------------------------------------------------------------

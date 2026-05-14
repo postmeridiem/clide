@@ -8,7 +8,7 @@ library;
 import 'dart:io';
 
 import 'package:clide/clide.dart';
-import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/pql/client.dart';
 import 'package:test/test.dart';
@@ -17,8 +17,7 @@ void main() {
   late DaemonDispatcher dispatcher;
 
   setUp(() {
-    final toolchain = Toolchain();
-    toolchain.applyResolved(const ResolvedPaths(pql: '/tmp/clide-no-such-pql-binary'));
+    final toolchain = ToolchainView.resolved(const ResolvedPaths(pql: '/tmp/clide-no-such-pql-binary'));
     final pql = PqlClient(workDir: Directory.current, toolchain: toolchain);
     dispatcher = DaemonDispatcher();
     registerPqlCommands(dispatcher, pql);

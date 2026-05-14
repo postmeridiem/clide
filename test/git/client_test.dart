@@ -5,16 +5,12 @@ library;
 
 import 'dart:io';
 
-import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/git/operations.dart' show GitException;
 import 'package:test/test.dart';
 
-Toolchain _toolchain() {
-  final t = Toolchain();
-  t.applyResolved(Toolchain.resolvePaths(workspaceRoot: Directory.current.path));
-  return t;
-}
+ToolchainView _toolchain() => ToolchainView.resolved(resolveToolchainPaths(Directory.current.path));
 
 Future<Directory> _newRepo({String filename = 'file.txt', String contents = 'hello\n'}) async {
   final dir = await Directory.systemTemp.createTemp('clide-git-client-');
@@ -195,8 +191,7 @@ void main() {
 
   group('GitClient — error surface', () {
     test('a bad git binary path makes _run throw GitException', () async {
-      final t = Toolchain();
-      t.applyResolved(const ResolvedPaths(git: '/tmp/clide-no-such-git-binary'));
+      final t = ToolchainView.resolved(const ResolvedPaths(git: '/tmp/clide-no-such-git-binary'));
       final dir = await Directory.systemTemp.createTemp('clide-git-bad-');
       addTearDown(() => dir.deleteSync(recursive: true));
       final git = GitClient(toolchain: t, workDir: dir);

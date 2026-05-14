@@ -8,7 +8,7 @@ library;
 import 'dart:io';
 
 import 'package:clide/clide.dart';
-import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:test/test.dart';
 
@@ -18,8 +18,7 @@ void main() {
 
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-git-cmd-err-');
-    final toolchain = Toolchain();
-    toolchain.applyResolved(const ResolvedPaths(git: '/tmp/clide-no-such-git-binary'));
+    final toolchain = ToolchainView.resolved(const ResolvedPaths(git: '/tmp/clide-no-such-git-binary'));
     final git = GitClient(toolchain: toolchain, workDir: sandbox);
     dispatcher = DaemonDispatcher();
     final sink = RecordingEventSink();
