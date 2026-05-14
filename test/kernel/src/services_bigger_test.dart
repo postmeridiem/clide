@@ -5,6 +5,7 @@ library;
 
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/files.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/os.dart';
@@ -193,6 +194,31 @@ void main() {
       final s = SchedulerService(DaemonBus());
       s.start();
       s.dispose();
+    });
+
+    test('ProjectOpened triggers the initial-cycle ticks', () async {
+      final bus = DaemonBus();
+      final s = SchedulerService(bus);
+      addTearDown(s.dispose);
+      s.start();
+      final ticks = <SchedulerTier>[];
+      final sub = bus.on<SchedulerTick>().listen((e) => ticks.add(e.tier));
+      addTearDown(sub.cancel);
+      bus.emit(const ProjectOpened(path: '/tmp/x'));
+      // The first stagger is 0 ms; pump to flush it onto the queue.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(ticks, isNotEmpty);
+    });
+
+    test('ProjectClosed stops the ticker without throwing', () async {
+      final bus = DaemonBus();
+      final s = SchedulerService(bus);
+      addTearDown(s.dispose);
+      s.start();
+      bus.emit(const ProjectOpened(path: '/tmp/x'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      bus.emit(const ProjectClosed());
+      // Smoke — no throw.
     });
   });
 }

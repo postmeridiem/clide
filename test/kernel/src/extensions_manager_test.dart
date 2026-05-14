@@ -243,6 +243,62 @@ void main() {
       await f.services.extensions.deactivate('preset-only');
     });
 
+    test('duplicate register() is a silent no-op (warns + skips)', () async {
+      final ext = _Ext(id: 'dup');
+      f.services.extensions.register(ext);
+      f.services.extensions.register(ext); // second call → warn + skip
+      expect(f.services.extensions.all.where((e) => e.id == 'dup'), hasLength(1));
+    });
+
+    test('activate of an unknown id is a silent no-op (warns + returns)', () async {
+      await f.services.extensions.activate('nope.no-such');
+      expect(f.services.extensions.isActivated('nope.no-such'), isFalse);
+    });
+
+    test('activate failure is caught and logged (extension survives)', () async {
+      f.services.extensions.register(_Ext(
+        id: 'throws-on-activate',
+        onActivate: (_) async => throw StateError('kaboom'),
+      ));
+      await f.services.extensions.activateAll();
+      expect(f.services.extensions.isActivated('throws-on-activate'), isFalse);
+    });
+
+    test('deactivate failure is caught and logged', () async {
+      f.services.extensions.register(_Ext(
+        id: 'throws-on-deactivate',
+        onDeactivate: () async => throw StateError('kaboom'),
+      ));
+      await f.services.extensions.activateAll();
+      expect(f.services.extensions.isActivated('throws-on-deactivate'), isTrue);
+      await f.services.extensions.deactivate('throws-on-deactivate');
+    });
+
+    test('deactivating a CommandContribution removes its keybinding', () async {
+      f.services.extensions.register(_Ext(
+        id: 'with-bound-cmd',
+        contributions: [
+          CommandContribution(
+            id: 'with-bound-cmd.cmd',
+            command: 'bound.cmd',
+            defaultBinding: 'ctrl+alt+j',
+            run: (_) async => IpcResponse.ok(id: '', data: const {}),
+          ),
+        ],
+      ));
+      await f.services.extensions.activateAll();
+      expect(f.services.keybindings.commandFor(Keybinding.parse('ctrl+alt+j')), 'bound.cmd');
+      await f.services.extensions.deactivate('with-bound-cmd');
+      expect(f.services.keybindings.commandFor(Keybinding.parse('ctrl+alt+j')), isNull);
+    });
+
+    test('all getter yields every registered extension', () async {
+      f.services.extensions.register(_Ext(id: 'a-iter'));
+      f.services.extensions.register(_Ext(id: 'b-iter'));
+      final ids = f.services.extensions.all.map((e) => e.id).toSet();
+      expect(ids, containsAll(['a-iter', 'b-iter']));
+    });
+
     test('extension context exposes every kernel service via passthrough getters', () async {
       ClideExtensionContext? captured;
       f.services.extensions.register(_Ext(
