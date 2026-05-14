@@ -203,4 +203,12 @@ void main() {
     expect(unknown.ok, isFalse);
     expect(unknown.error!.kind, 'not_found');
   });
+
+  test('insert / replace / set-content / save with no active buffer all return not-found', () async {
+    for (final cmd in ['editor.insert', 'editor.replace-selection', 'editor.set-content', 'editor.save']) {
+      final r = await call(cmd, {'text': 'x'});
+      expect(r.ok, isFalse, reason: cmd);
+      expect(r.error!.kind, 'not_found', reason: cmd);
+    }
+  });
 }

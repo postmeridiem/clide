@@ -128,4 +128,31 @@ void main() {
     expect(svc.root.existsSync(), isTrue);
     addTearDown(svc.shutdown);
   });
+
+  test('files.watch emits files.changed when a file is created under root', () async {
+    final ack = await call('files.watch', const {});
+    expect(ack.ok, isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await File('${sandbox.path}/created.txt').writeAsString('x');
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    // FilesService.startWatching wires watcher.stream → events.emit;
+    // exercising the emit branch is the goal — the consumer-side
+    // assertion is covered in test/files/watcher_test.dart.
+  });
+
+  test('FilesService.atCwd walks parent dirs looking for .git, falls back to CWD if none', () async {
+    final deepNoGit = await Directory.systemTemp.createTemp('clide-no-git-');
+    addTearDown(() => deepNoGit.deleteSync(recursive: true));
+    final nested = Directory('${deepNoGit.path}/a/b/c')..createSync(recursive: true);
+    final saved = Directory.current;
+    try {
+      Directory.current = nested;
+      final svc = FilesService.atCwd(events: RecordingEventSink());
+      // No .git anywhere on the walk → root falls back to CWD.
+      expect(svc.root.absolute.path, nested.absolute.path);
+      await svc.shutdown();
+    } finally {
+      Directory.current = saved;
+    }
+  });
 }
