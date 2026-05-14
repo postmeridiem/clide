@@ -58,5 +58,10 @@ void main() {
         if (twin.existsSync()) twin.deleteSync(recursive: true);
       }
     });
+
+    test('PathOutsideRoot.toString embeds requested + resolved + root', () {
+      final e = PathOutsideRoot('r', '/abs', '/root');
+      expect(e.toString(), allOf(contains('r'), contains('/abs'), contains('/root')));
+    });
   });
 }

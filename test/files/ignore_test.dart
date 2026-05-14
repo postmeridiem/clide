@@ -76,5 +76,23 @@ void main() {
       expect(s.isIgnored('docs/a.draft.md', isDirectory: false), isTrue);
       expect(s.isIgnored('other/a.draft.md', isDirectory: false), isFalse);
     });
+
+    test('trailing /** matches every descendant', () {
+      final s = IgnoreSet.parse(['build/**']);
+      expect(s.isIgnored('build/a/b/c.txt', isDirectory: false), isTrue);
+      expect(s.isIgnored('src/a.txt', isDirectory: false), isFalse);
+    });
+
+    test('bare ** (not adjacent to /) matches across path separators', () {
+      final s = IgnoreSet.parse(['a**z']);
+      expect(s.isIgnored('axyz', isDirectory: false), isTrue);
+      expect(s.isIgnored('amiddlez', isDirectory: false), isTrue);
+    });
+
+    test('? matches exactly one non-slash character', () {
+      final s = IgnoreSet.parse(['a?c']);
+      expect(s.isIgnored('abc', isDirectory: false), isTrue);
+      expect(s.isIgnored('a/c', isDirectory: false), isFalse);
+    });
   });
 }

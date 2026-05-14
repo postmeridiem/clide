@@ -51,5 +51,24 @@ void main() {
       expect(err.message, contains('kernel exploded'));
       expect(err.message, isNot(contains('errno=999')));
     });
+
+    test('ENOTDIR → user_error', () {
+      final e = errnoToIpcError(errno: PosixErrno.enotdir, op: 'files.ls', target: '/x');
+      expect(e.kind, IpcErrorKind.userError);
+      expect(e.message, contains('not a directory'));
+    });
+
+    test('ENOMEM → tool_error', () {
+      final e = errnoToIpcError(errno: PosixErrno.enomem, op: 'pty.spawn');
+      expect(e.kind, IpcErrorKind.toolError);
+      expect(e.message, contains('out of memory'));
+    });
+
+    test('EAGAIN → tool_error with retry hint', () {
+      final e = errnoToIpcError(errno: PosixErrno.eagain, op: 'pty.read');
+      expect(e.kind, IpcErrorKind.toolError);
+      expect(e.message, contains('temporarily unavailable'));
+      expect(e.hint, contains('retry'));
+    });
   });
 }

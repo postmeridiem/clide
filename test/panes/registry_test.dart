@@ -103,4 +103,17 @@ void main() {
       expect(pane.toJson()['kind'], 'claude');
     });
   });
+
+  group('RecordingEventSink filters', () {
+    test('ofSubsystem narrows events to a single subsystem', () {
+      final s = RecordingEventSink();
+      final ts = DateTime.now().toUtc();
+      s.emit(IpcEvent(subsystem: 'pane', kind: 'spawned', timestamp: ts, data: const {}));
+      s.emit(IpcEvent(subsystem: 'git', kind: 'changed', timestamp: ts, data: const {}));
+      s.emit(IpcEvent(subsystem: 'pane', kind: 'closed', timestamp: ts, data: const {}));
+      expect(s.ofSubsystem('pane'), hasLength(2));
+      expect(s.ofSubsystem('git'), hasLength(1));
+      expect(s.ofSubsystem('files'), isEmpty);
+    });
+  });
 }
