@@ -103,6 +103,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - `make push-check-full` added — runs `push-check` plus integration +
   smoke for pre-release checks. Integration tests skip the hanging
   theme_picker case (T-116) until that's fixed (T-103).
+- Governance bookkeeping: D-66 amended (floor at `coverage_floor:` in
+  `pubspec.yaml`); `licenses.yaml` reconciled with `pubspec.yaml`;
+  Q-1/Q-2/Q-3/Q-25 triaged; `.claude/skills/README.md` inventory
+  added; `--no-fatal-infos` dropped from `ci/test.sh` (T-113).
 - Terminal panes now render bold attributes with a real bold weight —
   bundled JetBrainsMono Bold + BoldItalic are registered with the
   `JetBrainsMono` family at `weight: 700`. The painter's bold

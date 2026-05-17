@@ -9,18 +9,21 @@ ticket persistence.
 - **Status:** Open
 - **Question:** The daemon's token auth is coarse (allow all / deny all). Do we need per-subsystem grants later (e.g. restrict `git push`), and if so, what's the model — capability tokens? An explicit grant table per client? Time-limited grants?
 - **Context:** Surfaced in the old ADR 0006 open-questions footer; deferred until Tier 1 is in real use.
+- **Triage (2026-05-17):** Still open. Tier 1 has shipped but the IPC socket server itself is unimplemented (T-99). Re-evaluate once the socket lands and external CLI clients exist.
 - **Source:** ADR 0006 (migrated to [D-6](architecture.md)).
 
 ### Q-2: Back-pressure on event streams
 - **Status:** Open
 - **Question:** A subscriber that falls behind on `pane.output` (a firehose) needs a policy: drop oldest, block producer, coalesce, or kill subscriber. Which?
 - **Context:** The event bus is in-memory; back-pressure policy is undefined. Defer until Tier 1 is in real use and we have a real firehose to measure against.
+- **Triage (2026-05-17):** Still open. PTY panes ship and produce real firehoses, but no subscriber has fallen behind in observed use. Re-evaluate when a multi-client IPC scenario (T-99) makes this measurable.
 - **Source:** ADR 0006 (migrated to [D-6](architecture.md)).
 
 ### Q-3: Event persistence + audit/undo
 - **Status:** Open
 - **Question:** Events are in-memory only in v1. If a future need (audit log, undo history) wants persistence, is it a property of the bus or a subsystem that subscribes and writes?
 - **Context:** ADR 0006 leaned "subsystem that subscribes and writes" but didn't commit.
+- **Triage (2026-05-17):** Still open; no concrete trigger yet. Revisit when the first persistence requirement lands (likely Tier-6 audit/undo).
 - **Source:** ADR 0006 (migrated to [D-6](architecture.md)).
 
 ### Q-4: `.canvas` schema compatibility with Obsidian
@@ -69,6 +72,7 @@ ticket persistence.
 - **Status:** Open
 - **Question:** The design handoff uses JetBrains Mono for all UI text (tab labels, file paths, status bar, sidebar labels), reserving Josefin Sans only for display/title text. Our current implementation uses Josefin Sans as the ambient UI face with JetBrains Mono only for code/terminal/diff surfaces. Which direction?
 - **Context:** The design's "mono everywhere" rationale: clide is an IDE for people who like grids. The current Josefin Sans rationale: visual distinction between chrome text and code text, warmer feel. Both are valid — this is a feel decision, not a technical one.
+- **Triage (2026-05-17):** Still open. The Josefin-Sans-as-UI-face implementation has shipped and is the current default; the design's "mono everywhere" direction remains unrealised. Convert to a D-record when the design call is made.
 - **Source:** 2026-04-22 design handoff review.
 
 ### Q-26: Small screen layout (< 1000px)

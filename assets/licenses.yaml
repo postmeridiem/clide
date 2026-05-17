@@ -216,21 +216,11 @@ dev_dependencies:
     license: BSD-3-Clause
     purpose: Flutter-team-recommended analyzer lint set (app/).
 
-  - name: lints
-    kind: dart-package
-    version: "5.0.0"
-    homepage: https://pub.dev/packages/lints
-    license: BSD-3-Clause
-    purpose: >-
-      Dart-team-recommended analyzer lint set for the Flutter-free
-      core package at the repo root.
-
   - name: test
     kind: dart-package
-    version: "1.25.8"
+    version: "1.30.0"
     homepage: https://pub.dev/packages/test
     license: BSD-3-Clause
     purpose: >-
-      Dart test runner for the core package (Flutter-free; the app
-      uses flutter_test from the Flutter SDK for widget + golden
-      coverage).
+      Dart test runner for the Flutter-free PTY tests under
+      `dart test --tags forkpty` (flutter_test is used elsewhere).

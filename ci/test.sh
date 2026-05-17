@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> flutter analyze"
-flutter analyze --no-fatal-infos
+flutter analyze
 
 echo "==> dart format (whole tree)"
 dart format --set-exit-if-changed .
