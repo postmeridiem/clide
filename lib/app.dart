@@ -113,6 +113,12 @@ class _RootShellState extends State<_RootShell> {
                 return null;
               },
             ),
+            PaletteOpenIntent: CallbackAction<PaletteOpenIntent>(
+              onInvoke: (_) {
+                widget.services.palette.open();
+                return null;
+              },
+            ),
           },
           child: KeyboardListener(
             focusNode: _keyFocus,

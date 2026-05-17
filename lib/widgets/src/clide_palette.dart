@@ -12,19 +12,89 @@ class ClidePalette extends StatefulWidget {
 
 class _ClidePaletteState extends State<ClidePalette> {
   final _input = TextEditingController();
-  final _focus = FocusNode();
+  final _focus = FocusNode(debugLabel: 'ClidePalette.input');
+  final _itemKeys = <int, GlobalKey>{};
+
+  PaletteController? _palette;
+  KeymapService? _keymap;
 
   @override
-  void initState() {
-    super.initState();
-    _focus.requestFocus();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final kernel = ClideKernel.of(context);
+    if (!identical(_palette, kernel.palette)) {
+      _palette?.removeListener(_onPaletteChanged);
+      _palette = kernel.palette;
+      _palette!.addListener(_onPaletteChanged);
+      _syncFromController();
+    }
+    _keymap = kernel.keymap;
+    // Sync the initial state: if the palette was opened before this
+    // widget mounted (e.g., open()-then-pumpWidget in a test), no
+    // listener fires for the "already open" condition. Mirror what
+    // _onPaletteChanged would have done.
+    final isOpen = _palette?.isOpen ?? false;
+    _keymap?.setScopeFlag('palette.open', isOpen);
+    if (isOpen && !_focus.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && (_palette?.isOpen ?? false)) _focus.requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
+    _palette?.removeListener(_onPaletteChanged);
+    _keymap?.clearScopeFlag('palette.open');
     _input.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  void _onPaletteChanged() {
+    final isOpen = _palette?.isOpen ?? false;
+    _keymap?.setScopeFlag('palette.open', isOpen);
+    if (isOpen) _focus.requestFocus();
+    _syncFromController();
+  }
+
+  void _syncFromController() {
+    final f = _palette?.filter ?? '';
+    if (_input.text != f) {
+      _input.value = TextEditingValue(text: f, selection: TextSelection.collapsed(offset: f.length));
+    }
+  }
+
+  Object? _selectNext(PaletteSelectNextIntent _) {
+    _palette?.selectNext();
+    _scrollSelectedIntoView();
+    return null;
+  }
+
+  Object? _selectPrev(PaletteSelectPreviousIntent _) {
+    _palette?.selectPrevious();
+    _scrollSelectedIntoView();
+    return null;
+  }
+
+  Object? _accept(PaletteAcceptIntent _) {
+    _palette?.acceptSelected();
+    _input.clear();
+    return null;
+  }
+
+  Object? _dismiss(DismissIntent _) {
+    _palette?.close();
+    return null;
+  }
+
+  void _scrollSelectedIntoView() {
+    final idx = _palette?.selectedIndex;
+    if (idx == null) return;
+    final key = _itemKeys[idx];
+    final ctx = key?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 120), alignment: 0.5);
   }
 
   @override
@@ -36,71 +106,84 @@ class _ClidePaletteState extends State<ClidePalette> {
       builder: (ctx, _) {
         if (!kernel.palette.isOpen) return const SizedBox.shrink();
         final filtered = kernel.palette.filtered();
+        final selected = kernel.palette.selectedIndex;
         return Positioned(
           top: 60,
           left: 0,
           right: 0,
           child: Center(
-            child: Container(
-              width: 480,
-              constraints: const BoxConstraints(maxHeight: 360),
-              decoration: BoxDecoration(
-                color: tokens.dropdownBackground,
-                border: Border.all(color: tokens.dropdownBorder),
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x40000000),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: EditableText(
-                      controller: _input,
-                      focusNode: _focus,
-                      style: TextStyle(
-                        fontFamily: clideMonoFamily,
-                        fontSize: clideFontMono,
-                        color: tokens.dropdownForeground,
-                      ),
-                      cursorColor: tokens.globalFocus,
-                      backgroundCursorColor: tokens.globalFocus,
-                      maxLines: 1,
-                      onChanged: (v) => kernel.palette.setFilter(v),
-                      onSubmitted: (_) {
-                        if (filtered.isNotEmpty) {
-                          kernel.palette.invoke(filtered.first.command);
+            child: Actions(
+              actions: <Type, Action<Intent>>{
+                PaletteSelectNextIntent: CallbackAction<PaletteSelectNextIntent>(onInvoke: _selectNext),
+                PaletteSelectPreviousIntent: CallbackAction<PaletteSelectPreviousIntent>(onInvoke: _selectPrev),
+                PaletteAcceptIntent: CallbackAction<PaletteAcceptIntent>(onInvoke: _accept),
+                DismissIntent: CallbackAction<DismissIntent>(onInvoke: _dismiss),
+              },
+              child: Container(
+                width: 480,
+                constraints: const BoxConstraints(maxHeight: 360),
+                decoration: BoxDecoration(
+                  color: tokens.dropdownBackground,
+                  border: Border.all(color: tokens.dropdownBorder),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x40000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: EditableText(
+                        controller: _input,
+                        focusNode: _focus,
+                        style: TextStyle(
+                          fontFamily: clideMonoFamily,
+                          fontSize: clideFontMono,
+                          color: tokens.dropdownForeground,
+                        ),
+                        cursorColor: tokens.globalFocus,
+                        backgroundCursorColor: tokens.globalFocus,
+                        maxLines: 1,
+                        onChanged: (v) => kernel.palette.setFilter(v),
+                        // Enter on the input forwards to the palette
+                        // accept intent — keeps the legacy single-key
+                        // submit working alongside arrow-driven nav.
+                        onSubmitted: (_) {
+                          kernel.palette.acceptSelected();
                           _input.clear();
-                        }
-                      },
+                        },
+                      ),
                     ),
-                  ),
-                  Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      itemCount: filtered.length,
-                      itemBuilder: (ctx, i) {
-                        final cmd = filtered[i];
-                        return _PaletteItem(
-                          title: cmd.title ?? cmd.command,
-                          command: cmd.command,
-                          binding: cmd.defaultBinding,
-                          onTap: () {
-                            kernel.palette.invoke(cmd.command);
-                            _input.clear();
-                          },
-                        );
-                      },
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, i) {
+                          final cmd = filtered[i];
+                          final key = _itemKeys.putIfAbsent(i, () => GlobalKey());
+                          return _PaletteItem(
+                            key: key,
+                            title: cmd.title ?? cmd.command,
+                            command: cmd.command,
+                            binding: cmd.defaultBinding,
+                            highlighted: i == selected,
+                            onTap: () {
+                              kernel.palette.invoke(cmd.command);
+                              _input.clear();
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -112,15 +195,18 @@ class _ClidePaletteState extends State<ClidePalette> {
 
 class _PaletteItem extends StatefulWidget {
   const _PaletteItem({
+    super.key,
     required this.title,
     required this.command,
     required this.onTap,
+    required this.highlighted,
     this.binding,
   });
 
   final String title;
   final String command;
   final String? binding;
+  final bool highlighted;
   final VoidCallback onTap;
 
   @override
@@ -133,6 +219,7 @@ class _PaletteItemState extends State<_PaletteItem> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
+    final selected = widget.highlighted;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
@@ -140,14 +227,18 @@ class _PaletteItemState extends State<_PaletteItem> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          color: _hover ? tokens.listItemHoverBackground : null,
+          color: selected
+              ? tokens.listItemSelectedBackground
+              : _hover
+                  ? tokens.listItemHoverBackground
+                  : null,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
               Expanded(
                 child: ClideText(
                   widget.title,
-                  color: tokens.listItemForeground,
+                  color: selected ? tokens.listItemSelectedForeground : tokens.listItemForeground,
                 ),
               ),
               if (widget.binding != null)

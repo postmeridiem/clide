@@ -17,17 +17,18 @@ name: default
 
 bindings:
   # -- Activation / focus -----------------------------------------------
+  # ActivateIntent has no when-clause: it dispatches via Actions.maybeInvoke
+  # against the focused context, so only widgets that opt in (ClideTappable's
+  # Actions wrapper) actually catch it. Text-input widgets handle Enter
+  # themselves first.
   - intent: activate
     keys: [enter, space]
-    when: focused.tappable
   - intent: dismiss
     keys: escape
   - intent: focus.next
     keys: tab
-    when: '!textInputFocused'
   - intent: focus.previous
     keys: shift+tab
-    when: '!textInputFocused'
 
   # -- Command palette --------------------------------------------------
   - intent: palette.open

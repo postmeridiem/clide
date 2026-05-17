@@ -5,99 +5,54 @@
 /// `palette.selectNext`, …). The id stays stable across SDK reshapes;
 /// the Dart class name can move without invalidating user keymaps.
 ///
-/// To add a new Intent: declare a subclass with a unique [id] and
-/// register it in [allIntents]. Widget integration is per-feature
-/// (Actions wiring lives in the consuming widget).
+/// Two flavors of intents live here:
+///   1. **Flutter-provided** — `ActivateIntent` and `DismissIntent`
+///      are first-class Flutter intents; we reuse them so the keymap
+///      integrates with anything else in the Flutter ecosystem that
+///      already dispatches those (focus traversal, modal scrims, …).
+///      They're mapped by id in [builtinIntents] but not declared
+///      here.
+///   2. **Clide-specific** — palette navigation, text scale, the
+///      `InvokeCommandIntent` bridge. Each subclass extends [Intent]
+///      directly.
 library;
 
 import 'package:flutter/widgets.dart';
 
-/// Base for every keymap-dispatched intent. The [id] is the YAML
-/// identifier (e.g. `palette.selectNext`).
-abstract class ClideIntent extends Intent {
-  const ClideIntent();
-  String get id;
-}
-
-// -- Activation / navigation ------------------------------------------------
-
-/// "Click this thing" — fired on Enter/Space against any focusable
-/// `ClideTappable`-rooted widget.
-class ActivateIntent extends ClideIntent {
-  const ActivateIntent();
-  @override
-  String get id => 'activate';
-}
-
-/// "Cancel / dismiss the current modal / overlay".
-class DismissIntent extends ClideIntent {
-  const DismissIntent();
-  @override
-  String get id => 'dismiss';
-}
-
-/// "Move focus to the next focusable in tab order".
-class FocusNextIntent extends ClideIntent {
-  const FocusNextIntent();
-  @override
-  String get id => 'focus.next';
-}
-
-/// "Move focus to the previous focusable".
-class FocusPreviousIntent extends ClideIntent {
-  const FocusPreviousIntent();
-  @override
-  String get id => 'focus.previous';
-}
-
 // -- Command palette --------------------------------------------------------
 
 /// Open the command palette.
-class PaletteOpenIntent extends ClideIntent {
+class PaletteOpenIntent extends Intent {
   const PaletteOpenIntent();
-  @override
-  String get id => 'palette.open';
 }
 
 /// Highlight the next palette result.
-class PaletteSelectNextIntent extends ClideIntent {
+class PaletteSelectNextIntent extends Intent {
   const PaletteSelectNextIntent();
-  @override
-  String get id => 'palette.selectNext';
 }
 
 /// Highlight the previous palette result.
-class PaletteSelectPreviousIntent extends ClideIntent {
+class PaletteSelectPreviousIntent extends Intent {
   const PaletteSelectPreviousIntent();
-  @override
-  String get id => 'palette.selectPrevious';
 }
 
 /// Invoke the highlighted palette result.
-class PaletteAcceptIntent extends ClideIntent {
+class PaletteAcceptIntent extends Intent {
   const PaletteAcceptIntent();
-  @override
-  String get id => 'palette.accept';
 }
 
 // -- Text scale -------------------------------------------------------------
 
-class TextScaleIncreaseIntent extends ClideIntent {
+class TextScaleIncreaseIntent extends Intent {
   const TextScaleIncreaseIntent();
-  @override
-  String get id => 'text.scaleIncrease';
 }
 
-class TextScaleDecreaseIntent extends ClideIntent {
+class TextScaleDecreaseIntent extends Intent {
   const TextScaleDecreaseIntent();
-  @override
-  String get id => 'text.scaleDecrease';
 }
 
-class TextScaleResetIntent extends ClideIntent {
+class TextScaleResetIntent extends Intent {
   const TextScaleResetIntent();
-  @override
-  String get id => 'text.scaleReset';
 }
 
 // -- Command bridge ---------------------------------------------------------
@@ -106,11 +61,9 @@ class TextScaleResetIntent extends ClideIntent {
 /// bindings that target a contributed command rather than a typed
 /// intent. The keymap creates one per binding; the Actions handler
 /// dispatches to the [CommandRegistry].
-class InvokeCommandIntent extends ClideIntent {
+class InvokeCommandIntent extends Intent {
   const InvokeCommandIntent(this.commandId);
   final String commandId;
-  @override
-  String get id => 'command:$commandId';
 }
 
 // -- Lookup -----------------------------------------------------------------
@@ -120,29 +73,23 @@ class InvokeCommandIntent extends ClideIntent {
 /// configurable payload (only `InvokeCommandIntent` today) are not in
 /// the map — the loader recognises the `command:` prefix and
 /// instantiates them inline.
-final Map<String, ClideIntent Function()> builtinIntents = {
-  for (final i in _allBuiltin) i.id: () => i,
+final Map<String, Intent Function()> builtinIntents = {
+  'activate': () => const ActivateIntent(),
+  'dismiss': () => const DismissIntent(),
+  'palette.open': () => const PaletteOpenIntent(),
+  'palette.selectNext': () => const PaletteSelectNextIntent(),
+  'palette.selectPrevious': () => const PaletteSelectPreviousIntent(),
+  'palette.accept': () => const PaletteAcceptIntent(),
+  'text.scaleIncrease': () => const TextScaleIncreaseIntent(),
+  'text.scaleDecrease': () => const TextScaleDecreaseIntent(),
+  'text.scaleReset': () => const TextScaleResetIntent(),
 };
 
-const List<ClideIntent> _allBuiltin = [
-  ActivateIntent(),
-  DismissIntent(),
-  FocusNextIntent(),
-  FocusPreviousIntent(),
-  PaletteOpenIntent(),
-  PaletteSelectNextIntent(),
-  PaletteSelectPreviousIntent(),
-  PaletteAcceptIntent(),
-  TextScaleIncreaseIntent(),
-  TextScaleDecreaseIntent(),
-  TextScaleResetIntent(),
-];
-
-/// Parse an intent id into a [ClideIntent]. Returns null if the id is
+/// Parse an intent id into an [Intent]. Returns null if the id is
 /// unknown. Recognises:
 ///   - any builtin intent by its stable id
 ///   - `command:<command-id>` → [InvokeCommandIntent]
-ClideIntent? parseIntentId(String id) {
+Intent? parseIntentId(String id) {
   final builtin = builtinIntents[id];
   if (builtin != null) return builtin();
   if (id.startsWith('command:')) {

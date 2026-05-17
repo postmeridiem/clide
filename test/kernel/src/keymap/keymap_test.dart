@@ -4,6 +4,7 @@ library;
 import 'package:clide/kernel/src/keymap/intents.dart';
 import 'package:clide/kernel/src/keymap/key_chord.dart';
 import 'package:clide/kernel/src/keymap/keymap.dart';
+import 'package:flutter/widgets.dart' show ActivateIntent, DismissIntent;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

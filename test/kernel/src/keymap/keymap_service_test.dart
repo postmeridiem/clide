@@ -8,6 +8,7 @@ import 'package:clide/kernel/src/keymap/key_chord.dart';
 import 'package:clide/kernel/src/keymap/keymap_service.dart';
 import 'package:clide/kernel/src/settings.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show ActivateIntent, DismissIntent;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -136,8 +137,6 @@ void main() {
       expect(intent, isA<InvokeCommandIntent>());
       final invoke = intent as InvokeCommandIntent;
       expect(invoke.commandId, 'git.commit');
-      // `id` carries the command suffix for round-trip identification.
-      expect(invoke.id, 'command:git.commit');
     });
 
     test('honours a when-clause on the contribution', () async {

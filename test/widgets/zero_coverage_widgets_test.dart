@@ -145,6 +145,91 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Hoverable'), findsOneWidget);
     });
+
+    testWidgets('arrow keys move the highlighted command (T-100)', (tester) async {
+      for (final id in ['a', 'b', 'c']) {
+        f.services.commands.register(CommandContribution(
+          id: id,
+          command: 'cmd.$id',
+          title: 'Item $id',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ));
+      }
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      // selectedIndex starts at 0.
+      expect(f.services.palette.selectedIndex, 0);
+
+      // Dispatch palette intents directly against the palette's
+      // focused context — what the keymap would do for ↓ / ↑.
+      final ctx = f.services.palette.isOpen ? FocusManager.instance.primaryFocus?.context : null;
+      Actions.invoke(ctx!, const PaletteSelectNextIntent());
+      expect(f.services.palette.selectedIndex, 1);
+      Actions.invoke(ctx, const PaletteSelectNextIntent());
+      expect(f.services.palette.selectedIndex, 2);
+      // Wraps at end.
+      Actions.invoke(ctx, const PaletteSelectNextIntent());
+      expect(f.services.palette.selectedIndex, 0);
+      // Wraps backwards at start.
+      Actions.invoke(ctx, const PaletteSelectPreviousIntent());
+      expect(f.services.palette.selectedIndex, 2);
+    });
+
+    testWidgets('PaletteAcceptIntent invokes the highlighted command (T-100)', (tester) async {
+      var which = '';
+      for (final id in ['a', 'b', 'c']) {
+        f.services.commands.register(CommandContribution(
+          id: id,
+          command: 'cmd.$id',
+          title: 'Item $id',
+          run: (_) async {
+            which = id;
+            return IpcResponse.ok(id: '', data: const {});
+          },
+        ));
+      }
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      final ctx = FocusManager.instance.primaryFocus!.context!;
+      Actions.invoke(ctx, const PaletteSelectNextIntent());
+      Actions.invoke(ctx, const PaletteAcceptIntent());
+      await tester.pumpAndSettle();
+      expect(which, 'b');
+      expect(f.services.palette.isOpen, isFalse, reason: 'acceptSelected closes the palette');
+    });
+
+    testWidgets('DismissIntent closes the palette (T-100)', (tester) async {
+      f.services.commands.register(CommandContribution(
+        id: 'c1',
+        command: 'thing',
+        title: 'Thing',
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ));
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      final ctx = FocusManager.instance.primaryFocus!.context!;
+      Actions.invoke(ctx, const DismissIntent());
+      await tester.pumpAndSettle();
+      expect(f.services.palette.isOpen, isFalse);
+    });
+
+    testWidgets('opening the palette publishes palette.open scope flag (T-100)', (tester) async {
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+      expect(f.services.keymap.scope['palette.open'] ?? false, isFalse);
+      f.services.palette.open();
+      await tester.pumpAndSettle();
+      expect(f.services.keymap.scope['palette.open'], isTrue);
+      f.services.palette.close();
+      await tester.pumpAndSettle();
+      expect(f.services.keymap.scope['palette.open'], isFalse);
+    });
   });
 
   group('ClideFilterBox', () {

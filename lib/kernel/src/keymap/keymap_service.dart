@@ -23,6 +23,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show AssetBundle, KeyEvent, HardwareKeyboard, rootBundle;
+import 'package:flutter/widgets.dart' show Intent;
 
 import '../settings.dart';
 import 'intents.dart';
@@ -160,7 +161,7 @@ class KeymapService extends ChangeNotifier {
 
   /// Resolve a [KeyEvent] against the active keymap and current scope.
   /// Returns null when nothing matches.
-  ClideIntent? resolveEvent(KeyEvent event, HardwareKeyboard kb) {
+  Intent? resolveEvent(KeyEvent event, HardwareKeyboard kb) {
     final km = _active;
     if (km == null) return null;
     final chord = KeyChord.fromKeyEvent(event, kb);

@@ -6,11 +6,12 @@
 /// same (chord, when-clause) tuple.
 ///
 /// At resolve time, the [Keymap] walks the layered list once per
-/// (chord, scope) and returns the [ClideIntent] bound by the highest-
+/// (chord, scope) and returns the [Intent] bound by the highest-
 /// precedence matching layer.
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Intent;
 import 'package:yaml/yaml.dart';
 
 import 'intents.dart';
@@ -28,11 +29,11 @@ class KeymapBinding {
   });
 
   final KeyChord chord;
-  final ClideIntent intent;
+  final Intent intent;
   final WhenExpr? when;
 
   @override
-  String toString() => 'Binding($chord → ${intent.id}${when == null ? '' : ' when $when'})';
+  String toString() => 'Binding($chord → ${intent.runtimeType}${when == null ? '' : ' when $when'})';
 }
 
 /// One source of bindings. Layers are merged in order — later layers
@@ -117,7 +118,7 @@ class Keymap {
   /// Resolve a [chord] against the current [context]. Returns the
   /// highest-precedence binding whose chord matches and whose when-
   /// clause (if any) evaluates true. Returns null if no match.
-  ClideIntent? resolve(KeyChord chord, Map<String, bool> context) {
+  Intent? resolve(KeyChord chord, Map<String, bool> context) {
     // Effective list is highest-precedence-first; first match wins.
     for (final b in _effective) {
       if (b.chord != chord) continue;

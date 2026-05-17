@@ -48,6 +48,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   VS-Code-style when-clauses, layered preset → user file → settings
   overlay. Default preset ships; vim/vscode/jetbrains unblocked
   (T-117, supersedes T-110).
+- Keyboard operability — `ClideTappable` is now Tab-focusable with a
+  focus ring and Enter/Space activation; `ClidePalette` adds arrow
+  nav, Escape dismiss, and selection highlight (T-100).
 - Test sweep — `keybindings`, `toolchain_paths`, and several
   `widgets/src/` primitives (tooltip, palette, multitab, markdown).
 - `tree_sitter_service` sweep — fake-FFI + real-library smoke,
