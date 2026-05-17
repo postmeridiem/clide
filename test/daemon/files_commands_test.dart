@@ -116,6 +116,31 @@ void main() {
     expect(r.error!.message, contains('outside workspace'));
   });
 
+  test('files.read rejects a symlink whose target is outside the workspace (T-102)', () async {
+    final outside = await Directory.systemTemp.createTemp('clide_t102_read_');
+    addTearDown(() async {
+      if (await outside.exists()) await outside.delete(recursive: true);
+    });
+    File('${outside.path}/secret.txt').writeAsStringSync('payload');
+    Link('${sandbox.path}/leak').createSync('${outside.path}/secret.txt');
+
+    final r = await call('files.read', const {'path': 'leak'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('outside workspace'));
+  });
+
+  test('files.ls rejects a symlinked subdir whose target is outside (T-102)', () async {
+    final outside = await Directory.systemTemp.createTemp('clide_t102_ls_');
+    addTearDown(() async {
+      if (await outside.exists()) await outside.delete(recursive: true);
+    });
+    Link('${sandbox.path}/leak-dir').createSync(outside.path);
+
+    final r = await call('files.ls', const {'path': 'leak-dir'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('outside workspace'));
+  });
+
   test('files.watch is idempotent: a second call still acks subscription', () async {
     final r1 = await call('files.watch', const {});
     final r2 = await call('files.watch', const {});

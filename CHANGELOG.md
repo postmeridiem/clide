@@ -95,6 +95,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - `TreeSitterService` and `TreeSitterLib` accept injectable FFI + asset
   loaders for fake-driven tests; production paths unchanged.
 - Tidied test imports flagged by `unnecessary_import`.
+- `README.md` rewritten to match current architecture; `docs/initial-plan.md`
+  bannered as historical; new `docs/architecture.md` describes today's
+  shape (T-101).
 - Terminal panes now render bold attributes with a real bold weight —
   bundled JetBrainsMono Bold + BoldItalic are registered with the
   `JetBrainsMono` family at `weight: 700`. The painter's bold
@@ -158,6 +161,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   and clide would run it on auto-fired `git.status`. Dugite now
   resolves against the install dir + `CLIDE_DUGITE_DIR` env override
   only (T-98).
+- `files.read` and `files.ls` now reject symlinks whose targets live
+  outside the workspace — closes a path-safety bypass via in-repo
+  symlinks (T-102).
 - `files.read` and `files.ls` now reject paths that resolve outside
   the workspace root. Previously a relative path containing `..`
   could read arbitrary files via path traversal.

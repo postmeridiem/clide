@@ -74,7 +74,9 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     }
     final String absPath;
     try {
-      absPath = resolveUnderRoot(files.root, path);
+      // Follow symlinks + re-check containment so a `config -> /etc/shadow`
+      // symlink under the workspace can't be read (T-102).
+      absPath = resolveUnderRootFollowingSymlinks(files.root, path);
     } on PathOutsideRoot {
       return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'));
     }
@@ -90,7 +92,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     final dir = (req.args['path'] as String?) ?? '';
     if (dir.isNotEmpty) {
       try {
-        resolveUnderRoot(files.root, dir);
+        resolveUnderRootFollowingSymlinks(files.root, dir);
       } on PathOutsideRoot {
         return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $dir'));
       }
