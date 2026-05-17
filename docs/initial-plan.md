@@ -1,5 +1,24 @@
 # Clide — Initial Plan (Flutter rebuild)
 
+> **⚠ HISTORICAL — preserved as a snapshot of the 2026-04 plan.**
+>
+> Several load-bearing choices in this document have since been
+> superseded by formal decisions:
+>
+> - **No Go sidecar.** Dart is the sole core language (D-5).
+> - **No separate daemon process.** The Flutter app hosts the IPC
+>   server in-process (D-56).
+> - **No `ptyc/` C helper.** PTY spawning uses Dart FFI
+>   `posix_openpt()` + `posix_spawn()` (D-5 amendments, T-96).
+> - **Single package at the repo root**, not `app/` + `lib/` + `bin/`.
+> - **No `project.yaml`.** Project metadata lives in `pubspec.yaml`.
+>
+> For the current architecture, see [`docs/architecture.md`](architecture.md).
+> For the decision trail, see [`governance/decisions/`](../governance/decisions/).
+> The text below is left intact for anyone tracing the design history.
+
+---
+
 **Working name:** clide (unchanged from the Python era). Repo root:
 `/var/mnt/data/projects/clide`. Flutter desktop app + Go sidecar/CLI.
 

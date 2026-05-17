@@ -1,5 +1,12 @@
 # PTY on macOS: A New Diagnostic and Resolution Plan
 
+> **⚠ HISTORICAL — `ptyc` is retired.** PTY spawning moved to
+> Dart FFI `posix_openpt()` + `posix_spawn()` (D-5 amendments,
+> T-96). This document captures the forensic investigation of the
+> SCM_RIGHTS control-message mismatch in the old C helper. Kept for
+> the diagnostic technique; the code it discusses no longer exists.
+
+
 ## 1. Executive Summary
 
 Previous attempts to fix the PTY functionality on macOS have failed, even after correcting a deadlock in the Dart code. The core of the problem appears to be a fundamental mismatch in how the C helper (`ptyc`) constructs a control message and how the Dart FFI layer is trying to parse it.

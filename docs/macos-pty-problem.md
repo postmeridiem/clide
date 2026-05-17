@@ -1,5 +1,11 @@
 # macOS PTY Problem — Diagnosis Complete
 
+> **⚠ HISTORICAL — `ptyc` is retired.** PTY spawning moved to
+> Dart FFI `posix_openpt()` + `posix_spawn()` (D-5 amendments,
+> T-96). The race described below was specific to the old C helper's
+> SCM_RIGHTS hand-off and no longer applies.
+
+
 ## Status: Root cause found
 
 The PTY master fd is valid (`isatty=1`), SCM_RIGHTS transfer is correct, all struct layouts are correct. The problem is **timing**: the reader isolate starts too late and the shell has already exited by the time `read()` is called on the master fd. macOS returns EOF (n=0) immediately when the slave side is closed — unlike Linux which buffers data.
