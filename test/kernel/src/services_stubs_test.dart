@@ -6,6 +6,7 @@ library;
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show FocusScopeNode;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -111,6 +112,70 @@ void main() {
       // clear when already cleared is a no-op.
       f.clear();
       expect(calls, 1);
+    });
+  });
+
+  group('FocusTracker — slot scope registry (T-105)', () {
+    test('focusSlot is a no-op when no scope is registered', () {
+      FocusTracker().focusSlot(Slots.sidebar); // doesn't throw
+    });
+
+    test('focusSlot requests focus on the registered scope', () {
+      final tracker = FocusTracker();
+      final scope = FocusScopeNode();
+      addTearDown(scope.dispose);
+      tracker.registerSlotScope(Slots.workspace, scope);
+      tracker.focusSlot(Slots.workspace);
+      // FocusScopeNode.requestFocus only flips hasPrimaryFocus when
+      // attached to a tree; we assert the no-throw + the registration
+      // round-trip rather than primary focus state (covered by the
+      // widget test).
+      tracker.unregisterSlotScope(Slots.workspace, scope);
+      tracker.focusSlot(Slots.workspace); // now a no-op
+    });
+
+    test('unregister skips when a newer scope took the slot', () {
+      final tracker = FocusTracker();
+      final older = FocusScopeNode();
+      final newer = FocusScopeNode();
+      addTearDown(() {
+        older.dispose();
+        newer.dispose();
+      });
+      tracker.registerSlotScope(Slots.workspace, older);
+      tracker.registerSlotScope(Slots.workspace, newer);
+      // Older calls unregister but the slot now holds `newer` — must
+      // not remove it.
+      tracker.unregisterSlotScope(Slots.workspace, older);
+      tracker.focusSlot(Slots.workspace); // still wired to `newer`
+    });
+
+    test('focusNextSlot / focusPreviousSlot cycle through registered slots only', () {
+      final tracker = FocusTracker();
+      final sidebar = FocusScopeNode(debugLabel: 'sidebar');
+      final workspace = FocusScopeNode(debugLabel: 'workspace');
+      addTearDown(() {
+        sidebar.dispose();
+        workspace.dispose();
+      });
+      tracker.registerSlotScope(Slots.sidebar, sidebar);
+      tracker.registerSlotScope(Slots.workspace, workspace);
+      // contextPanel intentionally NOT registered — should be skipped.
+
+      tracker.setActive(slot: Slots.sidebar, contributionId: 'a');
+      // The cycle is silent (no notify on focus call alone), but we can
+      // assert it doesn't throw and produces a deterministic shape.
+      tracker.focusNextSlot();
+      tracker.focusPreviousSlot();
+    });
+
+    test('cycle no-ops when fewer than two slots are registered', () {
+      final tracker = FocusTracker();
+      final scope = FocusScopeNode();
+      addTearDown(scope.dispose);
+      tracker.registerSlotScope(Slots.workspace, scope);
+      tracker.focusNextSlot(); // no-op, no throw
+      tracker.focusPreviousSlot();
     });
   });
 

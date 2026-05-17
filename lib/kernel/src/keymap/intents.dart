@@ -19,6 +19,19 @@ library;
 
 import 'package:flutter/widgets.dart';
 
+// -- Panel-to-panel focus traversal -----------------------------------------
+
+/// Move focus to the next panel in `FocusTracker.traversalOrder`
+/// (sidebar → workspace → context). Bound to F6 by default.
+class FocusNextPanelIntent extends Intent {
+  const FocusNextPanelIntent();
+}
+
+/// Move focus to the previous panel. Bound to Shift+F6 by default.
+class FocusPreviousPanelIntent extends Intent {
+  const FocusPreviousPanelIntent();
+}
+
 // -- Command palette --------------------------------------------------------
 
 /// Open the command palette.
@@ -76,6 +89,8 @@ class InvokeCommandIntent extends Intent {
 final Map<String, Intent Function()> builtinIntents = {
   'activate': () => const ActivateIntent(),
   'dismiss': () => const DismissIntent(),
+  'focus.nextPanel': () => const FocusNextPanelIntent(),
+  'focus.previousPanel': () => const FocusPreviousPanelIntent(),
   'palette.open': () => const PaletteOpenIntent(),
   'palette.selectNext': () => const PaletteSelectNextIntent(),
   'palette.selectPrevious': () => const PaletteSelectPreviousIntent(),

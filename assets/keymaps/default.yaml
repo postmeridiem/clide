@@ -30,6 +30,13 @@ bindings:
   - intent: focus.previous
     keys: shift+tab
 
+  # Panel-to-panel cycling (sidebar → workspace → context).
+  # VS Code convention.
+  - intent: focus.nextPanel
+    keys: f6
+  - intent: focus.previousPanel
+    keys: shift+f6
+
   # -- Command palette --------------------------------------------------
   - intent: palette.open
     keys: [ctrl+shift+p, meta+shift+p]

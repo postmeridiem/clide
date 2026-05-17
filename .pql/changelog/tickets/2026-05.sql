@@ -1771,3 +1771,13 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 3. Extend the a11y test layer to assert operability (Tab + Enter actually invokes), not just Semantics presence.
 
 Source: consultants.md "UX — Findings — [Critical]".', 'done', 'high', NULL, NULL, NULL, '2026-05-17 18:47:23', '2026-05-17 19:47:50', NULL, 'f6f0c34a700b133bc84c6d8d7ea450a3', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-105', 'story', 'T-97', 'establish focus-traversal model; integrate FocusTracker with Flutter focus', 'No `FocusScope`/`FocusTraversalGroup` wiring across panels. `FocusTracker` (`lib/kernel/src/focus.dart`) tracks an active contribution id for the `clide active` CLI but doesn''t plug into Flutter''s focus system — it parallels it. Tab order across sidebar → workspace → context is undefined.
+
+**Fix:**
+1. Per-slot `FocusTraversalGroup` so each panel manages its own traversal.
+2. A documented top-level keybinding (e.g. `Ctrl+Shift+Tab`-style) that moves focus to the next panel.
+3. Integrate `FocusTracker` with Flutter focus rather than maintaining a parallel registry.
+
+Depends on T-100 (ClideTappable accepting focus).
+
+Source: consultants.md "UX — Findings — [Major] No focus-traversal wiring".', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 18:47:47', '2026-05-17 19:56:28', NULL, '0715d1ded0d12083622f8a46d570f4d9', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

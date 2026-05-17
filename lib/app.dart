@@ -119,6 +119,18 @@ class _RootShellState extends State<_RootShell> {
                 return null;
               },
             ),
+            FocusNextPanelIntent: CallbackAction<FocusNextPanelIntent>(
+              onInvoke: (_) {
+                widget.services.focus.focusNextSlot();
+                return null;
+              },
+            ),
+            FocusPreviousPanelIntent: CallbackAction<FocusPreviousPanelIntent>(
+              onInvoke: (_) {
+                widget.services.focus.focusPreviousSlot();
+                return null;
+              },
+            ),
           },
           child: KeyboardListener(
             focusNode: _keyFocus,
@@ -736,66 +748,122 @@ class _NotARepoDialog extends StatelessWidget {
   }
 }
 
-class SlotHost extends StatelessWidget {
+class SlotHost extends StatefulWidget {
   const SlotHost({super.key, required this.slot});
   final SlotId slot;
+
+  @override
+  State<SlotHost> createState() => _SlotHostState();
+}
+
+class _SlotHostState extends State<SlotHost> {
+  late final FocusScopeNode _scope = FocusScopeNode(debugLabel: 'SlotScope:${widget.slot.value}');
+  FocusTracker? _tracker;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final kernel = ClideKernel.of(context);
+    if (!identical(_tracker, kernel.focus)) {
+      _tracker?.unregisterSlotScope(widget.slot, _scope);
+      _tracker = kernel.focus;
+      _tracker!.registerSlotScope(widget.slot, _scope);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tracker?.unregisterSlotScope(widget.slot, _scope);
+    _scope.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange(bool hasFocus) {
+    if (!hasFocus || _tracker == null) return;
+    final kernel = ClideKernel.of(context);
+    final activeId = kernel.panels.activeTabIn(widget.slot);
+    if (activeId != null) {
+      _tracker!.setActive(slot: widget.slot, contributionId: activeId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    return ListenableBuilder(
-      listenable: Listenable.merge([kernel.panels, kernel.i18n]),
-      builder: (ctx, _) {
-        final tabs = kernel.panels.tabsFor(slot);
-        if (tabs.isEmpty) {
-          return Container(color: tokens.panelBackground);
-        }
-        final activeId = kernel.panels.activeTabIn(slot) ?? tabs.first.id;
-        final active = tabs.firstWhere(
-          (t) => t.id == activeId,
-          orElse: () => tabs.first,
-        );
+    return FocusScope(
+      node: _scope,
+      onFocusChange: _onFocusChange,
+      child: FocusTraversalGroup(
+        child: ListenableBuilder(
+          listenable: Listenable.merge([kernel.panels, kernel.i18n]),
+          builder: (ctx, _) {
+            final tabs = kernel.panels.tabsFor(widget.slot);
+            if (tabs.isEmpty) {
+              return Container(color: tokens.panelBackground);
+            }
+            final activeId = kernel.panels.activeTabIn(widget.slot) ?? tabs.first.id;
+            final active = tabs.firstWhere(
+              (t) => t.id == activeId,
+              orElse: () => tabs.first,
+            );
+            return _SlotBody(slot: widget.slot, tabs: tabs, active: active, activeId: activeId);
+          },
+        ),
+      ),
+    );
+  }
+}
 
-        if (slot == Slots.sidebar) {
-          return _SidebarSlot(
-            tabs: tabs,
-            active: active,
-            activeId: activeId,
-            onSelect: (id) => kernel.panels.activateTab(slot, id),
-          );
-        }
+class _SlotBody extends StatelessWidget {
+  const _SlotBody({required this.slot, required this.tabs, required this.active, required this.activeId});
+  final SlotId slot;
+  final List<TabContribution> tabs;
+  final TabContribution active;
+  final String activeId;
 
-        if (slot == Slots.contextPanel) {
-          return _ContextSlot(
-            tabs: tabs,
-            active: active,
-            activeId: activeId,
-            onSelect: (id) => kernel.panels.activateTab(slot, id),
-          );
-        }
+  @override
+  Widget build(BuildContext context) {
+    final kernel = ClideKernel.of(context);
+    final tokens = ClideTheme.of(context).surface;
 
-        if (slot == Slots.workspace) {
-          return _WorkspaceSlot(tabs: tabs, active: active);
-        }
+    if (slot == Slots.sidebar) {
+      return _SidebarSlot(
+        tabs: tabs,
+        active: active,
+        activeId: activeId,
+        onSelect: (id) => kernel.panels.activateTab(slot, id),
+      );
+    }
 
-        return Container(
-          color: tokens.panelBackground,
-          child: Column(
-            children: [
-              ClideTabBar(
-                items: [
-                  for (final t in tabs) ClideTabItem(id: t.id, title: _resolveTitle(ctx, t)),
-                ],
-                activeId: active.id,
-                onSelect: (id) => kernel.panels.activateTab(slot, id),
-              ),
-              ClideDivider(),
-              Expanded(child: active.build(ctx)),
+    if (slot == Slots.contextPanel) {
+      return _ContextSlot(
+        tabs: tabs,
+        active: active,
+        activeId: activeId,
+        onSelect: (id) => kernel.panels.activateTab(slot, id),
+      );
+    }
+
+    if (slot == Slots.workspace) {
+      return _WorkspaceSlot(tabs: tabs, active: active);
+    }
+
+    return Container(
+      color: tokens.panelBackground,
+      child: Column(
+        children: [
+          ClideTabBar(
+            items: [
+              for (final t in tabs) ClideTabItem(id: t.id, title: _resolveTitle(context, t)),
             ],
+            activeId: active.id,
+            onSelect: (id) => kernel.panels.activateTab(slot, id),
           ),
-        );
-      },
+          ClideDivider(),
+          Expanded(child: active.build(context)),
+        ],
+      ),
     );
   }
 
@@ -975,7 +1043,7 @@ class _BottomRail extends StatelessWidget {
                 ClideIconRailItem(
                   id: t.id,
                   icon: _iconFor(slot, t),
-                  tooltip: SlotHost._resolveTitle(ctx, t),
+                  tooltip: _SlotBody._resolveTitle(ctx, t),
                 ),
             ],
             activeId: activeId,
