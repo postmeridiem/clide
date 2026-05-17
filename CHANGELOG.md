@@ -46,6 +46,16 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   end target is 95% (D-66). `ci/test.sh` now writes
   `coverage/lcov.info` as a side effect of the unit/widget/golden
   run so the gate adds no extra test invocation.
+- Test sweep covering `kernel/src/commands/keybindings.dart` (KeyEvent
+  modifier mapping, parse-error edges, resolver entries view),
+  `kernel/src/toolchain_paths.dart` (the Flutter-free `ToolchainView.resolved`
+  static view), `widgets/src/clide_tooltip.dart` (hover-delay overlay,
+  flip-above placement, re-entry cycle), `widgets/src/clide_palette.dart`
+  (filter typing, submit-invokes-first, hover state),
+  `widgets/src/multitab_controller.dart` (`copyWith`, `length`/`isEmpty`
+  getters), and `widgets/src/clide_markdown.dart` (h3–h6, tables,
+  strikethrough, default block fallback, record-link tap). Crosses
+  the 93% line-coverage threshold (T-91).
 - Staged `dart doc` CI job — generates and uploads an HTML API
   reference for the public `lib/` surface. The step wraps
   `dart doc --validate-links` and grep-fails the build on any warning,
@@ -99,6 +109,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Pre-push line-coverage floor unfrozen and ratcheted to 93% (was held
+  at 90 on 2026-05-14 by mistake). 95% target restored per D-66.
+- Tidied test imports — dropped redundant `dart:ui` / `dart:typed_data`
+  / barrel-redundant package imports flagged by `unnecessary_import`.
 - Terminal panes now render bold attributes with a real bold weight —
   bundled JetBrainsMono Bold + BoldItalic are registered with the
   `JetBrainsMono` family at `weight: 700`. The painter's bold

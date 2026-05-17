@@ -10,7 +10,6 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/toolchain_paths.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
-import 'package:clide/src/pql/client.dart';
 import 'package:test/test.dart';
 
 void main() {

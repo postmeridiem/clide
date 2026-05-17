@@ -3,7 +3,6 @@ library;
 
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/panels/drag_resize.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

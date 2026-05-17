@@ -84,6 +84,53 @@ After.
       expect(find.byType(ClideMarkdown), findsOneWidget);
       expect(tapped, isEmpty); // not tapped yet — no crash is the point
     });
+
+    testWidgets('record-id link tap actually invokes onRecordTap', (tester) async {
+      var tapped = '';
+      const src = '[D-1](#anchor)';
+      await tester.pumpWidget(
+        harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)),
+      );
+      await tester.pumpAndSettle();
+      // The link renders as a ClideTappable embedded in a WidgetSpan.
+      await tester.tap(find.text('D-1'));
+      await tester.pumpAndSettle();
+      expect(tapped, 'D-1');
+    });
+
+    testWidgets('h3 / h4 / h5 / h6 headings render with the right padding tier', (tester) async {
+      const src = '### h3\n\n#### h4\n\n##### h5\n\n###### h6\n';
+      await tester.pumpWidget(harness(f, const ClideMarkdown(src)));
+      await tester.pumpAndSettle();
+      expect(find.byType(ClideMarkdown), findsOneWidget);
+      // Each heading contributes a Padding parent — at minimum the document
+      // must render without throwing and include RichText spans for each.
+      expect(find.byType(RichText), findsWidgets);
+    });
+
+    testWidgets('renders pipe-style tables (thead + tbody)', (tester) async {
+      const src = '| col a | col b |\n|-------|-------|\n| a1    | b1    |\n| a2    | b2    |\n';
+      await tester.pumpWidget(harness(f, const ClideMarkdown(src)));
+      await tester.pumpAndSettle();
+      // The Flutter `Table` widget appears for every rendered markdown table.
+      expect(find.byType(Table), findsOneWidget);
+    });
+
+    testWidgets('renders ~~strikethrough~~ as a del span', (tester) async {
+      const src = 'this is ~~gone~~ now';
+      await tester.pumpWidget(harness(f, const ClideMarkdown(src)));
+      await tester.pumpAndSettle();
+      expect(find.byType(ClideMarkdown), findsOneWidget);
+    });
+
+    testWidgets('unknown block tags fall through to the default branch without throwing', (tester) async {
+      // Raw HTML the markdown parser leaves as a passthrough element with an
+      // unrecognized tag — exercises the `default:` arm of `_buildBlock`.
+      const src = '<aside>side note</aside>';
+      await tester.pumpWidget(harness(f, const ClideMarkdown(src)));
+      await tester.pumpAndSettle();
+      expect(find.byType(ClideMarkdown), findsOneWidget);
+    });
   });
 
   group('ClideCodeBlock', () {

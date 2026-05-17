@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';

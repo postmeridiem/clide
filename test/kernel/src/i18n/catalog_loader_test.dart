@@ -6,7 +6,6 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:clide/kernel/src/i18n/catalog_loader.dart';

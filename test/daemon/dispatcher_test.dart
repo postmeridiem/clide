@@ -2,7 +2,6 @@
 library;
 
 import 'package:clide/clide.dart';
-import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:test/test.dart';
 
 IpcRequest _req(String cmd, {String id = '1', Map<String, Object?> args = const {}}) {

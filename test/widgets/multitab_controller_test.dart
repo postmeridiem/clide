@@ -162,5 +162,47 @@ void main() {
       c.remove('b');
       expect(calls, 4);
     });
+
+    test('length / isEmpty / isNotEmpty mirror the entries list', () {
+      final c = MultitabController<String>();
+      expect(c.length, 0);
+      expect(c.isEmpty, isTrue);
+      expect(c.isNotEmpty, isFalse);
+
+      c.add(entry('a'));
+      expect(c.length, 1);
+      expect(c.isEmpty, isFalse);
+      expect(c.isNotEmpty, isTrue);
+    });
+  });
+
+  group('MultitabEntry.copyWith', () {
+    test('overrides each field independently and keeps id', () {
+      const base = MultitabEntry<int>(id: 'x', title: 't', payload: 1);
+
+      final renamed = base.copyWith(title: 'T');
+      expect(renamed.id, 'x');
+      expect(renamed.title, 'T');
+      expect(renamed.payload, 1);
+      expect(renamed.closeable, isTrue);
+      expect(renamed.reorderable, isTrue);
+
+      final repayloaded = base.copyWith(payload: 99);
+      expect(repayloaded.payload, 99);
+
+      final pinned = base.copyWith(closeable: false, reorderable: false);
+      expect(pinned.closeable, isFalse);
+      expect(pinned.reorderable, isFalse);
+    });
+
+    test('omitting all overrides yields an equivalent entry', () {
+      const base = MultitabEntry<String>(id: 'a', title: 'A', payload: 'p');
+      final clone = base.copyWith();
+      expect(clone.id, base.id);
+      expect(clone.title, base.title);
+      expect(clone.payload, base.payload);
+      expect(clone.closeable, base.closeable);
+      expect(clone.reorderable, base.reorderable);
+    });
   });
 }

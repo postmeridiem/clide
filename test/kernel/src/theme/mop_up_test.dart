@@ -6,10 +6,8 @@
 library;
 
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/theme/contrast.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

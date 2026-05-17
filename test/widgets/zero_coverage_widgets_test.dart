@@ -13,6 +13,8 @@ import 'package:clide/widgets/src/clide_resize_border.dart';
 import 'package:clide/widgets/src/clide_spine.dart';
 import 'package:clide/widgets/src/icons/phosphor.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -69,6 +71,79 @@ void main() {
       await tester.tap(find.text('Tap Target'));
       await tester.pumpAndSettle();
       expect(invocations, 1);
+    });
+
+    testWidgets('typing narrows the visible commands via palette.setFilter', (tester) async {
+      f.services.commands.register(CommandContribution(
+        id: 'c1',
+        command: 'alpha.cmd',
+        title: 'Alpha',
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ));
+      f.services.commands.register(CommandContribution(
+        id: 'c2',
+        command: 'beta.cmd',
+        title: 'Beta',
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ));
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(EditableText), 'alpha');
+      await tester.pumpAndSettle();
+      expect(find.text('Alpha'), findsOneWidget);
+      expect(find.text('Beta'), findsNothing);
+    });
+
+    testWidgets('submitting the input invokes the first filtered command', (tester) async {
+      var invocations = 0;
+      f.services.commands.register(CommandContribution(
+        id: 'c1',
+        command: 'submit.target',
+        title: 'Submit Target',
+        run: (_) async {
+          invocations++;
+          return IpcResponse.ok(id: '', data: const {});
+        },
+      ));
+      f.services.commands.register(CommandContribution(
+        id: 'c2',
+        command: 'other.cmd',
+        title: 'Other',
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ));
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(EditableText), 'submit');
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(invocations, 1);
+    });
+
+    testWidgets('hovering a palette row updates its hover state', (tester) async {
+      f.services.commands.register(CommandContribution(
+        id: 'c1',
+        command: 'hover.cmd',
+        title: 'Hoverable',
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ));
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(gesture.removePointer);
+      await gesture.addPointer(location: Offset.zero);
+      await gesture.moveTo(tester.getCenter(find.text('Hoverable')));
+      await tester.pumpAndSettle();
+      // Exit again to also exercise the onExit branch.
+      await gesture.moveTo(const Offset(2000, 2000));
+      await tester.pumpAndSettle();
+      expect(find.text('Hoverable'), findsOneWidget);
     });
   });
 

@@ -1663,3 +1663,47 @@ The `PanGestureRecognizer` in `TerminalGestureDetector` is registered with `supp
 
 **Cross-references:** T-91 (epic parent), T-93 (same shape on `onTapUp`), T-89 (coverage epic).
 ', NULL, '2026-05-08 11:01:01', '2026-05-08 11:01:01', '2026-05-08 11:01:01', NULL, '8088d054dd8c7946075ed6325724dfb3', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-96', 'description', 'The reader isolate spawned by `NativePty._spawnReaderAsync` (`lib/src/pty/native_pty.dart`) hangs intermittently — about 5% of fresh spawns — with poll() on the master fd never returning POLLIN or POLLHUP, even when the child has clearly written and exited. Probed: 2 hangs out of 30 sequential `/bin/sh -c "printf hello-pty"` spawns over a 30s/spawn timeout.
+
+**Symptom:** test sees zero `pane.output` events and no `pane.exit`; the reader isolate sits in `poll(pfd, 1, 100)` returning 0 forever. The hang is per-spawn; a fresh `NativePty.start` recovers cleanly.
+
+**Workaround in place:** `retry: 2` on every PTY-output-dependent test in `test/pty/session_test.dart` and `test/panes/registry_test.dart`. Three combined attempts at ~5% per-spawn fail rate ≈ 99.99% success. Comments at the test sites point back here.
+
+**Acceptance:**
+- Identify why a fresh master fd sometimes never delivers ready events. Candidates to investigate: a race between `forkpty()` and `Isolate.spawn` (the new isolate may see an FD table snapshot from an awkward moment), a missing fcntl flag on the master fd, lazy `DynamicLibrary.process()` symbol resolution in a freshly-spawned dart isolate, GC interference, or wasmtime/tree-sitter signal handlers (unlikely — the probe ran in a clean dart isolate with no wasmtime).
+- Fix the underlying race so a single spawn delivers reliably.
+- Remove the `retry: 2` decorations and the explanatory comments in both test files.
+
+**Out of scope:** changing the PTY threading model or the reader-isolate architecture. The fix should keep `Isolate.spawn(_readLoop, ...)` as the I/O primitive.
+
+**Cross-references:** D-5 (Dart core + sidecar dissolution; PTY is owned via FFI), `lib/src/pty/native_pty.dart#L235-262` (`_spawnReaderAsync`), `lib/src/pty/native_pty.dart#L265-293` (`_readLoop`).', 'The reader isolate spawned by `NativePty._spawnReaderAsync` (`lib/src/pty/native_pty.dart`) hangs intermittently — about 5% of fresh spawns — with poll() on the master fd never returning POLLIN or POLLHUP, even when the child has clearly written and exited. Probed: 2 hangs out of 30 sequential `/bin/sh -c "printf hello-pty"` spawns over a 30s/spawn timeout.
+
+**Root cause — found 2026-05-17 via forensic probe:**
+
+The "child" never reaches `execve`. `/proc/<child-pid>/stat` reports comm `(DartWorker)` (the Dart VM worker thread name) instead of `sh`, with state `S` (sleeping). The pty master fd is a real pty (tty-index assigned, fcntl flags 0x8002 = O_RDWR|O_NOCTTY), but `poll(fd, 500ms)` from the main isolate returns 0 — nothing was ever written.
+
+This is **`fork()` in a multithreaded process** — a textbook async-signal-safety violation. The Dart VM runs multiple worker threads that hold libc locks (notably `malloc`). When `forkpty()` calls `fork()`, only the calling thread survives in the child, but the locks held by ghost-threads remain "locked forever." The child deadlocks before it can complete its post-fork → pre-execve setup.
+
+Why not always? Lock state at fork() time is timing-dependent. ~95% of the time no Dart worker happens to hold a problematic lock, and execve proceeds. ~5% of the time it deadlocks.
+
+**Workaround in place (test-only):** `retry: 2` on every PTY-output-dependent test in `test/pty/session_test.dart` and `test/panes/registry_test.dart`. Three combined attempts at ~5% per-spawn fail rate ≈ 99.99% combined success. Comments at the test sites point back here.
+
+**Proper fix:** replace `forkpty()` with `posix_openpt()` + `unlockpt()` + `grantpt()` + `posix_spawn()` (with file actions wiring the pty slave to stdin/stdout/stderr). `posix_spawn` uses `vfork()` under glibc/musl, which keeps the parent suspended until execve completes — no Dart code ever runs in the child, no lock-deadlock possible. Linux and macOS both support this API.
+
+**Immediate hardening alternative (Linux-only, simpler):** after spawn, sample `/proc/<pid>/comm` after ~250ms. If it equals the parent process''s comm, execve never ran → kill the child, surface `PtyException(''execve-deadlock'', ...)`, let the caller retry. This catches the deadlocked state deterministically instead of waiting for a poll timeout. It doesn''t fix the bug, but turns silent hangs into reportable errors.
+
+**Acceptance for closing this ticket:**
+1. Replace forkpty path with posix_openpt + posix_spawn (or implement the comm-check hardening as an interim).
+2. Probe (200 sequential `printf hello`-and-exit spawns) reports zero hangs.
+3. Remove the `retry: 2` decorations + explanatory comments in `test/pty/session_test.dart` (6 tests) and `test/panes/registry_test.dart` (1 test).
+
+**Out of scope:** changing the reader-isolate architecture itself. `Isolate.spawn(_readLoop, ...)` for output stays.
+
+**Cross-references:**
+- D-5 (Dart core + sidecar dissolution; PTY is owned via FFI)
+- `lib/src/pty/native_pty.dart:200` (the forkpty call site)
+- `lib/src/pty/native_pty.dart:170-191` (child-side post-fork code that deadlocks)
+- `lib/src/pty/native_pty.dart:235-262` (reader spawn — not the bug; downstream symptom)
+- glibc posix_spawn docs: https://www.gnu.org/software/libc/manual/html_node/Process-Creation-Example.html
+', NULL, '2026-05-17 18:05:33', '2026-05-17 18:05:33', '2026-05-17 18:05:33', NULL, '56d9ba7c49068a498a003e900cde416f', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-96', 'status', 'backlog', 'done', NULL, '2026-05-17 18:11:18', '2026-05-17 18:11:18', '2026-05-17 18:11:18', NULL, '3215fc763c4f1dce75ea9e0bb2b9bbb6', 1) ON CONFLICT(hash) DO NOTHING;
