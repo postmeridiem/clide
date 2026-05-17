@@ -10,7 +10,7 @@ void main() {
   late PqlClient pql;
 
   setUp(() {
-    final toolchain = ToolchainView.resolved(resolveToolchainPaths(Directory.current.path));
+    final toolchain = ToolchainView.resolved(resolveToolchainPaths());
     pql = PqlClient(workDir: Directory.current, toolchain: toolchain);
     dispatcher = DaemonDispatcher();
     registerPqlCommands(dispatcher, pql);

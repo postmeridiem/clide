@@ -153,6 +153,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Security
 
+- Toolchain no longer resolves the dugite git binary against the open
+  workspace — a malicious repo could plant `native/dugite/bin/git`
+  and clide would run it on auto-fired `git.status`. Dugite now
+  resolves against the install dir + `CLIDE_DUGITE_DIR` env override
+  only (T-98).
 - `files.read` and `files.ls` now reject paths that resolve outside
   the workspace root. Previously a relative path containing `..`
   could read arbitrary files via path traversal.

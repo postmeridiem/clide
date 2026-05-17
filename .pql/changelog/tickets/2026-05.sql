@@ -1597,3 +1597,13 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 4. Surface text-zoom (Ctrl +/-/0) in the palette so it''s discoverable.
 
 Source: consultants.md "UX — Findings — [Minor]" + Strengths section.', 'backlog', 'low', NULL, NULL, NULL, '2026-05-17 18:48:28', '2026-05-17 18:48:28', NULL, 'e749bba718321bcc202cc51c55a59ee4', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-98', 'bug', 'T-97', 'fix untrusted-workspace RCE in dugite git resolution', '`toolchain_paths.dart:79` builds `''$workspaceRoot/native/dugite/bin''` and runs `_firstExisting([''$dugite/git''])` — if that file exists in the open workspace it becomes the git binary for all GitClient calls, before falling back to PATH. A malicious repo commits an executable at `native/dugite/bin/git`; clide runs it on the first auto-fired `git.status`. Arbitrary code execution from merely opening a repo.
+
+**Fix:** resolve `native/dugite` against `Platform.resolvedExecutable`''s directory (or a known install root), never `workspaceRoot`.
+
+**Acceptance:**
+1. Toolchain resolution does not look at any workspace path.
+2. Test that a planted `native/dugite/bin/git` in the temp-dir workspace is ignored.
+3. Existing dugite-in-install-dir behavior preserved.
+
+Source: consultants.md "Security — Findings — [Critical]".', 'done', 'critical', NULL, NULL, NULL, '2026-05-17 18:47:13', '2026-05-17 18:55:57', NULL, '40e1ed24c3cce28e2420150f1fac8fbd', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

@@ -33,7 +33,7 @@ void main() {
 
     sink = RecordingEventSink();
     dispatcher = DaemonDispatcher();
-    final toolchain = ToolchainView.resolved(resolveToolchainPaths(sandbox.path));
+    final toolchain = ToolchainView.resolved(resolveToolchainPaths());
     final gitClient = GitClient(toolchain: toolchain, workDir: sandbox);
     registerGitCommands(dispatcher, gitClient, sink);
   });

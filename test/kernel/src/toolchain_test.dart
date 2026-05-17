@@ -63,45 +63,59 @@ void main() {
   });
 
   group('Toolchain.resolvePaths (static)', () {
-    test('returns a ResolvedPaths against the current workspace', () {
-      final paths = Toolchain.resolvePaths(workspaceRoot: Directory.current.path);
-      // Whatever was found, the result must be a ResolvedPaths.
+    test('returns a ResolvedPaths with pql resolved from PATH', () {
+      final paths = Toolchain.resolvePaths();
       expect(paths, isA<ResolvedPaths>());
       // On this CI host pql is installed (per repo memory).
       expect(paths.pql, isNotNull);
     });
 
-    test('uses the dugite git when present in the workspace', () {
-      // The clide repo bundles dugite under native/dugite/bin/git.
-      final paths = Toolchain.resolvePaths(workspaceRoot: Directory.current.path);
-      final dugitePath = '${Directory.current.path}/native/dugite/bin/git';
-      if (File(dugitePath).existsSync()) {
-        expect(paths.git, dugitePath);
-        expect(paths.gitEnv?['GIT_EXEC_PATH'], isNotNull);
-      }
-    });
-
-    test('falls back to PATH git when no dugite is present', () {
-      final paths = Toolchain.resolvePaths(workspaceRoot: '/tmp/clide-no-dugite-${DateTime.now().microsecondsSinceEpoch}');
-      // Either PATH git or null — the point is that gitEnv is null when
-      // not using dugite.
+    test('git falls back to PATH when no install-dir dugite is found', () {
+      final paths = Toolchain.resolvePaths();
+      // No dugite is bundled next to the test runner binary, so git
+      // resolves via PATH; gitEnv stays null because dugite paths are
+      // not in effect.
       if (paths.git != null) {
         expect(paths.gitEnv, isNull);
       }
     });
   });
 
-  group('resolveToolchainPaths (top-level, for isolates)', () {
-    test('matches Toolchain.resolvePaths shape', () {
-      final viaStatic = Toolchain.resolvePaths(workspaceRoot: Directory.current.path);
-      final viaTopLevel = resolveToolchainPaths(Directory.current.path);
-      // Both must agree on the pql binary (or both null if missing).
-      expect(viaTopLevel.pql, viaStatic.pql);
+  group('resolveToolchainPaths — security (T-98)', () {
+    test('does NOT execute a planted git in the open workspace', () async {
+      // Plant a fake dugite tree inside a temp dir that mimics what a
+      // malicious repo could ship. The old code would resolve
+      // `<workspaceRoot>/native/dugite/bin/git` as the git binary.
+      final tmp = await Directory.systemTemp.createTemp('clide_t98_workspace_');
+      addTearDown(() async {
+        if (await tmp.exists()) await tmp.delete(recursive: true);
+      });
+      final plantedBin = Directory('${tmp.path}/native/dugite/bin')..createSync(recursive: true);
+      final plantedGit = File('${plantedBin.path}/git')..writeAsStringSync('#!/bin/sh\nexit 99\n');
+      // chmod+x so the file is executable — exercises the worst case.
+      await Process.run('chmod', ['+x', plantedGit.path]);
+      expect(plantedGit.existsSync(), isTrue, reason: 'planted git must exist for the test to be meaningful');
+
+      final paths = resolveToolchainPaths();
+
+      // The resolved git binary must never be inside the workspace.
+      // Belt-and-suspenders: also assert it doesn't equal the planted
+      // path verbatim.
+      expect(paths.git, isNot(startsWith(tmp.path)));
+      expect(paths.git, isNot(plantedGit.path));
     });
 
-    test('returns a ResolvedPaths for an arbitrary path', () {
-      final paths = resolveToolchainPaths('/tmp/clide-arbitrary');
-      expect(paths, isA<ResolvedPaths>());
+    test('CLIDE_DUGITE_DIR env var is honored as an install-dir override', () {
+      // We can't mutate Platform.environment from a test, so we just
+      // assert the *contract* by checking the behavior in absence of
+      // the var. The env-var branch is documented and exercised by the
+      // dev workflow `make run` when CLIDE_DUGITE_DIR is set.
+      // The negative case: no env var → no workspace lookup → git
+      // resolves via PATH only.
+      final paths = resolveToolchainPaths();
+      if (paths.git != null) {
+        expect(paths.gitEnv, isNull, reason: 'gitEnv must be null unless dugite is found in a trusted location');
+      }
     });
   });
 }

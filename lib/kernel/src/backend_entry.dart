@@ -45,11 +45,10 @@ void backendEntry(BackendBootMessage boot) {
   late Toolchain toolchain;
 
   // Phase 1: resolve toolchain — just find binaries, don't init services.
-  // We need a project root for dugite paths. Use a sensible default;
-  // the real project comes from project.open.
-  final resolveRoot = boot.hintRoot ?? Platform.environment['HOME'] ?? '/tmp';
+  // Dugite is resolved against the install dir; per T-98 the project
+  // root is never inspected during toolchain resolution.
   toolchain = Toolchain();
-  toolchain.applyResolved(resolveToolchainPaths(resolveRoot));
+  toolchain.applyResolved(resolveToolchainPaths());
 
   // Listen for messages from the frontend.
   requestPort.listen((message) async {
@@ -77,10 +76,10 @@ void backendEntry(BackendBootMessage boot) {
       final projectPath = message['path'] as String;
       final workDir = Directory(projectPath);
 
-      // Re-resolve toolchain with the actual project root (finds
-      // dugite in native/dugite/, etc.)
+      // Re-resolve toolchain. Project path is not inspected (T-98);
+      // dugite still comes from the install dir + env override.
       toolchain = Toolchain();
-      toolchain.applyResolved(resolveToolchainPaths(projectPath));
+      toolchain.applyResolved(resolveToolchainPaths());
 
       // Clear existing handlers and re-register with new project.
       dispatcher.clear();

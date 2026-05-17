@@ -86,7 +86,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     _say('');
 
     final tc = Toolchain();
-    tc.applyResolved(Toolchain.resolvePaths(workspaceRoot: workDir));
+    tc.applyResolved(Toolchain.resolvePaths());
 
     if (runToolchain) await _runToolchainTests(tc, workDir);
     if (runIpc) await _runIpcTests(workDir);
@@ -159,12 +159,12 @@ class _ClideTestAppState extends State<ClideTestApp> {
     _say('--- boot sequence ---');
 
     await _testAsync('compute(resolveToolchainPaths)', () async {
-      final paths = await compute(resolveToolchainPaths, workDir);
+      final paths = await compute((_) => resolveToolchainPaths(), null);
       return 'git=${paths.git} pql=${paths.pql}';
     });
 
     await _testAsync('Isolate.run(resolveToolchainPaths)', () async {
-      final paths = await Isolate.run(() => resolveToolchainPaths(workDir));
+      final paths = await Isolate.run(resolveToolchainPaths);
       return 'git=${paths.git} pql=${paths.pql}';
     });
 
@@ -180,7 +180,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     });
 
     await _testAsync('compute + immediate Process.run', () async {
-      final paths = await compute(resolveToolchainPaths, workDir);
+      final paths = await compute((_) => resolveToolchainPaths(), null);
       final tc2 = Toolchain();
       tc2.applyResolved(paths);
       final r = await Process.run(tc2.git, ['rev-parse', '--show-toplevel'], workingDirectory: workDir, environment: tc2.gitEnv);

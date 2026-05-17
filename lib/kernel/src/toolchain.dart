@@ -78,6 +78,6 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
 
   /// Pure function — runs in a background isolate. All file I/O happens
   /// here, off the main thread. Delegates to the Flutter-free
-  /// [resolveToolchainPaths].
-  static ResolvedPaths resolvePaths({required String workspaceRoot}) => resolveToolchainPaths(workspaceRoot);
+  /// [resolveToolchainPaths]. Takes no workspace argument: see T-98.
+  static ResolvedPaths resolvePaths() => resolveToolchainPaths();
 }

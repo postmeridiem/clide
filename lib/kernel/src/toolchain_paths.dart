@@ -73,14 +73,18 @@ class _StaticToolchain implements ToolchainView {
       ];
 }
 
-/// Top-level function for compute/isolate use. Takes a single String
-/// argument (the workspace root) and returns a plain-data result.
-ResolvedPaths resolveToolchainPaths(String workspaceRoot) {
-  final dugite = '$workspaceRoot/native/dugite/bin';
-
+/// Top-level function for compute/isolate use. Returns a plain-data
+/// result with all tool paths resolved against trusted locations only.
+///
+/// Critically does NOT take a workspace path: per T-98, resolving the
+/// dugite-bundled git against the open workspace was a code-execution
+/// vector (a malicious repo could plant `native/dugite/bin/git`).
+/// Dugite is resolved against the install directory + an explicit env
+/// override; everything else comes from PATH.
+ResolvedPaths resolveToolchainPaths() {
   String? git;
   Map<String, String>? gitEnv;
-  final dugiteGit = _firstExisting(['$dugite/git']);
+  final dugiteGit = _resolveDugiteGit();
   if (dugiteGit != null) {
     git = dugiteGit;
     final dugiteRoot = File(dugiteGit).parent.parent.path;
@@ -99,6 +103,29 @@ ResolvedPaths resolveToolchainPaths(String workspaceRoot) {
     shell: _findOnPath(Platform.environment['SHELL']?.split('/').last ?? 'bash'),
     gitEnv: gitEnv,
   );
+}
+
+/// Locate the dugite-bundled git binary in trusted install locations
+/// only. **Never inspects workspace-relative paths** — see T-98.
+///
+/// Search order:
+///   1. `CLIDE_DUGITE_DIR` env var (dev override; points at a dugite
+///      root that contains `bin/git`).
+///   2. `<exe-parent>/dugite/bin/git` — production bundle layout.
+///   3. `<exe-parent>/lib/dugite/bin/git` — alternate bundle layout
+///      (mirrors Linux's INSTALL_BUNDLE_LIB_DIR convention).
+///
+/// Returns null if no dugite is found; caller falls back to PATH git.
+String? _resolveDugiteGit() {
+  final candidates = <String>[];
+  final envDir = Platform.environment['CLIDE_DUGITE_DIR'];
+  if (envDir != null && envDir.isNotEmpty) {
+    candidates.add('$envDir/bin/git');
+  }
+  final exeDir = File(Platform.resolvedExecutable).parent.path;
+  candidates.add('$exeDir/dugite/bin/git');
+  candidates.add('$exeDir/lib/dugite/bin/git');
+  return _firstExisting(candidates);
 }
 
 String? _findOnPath(String name) {

@@ -10,7 +10,7 @@ import 'package:clide/src/git/client.dart';
 import 'package:clide/src/git/operations.dart' show GitException;
 import 'package:test/test.dart';
 
-ToolchainView _toolchain() => ToolchainView.resolved(resolveToolchainPaths(Directory.current.path));
+ToolchainView _toolchain() => ToolchainView.resolved(resolveToolchainPaths());
 
 Future<Directory> _newRepo({String filename = 'file.txt', String contents = 'hello\n'}) async {
   final dir = await Directory.systemTemp.createTemp('clide-git-client-');
