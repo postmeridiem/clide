@@ -81,6 +81,9 @@ class ExtensionManager extends ChangeNotifier {
 
   final Map<String, ClideExtension> _known = {};
   final Set<String> _activated = {};
+  // Extensions whose activate() / deactivate() threw — exposed so the
+  // UI can show a "degraded" status next to them.
+  final Map<String, Object> _failed = {};
 
   void register(ClideExtension ext) {
     if (_known.containsKey(ext.id)) {
@@ -93,6 +96,12 @@ class ExtensionManager extends ChangeNotifier {
 
   Iterable<ClideExtension> get all => _known.values;
   bool isActivated(String id) => _activated.contains(id);
+
+  /// Map of extension id → most recent activate/deactivate error.
+  /// Cleared for an extension when it activates cleanly. UI surfaces
+  /// read this for the "degraded" indicator.
+  Map<String, Object> get failedExtensions => Map.unmodifiable(_failed);
+  bool didFail(String id) => _failed.containsKey(id);
 
   bool isEnabled(String id) {
     final v = settings.get<bool>('app.extensions.$id.enabled');
@@ -138,11 +147,14 @@ class ExtensionManager extends ChangeNotifier {
         _applyContribution(c);
       }
       _activated.add(id);
+      _failed.remove(id);
       events.emit(ExtensionActivated(id: id));
       notifyListeners();
       log.info('extensions', 'activated $id');
     } catch (e, st) {
+      _failed[id] = e;
       log.error('extensions', 'activate failed for $id', error: e, stackTrace: st);
+      notifyListeners();
     }
   }
 
@@ -160,7 +172,9 @@ class ExtensionManager extends ChangeNotifier {
       notifyListeners();
       log.info('extensions', 'deactivated $id');
     } catch (e, st) {
+      _failed[id] = e;
       log.error('extensions', 'deactivate failed for $id', error: e, stackTrace: st);
+      notifyListeners();
     }
   }
 

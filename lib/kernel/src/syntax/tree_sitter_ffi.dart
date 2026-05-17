@@ -243,6 +243,15 @@ class TreeSitterLib {
   @visibleForTesting
   static TreeSitterLib fromDynamicLibrary(DynamicLibrary lib) => TreeSitterLib._(lib);
 
+  /// Most recent error raised while trying to dlopen the tree-sitter
+  /// library, paired with the path that was attempted. Cleared on a
+  /// successful open. Null means "no attempt failed yet."
+  ///
+  /// Callers that observe a null `instance` after `init()` should read
+  /// this for the diagnostic instead of guessing.
+  static Object? lastOpenError;
+  static String? lastOpenErrorPath;
+
   static DynamicLibrary? _openLibrary() {
     final libName = Platform.isLinux
         ? 'libtree-sitter.so'
@@ -251,12 +260,22 @@ class TreeSitterLib {
             : Platform.isWindows
                 ? 'tree-sitter.dll'
                 : null;
-    if (libName == null) return null;
+    if (libName == null) {
+      lastOpenError = 'unsupported platform ${Platform.operatingSystem}';
+      lastOpenErrorPath = null;
+      return null;
+    }
 
     // Try standard dlopen path first (works when lib is in bundle/lib/).
     try {
-      return DynamicLibrary.open(libName);
-    } catch (_) {}
+      final lib = DynamicLibrary.open(libName);
+      lastOpenError = null;
+      lastOpenErrorPath = null;
+      return lib;
+    } catch (e) {
+      lastOpenError = e;
+      lastOpenErrorPath = libName;
+    }
 
     // Try next to executable.
     final exe = File(Platform.resolvedExecutable).parent.path;
@@ -264,8 +283,14 @@ class TreeSitterLib {
       final path = '$dir/$libName';
       if (File(path).existsSync()) {
         try {
-          return DynamicLibrary.open(path);
-        } catch (_) {}
+          final lib = DynamicLibrary.open(path);
+          lastOpenError = null;
+          lastOpenErrorPath = null;
+          return lib;
+        } catch (e) {
+          lastOpenError = e;
+          lastOpenErrorPath = path;
+        }
       }
     }
     return null;

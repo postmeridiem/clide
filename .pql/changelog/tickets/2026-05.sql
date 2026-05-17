@@ -1788,3 +1788,14 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 2. Replace swallowed `onTimeout: () {}` with `onTimeout: () => fail(''...'')`.
 
 Source: consultants.md "Tests — Findings — [Major]".', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 18:47:59', '2026-05-17 20:05:38', NULL, '33e15d84caed686e88fc42f1f4a3586c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-112', 'task', 'T-97', 'quick-wins: code-quality cleanups', 'Batch of small consultant findings that share a domain (code quality):
+
+1. Replace silent `catch (_)` in `tree_sitter_ffi.dart:197,206` with a logged last-error — `DynamicLibrary.open` failures are currently discarded.
+2. Delete `Cmsghdr` alias in `libc.dart:201-202` ("backward compatibility" — CLAUDE.md forbids in a solo repo).
+3. Remove `// ignore: unused_field` in `editor_controller.dart:25` (speculative retention; fix not silence).
+4. Consume `libc.dart` constants / `PosixErrno` in `native_pty.dart` instead of inline hex (`0x0001`, `28`, `4`, `9`).
+5. `ExtensionManager.activate` (`extensions_manager.dart:141-143`) swallows exceptions — surface a "degraded" state for the UI.
+6. Verify `file_tree_view.dart:8` barrel leak (commit `5cad982` may already cover this).
+7. Move `test_app.dart` out of production `main.dart` import graph (gate behind separate entrypoint or `kDebugMode`).
+
+Source: consultants.md (Code Quality + Architecture Findings — Minor).', 'done', 'low', NULL, NULL, NULL, '2026-05-17 18:48:20', '2026-05-17 20:11:16', NULL, 'fccc783ff24be83f6d5a498e936c4af9', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

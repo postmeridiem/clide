@@ -15,6 +15,7 @@ abstract class PosixErrno {
   static const int eperm = 1;
   static const int enoent = 2;
   static const int esrch = 3;
+  static const int eintr = 4;
   static const int eio = 5;
   static const int ebadf = 9;
   static const int eagain = 11;

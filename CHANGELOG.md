@@ -59,6 +59,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   instead of fixed sleeps; `onTimeout` callbacks now `fail()` loudly
   with diagnostic context. `RecordingEventSink` exposes a broadcast
   stream for the same pattern (T-108).
+- Code-quality cleanups — `TreeSitterLib` exposes a last-error
+  diagnostic instead of swallowing dlopen failures; `ExtensionManager`
+  surfaces a `failedExtensions` map for UI degradation; PTY constants
+  consolidated in `libc.dart` + `PosixErrno`; `test_app.dart` gated
+  behind `kDebugMode` (T-112).
 - Test sweep — `keybindings`, `toolchain_paths`, and several
   `widgets/src/` primitives (tooltip, palette, multitab, markdown).
 - `tree_sitter_service` sweep — fake-FFI + real-library smoke,

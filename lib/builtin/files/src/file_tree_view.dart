@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:clide/clide.dart' show FileEntry;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
-
-import 'package:clide/src/files/listing.dart' show FileEntry;
 
 import 'file_tree_controller.dart';
 

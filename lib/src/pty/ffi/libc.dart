@@ -47,6 +47,19 @@ const int fSetFl = 4;
 
 final int tiocswinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
 
+// poll() event bits (POSIX — same numeric values on Linux + macOS).
+const int pollin = 0x0001;
+const int pollerr = 0x0008;
+const int pollhup = 0x0010;
+const int pollnval = 0x0020;
+const int pollAnyErr = pollerr | pollhup | pollnval;
+
+// Signal numbers used from the PTY layer (POSIX standard; identical
+// across Linux + macOS for the entries we touch).
+const int sighup = 1;
+const int sigkill = 9;
+const int sigwinch = 28;
+
 // ---------------------------------------------------------------------------
 // Typedefs
 // ---------------------------------------------------------------------------
@@ -197,9 +210,6 @@ final class CmsghdrDarwin extends ffi.Struct {
   @ffi.Int32()
   external int cmsg_type;
 }
-
-// Alias for backward compatibility — callers use Cmsghdr.
-typedef Cmsghdr = CmsghdrLinux;
 
 /// POSIX `struct winsize` for `TIOCSWINSZ`.
 final class Winsize extends ffi.Struct {

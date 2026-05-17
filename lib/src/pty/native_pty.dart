@@ -25,6 +25,7 @@ import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 
 import 'errors.dart';
+import '../ipc/errno_mapping.dart' show PosixErrno;
 import 'ffi/libc.dart' as libc;
 
 // -- structs ----------------------------------------------------------------
@@ -107,7 +108,6 @@ final int _kSpawnSetsid = Platform.isMacOS ? 0x400 : 0x80;
 // platform layout (glibc posix_spawnattr_t is 336 B; macOS even smaller).
 const int _kSpawnStructBytes = 8192;
 
-const _kSighup = 1;
 const _kWnohang = 1;
 
 // -- NativePty --------------------------------------------------------------
@@ -343,14 +343,16 @@ class NativePty {
     final buf = malloc<ffi.Uint8>(65536);
     final pfd = calloc<_Pollfd>();
     pfd.ref.fd = fd;
-    pfd.ref.events = 0x0001; // POLLIN
+    pfd.ref.events = libc.pollin;
 
     try {
       while (true) {
         final ready = poll(pfd, 1, 100);
         if (ready < 0) break;
         if (ready == 0) continue;
-        if (pfd.ref.revents & 0x0038 != 0 && pfd.ref.revents & 0x0001 == 0) {
+        // Slave closed (POLLHUP / POLLERR / POLLNVAL) with no buffered
+        // bytes left to read — caller loop exits and we send EOF.
+        if (pfd.ref.revents & libc.pollAnyErr != 0 && pfd.ref.revents & libc.pollin == 0) {
           break;
         }
         final n = rd(fd, buf.cast(), 65536);
@@ -383,8 +385,8 @@ class NativePty {
         );
         if (n < 0) {
           final err = libc.errno;
-          if (err == 4 /* EINTR */) continue;
-          if (err == 9 /* EBADF */ || err == 32 /* EPIPE */) _dead = true;
+          if (err == PosixErrno.eintr) continue;
+          if (err == PosixErrno.ebadf || err == PosixErrno.epipe) _dead = true;
           throw PtyException('write', 'write to PTY failed', errno: err);
         }
         if (n == 0) break;
@@ -405,17 +407,16 @@ class NativePty {
       ..ref.wsCol = cols;
     final rc = _ioctl(_fd, _kTiocsWinsz, ws);
     calloc.free(ws);
-    if (rc < 0 && libc.errno == 9 /* EBADF */) {
+    if (rc < 0 && libc.errno == PosixErrno.ebadf) {
       _dead = true;
       return;
     }
     // Explicitly signal the child to re-query its terminal size.
-    // SIGWINCH = 28 on both macOS and Linux.
-    _nativeKill(pid, 28);
+    _nativeKill(pid, libc.sigwinch);
   }
 
   /// Send a signal to the child.
-  bool kill([int signal = _kSighup]) {
+  bool kill([int signal = libc.sighup]) {
     if (_dead) return false;
     return _nativeKill(pid, signal) == 0;
   }
@@ -444,7 +445,7 @@ class NativePty {
     // otherwise close() racing with start() leaves an orphan isolate.
     await _readerReady;
 
-    _nativeKill(pid, _kSighup);
+    _nativeKill(pid, libc.sighup);
     _nativeKill(pid, 9);
 
     // Wait for the isolate to send `null` (EOF) — confirms it has

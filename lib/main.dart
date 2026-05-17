@@ -48,10 +48,15 @@ Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
 
   // Test mode: skip the full app, run the test harness instead.
-  const testMode = String.fromEnvironment('CLIDE_TESTMODE');
-  if (testMode.isNotEmpty) {
-    runApp(const ClideTestApp());
-    return;
+  // Gated on kDebugMode so the release tree-shaker can elide both the
+  // branch and the test_app import graph — production binaries don't
+  // ship the harness.
+  if (kDebugMode) {
+    const testMode = String.fromEnvironment('CLIDE_TESTMODE');
+    if (testMode.isNotEmpty) {
+      runApp(const ClideTestApp());
+      return;
+    }
   }
 
   binding.ensureSemantics();
