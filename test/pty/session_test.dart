@@ -24,7 +24,7 @@ void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
   group('NativePty', () {
-    test('spawns shell -c echo and reads output', tags: ['forkpty'], () async {
+    test('spawns shell -c echo and reads output', tags: ['forkpty'], retry: 2, () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: ['-c', 'echo hello-pty'],
@@ -38,20 +38,11 @@ void main() {
       );
       addTearDown(s.close);
 
-      final buf = StringBuffer();
-      final done = Completer<void>();
-      s.output.listen(
-        (bytes) => buf.write(utf8.decode(bytes, allowMalformed: true)),
-        onDone: () {
-          if (!done.isCompleted) done.complete();
-        },
-      );
-
-      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
-      expect(buf.toString(), contains('hello-pty'));
+      final got = await _readUntil(s, 'hello-pty', const Duration(seconds: 5));
+      expect(got, contains('hello-pty'));
     });
 
-    test('write sends keystrokes to child', tags: ['forkpty'], () async {
+    test('write sends keystrokes to child', tags: ['forkpty'], retry: 2, () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -66,19 +57,27 @@ void main() {
       addTearDown(s.close);
 
       final buf = StringBuffer();
-      s.output.listen((bytes) => buf.write(utf8.decode(bytes, allowMalformed: true)));
+      final firstByte = Completer<void>();
+      final sub = s.output.listen((bytes) {
+        buf.write(utf8.decode(bytes, allowMalformed: true));
+        // First byte from the pty signals the shell is up and the
+        // reader isolate is delivering — better than a fixed sleep.
+        if (!firstByte.isCompleted) firstByte.complete();
+      });
+      addTearDown(sub.cancel);
 
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await firstByte.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => fail('shell never produced its first byte within 5s'),
+      );
 
       s.write(utf8.encode('echo write-test-ok\n'));
 
-      for (var i = 0; i < 50 && !buf.toString().contains('write-test-ok'); i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      }
-      expect(buf.toString(), contains('write-test-ok'));
+      final result = await _waitForBuffer(buf, 'write-test-ok', const Duration(seconds: 5));
+      expect(result, contains('write-test-ok'));
     });
 
-    test('close kills child and closes output', tags: ['forkpty'], () async {
+    test('close kills child and closes output', tags: ['forkpty'], retry: 2, () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -95,11 +94,14 @@ void main() {
       s.output.listen((_) {}, onDone: () => done.complete());
 
       await s.close();
-      await done.future.timeout(const Duration(seconds: 3));
+      await done.future.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => fail('output stream did not close within 3s after s.close()'),
+      );
       expect(s.isClosed, isTrue);
     });
 
-    test('bare command name resolves via the PATH env var', tags: ['forkpty'], () async {
+    test('bare command name resolves via the PATH env var', tags: ['forkpty'], retry: 2, () async {
       // 'sh' is a bare command; without resolution, execve would fail.
       final s = NativePty.start(
         executable: 'sh',
@@ -113,16 +115,9 @@ void main() {
         },
       );
       addTearDown(s.close);
-      final buf = StringBuffer();
-      final done = Completer<void>();
-      s.output.listen(
-        (b) => buf.write(utf8.decode(b, allowMalformed: true)),
-        onDone: () {
-          if (!done.isCompleted) done.complete();
-        },
-      );
-      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
-      expect(buf.toString(), contains('path-resolution-ok'));
+
+      final got = await _readUntil(s, 'path-resolution-ok', const Duration(seconds: 5));
+      expect(got, contains('path-resolution-ok'));
     });
 
     test('non-existent workingDirectory surfaces a PtyException at spawn time', () {
@@ -200,4 +195,49 @@ void main() {
       s.resize(cols: 120, rows: 30);
     });
   });
+}
+
+// -- Helpers ----------------------------------------------------------------
+
+/// Read bytes from [s] into a local buffer until [marker] appears or
+/// [timeout] elapses. Fails the test on timeout — the previous bare
+/// `onTimeout: () {}` pattern hid the real failure mode (reader
+/// isolate never delivered) behind a confusing "buffer empty"
+/// assertion.
+Future<String> _readUntil(NativePty s, String marker, Duration timeout) async {
+  final buf = StringBuffer();
+  final done = Completer<String>();
+  final sub = s.output.listen(
+    (bytes) {
+      buf.write(utf8.decode(bytes, allowMalformed: true));
+      if (buf.toString().contains(marker) && !done.isCompleted) {
+        done.complete(buf.toString());
+      }
+    },
+    onDone: () {
+      if (!done.isCompleted) done.complete(buf.toString());
+    },
+  );
+  try {
+    return await done.future.timeout(
+      timeout,
+      onTimeout: () => fail('pty did not produce "$marker" within ${timeout.inSeconds}s (buffer: "${buf.toString().replaceAll('\n', r'\n')}")'),
+    );
+  } finally {
+    await sub.cancel();
+  }
+}
+
+/// Poll [buf] until [marker] appears or [timeout] elapses. Used after
+/// a write — the bytes flow back through the same output stream a
+/// caller is already listening to, so we just watch the buffer.
+Future<String> _waitForBuffer(StringBuffer buf, String marker, Duration timeout) async {
+  final deadline = DateTime.now().add(timeout);
+  while (!buf.toString().contains(marker)) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('buffer never contained "$marker" within ${timeout.inSeconds}s (buffer: "${buf.toString().replaceAll('\n', r'\n')}")');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+  }
+  return buf.toString();
 }

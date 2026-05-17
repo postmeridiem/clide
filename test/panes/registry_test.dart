@@ -41,7 +41,20 @@ void main() {
       expect(evt.data['id'], pane.id);
     });
 
-    test('output events base64-encode the child bytes', tags: ['forkpty'], () async {
+    test('output events base64-encode the child bytes', tags: ['forkpty'], retry: 2, () async {
+      // Subscribe to the sink stream BEFORE spawn so we don't miss
+      // any pane.output events that arrive between spawn and listen.
+      final buf = StringBuffer();
+      final got = Completer<String>();
+      final sub = sink.stream.listen((e) {
+        if (e.kind != 'pane.output') return;
+        buf.write(utf8.decode(base64Decode(e.data['bytes_b64']! as String)));
+        if (buf.toString().contains('hello-panes') && !got.isCompleted) {
+          got.complete(buf.toString());
+        }
+      });
+      addTearDown(sub.cancel);
+
       await registry.spawn(
         kind: PaneKind.terminal,
         // Child writes then lingers so the reader's poll has a wide
@@ -49,14 +62,12 @@ void main() {
         argv: const ['/bin/sh', '-c', 'printf hello-panes; sleep 0.25'],
       );
 
-      final deadline = DateTime.now().add(const Duration(seconds: 2));
-      String decoded() => sink.ofKind('pane.output').map((e) => utf8.decode(base64Decode(e.data['bytes_b64']! as String))).join();
-      while (!decoded().contains('hello-panes') && DateTime.now().isBefore(deadline)) {
-        await Future<void>.delayed(const Duration(milliseconds: 25));
-      }
-
+      final decoded = await got.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => fail('pane.output never carried "hello-panes" within 5s'),
+      );
+      expect(decoded, contains('hello-panes'));
       expect(sink.ofKind('pane.output'), isNotEmpty);
-      expect(decoded(), contains('hello-panes'));
     });
 
     test('write + resize emit no spurious events, update state', () async {

@@ -55,6 +55,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `FocusScope` + `FocusTraversalGroup`; `F6` / `Shift+F6` cycle
   sidebar → workspace → context. `FocusTracker` integrates with
   Flutter focus rather than paralleling it (T-105).
+- Event-driven test waits — PTY + watcher tests await stream events
+  instead of fixed sleeps; `onTimeout` callbacks now `fail()` loudly
+  with diagnostic context. `RecordingEventSink` exposes a broadcast
+  stream for the same pattern (T-108).
 - Test sweep — `keybindings`, `toolchain_paths`, and several
   `widgets/src/` primitives (tooltip, palette, multitab, markdown).
 - `tree_sitter_service` sweep — fake-FFI + real-library smoke,
