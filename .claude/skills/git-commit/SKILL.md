@@ -53,6 +53,35 @@ This repo follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)
 
 Entries should be short imperative phrases that describe user-facing impact — not implementation detail. "Added sidecar PTY support for terminal pane" beats "Added `internal/pty/session.go`."
 
+### Be concise — this is the rule, not a suggestion
+
+CHANGELOG entries must be **one or two short sentences**. Strict ceiling: **40 words per bullet**, hard cap at 60. If you can't say it in one line wrapped at ~75 columns, you're writing the wrong document.
+
+The CHANGELOG is read by humans scanning for what changed between two versions. It is **not** the place for the rationale, the probe results, the implementation detail, the behavior-change deep dive, or the "see also" cross-references. Those belong in:
+
+- the **commit message body** — explain *why*, list evidence, name the trade-offs;
+- a **D-record / decision document** — durable architectural rationale;
+- the **ticket / PR description** — work-context and review notes.
+
+Hard rules:
+
+- **No multi-paragraph bullets.** One paragraph max. If you reach for a blank line inside a bullet, stop and split or trim.
+- **No "Behavior change:" / "Side benefit:" / "Note:" sub-headers inside a bullet.** Those are essay structure; put them in the commit message.
+- **No probe numbers, latency stats, or %-coverage deltas in entries.** ("hit 95% target" is fine; "0 hangs in 300 spawns vs ~5% before" is commit-body material.)
+- **No nested function/file lists inside parentheses.** If you find yourself writing `(foo, bar, baz, …)` for more than 3 items, just say "several X" and trust the diff.
+- **Don't restate the title in the body.** A bullet is its own title.
+
+Calibration — match the **existing entries** in `CHANGELOG.md`. Open it, look at five recent bullets, write to that length. If your draft is visibly bigger than its neighbors, trim until it isn't.
+
+Good:
+> - Mouse wheel scrolling in Claude pane — converts scroll events to PgUp/PgDown so TUI apps scroll naturally.
+
+Bad (verbose; commit-body material leaked in):
+> - **PTY spawning switched from `forkpty()` to `posix_openpt()` + `posix_spawn()`** (T-96). `forkpty` calls `fork()` underneath, which is unsafe in the multithreaded Dart VM: about 5% of spawns deadlocked in the child before `execve` because libc locks held by ghost-threads remained "locked forever" in the forked child. `posix_spawn` uses `vfork` (glibc/musl/macOS), keeping the parent suspended until `execve` completes — no Dart code runs in the child. Probed: zero hangs in 300 sequential spawns vs ~5% before. **Behavior change:** missing executable / missing workingDirectory now surface as a `PtyException`…
+
+Better:
+> - PTY spawning uses `posix_openpt` + `posix_spawn` instead of `forkpty` — closes a ~5% deadlock window in the multithreaded Dart VM (T-96). Missing exe/cwd now throw `PtyException` at spawn time.
+
 **What skips the changelog:** pure bookkeeping commits that have no user-visible effect (typo fix in internal comment, `.gitignore` tweak, lint config change, reformatting). When in doubt, add an entry — the harm of an extra line is zero.
 
 When a commit spans multiple entries (e.g. a feature that adds one thing and fixes another), add a line under each applicable subsection rather than cramming both into one.
