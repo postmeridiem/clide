@@ -87,30 +87,58 @@ class _RootShellState extends State<_RootShell> {
       ),
       child: MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_textScale)),
-        child: KeyboardListener(
-          focusNode: _keyFocus,
-          autofocus: true,
-          onKeyEvent: _onKey,
-          child: ColoredBox(
-            color: tokens.globalBackground,
-            child: ClideResizeBorder(
-              windowControls: widget.services.window,
-              child: Column(
-                children: [
-                  _HatBar(kernel: widget.services),
-                  Expanded(
-                    child: DialogHost(
-                      router: widget.services.dialog,
-                      child: Stack(
-                        children: [
-                          const Positioned.fill(child: RootLayout()),
-                          const ClidePalette(),
-                          const Positioned.fill(child: _WelcomeOverlay()),
-                        ],
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            TextScaleIncreaseIntent: CallbackAction<TextScaleIncreaseIntent>(
+              onInvoke: (_) {
+                setState(() => _textScale = (_textScale + _scaleStep).clamp(_scaleMin, _scaleMax));
+                return null;
+              },
+            ),
+            TextScaleDecreaseIntent: CallbackAction<TextScaleDecreaseIntent>(
+              onInvoke: (_) {
+                setState(() => _textScale = (_textScale - _scaleStep).clamp(_scaleMin, _scaleMax));
+                return null;
+              },
+            ),
+            TextScaleResetIntent: CallbackAction<TextScaleResetIntent>(
+              onInvoke: (_) {
+                setState(() => _textScale = 1.0);
+                return null;
+              },
+            ),
+            InvokeCommandIntent: CallbackAction<InvokeCommandIntent>(
+              onInvoke: (intent) {
+                widget.services.commands.execute(intent.commandId);
+                return null;
+              },
+            ),
+          },
+          child: KeyboardListener(
+            focusNode: _keyFocus,
+            autofocus: true,
+            onKeyEvent: _onKey,
+            child: ColoredBox(
+              color: tokens.globalBackground,
+              child: ClideResizeBorder(
+                windowControls: widget.services.window,
+                child: Column(
+                  children: [
+                    _HatBar(kernel: widget.services),
+                    Expanded(
+                      child: DialogHost(
+                        router: widget.services.dialog,
+                        child: Stack(
+                          children: [
+                            const Positioned.fill(child: RootLayout()),
+                            const ClidePalette(),
+                            const Positioned.fill(child: _WelcomeOverlay()),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -120,31 +148,14 @@ class _RootShellState extends State<_RootShell> {
   }
 
   void _onKey(KeyEvent event) {
-    if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      final ctrl = HardwareKeyboard.instance.isControlPressed;
-      if (ctrl) {
-        if (event.logicalKey == LogicalKeyboardKey.equal || event.logicalKey == LogicalKeyboardKey.add) {
-          setState(() => _textScale = (_textScale + _scaleStep).clamp(_scaleMin, _scaleMax));
-          return;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.minus) {
-          setState(() => _textScale = (_textScale - _scaleStep).clamp(_scaleMin, _scaleMax));
-          return;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.digit0) {
-          setState(() => _textScale = 1.0);
-          return;
-        }
-      }
-    }
-    final binding = KeybindingResolver.fromKeyEvent(
-      event,
-      HardwareKeyboard.instance,
-    );
-    if (binding == null) return;
-    final commandId = widget.services.keybindings.commandFor(binding);
-    if (commandId == null) return;
-    widget.services.commands.execute(commandId);
+    final intent = widget.services.keymap.resolveEvent(event, HardwareKeyboard.instance);
+    if (intent == null) return;
+    // Dispatch the intent. Try the focused context first so feature
+    // widgets (palette, editor, …) get a chance to handle their own
+    // intents; fall back to the app root's Actions for global ones
+    // (text scale, generic command bridge).
+    final ctx = FocusManager.instance.primaryFocus?.context ?? context;
+    Actions.maybeInvoke(ctx, intent);
   }
 }
 

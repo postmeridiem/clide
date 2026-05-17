@@ -1668,3 +1668,96 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 **Acceptance:** `make push-check` runs the integration test layer + smoke-bundle. Wall-clock budget acceptable for pre-push (target <2 min total). If they''re too slow, gate them behind a separate `make push-check-full` and document.
 
 Source: consultants.md "Tests — Findings — [Major] make push-check does not run integration tests".', 'done', 'high', NULL, NULL, NULL, '2026-05-17 18:47:39', '2026-05-17 19:18:43', NULL, 'cbae1915f1c89a8a2b05da71148d77dc', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-100', 'story', 'T-97', 'make ClideTappable keyboard-operable; add palette arrow-keys + Escape', '`ClideTappable` (`lib/widgets/src/clide_tappable.dart`) is the base of nearly every interactive widget — `ClideButton`, `_WinBtn`, `_RecentProjectRow`, `_ActionRow`, most builtin list items — and it is `MouseRegion` + `GestureDetector` only. No `Focus`, no Enter/Space handler, no focus ring. None of these widgets can be reached by Tab or activated from the keyboard. The keyboard-traversal test passes only because it externally wraps in a `Focus` node — it tests non-blocking, not operability.
+
+`ClidePalette` (`lib/widgets/src/clide_palette.dart`) is similarly broken: `onSubmitted` only ever invokes `filtered.first`; no up/down handling, no selected index, no selection highlight, no Escape handler.
+
+**Fix:**
+1. Wrap `ClideTappable`''s child in `Focus` + `Shortcuts`/`Actions` so Tab focuses it and Enter/Space invokes `onTap`. Render a focus ring via the token system.
+2. Add arrow-key navigation + selected-index + Escape + Enter-on-selected to `ClidePalette` (model after `_ProjectSwitcherDropdown.onKeyEvent` at `app.dart:446-452`).
+3. Extend the a11y test layer to assert operability (Tab + Enter actually invokes), not just Semantics presence.
+
+Source: consultants.md "UX — Findings — [Critical]".', 'in_progress', 'high', NULL, NULL, NULL, '2026-05-17 18:47:23', '2026-05-17 19:23:24', NULL, '45607823ef1229d43dcfd0bc327a1031', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-110', 'story', 'T-97', 'replace root KeyboardListener with scoped Shortcuts/Actions; move off keyLabel', '**Superseded by T-117 — Done.**
+
+The consultant findings here — single root `KeyboardListener` will conflict with text-input fields; `KebindingResolver.fromKeyEvent` keys off layout-dependent `logicalKey.keyLabel` — are both addressed by the keystroke mapper layer (T-117):
+
+- Keymap-driven dispatch uses `LogicalKeyboardKey.keyId` (stable across layouts), not `keyLabel`.
+- Root `KeyboardListener` now hands events straight to `KeymapService.resolveEvent`, which dispatches resolved Intents via `Actions.maybeInvoke` against the focused context — Actions providers per feature (palette, editor, etc.) handle their own intents; the root only handles global ones (text scale, generic command bridge). This is the scoped Shortcuts/Actions model the consultant prescribed.
+
+Remaining cleanup (deletion of the now-vestigial `KeybindingResolver` class + the legacy `KeyboardListener` wrap once Flutter Shortcuts widget integration is on every feature) is small and lands as part of T-100 or its own follow-up.
+
+Original text: Replace root KeyboardListener with scoped Shortcuts/Actions; move KebindingResolver off layout-dependent keyLabel.', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 18:48:09', '2026-05-17 19:39:12', NULL, '33850630ffa4bf1f1794fd94db8a62c3', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'task', 'T-4', 'wire command palette keybinding', 'D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.
+
+**Progress (2026-05-17, T-117):** The keymap layer now binds `ctrl+shift+p` / `meta+shift+p` to `PaletteOpenIntent` in `assets/keymaps/default.yaml`. The intent resolves end-to-end through `KeymapService.resolveEvent` → `Actions.maybeInvoke`. **Still pending**: an `Actions` provider somewhere in the tree that handles `PaletteOpenIntent` by calling `kernel.palette.open()`, plus the arrow-key / Escape / Enter handlers on `ClidePalette` itself. Those land as part of T-100 (palette keyboard nav).
+
+**Acceptance:**
+- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.
+- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.
+- Commands listed are everything registered via `CommandContribution` across all activated extensions.
+- Fuzzy match against command title; recent / pinned commands float to the top.
+
+**Implementation hints:**
+- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).
+- Bindings live in the keymap (T-117) — not in `lib/kernel/src/commands/keybindings.dart` (that file is legacy).
+- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).', 'backlog', 'medium', NULL, NULL, 'D-6', '2026-04-22 14:08:40', '2026-05-17 19:39:23', NULL, 'c355fdc971b62e0aedbfb99ed4134678', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-66', 'story', NULL, 'JetBrains keybinding preset', 'Ship a JetBrains/IntelliJ-compatible keybinding preset mapping standard JetBrains shortcuts to clide commands. Covers navigation, refactoring, search, run/debug, and tool windows.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place. Implementation is authoring `assets/keymaps/jetbrains.yaml` against the typed Intents + `command:<id>` bindings, plus when-clauses for the contexts JetBrains presets typically scope to (`editor.focused`, `inputFocused`, etc.).
+
+**Acceptance:**
+1. `assets/keymaps/jetbrains.yaml` ships covering the documented IntelliJ default keybindings.
+2. `KeymapService.setPreset("jetbrains")` activates the preset and all asserted bindings resolve.
+3. A regression test exercises a representative subset (e.g. shift+shift → quick-open command — see Q-9 if the search-everywhere overlay needs its own intent).', 'backlog', 'medium', NULL, NULL, NULL, '2026-04-24 06:34:16', '2026-05-17 19:39:37', NULL, '633ba8ffaee17af0b6ca6d2cc2a7549d', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-64', 'story', NULL, 'VS Code keybinding preset', 'Ship a VS Code-compatible keybinding preset that maps standard VS Code shortcuts to clide commands. Users select it in settings. Covers file navigation, editor actions, panel toggles, search, and terminal.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is now in place. Implementation is now just authoring `assets/keymaps/vscode.yaml` against the typed Intents in `lib/kernel/src/keymap/intents.dart` (plus `command:<id>` bindings for VS-Code-specific commands the preset wants to bind to clide commands). Users will switch presets via `app.keymap.preset = vscode` once a settings UI exists, or directly via the setting today.
+
+**Acceptance:**
+1. `assets/keymaps/vscode.yaml` ships covering the documented VS Code default keybindings.
+2. `KeymapService.setPreset("vscode")` activates the preset and all asserted bindings resolve as expected.
+3. The preset uses when-clauses where VS Code does (`editor.focused`, `inputFocused`, `palette.open`, …).
+4. A regression test loads the preset and asserts a representative subset (e.g. ctrl+p → quick-open command, ctrl+shift+p → palette).
+
+**Out of scope:** clide commands that have no VS Code analogue (those keep their default-preset bindings).', 'backlog', 'medium', NULL, NULL, NULL, '2026-04-24 06:34:16', '2026-05-17 19:39:37', NULL, '660a4871f59f940fbc2296b36177e0d8', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-65', 'story', NULL, 'Vim keybinding preset', 'Ship a Vim-compatible keybinding preset with modal editing support (normal/insert/visual modes). Maps Vim motions and commands to clide editor and navigation actions. Users select it in settings.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place; modal Vim presets are more involved than the VS Code preset (T-64) because modes need to be expressed as scope flags (`vim.normal`, `vim.insert`, `vim.visual`) that the when-clause grammar can branch on. Implementation work:
+
+1. Author `assets/keymaps/vim.yaml` using the typed Intents + `command:<id>` bindings.
+2. Add a small mode-tracking service that publishes `vim.<mode>` scope flags via `KeymapService.setScopeFlag`.
+3. Bind `Esc` to mode-reset → normal; `i` (when `vim.normal`) → enter insert; etc.
+
+**Acceptance:**
+1. `assets/keymaps/vim.yaml` ships covering the documented Vim default keybindings for editor / navigation / panes.
+2. `KeymapService.setPreset("vim")` + the mode-tracking service together produce correct mode transitions.
+3. A regression test exercises a representative motion (`j` → cursor down) and a mode change (`i` → insert).', 'backlog', 'medium', NULL, NULL, NULL, '2026-04-24 06:34:16', '2026-05-17 19:39:37', NULL, '8db44365ff24e322ccc4bf145e31c5c5', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-117', 'task', 'T-97', 'keystroke mapper layer — intents + presets + when-clauses + overlay', 'Build the keymap mechanism that all keyboard-driven work plugs into. Lands before T-100 so widget wiring (ClideTappable, ClidePalette, focus traversal) goes through typed Intents, not raw key handlers. Closes T-110 (consultant: scoped Shortcuts/Actions; move off layout-dependent keyLabel). Unblocks T-64/T-65/T-66 (vim/vscode/jetbrains preset data).
+
+## Design (locked 2026-05-17)
+
+- **Action vocabulary**: typed `ClideIntent` subclasses (`ActivateIntent`, `PaletteSelectNextIntent`, …) each with a stable id used in YAML.
+- **Keys**: `LogicalKeyboardKey.keyId` (layout-independent, not the locale-aware keyLabel the consultant flagged) + modifier set.
+- **When-clauses**: VS-Code-style boolean expressions over a named context bag (`palette.open && !textInputFocused`). Tiny recursive-descent parser.
+- **Preset format**: YAML under `assets/keymaps/<preset>.yaml`. Ships `default.yaml`; vim/vscode/jetbrains land as separate tickets.
+- **Layering**: preset (asset) → user file (`~/.clide/keybindings.yaml`) → settings JSON overlay (`app.keymap.overrides`). Later layers replace bindings with the same (chord, when) tuple.
+- **Service**: `KeymapService` kernel service holding active layered keymap, scope context, resolver, and a Shortcuts/Actions wrapper.
+- **Settings keys**: `app.keymap.preset` (default `default`); `app.keymap.overrides` (list).
+
+## Acceptance
+
+1. `KeymapService` registered as a kernel service.
+2. `assets/keymaps/default.yaml` ships and parses; preset switching changes effective bindings.
+3. When-clause parser handles `a`, `!a`, `a && b`, `a || b`, parens, with unit tests covering precedence + identifier resolution.
+4. Root `KeyboardListener` in `app.dart` removed in favor of `Shortcuts`/`Actions` driven by the service (closes T-110).
+5. Existing `KeybindingResolver` callers migrate to the new path; old class either deleted or marked deprecated with a removal date.
+6. Tests: preset YAML round-trip, layering precedence, when-clause evaluator, scope-context updates, resolver picks the correct intent for chord+context.
+
+## Out of scope (deferred)
+
+- Vim/VSCode/JetBrains preset *data* (T-64/T-65/T-66 — this ticket lands the mechanism).
+- A settings UI for editing bindings (file editing + preset switching is enough for v1).
+- ClideTappable/Palette widget integration (T-100 — comes immediately after this lands).
+
+Source: 2026-05-17 design conversation; supersedes T-110.', 'done', 'high', NULL, NULL, NULL, '2026-05-17 19:28:28', '2026-05-17 19:39:40', NULL, '92d68025f0ee7c4d133dca65e97c97b8', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

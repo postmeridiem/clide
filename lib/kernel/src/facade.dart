@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/keybindings.dart';
+import 'package:clide/kernel/src/keymap/keymap_service.dart';
 import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
@@ -63,6 +64,7 @@ class KernelServices {
     required this.window,
     required this.toolchain,
     required this.scheduler,
+    required this.keymap,
   });
 
   final Logger log;
@@ -91,6 +93,7 @@ class KernelServices {
   final WindowControls window;
   final Toolchain toolchain;
   final SchedulerService scheduler;
+  final KeymapService keymap;
 
   static Future<KernelServices> boot({
     required Directory appDir,
@@ -132,6 +135,8 @@ class KernelServices {
     final arrangement = LayoutArrangement();
     final commands = CommandRegistry();
     final keybindings = KeybindingResolver();
+    final keymap = KeymapService(settings: settings, appDir: appDir);
+    await keymap.load();
     final palette = PaletteController(commands);
     final clipboard = ClideClipboard();
     final files = FileServices(events);
@@ -174,6 +179,7 @@ class KernelServices {
       commands: commands,
       palette: palette,
       keybindings: keybindings,
+      keymap: keymap,
       clipboard: clipboard,
       files: files,
       notify: notify,
@@ -218,6 +224,7 @@ class KernelServices {
       window: window,
       toolchain: tc,
       scheduler: scheduler,
+      keymap: keymap,
     );
   }
 
@@ -239,6 +246,7 @@ class KernelServices {
     project.dispose();
     extensions.dispose();
     await scheduler.dispose();
+    keymap.dispose();
     await log.dispose();
     messages.dispose();
     await events.dispose();

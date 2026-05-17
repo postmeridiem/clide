@@ -44,6 +44,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Pre-push changelog gate — `ci/changelog_gate.sh` fails on any
   `## [Unreleased]` bullet over 60 words; warns at 40. Enforces the
   Keep-a-Changelog conciseness rule in the git-commit skill.
+- Keymap layer (`KeymapService`) — typed Intents, YAML presets,
+  VS-Code-style when-clauses, layered preset → user file → settings
+  overlay. Default preset ships; vim/vscode/jetbrains unblocked
+  (T-117, supersedes T-110).
 - Test sweep — `keybindings`, `toolchain_paths`, and several
   `widgets/src/` primitives (tooltip, palette, multitab, markdown).
 - `tree_sitter_service` sweep — fake-FFI + real-library smoke,

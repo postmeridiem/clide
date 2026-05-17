@@ -1,0 +1,56 @@
+# clide default keymap.
+#
+# This is the baseline preset. Vim / VSCode / JetBrains presets are
+# their own files (T-64/T-65/T-66) and replace bindings via the same
+# YAML shape.
+#
+# Each binding:
+#   intent: <stable intent id>          # see kernel/src/keymap/intents.dart
+#   keys:   <chord>  | [<chord>, ...]   # `ctrl+shift+p`, `cmd+enter`, ...
+#   when:   <when-clause>               # optional; VS-Code-style boolean expr
+#
+# Identifiers in `when:` are scope flags published by producing
+# services (e.g. `palette.open` when ClidePalette is mounted +
+# visible). Missing flags evaluate to false.
+
+name: default
+
+bindings:
+  # -- Activation / focus -----------------------------------------------
+  - intent: activate
+    keys: [enter, space]
+    when: focused.tappable
+  - intent: dismiss
+    keys: escape
+  - intent: focus.next
+    keys: tab
+    when: '!textInputFocused'
+  - intent: focus.previous
+    keys: shift+tab
+    when: '!textInputFocused'
+
+  # -- Command palette --------------------------------------------------
+  - intent: palette.open
+    keys: [ctrl+shift+p, meta+shift+p]
+  - intent: palette.selectNext
+    keys: [down, ctrl+n]
+    when: palette.open
+  - intent: palette.selectPrevious
+    keys: [up, ctrl+p]
+    when: palette.open
+  - intent: palette.accept
+    keys: enter
+    when: palette.open
+  - intent: dismiss
+    keys: escape
+    when: palette.open
+
+  # -- Text scale -------------------------------------------------------
+  # On most layouts `+` is `shift+equal`; we bind both so users who
+  # think of it as Ctrl+Plus and users who hit Ctrl+= both work.
+  - intent: text.scaleIncrease
+    keys: [ctrl+equal, ctrl+shift+equal, meta+equal, meta+shift+equal]
+  - intent: text.scaleDecrease
+    keys: [ctrl+minus, meta+minus]
+  - intent: text.scaleReset
+    keys: [ctrl+0, meta+0]

@@ -1719,3 +1719,81 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-106', 'status', 'in_progress', 'done', NULL, '2026-05-17 19:18:43', '2026-05-17 19:18:43', '2026-05-17 19:18:43', NULL, '8dccc83b93c5005db744a100a5b3baea', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-113', 'status', 'in_progress', 'done', NULL, '2026-05-17 19:18:43', '2026-05-17 19:18:43', '2026-05-17 19:18:43', NULL, '8f7812831e564005eb796708543c54b3', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-103', 'status', 'in_progress', 'done', NULL, '2026-05-17 19:18:43', '2026-05-17 19:18:43', '2026-05-17 19:18:43', NULL, 'c7d1b76cb6854efb7e9990cc7204d899', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-100', 'status', 'backlog', 'in_progress', NULL, '2026-05-17 19:23:24', '2026-05-17 19:23:24', '2026-05-17 19:23:24', NULL, '607b82f096b5d694fb75b7daf64dc2e0', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-117', 'status', 'backlog', 'in_progress', NULL, '2026-05-17 19:28:31', '2026-05-17 19:28:31', '2026-05-17 19:28:31', NULL, 'b5c56dff8a2c7d6f14ecf19231b63268', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-110', 'description', '`app.dart:90-148` routes all shortcuts through one root `KeyboardListener` — no per-context scoping; will conflict with text-input fields once any pane wants to capture keys. `KeybindingResolver.fromKeyEvent` keys off `logicalKey.keyLabel` which is layout-dependent (US-QWERTY `Ctrl+/` differs from AZERTY `Ctrl+:`).
+
+**Fix:**
+1. Replace the root `KeyboardListener` with scoped `Shortcuts`/`Actions` per slot.
+2. Move `KeybindingResolver` to `physicalKey` or a stable mapping layer.
+
+Coordinate with T-100 (Focus/Shortcuts wrapper for ClideTappable) and T-105 (focus traversal).
+
+Source: consultants.md "UX — Findings — [Major]".', '**Superseded by T-117 — Done.**
+
+The consultant findings here — single root `KeyboardListener` will conflict with text-input fields; `KebindingResolver.fromKeyEvent` keys off layout-dependent `logicalKey.keyLabel` — are both addressed by the keystroke mapper layer (T-117):
+
+- Keymap-driven dispatch uses `LogicalKeyboardKey.keyId` (stable across layouts), not `keyLabel`.
+- Root `KeyboardListener` now hands events straight to `KeymapService.resolveEvent`, which dispatches resolved Intents via `Actions.maybeInvoke` against the focused context — Actions providers per feature (palette, editor, etc.) handle their own intents; the root only handles global ones (text scale, generic command bridge). This is the scoped Shortcuts/Actions model the consultant prescribed.
+
+Remaining cleanup (deletion of the now-vestigial `KeybindingResolver` class + the legacy `KeyboardListener` wrap once Flutter Shortcuts widget integration is on every feature) is small and lands as part of T-100 or its own follow-up.
+
+Original text: Replace root KeyboardListener with scoped Shortcuts/Actions; move KebindingResolver off layout-dependent keyLabel.', NULL, '2026-05-17 19:39:08', '2026-05-17 19:39:08', '2026-05-17 19:39:08', NULL, '6364d644fbbfa903390ee78b5b402367', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-110', 'status', 'backlog', 'done', NULL, '2026-05-17 19:39:12', '2026-05-17 19:39:12', '2026-05-17 19:39:12', NULL, '6073b1bbc12001914d78d4cb419705dc', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'description', 'D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.
+
+**Acceptance:**
+- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.
+- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.
+- Commands listed are everything registered via `CommandContribution` across all activated extensions.
+- Fuzzy match against command title; recent / pinned commands float to the top.
+
+**Implementation hints:**
+- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).
+- Keybinding goes in `lib/kernel/src/commands/keybindings.dart` per the D-54 keymap.
+- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).', 'D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.
+
+**Progress (2026-05-17, T-117):** The keymap layer now binds `ctrl+shift+p` / `meta+shift+p` to `PaletteOpenIntent` in `assets/keymaps/default.yaml`. The intent resolves end-to-end through `KeymapService.resolveEvent` → `Actions.maybeInvoke`. **Still pending**: an `Actions` provider somewhere in the tree that handles `PaletteOpenIntent` by calling `kernel.palette.open()`, plus the arrow-key / Escape / Enter handlers on `ClidePalette` itself. Those land as part of T-100 (palette keyboard nav).
+
+**Acceptance:**
+- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.
+- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.
+- Commands listed are everything registered via `CommandContribution` across all activated extensions.
+- Fuzzy match against command title; recent / pinned commands float to the top.
+
+**Implementation hints:**
+- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).
+- Bindings live in the keymap (T-117) — not in `lib/kernel/src/commands/keybindings.dart` (that file is legacy).
+- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).', NULL, '2026-05-17 19:39:23', '2026-05-17 19:39:23', '2026-05-17 19:39:23', NULL, '50203b7db93490ac779fe496865cf3a0', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-64', 'description', 'Ship a VS Code-compatible keybinding preset that maps standard VS Code shortcuts to clide commands. Users select it in settings. Covers file navigation, editor actions, panel toggles, search, and terminal.', 'Ship a VS Code-compatible keybinding preset that maps standard VS Code shortcuts to clide commands. Users select it in settings. Covers file navigation, editor actions, panel toggles, search, and terminal.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is now in place. Implementation is now just authoring `assets/keymaps/vscode.yaml` against the typed Intents in `lib/kernel/src/keymap/intents.dart` (plus `command:<id>` bindings for VS-Code-specific commands the preset wants to bind to clide commands). Users will switch presets via `app.keymap.preset = vscode` once a settings UI exists, or directly via the setting today.
+
+**Acceptance:**
+1. `assets/keymaps/vscode.yaml` ships covering the documented VS Code default keybindings.
+2. `KeymapService.setPreset("vscode")` activates the preset and all asserted bindings resolve as expected.
+3. The preset uses when-clauses where VS Code does (`editor.focused`, `inputFocused`, `palette.open`, …).
+4. A regression test loads the preset and asserts a representative subset (e.g. ctrl+p → quick-open command, ctrl+shift+p → palette).
+
+**Out of scope:** clide commands that have no VS Code analogue (those keep their default-preset bindings).', NULL, '2026-05-17 19:39:37', '2026-05-17 19:39:37', '2026-05-17 19:39:37', NULL, 'a97758128bd490f603f11a68883a7193', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-65', 'description', 'Ship a Vim-compatible keybinding preset with modal editing support (normal/insert/visual modes). Maps Vim motions and commands to clide editor and navigation actions. Users select it in settings.', 'Ship a Vim-compatible keybinding preset with modal editing support (normal/insert/visual modes). Maps Vim motions and commands to clide editor and navigation actions. Users select it in settings.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place; modal Vim presets are more involved than the VS Code preset (T-64) because modes need to be expressed as scope flags (`vim.normal`, `vim.insert`, `vim.visual`) that the when-clause grammar can branch on. Implementation work:
+
+1. Author `assets/keymaps/vim.yaml` using the typed Intents + `command:<id>` bindings.
+2. Add a small mode-tracking service that publishes `vim.<mode>` scope flags via `KeymapService.setScopeFlag`.
+3. Bind `Esc` to mode-reset → normal; `i` (when `vim.normal`) → enter insert; etc.
+
+**Acceptance:**
+1. `assets/keymaps/vim.yaml` ships covering the documented Vim default keybindings for editor / navigation / panes.
+2. `KeymapService.setPreset("vim")` + the mode-tracking service together produce correct mode transitions.
+3. A regression test exercises a representative motion (`j` → cursor down) and a mode change (`i` → insert).', NULL, '2026-05-17 19:39:37', '2026-05-17 19:39:37', '2026-05-17 19:39:37', NULL, 'bf10f0149ccaa1e02050280b28305816', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-66', 'description', 'Ship a JetBrains/IntelliJ-compatible keybinding preset mapping standard JetBrains shortcuts to clide commands. Covers navigation, refactoring, search, run/debug, and tool windows.', 'Ship a JetBrains/IntelliJ-compatible keybinding preset mapping standard JetBrains shortcuts to clide commands. Covers navigation, refactoring, search, run/debug, and tool windows.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place. Implementation is authoring `assets/keymaps/jetbrains.yaml` against the typed Intents + `command:<id>` bindings, plus when-clauses for the contexts JetBrains presets typically scope to (`editor.focused`, `inputFocused`, etc.).
+
+**Acceptance:**
+1. `assets/keymaps/jetbrains.yaml` ships covering the documented IntelliJ default keybindings.
+2. `KeymapService.setPreset("jetbrains")` activates the preset and all asserted bindings resolve.
+3. A regression test exercises a representative subset (e.g. shift+shift → quick-open command — see Q-9 if the search-everywhere overlay needs its own intent).', NULL, '2026-05-17 19:39:37', '2026-05-17 19:39:37', '2026-05-17 19:39:37', NULL, 'c1129f4cb3454b99e1cbf645ca56bea5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-117', 'status', 'in_progress', 'done', NULL, '2026-05-17 19:39:40', '2026-05-17 19:39:40', '2026-05-17 19:39:40', NULL, '75b2fd14ceb7daf28645ccf84cb041f1', 1) ON CONFLICT(hash) DO NOTHING;

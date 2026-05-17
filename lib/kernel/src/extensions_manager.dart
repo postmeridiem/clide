@@ -14,6 +14,7 @@ import 'package:clide/kernel/src/files.dart';
 import 'package:clide/kernel/src/focus.dart';
 import 'package:clide/kernel/src/i18n/i18n.dart';
 import 'package:clide/kernel/src/ipc/client.dart';
+import 'package:clide/kernel/src/keymap/keymap_service.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/net.dart';
 import 'package:clide/kernel/src/notify.dart';
@@ -40,6 +41,7 @@ class ExtensionManager extends ChangeNotifier {
     required this.commands,
     required this.palette,
     required this.keybindings,
+    required this.keymap,
     required this.clipboard,
     required this.files,
     required this.notify,
@@ -64,6 +66,7 @@ class ExtensionManager extends ChangeNotifier {
   final CommandRegistry commands;
   final PaletteController palette;
   final KeybindingResolver keybindings;
+  final KeymapService keymap;
   final ClideClipboard clipboard;
   final FileServices files;
   final Notifications notify;
@@ -171,7 +174,11 @@ class ExtensionManager extends ChangeNotifier {
         commands.register(cmd);
         final binding = cmd.defaultBinding;
         if (binding != null) {
+          // Legacy KeybindingResolver still wired for back-compat
+          // until all callers migrate; the keymap layer is the
+          // canonical home for chord → command bindings (T-117).
           keybindings.bind(Keybinding.parse(binding), cmd.command);
+          keymap.registerCommandBinding(binding, cmd.command);
         }
       case TrayItemContribution t:
         tray.add(t);
@@ -194,6 +201,7 @@ class ExtensionManager extends ChangeNotifier {
         if (binding != null) {
           keybindings.unbind(Keybinding.parse(binding));
         }
+        keymap.unregisterCommandBindings(cmd.command);
       case TrayItemContribution t:
         tray.remove(t.id);
       case LayoutPresetContribution _:

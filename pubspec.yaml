@@ -67,6 +67,7 @@ flutter:
   assets:
     - lib/kernel/src/theme/themes/
     - lib/kernel/src/i18n/catalog/
+    - assets/keymaps/
     - assets/licenses.yaml
     - assets/LICENSE
     - assets/fonts/jetbrains_mono/OFL.txt
