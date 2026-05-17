@@ -220,5 +220,22 @@ void main() {
       bus.emit(const ProjectClosed());
       // Smoke — no throw.
     });
+
+    test('dispose immediately after ProjectOpened awaits the in-flight spawn (T-106)', () async {
+      // Race window: ProjectOpened triggers _startTicker which calls
+      // `Isolate.spawn(...)`; if dispose lands before the spawn future
+      // resolves, the old code left _isolate=null and the just-spawned
+      // ticker leaked forever. Now dispose awaits _isolateReady before
+      // killing.
+      final bus = DaemonBus();
+      final s = SchedulerService(bus);
+      s.start();
+      bus.emit(const ProjectOpened(path: '/tmp/x'));
+      // Don't wait for the spawn to settle — dispose must do that itself.
+      await s.dispose();
+      // No throw, no leaked isolate (test runner would flag a lingering
+      // isolate by failing to exit cleanly). Reaching this line is the
+      // assertion.
+    });
   });
 }

@@ -38,6 +38,13 @@ class SchedulerService {
   StreamSubscription<dynamic>? _sub;
   StreamSubscription<dynamic>? _projectSub;
 
+  /// Tracks the spawn future so [_stopTicker] can await it before
+  /// killing — otherwise a stop racing a still-spawning isolate
+  /// leaves `_isolate` null at kill time and the just-spawned isolate
+  /// (with its `Timer.periodic`) leaks forever. Same race shape we
+  /// fixed in `NativePty` via `_readerReady` (T-96).
+  Future<Isolate?>? _isolateReady;
+
   /// Listen for project lifecycle events. The periodic ticker only runs
   /// while a project is open — no wasted cycles on the welcome screen.
   void start() {
@@ -47,8 +54,8 @@ class SchedulerService {
 
   /// Start the periodic ticker and fire an immediate first cycle so
   /// all panels refresh without waiting for the first interval.
-  void _startTicker() {
-    _stopTicker();
+  Future<void> _startTicker() async {
+    await _stopTicker();
 
     // Stagger the initial ticks to avoid a rebuild storm on project open.
     var delay = 0;
@@ -68,14 +75,26 @@ class SchedulerService {
         _events.emit(SchedulerTick(tier: tier));
       }
     });
-    Isolate.spawn(_isolateEntry, _port!.sendPort).then((iso) => _isolate = iso);
+    _isolateReady = Isolate.spawn(_isolateEntry, _port!.sendPort);
+    _isolateReady!.then((iso) => _isolate = iso).catchError((_) => null);
   }
 
-  void _stopTicker() {
+  Future<void> _stopTicker() async {
+    // Await any in-flight spawn so we never miss killing an isolate
+    // that's mid-creation — see _isolateReady.
+    if (_isolateReady != null) {
+      try {
+        final pending = await _isolateReady;
+        _isolate ??= pending;
+      } catch (_) {
+        // Spawn failed; nothing to kill.
+      }
+    }
     _sub?.cancel();
     _port?.close();
     _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
+    _isolateReady = null;
     _port = null;
     _sub = null;
   }
@@ -97,8 +116,8 @@ class SchedulerService {
     }
   }
 
-  void dispose() {
+  Future<void> dispose() async {
     _projectSub?.cancel();
-    _stopTicker();
+    await _stopTicker();
   }
 }

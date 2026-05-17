@@ -98,6 +98,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - `README.md` rewritten to match current architecture; `docs/initial-plan.md`
   bannered as historical; new `docs/architecture.md` describes today's
   shape (T-101).
+- `SchedulerService._stopTicker` now awaits the in-flight isolate spawn
+  before killing — closes the same race shape we fixed in PTY (T-106).
 - Terminal panes now render bold attributes with a real bold weight —
   bundled JetBrainsMono Bold + BoldItalic are registered with the
   `JetBrainsMono` family at `weight: 700`. The painter's bold

@@ -1623,3 +1623,48 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 4. Spot-check other doc references to dissolved components.
 
 Source: consultants.md "Docs — Findings — [Critical]".', 'done', 'high', NULL, NULL, NULL, '2026-05-17 18:47:29', '2026-05-17 19:01:39', NULL, 'a7d378267119361f2b2188977881a666', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-115', 'story', NULL, 'startup project picker; "always open this project" override', 'Startup flow change: on launch, always show the project picker screen unless the user has explicitly checked an "always open this project" box for a specific project (sticky default).
+
+**Acceptance:**
+1. Default startup: project picker is the first screen, regardless of last-opened state.
+2. Picker has an "always open this project on launch" checkbox per project entry.
+3. If exactly one project has that flag set, startup skips the picker and opens that project directly.
+4. The flag is per-project, persisted in app settings (probably under `app.startupProject`).
+5. The checkbox can be unticked from the welcome view to restore picker-first behavior.
+
+**Notes:** today the app auto-opens `app.lastProject` on boot (kernel/src/project.dart `openLast`). The new flow inverts the default — picker is the steady state, sticky-open is opt-in per project.
+
+**Out of scope:** multi-project workspaces, project groups, recent-project ordering changes.
+
+**Source:** user request 2026-05-17.', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-17 19:10:21', '2026-05-17 19:10:21', NULL, 'ce156fb92fbad8ba9bf860a4eb71d1ac', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-116', 'bug', 'T-97', 'integration_test/theme_picker_test.dart hangs pumpAndSettle on theme.pick', 'When running `flutter test integration_test/theme_picker_test.dart` against the real boot path, calling `services.commands.execute(''theme.pick'')` followed by `await tester.pumpAndSettle()` does not settle — the test hangs for 60+ seconds and never reaches the `Select theme` / `Cancel` assertions. Likely an animation loop or a never-completing Future in the modal mount path.
+
+Blocks T-103 from adding integration tests to `make push-check` (the other two integration tests pass after viewport + assertion fixes).
+
+**Acceptance:**
+1. `flutter test integration_test/theme_picker_test.dart` completes in <10s.
+2. Both assertions (`Select theme` visible after `theme.pick`; gone after `Cancel`) pass.
+3. T-103''s `push-check-full` can include integration tests without the theme-picker hanging.
+
+Source: surfaced 2026-05-17 during T-103 work.', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-17 19:14:31', '2026-05-17 19:14:31', NULL, 'df0c6bdd610410d4bd27bfeb2be9acbc', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-113', 'task', 'T-97', 'quick-wins: governance + docs reconciliation', 'Batch of small consultant findings that share a domain (governance/docs):
+
+1. **Amend D-66** to match current floor location/value: the floor lives in `pubspec.yaml` `coverage_floor:` (single source of truth as of this session), not `coverage/floor.txt`. Add a dated amendment line.
+2. **Reconcile `licenses.yaml` vs `pubspec.yaml`** — `test` version drift (`1.25.8` vs `1.30.0`), phantom `lints 5.0.0` not in pubspec. Two-step-commit rule from D-42 is being violated.
+3. **Triage stale Q-records** — Q-1/Q-2/Q-3 ("defer until Tier 1 is in real use") are due now that Tier 1 has shipped. Q-25 (body text face) is de facto resolved by D-43/D-44.
+4. **Drop `--no-fatal-infos` from `ci/test.sh`** now that the import queue is clear (post test-sweep this session).
+5. Add a `.claude/skills/README.md` inventory.
+
+Source: consultants.md (Docs + Tests + Security Findings — Minor).', 'done', 'low', NULL, NULL, NULL, '2026-05-17 18:48:24', '2026-05-17 19:18:43', NULL, '6988f892ed906cb397bea5068fdcd30e', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-106', 'bug', 'T-97', 'fix SchedulerService._startTicker isolate-spawn race', '`scheduler.dart:71`: `Isolate.spawn(_isolateEntry, _port!.sendPort).then((iso) => _isolate = iso)`. If `_stopTicker()` runs before the spawn future completes, `_isolate` is still null, nothing is killed, and the just-spawned isolate (with its `Timer.periodic`) leaks forever.
+
+Same race shape we just fixed in `NativePty` via `_readerReady` (T-96).
+
+**Fix:** track the spawn future as `_isolateReady`; `_stopTicker` awaits it before killing.
+
+Source: consultants.md "Code quality — Findings — [Major]".', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 18:47:51', '2026-05-17 19:18:43', NULL, 'b529416bab7c66fde471f990671f3b25', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-103', 'task', 'T-97', 'add test-integration + smoke-bundle to make push-check', '`make push-check` runs `decisions-validate test-core test test-a11y coverage-gate changelog-gate`. `test-integration` and `smoke-bundle` are omitted — a boot-order regression sails through the pre-push gate.
+
+**Acceptance:** `make push-check` runs the integration test layer + smoke-bundle. Wall-clock budget acceptable for pre-push (target <2 min total). If they''re too slow, gate them behind a separate `make push-check-full` and document.
+
+Source: consultants.md "Tests — Findings — [Major] make push-check does not run integration tests".', 'done', 'high', NULL, NULL, NULL, '2026-05-17 18:47:39', '2026-05-17 19:18:43', NULL, 'cbae1915f1c89a8a2b05da71148d77dc', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

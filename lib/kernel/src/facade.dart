@@ -238,7 +238,7 @@ class KernelServices {
     focus.dispose();
     project.dispose();
     extensions.dispose();
-    scheduler.dispose();
+    await scheduler.dispose();
     await log.dispose();
     messages.dispose();
     await events.dispose();
