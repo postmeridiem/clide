@@ -109,6 +109,7 @@ You might also want, project-permitting:
 - [D-65: License compatibility matrix](decisions/tooling.md#d-65-license-compatibility-matrix) — _tooling_
 - [D-66: Line coverage gate at 95%, ratcheted from current](decisions/testing.md#d-66-line-coverage-gate-at-95-ratcheted-from-current) — _testing_
 - [D-67: Pql changelog files are committed alongside code](decisions/process.md#d-67-pql-changelog-files-are-committed-alongside-code) — _process_
+- [D-68: Dual integration surface — Bash CLI primary, MCP secondary](decisions/architecture.md#d-68-dual-integration-surface--bash-cli-primary-mcp-secondary) — _architecture_
 
 ## Open questions
 
@@ -142,6 +143,8 @@ You might also want, project-permitting:
 - [Q-29: Branch picker location](questions/architecture.md#q-29-branch-picker-location) — _architecture_
 - [Q-30: Focus behavior when editor is dirty and viewer is peeked](questions/architecture.md#q-30-focus-behavior-when-editor-is-dirty-and-viewer-is-peeked) — _architecture_
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
+- [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
+- [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
 
 ## Rejected
 

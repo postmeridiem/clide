@@ -125,4 +125,16 @@ ticket persistence.
 
 - **Source:** 2026-04-23 D-57 implementation.
 
+### Q-32: MCP tool surface — minimum slash-ide or extended clide tools?
+- **Status:** Open
+- **Question:** [D-68](../decisions/architecture.md#d-68-dual-integration-surface-bash-cli-primary-mcp-secondary) commits clide to an `/ide`-compatible MCP server. The minimum surface is the two tools Claude Code's `/ide` integration currently expects: `mcp__ide__getDiagnostics` (lint/diagnostics for a file) and `mcp__ide__executeCode` (run code in a Jupyter kernel). Do we stop there, or also expose a `mcp__clide__*` namespace with higher-leverage tools (`open_file`, `goto_symbol`, `pql_query`, `pane_spawn`, `git_status`, …) so MCP clients other than Claude Code (Cursor, Windsurf, VS Code Copilot) can drive clide as a real backend?
+- **Context:** The minimum surface keeps clide a good citizen in the `/ide` ecosystem and avoids duplicating the CLI in MCP form. The extended surface would let non-Claude-Code MCP clients integrate richly, but invites surface bloat (every CLI verb tempted to gain an MCP twin) and a maintenance second front. Note that for *Claude-Code-in-a-clide-pane*, the CLI surface already covers this — extended MCP tools serve external MCP clients only.
+- **Source:** [D-68](../decisions/architecture.md#d-68-dual-integration-surface-bash-cli-primary-mcp-secondary).
+
+### Q-33: MCP transport — SSE, WebSocket, stdio, or all?
+- **Status:** Open
+- **Question:** Claude Code's `/ide` integration connects via SSE-IDE or WS-IDE (URL passed at startup). MCP also supports stdio for process-spawn clients. Which transport(s) should clide's MCP server expose — SSE only (the most common `/ide` server pattern), SSE + WS (broader compatibility), or all three including stdio?
+- **Context:** Transport choice affects discovery and lifecycle. SSE/WS need a port and a published URL, which collides with the `XDG_RUNTIME_DIR` Unix-socket model used for the CLI; we'd likely publish the URL alongside the socket path (env var or `XDG_RUNTIME_DIR` discovery file). stdio is process-per-client and works for clients that prefer process-spawn over network. Decision interacts with [Q-32](#q-32-mcp-tool-surface-minimum-slash-ide-or-extended-clide-tools) — if the surface stays at the `/ide` minimum, SSE alone is sufficient.
+- **Source:** [D-68](../decisions/architecture.md#d-68-dual-integration-surface-bash-cli-primary-mcp-secondary).
+
 ---
