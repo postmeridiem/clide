@@ -3,12 +3,13 @@
 /// Exercises posix_spawn() end-to-end: spawn → child output through the
 /// reader isolate. Linux + macOS only; skipped elsewhere.
 ///
-/// Per-test `tags: ['forkpty']` marks the tests that need `dart test`
-/// rather than the flutter test runner — currently just the
-/// write/read-back bidirectional test (writes to the master fd never
-/// reach the child under the flutter test runner; reads work fine).
-/// Everything else runs under `flutter test` and contributes to
-/// coverage.
+/// Per-test `tags: ['forkpty']` marks the tests that depend on the
+/// reader isolate delivering output from the master fd — reads from a
+/// pty master under the flutter test runner are unstable when other
+/// suites run in parallel (intermittently empty). Only the
+/// synchronous-throw and resize tests stay untagged so they
+/// contribute to coverage under `flutter test`. The output-dependent
+/// tests run via `dart test` per `ci/test.sh`.
 library;
 
 import 'dart:async';
@@ -23,7 +24,7 @@ void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
   group('NativePty', () {
-    test('spawns shell -c echo and reads output', () async {
+    test('spawns shell -c echo and reads output', tags: ['forkpty'], () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: ['-c', 'echo hello-pty'],
@@ -77,7 +78,7 @@ void main() {
       expect(buf.toString(), contains('write-test-ok'));
     });
 
-    test('close kills child and closes output', () async {
+    test('close kills child and closes output', tags: ['forkpty'], () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -98,7 +99,7 @@ void main() {
       expect(s.isClosed, isTrue);
     });
 
-    test('bare command name resolves via the PATH env var', () async {
+    test('bare command name resolves via the PATH env var', tags: ['forkpty'], () async {
       // 'sh' is a bare command; without resolution, execve would fail.
       final s = NativePty.start(
         executable: 'sh',
@@ -162,6 +163,25 @@ void main() {
         ),
         throwsA(isA<PtyException>().having((e) => e.errno, 'errno', 2)),
       );
+    });
+
+    test('start with a bare command name resolves it via PATH (no read)', () async {
+      // Resolves "cat" to /bin/cat (or wherever it lives on PATH).
+      // Doesn't read the master fd — that path is exercised by the
+      // forkpty-tagged version of this test under `dart test`.
+      final s = NativePty.start(
+        executable: 'cat',
+        arguments: const [],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {
+          ...Platform.environment,
+          'TERM': 'xterm-256color',
+        },
+      );
+      addTearDown(s.close);
+      expect(s.pid, greaterThan(0));
     });
 
     test('resize on a live PTY does not throw', () async {
