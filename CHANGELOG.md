@@ -56,6 +56,16 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   getters), and `widgets/src/clide_markdown.dart` (h3–h6, tables,
   strikethrough, default block fallback, record-link tap). Crosses
   the 93% line-coverage threshold (T-91).
+- `kernel/src/syntax/tree_sitter_service.dart` test sweep — every
+  `colorForRole` switch arm plus fake-FFI coverage of
+  `_init`/`_loadGrammar`/`highlight`/`dispose` branches, taking the
+  file from 17% → 96%. Real-library smoke test
+  (`test/kernel/src/syntax/tree_sitter_smoke_test.dart`) dlopen's the
+  vendored `native/linux-x64/libtree-sitter.so`, loads the bundled
+  `dart` grammar end-to-end, and verifies highlight emits sane spans —
+  catches FFI signature drift the fake-driven tests can't. Skips on
+  non-Linux and when the vendored library isn't present. Drives total
+  line coverage across the 95% target (T-91).
 - Staged `dart doc` CI job — generates and uploads an HTML API
   reference for the public `lib/` surface. The step wraps
   `dart doc --validate-links` and grep-fails the build on any warning,
@@ -109,8 +119,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
-- Pre-push line-coverage floor unfrozen and ratcheted to 93% (was held
-  at 90 on 2026-05-14 by mistake). 95% target restored per D-66.
+- Pre-push line-coverage floor ratcheted to 95% — D-66 target hit.
+- `TreeSitterService` accepts injectable `TreeSitterLib` and grammar /
+  query loaders so tests can substitute a fake FFI surface without
+  dlopen'ing `libtree-sitter.so`. `TreeSitterLib.testing(...)` exposes a
+  named-parameter constructor with safe no-op defaults for every native
+  function; `TreeSitterLib.fromDynamicLibrary(...)` lets the smoke test
+  load the vendored `.so` directly. Production paths
+  (`TreeSitterService.shared`, `TreeSitterLib.instance`) unchanged.
 - Tidied test imports — dropped redundant `dart:ui` / `dart:typed_data`
   / barrel-redundant package imports flagged by `unnecessary_import`.
 - Terminal panes now render bold attributes with a real bold weight —

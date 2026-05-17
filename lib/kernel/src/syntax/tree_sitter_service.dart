@@ -8,7 +8,16 @@ import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+
+/// Loads grammar WASM bytes for [language] (e.g. "dart" → `dart.wasm`).
+/// Throws on missing or unreadable assets.
+typedef GrammarBytesLoader = Future<Uint8List> Function(String language);
+
+/// Loads the highlight query (`.scm` source) for [language], or returns
+/// null if no query is bundled for it.
+typedef GrammarQueryLoader = Future<String?> Function(String language);
 
 class SyntaxSpan {
   const SyntaxSpan({
@@ -42,8 +51,37 @@ class _LoadedGrammar {
 }
 
 class TreeSitterService {
-  static final TreeSitterService shared = TreeSitterService._();
-  TreeSitterService._();
+  static final TreeSitterService shared = TreeSitterService();
+
+  /// Production constructor: uses the dlopen'd [TreeSitterLib.instance] and
+  /// the Flutter [rootBundle]. Tests pass [lib] / [grammarBytes] /
+  /// [grammarQuery] to substitute a fake FFI surface and in-memory assets.
+  TreeSitterService({
+    TreeSitterLib? lib,
+    GrammarBytesLoader? grammarBytes,
+    GrammarQueryLoader? grammarQuery,
+  })  : _injectedLib = lib,
+        _grammarBytes = grammarBytes ?? _defaultGrammarBytes,
+        _grammarQuery = grammarQuery ?? _defaultGrammarQuery;
+
+  final TreeSitterLib? _injectedLib;
+  final GrammarBytesLoader _grammarBytes;
+  final GrammarQueryLoader _grammarQuery;
+
+  TreeSitterLib? get _lib => _injectedLib ?? TreeSitterLib.instance;
+
+  static Future<Uint8List> _defaultGrammarBytes(String language) async {
+    final data = await rootBundle.load('assets/grammars/$language.wasm');
+    return data.buffer.asUint8List();
+  }
+
+  static Future<String?> _defaultGrammarQuery(String language) async {
+    try {
+      return await rootBundle.loadString('assets/queries/$language.scm');
+    } catch (_) {
+      return null;
+    }
+  }
 
   final Map<String, _LoadedGrammar> _grammars = {};
   final Set<String> _unavailable = {};
@@ -58,7 +96,7 @@ class TreeSitterService {
     if (_initDone) return _parser != null;
     _initDone = true;
 
-    final lib = TreeSitterLib.instance;
+    final lib = _lib;
     if (lib == null) return false;
 
     final engine = lib.wasmEngineNew();
@@ -92,12 +130,11 @@ class TreeSitterService {
       return null;
     }
 
-    final lib = TreeSitterLib.instance!;
+    final lib = _lib!;
 
     try {
       // Load grammar WASM bytes.
-      final wasmData = await rootBundle.load('assets/grammars/$language.wasm');
-      final wasmBytes = wasmData.buffer.asUint8List();
+      final wasmBytes = await _grammarBytes(language);
 
       // Load into WASM store.
       final nameNative = language.toNativeUtf8();
@@ -126,10 +163,7 @@ class TreeSitterService {
       calloc.free(error);
 
       // Load highlight query.
-      String? querySource;
-      try {
-        querySource = await rootBundle.loadString('assets/queries/$language.scm');
-      } catch (_) {}
+      final querySource = await _grammarQuery(language);
 
       Pointer<TSQuery> query = nullptr;
       List<String> captureNames = [];
@@ -200,7 +234,7 @@ class TreeSitterService {
       return SyntaxResult.empty;
     }
 
-    final lib = TreeSitterLib.instance!;
+    final lib = _lib!;
     final parser = _parser!;
     final cursor = _cursor!;
 
@@ -253,7 +287,7 @@ class TreeSitterService {
   }
 
   void dispose() {
-    final lib = TreeSitterLib.instance;
+    final lib = _lib;
     if (lib == null) return;
 
     for (final grammar in _grammars.values) {
@@ -271,6 +305,15 @@ class TreeSitterService {
     _store = null;
     _cursor = null;
     _unavailable.clear();
+  }
+
+  /// Resets the service to a pre-init state. Tests use this to re-exercise
+  /// `_init()` without constructing a new singleton; production code never
+  /// needs it.
+  @visibleForTesting
+  void resetForTests() {
+    dispose();
+    _initDone = false;
   }
 
   static Color colorForRole(String role, SurfaceTokens tokens) {

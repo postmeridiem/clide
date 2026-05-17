@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:io' show File, Platform;
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 
 // -- Opaque handles ----------------------------------------------------------
 
@@ -146,6 +147,60 @@ class TreeSitterLib {
         wasmEngineNew = lib.lookupFunction<_WasmEngineNew, DWasmEngineNew>('wasm_engine_new'),
         wasmEngineDelete = lib.lookupFunction<_WasmEngineDelete, DWasmEngineDelete>('wasm_engine_delete');
 
+  /// Constructs a [TreeSitterLib] from caller-supplied Dart closures. Used by
+  /// tests to substitute the FFI surface without dlopen'ing the real library;
+  /// each unspecified function defaults to a safe no-op (pointers return
+  /// `nullptr`, ints return `0`, bools return `false`). Tests override the
+  /// few entries they exercise.
+  @visibleForTesting
+  TreeSitterLib.testing({
+    DTsParserNew? parserNew,
+    DTsParserDelete? parserDelete,
+    DTsParserSetLanguage? parserSetLanguage,
+    DTsParserSetWasmStore? parserSetWasmStore,
+    DTsParserParseString? parserParseString,
+    DTsTreeDelete? treeDelete,
+    DTsTreeRootNode? treeRootNode,
+    DTsNodeStartByte? nodeStartByte,
+    DTsNodeEndByte? nodeEndByte,
+    DTsQueryNew? queryNew,
+    DTsQueryDelete? queryDelete,
+    DTsQueryCaptureCount? queryCaptureCount,
+    DTsQueryCaptureNameForId? queryCaptureNameForId,
+    DTsQueryCursorNew? queryCursorNew,
+    DTsQueryCursorDelete? queryCursorDelete,
+    DTsQueryCursorExec? queryCursorExec,
+    DTsQueryCursorNextMatch? queryCursorNextMatch,
+    DTsWasmStoreNew? wasmStoreNew,
+    DTsWasmStoreDelete? wasmStoreDelete,
+    DTsWasmStoreLoadLanguage? wasmStoreLoadLanguage,
+    DWasmEngineNew? wasmEngineNew,
+    DWasmEngineDelete? wasmEngineDelete,
+  })  : parserNew = parserNew ?? (() => nullptr),
+        parserDelete = parserDelete ?? ((_) {}),
+        parserSetLanguage = parserSetLanguage ?? ((_, __) => false),
+        parserSetWasmStore = parserSetWasmStore ?? ((_, __) {}),
+        parserParseString = parserParseString ?? ((_, __, ___, ____) => nullptr),
+        treeDelete = treeDelete ?? ((_) {}),
+        // Leaks a zeroed TSNode allocation — only hit when the test supplies
+        // a non-null parserParseString without also supplying treeRootNode.
+        treeRootNode = treeRootNode ?? ((_) => calloc<TSNode>().ref),
+        nodeStartByte = nodeStartByte ?? ((_) => 0),
+        nodeEndByte = nodeEndByte ?? ((_) => 0),
+        queryNew = queryNew ?? ((_, __, ___, ____, _____) => nullptr),
+        queryDelete = queryDelete ?? ((_) {}),
+        queryCaptureCount = queryCaptureCount ?? ((_) => 0),
+        queryCaptureNameForId = queryCaptureNameForId ?? ((_, __, ___) => nullptr),
+        queryCursorNew = queryCursorNew ?? (() => nullptr),
+        queryCursorDelete = queryCursorDelete ?? ((_) {}),
+        queryCursorExec = queryCursorExec ?? ((_, __, ___) {}),
+        queryCursorNextMatch = queryCursorNextMatch ?? ((_, __) => false),
+        wasmStoreNew = wasmStoreNew ?? ((_, __) => nullptr),
+        wasmStoreDelete = wasmStoreDelete ?? ((_) {}),
+        wasmStoreLoadLanguage = wasmStoreLoadLanguage ?? ((_, __, ___, ____, _____) => nullptr),
+        wasmEngineNew = wasmEngineNew ?? (() => nullptr),
+        wasmEngineDelete = wasmEngineDelete ?? ((_) {});
+
   final DTsParserNew parserNew;
   final DTsParserDelete parserDelete;
   final DTsParserSetLanguage parserSetLanguage;
@@ -180,6 +235,13 @@ class TreeSitterLib {
     _instance = TreeSitterLib._(lib);
     return true;
   }
+
+  /// Constructs a [TreeSitterLib] from an already-loaded [DynamicLibrary].
+  /// Used by the smoke test to dlopen the vendored `libtree-sitter.so`
+  /// directly without going through the global `init()` / `_instance`
+  /// dance, so the test stays isolated from the singleton.
+  @visibleForTesting
+  static TreeSitterLib fromDynamicLibrary(DynamicLibrary lib) => TreeSitterLib._(lib);
 
   static DynamicLibrary? _openLibrary() {
     final libName = Platform.isLinux
