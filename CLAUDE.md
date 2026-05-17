@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 An IDE for Claude Code CLI. Single Flutter package at the repo root.
 
-- **`lib/`** — all Dart code. Subsystem handlers (`lib/src/daemon/`, `lib/src/pty/`, `lib/src/ipc/`, `lib/src/git/`, `lib/src/pql/`), kernel services (`lib/kernel/`), UI widgets (`lib/widgets/`), built-in extensions (`lib/builtin/`), and the extension framework (`lib/extension/`). The Flutter app hosts the IPC server in-process (D-56). PTY spawning uses Dart FFI `forkpty()` directly.
+- **`lib/`** — all Dart code. Subsystem handlers (`lib/src/daemon/`, `lib/src/pty/`, `lib/src/ipc/`, `lib/src/git/`, `lib/src/pql/`), kernel services (`lib/kernel/`), UI widgets (`lib/widgets/`), built-in extensions (`lib/builtin/`), and the extension framework (`lib/extension/`). The Flutter app hosts the IPC server in-process (D-56). PTY spawning uses Dart FFI `posix_openpt()` + `posix_spawn()` directly.
 - **[`pql`](https://github.com/postmeridiem/pql)** — external supporter tool. Clide wraps it for every query surface; never re-implements it.
 
 tmux owns Claude session persistence (D-41) — the app re-attaches on restart via `tmux new-session -A`. Native rendering — markdown, canvas, graph — is Dart/Flutter (`CustomPaint` + widgets), not third-party packages.
@@ -20,7 +20,7 @@ These are load-bearing. Violating any means the design is wrong, not the rule.
 - **Flutter desktop is the host. No Electron, ever.** Web target may work as a happy accident — don't compromise desktop fidelity for it. If we ship a web build at all, prefer Flutter's **WebAssembly (CanvasKit/Skwasm) compile** over the JS/HTML renderer. `xterm.dart` is the terminal renderer; markdown, canvas, graph are custom `CustomPaint`/widget components.
 - **Single process.** The Flutter app hosts everything in-process: IPC server, subsystem handlers (pane, files, editor, git, pql), extensions. No separate daemon binary (D-56 dissolved it).
 - **CLI-first, not MCP.** Claude talks via Bash (`clide ...`), matching pql's contract. See [`D-1`](governance/decisions/architecture.md#d-1-cli-first-not-mcp).
-- **Dart is the core; pql fills the query gap.** PTY spawning is native Dart FFI (`forkpty`). `pql` (Go) handles vault queries. No second "core language." See [`D-5`](governance/decisions/architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended by D-56).
+- **Dart is the core; pql fills the query gap.** PTY spawning is native Dart FFI (`posix_openpt` + `posix_spawn`). `pql` (Go) handles vault queries. No second "core language." See [`D-5`](governance/decisions/architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer) (amended by D-56).
 - **Own the rendering stack.** PTY (via Dart FFI), markdown renderer, graph, canvas — all clide-owned, not pulled from opinionated packages.
 - **User/Claude parity.** Every CLI subcommand has a UI affordance, and every UI action has a CLI. See [`D-6`](governance/decisions/architecture.md#d-6-cli-and-event-surface-contract).
 - **pql: wrap, don't duplicate.** Pql logic only lives in `lib/src/pql/` (pure shell-outs). Clide owns pql's `ignore_files:` config key; it never touches pql's `.pql/` index/cache data. See [`D-3`](governance/decisions/architecture.md#d-3-pql-as-supporter-tool-clide-wraps-never-duplicates).

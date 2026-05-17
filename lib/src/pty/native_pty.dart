@@ -1,11 +1,19 @@
-/// Native PTY via forkpty().
+/// Native PTY via posix_openpt() + posix_spawn().
 ///
-/// Uses Dart FFI to call forkpty() directly. The master fd stays
-/// in-process. The reader isolate uses poll() for clean shutdown.
+/// Originally used `forkpty()`, which calls `fork()` underneath. `fork()`
+/// in a multithreaded process is unsafe: only the calling thread survives
+/// in the child, but libc locks (notably `malloc`) held by other threads
+/// remain "locked forever." With the multi-threaded Dart VM as the
+/// parent, ~5% of spawns deadlocked in the child before `execve` (see
+/// T-96).
 ///
-/// Based on the pty-spike proof-of-concept. Platform-aware:
-///   macOS: forkpty in libSystem (DynamicLibrary.process)
-///   Linux: forkpty in libutil.so.1
+/// `posix_spawn()` uses `vfork()` on glibc/musl/macOS, which keeps the
+/// parent suspended until `execve` completes — no Dart code runs in the
+/// child, so the lock-deadlock window is closed. The pty is created via
+/// the POSIX-standard `posix_openpt` / `grantpt` / `unlockpt` /
+/// `ptsname` sequence instead of the BSD `forkpty` wrapper.
+///
+/// All symbols live in libc (resolved via `DynamicLibrary.process()`).
 library;
 
 import 'dart:async';
@@ -43,38 +51,62 @@ final class _Pollfd extends ffi.Struct {
 
 // -- FFI bindings -----------------------------------------------------------
 
-final ffi.DynamicLibrary _dl = _openLib();
+final ffi.DynamicLibrary _dl = ffi.DynamicLibrary.process();
 
-ffi.DynamicLibrary _openLib() {
-  if (Platform.isMacOS) return ffi.DynamicLibrary.process();
-  // Linux: forkpty lives in libutil
-  return ffi.DynamicLibrary.open('libutil.so.1');
-}
+// pty open/setup (POSIX).
+final _posixOpenpt = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('posix_openpt');
+final _grantpt = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('grantpt');
+final _unlockpt = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('unlockpt');
+final _ptsname = _dl.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Int32), ffi.Pointer<Utf8> Function(int)>('ptsname');
 
-final _forkpty = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>, ffi.Pointer<_Winsize>),
-    int Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>, ffi.Pointer<_Winsize>)>('forkpty');
+// posix_spawn family. The attr + file_actions structs are opaque to us
+// and platform-sized — we allocate a generous fixed buffer (8 KiB, far
+// larger than any documented platform layout) and pass it as Pointer<Void>.
+// init() writes the real layout into our memory; destroy() releases any
+// internal nested allocations.
+final _posixSpawn = _dl.lookupFunction<
+    ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<Utf8>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Pointer<Utf8>>,
+        ffi.Pointer<ffi.Pointer<Utf8>>),
+    int Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<Utf8>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Pointer<Utf8>>,
+        ffi.Pointer<ffi.Pointer<Utf8>>)>('posix_spawn');
 
-final _execve = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Pointer<ffi.Pointer<ffi.Char>>),
-    int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Pointer<ffi.Pointer<ffi.Char>>)>('execve');
+final _spawnattrInit = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawnattr_init');
+final _spawnattrDestroy = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawnattr_destroy');
+final _spawnattrSetflags =
+    _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int16), int Function(ffi.Pointer<ffi.Void>, int)>('posix_spawnattr_setflags');
 
-final _nativeWrite = ffi.DynamicLibrary.process()
-    .lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>('write');
+final _faInit = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawn_file_actions_init');
+final _faDestroy = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawn_file_actions_destroy');
+final _faAddopen = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32, ffi.Pointer<Utf8>, ffi.Int32, ffi.Uint32),
+    int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<Utf8>, int, int)>('posix_spawn_file_actions_addopen');
+final _faAdddup2 = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32, ffi.Int32), int Function(ffi.Pointer<ffi.Void>, int, int)>(
+    'posix_spawn_file_actions_adddup2');
+final _faAddclose =
+    _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32), int Function(ffi.Pointer<ffi.Void>, int)>('posix_spawn_file_actions_addclose');
+// glibc 2.29+ / macOS 10.15+. Both ship the `_np` suffix.
+final _faAddchdir = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Pointer<Utf8>), int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<Utf8>)>(
+    'posix_spawn_file_actions_addchdir_np');
 
-final _nativeClose = ffi.DynamicLibrary.process().lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('close');
+// libc primitives shared with the reader isolate / lifecycle.
+final _nativeWrite =
+    _dl.lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>('write');
+final _nativeClose = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('close');
+final _ioctl =
+    _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>), int Function(int, int, ffi.Pointer<_Winsize>)>('ioctl');
+final _nativeKill = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32), int Function(int, int)>('kill');
+final _waitpid =
+    _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Int32>, ffi.Int32), int Function(int, ffi.Pointer<ffi.Int32>, int)>('waitpid');
 
-final _ioctl = ffi.DynamicLibrary.process()
-    .lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>), int Function(int, int, ffi.Pointer<_Winsize>)>('ioctl');
-
-final _nativeKill = ffi.DynamicLibrary.process().lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32), int Function(int, int)>('kill');
-
-final _waitpid = ffi.DynamicLibrary.process()
-    .lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Int32>, ffi.Int32), int Function(int, ffi.Pointer<ffi.Int32>, int)>('waitpid');
-
-final _chdir = ffi.DynamicLibrary.process().lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>), int Function(ffi.Pointer<ffi.Char>)>('chdir');
-
-final _exit_ = ffi.DynamicLibrary.process().lookupFunction<ffi.Void Function(ffi.Int32), void Function(int)>('_exit');
-
+// Constants — all duplicated from <fcntl.h>, <sys/ioctl.h>, <spawn.h>.
 final int _kTiocsWinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
+const int _kORdwr = 0x0002;
+final int _kONoctty = Platform.isMacOS ? 0x20000 : 0x0100;
+// POSIX_SPAWN_SETSID — glibc 2.26+ (0x80), macOS 10.15+ (0x400).
+final int _kSpawnSetsid = Platform.isMacOS ? 0x400 : 0x80;
+// Opaque struct buffer size: ample headroom above every documented
+// platform layout (glibc posix_spawnattr_t is 336 B; macOS even smaller).
+const int _kSpawnStructBytes = 8192;
+
 const _kSighup = 1;
 const _kWnohang = 1;
 
@@ -104,7 +136,11 @@ class NativePty {
   /// Spawn a new PTY running [executable] with [arguments].
   ///
   /// [environment] must be the complete environment — it goes straight
-  /// to execve's envp. Merge Platform.environment before calling.
+  /// to the spawn's envp. Merge `Platform.environment` before calling.
+  ///
+  /// Uses `posix_openpt` + `posix_spawn` (via libc's `vfork`-backed
+  /// implementation) so no Dart code runs between fork and execve —
+  /// see the library docstring and T-96.
   static NativePty start({
     required String executable,
     List<String> arguments = const ['-l'],
@@ -113,7 +149,9 @@ class NativePty {
     String? workingDirectory,
     Map<String, String> environment = const {},
   }) {
-    // Resolve bare command names via PATH (execve doesn't search PATH).
+    // Resolve bare command names via PATH (posix_spawn requires an absolute
+    // or relative path — posix_spawnp would search PATH for us but we want
+    // resolution to be visible/debuggable from Dart).
     if (!executable.contains('/')) {
       final path = environment['PATH'] ?? Platform.environment['PATH'] ?? '';
       for (final dir in path.split(':')) {
@@ -126,104 +164,134 @@ class NativePty {
       }
     }
 
-    // Force-resolve FFI functions that run in the child process.
-    // Top-level finals are lazy; touching them here ensures the FFI
-    // trampolines are compiled before fork() clones the process.
-    final execve = _execve;
-    final chdir = _chdir;
-    final exit = _exit_;
-    final writeFn = _nativeWrite;
+    // ---- Open the pty master ------------------------------------------
+    final masterFd = _posixOpenpt(_kORdwr | _kONoctty);
+    if (masterFd < 0) {
+      throw PtyException('posix_openpt', 'posix_openpt failed', errno: libc.errno);
+    }
+    if (_grantpt(masterFd) != 0) {
+      final err = libc.errno;
+      _nativeClose(masterFd);
+      throw PtyException('grantpt', 'grantpt failed', errno: err);
+    }
+    if (_unlockpt(masterFd) != 0) {
+      final err = libc.errno;
+      _nativeClose(masterFd);
+      throw PtyException('unlockpt', 'unlockpt failed', errno: err);
+    }
+    final slavePtr = _ptsname(masterFd);
+    if (slavePtr == ffi.nullptr) {
+      _nativeClose(masterFd);
+      throw PtyException('ptsname', 'ptsname returned null');
+    }
+    // ptsname returns a pointer into a static (or thread-local) libc
+    // buffer; copy to a Dart-owned native string before any other libc
+    // call that might overwrite it.
+    final slavePath = slavePtr.toDartString().toNativeUtf8(allocator: malloc);
 
-    // Pre-allocate error envelopes the child will write to its stdout
-    // (slave PTY → parent's master fd) before _exit, so the parent's
-    // reader sees a real diagnostic instead of an indistinguishable EOF.
-    final chdirErr = 'clide: chdir failed: $workingDirectory\n'.toNativeUtf8(allocator: malloc);
-    final chdirErrLen = chdirErr.length;
-    final execveErr = 'clide: exec failed: $executable\n'.toNativeUtf8(allocator: malloc);
-    final execveErrLen = execveErr.length;
-
-    // Allocate ALL native memory before fork.
-    final shellN = executable.toNativeUtf8(allocator: malloc).cast<ffi.Char>();
-
+    // ---- Marshal argv + envp -----------------------------------------
+    final exeN = executable.toNativeUtf8(allocator: malloc);
     final allArgs = [executable, ...arguments];
-    final argvN = malloc<ffi.Pointer<ffi.Char>>(allArgs.length + 1);
+    final argvN = malloc<ffi.Pointer<Utf8>>(allArgs.length + 1);
     for (var i = 0; i < allArgs.length; i++) {
-      argvN[i] = allArgs[i].toNativeUtf8(allocator: malloc).cast();
+      argvN[i] = allArgs[i].toNativeUtf8(allocator: malloc);
     }
     argvN[allArgs.length] = ffi.nullptr;
 
     final envList = environment.entries.toList();
-    final envpN = malloc<ffi.Pointer<ffi.Char>>(envList.length + 1);
+    final envpN = malloc<ffi.Pointer<Utf8>>(envList.length + 1);
     for (var i = 0; i < envList.length; i++) {
-      envpN[i] = '${envList[i].key}=${envList[i].value}'.toNativeUtf8(allocator: malloc).cast();
+      envpN[i] = '${envList[i].key}=${envList[i].value}'.toNativeUtf8(allocator: malloc);
     }
     envpN[envList.length] = ffi.nullptr;
 
-    final wdN = (workingDirectory ?? '/').toNativeUtf8(allocator: malloc).cast<ffi.Char>();
-    final fdOut = calloc<ffi.Int32>();
+    final wdN = workingDirectory == null ? ffi.nullptr : workingDirectory.toNativeUtf8(allocator: malloc);
+
+    // ---- Build file_actions ------------------------------------------
+    // Allocate as Uint8 so calloc treats it as a byte buffer; cast to
+    // Pointer<Void> when handing off to the FFI calls.
+    final fa = calloc<ffi.Uint8>(_kSpawnStructBytes).cast<ffi.Void>();
+    final attr = calloc<ffi.Uint8>(_kSpawnStructBytes).cast<ffi.Void>();
+    final pidOut = calloc<ffi.Int32>();
+
+    void freeAllInputs() {
+      malloc.free(exeN);
+      for (var i = 0; i < allArgs.length; i++) {
+        malloc.free(argvN[i]);
+      }
+      malloc.free(argvN);
+      for (var i = 0; i < envList.length; i++) {
+        malloc.free(envpN[i]);
+      }
+      malloc.free(envpN);
+      if (wdN != ffi.nullptr) malloc.free(wdN);
+      malloc.free(slavePath);
+      calloc.free(fa);
+      calloc.free(attr);
+      calloc.free(pidOut);
+    }
+
+    if (_faInit(fa) != 0) {
+      final err = libc.errno;
+      _nativeClose(masterFd);
+      freeAllInputs();
+      throw PtyException('spawn_fa_init', 'posix_spawn_file_actions_init failed', errno: err);
+    }
+    if (_spawnattrInit(attr) != 0) {
+      final err = libc.errno;
+      _faDestroy(fa);
+      _nativeClose(masterFd);
+      freeAllInputs();
+      throw PtyException('spawnattr_init', 'posix_spawnattr_init failed', errno: err);
+    }
+
+    int rc = 0;
+    rc |= _spawnattrSetflags(attr, _kSpawnSetsid);
+    // Open the slave on fd 0 WITHOUT O_NOCTTY so it becomes the child's
+    // controlling tty (the child is a fresh session leader courtesy of
+    // POSIX_SPAWN_SETSID).
+    rc |= _faAddopen(fa, 0, slavePath, _kORdwr, 0);
+    rc |= _faAdddup2(fa, 0, 1);
+    rc |= _faAdddup2(fa, 0, 2);
+    // Don't leak the master fd into the child.
+    rc |= _faAddclose(fa, masterFd);
+    if (wdN != ffi.nullptr) {
+      rc |= _faAddchdir(fa, wdN);
+    }
+    if (rc != 0) {
+      _faDestroy(fa);
+      _spawnattrDestroy(attr);
+      _nativeClose(masterFd);
+      freeAllInputs();
+      throw PtyException('spawn_fa_setup', 'failed to compose posix_spawn actions', errno: libc.errno);
+    }
+
+    // ---- Spawn -------------------------------------------------------
+    final spawnRc = _posixSpawn(pidOut, exeN, fa, attr, argvN, envpN);
+    final pid = pidOut.value;
+
+    _faDestroy(fa);
+    _spawnattrDestroy(attr);
+
+    if (spawnRc != 0) {
+      // posix_spawn returns the errno directly (does NOT set errno).
+      _nativeClose(masterFd);
+      freeAllInputs();
+      throw PtyException('posix_spawn', 'posix_spawn failed', errno: spawnRc);
+    }
+
+    // ---- Set initial winsize on the master ---------------------------
     final ws = calloc<_Winsize>()
       ..ref.wsRow = rows
       ..ref.wsCol = columns;
+    _ioctl(masterFd, _kTiocsWinsz, ws);
+    calloc.free(ws);
 
-    // Fork.
-    final pid = _forkpty(fdOut, ffi.nullptr, ffi.nullptr, ws);
+    freeAllInputs();
 
-    if (pid == -1) {
-      // Capture errno BEFORE _freeAll — free() can clobber errno.
-      final err = libc.errno;
-      _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN, fdOut, ws);
-      malloc.free(chdirErr);
-      malloc.free(execveErr);
-      throw PtyException('forkpty', 'forkpty() failed', errno: err);
-    }
-
-    if (pid == 0) {
-      // CHILD — only pre-resolved FFI calls, no Dart heap.
-      // After forkpty(), fd 1 is the slave PTY connected back to the
-      // parent's master fd, so write(1, ...) lands as readable output.
-      if (chdir(wdN) != 0) {
-        writeFn(1, chdirErr.cast(), chdirErrLen);
-        exit(1);
-      }
-      execve(shellN, argvN, envpN);
-      // execve only returns on failure.
-      writeFn(1, execveErr.cast(), execveErrLen);
-      exit(1);
-    }
-
-    // PARENT
-    final fd = fdOut.value;
-    _freeAll(shellN, argvN, allArgs.length, envpN, envList.length, wdN, fdOut, ws);
-    malloc.free(chdirErr);
-    malloc.free(execveErr);
-
-    final pty = NativePty._(fd, pid);
+    final pty = NativePty._(masterFd, pid);
     pty._spawnReader();
     return pty;
-  }
-
-  static void _freeAll(
-    ffi.Pointer shell,
-    ffi.Pointer<ffi.Pointer<ffi.Char>> argv,
-    int argc,
-    ffi.Pointer<ffi.Pointer<ffi.Char>> envp,
-    int envc,
-    ffi.Pointer wd,
-    ffi.Pointer fdOut,
-    ffi.Pointer ws,
-  ) {
-    malloc.free(shell);
-    for (var i = 0; i < argc; i++) {
-      malloc.free(argv[i]);
-    }
-    malloc.free(argv);
-    for (var i = 0; i < envc; i++) {
-      malloc.free(envp[i]);
-    }
-    malloc.free(envp);
-    malloc.free(wd);
-    calloc.free(fdOut);
-    calloc.free(ws);
   }
 
   // -- I/O ------------------------------------------------------------------
@@ -236,6 +304,21 @@ class NativePty {
     final rp = ReceivePort();
     _readerPort = rp;
     _readerExited = Completer<void>();
+    // Register the listener BEFORE spawning the isolate. ReceivePort buffers
+    // messages until a listener attaches, but registering first removes any
+    // ambiguity if the listen() call ever moves further away from spawn (and
+    // sidesteps a real race we saw 1-in-10 in CI where output never arrived).
+    rp.listen((msg) {
+      if (msg == null) {
+        if (!_out.isClosed) _out.close();
+        rp.close();
+        _readerPort = null;
+        if (!_readerExited!.isCompleted) _readerExited!.complete();
+        _reap();
+      } else {
+        if (!_out.isClosed) _out.add(msg as Uint8List);
+      }
+    });
     try {
       _readerIsolate = await Isolate.spawn(_readLoop, (rp.sendPort, _fd));
     } catch (e) {
@@ -248,17 +331,6 @@ class NativePty {
       if (!_readerExited!.isCompleted) _readerExited!.complete();
       return;
     }
-    rp.listen((msg) {
-      if (msg == null) {
-        if (!_out.isClosed) _out.close();
-        rp.close();
-        _readerPort = null;
-        if (!_readerExited!.isCompleted) _readerExited!.complete();
-        _reap();
-      } else {
-        if (!_out.isClosed) _out.add(msg as Uint8List);
-      }
-    });
   }
 
   /// Isolate entry — polls then reads until EOF/error/fd-closed.

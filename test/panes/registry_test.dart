@@ -44,20 +44,19 @@ void main() {
     test('output events base64-encode the child bytes', tags: ['forkpty'], () async {
       await registry.spawn(
         kind: PaneKind.terminal,
-        argv: const ['/bin/echo', 'hello-panes'],
+        // Child writes then lingers so the reader's poll has a wide
+        // window to see POLLIN before HUP.
+        argv: const ['/bin/sh', '-c', 'printf hello-panes; sleep 0.25'],
       );
 
-      // /bin/echo closes its pty quickly. Wait briefly for output +
-      // the resulting pane.exit event to settle.
-      for (var i = 0; i < 30; i++) {
-        if (sink.ofKind('pane.output').isNotEmpty && sink.ofKind('pane.exit').isNotEmpty) break;
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+      final deadline = DateTime.now().add(const Duration(seconds: 2));
+      String decoded() => sink.ofKind('pane.output').map((e) => utf8.decode(base64Decode(e.data['bytes_b64']! as String))).join();
+      while (!decoded().contains('hello-panes') && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
       }
 
-      final out = sink.ofKind('pane.output').toList();
-      expect(out, isNotEmpty);
-      final decoded = out.map((e) => utf8.decode(base64Decode(e.data['bytes_b64']! as String))).join();
-      expect(decoded, contains('hello-panes'));
+      expect(sink.ofKind('pane.output'), isNotEmpty);
+      expect(decoded(), contains('hello-panes'));
     });
 
     test('write + resize emit no spurious events, update state', () async {

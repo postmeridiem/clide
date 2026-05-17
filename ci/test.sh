@@ -12,7 +12,7 @@ echo "==> dart format (whole tree)"
 dart format --set-exit-if-changed .
 
 echo "==> dart test (forkpty — incompatible with flutter test runner)"
-dart test --tags forkpty test/pty/session_test.dart
+dart test --tags forkpty test/pty/session_test.dart test/panes/registry_test.dart
 
 echo "==> flutter test --coverage (unit + widget + golden)"
 flutter test --coverage --exclude-tags forkpty

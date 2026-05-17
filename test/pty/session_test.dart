@@ -1,19 +1,21 @@
 /// NativePty smoke tests.
 ///
-/// Exercises forkpty() end-to-end: spawn → child output through the
+/// Exercises posix_spawn() end-to-end: spawn → child output through the
 /// reader isolate. Linux + macOS only; skipped elsewhere.
 ///
-/// Tagged `forkpty` — must run via `dart test`, not `flutter test`.
-/// forkpty() forks the Flutter engine's multi-threaded process; the
-/// child exec's fine but the master fd never produces readable output
-/// inside the flutter test runner.
-@Tags(['forkpty'])
+/// Per-test `tags: ['forkpty']` marks the tests that need `dart test`
+/// rather than the flutter test runner — currently just the
+/// write/read-back bidirectional test (writes to the master fd never
+/// reach the child under the flutter test runner; reads work fine).
+/// Everything else runs under `flutter test` and contributes to
+/// coverage.
 library;
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/src/pty/errors.dart';
 import 'package:clide/src/pty/native_pty.dart';
 import 'package:test/test.dart';
 
@@ -48,7 +50,7 @@ void main() {
       expect(buf.toString(), contains('hello-pty'));
     });
 
-    test('write sends keystrokes to child', () async {
+    test('write sends keystrokes to child', tags: ['forkpty'], () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -122,55 +124,44 @@ void main() {
       expect(buf.toString(), contains('path-resolution-ok'));
     });
 
-    test('non-existent workingDirectory produces the chdir-failed diagnostic', () async {
-      // chdir() fails in the child → writes diagnostic + _exit(1).
-      final s = NativePty.start(
-        executable: '/bin/sh',
-        arguments: ['-c', 'echo should-not-run'],
-        columns: 80,
-        rows: 24,
-        workingDirectory: '/tmp/clide-no-such-dir-${DateTime.now().microsecondsSinceEpoch}',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+    test('non-existent workingDirectory surfaces a PtyException at spawn time', () {
+      // posix_spawn returns ENOENT (errno 2) when the file_actions chdir
+      // step finds the directory missing — propagates as a thrown
+      // PtyException, not a child-side diagnostic on the pty.
+      expect(
+        () => NativePty.start(
+          executable: '/bin/sh',
+          arguments: ['-c', 'echo should-not-run'],
+          columns: 80,
+          rows: 24,
+          workingDirectory: '/tmp/clide-no-such-dir-${DateTime.now().microsecondsSinceEpoch}',
+          environment: {
+            ...Platform.environment,
+            'TERM': 'xterm-256color',
+          },
+        ),
+        throwsA(isA<PtyException>().having((e) => e.errno, 'errno', 2)),
       );
-      addTearDown(s.close);
-      final buf = StringBuffer();
-      final done = Completer<void>();
-      s.output.listen(
-        (b) => buf.write(utf8.decode(b, allowMalformed: true)),
-        onDone: () {
-          if (!done.isCompleted) done.complete();
-        },
-      );
-      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
-      expect(buf.toString(), contains('chdir failed'));
     });
 
-    test('non-existent executable produces the exec-failed diagnostic', () async {
-      final s = NativePty.start(
-        executable: '/tmp/clide-no-such-binary-${DateTime.now().microsecondsSinceEpoch}',
-        arguments: const [],
-        columns: 80,
-        rows: 24,
-        workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+    test('non-existent executable surfaces a PtyException at spawn time', () {
+      // posix_spawn surfaces exec-time errors as a non-zero return on
+      // glibc (which uses vfork — the child is suspended until execve
+      // either succeeds or fails). ENOENT (errno 2) for missing binary.
+      expect(
+        () => NativePty.start(
+          executable: '/tmp/clide-no-such-binary-${DateTime.now().microsecondsSinceEpoch}',
+          arguments: const [],
+          columns: 80,
+          rows: 24,
+          workingDirectory: '/',
+          environment: {
+            ...Platform.environment,
+            'TERM': 'xterm-256color',
+          },
+        ),
+        throwsA(isA<PtyException>().having((e) => e.errno, 'errno', 2)),
       );
-      addTearDown(s.close);
-      final buf = StringBuffer();
-      final done = Completer<void>();
-      s.output.listen(
-        (b) => buf.write(utf8.decode(b, allowMalformed: true)),
-        onDone: () {
-          if (!done.isCompleted) done.complete();
-        },
-      );
-      await done.future.timeout(const Duration(seconds: 5), onTimeout: () {});
-      expect(buf.toString(), contains('exec failed'));
     });
 
     test('resize on a live PTY does not throw', () async {
