@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:clide/app.dart';
 import 'package:clide/builtin/default_layout/default_layout.dart';
@@ -15,6 +16,15 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('disable + re-enable an extension mounts/unmounts its UI', (tester) async {
+    // Welcome view overflows the default headless viewport — give it a
+    // desktop-sized window so layout is representative.
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     final themes = [
       await const ThemeLoader().fromAsset(
         rootBundle,
@@ -41,17 +51,21 @@ void main() {
 
     await tester.pumpWidget(ClideApp(services: services));
     await tester.pumpAndSettle();
-    expect(find.text('disconnected'), findsOneWidget);
+    // The ipc-status extension contributes a ToolStatusItem to the
+    // statusbar; we assert its presence by widget type so the test
+    // doesn't depend on whichever status string (`application ok` /
+    // `checking…` / `<tool> not found`) the toolchain happens to be in.
+    expect(find.byType(ToolStatusItem), findsOneWidget);
 
     // Disable ipc-status; status item should disappear.
     await services.extensions.setEnabled('builtin.ipc-status', false);
     await tester.pumpAndSettle();
-    expect(find.text('disconnected'), findsNothing);
+    expect(find.byType(ToolStatusItem), findsNothing);
 
     // Re-enable; status item reappears.
     await services.extensions.setEnabled('builtin.ipc-status', true);
     await tester.pumpAndSettle();
-    expect(find.text('disconnected'), findsOneWidget);
+    expect(find.byType(ToolStatusItem), findsOneWidget);
 
     await services.dispose();
   });

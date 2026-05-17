@@ -251,7 +251,10 @@ decisions-validate: ## Parser dry-run over governance/{decisions,questions,rejec
 	pql decisions validate
 
 .PHONY: push-check
-push-check: decisions-validate test-core test test-a11y coverage-gate changelog-gate ## Pre-push gate.
+push-check: decisions-validate test-core test test-a11y coverage-gate changelog-gate ## Pre-push gate (fast — <2 min target).
+
+.PHONY: push-check-full
+push-check-full: push-check test-integration smoke-bundle ## Pre-release gate (push-check + integration + smoke; slower; skips theme_picker per T-116).
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks.

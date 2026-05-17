@@ -100,6 +100,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   shape (T-101).
 - `SchedulerService._stopTicker` now awaits the in-flight isolate spawn
   before killing — closes the same race shape we fixed in PTY (T-106).
+- `make push-check-full` added — runs `push-check` plus integration +
+  smoke for pre-release checks. Integration tests skip the hanging
+  theme_picker case (T-116) until that's fixed (T-103).
 - Terminal panes now render bold attributes with a real bold weight —
   bundled JetBrainsMono Bold + BoldItalic are registered with the
   `JetBrainsMono` family at `weight: 700`. The painter's bold

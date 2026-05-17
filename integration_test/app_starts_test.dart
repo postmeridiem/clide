@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:clide/app.dart';
 import 'package:clide/builtin/default_layout/default_layout.dart';
@@ -22,6 +23,16 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('clide app boots with classic 3-column layout + welcome + statusbar', (tester) async {
+    // The welcome view's TIPS card overflows the default headless test
+    // viewport (~800px); give it a desktop-sized window so layout is
+    // representative of a real launch.
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     final themes = [
       await const ThemeLoader().fromAsset(
         rootBundle,
@@ -58,10 +69,15 @@ void main() {
 
     // Welcome tab is mounted in the workspace.
     expect(find.text('clide'), findsWidgets);
-    expect(find.text('Open project'), findsOneWidget);
+    // The visible START row exposes "Open folder…"; the "Open project"
+    // dialog title only appears after the user clicks through, so we
+    // assert the on-boot label here.
+    expect(find.text('Open folder…'), findsWidgets);
 
-    // IPC status indicator reports disconnected (fake client never connects).
-    expect(find.text('disconnected'), findsOneWidget);
+    // Welcome view's toolchain status shows "checking…" while the
+    // backend hasn't reported resolution (FakeDaemonClient never does
+    // — autoStartDaemonClient is false).
+    expect(find.text('checking…'), findsWidgets);
 
     await services.dispose();
   });
