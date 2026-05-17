@@ -106,6 +106,10 @@ test-all: test-core test test-a11y test-integration test-e2e ## Everything, sequ
 coverage-gate: ## Coverage gate — fails if total line % < pubspec.yaml `coverage_floor:` (D-66). Assumes `make test` ran first.
 	ci/coverage_gate.sh
 
+.PHONY: changelog-gate
+changelog-gate: ## Changelog concision gate — fails on `## [Unreleased]` bullets over 60 words.
+	ci/changelog_gate.sh
+
 .PHONY: smoke-bundle
 smoke-bundle: ## Build Linux release bundle and run it under xvfb for 5s.
 	ci/smoke_bundle.sh
@@ -247,7 +251,7 @@ decisions-validate: ## Parser dry-run over governance/{decisions,questions,rejec
 	pql decisions validate
 
 .PHONY: push-check
-push-check: decisions-validate test-core test test-a11y coverage-gate ## Pre-push gate.
+push-check: decisions-validate test-core test test-a11y coverage-gate changelog-gate ## Pre-push gate.
 
 .PHONY: hooks
 hooks: ## Install the repo's git hooks.

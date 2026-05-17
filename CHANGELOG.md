@@ -38,14 +38,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- Pre-push coverage gate — `make push-check` (and the
-  `.githooks/pre-push` hook that calls it) now runs
-  `ci/coverage_gate.sh`, which fails if total line coverage drops
-  below the `coverage_floor:` value in `pubspec.yaml`. The floor
-  starts at 34% (today's measured floor) and only ratchets up; the
-  end target is 95% (D-66). `ci/test.sh` now writes
-  `coverage/lcov.info` as a side effect of the unit/widget/golden
-  run so the gate adds no extra test invocation.
+- Pre-push coverage gate — `make push-check` runs `ci/coverage_gate.sh`,
+  which fails if total line coverage drops below `coverage_floor:` in
+  `pubspec.yaml`. Floor ratchets up only; target 95% (D-66).
+- Pre-push changelog gate — `ci/changelog_gate.sh` fails on any
+  `## [Unreleased]` bullet over 60 words; warns at 40. Enforces the
+  Keep-a-Changelog conciseness rule in the git-commit skill.
 - Test sweep — `keybindings`, `toolchain_paths`, and several
   `widgets/src/` primitives (tooltip, palette, multitab, markdown).
 - `tree_sitter_service` sweep — fake-FFI + real-library smoke,
@@ -71,35 +69,21 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
-- `TerminalView.onTapUp` callbacks now actually fire on a primary
-  tap. The parameter was wired to a code path that nothing in the
-  gesture-detector chain ever invoked — the documented
-  "Callback for when the user taps on the terminal" was a no-op
-  for every caller. Routes through `TerminalGestureHandler.onSingleTapUp`
-  now, with the resolved cell offset (T-93). Dead `onTapUp` surface
-  on `TerminalGestureHandler` and `TerminalGestureDetector` removed
-  in the same change.
+- `TerminalView.onTapUp` now actually fires on primary tap — was
+  wired to a dead code path (T-93). Dead `onTapUp` surface on
+  `TerminalGestureHandler` / `TerminalGestureDetector` removed.
 - `BufferLine.eraseRange` no longer panics when called with `end == 0`.
   The right-side wide-char guard read `_data[-1]` via `getWidth(-1)`,
   which threw a `RangeError`. Real trigger path: `Terminal.eraseDisplayAbove`
   with the cursor at column 0 — common after `ESC[H\x1b[1J`
   (home + erase-above) sequences that many TUIs emit on redraw.
-- Terminal selections no longer silently disappear when the terminal is
-  resized narrower. Reflow's tail-anchor handler used to reparent
-  anchors past the source's trimmed-content range onto a builder line
-  that was never emitted, leaving them detached from the visible
-  buffer; the selection controller's `extent.attached` check then
-  returned null and the highlight vanished. Common trigger paths:
-  Ctrl+A (select-all) followed by a width change, and mouse drag
-  selections that extended past the end of a partially-filled line
-  (T-92).
+- Terminal selections no longer vanish when resizing narrower —
+  reflow's tail-anchor handler left anchors detached past the
+  trimmed range. Common triggers: Ctrl+A then resize, drag past a
+  partially-filled line (T-92).
 - `BufferLine.removeCells` / `insertCells` / `dispose` no longer skip
   anchors due to concurrent list modification during iteration —
-  surfaced by unit tests added under T-91. Anchors disposed inside
-  the loop were unhooking themselves from the same list the loop was
-  iterating, causing later anchors to be silently skipped (no
-  reposition, no dispose) and leaving the buffer in an inconsistent
-  state. Iteration now snapshots the list first.
+  iteration now snapshots the list first (T-91).
 
 ### Changed
 
@@ -143,22 +127,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Terminal cell grid no longer drifts on bold text — bold rendering
   is suppressed at the painter level since synthetic bold (with no
   Bold.ttf registered) shifts glyph advance widths.
-- PTY surfaces errno on `forkpty`, `write`, and `ioctl` failures
-  instead of swallowing them. `execve` failures in the spawned
-  child now write a diagnostic line to the slave PTY before
-  `_exit`, so the parent's reader sees the cause instead of an
-  immediate EOF that looked indistinguishable from clean exit.
-  PTY `write` loops on short writes; both `NativePty.write` and
-  `PtySession.write` now throw `PtyException` on hard errors.
-- PTY teardown order fixed — kill the child first so the master
-  fd returns EOF, await the reader isolate exit, then close the
-  fd. Previously closing the fd while the isolate still polled it
-  could briefly target a reused fd. Reader isolate spawn errors
-  in both `NativePty` and `PtySession` are now surfaced via the
-  output stream instead of silently dropped. `_recvFdAsync` no
-  longer leaks the `ReceivePort` when `Isolate.spawn` throws, and
-  `PtySession.spawn` closes the master fd if any post-receive
-  step fails.
+- PTY surfaces errno on `forkpty` / `write` / `ioctl` failures
+  instead of swallowing. `execve` failures write a diagnostic to
+  the slave before `_exit`. `NativePty.write` and `PtySession.write`
+  loop on short writes; both throw `PtyException` on hard errors.
+- PTY teardown order fixed — kill child first so the master fd
+  returns EOF, await reader isolate exit, then close the fd.
+  Closing earlier could briefly target a reused fd.
+- Reader isolate spawn errors in `NativePty` / `PtySession` are now
+  surfaced via the output stream instead of silently dropped.
+  `_recvFdAsync` no longer leaks the `ReceivePort` on spawn throw;
+  `PtySession.spawn` closes the master fd if any post-receive step
+  fails.
 - IPC server hardening: per-request 60s timeout (configurable),
   broadcast/response write failures logged instead of swallowed,
   client dropped on response-write failure, and the stale-socket
