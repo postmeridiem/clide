@@ -91,6 +91,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   mounted via IndexedStack so switching tabs preserves their state
   (PTY connections, scroll position, etc.).
 
+### Security
+
+- IPC: `git.checkout`, `git.push` reject branch/remote args starting
+  with `-` (closes the `--upload-pack=...` argv-injection vector).
+  `files.read` rejects files over 10 MB. `git.log` caps `count` at
+  1000; `git.diff` / `git.stage` cap paths at 256. (T-104.)
+
 ### Fixed
 
 - `TerminalView.onTapUp` now actually fires on primary tap — was

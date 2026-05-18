@@ -294,4 +294,45 @@ void main() {
     final r = await call('git.stage', {'paths': 'new.txt'});
     expect(r.ok, isTrue);
   });
+
+  test('git.checkout rejects a -prefixed branch (argv-injection guard)', () async {
+    final r = await call('git.checkout', {'branch': '--upload-pack=evil'});
+    expect(r.ok, isFalse);
+    expect(r.error?.message, contains('branch'));
+  });
+
+  test('git.push rejects a -prefixed remote', () async {
+    final r = await call('git.push', {'remote': '--upload-pack=evil', 'branch': 'main'});
+    expect(r.ok, isFalse);
+    expect(r.error?.message, contains('remote'));
+  });
+
+  test('git.push rejects a -prefixed branch', () async {
+    final r = await call('git.push', {'remote': 'origin', 'branch': '--exec=evil'});
+    expect(r.ok, isFalse);
+    expect(r.error?.message, contains('branch'));
+  });
+
+  test('git.log over the count cap fails as userError', () async {
+    final r = await call('git.log', {'count': 100000});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(r.error?.message, contains('exceeds cap'));
+  });
+
+  test('git.diff with too many paths fails as userError', () async {
+    final paths = [for (var i = 0; i < 300; i++) 'file_$i.txt'];
+    final r = await call('git.diff', {'paths': paths});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(r.error?.message, contains('exceeds cap'));
+  });
+
+  test('git.stage with too many paths fails as userError', () async {
+    final paths = [for (var i = 0; i < 300; i++) 'file_$i.txt'];
+    final r = await call('git.stage', {'paths': paths});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(r.error?.message, contains('exceeds cap'));
+  });
 }

@@ -9,7 +9,7 @@ import 'dart:io';
 
 import '../../kernel/src/toolchain_paths.dart';
 import 'diff.dart' show GitDiff, parseDiffOutput;
-import 'operations.dart' show GitException, GitLogEntry;
+import 'operations.dart' show GitException, GitLogEntry, validateGitRef;
 import 'status.dart';
 
 class GitClient {
@@ -191,8 +191,13 @@ class GitClient {
   }
 
   Future<String> push({String? remote, String? branch, bool setUpstream = false}) async {
+    if (remote != null) validateGitRef(remote, kind: 'remote');
+    if (branch != null) validateGitRef(branch, kind: 'branch');
     final args = ['push'];
     if (setUpstream) args.add('-u');
+    // `--` terminates option parsing — belt-and-suspenders alongside
+    // the ref validator above.
+    args.add('--');
     if (remote != null) args.add(remote);
     if (branch != null) args.add(branch);
     final r = await _run(args);
@@ -201,6 +206,10 @@ class GitClient {
   }
 
   Future<void> checkout(String branch) async {
+    // `git checkout -- name` means pathspec, not branch — see the
+    // matching note in `operations.dart#gitCheckout`. validateGitRef
+    // is the only defence here.
+    validateGitRef(branch, kind: 'branch');
     final r = await _run(['checkout', branch]);
     if (r.exitCode != 0) throw GitException('git checkout failed', stderr: r.stderr as String);
   }

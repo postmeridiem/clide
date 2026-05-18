@@ -227,6 +227,48 @@ void main() {
     } on GitException catch (_) {}
   });
 
+  test('gitPush rejects a -prefixed remote (argv-injection guard)', () async {
+    try {
+      await gitPush(sandbox, remote: '--upload-pack=evil', branch: 'main');
+      fail('expected GitException');
+    } on GitException catch (e) {
+      expect(e.message, contains('remote'));
+    }
+  });
+
+  test('gitPush rejects a -prefixed branch', () async {
+    try {
+      await gitPush(sandbox, remote: 'origin', branch: '--exec=evil');
+      fail('expected GitException');
+    } on GitException catch (e) {
+      expect(e.message, contains('branch'));
+    }
+  });
+
+  test('gitCheckout rejects a -prefixed branch', () async {
+    try {
+      await gitCheckout(sandbox, '--upload-pack=evil');
+      fail('expected GitException');
+    } on GitException catch (e) {
+      expect(e.message, contains('branch'));
+    }
+  });
+
+  test('gitCheckout rejects an empty branch', () async {
+    try {
+      await gitCheckout(sandbox, '');
+      fail('expected GitException');
+    } on GitException catch (e) {
+      expect(e.message, contains('branch'));
+    }
+  });
+
+  test('validateGitRef accepts plain refs', () {
+    expect(() => validateGitRef('main', kind: 'branch'), returnsNormally);
+    expect(() => validateGitRef('feature/foo', kind: 'branch'), returnsNormally);
+    expect(() => validateGitRef('origin', kind: 'remote'), returnsNormally);
+  });
+
   test('gitPull against no remote throws GitException', () async {
     try {
       await gitPull(sandbox);

@@ -13,6 +13,11 @@ import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
 import 'dispatcher.dart';
 
+/// Cap on `files.read` response size. UI doesn't render multi-MB
+/// blobs usefully and a single uncapped call can OOM. Range/stream
+/// reads will land as a separate command (T-104 follow-up).
+const int _filesReadMaxBytes = 10 * 1024 * 1024;
+
 /// Daemon-side state for the `files` subsystem. Holds one
 /// [FileWatcher] rooted at the workspace and a resolved [IgnoreSet].
 class FilesService {
@@ -83,6 +88,20 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     final file = File(absPath);
     if (!file.existsSync()) {
       return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file not found: $path'));
+    }
+    // Cap response size so a single IPC call can't OOM the UI on a
+    // multi-gigabyte log file. Caller can paginate / stream via a
+    // future range-read variant when that ships.
+    final length = file.lengthSync();
+    if (length > _filesReadMaxBytes) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(
+          code: IpcExitCode.toolError,
+          kind: IpcErrorKind.toolError,
+          message: 'file too large: $path ($length bytes; cap $_filesReadMaxBytes)',
+        ),
+      );
     }
     final content = file.readAsStringSync();
     return IpcResponse.ok(id: req.id, data: {'path': path, 'content': content});

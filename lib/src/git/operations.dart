@@ -37,6 +37,21 @@ class GitException implements Exception {
   String toString() => 'GitException: $message';
 }
 
+/// Validate a string about to be passed to git as a branch name,
+/// remote name, or similar ref-shaped positional argument. Rejects
+/// empty values and anything starting with `-`, which would otherwise
+/// be parsed as an option flag by git (the classic
+/// `--upload-pack=evil` argv-injection vector). Throws [GitException]
+/// — callers convert it to the right IPC error kind.
+void validateGitRef(String? value, {required String kind}) {
+  if (value == null || value.isEmpty) {
+    throw GitException('$kind is required');
+  }
+  if (value.startsWith('-')) {
+    throw GitException('$kind cannot start with "-" (looks like an option flag): $value');
+  }
+}
+
 class GitLogEntry {
   const GitLogEntry({
     required this.hash,
@@ -204,8 +219,14 @@ Future<String> gitPush(
   String? branch,
   bool setUpstream = false,
 }) async {
+  if (remote != null) validateGitRef(remote, kind: 'remote');
+  if (branch != null) validateGitRef(branch, kind: 'branch');
   final args = ['push'];
   if (setUpstream) args.add('-u');
+  // `--` terminates option parsing — belt-and-suspenders alongside
+  // the ref validator above. Without it a future caller that bypasses
+  // the validator could still inject `--upload-pack=...`.
+  args.add('--');
   if (remote != null) args.add(remote);
   if (branch != null) args.add(branch);
   final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
@@ -236,7 +257,14 @@ Future<List<({String name, bool current})>> gitBranches(Directory workDir) async
 }
 
 /// Checkout a branch.
+///
+/// `git checkout` overloads positionals: `-- <name>` means "restore
+/// pathspec `<name>`", not "checkout branch `<name>`". So this can't
+/// use `--` as an option terminator without changing semantics — the
+/// [validateGitRef] guard against `-`-prefixed values is the only
+/// argv-injection defence here. Use `gitSwitch` if/when we adopt it.
 Future<void> gitCheckout(Directory workDir, String branch) async {
+  validateGitRef(branch, kind: 'branch');
   final r = await Process.run(
     gitBin,
     ['checkout', branch],

@@ -12,6 +12,16 @@ import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
 import 'dispatcher.dart';
 
+/// Cap on `git.log --count` to keep a single query from spinning git
+/// up on multi-million-commit repos. UI's history pane paginates;
+/// callers asking for more should be using ranges instead.
+const int _gitLogMaxCount = 1000;
+
+/// Cap on `git.diff` and `git.stage` paths-list length so a single
+/// IPC request can't queue up an unbounded fan-out of subprocess
+/// arguments.
+const int _gitPathsMaxCount = 256;
+
 void registerGitCommands(
   DaemonDispatcher d,
   GitClient git,
@@ -30,6 +40,8 @@ void registerGitCommands(
     try {
       final staged = req.args['staged'] as bool? ?? false;
       final paths = _pathList(req.args['paths']);
+      final tooMany = _tooManyPaths(req.id, paths);
+      if (tooMany != null) return tooMany;
       final diffs = await git.diff(staged: staged, paths: paths);
       return IpcResponse.ok(id: req.id, data: {
         'staged': staged,
@@ -53,6 +65,8 @@ void registerGitCommands(
         ),
       );
     }
+    final tooMany = _tooManyPaths(req.id, paths);
+    if (tooMany != null) return tooMany;
     try {
       await git.stage(paths);
       _emitChanged(events);
@@ -190,8 +204,18 @@ void registerGitCommands(
   });
 
   d.register('git.log', (req) async {
+    final count = (req.args['count'] as num?)?.toInt() ?? 20;
+    if (count > _gitLogMaxCount) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(
+          code: IpcExitCode.userError,
+          kind: IpcErrorKind.userError,
+          message: 'git.log count $count exceeds cap $_gitLogMaxCount',
+        ),
+      );
+    }
     try {
-      final count = (req.args['count'] as num?)?.toInt() ?? 20;
       final entries = await git.log(count: count);
       return IpcResponse.ok(id: req.id, data: {
         'entries': [for (final e in entries) e.toJson()],
@@ -262,6 +286,18 @@ List<String> _pathList(Object? raw) {
   if (raw is List) return raw.cast<String>();
   if (raw is String) return [raw];
   return const [];
+}
+
+IpcResponse? _tooManyPaths(String id, List<String> paths) {
+  if (paths.length <= _gitPathsMaxCount) return null;
+  return IpcResponse.err(
+    id: id,
+    error: IpcError(
+      code: IpcExitCode.userError,
+      kind: IpcErrorKind.userError,
+      message: 'paths length ${paths.length} exceeds cap $_gitPathsMaxCount',
+    ),
+  );
 }
 
 void _emitChanged(DaemonEventSink events) {

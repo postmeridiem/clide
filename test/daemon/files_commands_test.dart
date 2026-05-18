@@ -110,6 +110,22 @@ void main() {
     expect(r.error!.message, contains('not found'));
   });
 
+  test('files.read rejects a file over the size cap', () async {
+    // Cap is 10 MB; write 11 MB of zeros and confirm rejection rather
+    // than reading it into memory.
+    final big = File('${sandbox.path}/huge.bin');
+    final chunk = List<int>.filled(1024 * 1024, 0);
+    final sink = big.openWrite();
+    for (var i = 0; i < 11; i++) {
+      sink.add(chunk);
+    }
+    await sink.flush();
+    await sink.close();
+    final r = await call('files.read', const {'path': 'huge.bin'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('too large'));
+  });
+
   test('files.ls with a path outside the root is rejected', () async {
     final r = await call('files.ls', const {'path': '../escape'});
     expect(r.ok, isFalse);
