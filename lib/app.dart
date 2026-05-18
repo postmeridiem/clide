@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform, Process, ProcessStartMode;
 
 import 'package:clide/builtin/welcome/src/welcome_view.dart';
+import 'package:clide/clide.dart' show clideName;
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -34,7 +35,7 @@ class _AppRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     return WidgetsApp(
       debugShowCheckedModeBanner: false,
-      title: 'clide',
+      title: clideName,
       color: const Color(0xFF000000),
       pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) => PageRouteBuilder<T>(
         settings: settings,
@@ -380,7 +381,7 @@ class _ProjectSwitcherButton extends StatelessWidget {
       listenable: kernel.project,
       builder: (ctx, _) {
         final name = kernel.project.current?.path.split('/').last;
-        final label = name != null ? 'clide > $name' : 'clide';
+        final label = name != null ? '$clideName > $name' : clideName;
         return ClideTappable(
           onTap: _openSwitcher,
           builder: (context, hovered, _) => Row(

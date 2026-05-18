@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:clide/clide.dart' show clideVersion;
+import 'package:clide/clide.dart' show clideName, clideTagline, clideVersion;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show MissingPluginException;
@@ -135,8 +135,8 @@ class _Header extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('clide', fontSize: clideFontWelcomeBanner, fontWeight: FontWeight.w300, color: tokens.globalForeground),
-            ClideText('IDE for Claude Code CLI', muted: true, fontSize: clideFontDialogTitle),
+            ClideText(clideName, fontSize: clideFontWelcomeBanner, fontWeight: FontWeight.w300, color: tokens.globalForeground),
+            ClideText(clideTagline, muted: true, fontSize: clideFontDialogTitle),
           ],
         ),
       ],
@@ -401,7 +401,7 @@ class _StatusLine extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ClideText('clide $clideVersion', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
+              ClideText('$clideName $clideVersion', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
               ClideText('  ·  ', muted: true, fontSize: clideFontSmall),
               if (!tc.resolved)
                 ClideText('checking…', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily)

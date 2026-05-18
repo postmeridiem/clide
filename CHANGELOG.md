@@ -111,10 +111,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   softer ink-tinted shadow (T-114).
 - Text-zoom (Ctrl +/-/0) is now a kernel `TextZoom` service and shows
   up in the palette as `View: Zoom In/Out/Reset Zoom` (T-114).
-- `make gen-build-info` bakes `lib/src/build_info.g.dart` (version,
-  commit, date) and rewrites `assets/licenses.yaml` `self.version:`
-  from `pubspec.yaml` on every build/run/test target — one source of
-  truth, no manual sync, no `--dart-define` plumbing.
+- `make gen-build-info` bakes `lib/src/build_info.g.dart` (name,
+  tagline, version, repository, commit, date) and rewrites
+  `assets/licenses.yaml` `self.version:` from `pubspec.yaml` on every
+  build/run/test target. Welcome banner / status line / window title
+  / project switcher labels all read from those constants — one
+  source of truth, no manual sync, no `--dart-define` plumbing.
+  New `tagline:` field in pubspec for the short user-facing line
+  (welcome subtitle, future web meta).
 - Panel splitters (sidebar / context / editor-split) are tab-focusable;
   arrow keys nudge by 10 px, Shift+arrow by 50 px (2% / 10% for the
   editor split). Exposed as slider Semantics nodes so screen readers

@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:clide/clide.dart' show clideName;
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/kernel/src/window_controls.dart';
@@ -71,7 +72,7 @@ class _CenterContent extends StatelessWidget {
     final parts = <String>[];
     if (project != null) parts.add(project!);
     if (branch != null) parts.add(branch!);
-    final label = parts.isEmpty ? 'clide' : parts.join(' > ');
+    final label = parts.isEmpty ? clideName : parts.join(' > ');
     return Center(
       child: ClideText(label, fontSize: 12, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
     );

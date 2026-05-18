@@ -15,6 +15,11 @@ description: >-
 publish_to: none
 version: 2.1.0
 repository: https://github.com/postmeridiem/clide
+# Short user-facing tagline (the welcome subtitle, web meta
+# description, etc.). Baked into lib/src/build_info.g.dart by
+# `make gen-build-info` — pubspec.yaml is the single source of
+# truth; nothing else duplicates this string in source.
+tagline: "IDE for Claude Code CLI"
 
 # Pre-push line-coverage floor. Ratchets up only — see D-66.
 # Reading: `awk -F: '/^coverage_floor:/ {gsub(/ /,"",$2); print $2}' pubspec.yaml`.
