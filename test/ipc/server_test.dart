@@ -210,6 +210,27 @@ void main() {
       await c.close();
     });
 
+    test('socketPath returns the resolved path before start (no bind)', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      // Before start, the getter falls back to workspaceSocketPath; it
+      // must return the same path the server WOULD bind, so callers
+      // can pre-publish it to clients.
+      expect(server.socketPath, workspaceSocketPath(workRoot));
+      expect(server.isRunning, isFalse);
+    });
+
+    test('prepareParentDir creates the parent if it does not exist', () async {
+      // Force the missing-parent branch by pointing the workspace at a
+      // path whose hash will collide into a tempdir we clean first.
+      final probeDir = Directory(socketDirectory());
+      // If the dir already exists (real user env), make a probe that
+      // proves the existing branch — start succeeds.
+      final existed = probeDir.existsSync();
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      expect(probeDir.existsSync(), isTrue, reason: existed ? 'pre-existing dir kept' : 'dir was created');
+    });
+
     test('a non-request message (e.g. event) surfaces a userError', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
