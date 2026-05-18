@@ -1995,3 +1995,101 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 - The `mouseInput` API on `Terminal` is wired through `Listener.onPointerSignal` instead of being bypassed.
 
 **Why this isn`t the default already:** the bypass was the cheapest fix to get scroll working at all when the multitab/Scrollable ate scroll events. With those fixes landed, the right-shaped mouse forwarding is the proper next step.', 'done', 'medium', NULL, NULL, NULL, '2026-05-05 12:53:22', '2026-05-18 11:51:40', NULL, '20b66d93b9315ad51170a6f8762d4abe', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-125', 'task', 'T-99', 'argv→IpcRequest translator on the Dart side', 'Second slice of T-99(a). Owns the CLI grammar so the C client stays a dumb pipe.
+
+Add lib/src/cli/argv_to_request.dart: takes a List<String> (the argv after `clide`) and returns an IpcRequest. Handles `clide <subsystem> <verb> [positionals...] [--flag value] [-- argv...]` per D-6''s shape. Errors (unknown subsystem/verb, malformed flag) surface as IpcResponse.err with the right exit code per pql''s contract.
+
+Acceptance:
+1. Pure-Dart function with no I/O; unit-testable.
+2. Covers every active subsystem from D-6''s list (pane/tab/open/editor/panel/tree/git/pql/canvas/graph/theme/settings/project) at least to the level of "recognise the verb".
+3. Round-trip tests against the existing IpcRequest envelope.
+4. Sysexit-code parity with pql (0/1/2/3/4 + 64-78 reserved).
+
+Source: T-99 sketch.', 'backlog', 'high', NULL, NULL, NULL, '2026-05-18 11:58:52', '2026-05-18 11:58:52', NULL, '807086680d24e2394bf13a4f25fb6998', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-126', 'task', 'T-99', 'thin C `clide` client binary in native/clide-cli/', 'Third slice of T-99(a). The user-facing entry point.
+
+~150 LOC of C in native/clide-cli/. Resolves the socket path (env override + default), connects, sends a single JSON-line request shaped as {"argv": [...]} (parsing happens in Dart per T-125), reads the JSON-line response, writes stdout/stderr per the pql contract, exits with the response''s exit code.
+
+Acceptance:
+1. native/clide-cli/clide compiles on Linux + macOS via the existing native build harness (same shape as dugite / libtree-sitter.so).
+2. Binary lands in the install bundle; runs from the user''s PATH after `make build-linux` / `make build-macos`.
+3. `clide status` against a running app returns the status JSON and exits 0.
+4. `clide nonsense` returns the right exit code (sysexit 64 = usage error per D-6).
+5. Documented in assets/licenses.yaml + a one-paragraph note in CONTRIBUTING.md.
+
+Source: T-99 sketch. Depends on T-124 (server) + T-125 (argv translator).', 'backlog', 'high', NULL, NULL, NULL, '2026-05-18 11:58:57', '2026-05-18 11:58:57', NULL, 'f7f5ca46af98cb7d0aecd8e3472081e9', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-127', 'task', 'T-99', 'replace InProcessClient call sites with the socket loopback', 'Fourth slice of T-99(a). Convert the in-process callers — KernelServices.boot''s daemonClientFactory and friends — to talk to the local socket instead of the direct in-process dispatch path. Delete InProcessClient afterward.
+
+Acceptance:
+1. lib/kernel/src/ipc/in_process.dart removed; nothing imports it.
+2. main.dart''s daemonClientFactory builds a socket-connected DaemonClient pointed at the local server.
+3. Test fixtures use a synthetic in-memory socket pair (or short-lived AF_UNIX socket in /tmp) for isolation.
+4. Wall-clock perf delta is within reason (no widget rebuild storm; round-trip ~ms) — measure before/after under a representative test.
+5. Falls back to in-process direct dispatch if the perf delta is unacceptable; surface the finding in a Q-record before doing so.
+
+Source: T-99 sketch. Depends on T-124 (server must exist). Blocks T-128 (legacy IPC cleanup).', 'backlog', 'high', NULL, NULL, NULL, '2026-05-18 11:59:02', '2026-05-18 11:59:02', NULL, '69d3791bf8e0f5320243538eaa062fbc', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-128', 'task', 'T-99', 'delete IsolateClient + Backend + backend_entry.dart; collapse service registration', 'Fifth slice of T-99(a). Pure cleanup once T-127 lands.
+
+Remove the third unused IPC path entirely. Today three implementations coexist: DaemonClient (socket — gets a real server in T-124), InProcessClient (deleted in T-127), and IsolateClient + Backend + backend_entry.dart (a backend isolate path that was never wired through). After T-127, none of those should still be referenced.
+
+Also: consolidate the two duplicate service-wiring sites into one (currently main.dart''s buildDispatcher and the kernel facade both register subsystem handlers; one should own it).
+
+Acceptance:
+1. lib/kernel/src/ipc/isolate_client.dart, lib/src/daemon/backend.dart, lib/src/daemon/backend_entry.dart removed.
+2. Single service-registration site; no duplicate registerPaneCommands / registerFilesCommands / etc. across files.
+3. flutter analyze + full test suite green.
+
+Source: T-99 sketch. Depends on T-127.', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:06', '2026-05-18 11:59:06', NULL, 'a5ab2120d437f63d7d892e7fe6ae1689', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-129', 'task', 'T-99', 'event streaming over the socket — `clide tail --events`', 'Sixth slice of T-99(a). Long-lived subscription channel — the second half of D-6 (`clide tail --events [--filter <subsystem>[:<id>]]`).
+
+Client opens a connection, sends {"subscribe": "<subsystem>|*"}, server pushes JSON-line events until the client closes. Per D-6: replay buffer per subsystem (default depth 16) so a late subscriber still sees recent effects.
+
+Acceptance:
+1. `clide tail --events --filter git` streams git.* events from the running app.
+2. Replay buffer per subsystem; new subscribers receive the last 16 events.
+3. Server doesn''t block writes on a slow client (back-pressure handling per Q-2 — drop with a warning or apply flow control; resolve in this ticket).
+4. End-to-end smoke: launch app, run `clide tail --events --filter pane` in another shell, perform a pane action in the UI, observe the event.
+
+Source: T-99 sketch. Depends on T-124 + T-126.', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:11', '2026-05-18 11:59:11', NULL, '732603dbb5bd24ef0d62811223d13d96', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-130', 'task', 'T-99', 'MCP server alongside the CLI, wrapping the same dispatcher (D-68)', 'Seventh slice of T-99(a). Adds an /ide-compatible MCP endpoint per D-68 so Claude Code instances outside clide can connect via /ide.
+
+Minimum tools (per D-68): mcp__ide__getDiagnostics, mcp__ide__executeCode. Optional mcp__clide__* namespace deferred to Q-32. Transport choice (SSE vs WebSocket vs stdio) — resolve Q-33 at the start of this ticket.
+
+Both surfaces (CLI socket + MCP) wrap the SAME DaemonDispatcher — there is no second source of truth.
+
+Acceptance:
+1. lib/src/ipc/mcp_server.dart serves the chosen transport.
+2. Claude Code''s /ide command discovers and connects to clide.
+3. Both minimum tools work end-to-end against a real Claude Code session.
+4. Q-32 + Q-33 closed (either as decisions or with resolutions written into the ticket).
+
+Source: T-99 sketch. Depends on T-124 (server foundation must exist). Can land in parallel with T-127 / T-128 / T-129.', 'backlog', 'medium', NULL, NULL, 'D-68', '2026-05-18 11:59:17', '2026-05-18 11:59:17', NULL, 'bb89c5fdc348dcc9e029296569416876', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-131', 'task', 'T-99', 'T-99 wrap-up: governance + docs + unblock T-119 / T-120', 'Eighth and final slice of T-99(a). Bookkeeping once the substantive work lands.
+
+Acceptance:
+1. D-56 gets an amendment recording that the unix socket server + C client + MCP server all landed (with the dated amendment line format the rest of the testing.md / architecture.md decisions use).
+2. D-68 referenced as implemented in its own record.
+3. CONTRIBUTING.md gets a ''Running clide from the shell'' section (`clide status`, `clide tail --events`, etc.).
+4. T-119 (`clide panel resize` CLI verb) moved out of backlog into ready — its IPC dispatch path now exists.
+5. T-120 (typed IPC schema framework) re-scoped if needed; the wire contract is now real.
+6. T-99 itself transitions to done.
+
+Source: T-99 sketch. Depends on T-124 + T-125 + T-126 + T-127 + T-128 (+T-129, +T-130 if landed).', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:23', '2026-05-18 11:59:23', NULL, '4ea25c9c4d894b0fca02d1929fee7945', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-124', 'task', 'T-99', 'unix-domain IPC server, wired into Flutter app boot', 'First slice of T-99(a). Foundation for the rest.
+
+Open a per-workspace unix-domain socket on Flutter app boot. Accept JSON-lines per the existing IpcRequest envelope. Route each request through the existing DaemonDispatcher (already wired in main.dart via daemonClientFactory). Tear down on app shutdown.
+
+**Architectural commitments (read these first):**
+- D-70 — socket path is `$XDG_RUNTIME_DIR/clide/<sha256(workspace-root)[:16]>.sock` on Linux, `$HOME/Library/Caches/clide/<sha256(workspace-root)[:16]>.sock` on macOS. No env override. Workspace root = git toplevel.
+- D-71 — socket file is `0600`, parent dir is `0700`. No token auth at this layer.
+- D-72 — multi-connection accept loop, serial dispatch on the main isolate. Per-handler isolate offload as needed; not the IPC layer''s concern.
+
+**Acceptance:**
+1. lib/src/ipc/server.dart exists; binds an AF_UNIX socket at the D-70 path; creates the parent dir with the D-71 perms.
+2. App boot starts the server; app shutdown closes the socket file cleanly and removes it.
+3. `socat - UNIX-CONNECT:$SOCK <<< ''{"command":"git.status"}''` returns a JSON-line response. Tests use a synthetic socket fixture (tempdir + XDG_RUNTIME_DIR override at the env level).
+4. Multi-connection accept loop — concurrent socat invocations interleave at the I/O level but serialise through DaemonDispatcher (per D-72) without failing each other.
+5. Stale socket on boot (left over from a crashed clide) is detected and unlinked before binding — same `live-daemon probe` pattern already used elsewhere in the codebase.
+6. No client yet — that lands in T-126.
+
+Source: T-99 sketch. Coordinates with: T-127 (InProcessClient swap), T-130 (MCP).', 'backlog', 'high', NULL, NULL, NULL, '2026-05-18 11:58:47', '2026-05-18 12:42:56', NULL, 'e90d4b8786af0a9baa2b39c19a31540a', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

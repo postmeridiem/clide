@@ -111,6 +111,9 @@ You might also want, project-permitting:
 - [D-67: Pql changelog files are committed alongside code](decisions/process.md#d-67-pql-changelog-files-are-committed-alongside-code) — _process_
 - [D-68: Dual integration surface — Bash CLI primary, MCP secondary](decisions/architecture.md#d-68-dual-integration-surface--bash-cli-primary-mcp-secondary) — _architecture_
 - [D-69: published themes are user contracts; ship -hc variants for a11y](decisions/accessibility.md#d-69-published-themes-are-user-contracts-ship--hc-variants-for-a11y) — _accessibility_
+- [D-70: IPC socket path is per-workspace, deterministic](decisions/architecture.md#d-70-ipc-socket-path-is-per-workspace-deterministic) — _architecture_
+- [D-71: IPC socket access gated by chmod 0600 on socket + parent](decisions/architecture.md#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent) — _architecture_
+- [D-72: IPC server is multi-connection with serial dispatch on the main isolate](decisions/architecture.md#d-72-ipc-server-is-multi-connection-with-serial-dispatch-on-the-main-isolate) — _architecture_
 
 ## Open questions
 

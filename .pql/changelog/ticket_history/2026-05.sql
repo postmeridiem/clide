@@ -1823,3 +1823,32 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-116', 'status', 'in_progress', 'done', NULL, '2026-05-18 11:22:46', '2026-05-18 11:22:46', '2026-05-18 11:22:46', NULL, '16fd285587d7a37090d2a21f4307c8e8', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-74', 'status', 'ready', 'in_progress', NULL, '2026-05-18 11:49:28', '2026-05-18 11:49:28', '2026-05-18 11:49:28', NULL, 'e25e13a5afcbc376b3c57312c6f320ea', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-74', 'status', 'in_progress', 'done', NULL, '2026-05-18 11:51:40', '2026-05-18 11:51:40', '2026-05-18 11:51:40', NULL, '4343b4758e9ffbf3e046d11d65dfeb1f', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-124', 'description', 'First slice of T-99(a). Foundation for the rest.
+
+Open a per-user unix-domain socket on Flutter app boot. Accept JSON-lines per the existing IpcRequest envelope. Route each request through the existing DaemonDispatcher (already wired in main.dart via daemonClientFactory). Tear down on app shutdown.
+
+Acceptance:
+1. lib/src/ipc/server.dart exists; binds an AF_UNIX socket at a per-user path (resolve in this ticket; current Q-record references Q-1 / Q-3 for auth/persistence concerns but the bare path strategy belongs here).
+2. App boot starts the server; app shutdown closes the socket file cleanly.
+3. `socat - UNIX-CONNECT:$SOCK <<< ''{"command":"git.status"}''` returns a JSON-line response. Tests use a synthetic socket fixture.
+4. Multi-connection accept loop — concurrent socat invocations serialise through the dispatcher (single Flutter event loop) but don''t fail each other.
+5. No client yet — that lands in T-126.
+
+Source: T-99 sketch. Coordinate with: T-127, T-130.', 'First slice of T-99(a). Foundation for the rest.
+
+Open a per-workspace unix-domain socket on Flutter app boot. Accept JSON-lines per the existing IpcRequest envelope. Route each request through the existing DaemonDispatcher (already wired in main.dart via daemonClientFactory). Tear down on app shutdown.
+
+**Architectural commitments (read these first):**
+- D-70 — socket path is `$XDG_RUNTIME_DIR/clide/<sha256(workspace-root)[:16]>.sock` on Linux, `$HOME/Library/Caches/clide/<sha256(workspace-root)[:16]>.sock` on macOS. No env override. Workspace root = git toplevel.
+- D-71 — socket file is `0600`, parent dir is `0700`. No token auth at this layer.
+- D-72 — multi-connection accept loop, serial dispatch on the main isolate. Per-handler isolate offload as needed; not the IPC layer''s concern.
+
+**Acceptance:**
+1. lib/src/ipc/server.dart exists; binds an AF_UNIX socket at the D-70 path; creates the parent dir with the D-71 perms.
+2. App boot starts the server; app shutdown closes the socket file cleanly and removes it.
+3. `socat - UNIX-CONNECT:$SOCK <<< ''{"command":"git.status"}''` returns a JSON-line response. Tests use a synthetic socket fixture (tempdir + XDG_RUNTIME_DIR override at the env level).
+4. Multi-connection accept loop — concurrent socat invocations interleave at the I/O level but serialise through DaemonDispatcher (per D-72) without failing each other.
+5. Stale socket on boot (left over from a crashed clide) is detected and unlinked before binding — same `live-daemon probe` pattern already used elsewhere in the codebase.
+6. No client yet — that lands in T-126.
+
+Source: T-99 sketch. Coordinates with: T-127 (InProcessClient swap), T-130 (MCP).', NULL, '2026-05-18 12:42:56', '2026-05-18 12:42:56', '2026-05-18 12:42:56', NULL, 'abb7a039f73d430cdba594b2a4ac381a', 1) ON CONFLICT(hash) DO NOTHING;
