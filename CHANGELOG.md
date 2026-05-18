@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Startup project picker — clide now opens to the welcome screen by
+  default instead of auto-opening the last project. A per-row
+  "always open this project on launch" checkbox in welcome's RECENT
+  list sets a sticky-startup flag; if exactly one project has it,
+  that one opens directly. Two or more, or none ⇒ picker (T-115).
+
 ### Changed
 
 ### Deprecated

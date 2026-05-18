@@ -156,10 +156,10 @@ Future<void> main() async {
 
   if (!kIsWeb) {
     await services.project.loadRecents();
-    var opened = await services.project.openLast();
-    if (!opened) {
-      opened = await services.project.open(Directory.current.path);
-    }
+    // T-115: picker-first. Auto-open only when exactly one recent has
+    // its sticky-startup flag set; otherwise the welcome tab (default
+    // workspace content) serves as the project picker.
+    final opened = await services.project.openStickyOrNothing();
     if (opened) {
       services.panels.activateTab(Slots.workspace, 'claude.primary');
     }

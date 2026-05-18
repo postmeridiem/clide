@@ -9,20 +9,46 @@ import 'package:clide/kernel/src/toolchain.dart';
 import 'package:flutter/foundation.dart';
 
 class RecentProject {
-  const RecentProject({required this.path, required this.name, this.branch, required this.lastOpened});
+  const RecentProject({
+    required this.path,
+    required this.name,
+    this.branch,
+    required this.lastOpened,
+    this.startupSticky = false,
+  });
 
   final String path;
   final String name;
   final String? branch;
   final DateTime lastOpened;
 
-  Map<String, dynamic> toJson() => {'path': path, 'name': name, 'branch': branch, 'lastOpened': lastOpened.toIso8601String()};
+  /// When set, this project is preferred on startup over the picker.
+  /// If exactly one recent has this flag, [ProjectManager.openStickyOrNothing]
+  /// opens it directly; otherwise the welcome screen takes over (T-115).
+  final bool startupSticky;
+
+  RecentProject copyWith({bool? startupSticky, DateTime? lastOpened, String? branch}) => RecentProject(
+        path: path,
+        name: name,
+        branch: branch ?? this.branch,
+        lastOpened: lastOpened ?? this.lastOpened,
+        startupSticky: startupSticky ?? this.startupSticky,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'name': name,
+        'branch': branch,
+        'lastOpened': lastOpened.toIso8601String(),
+        if (startupSticky) 'startupSticky': true,
+      };
 
   factory RecentProject.fromJson(Map<String, dynamic> json) => RecentProject(
         path: json['path'] as String? ?? '',
         name: json['name'] as String? ?? '',
         branch: json['branch'] as String?,
         lastOpened: DateTime.tryParse(json['lastOpened'] as String? ?? '') ?? DateTime.now(),
+        startupSticky: json['startupSticky'] as bool? ?? false,
       );
 
   String get relativePath {
@@ -104,8 +130,15 @@ class ProjectManager extends ChangeNotifier {
 
     final branch = await _currentBranch(root);
     final name = root.split('/').last;
+    // Preserve the sticky-startup flag across reopens — otherwise the
+    // user would have to re-toggle it every time they touched the
+    // project (T-115).
+    final wasSticky = isStickyStartup(root);
     _recents.removeWhere((r) => r.path == root);
-    _recents.insert(0, RecentProject(path: root, name: name, branch: branch, lastOpened: DateTime.now()));
+    _recents.insert(
+      0,
+      RecentProject(path: root, name: name, branch: branch, lastOpened: DateTime.now(), startupSticky: wasSticky),
+    );
     if (_recents.length > 10) _recents = _recents.sublist(0, 10);
     await _settings.set<String>('app.recentProjects', jsonEncode(_recents.map((r) => r.toJson()).toList()));
 
@@ -120,6 +153,42 @@ class ProjectManager extends ChangeNotifier {
     final dir = Directory(last);
     if (!await dir.exists()) return false;
     return open(last);
+  }
+
+  /// Path of the lone sticky-startup project, or null if zero or
+  /// multiple recents have the flag. Zero ⇒ show the picker; multiple
+  /// ⇒ ambiguous, also show the picker (T-115).
+  String? get stickyProjectPath {
+    final sticky = _recents.where((r) => r.startupSticky).toList();
+    return sticky.length == 1 ? sticky.first.path : null;
+  }
+
+  /// Open the single sticky-startup project, if any. Returns false on
+  /// "no unambiguous sticky" so the caller (main.dart) can fall through
+  /// to the welcome screen.
+  Future<bool> openStickyOrNothing() async {
+    final path = stickyProjectPath;
+    if (path == null) return false;
+    final dir = Directory(path);
+    if (!await dir.exists()) return false;
+    return open(path);
+  }
+
+  /// Toggle the per-project sticky-startup flag and persist. No-op if
+  /// the path isn't in recents (open the project first to land it
+  /// there).
+  Future<void> setStickyStartup(String path, bool value) async {
+    final idx = _recents.indexWhere((r) => r.path == path);
+    if (idx < 0) return;
+    if (_recents[idx].startupSticky == value) return;
+    _recents[idx] = _recents[idx].copyWith(startupSticky: value);
+    await _settings.set<String>('app.recentProjects', jsonEncode(_recents.map((r) => r.toJson()).toList()));
+    notifyListeners();
+  }
+
+  bool isStickyStartup(String path) {
+    final idx = _recents.indexWhere((r) => r.path == path);
+    return idx >= 0 && _recents[idx].startupSticky;
   }
 
   Future<void> close() async {
