@@ -189,13 +189,11 @@ List<ContrastPair> extendedPairs(SurfaceTokens s) => [
 
 /// Convenience for tests: returns the list of [canonicalPairs] that
 /// fail WCAG AA.
-List<ContrastFailure> failingPairs(SurfaceTokens tokens) =>
-    _failures(canonicalPairs(tokens));
+List<ContrastFailure> failingPairs(SurfaceTokens tokens) => _failures(canonicalPairs(tokens));
 
 /// Strict variant of [failingPairs] — walks [extendedPairs] instead.
 /// Intended for the `-hc` / `-cb` theme gate.
-List<ContrastFailure> failingExtendedPairs(SurfaceTokens tokens) =>
-    _failures(extendedPairs(tokens));
+List<ContrastFailure> failingExtendedPairs(SurfaceTokens tokens) => _failures(extendedPairs(tokens));
 
 List<ContrastFailure> _failures(List<ContrastPair> pairs) {
   final out = <ContrastFailure>[];
