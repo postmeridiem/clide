@@ -96,6 +96,9 @@ class ThemeResolver {
       modalOverlayBackground: surface[TokenKeys.modalOverlayBackground]!,
       modalSurfaceBackground: surface[TokenKeys.modalSurfaceBackground]!,
       modalSurfaceBorder: surface[TokenKeys.modalSurfaceBorder]!,
+      windowControlCloseHoverBackground: surface[TokenKeys.windowControlCloseHoverBackground]!,
+      windowControlCloseHoverForeground: surface[TokenKeys.windowControlCloseHoverForeground]!,
+      shadowAmbient: surface[TokenKeys.shadowAmbient]!,
       dividerColor: surface[TokenKeys.dividerColor]!,
       statusSuccess: surface[TokenKeys.statusSuccess]!,
       statusWarning: surface[TokenKeys.statusWarning]!,
@@ -250,6 +253,14 @@ const Map<String, List<String>> _defaultSurfaceMap = {
   TokenKeys.modalOverlayBackground: ['#C0000000'],
   TokenKeys.modalSurfaceBackground: ['surface', 'semantic.mainchrome'],
   TokenKeys.modalSurfaceBorder: ['accent', 'semantic.focus'],
+  // window controls — the Windows-style red close button is a hard
+  // platform convention, not a theme accent; the foreground stays
+  // white so the glyph remains visible across all themes.
+  TokenKeys.windowControlCloseHoverBackground: ['#FFE81123'],
+  TokenKeys.windowControlCloseHoverForeground: ['#FFFFFFFF'],
+  // shadow — translucent black works for dark themes; light themes can
+  // override this to a translucent ink (e.g. paper uses softer alpha).
+  TokenKeys.shadowAmbient: ['#40000000'],
   // divider
   TokenKeys.dividerColor: ['border', 'semantic.surface'],
   // status

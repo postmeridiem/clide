@@ -74,6 +74,11 @@ class SurfaceTokens {
     required this.modalOverlayBackground,
     required this.modalSurfaceBackground,
     required this.modalSurfaceBorder,
+    // window controls
+    required this.windowControlCloseHoverBackground,
+    required this.windowControlCloseHoverForeground,
+    // shadow
+    required this.shadowAmbient,
     // divider
     required this.dividerColor,
     // status
@@ -154,6 +159,17 @@ class SurfaceTokens {
   final Color modalOverlayBackground;
   final Color modalSurfaceBackground;
   final Color modalSurfaceBorder;
+
+  /// Hover background on the Windows-style close button. Conventionally
+  /// the destructive-action red even on dark themes that don't otherwise
+  /// surface red as a CTA.
+  final Color windowControlCloseHoverBackground;
+  final Color windowControlCloseHoverForeground;
+
+  /// Ambient drop-shadow color for floating surfaces (palette,
+  /// dropdowns, modals). Typically a translucent black on dark themes
+  /// and a translucent ink on light themes.
+  final Color shadowAmbient;
 
   final Color dividerColor;
 
@@ -255,6 +271,13 @@ abstract class TokenKeys {
   static const modalSurfaceBackground = 'modal.surfaceBackground';
   static const modalSurfaceBorder = 'modal.surfaceBorder';
 
+  // window controls
+  static const windowControlCloseHoverBackground = 'windowControl.closeHoverBackground';
+  static const windowControlCloseHoverForeground = 'windowControl.closeHoverForeground';
+
+  // shadow
+  static const shadowAmbient = 'shadow.ambient';
+
   // divider
   static const dividerColor = 'divider.color';
 
@@ -325,6 +348,9 @@ abstract class TokenKeys {
     modalOverlayBackground,
     modalSurfaceBackground,
     modalSurfaceBorder,
+    windowControlCloseHoverBackground,
+    windowControlCloseHoverForeground,
+    shadowAmbient,
     dividerColor,
     statusSuccess,
     statusWarning,

@@ -28,6 +28,9 @@ palette:
   textMute: "#7A7A72"
   accentSoft: "#218E2D10"
 
+surface:
+  shadow.ambient: "#26000000"
+
 syntax:
   keyword: "#52215C"
   type: "#154168"

@@ -126,11 +126,11 @@ class _ClidePaletteState extends State<ClidePalette> {
                   color: tokens.dropdownBackground,
                   border: Border.all(color: tokens.dropdownBorder),
                   borderRadius: BorderRadius.circular(6),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x40000000),
+                      color: tokens.shadowAmbient,
                       blurRadius: 12,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),

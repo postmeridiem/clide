@@ -108,7 +108,7 @@ class _WinButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hoverBg = isClose ? const Color(0xFFE81123) : tokens.listItemHoverBackground;
+    final hoverBg = isClose ? tokens.windowControlCloseHoverBackground : tokens.listItemHoverBackground;
     return ClideTappable(
       onTap: onTap,
       builder: (context, hovered, _) => Container(
@@ -116,7 +116,11 @@ class _WinButton extends StatelessWidget {
         height: hatHeight,
         color: hovered ? hoverBg : null,
         alignment: Alignment.center,
-        child: ClideIcon(icon, size: 14, color: hovered && isClose ? const Color(0xFFFFFFFF) : tokens.globalTextMuted),
+        child: ClideIcon(
+          icon,
+          size: 14,
+          color: hovered && isClose ? tokens.windowControlCloseHoverForeground : tokens.globalTextMuted,
+        ),
       ),
     );
   }
