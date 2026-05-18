@@ -1944,3 +1944,28 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 **Out of scope:** multi-project workspaces, project groups, recent-project ordering changes.
 
 **Source:** user request 2026-05-17.', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 19:10:21', '2026-05-18 09:30:59', NULL, 'c88ab1b158beddb3cd74ad9a287bd224', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-107', 'task', 'T-97', 'decide lib/src/terminal/ status: formally vendor or clean to project bar', '~7k LOC forked from xterm.dart in an undeclared middle state. Carries commented-out `print()` debugging (`custom_text_edit.dart:244-275`), dangling TODOs (`parser.dart:110-113`, `keytab.dart:91`), a 1137-line `parser.dart`, and the only `// ignore: invalid_use_of_protected_member` in the repo (`terminal_view.dart:363`). Memory says "code under `lib/` is owned, not vendored."
+
+**Decide one path and execute:**
+- **(a)** Formally vendor: relocate to `native/` or document as frozen in a D-record + `licenses.yaml`. Coverage carve-out documented.
+- **(b)** Clean to the project bar: remove debug prints, resolve TODOs, justify or remove the protected-member suppression, consider splitting `parser.dart`.
+
+Source: consultants.md "Code quality — Findings — [Major]".', 'in_progress', 'medium', NULL, NULL, NULL, '2026-05-17 18:47:55', '2026-05-18 10:27:25', NULL, 'c6716898300053ff1a611a5e186c03fa', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-123', 'task', 'T-91', 'split lib/src/terminal/.../escape/parser.dart (1139 LOC)', 'parser.dart is a single 1139-line file containing the full ESC/CSI/OSC/DCS handler tree for the terminal emulator. Functional but unwieldy; the consultant flagged it as ''consider splitting'' in the T-107 review.
+
+Suggested split (sequenced with the T-91 coverage sweep on lib/src/terminal/, so the split doesn''t fight in-flight test work):
+
+- parser.dart — entry point + state machine driver
+- esc_handlers.dart — single-char ESC dispatch table + handlers
+- csi_handlers.dart — CSI parameter parsing + handlers
+- osc_handlers.dart — OSC string handlers (title, colour set, etc.)
+- dcs_handlers.dart — DCS/SOS/PM/APC string handlers
+
+Each handler module exports a registrar that the driver wires at construction.
+
+Done when:
+- parser.dart < 400 LOC
+- All existing parser tests pass without changes
+- No new public surface; everything stays library-private
+
+Source: T-107 / consultants.md "Code quality — Findings — [Major]".', 'backlog', 'low', NULL, NULL, NULL, '2026-05-18 10:29:02', '2026-05-18 10:29:02', NULL, '1ac51fb8f92a9e72903c16e31f076955', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

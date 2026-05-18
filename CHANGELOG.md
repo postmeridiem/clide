@@ -97,6 +97,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- `lib/src/terminal/` cleaned to the project bar — commented-out
+  `print()` debugging stubs stripped from `custom_text_edit.dart`,
+  stale TODOs in `parser.dart` + `keytab.dart` replaced with clear
+  "not implemented" notes (G2/G3 charsets, VT52 records), and the
+  one `// ignore: invalid_use_of_protected_member` in
+  `terminal_view.dart` gets an inline reason explaining why
+  TerminalView owns its own ShortcutManager. Parser split deferred
+  to T-123 (T-107).
 - Window-control close-button red, white close glyph, and palette
   ambient shadow are now tokens (`windowControl.closeHover*`,
   `shadow.ambient`) instead of hard-coded hex. Light themes get a

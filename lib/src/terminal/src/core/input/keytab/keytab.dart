@@ -88,7 +88,9 @@ class Keytab {
         continue;
       }
 
-      // TODO: support VT52
+      // VT52 mode (ANSI=false) records are skipped — clide only emits
+      // ANSI/VT100+ sequences. No consumer asks for VT52 today; if one
+      // does, this branch is where the lookup would flip.
       if (record.ansi == false) {
         continue;
       }

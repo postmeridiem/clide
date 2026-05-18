@@ -105,12 +105,14 @@ class EscapeParser {
     // 'P'.charCode: _unsupportedHandler, // Sixel
     // 'c'.charCode: _unsupportedHandler,
     // '#'.charCode: _unsupportedHandler,
-    '('.charCode: _escHandleDesignateCharset0, //  SCS - G0
-    ')'.charCode: _escHandleDesignateCharset1, //  SCS - G1
-    // '*'.charCode: _voidHandler(1), // TODO: G2 (vt220)
-    // '+'.charCode: _voidHandler(1), // TODO: G3 (vt220)
-    '>'.charCode: _escHandleResetAppKeypadMode, // TODO: Normal Keypad
-    '='.charCode: _escHandleSetAppKeypadMode, // TODO: Application Keypad
+    '('.charCode: _escHandleDesignateCharset0, // SCS — G0
+    ')'.charCode: _escHandleDesignateCharset1, // SCS — G1
+    // G2 (`ESC *`) and G3 (`ESC +`) charset designators are VT220+
+    // sequences we don't honour — no consumer in clide selects past
+    // G0/G1. Sequences pass through as no-ops (one trailing byte is
+    // consumed by the default parser).
+    '>'.charCode: _escHandleResetAppKeypadMode,
+    '='.charCode: _escHandleSetAppKeypadMode,
   });
 
   /// `ESC 7` Save Cursor (DECSC)

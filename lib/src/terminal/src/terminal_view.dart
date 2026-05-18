@@ -360,6 +360,13 @@ class TerminalViewState extends State<TerminalView> {
       return resultOverride;
     }
 
+    // ShortcutManager.handleKeypress is @protected — it's only public
+    // for the Shortcuts widget to call internally. We own our own
+    // ShortcutManager because the terminal has its own keybinding
+    // surface (defaultTerminalShortcuts: Ctrl+C → kill, Tab handoff
+    // rules, etc.) that needs to fire BEFORE the app's Shortcuts
+    // ancestor. Wrapping in a Shortcuts widget would invert that.
+    // T-107 approved leaving this suppression with an inline reason.
     // ignore: invalid_use_of_protected_member
     final shortcutResult = _shortcutManager.handleKeypress(
       focusNode.context!,
