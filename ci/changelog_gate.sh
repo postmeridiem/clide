@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-# CHANGELOG concision gate — enforces the per-bullet word caps from the
-# git-commit skill (40 soft, 60 hard) across the `## [Unreleased]`
-# section. Released sections are frozen and skipped (don't penalize
-# historical entries pre-dating the rule).
+# CHANGELOG concision gate — enforces a single 60-word per-bullet hard
+# cap on the `## [Unreleased]` section. Released sections are frozen
+# and skipped (don't penalize historical entries pre-dating the rule).
 #
 # A "bullet" is a markdown list item beginning with `- `, including any
 # indented continuation lines until the next bullet, blank line, or
 # heading. Word count is whitespace-tokenized.
 #
-# Soft cap 40 → warn (non-zero exit only if HARD is also breached).
-# Hard cap 60 → fail.
+# A soft 40-word warning was tried earlier and dropped — warnings that
+# never block a push just normalise drift, so the gate is now binary.
 #
 # Bypass: never. If the rule rejects something genuinely user-visible
 # that needs more context, the context belongs in the commit body or a
@@ -18,7 +17,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CHANGELOG=CHANGELOG.md
-SOFT_CAP=40
 HARD_CAP=60
 
 if [[ ! -f "$CHANGELOG" ]]; then
@@ -26,24 +24,18 @@ if [[ ! -f "$CHANGELOG" ]]; then
   exit 2
 fi
 
-awk -v soft="$SOFT_CAP" -v hard="$HARD_CAP" '
-  BEGIN { in_unreleased = 0; bullet = ""; bullet_start = 0; fail = 0; warn = 0 }
+awk -v hard="$HARD_CAP" '
+  BEGIN { in_unreleased = 0; bullet = ""; bullet_start = 0; fail = 0 }
 
   function check_bullet() {
     if (bullet == "") return
-    n = split(bullet, _words, /[[:space:]]+/)
-    # split() counts a trailing empty token when the string starts/ends with
-    # whitespace; trim the leading "- " marker too.
+    # Trim the leading "- " marker, then tokenize on whitespace.
     gsub(/^- +/, "", bullet)
     n = split(bullet, _words, /[[:space:]]+/)
     if (n > hard) {
-      printf "FAIL line %d: bullet is %d words (hard cap %d)\n", bullet_start, n, hard
+      printf "FAIL line %d: bullet is %d words (cap %d)\n", bullet_start, n, hard
       printf "    %s\n\n", substr(bullet, 1, 120) (length(bullet) > 120 ? "..." : "")
       fail++
-    } else if (n > soft) {
-      printf "WARN line %d: bullet is %d words (soft cap %d)\n", bullet_start, n, soft
-      printf "    %s\n\n", substr(bullet, 1, 120) (length(bullet) > 120 ? "..." : "")
-      warn++
     }
     bullet = ""
     bullet_start = 0
@@ -76,10 +68,6 @@ awk -v soft="$SOFT_CAP" -v hard="$HARD_CAP" '
       printf "    See .claude/skills/git-commit/SKILL.md \"Be concise\".\n"
       exit 1
     }
-    if (warn > 0) {
-      printf "==> changelog gate OK with %d warning(s) over %d words.\n", warn, soft
-    } else {
-      printf "==> changelog gate OK\n"
-    }
+    printf "==> changelog gate OK\n"
   }
 ' "$CHANGELOG"

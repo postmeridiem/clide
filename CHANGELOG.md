@@ -111,6 +111,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Changelog gate is binary — dropped the soft 40-word warning, kept
+  the 60-word hard cap. Warnings that never blocked just normalised
+  drift.
 - PTY spawning uses `posix_openpt` + `posix_spawn` instead of
   `forkpty` — closes a ~5% deadlock window in the multithreaded Dart
   VM (T-96, D-5 amended). Missing exe/cwd now throw `PtyException` at
