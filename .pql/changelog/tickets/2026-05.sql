@@ -1875,3 +1875,23 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 Order matters: 2 → 3 → 1 (clean changelog, release, then doc the workflow).
 
 Source: consultants.md "Docs — Findings".', 'in_progress', 'medium', NULL, NULL, NULL, '2026-05-17 18:48:03', '2026-05-18 08:02:06', NULL, '01396c3a11fb562a859cdf76f933824c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-121', 'task', 'T-97', 'cut interim release to drain Unreleased (split from T-109)', 'Item 3 of T-109. With CONTRIBUTING.md landed and [Unreleased] consolidated, the remaining piece is cutting an actual release so the ~80-commit Unreleased backlog drains into a dated heading.
+
+Per .claude/skills/git-commit/SKILL.md "Cutting a release":
+1. Move every [Unreleased] entry under a new `## [X.Y.Z] — YYYY-MM-DD` heading.
+2. Leave an empty [Unreleased] skeleton.
+3. Bump pubspec.yaml version: (drop the -dev suffix for the tag).
+4. Commit subject: `release vX.Y.Z`.
+
+Version pick is the user''s call — likely 2.1.0 given the scope since 2.0.0 (D-66 95% coverage gate, T-117 keymap, contrast-gate split, IPC hardening, panel-keyboard parity, etc.).
+
+Source: consultants.md "Docs — Findings" item 3.', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-18 08:07:23', '2026-05-18 08:07:23', NULL, '74aa71a8c832231c1debb66c767cf490', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-109', 'task', 'T-97', 'write CONTRIBUTING.md; cut interim release to drain Unreleased; merge duplicate changelog headings', 'Three docs items:
+
+1. **No `CONTRIBUTING.md`.** Build/test story is scattered across `CLAUDE.md` (Claude-addressed), `README.md` (partly wrong — see T-101), and Makefile help. Write a human-addressed contributor guide: clone → `make hooks && flutter pub get` → `make test` → DQR workflow → commit conventions.
+2. **CHANGELOG has duplicate subsection headings in `[Unreleased]`** — three `### Changed`, two `### Fixed`, two `### Removed` in the 2.0.0 section. Keep a Changelog 1.1.0 expects one of each per release. Merge.
+3. **~80-commit Unreleased backlog** undermines the format. Cut an interim release (`vX.Y.Z`) to drain it before continuing.
+
+Order matters: 2 → 3 → 1 (clean changelog, release, then doc the workflow).
+
+Source: consultants.md "Docs — Findings".', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 18:48:03', '2026-05-18 08:07:23', NULL, '7c1f64a5aef6e3e92157691a2b192beb', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

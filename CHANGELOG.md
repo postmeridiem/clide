@@ -18,6 +18,20 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [2.1.0] — 2026-05-18
+
+### Added
+
 - Contrast gate split — baseline `canonicalPairs` every theme passes,
   strict `extendedPairs` (muted/status/syntax/focus-border) gated to
   `-hc` / `-cb` variants. Ships `clide-hc`, `midnight-hc`, `paper-hc`,
