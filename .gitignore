@@ -37,6 +37,10 @@ tools/ui/.serve.pid
 #    coverage/ is committed.
 /coverage/
 
+# -- Tee'd flutter-test output (see Makefile `make t T=...`) ---------
+# Lives under test/ so the repo root stays uncluttered.
+/test/.test-output/
+
 # -- Test, coverage, profile output ------------------------------------
 *.test
 *.out

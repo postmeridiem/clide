@@ -82,6 +82,12 @@ format: ## dart format --set-exit-if-changed.
 .PHONY: verify
 verify: analyze format decisions-validate changelog-gate ## No-tests sweep — analyze + format + decisions-validate + changelog-gate. For mid-edit "are the gates green?" checks; `push-check` is the full pre-push pipeline.
 
+.PHONY: t
+t: ## Run one test path with tee'd output. Usage: make t T=test/path/to/spec.dart
+	@mkdir -p test/.test-output
+	@if [ -z "$(T)" ]; then echo "usage: make t T=test/path/to/spec.dart" >&2; exit 2; fi
+	flutter test $(T) 2>&1 | tee test/.test-output/last.log
+
 .PHONY: test
 test: ## Fast: analyze + format + unit + widget + golden (<60s).
 	ci/test.sh

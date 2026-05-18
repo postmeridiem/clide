@@ -102,6 +102,7 @@ class ProjectManager extends ChangeNotifier {
     final raw = _settings.get<String>('app.recentProjects');
     if (raw == null || raw.isEmpty) {
       _recents = [];
+      notifyListeners();
       return;
     }
     try {
@@ -110,6 +111,7 @@ class ProjectManager extends ChangeNotifier {
     } catch (_) {
       _recents = [];
     }
+    notifyListeners();
   }
 
   Future<bool> open(String path) async {

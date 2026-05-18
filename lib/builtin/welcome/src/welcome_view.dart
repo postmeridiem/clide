@@ -330,7 +330,12 @@ class _RecentRow extends StatelessWidget {
                 ],
               ),
             ),
-            _StickyToggle(sticky: project.startupSticky, tokens: tokens, onTap: onToggleSticky),
+            _StickyToggle(
+              key: ValueKey('welcome.sticky.${project.path}'),
+              sticky: project.startupSticky,
+              tokens: tokens,
+              onTap: onToggleSticky,
+            ),
             const SizedBox(width: 12),
             ClideText(project.timeAgo, muted: true, fontSize: 13),
           ],
@@ -344,31 +349,29 @@ class _RecentRow extends StatelessWidget {
 /// When exactly one row is checked, clide opens that project on next
 /// launch instead of showing the picker. Tooltip explains the rule.
 class _StickyToggle extends StatelessWidget {
-  const _StickyToggle({required this.sticky, required this.tokens, required this.onTap});
+  const _StickyToggle({super.key, required this.sticky, required this.tokens, required this.onTap});
   final bool sticky;
   final SurfaceTokens tokens;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ClideTooltip(
-      message: sticky ? 'Always open this project on launch (uncheck to restore picker)' : 'Always open this project on launch',
-      child: Semantics(
-        button: true,
-        checked: sticky,
-        label: 'always open this project on launch',
-        child: ClideTappable(
-          onTap: onTap,
-          builder: (context, hovered, _) => Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: sticky ? tokens.statusBarItemActiveBackground : null,
-              border: Border.all(color: hovered || sticky ? tokens.panelActiveBorder : tokens.globalBorder),
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: sticky ? ClideIcon(PhosphorIcons.check, size: 12, color: tokens.buttonForeground) : null,
+    return Semantics(
+      button: true,
+      checked: sticky,
+      label: 'always open this project on launch',
+      tooltip: sticky ? 'Always open this project on launch (uncheck to restore picker)' : 'Always open this project on launch',
+      child: ClideTappable(
+        onTap: onTap,
+        builder: (context, hovered, _) => Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: sticky ? tokens.statusBarItemActiveBackground : null,
+            border: Border.all(color: hovered || sticky ? tokens.panelActiveBorder : tokens.globalBorder),
+            borderRadius: BorderRadius.circular(3),
           ),
+          child: sticky ? ClideIcon(PhosphorIcons.check, size: 12, color: tokens.buttonForeground) : null,
         ),
       ),
     );
