@@ -25,6 +25,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   dispatch through `DaemonDispatcher` (D-72). Foundation for the C
   `clide` client (T-126) and MCP (T-130). No client yet — testable
   via `socat - UNIX-CONNECT:$SOCK`.
+- argv→IpcRequest translator (`lib/src/cli/argv_to_request.dart`) —
+  parses `clide SUBSYSTEM VERB [pos...] [--flag] [-- passthrough]` and
+  the umbrella commands (`status`, `tail`, `version`, `ping`) per D-6
+  into the wire envelope. Pure Dart; lets the C client (T-126) stay a
+  dumb pipe (T-99 / T-125).
 - Startup project picker — clide now opens to the welcome screen by
   default instead of auto-opening the last project. A per-row
   "always open this project on launch" checkbox in welcome's RECENT

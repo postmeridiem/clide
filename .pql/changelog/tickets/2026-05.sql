@@ -2111,3 +2111,14 @@ Open a per-workspace unix-domain socket on Flutter app boot. Accept JSON-lines p
 6. No client yet — that lands in T-126.
 
 Source: T-99 sketch. Coordinates with: T-127 (InProcessClient swap), T-130 (MCP).', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:58:47', '2026-05-18 12:51:08', NULL, 'eaa0d45789ecd577e81dc07ef476e31c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-125', 'task', 'T-99', 'argv→IpcRequest translator on the Dart side', 'Second slice of T-99(a). Owns the CLI grammar so the C client stays a dumb pipe.
+
+Add lib/src/cli/argv_to_request.dart: takes a List<String> (the argv after `clide`) and returns an IpcRequest. Handles `clide <subsystem> <verb> [positionals...] [--flag value] [-- argv...]` per D-6''s shape. Errors (unknown subsystem/verb, malformed flag) surface as IpcResponse.err with the right exit code per pql''s contract.
+
+Acceptance:
+1. Pure-Dart function with no I/O; unit-testable.
+2. Covers every active subsystem from D-6''s list (pane/tab/open/editor/panel/tree/git/pql/canvas/graph/theme/settings/project) at least to the level of "recognise the verb".
+3. Round-trip tests against the existing IpcRequest envelope.
+4. Sysexit-code parity with pql (0/1/2/3/4 + 64-78 reserved).
+
+Source: T-99 sketch.', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:58:52', '2026-05-18 15:51:09', NULL, '99f60de735779ddc37e7701ef4dd3304', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
