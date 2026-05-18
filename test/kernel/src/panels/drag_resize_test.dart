@@ -4,6 +4,7 @@ library;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -81,6 +82,40 @@ void main() {
       await tester.pump();
       await gesture.up();
       expect(arr.sizeOf(Slots.contextPanel), 150);
+    });
+
+    testWidgets('exposes a slider Semantics node with the current size', (tester) async {
+      final arr = LayoutArrangement();
+      arr.applyPreset(const LayoutPresetContribution(
+        id: 'test-preset',
+        displayName: 'Test',
+        slots: [
+          LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 240),
+        ],
+      ));
+      final semHandle = tester.ensureSemantics();
+      await tester.pumpWidget(harness(
+        f,
+        Center(
+          child: SizedBox(
+            width: 40,
+            height: 200,
+            child: DragResizeHandle(
+              arrangement: arr,
+              slot: Slots.sidebar,
+              axis: Axis.horizontal,
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final data = tester.getSemantics(find.byType(DragResizeHandle));
+      expect(data.label, 'Sidebar width');
+      expect(data.value, '240 pixels');
+      final actions = data.getSemanticsData().actions;
+      expect(actions & SemanticsAction.increase.index, isNot(0));
+      expect(actions & SemanticsAction.decrease.index, isNot(0));
+      semHandle.dispose();
     });
 
     testWidgets('hovered state flips the line colour without throwing', (tester) async {

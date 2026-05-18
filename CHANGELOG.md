@@ -117,6 +117,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   softer ink-tinted shadow (T-114).
 - Text-zoom (Ctrl +/-/0) is now a kernel `TextZoom` service and shows
   up in the palette as `View: Zoom In/Out/Reset Zoom` (T-114).
+- Panel splitters (sidebar / context / editor-split) are tab-focusable;
+  arrow keys nudge by 10 px, Shift+arrow by 50 px (2% / 10% for the
+  editor split). Exposed as slider Semantics nodes so screen readers
+  announce the current size. CLI verb deferred to T-99 (T-111).
 - Changelog gate is binary — dropped the soft 40-word warning, kept
   the 60-word hard cap. Warnings that never blocked just normalised
   drift.

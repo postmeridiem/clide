@@ -967,36 +967,79 @@ class _EditorDragHandle extends StatefulWidget {
 
 class _EditorDragHandleState extends State<_EditorDragHandle> {
   bool _hovered = false;
+  bool _focused = false;
   double? _dragStartRatio;
   double? _dragStartY;
+
+  // Editor split is a 0..1 fraction; the kernel clamps to 0.15..0.70.
+  // 2% per fine step, 10% per Shift step keeps keyboard feel close to
+  // the pixel-based DragResizeHandle.
+  static const double _stepFine = 0.02;
+  static const double _stepCoarse = 0.10;
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    return MouseRegion(
-      cursor: SystemMouseCursors.resizeRow,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Listener(
-        onPointerDown: (e) {
-          _dragStartRatio = widget.arrangement.editorRatio;
-          _dragStartY = e.position.dy;
+    final lineColor = (_hovered || _focused) ? tokens.panelActiveBorder : tokens.panelBorder;
+
+    return Semantics(
+      container: true,
+      slider: true,
+      label: 'Editor split',
+      value: '${(widget.arrangement.editorRatio * 100).round()}%',
+      onIncrease: () => _bump(_stepFine),
+      onDecrease: () => _bump(-_stepFine),
+      child: FocusableActionDetector(
+        onShowFocusHighlight: (v) => setState(() => _focused = v),
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.arrowUp): _EditorBumpIntent(-_stepFine),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _EditorBumpIntent(_stepFine),
+          SingleActivator(LogicalKeyboardKey.arrowUp, shift: true): _EditorBumpIntent(-_stepCoarse),
+          SingleActivator(LogicalKeyboardKey.arrowDown, shift: true): _EditorBumpIntent(_stepCoarse),
         },
-        onPointerMove: (e) {
-          final startR = _dragStartRatio;
-          final startY = _dragStartY;
-          if (startR == null || startY == null || widget.totalHeight <= 0) return;
-          final deltaRatio = (e.position.dy - startY) / widget.totalHeight;
-          widget.arrangement.setEditorRatio(startR + deltaRatio);
+        actions: <Type, Action<Intent>>{
+          _EditorBumpIntent: CallbackAction<_EditorBumpIntent>(
+            onInvoke: (intent) {
+              _bump(intent.delta);
+              return null;
+            },
+          ),
         },
-        onPointerUp: (_) {
-          _dragStartRatio = null;
-          _dragStartY = null;
-        },
-        child: Container(height: 4, color: _hovered ? tokens.panelActiveBorder : tokens.panelBorder),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.resizeRow,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: Listener(
+            onPointerDown: (e) {
+              _dragStartRatio = widget.arrangement.editorRatio;
+              _dragStartY = e.position.dy;
+            },
+            onPointerMove: (e) {
+              final startR = _dragStartRatio;
+              final startY = _dragStartY;
+              if (startR == null || startY == null || widget.totalHeight <= 0) return;
+              final deltaRatio = (e.position.dy - startY) / widget.totalHeight;
+              widget.arrangement.setEditorRatio(startR + deltaRatio);
+            },
+            onPointerUp: (_) {
+              _dragStartRatio = null;
+              _dragStartY = null;
+            },
+            child: Container(height: 4, color: lineColor),
+          ),
+        ),
       ),
     );
   }
+
+  void _bump(double delta) {
+    widget.arrangement.setEditorRatio(widget.arrangement.editorRatio + delta);
+  }
+}
+
+class _EditorBumpIntent extends Intent {
+  const _EditorBumpIntent(this.delta);
+  final double delta;
 }
 
 class _ContextSlot extends StatelessWidget {
