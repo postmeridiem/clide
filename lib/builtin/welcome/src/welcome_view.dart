@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clide/clide.dart' show clideVersion;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show MissingPluginException;
@@ -90,7 +91,7 @@ class _TipsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('TIPS', fontSize: 12, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            ClideText('TIPS', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
             const SizedBox(height: 14),
             _tipRow(firstRow),
             const SizedBox(height: 8),
@@ -108,8 +109,8 @@ class _TipsCard extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Expanded(child: ClideText(tips[i].$1, fontSize: 13, color: tokens.globalTextMuted)),
-                ClideText(tips[i].$2, fontSize: 12, color: tokens.globalForeground, fontFamily: clideMonoFamily),
+                Expanded(child: ClideText(tips[i].$1, fontSize: clideFontMeta, color: tokens.globalTextMuted)),
+                ClideText(tips[i].$2, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily),
               ],
             ),
           ),
@@ -134,8 +135,8 @@ class _Header extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('clide', fontSize: 52, fontWeight: FontWeight.w300, color: tokens.globalForeground),
-            ClideText('IDE for Claude Code CLI', muted: true, fontSize: 16),
+            ClideText('clide', fontSize: clideFontWelcomeBanner, fontWeight: FontWeight.w300, color: tokens.globalForeground),
+            ClideText('IDE for Claude Code CLI', muted: true, fontSize: clideFontDialogTitle),
           ],
         ),
       ],
@@ -153,7 +154,7 @@ class _StartColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClideText('START', fontSize: 12, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+        ClideText('START', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
         const SizedBox(height: 20),
         _ActionRow(
           icon: PhosphorIcons.folder,
@@ -236,8 +237,8 @@ class _ActionRow extends StatelessWidget {
           children: [
             ClideIcon(icon, size: 18, color: tokens.globalTextMuted),
             const SizedBox(width: 14),
-            Expanded(child: ClideText(label, fontSize: 15, color: tokens.globalForeground)),
-            if (shortcut != null) ClideText(shortcut!, fontSize: 13, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            Expanded(child: ClideText(label, fontSize: clideFontBody, color: tokens.globalForeground)),
+            if (shortcut != null) ClideText(shortcut!, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
           ],
         ),
       ),
@@ -259,10 +260,10 @@ class _RecentColumn extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('RECENT', fontSize: 12, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            ClideText('RECENT', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
             const SizedBox(height: 20),
             if (recents.isEmpty)
-              const ClideText('No recent projects.', muted: true, fontSize: 14)
+              const ClideText('No recent projects.', muted: true, fontSize: clideFontCaption)
             else
               for (final r in recents)
                 _RecentRow(
@@ -312,18 +313,18 @@ class _RecentRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClideText(project.name, fontSize: 15, fontWeight: FontWeight.w500),
+                  ClideText(project.name, fontSize: clideFontBody, fontWeight: FontWeight.w500),
                   const SizedBox(height: 3),
                   Row(
                     children: [
                       Flexible(
                           child: ClideText(project.relativePath,
-                              muted: true, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                              muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
                       if (project.branch != null) ...[
-                        ClideText('  ·  ', muted: true, fontSize: 13),
+                        ClideText('  ·  ', muted: true, fontSize: clideFontMeta),
                         ClideIcon(PhosphorIcons.gitBranch, size: 11, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
-                        ClideText(project.branch!, muted: true, fontSize: 13, fontFamily: clideMonoFamily),
+                        ClideText(project.branch!, muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily),
                       ],
                     ],
                   ),
@@ -337,7 +338,7 @@ class _RecentRow extends StatelessWidget {
               onTap: onToggleSticky,
             ),
             const SizedBox(width: 12),
-            ClideText(project.timeAgo, muted: true, fontSize: 13),
+            ClideText(project.timeAgo, muted: true, fontSize: clideFontMeta),
           ],
         ),
       ),
@@ -390,20 +391,29 @@ class _StatusLine extends StatelessWidget {
       listenable: kernel.toolchain,
       builder: (ctx, _) {
         final tc = kernel.toolchain;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            ClideText('clide 2.0.0-dev', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
-            ClideText('  ·  ', muted: true, fontSize: 12),
-            if (!tc.resolved)
-              ClideText('checking…', muted: true, fontSize: 12, fontFamily: clideMonoFamily)
-            else if (tc.allOk)
-              ClideText('application ok', fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusSuccess)
-            else
-              ClideText(tc.missing.map((t) => '$t not found').join(' · '), fontSize: 12, fontFamily: clideMonoFamily, color: tokens.statusWarning),
-            ClideText('  ·  ', muted: true, fontSize: 12),
-            _ThemeLink(tokens: tokens, kernel: kernel, themeName: themeName),
-          ],
+        // FittedBox+scaleDown shrinks the row uniformly on narrow
+        // viewports rather than overflowing — at standard widths it's
+        // a no-op. The status line is decorative chrome; keep it on
+        // one line by accepting a tiny font on very narrow screens.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClideText('clide $clideVersion', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
+              ClideText('  ·  ', muted: true, fontSize: clideFontSmall),
+              if (!tc.resolved)
+                ClideText('checking…', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily)
+              else if (tc.allOk)
+                ClideText('application ok', fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusSuccess)
+              else
+                ClideText(tc.missing.map((t) => '$t not found').join(' · '),
+                    fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusWarning),
+              ClideText('  ·  ', muted: true, fontSize: clideFontSmall),
+              _ThemeLink(tokens: tokens, kernel: kernel, themeName: themeName),
+            ],
+          ),
         );
       },
     );
@@ -423,8 +433,8 @@ class _ThemeLink extends StatelessWidget {
       builder: (ctx, hovered, _) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClideText('theme: ', muted: true, fontSize: 12, fontFamily: clideMonoFamily),
-          ClideText(themeName, fontSize: 12, fontFamily: clideMonoFamily, color: hovered ? tokens.globalForeground : tokens.globalFocus),
+          ClideText('theme: ', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
+          ClideText(themeName, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: hovered ? tokens.globalForeground : tokens.globalFocus),
         ],
       ),
     );
@@ -489,9 +499,9 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ClideText('Open project', fontSize: 16, fontWeight: FontWeight.w600),
+          const ClideText('Open project', fontSize: clideFontDialogTitle, fontWeight: FontWeight.w600),
           const SizedBox(height: 4),
-          const ClideText('Enter the path to a git repository.', muted: true, fontSize: 13),
+          const ClideText('Enter the path to a git repository.', muted: true, fontSize: clideFontMeta),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -503,7 +513,8 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
             child: EditableText(
               controller: _controller,
               focusNode: _focus,
-              style: TextStyle(color: tokens.globalForeground, fontSize: 14, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
+              style: TextStyle(
+                  color: tokens.globalForeground, fontSize: clideFontCaption, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
               cursorColor: tokens.globalForeground,
               backgroundCursorColor: tokens.globalTextMuted,
               onSubmitted: (_) => unawaited(_submit()),
@@ -511,7 +522,7 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            ClideText(_error!, color: tokens.statusError, fontSize: 12),
+            ClideText(_error!, color: tokens.statusError, fontSize: clideFontSmall),
           ],
           const SizedBox(height: 16),
           Row(
@@ -548,14 +559,14 @@ class _NotARepoDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ClideText('No git repo found', fontSize: 16, fontWeight: FontWeight.w600),
+          const ClideText('No git repo found', fontSize: clideFontDialogTitle, fontWeight: FontWeight.w600),
           const SizedBox(height: 8),
-          ClideText(path, muted: true, fontSize: 13),
+          ClideText(path, muted: true, fontSize: clideFontMeta),
           const SizedBox(height: 8),
           const ClideText(
             'A clide project root requires a git repository.',
             muted: true,
-            fontSize: 13,
+            fontSize: clideFontMeta,
           ),
           const SizedBox(height: 16),
           Row(

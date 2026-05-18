@@ -56,8 +56,14 @@ const String clideMonoFamily = 'JetBrainsMono';
 const double clideFontBody = 15;
 const double clideFontCaption = 14;
 const double clideFontMono = 14;
+const double clideFontMeta = 13;
 const double clideFontSmall = 12;
 const double clideFontBadge = 11;
+// Larger semantic sizes that aren't body text. clideFontDialogTitle is
+// the modal/dialog heading; clideFontWelcomeBanner is the oversized
+// "clide" mark on the welcome screen — one-off but worth naming.
+const double clideFontDialogTitle = 16;
+const double clideFontWelcomeBanner = 52;
 const double clideLineHeight = 1.25;
 
 /// System fallback chain. Ordered by platform prevalence + quality of

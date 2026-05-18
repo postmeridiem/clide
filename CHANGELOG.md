@@ -111,6 +111,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   softer ink-tinted shadow (T-114).
 - Text-zoom (Ctrl +/-/0) is now a kernel `TextZoom` service and shows
   up in the palette as `View: Zoom In/Out/Reset Zoom` (T-114).
+- `make gen-build-info` bakes `lib/src/build_info.g.dart` (version,
+  commit, date) and rewrites `assets/licenses.yaml` `self.version:`
+  from `pubspec.yaml` on every build/run/test target — one source of
+  truth, no manual sync, no `--dart-define` plumbing.
 - Panel splitters (sidebar / context / editor-split) are tab-focusable;
   arrow keys nudge by 10 px, Shift+arrow by 50 px (2% / 10% for the
   editor split). Exposed as slider Semantics nodes so screen readers
@@ -182,6 +186,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Welcome status line no longer overflows on narrow viewports —
+  whole-row `FittedBox(scaleDown)` instead of fixed sibling widths.
+  Inline `fontSize:` literals replaced with the typography
+  constants. Version label reads `clideVersion` so the status line
+  stays in sync with `pubspec.yaml` (T-116).
+- Integration test `theme_picker_test.dart` no longer deadlocks —
+  was `await`ing `services.commands.execute('theme.pick')` whose
+  Future doesn't complete until the dialog is dismissed. Now
+  fire-and-forget around `pumpAndSettle` (T-116).
 - `TerminalView.onTapUp` now actually fires on primary tap — was
   wired to a dead code path (T-93). Dead `onTapUp` surface on
   `TerminalGestureHandler` / `TerminalGestureDetector` removed.

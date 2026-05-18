@@ -93,9 +93,10 @@ Cutting a release is its own commit. In a single commit:
 1. Move all entries from `## [Unreleased]` under a new heading `## [X.Y.Z] — YYYY-MM-DD`.
 2. Leave an empty `## [Unreleased]` section at the top with its subsection skeleton ready.
 3. Bump `pubspec.yaml` `version:` to `X.Y.Z` (drop the `-dev` suffix for the tag; re-add it on the next development commit if desired).
-4. Commit subject: `release vX.Y.Z`.
+4. Run `make gen-build-info` so `assets/licenses.yaml` `self.version:` re-syncs from pubspec (it's auto-rewritten by every build but commit the fresh state). Stage the resulting diff alongside step 3.
+5. Commit subject: `release vX.Y.Z`.
 
-`pubspec.yaml` is the single source of truth for the version — the Makefile reads it for ldflag stamping of the sidecar binary, and the Flutter app reads it for build info. Bumping `pubspec.yaml` and the changelog out of sync is the mistake this rule prevents.
+`pubspec.yaml` is the single source of truth for the version. Every `make` build/run/test target regenerates `lib/src/build_info.g.dart` (gitignored) and rewrites `assets/licenses.yaml` `self.version:` from it — so the Flutter app sees the current version everywhere without manual sync. Bumping `pubspec.yaml` and the changelog out of sync is the mistake this rule prevents.
 
 ## Attribution trailer
 
