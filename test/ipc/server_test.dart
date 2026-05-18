@@ -161,6 +161,71 @@ void main() {
       await server.stop();
       expect(server.isRunning, isFalse);
     });
+
+    test('a handler that throws surfaces as a toolError response', () async {
+      dispatcher.register('boom', (_) async => throw StateError('handler crash'));
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final reply = await _roundTrip(server.socketPath, IpcRequest(id: 'x', cmd: 'boom'));
+      expect(reply.ok, isFalse);
+      expect(reply.error?.kind, IpcErrorKind.toolError);
+      expect(reply.error?.message, contains('handler crash'));
+    });
+
+    test('stop closes an in-flight client connection', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final c = await Socket.connect(
+        InternetAddress(server.socketPath, type: InternetAddressType.unix),
+        0,
+      );
+      c.write('${IpcRequest(id: 'q', cmd: 'ping').encode()}\n');
+      await c.flush();
+      await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first;
+      await server.stop();
+      expect(server.isRunning, isFalse);
+      try {
+        await c.close();
+      } catch (_) {}
+    });
+
+    test('multiple sequential requests on the same connection each get a reply', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final c = await Socket.connect(
+        InternetAddress(server.socketPath, type: InternetAddressType.unix),
+        0,
+      );
+      final replies = c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
+      final iter = StreamIterator(replies);
+      for (var i = 0; i < 3; i++) {
+        c.write('${IpcRequest(id: '$i', cmd: 'ping').encode()}\n');
+        await c.flush();
+        expect(await iter.moveNext().timeout(const Duration(seconds: 2)), isTrue);
+        final reply = IpcMessage.decode(iter.current) as IpcResponse;
+        expect(reply.id, '$i');
+        expect(reply.ok, isTrue);
+      }
+      await iter.cancel();
+      await c.close();
+    });
+
+    test('a non-request message (e.g. event) surfaces a userError', () async {
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final c = await Socket.connect(
+        InternetAddress(server.socketPath, type: InternetAddressType.unix),
+        0,
+      );
+      final evt = IpcEvent(subsystem: 'test', kind: 'wrong-shape', timestamp: DateTime.now().toUtc());
+      c.write('${evt.encode()}\n');
+      await c.flush();
+      final line = await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 2));
+      await c.close();
+      final reply = IpcMessage.decode(line) as IpcResponse;
+      expect(reply.ok, isFalse);
+      expect(reply.error?.kind, IpcErrorKind.userError);
+    });
   });
 }
 
