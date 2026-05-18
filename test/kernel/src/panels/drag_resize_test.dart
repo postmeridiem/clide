@@ -118,6 +118,48 @@ void main() {
       semHandle.dispose();
     });
 
+    testWidgets('contextPanel slider Semantics label matches the slot', (tester) async {
+      final arr = LayoutArrangement();
+      arr.applyPreset(const LayoutPresetContribution(
+        id: 'test-preset',
+        displayName: 'Test',
+        slots: [
+          LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 320),
+        ],
+      ));
+      final semHandle = tester.ensureSemantics();
+      await tester.pumpWidget(harness(
+        f,
+        Center(
+          child: SizedBox(
+            width: 40,
+            height: 200,
+            child: DragResizeHandle(
+              arrangement: arr,
+              slot: Slots.contextPanel,
+              axis: Axis.horizontal,
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final data = tester.getSemantics(find.byType(DragResizeHandle));
+      expect(data.label, 'Context panel width');
+      expect(data.value, '320 pixels');
+      semHandle.dispose();
+    });
+
+    test('bumpedSlotSize keeps natural sign for left-anchored slots', () {
+      expect(bumpedSlotSize(slot: Slots.sidebar, current: 200, rawDelta: 10), 210);
+      expect(bumpedSlotSize(slot: Slots.sidebar, current: 200, rawDelta: -10), 190);
+      expect(bumpedSlotSize(slot: Slots.workspace, current: 500, rawDelta: 50), 550);
+    });
+
+    test('bumpedSlotSize flips sign for the right-anchored context panel', () {
+      expect(bumpedSlotSize(slot: Slots.contextPanel, current: 200, rawDelta: 10), 190);
+      expect(bumpedSlotSize(slot: Slots.contextPanel, current: 200, rawDelta: -10), 210);
+    });
+
     testWidgets('hovered state flips the line colour without throwing', (tester) async {
       final arr = LayoutArrangement();
       arr.applyPreset(const LayoutPresetContribution(

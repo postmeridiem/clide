@@ -119,15 +119,10 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
     };
   }
 
-  /// Apply a raw delta in the natural axis direction. The drag handler
-  /// inverts the sign for context-panel because its handle sits on the
-  /// left edge of the right-anchored slot; arrow keys follow the same
-  /// convention so right-arrow always moves the boundary rightward.
   void _bump(double rawDelta) {
     final current = widget.arrangement.sizeOf(widget.slot);
     if (current == null) return;
-    final delta = widget.slot == Slots.contextPanel ? -rawDelta : rawDelta;
-    widget.arrangement.setSize(widget.slot, current + delta);
+    widget.arrangement.setSize(widget.slot, bumpedSlotSize(slot: widget.slot, current: current, rawDelta: rawDelta));
   }
 
   void _onDown(PointerDownEvent e) {
@@ -153,4 +148,18 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
 class _BumpIntent extends Intent {
   const _BumpIntent(this.delta);
   final double delta;
+}
+
+/// Apply a raw delta in the natural axis direction. Drag and arrow
+/// keys both call this so the keyboard mirrors the drag: positive
+/// delta = right/down. Context-panel sits on the right edge of the
+/// app, so we flip the sign there — right-arrow should *shrink* it,
+/// matching how dragging the left-edge handle rightward works.
+double bumpedSlotSize({
+  required SlotId slot,
+  required double current,
+  required double rawDelta,
+}) {
+  final delta = slot == Slots.contextPanel ? -rawDelta : rawDelta;
+  return current + delta;
 }
