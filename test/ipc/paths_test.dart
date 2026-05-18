@@ -44,4 +44,28 @@ void main() {
       expect(socketDirectory(), '$home/Library/Caches/clide');
     });
   });
+
+  group('fnv1a64Hex (T-126 cross-check)', () {
+    // Reference values from <http://isthe.com/chongo/tech/comp/fnv/>.
+    // The C client in native/clide-cli/clide.c MUST produce the same
+    // 16-char hex strings for the same inputs, or server + client see
+    // different socket paths and the integration falls apart silently.
+    test('empty string → offset basis', () {
+      expect(fnv1a64Hex(''), 'cbf29ce484222325');
+    });
+
+    test('"a" → reference value', () {
+      expect(fnv1a64Hex('a'), 'af63dc4c8601ec8c');
+    });
+
+    test('"foo" → reference value', () {
+      expect(fnv1a64Hex('foo'), 'dcb27518fed9d577');
+    });
+
+    test('"/home/me/projects/clide" → 16 hex chars, deterministic', () {
+      final h = fnv1a64Hex('/home/me/projects/clide');
+      expect(h, matches(RegExp(r'^[0-9a-f]{16}$')));
+      expect(fnv1a64Hex('/home/me/projects/clide'), h);
+    });
+  });
 }

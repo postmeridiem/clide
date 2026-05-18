@@ -56,6 +56,32 @@ commit. Pre-push includes:
   [D-66](governance/decisions/testing.md#d-66))
 - `CHANGELOG.md` `[Unreleased]` bullets ≤ 60 words each
 
+## The C `clide` shell client
+
+`clide` (the binary) is a ~250 LOC C program in
+[`native/clide-cli/clide.c`](native/clide-cli/clide.c) that talks to
+the running Flutter app's IPC socket so Claude (and you) can drive
+clide from any shell. It walks CWD up to the workspace's `.git`,
+computes the same FNV-1a 64-bit hash the Dart side uses (per D-70),
+opens the per-workspace socket, and sends argv across the wire under
+a sentinel `_argv` cmd. The argv parser lives in Dart
+([`lib/src/cli/argv_to_request.dart`](lib/src/cli/argv_to_request.dart)),
+so the C side stays a dumb pipe.
+
+Build it with `make clide-cli` — output lands at
+`native/<platform>/clide` (gitignored). Drop that on your PATH (or
+symlink) and `clide status` works from any directory inside a clide
+workspace once the app is running. Standard POSIX + libc only;
+pure C99; no third-party deps.
+
+The cross-language hash agreement is load-bearing — if the Dart
+server and C client disagree on the socket path, every shell
+invocation fails to connect. The test suite covers it:
+[`test/ipc/paths_test.dart`](test/ipc/paths_test.dart) pins
+FNV-1a vectors against the reference, and
+[`test/cli/clide_cli_e2e_test.dart`](test/cli/clide_cli_e2e_test.dart)
+compiles the C client and exercises the full round-trip.
+
 ## Decisions, questions, rejected (DQR)
 
 clide tracks architectural commitments as durable records under

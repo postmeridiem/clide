@@ -2122,3 +2122,15 @@ Acceptance:
 4. Sysexit-code parity with pql (0/1/2/3/4 + 64-78 reserved).
 
 Source: T-99 sketch.', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:58:52', '2026-05-18 15:51:09', NULL, '99f60de735779ddc37e7701ef4dd3304', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-126', 'task', 'T-99', 'thin C `clide` client binary in native/clide-cli/', 'Third slice of T-99(a). The user-facing entry point.
+
+~150 LOC of C in native/clide-cli/. Resolves the socket path (env override + default), connects, sends a single JSON-line request shaped as {"argv": [...]} (parsing happens in Dart per T-125), reads the JSON-line response, writes stdout/stderr per the pql contract, exits with the response''s exit code.
+
+Acceptance:
+1. native/clide-cli/clide compiles on Linux + macOS via the existing native build harness (same shape as dugite / libtree-sitter.so).
+2. Binary lands in the install bundle; runs from the user''s PATH after `make build-linux` / `make build-macos`.
+3. `clide status` against a running app returns the status JSON and exits 0.
+4. `clide nonsense` returns the right exit code (sysexit 64 = usage error per D-6).
+5. Documented in assets/licenses.yaml + a one-paragraph note in CONTRIBUTING.md.
+
+Source: T-99 sketch. Depends on T-124 (server) + T-125 (argv translator).', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:58:57', '2026-05-18 16:04:29', NULL, 'e4be31e3d80dbaadd64e3a4a2fa029e0', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

@@ -38,6 +38,7 @@ import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
+import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
@@ -115,6 +116,7 @@ Future<void> main() async {
     registerGitCommands(dispatcher, gitClient, eventSink);
     final pql = PqlClient(workDir: workRoot, toolchain: tc);
     registerPqlCommands(dispatcher, pql);
+    registerArgvUnwrap(dispatcher);
     return dispatcher;
   }
 

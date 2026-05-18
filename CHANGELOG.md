@@ -30,6 +30,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   the umbrella commands (`status`, `tail`, `version`, `ping`) per D-6
   into the wire envelope. Pure Dart; lets the C client (T-126) stay a
   dumb pipe (T-99 / T-125).
+- C `clide` shell client at `native/clide-cli/clide.c`. Walks CWD up
+  to the git root, hashes to the per-workspace socket (D-70), ships
+  argv. `make clide-cli` builds it; on PATH, `clide status` works
+  from any clide-workspace directory once the app is up (T-99,
+  T-126).
 - Startup project picker — clide now opens to the welcome screen by
   default instead of auto-opening the last project. A per-row
   "always open this project on launch" checkbox in welcome's RECENT

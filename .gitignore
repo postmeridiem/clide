@@ -46,6 +46,13 @@ tools/ui/.serve.pid
 # Regenerated on every make build/run/test target.
 /lib/src/build_info.g.dart
 
+# -- Built C `clide` shell client (T-126). Source under ----------
+# native/clide-cli/ stays in git; the per-platform compiled binary
+# is built by `make clide-cli`.
+/native/linux-x64/clide
+/native/macos-arm64/clide
+/native/macos-x64/clide
+
 # -- Test, coverage, profile output ------------------------------------
 *.test
 *.out

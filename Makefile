@@ -268,6 +268,27 @@ dugite-fetch: ## Download and extract the dugite-native git distribution.
 dugite-clean: ## Remove the dugite-native directory.
 	rm -rf $(DUGITE_DIR)
 
+# -- clide-cli ----------------------------------------------------------
+# The C `clide` shell client that talks to the in-process IPC server
+# (T-99 / T-126). One source file, no third-party deps; the build
+# target picks up whatever `cc` is on PATH.
+
+CLIDE_CLI_SRC := native/clide-cli/clide.c
+CLIDE_CLI_BIN := native/$(if $(filter Darwin,$(shell uname -s)),macos,linux)-$(shell uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')/clide
+CC ?= cc
+
+.PHONY: clide-cli
+clide-cli: $(CLIDE_CLI_BIN) ## Compile the C `clide` shell client.
+
+$(CLIDE_CLI_BIN): $(CLIDE_CLI_SRC)
+	@mkdir -p $(dir $(CLIDE_CLI_BIN))
+	$(CC) -std=c99 -O2 -Wall -Wextra -o $(CLIDE_CLI_BIN) $(CLIDE_CLI_SRC)
+	@echo "==> built $(CLIDE_CLI_BIN)"
+
+.PHONY: clide-cli-clean
+clide-cli-clean: ## Remove the compiled C `clide` client.
+	rm -f $(CLIDE_CLI_BIN)
+
 # -- security -------------------------------------------------------------
 
 .PHONY: security
