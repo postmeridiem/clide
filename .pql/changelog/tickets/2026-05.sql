@@ -1930,3 +1930,17 @@ Next steps:
 - Either fix the underlying cause or use fakeAsync.run() to drain the timers explicitly.
 
 Until then, ProjectManager unit tests in test/kernel/src/project_test.dart cover the sticky-startup logic (14 cases including round-trip, no-op, idempotent flip, ambiguity, and openStickyOrNothing).', 'backlog', 'low', NULL, NULL, NULL, '2026-05-18 09:06:59', '2026-05-18 09:06:59', NULL, '16b6c7735880fe331798c0164b84da00', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-115', 'story', NULL, 'startup project picker; "always open this project" override', 'Startup flow change: on launch, always show the project picker screen unless the user has explicitly checked an "always open this project" box for a specific project (sticky default).
+
+**Acceptance:**
+1. Default startup: project picker is the first screen, regardless of last-opened state.
+2. Picker has an "always open this project on launch" checkbox per project entry.
+3. If exactly one project has that flag set, startup skips the picker and opens that project directly.
+4. The flag is per-project, persisted in app settings (probably under `app.startupProject`).
+5. The checkbox can be unticked from the welcome view to restore picker-first behavior.
+
+**Notes:** today the app auto-opens `app.lastProject` on boot (kernel/src/project.dart `openLast`). The new flow inverts the default — picker is the steady state, sticky-open is opt-in per project.
+
+**Out of scope:** multi-project workspaces, project groups, recent-project ordering changes.
+
+**Source:** user request 2026-05-17.', 'done', 'medium', NULL, NULL, NULL, '2026-05-17 19:10:21', '2026-05-18 09:30:59', NULL, 'c88ab1b158beddb3cd74ad9a287bd224', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

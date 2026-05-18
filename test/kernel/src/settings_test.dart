@@ -156,6 +156,23 @@ void main() {
       expect(store.get<List>('app.list'), [1, 'two', null, false]);
     });
 
+    test('YAML emitter handles nested lists and empty maps', () async {
+      // Nested list — forces _emitScalar's `v is List` recursive branch.
+      await store.set<Object>('app.nested', [
+        [1, 2],
+        ['a', 'b'],
+      ]);
+      // Empty map under an app.* key — forces _emit's empty-map branch.
+      // Use a key whose value is itself a Map.
+      await store.set<Object>('app.empty', <String, Object?>{});
+      // Round-trip.
+      await store.load();
+      expect(store.get<List>('app.nested'), [
+        [1, 2],
+        ['a', 'b'],
+      ]);
+    });
+
     test('load tolerates a malformed YAML file', () async {
       // Write garbage to the on-disk app settings, then load.
       final f = File('${tmp.path}/settings.yaml');
