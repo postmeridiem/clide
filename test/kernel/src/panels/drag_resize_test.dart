@@ -160,6 +160,38 @@ void main() {
       expect(bumpedSlotSize(slot: Slots.contextPanel, current: 200, rawDelta: -10), 210);
     });
 
+    testWidgets('vertical-axis handle uses arrow up/down shortcuts and "height" label', (tester) async {
+      final arr = LayoutArrangement();
+      arr.applyPreset(const LayoutPresetContribution(
+        id: 'test-preset',
+        displayName: 'Test',
+        slots: [
+          LayoutSlot(slot: Slots.workspace, position: SlotPosition.center, defaultSize: 300),
+        ],
+      ));
+      final semHandle = tester.ensureSemantics();
+      await tester.pumpWidget(harness(
+        f,
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 40,
+            child: DragResizeHandle(
+              arrangement: arr,
+              slot: Slots.workspace,
+              axis: Axis.vertical,
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final data = tester.getSemantics(find.byType(DragResizeHandle));
+      // Custom (non-sidebar, non-contextPanel) slots fall through to
+      // the slot.value-based label branch.
+      expect(data.label, 'workspace height');
+      semHandle.dispose();
+    });
+
     testWidgets('hovered state flips the line colour without throwing', (tester) async {
       final arr = LayoutArrangement();
       arr.applyPreset(const LayoutPresetContribution(
