@@ -23,7 +23,9 @@ void main() {
     });
 
     test('reset jumps back to 1.0', () {
-      final z = TextZoom()..increase()..increase();
+      final z = TextZoom()
+        ..increase()
+        ..increase();
       expect(z.scale, isNot(1.0));
       z.reset();
       expect(z.scale, 1.0);
