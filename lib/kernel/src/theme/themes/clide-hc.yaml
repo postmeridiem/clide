@@ -1,0 +1,38 @@
+# clide-hc — high-contrast sibling of `clide`
+#
+# Same periwinkle silhouette; muted text, status chips, syntax tokens,
+# and the focus border bumped to clear the strict contrast gate
+# (D-22 + D-69, `extendedPairs` in lib/kernel/src/theme/contrast.dart).
+
+name: clide-hc
+display_name: Clide (high contrast)
+dark: true
+
+palette:
+  background: "#20202C"
+  panel: "#1A1A24"
+  surface: "#242838"
+  muted: "#B1BBE3"
+  foreground: "#E6E8F2"
+  secondary: "#B1BBE3"
+  primary: "#92B5FF"
+  accent: "#92B5FF"
+  success: "#A8E8C8"
+  warning: "#FFD988"
+  error: "#FF9F9F"
+  info: "#A6C8FF"
+  surfaceHi: "#2C3046"
+  border: "#343850"
+  borderHi: "#92B5FF"
+  textDim: "#B1BBE3"
+  textMute: "#9098C0"
+  accentSoft: "#2192B5FF"
+
+syntax:
+  keyword: "#E0B5F2"
+  type: "#A6C8FF"
+  string: "#C2E8B0"
+  number: "#FFD988"
+  comment: "#9098C0"
+  method: "#A6C8FF"
+  punct: "#B1BBE3"

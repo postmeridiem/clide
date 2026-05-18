@@ -38,6 +38,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Contrast gate split — baseline `canonicalPairs` every theme passes,
+  strict `extendedPairs` (muted/status/syntax/focus-border) gated to
+  `-hc` / `-cb` variants. Ships `clide-hc`, `midnight-hc`, `paper-hc`,
+  `terminal-hc` siblings of the named themes (D-69, T-114, T-118).
 - Pre-push coverage gate — `make push-check` runs `ci/coverage_gate.sh`,
   which fails if total line coverage drops below `coverage_floor:` in
   `pubspec.yaml`. Floor ratchets up only; target 95% (D-66).

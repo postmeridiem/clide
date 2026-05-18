@@ -246,6 +246,10 @@ class _ClideTestAppState extends State<ClideTestApp> {
         'lib/kernel/src/theme/themes/midnight.yaml',
         'lib/kernel/src/theme/themes/paper.yaml',
         'lib/kernel/src/theme/themes/terminal.yaml',
+        'lib/kernel/src/theme/themes/clide-hc.yaml',
+        'lib/kernel/src/theme/themes/midnight-hc.yaml',
+        'lib/kernel/src/theme/themes/paper-hc.yaml',
+        'lib/kernel/src/theme/themes/terminal-hc.yaml',
       ];
       for (final p in paths) {
         final name = p.split('/').last.replaceAll('.yaml', '');

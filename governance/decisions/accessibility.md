@@ -23,6 +23,13 @@ A11y + i18n are Tier-0 contracts, not Tier-6 polish.
 - **Decision:** Every bundled theme must pass a WCAG-AA contrast check on its canonical token pairs (text/background, link/background, focus-ring/background) at test time. `ci/test_a11y.sh` runs the gate; CI fails on regressions.
 - **Rationale:** Themes drift under "looks nicer" tweaks; contrast regressions land silently. Running the gate on every PR is the cheapest insurance. Ran the gate on initial themes — caught one summer-night muted token at 2.81:1 (below AA), fixed before landing.
 - **Cost:** Third-party themes (Tier 6) won't be gated until an extension-time test hook lands. Bundled themes are gated today.
-- **Raised by:** 2026-04-21 planning.
+- **Raised by:** 2026-04-21 planning. Refined by [D-69](#d-69-published-themes-are-user-contracts-ship-hc-variants-for-a11y) — the gate's *strict* pair set only applies to high-contrast variants; named themes keep their published palettes.
+
+### D-69: published themes are user contracts; ship -hc variants for a11y
+- **Date:** 2026-05-17
+- **Decision:** The four bundled themes that ship under a recognisable name — `clide`, `midnight`, `paper`, `terminal` — are user contracts. Their palette colours (including syntax tokens, status colours, and borderHi) MUST NOT be retuned to satisfy contrast gates. When a stricter contrast check would fail one of them, the fix is one of: (a) ship a sibling theme with `-hc` (high-contrast) or `-cb` (colour-blind) in the name and enforce the strict pair set only there, or (b) split `canonicalPairs` into a *baseline* set every theme must pass and an *extended* set that only the `-hc`/`-cb` variants must pass.
+- **Rationale:** Users pick `midnight` because it looks like VS Code, `paper` because it reads as a drafting sheet, `terminal` because of the amber-on-near-black tmux feel. Quietly darkening `paper`'s success/warning/info or boosting `midnight`'s `borderHi` to pass a WCAG-AA check changes what they got and what they signed up for. A11y is a Tier-0 contract ([D-20](#d-20-a11y-is-a-tier-0-contract)), but it's served by *offering* an accessible variant, not by overwriting the aesthetic ones. VS Code itself ships `Default Dark+` and a separate `Default High Contrast` for exactly this reason.
+- **Cost:** Two extra theme files per "named" theme when we add a11y variants. The bundled-theme contrast gate ([D-22](#d-22-wcag-aa-contrast-gate-on-bundled-themes)) needs a baseline/extended split so the named themes don't fail the strict pairs.
+- **Raised by:** 2026-05-17 — user intervened mid-T-114 when I had retuned `clide`/`midnight`/`paper`/`terminal` palette entries to satisfy the expanded `canonicalPairs`; reverted, decision written, T-114 will follow this rule.
 
 ---

@@ -207,6 +207,10 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
     'lib/kernel/src/theme/themes/midnight.yaml',
     'lib/kernel/src/theme/themes/paper.yaml',
     'lib/kernel/src/theme/themes/terminal.yaml',
+    'lib/kernel/src/theme/themes/clide-hc.yaml',
+    'lib/kernel/src/theme/themes/midnight-hc.yaml',
+    'lib/kernel/src/theme/themes/paper-hc.yaml',
+    'lib/kernel/src/theme/themes/terminal-hc.yaml',
   ];
   final out = <ThemeDefinition>[];
   for (final p in paths) {

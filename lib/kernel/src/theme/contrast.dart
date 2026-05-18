@@ -39,9 +39,15 @@ double contrastRatio(Color a, Color b, {Color onto = const Color(0xFF808080)}) {
 /// Minimum ratio required for this pair per WCAG AA.
 double minimumRatio(ContrastPair pair) => pair.largeText ? 3.0 : 4.5;
 
-/// Canonical set of token pairs each bundled theme must honour.
+/// Baseline token pairs every bundled theme must honour.
 ///
-/// The a11y contrast test walks this list per-theme.
+/// Per D-22 every named theme passes this set; per D-69 the named
+/// themes (`clide`, `midnight`, `paper`, `terminal`) are user
+/// contracts whose palettes are not retuned to chase a contrast gate,
+/// so only the load-bearing pairs (primary text on its surface, chrome
+/// foregrounds, selected list item) sit here. Stricter coverage for
+/// muted text, status chips, syntax tokens, and the focus border lives
+/// in [extendedPairs], which only `-hc`/`-cb` variants must pass.
 List<ContrastPair> canonicalPairs(SurfaceTokens s) => [
       ContrastPair(
         name: 'global.text_on_background',
@@ -100,10 +106,100 @@ List<ContrastPair> canonicalPairs(SurfaceTokens s) => [
       ),
     ];
 
-/// Convenience for tests: returns the list of pairs that fail WCAG AA.
-List<ContrastFailure> failingPairs(SurfaceTokens tokens) {
+/// Stricter pair set — only the high-contrast (`-hc`) and colour-blind
+/// (`-cb`) theme variants must clear it. See D-69. These are the
+/// surfaces a UX consultant flagged in `consultants.md`: muted body
+/// text, status chip foregrounds, syntax tokens on the code-block
+/// surface, and the focus-indicating panel border.
+List<ContrastPair> extendedPairs(SurfaceTokens s) => [
+      ContrastPair(
+        name: 'global.text_muted_on_background',
+        foreground: s.globalTextMuted,
+        background: s.globalBackground,
+      ),
+      ContrastPair(
+        name: 'global.text_muted_on_panel',
+        foreground: s.globalTextMuted,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'status.success_on_statusbar',
+        foreground: s.statusSuccess,
+        background: s.statusBarBackground,
+      ),
+      ContrastPair(
+        name: 'status.warning_on_statusbar',
+        foreground: s.statusWarning,
+        background: s.statusBarBackground,
+      ),
+      ContrastPair(
+        name: 'status.error_on_statusbar',
+        foreground: s.statusError,
+        background: s.statusBarBackground,
+      ),
+      ContrastPair(
+        name: 'status.info_on_statusbar',
+        foreground: s.statusInfo,
+        background: s.statusBarBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.keyword_on_panel',
+        foreground: s.syntaxKeyword,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.type_on_panel',
+        foreground: s.syntaxType,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.string_on_panel',
+        foreground: s.syntaxString,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.number_on_panel',
+        foreground: s.syntaxNumber,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.comment_on_panel',
+        foreground: s.syntaxComment,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.method_on_panel',
+        foreground: s.syntaxMethod,
+        background: s.panelBackground,
+      ),
+      ContrastPair(
+        name: 'syntax.punct_on_panel',
+        foreground: s.syntaxPunct,
+        background: s.panelBackground,
+      ),
+      // WCAG 1.4.11 wants 3:1 for non-text UI components like a focus
+      // border against the adjacent surface.
+      ContrastPair(
+        name: 'panel.active_border_on_background',
+        foreground: s.panelActiveBorder,
+        background: s.globalBackground,
+        largeText: true,
+      ),
+    ];
+
+/// Convenience for tests: returns the list of [canonicalPairs] that
+/// fail WCAG AA.
+List<ContrastFailure> failingPairs(SurfaceTokens tokens) =>
+    _failures(canonicalPairs(tokens));
+
+/// Strict variant of [failingPairs] — walks [extendedPairs] instead.
+/// Intended for the `-hc` / `-cb` theme gate.
+List<ContrastFailure> failingExtendedPairs(SurfaceTokens tokens) =>
+    _failures(extendedPairs(tokens));
+
+List<ContrastFailure> _failures(List<ContrastPair> pairs) {
   final out = <ContrastFailure>[];
-  for (final p in canonicalPairs(tokens)) {
+  for (final p in pairs) {
     final ratio = contrastRatio(p.foreground, p.background);
     final need = minimumRatio(p);
     if (ratio < need) {

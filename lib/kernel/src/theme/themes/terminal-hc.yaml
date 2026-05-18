@@ -1,0 +1,38 @@
+# terminal-hc — high-contrast sibling of `terminal`
+#
+# Near-black + amber tmux feel; muted text, status chips, syntax tokens,
+# and the focus border bumped to clear the strict contrast gate
+# (D-22 + D-69, `extendedPairs` in lib/kernel/src/theme/contrast.dart).
+
+name: terminal-hc
+display_name: Terminal (high contrast)
+dark: true
+
+palette:
+  background: "#0A0A0A"
+  panel: "#000000"
+  surface: "#111111"
+  muted: "#B5B5B5"
+  foreground: "#F0F0F0"
+  secondary: "#D6D6D6"
+  primary: "#FFC868"
+  accent: "#FFC868"
+  success: "#B5E2B0"
+  warning: "#FFD988"
+  error: "#FFA5A5"
+  info: "#B0C8FF"
+  surfaceHi: "#181818"
+  border: "#242424"
+  borderHi: "#888888"
+  textDim: "#B5B5B5"
+  textMute: "#9A9A9A"
+  accentSoft: "#21FFC868"
+
+syntax:
+  keyword: "#FF8585"
+  type: "#FFD27A"
+  string: "#B5E2B0"
+  number: "#DAA7FF"
+  comment: "#9A9A9A"
+  method: "#BCD8FF"
+  punct: "#B5B5B5"

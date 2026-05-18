@@ -1799,3 +1799,33 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 7. Move `test_app.dart` out of production `main.dart` import graph (gate behind separate entrypoint or `kDebugMode`).
 
 Source: consultants.md (Code Quality + Architecture Findings — Minor).', 'done', 'low', NULL, NULL, NULL, '2026-05-17 18:48:20', '2026-05-17 20:11:16', NULL, 'fccc783ff24be83f6d5a498e936c4af9', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-114', 'task', 'T-97', 'quick-wins: a11y + contrast gate expansion', 'Batch of small consultant findings that share a domain (a11y / visual):
+
+1. Expand contrast gate `canonicalPairs` (`test/a11y/contrast_test.dart`) to cover `globalTextMuted` (muted text is everywhere), the `status*` foregrounds, syntax tokens on `panelBackground`, and `panelActiveBorder`.
+2. Tokenize the ~43 hardcoded-color sites the UX reviewer flagged — at minimum the modal/palette shadow and window-control colors that don''t adapt to the `paper` light theme.
+3. Add a focus-ring rendering at the token level so every focusable widget gets it for free (depends on T-100).
+4. Surface text-zoom (Ctrl +/-/0) in the palette so it''s discoverable.
+
+Source: consultants.md "UX — Findings — [Minor]" + Strengths section.', 'in_progress', 'low', NULL, NULL, NULL, '2026-05-17 18:48:28', '2026-05-17 20:13:36', NULL, '1a2776ce1e3dd335966d738f80784a0a', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-118', 'task', 'T-97', 'add high-contrast + colour-blind theme variants', 'Per D-69, the four named themes (clide, midnight, paper, terminal) keep
+their published palettes and only pass the baseline canonicalPairs
+gate. The stricter extendedPairs set in
+lib/kernel/src/theme/contrast.dart (muted text, status chips, syntax
+tokens on panel surfaces, panel focus border) is gated against any
+theme whose name ends in -hc or -cb — but no such themes exist yet.
+
+Scope:
+
+1. Ship clide-hc.yaml, midnight-hc.yaml, paper-hc.yaml,
+   terminal-hc.yaml — sibling theme files whose palettes shift only
+   enough to clear extendedPairs (4.5:1 for chips / syntax / muted
+   body, 3:1 for the focus border).
+2. Optional follow-up: *-cb.yaml colour-blind variants if/when we
+   pick a palette policy (deutan vs protan vs tritan, or a single
+   colour-name-replacement strategy).
+3. Register the new themes in lib/main.dart alongside the existing
+   four.
+4. The contrast gate at test/a11y/contrast_test.dart already covers
+   them — adding the files is enough.
+
+Sources: D-22, D-69, consultants.md ("UX — Findings — [Minor]").', 'done', 'low', NULL, NULL, 'D-69', '2026-05-17 20:51:47', '2026-05-17 20:53:41', NULL, 'd163731890022856585e9f33432462f6', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

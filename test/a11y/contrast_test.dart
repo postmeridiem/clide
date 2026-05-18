@@ -6,6 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// [canonicalPairs]) must clear 4.5:1 for normal text / 3:1 for large
 /// text. Failing pairs are printed with their computed ratio so a
 /// theme-token regression shows exactly which pair broke.
+///
+/// Themes whose name ends in `-hc` (high-contrast) or `-cb`
+/// (colour-blind) additionally have to clear the stricter
+/// [extendedPairs] set — D-69.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -15,6 +19,10 @@ void main() {
       'lib/kernel/src/theme/themes/midnight.yaml',
       'lib/kernel/src/theme/themes/paper.yaml',
       'lib/kernel/src/theme/themes/terminal.yaml',
+      'lib/kernel/src/theme/themes/clide-hc.yaml',
+      'lib/kernel/src/theme/themes/midnight-hc.yaml',
+      'lib/kernel/src/theme/themes/paper-hc.yaml',
+      'lib/kernel/src/theme/themes/terminal-hc.yaml',
     ];
 
     for (final path in bundledPaths) {
@@ -33,6 +41,16 @@ void main() {
             'Contrast failures in ${def.name}:\n'
             '${failures.map((f) => '  - $f').join('\n')}',
           );
+        }
+        final isStrict = def.name.endsWith('-hc') || def.name.endsWith('-cb');
+        if (isStrict) {
+          final extended = failingExtendedPairs(tokens);
+          if (extended.isNotEmpty) {
+            fail(
+              'Extended contrast failures in ${def.name} (strict gate):\n'
+              '${extended.map((f) => '  - $f').join('\n')}',
+            );
+          }
         }
       });
     }

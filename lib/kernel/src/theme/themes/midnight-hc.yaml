@@ -1,0 +1,39 @@
+# midnight-hc — high-contrast sibling of `midnight`
+#
+# Same VS Code-adjacent silhouette; muted text, status chips, syntax
+# tokens, and the focus border bumped to clear the strict contrast
+# gate (D-22 + D-69, `extendedPairs` in lib/kernel/src/theme/contrast.dart).
+
+name: midnight-hc
+display_name: Midnight (high contrast)
+dark: true
+
+palette:
+  background: "#1E1E1E"
+  panel: "#181818"
+  surface: "#252526"
+  muted: "#BDBDBD"
+  foreground: "#F0F0F0"
+  secondary: "#D4D4D4"
+  primary: "#82BFFF"
+  accent: "#82BFFF"
+  success: "#B5E2B0"
+  warning: "#E9D89E"
+  error: "#FFB3A5"
+  info: "#9BC9F0"
+  onAccent: "#0B1220"
+  surfaceHi: "#2D2D2E"
+  border: "#333333"
+  borderHi: "#9C9C9C"
+  textDim: "#BDBDBD"
+  textMute: "#9A9A9A"
+  accentSoft: "#2182BFFF"
+
+syntax:
+  keyword: "#D9A1D3"
+  type: "#66D9C2"
+  string: "#E9B299"
+  number: "#C8E0B7"
+  comment: "#99CB80"
+  method: "#E5E5B5"
+  punct: "#BDBDBD"

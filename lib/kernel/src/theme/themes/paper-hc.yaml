@@ -1,0 +1,38 @@
+# paper-hc — high-contrast sibling of `paper`
+#
+# Drafting sheet, red-pencil accent — darker ink so muted text, status
+# chips, syntax tokens, and the focus border clear the strict contrast
+# gate (D-22 + D-69, `extendedPairs` in lib/kernel/src/theme/contrast.dart).
+
+name: paper-hc
+display_name: Paper (high contrast)
+dark: false
+
+palette:
+  background: "#F4F1EA"
+  panel: "#ECE7DB"
+  surface: "#FBF8F1"
+  muted: "#4A4A48"
+  foreground: "#0E0E0E"
+  secondary: "#1F1F1F"
+  primary: "#8E2D10"
+  accent: "#6E2410"
+  success: "#1A4A2B"
+  warning: "#6A4C00"
+  error: "#7A1F12"
+  info: "#154168"
+  surfaceHi: "#ECE7DB"
+  border: "#0E0E0E"
+  borderHi: "#3A3A38"
+  textDim: "#4A4A48"
+  textMute: "#7A7A72"
+  accentSoft: "#218E2D10"
+
+syntax:
+  keyword: "#52215C"
+  type: "#154168"
+  string: "#1A4A2B"
+  number: "#6A4C00"
+  comment: "#4A4A48"
+  method: "#103E6F"
+  punct: "#1F1F1F"
