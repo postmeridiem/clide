@@ -5,6 +5,7 @@ import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/keybindings.dart';
 import 'package:clide/kernel/src/keymap/keymap_service.dart';
+import 'package:clide/kernel/src/text_zoom.dart';
 import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
@@ -65,6 +66,7 @@ class KernelServices {
     required this.toolchain,
     required this.scheduler,
     required this.keymap,
+    required this.textZoom,
   });
 
   final Logger log;
@@ -94,6 +96,7 @@ class KernelServices {
   final Toolchain toolchain;
   final SchedulerService scheduler;
   final KeymapService keymap;
+  final TextZoom textZoom;
 
   static Future<KernelServices> boot({
     required Directory appDir,
@@ -151,6 +154,7 @@ class KernelServices {
     final tc = toolchain ?? Toolchain();
     final scheduler = SchedulerService(events);
     scheduler.start();
+    final textZoom = TextZoom();
     final project = ProjectManager(
       log: log,
       events: events,
@@ -225,6 +229,7 @@ class KernelServices {
       toolchain: tc,
       scheduler: scheduler,
       keymap: keymap,
+      textZoom: textZoom,
     );
   }
 
@@ -247,6 +252,7 @@ class KernelServices {
     extensions.dispose();
     await scheduler.dispose();
     keymap.dispose();
+    textZoom.dispose();
     await log.dispose();
     messages.dispose();
     await events.dispose();

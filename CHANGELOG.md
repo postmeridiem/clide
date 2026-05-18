@@ -115,6 +115,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   ambient shadow are now tokens (`windowControl.closeHover*`,
   `shadow.ambient`) instead of hard-coded hex. Light themes get a
   softer ink-tinted shadow (T-114).
+- Text-zoom (Ctrl +/-/0) is now a kernel `TextZoom` service and shows
+  up in the palette as `View: Zoom In/Out/Reset Zoom` (T-114).
 - Changelog gate is binary — dropped the soft 40-word warning, kept
   the 60-word hard cap. Warnings that never blocked just normalised
   drift.

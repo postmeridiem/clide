@@ -55,23 +55,22 @@ class _RootShell extends StatefulWidget {
 
 class _RootShellState extends State<_RootShell> {
   late final FocusNode _keyFocus;
-  double _textScale = 1.0;
-
-  static const double _scaleStep = 0.05;
-  static const double _scaleMin = 0.6;
-  static const double _scaleMax = 2.0;
 
   @override
   void initState() {
     super.initState();
     _keyFocus = FocusNode()..requestFocus();
+    widget.services.textZoom.addListener(_onZoom);
   }
 
   @override
   void dispose() {
+    widget.services.textZoom.removeListener(_onZoom);
     _keyFocus.dispose();
     super.dispose();
   }
+
+  void _onZoom() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -86,24 +85,24 @@ class _RootShellState extends State<_RootShell> {
         fontFamilyFallback: clideUiFamilyFallback,
       ),
       child: MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_textScale)),
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(widget.services.textZoom.scale)),
         child: Actions(
           actions: <Type, Action<Intent>>{
             TextScaleIncreaseIntent: CallbackAction<TextScaleIncreaseIntent>(
               onInvoke: (_) {
-                setState(() => _textScale = (_textScale + _scaleStep).clamp(_scaleMin, _scaleMax));
+                widget.services.textZoom.increase();
                 return null;
               },
             ),
             TextScaleDecreaseIntent: CallbackAction<TextScaleDecreaseIntent>(
               onInvoke: (_) {
-                setState(() => _textScale = (_textScale - _scaleStep).clamp(_scaleMin, _scaleMax));
+                widget.services.textZoom.decrease();
                 return null;
               },
             ),
             TextScaleResetIntent: CallbackAction<TextScaleResetIntent>(
               onInvoke: (_) {
-                setState(() => _textScale = 1.0);
+                widget.services.textZoom.reset();
                 return null;
               },
             ),

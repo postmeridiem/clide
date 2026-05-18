@@ -20,6 +20,7 @@ import 'package:clide/builtin/problems/problems.dart';
 import 'package:clide/builtin/settings_ui/settings_ui.dart';
 import 'package:clide/builtin/terminal/terminal.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
+import 'package:clide/builtin/view/view.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
@@ -145,6 +146,7 @@ Future<void> main() async {
     ..register(CanvasExtension())
     ..register(GraphExtension())
     // UI extensions
+    ..register(ViewExtension(textZoom: services.textZoom))
     ..register(SettingsUiExtension())
     ..register(ExtensionsUiExtension())
     ..register(KeybindingsUiExtension())
