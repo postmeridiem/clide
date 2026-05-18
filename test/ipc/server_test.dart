@@ -219,16 +219,21 @@ void main() {
       expect(server.isRunning, isFalse);
     });
 
-    test('prepareParentDir creates the parent if it does not exist', () async {
-      // Force the missing-parent branch by pointing the workspace at a
-      // path whose hash will collide into a tempdir we clean first.
-      final probeDir = Directory(socketDirectory());
-      // If the dir already exists (real user env), make a probe that
-      // proves the existing branch — start succeeds.
-      final existed = probeDir.existsSync();
+    test('prepareParentDir creates the parent directory if it does not exist', () async {
+      // Remove the parent dir if it happens to exist (created by a
+      // previous test or by other clide instances on this host).
+      // The test asserts the create-if-missing branch fires.
+      final parent = Directory(socketDirectory());
+      if (parent.existsSync() && parent.listSync().isEmpty) {
+        parent.deleteSync();
+      } else if (parent.existsSync()) {
+        // Can't safely delete a populated shared dir; skip the
+        // create branch and at least exercise the chmod branch.
+      }
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
-      expect(probeDir.existsSync(), isTrue, reason: existed ? 'pre-existing dir kept' : 'dir was created');
+      expect(parent.existsSync(), isTrue);
+      expect((parent.statSync().mode) & 0x1ff, 0x1c0);
     });
 
     test('a non-request message (e.g. event) surfaces a userError', () async {
