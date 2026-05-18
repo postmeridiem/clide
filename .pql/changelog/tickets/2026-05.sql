@@ -2093,3 +2093,21 @@ Open a per-workspace unix-domain socket on Flutter app boot. Accept JSON-lines p
 6. No client yet — that lands in T-126.
 
 Source: T-99 sketch. Coordinates with: T-127 (InProcessClient swap), T-130 (MCP).', 'backlog', 'high', NULL, NULL, NULL, '2026-05-18 11:58:47', '2026-05-18 12:42:56', NULL, 'e90d4b8786af0a9baa2b39c19a31540a', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-124', 'task', 'T-99', 'unix-domain IPC server, wired into Flutter app boot', 'First slice of T-99(a). Foundation for the rest.
+
+Open a per-workspace unix-domain socket on Flutter app boot. Accept JSON-lines per the existing IpcRequest envelope. Route each request through the existing DaemonDispatcher (already wired in main.dart via daemonClientFactory). Tear down on app shutdown.
+
+**Architectural commitments (read these first):**
+- D-70 — socket path is `$XDG_RUNTIME_DIR/clide/<sha256(workspace-root)[:16]>.sock` on Linux, `$HOME/Library/Caches/clide/<sha256(workspace-root)[:16]>.sock` on macOS. No env override. Workspace root = git toplevel.
+- D-71 — socket file is `0600`, parent dir is `0700`. No token auth at this layer.
+- D-72 — multi-connection accept loop, serial dispatch on the main isolate. Per-handler isolate offload as needed; not the IPC layer''s concern.
+
+**Acceptance:**
+1. lib/src/ipc/server.dart exists; binds an AF_UNIX socket at the D-70 path; creates the parent dir with the D-71 perms.
+2. App boot starts the server; app shutdown closes the socket file cleanly and removes it.
+3. `socat - UNIX-CONNECT:$SOCK <<< ''{"command":"git.status"}''` returns a JSON-line response. Tests use a synthetic socket fixture (tempdir + XDG_RUNTIME_DIR override at the env level).
+4. Multi-connection accept loop — concurrent socat invocations interleave at the I/O level but serialise through DaemonDispatcher (per D-72) without failing each other.
+5. Stale socket on boot (left over from a crashed clide) is detected and unlinked before binding — same `live-daemon probe` pattern already used elsewhere in the codebase.
+6. No client yet — that lands in T-126.
+
+Source: T-99 sketch. Coordinates with: T-127 (InProcessClient swap), T-130 (MCP).', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:58:47', '2026-05-18 12:51:08', NULL, 'eaa0d45789ecd577e81dc07ef476e31c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

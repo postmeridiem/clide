@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clide/app.dart';
 import 'package:clide/test_app.dart';
 import 'package:clide/builtin/canvas/canvas.dart';
@@ -37,6 +39,7 @@ import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/ipc/envelope.dart';
+import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
 import 'package:clide/src/panes/registry.dart';
 import 'package:clide/src/pql/client.dart';
@@ -76,6 +79,28 @@ Future<void> main() async {
 
   InProcessClient? ipcClient;
   DaemonBus? daemonBus;
+  // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
+  // workspace; restarted when the active project switches because the
+  // socket path is workspace-derived.
+  IpcServer? ipcServer;
+  final ipcLog = Logger();
+
+  Future<void> swapIpcServer(DaemonDispatcher dispatcher, Directory workRoot) async {
+    if (kIsWeb) return;
+    try {
+      await ipcServer?.stop();
+    } catch (e, st) {
+      ipcLog.warn('ipc', 'stop failed during swap: $e');
+      ipcLog.debug('ipc', '$st');
+    }
+    final server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot.path, log: ipcLog);
+    ipcServer = server;
+    try {
+      await server.start();
+    } catch (e, st) {
+      ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
+    }
+  }
 
   DaemonDispatcher buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot) {
     final dispatcher = DaemonDispatcher();
@@ -107,13 +132,18 @@ Future<void> main() async {
             final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
             final dispatcher = buildDispatcher(events, toolchain, workRoot);
             ipcClient = InProcessClient(log: log, events: events, dispatcher: dispatcher);
+            // Fire-and-forget: bring up the IPC socket server alongside.
+            // Failure is logged, not fatal — the UI still works.
+            unawaited(swapIpcServer(dispatcher, workRoot));
             return ipcClient!;
           },
     onProjectOpen: kIsWeb
         ? null
         : (path) async {
             if (ipcClient == null || daemonBus == null) return;
-            ipcClient!.dispatcher = buildDispatcher(daemonBus!, toolchain, Directory(path));
+            final dispatcher = buildDispatcher(daemonBus!, toolchain, Directory(path));
+            ipcClient!.dispatcher = dispatcher;
+            await swapIpcServer(dispatcher, Directory(path));
           },
   );
 

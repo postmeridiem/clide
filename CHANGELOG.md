@@ -18,6 +18,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Unix-domain IPC socket server in the Flutter app (T-99 / T-124).
+  Per-workspace path (D-70: `$XDG_RUNTIME_DIR/clide/<hash>.sock` on
+  Linux, `~/Library/Caches/clide/<hash>.sock` on macOS). 0600 socket
+  + 0700 parent (D-71). Multi-connection accept loop with serial
+  dispatch through `DaemonDispatcher` (D-72). Foundation for the C
+  `clide` client (T-126) and MCP (T-130). No client yet — testable
+  via `socat - UNIX-CONNECT:$SOCK`.
 - Startup project picker — clide now opens to the welcome screen by
   default instead of auto-opening the last project. A per-row
   "always open this project on launch" checkbox in welcome's RECENT

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/keybindings.dart';
 import 'package:clide/kernel/src/keymap/keymap_service.dart';
@@ -167,7 +166,14 @@ class KernelServices {
         (daemonClientFactory != null
             ? daemonClientFactory(log, events)
             : DaemonClient(
-                socketPath: socketPath ?? defaultSocketPath(),
+                // Legacy socket-client fallback — kept until T-127
+                // replaces it with the in-process socket loopback.
+                // Today nothing in production hits this branch
+                // (main.dart and the test harness pass an explicit
+                // daemonClientFactory). If a caller does land here
+                // without `autoStartDaemonClient: false`, the
+                // placeholder path makes the failure mode obvious.
+                socketPath: socketPath ?? '/dev/null/clide-legacy.sock',
                 log: log,
                 events: events,
               ));
