@@ -79,6 +79,9 @@ analyze: ## flutter analyze.
 format: ## dart format --set-exit-if-changed.
 	dart format --set-exit-if-changed .
 
+.PHONY: verify
+verify: analyze format decisions-validate changelog-gate ## No-tests sweep — analyze + format + decisions-validate + changelog-gate. For mid-edit "are the gates green?" checks; `push-check` is the full pre-push pipeline.
+
 .PHONY: test
 test: ## Fast: analyze + format + unit + widget + golden (<60s).
 	ci/test.sh

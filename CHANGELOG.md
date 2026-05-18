@@ -16,26 +16,6 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
-### Removed
-
-- **`bin/clide.dart` + `DaemonServer`** — completing the D-56 dissolution.
-  The separate daemon process was dissolved on 2026-04-23 but the entry
-  point and socket server class were never actually deleted. Gone now,
-  along with orphaned tests (`test/cli/`, `test/daemon/subprocess_test`,
-  `test/daemon/in_process_test`), stale i18n strings, and "start
-  `clide --daemon`" error messages.
-- **`ptyc/` source tree + `PtySession` + `scm_rights.dart`** — PTY
-  spawning migrated to Dart FFI `forkpty()` (`NativePty`) but the old
-  C helper and its Dart wiring were never cleaned up. Removed from
-  toolchain resolution, `ToolCheck` gate, backend serialization,
-  testmode harness, CI scripts, Makefile, and sandbox entitlements.
-  D-5 amended to record the retirement.
-- CI golden images (`test/goldens/goldens/ci/`) — Skia anti-aliasing
-  of geometric shapes differs between macOS and Linux even with the
-  Ahem font, so a single set of CI goldens can't serve both platforms.
-  Replaced with platform-keyed goldens (`goldens/linux/`,
-  `goldens/macos/`), each only compared on its own OS.
-
 ### Added
 
 - Contrast gate split — baseline `canonicalPairs` every theme passes,
@@ -46,8 +26,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   which fails if total line coverage drops below `coverage_floor:` in
   `pubspec.yaml`. Floor ratchets up only; target 95% (D-66).
 - Pre-push changelog gate — `ci/changelog_gate.sh` fails on any
-  `## [Unreleased]` bullet over 60 words; warns at 40. Enforces the
-  Keep-a-Changelog conciseness rule in the git-commit skill.
+  `## [Unreleased]` bullet over 60 words. Enforces the Keep-a-Changelog
+  conciseness rule in the git-commit skill.
 - Keymap layer (`KeymapService`) — typed Intents, YAML presets,
   VS-Code-style when-clauses, layered preset → user file → settings
   overlay. Default preset ships; vim/vscode/jetbrains unblocked
@@ -74,47 +54,26 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   17% → 96%. Crosses the 95% global target (T-91).
 - Staged `dart doc` CI job — generates and uploads an HTML API
   reference for the public `lib/` surface. The step wraps
-  `dart doc --validate-links` and grep-fails the build on any warning,
-  so broken doc refs and dangling links can't accumulate. Inert with
-  the rest of the workflow until Gitea Actions activates.
+  `dart doc --validate-links` and grep-fails the build on any warning.
+  Inert with the rest of the workflow until Gitea Actions activates.
 - Mouse wheel scrolling in Claude pane — converts scroll events to
-  PgUp/PgDown so Claude Code (and other TUI apps) scroll their
-  history naturally.
+  PgUp/PgDown so TUI apps scroll their history naturally.
 - Welcome screen Tips card — six common keybindings shown below the
   START / RECENT row when the viewport is tall enough.
 - `MultitabPane` widget + `MultitabController` for panes that host
   N runtime tab instances of the same kind. Generic over a payload
-  type, supports pinned/non-closeable tabs (primary), drag-reorder,
-  close × on hover, and an optional `+` add button. Used by the
-  Claude pane to render primary + secondaries.
-- `MultitabPane.keepAlive` mode — when set, all entry bodies stay
-  mounted via IndexedStack so switching tabs preserves their state
-  (PTY connections, scroll position, etc.).
-
-### Security
-
-- IPC: `git.checkout`, `git.push` reject branch/remote args starting
-  with `-` (closes the `--upload-pack=...` argv-injection vector).
-  `files.read` rejects files over 10 MB. `git.log` caps `count` at
-  1000; `git.diff` / `git.stage` cap paths at 256. (T-104.)
-
-### Fixed
-
-- `TerminalView.onTapUp` now actually fires on primary tap — was
-  wired to a dead code path (T-93). Dead `onTapUp` surface on
-  `TerminalGestureHandler` / `TerminalGestureDetector` removed.
-- `BufferLine.eraseRange` no longer panics when called with `end == 0`.
-  The right-side wide-char guard read `_data[-1]` via `getWidth(-1)`,
-  which threw a `RangeError`. Real trigger path: `Terminal.eraseDisplayAbove`
-  with the cursor at column 0 — common after `ESC[H\x1b[1J`
-  (home + erase-above) sequences that many TUIs emit on redraw.
-- Terminal selections no longer vanish when resizing narrower —
-  reflow's tail-anchor handler left anchors detached past the
-  trimmed range. Common triggers: Ctrl+A then resize, drag past a
-  partially-filled line (T-92).
-- `BufferLine.removeCells` / `insertCells` / `dispose` no longer skip
-  anchors due to concurrent list modification during iteration —
-  iteration now snapshots the list first (T-91).
+  type, supports pinned/non-closeable tabs, drag-reorder, close × on
+  hover, and an optional `+` add button.
+- `MultitabPane.keepAlive` mode — entry bodies stay mounted via
+  IndexedStack so switching tabs preserves their state (PTY
+  connections, scroll position, etc.).
+- `CONTRIBUTING.md` — human-addressed contributor guide covering
+  clone / build / test / DQR / tickets / commit conventions. The
+  `[Unreleased]` section is reorganised to one subsection per kind
+  per Keep a Changelog 1.1.0 (T-109).
+- `make verify` — no-tests sweep (analyze + format + decisions +
+  changelog gate). For mid-edit checks; `make push-check` stays the
+  full pre-push pipeline.
 
 ### Changed
 
@@ -139,102 +98,121 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - `TreeSitterService` and `TreeSitterLib` accept injectable FFI + asset
   loaders for fake-driven tests; production paths unchanged.
 - Tidied test imports flagged by `unnecessary_import`.
-- `README.md` rewritten to match current architecture; `docs/initial-plan.md`
-  bannered as historical; new `docs/architecture.md` describes today's
-  shape (T-101).
+- `README.md` rewritten to match current architecture;
+  `docs/initial-plan.md` bannered as historical; new
+  `docs/architecture.md` describes today's shape (T-101).
 - `SchedulerService._stopTicker` now awaits the in-flight isolate spawn
   before killing — closes the same race shape we fixed in PTY (T-106).
 - `make push-check-full` added — runs `push-check` plus integration +
   smoke for pre-release checks. Integration tests skip the hanging
-  theme_picker case (T-116) until that's fixed (T-103).
+  theme_picker case until that's fixed (T-103, T-116).
 - Governance bookkeeping: D-66 amended (floor at `coverage_floor:` in
   `pubspec.yaml`); `licenses.yaml` reconciled with `pubspec.yaml`;
   Q-1/Q-2/Q-3/Q-25 triaged; `.claude/skills/README.md` inventory
   added; `--no-fatal-infos` dropped from `ci/test.sh` (T-113).
-- Terminal panes now render bold attributes with a real bold weight —
-  bundled JetBrainsMono Bold + BoldItalic are registered with the
+- Terminal panes render bold attributes with a real bold weight —
+  bundled JetBrainsMono Bold + BoldItalic registered with the
   `JetBrainsMono` family at `weight: 700`. The painter's bold
-  suppression workaround (added when only Regular + Italic were wired
-  and Flutter's synthetic bold drifted advance widths) is gone.
+  suppression workaround is gone.
 - Claude pane uses `MultitabPane` for primary + secondaries — drops
   ~100 lines of bespoke tab-strip code, gains drag-to-reorder.
 - UI spacing constants live in `lib/widgets/src/spacing.dart` —
   `clideInset*` for paddings, `clideGap*` for sibling distances,
-  `clideIcon*` / `clideControlHeight` for control sizes. Inline
-  pixel literals replaced where they were repeated.
-
-### Changed
-
+  `clideIcon*` / `clideControlHeight` for control sizes.
 - Tagline reads "IDE for Claude Code CLI" everywhere (welcome
   subtitle, README, CLAUDE.md, pubspec, web manifest, CLI banner).
-
-### Fixed
-
-- Closing a secondary Claude pane tab now kills its tmux session
-  on the clide socket, honouring D-41's "closing a secondary kills
-  that tmux session" lifecycle. Previously `pane.close` only killed
-  the ptyc-spawned tmux client and the server-side session leaked.
-- Cold-start reap: every clide launch kills any leftover secondary
-  tmux sessions for the current repo before spawning new ones, so
-  D-41's "secondary numbering resets between runs" holds even after
-  an abrupt previous exit (kill -9, crash, force-quit).
-- `claude.kill-all-sessions` command now actually kills the
-  server-side tmux sessions for the repo, not just the panes.
-- Terminal cell grid no longer drifts on bold text — bold rendering
-  is suppressed at the painter level since synthetic bold (with no
-  Bold.ttf registered) shifts glyph advance widths.
-- PTY surfaces errno on `forkpty` / `write` / `ioctl` failures
-  instead of swallowing. `execve` failures write a diagnostic to
-  the slave before `_exit`. `NativePty.write` and `PtySession.write`
-  loop on short writes; both throw `PtyException` on hard errors.
-- PTY teardown order fixed — kill child first so the master fd
-  returns EOF, await reader isolate exit, then close the fd.
-  Closing earlier could briefly target a reused fd.
-- Reader isolate spawn errors in `NativePty` / `PtySession` are now
-  surfaced via the output stream instead of silently dropped.
-  `_recvFdAsync` no longer leaks the `ReceivePort` on spawn throw;
-  `PtySession.spawn` closes the master fd if any post-receive step
-  fails.
-- IPC server hardening: per-request 60s timeout (configurable),
-  broadcast/response write failures logged instead of swallowed,
-  client dropped on response-write failure, and the stale-socket
-  retry now probes for a live daemon before unlinking the socket
-  (refusing to start if one answers).
-- `pane.spawn` and `editor.open` now map POSIX errno values to
-  actionable IPC error kinds. ENOENT → `not_found`, EACCES/EPERM
-  → `user_error` with a permissions hint, EISDIR/ENOTDIR/EEXIST
-  → distinct user-error/conflict, EMFILE/ENFILE → `tool_error`
-  with a "fd limit hit" hint. Previously every spawn/open failure
-  was an indistinguishable `tool_error`.
-
-### Security
-
-- Toolchain no longer resolves the dugite git binary against the open
-  workspace — a malicious repo could plant `native/dugite/bin/git`
-  and clide would run it on auto-fired `git.status`. Dugite now
-  resolves against the install dir + `CLIDE_DUGITE_DIR` env override
-  only (T-98).
-- `files.read` and `files.ls` now reject symlinks whose targets live
-  outside the workspace — closes a path-safety bypass via in-repo
-  symlinks (T-102).
-- `files.read` and `files.ls` now reject paths that resolve outside
-  the workspace root. Previously a relative path containing `..`
-  could read arbitrary files via path traversal.
-
-### Changed
-
 - Inline terminal emulator based on xterm.dart v4.0.0 — replaces the
   pub.dev dependency with owned code under `lib/src/terminal/`. Drops
   three transitive dependencies (xterm, quiver, zmodem).
 - Bundle clide-specific tmux.conf for Claude pane sessions: no status
   bar, 50k scrollback, mouse on, zero escape delay, isolated socket.
 - Claude pane spawns `claude` directly inside tmux with
-  `CLAUDE_CODE_NO_FLICKER=1` to enable Claude's fullscreen TUI mode
-  (input box pinned at the bottom).
-- PTY read buffer increased from 4KB to 64KB.
-- Terminal view 2px padding on all sides.
-- Remove bold JetBrains Mono font registration to prevent glyph width
-  mismatch in terminal rendering.
+  `CLAUDE_CODE_NO_FLICKER=1` to enable Claude's fullscreen TUI mode.
+- PTY read buffer increased from 4 KB to 64 KB.
+- Terminal view 2 px padding on all sides.
+
+### Removed
+
+- **`bin/clide.dart` + `DaemonServer`** — completing the D-56
+  dissolution. The separate daemon process was dissolved on 2026-04-23
+  but the entry point and socket server class were never deleted.
+  Gone now, along with orphaned tests, stale i18n strings, and
+  "start `clide --daemon`" error messages.
+- **`ptyc/` source tree + `PtySession` + `scm_rights.dart`** — PTY
+  spawning migrated to Dart FFI `forkpty()` (`NativePty`) but the old
+  C helper and its Dart wiring were never cleaned up. Removed from
+  toolchain resolution, `ToolCheck` gate, backend serialization,
+  testmode harness, CI scripts, Makefile, and sandbox entitlements.
+  D-5 amended to record the retirement.
+- CI golden images (`test/goldens/goldens/ci/`) — Skia anti-aliasing
+  of geometric shapes differs between macOS and Linux even with the
+  Ahem font. Replaced with platform-keyed goldens (`goldens/linux/`,
+  `goldens/macos/`).
+- Bold JetBrains Mono font registration that prevented glyph-width
+  mismatch in terminal rendering — superseded by the Bold/BoldItalic
+  re-registration above.
+
+### Fixed
+
+- `TerminalView.onTapUp` now actually fires on primary tap — was
+  wired to a dead code path (T-93). Dead `onTapUp` surface on
+  `TerminalGestureHandler` / `TerminalGestureDetector` removed.
+- `BufferLine.eraseRange` no longer panics when called with `end == 0`.
+  Real trigger: `Terminal.eraseDisplayAbove` with the cursor at
+  column 0 — common after `ESC[H\x1b[1J` (home + erase-above).
+- Terminal selections no longer vanish when resizing narrower —
+  reflow's tail-anchor handler left anchors detached past the
+  trimmed range. Common triggers: Ctrl+A then resize, drag past a
+  partially-filled line (T-92).
+- `BufferLine.removeCells` / `insertCells` / `dispose` no longer skip
+  anchors due to concurrent list modification during iteration —
+  iteration now snapshots the list first (T-91).
+- Closing a secondary Claude pane tab now kills its tmux session on
+  the clide socket, honouring D-41's lifecycle. Previously
+  `pane.close` only killed the ptyc-spawned tmux client.
+- Cold-start reap: every clide launch kills any leftover secondary
+  tmux sessions for the current repo before spawning new ones, so
+  D-41's "secondary numbering resets between runs" holds.
+- `claude.kill-all-sessions` command now actually kills the
+  server-side tmux sessions for the repo, not just the panes.
+- Terminal cell grid no longer drifts on bold text — bold rendering
+  is suppressed at the painter level since synthetic bold (with no
+  Bold.ttf registered) shifts glyph advance widths.
+- PTY surfaces errno on `forkpty` / `write` / `ioctl` failures
+  instead of swallowing. `execve` failures write a diagnostic to the
+  slave before `_exit`. `NativePty.write` and `PtySession.write`
+  loop on short writes; both throw `PtyException` on hard errors.
+- PTY teardown order fixed — kill child first so the master fd
+  returns EOF, await reader isolate exit, then close the fd.
+- Reader isolate spawn errors in `NativePty` / `PtySession` are now
+  surfaced via the output stream instead of silently dropped.
+  `_recvFdAsync` no longer leaks the `ReceivePort` on spawn throw.
+- IPC server hardening: per-request 60s timeout (configurable),
+  broadcast/response write failures logged instead of swallowed,
+  client dropped on response-write failure, and the stale-socket
+  retry now probes for a live daemon before unlinking the socket.
+- `pane.spawn` and `editor.open` map POSIX errno values to actionable
+  IPC error kinds (ENOENT → `not_found`, EACCES/EPERM → `user_error`,
+  EISDIR/ENOTDIR/EEXIST → distinct kinds, EMFILE/ENFILE →
+  `tool_error` with an fd-limit hint).
+
+### Security
+
+- IPC: `git.checkout`, `git.push` reject branch/remote args starting
+  with `-` (closes the `--upload-pack=...` argv-injection vector).
+  `files.read` rejects files over 10 MB. `git.log` caps `count` at
+  1000; `git.diff` / `git.stage` cap paths at 256 (T-104).
+- Toolchain no longer resolves the dugite git binary against the open
+  workspace — a malicious repo could plant `native/dugite/bin/git`
+  and clide would run it on auto-fired `git.status`. Dugite now
+  resolves against the install dir + `CLIDE_DUGITE_DIR` env override
+  only (T-98).
+- `files.read` and `files.ls` reject symlinks whose targets live
+  outside the workspace — closes a path-safety bypass via in-repo
+  symlinks (T-102).
+- `files.read` and `files.ls` reject paths that resolve outside the
+  workspace root. Previously a relative path containing `..` could
+  read arbitrary files via path traversal.
 
 ## [2.0.0] — 2026-05-03
 

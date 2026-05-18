@@ -45,6 +45,7 @@ Pre-v2.0 (`2.0.0-dev`). Interaction model and panel system landed. The Python Te
 ## Documentation
 
 - [`docs/architecture.md`](docs/architecture.md) — current architecture (read this first).
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to clone, build, test, file tickets, and write D-records.
 - [`docs/initial-plan.md`](docs/initial-plan.md) — historical design doc; preserved as a snapshot of the 2026-04 plan, much of it now superseded.
 - [`governance/decisions/`](governance/decisions/) — confirmed decisions (`D-NNN`), open questions (`Q-NNN`), rejected alternatives (`R-NNN`).
 - [`CLAUDE.md`](CLAUDE.md) — Claude-addressed working notes (guardrails, repo layout).
