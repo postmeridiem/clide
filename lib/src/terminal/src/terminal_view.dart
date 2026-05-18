@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:clide/src/terminal/src/core/buffer/cell_offset.dart';
 
 import 'package:clide/src/terminal/src/core/input/keys.dart';
+import 'package:clide/src/terminal/src/core/mouse/button.dart';
+import 'package:clide/src/terminal/src/core/mouse/button_state.dart';
 import 'package:clide/src/terminal/src/terminal.dart';
 import 'package:clide/src/terminal/src/ui/controller.dart';
 import 'package:clide/src/terminal/src/ui/cursor_type.dart';
@@ -155,13 +157,23 @@ class TerminalViewState extends State<TerminalView> {
     final lh = renderTerminal.lineHeight;
     if (lh <= 0) return;
     final lines = (event.scrollDelta.dy / lh).round().clamp(-5, 5);
-    // Always send PgUp/PgDown for scroll — the mouse-escape-sequence
-    // path tends to be a no-op in TUI apps (claude, vim) that capture
-    // mouse for other purposes. PgUp/PgDown is the universal scroll.
-    for (var i = 0; i < lines.abs(); i++) {
-      widget.terminal.keyInput(
-        lines < 0 ? TerminalKey.pageUp : TerminalKey.pageDown,
-      );
+    if (lines == 0) return;
+    final button = lines > 0 ? TerminalMouseButton.wheelDown : TerminalMouseButton.wheelUp;
+    final count = lines.abs();
+    // If the inner program has declared a mouse mode that reports
+    // scroll (?1000h / ?1002h / ?1003h / +?1006h for SGR), forward
+    // proper xterm wheel-button escapes so the TUI can react (vim
+    // mouse=a scroll, less line-by-line, htop highlight). Otherwise
+    // fall back to PgUp/PgDown so plain shells still scroll (T-74).
+    if (widget.terminal.mouseMode.reportScroll) {
+      for (var i = 0; i < count; i++) {
+        renderTerminal.mouseEvent(button, TerminalMouseButtonState.down, event.localPosition);
+      }
+      return;
+    }
+    final key = lines < 0 ? TerminalKey.pageUp : TerminalKey.pageDown;
+    for (var i = 0; i < count; i++) {
+      widget.terminal.keyInput(key);
     }
   }
 

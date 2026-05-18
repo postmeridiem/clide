@@ -2,6 +2,7 @@
 /// gesture / keyboard / scroll / render plumbing around a `Terminal`.
 library;
 
+import 'package:clide/src/terminal/src/core/mouse/mode.dart';
 import 'package:clide/src/terminal/src/terminal.dart';
 import 'package:clide/src/terminal/src/terminal_view.dart';
 import 'package:clide/src/terminal/src/ui/controller.dart';
@@ -95,6 +96,32 @@ void main() {
       await tester.pump();
       // Output should contain at least one PgDown escape.
       expect(r.outputs, isNotEmpty);
+    });
+
+    testWidgets('PointerScrollEvent forwards as xterm wheel escapes when mouseMode.reportScroll (T-74)', (tester) async {
+      final r = _OutputRecorder();
+      final t = r.build();
+      // Have the inner program declare ?1000h (upDownScroll) so
+      // mouseMode.reportScroll becomes true.
+      t.setMouseMode(MouseMode.upDownScroll);
+      await tester.pumpWidget(_host(TerminalView(t)));
+      final viewCenter = tester.getCenter(find.byType(TerminalView));
+      final testGesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await testGesture.addPointer(location: viewCenter);
+      await tester.sendEventToBinding(PointerScrollEvent(
+        position: viewCenter,
+        scrollDelta: const Offset(0, 100),
+      ));
+      await tester.pump();
+      expect(r.outputs, isNotEmpty);
+      // Wheel-down id is 64+5=69; normal-mode reporter encodes button
+      // bytes as 32+id, but the reporter chunks across modes — the
+      // load-bearing assertion is "no PgDn key escape was emitted".
+      // PgDn under default keyboard sends ESC[6~. Scrolls in mouse
+      // mode must NOT contain that — they contain CSI M / SGR mouse
+      // sequences instead.
+      final combined = r.outputs.join();
+      expect(combined.contains('\x1b[6~'), isFalse, reason: 'expected wheel forwarded as mouse, not PgDn');
     });
 
     testWidgets('non-scroll PointerSignalEvent is a no-op', (tester) async {

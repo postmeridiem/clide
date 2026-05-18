@@ -97,6 +97,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Terminal mouse wheel forwards as proper xterm wheel-button escapes
+  when the inner program declares a mouse mode (?1000h / ?1002h /
+  ?1003h, optionally +?1006h SGR). Falls back to PgUp/PgDown only
+  when no mouse mode is active. vim mouse=a / htop / less mouse modes
+  now react to the wheel (T-74).
 - `lib/src/terminal/` cleaned to the project bar — commented-out
   `print()` debugging stubs stripped from `custom_text_edit.dart`,
   stale TODOs in `parser.dart` + `keytab.dart` replaced with clear
