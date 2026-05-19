@@ -204,6 +204,34 @@ void main() {
     await qB.cancel();
   });
 
+  test('server-side _argv unwrap routes through the streaming check', () async {
+    // Sends an _argv envelope carrying `tail --events --filter pane`.
+    // Without server-side unwrap (T-129), the streaming check would
+    // miss it and the server would dispatch _argv → notFound for tail.
+    final s = await _connect(server);
+    addTearDown(s.close);
+    final r = _lineReader(s);
+    final q = _Lines(r.lines);
+    await _send(s, IpcRequest(id: 'a', cmd: '_argv', args: {
+      'argv': ['tail', '--events', '--filter', 'pane'],
+    }));
+    final ack = IpcMessage.decode(await q.next()) as IpcResponse;
+    expect(ack.ok, isTrue);
+    expect(ack.data['streaming'], isTrue);
+    expect(ack.data['filter'], 'pane');
+    await q.cancel();
+  });
+
+  test('server-side _argv with non-list args returns userError', () async {
+    final s = await _connect(server);
+    addTearDown(s.close);
+    final r = _lineReader(s);
+    await _send(s, IpcRequest(id: 'b', cmd: '_argv', args: {'argv': 'not a list'}));
+    final resp = IpcMessage.decode(await r.lines.first.timeout(const Duration(seconds: 2))) as IpcResponse;
+    expect(resp.ok, isFalse);
+    expect(resp.error?.message, contains('argv'));
+  });
+
   test('subscriber going away removes itself from fanout (no crash on emit)', () async {
     final s = await _connect(server);
     final r = _lineReader(s);
