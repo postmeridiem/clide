@@ -2180,3 +2180,41 @@ Acceptance:
 4. Q-32 + Q-33 closed (either as decisions or with resolutions written into the ticket).
 
 Source: T-99 sketch. Depends on T-124 (server foundation must exist). Can land in parallel with T-127 / T-128 / T-129.', 'done', 'medium', NULL, NULL, 'D-68', '2026-05-18 11:59:17', '2026-05-19 12:33:52', NULL, '0d03fa2376bf179665ee817dc363e186', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-119', 'task', 'T-99', 'clide panel resize CLI verb (split from T-111)', 'Once T-99 lands an IPC dispatch path, register a ''panel.resize'' command that takes <slot> and <delta-or-absolute> args and calls LayoutArrangement.setSize / setEditorRatio. Keyboard parity already landed in T-111; this completes user/Claude parity per D-6.', 'ready', 'low', NULL, NULL, NULL, '2026-05-18 07:43:50', '2026-05-19 13:14:01', NULL, '08bd7d35f6ac787f1895d92a23a65cec', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-120', 'task', 'T-97', 'typed IPC command schema framework (split from T-104)', 'T-104 covered the spot-fixes (argv-injection rejection, size/count caps on specific commands). What remains is the framework piece: a typed schema per IPC command — branch/remote/path/etc. with regex/charset constraints — applied at DaemonDispatcher dispatch time rather than scattered through individual handlers.
+
+Re-scope (2026-05-19, post T-99): the wire contract is now real — IpcRequest envelopes flow over the unix socket (per D-70/71/72) and through the C clide client which serialises raw argv under the `_argv` sentinel (per D-72/D-6). The argv parser (lib/src/cli/argv_to_request.dart) is the de-facto schema today; T-120 should formalise it by:
+
+- Lifting the per-cmd grammar from argv_to_request.dart into a typed registry keyed by cmd, sharing it with both the argv parser and the dispatcher.
+- Using the same registry to validate inbound IpcRequests at dispatch time (regex/charset constraints on branch/remote/path args).
+- Exposing the registry to the MCP server (T-130) so the `tools/list` payload is generated rather than hand-rolled.
+
+Design still open:
+- Where the schema lives (per-handler? central registry?).
+- Whether it generates handler boilerplate or wraps existing handlers.
+
+Source: consultants.md "Security — Findings — [Major]" item 1.', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-18 07:53:08', '2026-05-19 13:14:12', NULL, 'cac26b3ebcf14b056fdd178d4c60c721', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-131', 'task', 'T-99', 'T-99 wrap-up: governance + docs + unblock T-119 / T-120', 'Eighth and final slice of T-99(a). Bookkeeping once the substantive work lands.
+
+Acceptance:
+1. D-56 gets an amendment recording that the unix socket server + C client + MCP server all landed (with the dated amendment line format the rest of the testing.md / architecture.md decisions use).
+2. D-68 referenced as implemented in its own record.
+3. CONTRIBUTING.md gets a ''Running clide from the shell'' section (`clide status`, `clide tail --events`, etc.).
+4. T-119 (`clide panel resize` CLI verb) moved out of backlog into ready — its IPC dispatch path now exists.
+5. T-120 (typed IPC schema framework) re-scoped if needed; the wire contract is now real.
+6. T-99 itself transitions to done.
+
+Source: T-99 sketch. Depends on T-124 + T-125 + T-126 + T-127 + T-128 (+T-129, +T-130 if landed).', 'done', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:23', '2026-05-19 13:14:41', NULL, '2acd8d20756c1615238472fedfe0d6df', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-99', 'task', 'T-97', 'implement (or amend) the IPC socket server per D-1/D-6/D-56/D-68', 'D-56 specifies the Flutter app hosts an in-process IPC server reachable by a thin C client over a Unix socket; D-1/D-6 commit to CLI-first. Today no `ServerSocket` for unix-domain exists anywhere in `lib/`. Three IPC clients coexist (`DaemonClient` socket, `InProcessClient`, `IsolateClient` + `Backend`/`backend_entry.dart`); two service-wiring sites duplicate registration. The load-bearing CLI-first guardrail has no runtime path. D-68 (filed in this session) commits to the dual-surface plan.
+
+**Pick one path:**
+- **(a)** Implement the socket server per D-56 + the C `clide` client. Delete `InProcessClient` and `IsolateClient` + `backend_entry.dart`. Wire MCP server alongside per D-68.
+- **(b)** Amend D-56 to declare in-process direct dispatch as the design; delete `DaemonClient`''s socket code, `IsolateClient`, `Backend`, and `backend_entry.dart`. Re-evaluate D-1''s CLI-first claim and D-68''s dual-surface plan.
+
+**Acceptance:**
+1. Exactly one IPC model exists in code.
+2. `clide <subcommand>` shells from a terminal can drive a running clide app (or the contract is formally rescinded).
+3. Service registration happens in one place.
+4. D-records updated to match reality.
+
+Source: consultants.md "Architecture — Findings — [Critical] No IPC socket server exists".', 'done', 'high', NULL, NULL, NULL, '2026-05-17 18:47:18', '2026-05-19 13:14:41', NULL, '2ad1fbf0b1b6f5b9e46d4a31d1ad830c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

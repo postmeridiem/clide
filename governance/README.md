@@ -114,6 +114,7 @@ You might also want, project-permitting:
 - [D-70: IPC socket path is per-workspace, deterministic](decisions/architecture.md#d-70-ipc-socket-path-is-per-workspace-deterministic) — _architecture_
 - [D-71: IPC socket access gated by chmod 0600 on socket + parent](decisions/architecture.md#d-71-ipc-socket-access-gated-by-chmod-0600-on-socket--parent) — _architecture_
 - [D-72: IPC server is multi-connection with serial dispatch on the main isolate](decisions/architecture.md#d-72-ipc-server-is-multi-connection-with-serial-dispatch-on-the-main-isolate) — _architecture_
+- [D-73: MCP transport for /ide is SSE over HTTP](decisions/architecture.md#d-73-mcp-transport-for-ide-is-sse-over-http) — _architecture_
 
 ## Open questions
 

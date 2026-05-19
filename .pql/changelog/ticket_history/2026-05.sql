@@ -1866,3 +1866,28 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-129', 'status', 'in_progress', 'done', NULL, '2026-05-19 12:19:51', '2026-05-19 12:19:51', '2026-05-19 12:19:51', NULL, 'e9bf50652357521c7ee74bd6577e8108', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-130', 'status', 'backlog', 'in_progress', NULL, '2026-05-19 12:24:44', '2026-05-19 12:24:44', '2026-05-19 12:24:44', NULL, '63dd7e0c4346a5d3cdd81c9c477339c3', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-130', 'status', 'in_progress', 'done', NULL, '2026-05-19 12:33:52', '2026-05-19 12:33:52', '2026-05-19 12:33:52', NULL, 'f3060e086423af96f99684e3718cac45', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-131', 'status', 'backlog', 'in_progress', NULL, '2026-05-19 13:10:27', '2026-05-19 13:10:27', '2026-05-19 13:10:27', NULL, 'c49e76c430de0cc42d7919ade9c5cfa5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-119', 'status', 'backlog', 'ready', NULL, '2026-05-19 13:14:01', '2026-05-19 13:14:01', '2026-05-19 13:14:01', NULL, '726631190b62bd38fb34f7201d2f27ee', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-120', 'description', 'T-104 covered the spot-fixes (argv-injection rejection, size/count caps on specific commands). What remains is the framework piece: a typed schema per IPC command — branch/remote/path/etc. with regex/charset constraints — applied at DaemonDispatcher dispatch time rather than scattered through individual handlers.
+
+This needs design before code:
+- Where the schema lives (per-handler? a central registry?)
+- How it composes with the IpcRequest envelope
+- Whether it generates the existing handler boilerplate or wraps it
+- Coordination with T-99''s IPC architecture decision (if we go socket-server, the schema becomes the wire contract)
+
+Source: consultants.md "Security — Findings — [Major]" item 1.', 'T-104 covered the spot-fixes (argv-injection rejection, size/count caps on specific commands). What remains is the framework piece: a typed schema per IPC command — branch/remote/path/etc. with regex/charset constraints — applied at DaemonDispatcher dispatch time rather than scattered through individual handlers.
+
+Re-scope (2026-05-19, post T-99): the wire contract is now real — IpcRequest envelopes flow over the unix socket (per D-70/71/72) and through the C clide client which serialises raw argv under the `_argv` sentinel (per D-72/D-6). The argv parser (lib/src/cli/argv_to_request.dart) is the de-facto schema today; T-120 should formalise it by:
+
+- Lifting the per-cmd grammar from argv_to_request.dart into a typed registry keyed by cmd, sharing it with both the argv parser and the dispatcher.
+- Using the same registry to validate inbound IpcRequests at dispatch time (regex/charset constraints on branch/remote/path args).
+- Exposing the registry to the MCP server (T-130) so the `tools/list` payload is generated rather than hand-rolled.
+
+Design still open:
+- Where the schema lives (per-handler? central registry?).
+- Whether it generates handler boilerplate or wraps existing handlers.
+
+Source: consultants.md "Security — Findings — [Major]" item 1.', NULL, '2026-05-19 13:14:12', '2026-05-19 13:14:12', '2026-05-19 13:14:12', NULL, '3511c5e7731f568de7af33c1970ad97e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-99', 'status', 'backlog', 'done', NULL, '2026-05-19 13:14:41', '2026-05-19 13:14:41', '2026-05-19 13:14:41', NULL, '5ff47ab0fc7fb8cb8e9e039be48ada2a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-131', 'status', 'in_progress', 'done', NULL, '2026-05-19 13:14:41', '2026-05-19 13:14:41', '2026-05-19 13:14:41', NULL, 'a57b3fbe4e6815fcbb28691a08130801', 1) ON CONFLICT(hash) DO NOTHING;

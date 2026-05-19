@@ -82,6 +82,54 @@ FNV-1a vectors against the reference, and
 [`test/cli/clide_cli_e2e_test.dart`](test/cli/clide_cli_e2e_test.dart)
 compiles the C client and exercises the full round-trip.
 
+## Running clide from the shell
+
+Once the desktop app is running and `clide` is on your `$PATH`, every
+shell inside the workspace can drive it. The argv grammar is fixed by
+[D-6](governance/decisions/architecture.md#d-6-cli-and-event-surface-contract)
+— every UI affordance has a CLI counterpart, and every CLI verb has a
+UI affordance.
+
+```sh
+clide status                         # one-shot snapshot of pane state
+clide ping                           # round-trip health check
+clide tail --events                  # stream every subsystem event
+clide tail --events --filter git     # stream a single subsystem
+clide pane focus editor              # drive the running app
+clide panel toggle git               # show/hide a panel
+```
+
+Output is JSON on stdout, one envelope per line. Streaming verbs
+(`tail --events`) keep the connection open and emit one event line per
+push; Ctrl-C cleanly closes the socket. Exit codes follow the pql
+convention ([D-68](governance/decisions/architecture.md#d-68-cli-and-mcp-surface-contracts)):
+
+| Code | Meaning                                              |
+|------|------------------------------------------------------|
+| 0    | success                                              |
+| 64   | user error — bad argv, unknown verb, malformed flag  |
+| 65   | data error — request well-formed but rejected        |
+| 69   | service unavailable — no running clide for this repo |
+| 70   | internal error — dispatcher threw                    |
+
+If `clide` exits 69, the desktop app isn't running for this workspace
+— start it with `make run` (during development) or launch the
+installed app pointed at this repo.
+
+### Claude Code's `/ide` and the MCP server
+
+The desktop app also runs an MCP companion server on a random
+localhost port (HTTP + Server-Sent Events, per
+[D-73](governance/decisions/architecture.md#d-73-mcp-server-transport-over-http-sse)).
+Discovery follows the Claude Code `/ide` contract: clide writes a
+JSON descriptor to `~/.claude/ide/<pid>.lock` containing the chosen
+port, the workspace root, and the protocol version. Claude Code's
+`/ide` command picks the lock for the workspace it's running in and
+connects automatically — no manual configuration. The lock is removed
+on graceful shutdown; stale locks from crashed processes are reaped
+on the next start. The implementation lives in
+[`lib/src/ipc/mcp_server.dart`](lib/src/ipc/mcp_server.dart).
+
 ## Decisions, questions, rejected (DQR)
 
 clide tracks architectural commitments as durable records under

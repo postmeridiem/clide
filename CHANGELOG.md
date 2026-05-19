@@ -53,6 +53,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   "always open this project on launch" checkbox in welcome's RECENT
   list sets a sticky-startup flag; if exactly one project has it,
   that one opens directly. Two or more, or none ⇒ picker (T-115).
+- CONTRIBUTING.md "Running clide from the shell" section — documents
+  the shell verbs, exit-code contract per D-68, and Claude Code
+  `/ide` MCP discovery via `~/.claude/ide/<pid>.lock` (T-131).
 
 ### Changed
 
@@ -60,6 +63,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   Flutter UI's `DaemonClient` now talks to its own `IpcServer` over
   the same per-workspace Unix socket the C `clide` client uses — one
   transport, one contract.
+- D-56 / D-68 amended with implementation notes — both decisions now
+  link out to T-99's eight slices (T-124–T-131) and the D-70/71/72/73
+  records they spawned (T-131).
 
 ### Deprecated
 
