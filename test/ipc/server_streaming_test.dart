@@ -212,9 +212,11 @@ void main() {
     addTearDown(s.close);
     final r = _lineReader(s);
     final q = _Lines(r.lines);
-    await _send(s, IpcRequest(id: 'a', cmd: '_argv', args: {
-      'argv': ['tail', '--events', '--filter', 'pane'],
-    }));
+    await _send(
+        s,
+        IpcRequest(id: 'a', cmd: '_argv', args: {
+          'argv': ['tail', '--events', '--filter', 'pane'],
+        }));
     final ack = IpcMessage.decode(await q.next()) as IpcResponse;
     expect(ack.ok, isTrue);
     expect(ack.data['streaming'], isTrue);
