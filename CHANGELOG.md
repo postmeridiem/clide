@@ -56,6 +56,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - `lib/kernel/src/ipc/in_process.dart` (`InProcessClient`) — replaced
   by the socket-loopback `DaemonClient` (T-127).
+- `lib/kernel/src/backend.dart`, `lib/kernel/src/backend_entry.dart`,
+  `lib/kernel/src/ipc/isolate_client.dart` — the third unused IPC
+  path (a backend-isolate model that was never wired through). Only
+  the socket model survives now (T-128).
 
 ### Fixed
 

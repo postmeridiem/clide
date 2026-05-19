@@ -2144,3 +2144,15 @@ Acceptance:
 5. Falls back to in-process direct dispatch if the perf delta is unacceptable; surface the finding in a Q-record before doing so.
 
 Source: T-99 sketch. Depends on T-124 (server must exist). Blocks T-128 (legacy IPC cleanup).', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:59:02', '2026-05-19 10:03:26', NULL, 'af4a706880181411b2aecf51d90ea748', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-128', 'task', 'T-99', 'delete IsolateClient + Backend + backend_entry.dart; collapse service registration', 'Fifth slice of T-99(a). Pure cleanup once T-127 lands.
+
+Remove the third unused IPC path entirely. Today three implementations coexist: DaemonClient (socket — gets a real server in T-124), InProcessClient (deleted in T-127), and IsolateClient + Backend + backend_entry.dart (a backend isolate path that was never wired through). After T-127, none of those should still be referenced.
+
+Also: consolidate the two duplicate service-wiring sites into one (currently main.dart''s buildDispatcher and the kernel facade both register subsystem handlers; one should own it).
+
+Acceptance:
+1. lib/kernel/src/ipc/isolate_client.dart, lib/src/daemon/backend.dart, lib/src/daemon/backend_entry.dart removed.
+2. Single service-registration site; no duplicate registerPaneCommands / registerFilesCommands / etc. across files.
+3. flutter analyze + full test suite green.
+
+Source: T-99 sketch. Depends on T-127.', 'done', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:06', '2026-05-19 10:06:46', NULL, '481c51b17b027b5a04279a0ef6a3a029', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
