@@ -2156,3 +2156,14 @@ Acceptance:
 3. flutter analyze + full test suite green.
 
 Source: T-99 sketch. Depends on T-127.', 'done', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:06', '2026-05-19 10:06:46', NULL, '481c51b17b027b5a04279a0ef6a3a029', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-129', 'task', 'T-99', 'event streaming over the socket — `clide tail --events`', 'Sixth slice of T-99(a). Long-lived subscription channel — the second half of D-6 (`clide tail --events [--filter <subsystem>[:<id>]]`).
+
+Client opens a connection, sends {"subscribe": "<subsystem>|*"}, server pushes JSON-line events until the client closes. Per D-6: replay buffer per subsystem (default depth 16) so a late subscriber still sees recent effects.
+
+Acceptance:
+1. `clide tail --events --filter git` streams git.* events from the running app.
+2. Replay buffer per subsystem; new subscribers receive the last 16 events.
+3. Server doesn''t block writes on a slow client (back-pressure handling per Q-2 — drop with a warning or apply flow control; resolve in this ticket).
+4. End-to-end smoke: launch app, run `clide tail --events --filter pane` in another shell, perform a pane action in the UI, observe the event.
+
+Source: T-99 sketch. Depends on T-124 + T-126.', 'done', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:11', '2026-05-19 12:19:51', NULL, '44c9141fea8635a9c03053afa92f3999', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

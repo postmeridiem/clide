@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/log.dart';
+import 'package:clide/src/cli/argv_dispatch.dart';
+import 'package:clide/src/cli/argv_to_request.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/paths.dart';
@@ -18,16 +23,44 @@ import 'package:clide/src/ipc/schema_v1.dart';
 /// D-72. Per-handler isolate offload is the dispatcher / handler's
 /// concern, not this layer's.
 class IpcServer {
-  IpcServer({required this.dispatcher, required this.workspaceRoot, required this.log});
+  IpcServer({
+    required this.dispatcher,
+    required this.workspaceRoot,
+    required this.log,
+    this.events,
+    this.replayDepth = 16,
+  });
 
   final DaemonDispatcher dispatcher;
   final String workspaceRoot;
   final Logger log;
 
+  /// Bus the server subscribes to for events forwarded to
+  /// `clide tail --events` subscribers. Optional — when null, the
+  /// tail handler still accepts subscriptions but never gets events
+  /// (useful in tests that don't need the full kernel wiring).
+  final DaemonBus? events;
+
+  /// Per-subsystem replay-buffer depth (D-6: default 16). New
+  /// subscribers receive up to this many recent matching events on
+  /// connect so they don't miss effects emitted just before they
+  /// subscribed.
+  final int replayDepth;
+
   ServerSocket? _socket;
   String? _socketPath;
   final List<Socket> _clients = [];
   StreamSubscription<Socket>? _accepts;
+
+  // Event streaming (T-129).
+  StreamSubscription<DaemonEvent>? _busSub;
+
+  /// Subscribers: client socket → filter (`*` or a subsystem name).
+  /// A connection enters this map after it sends `tail --events`.
+  final Map<Socket, String> _subscribers = {};
+
+  /// Per-subsystem ring buffer of recent events for replay.
+  final Map<String, Queue<IpcEvent>> _replay = {};
 
   String get socketPath => _socketPath ?? workspaceSocketPath(workspaceRoot);
   bool get isRunning => _socket != null;
@@ -62,6 +95,13 @@ class IpcServer {
     _accepts = socket.listen(_onClient, onError: (Object e, StackTrace st) {
       log.error('ipc', 'accept loop error', error: e, stackTrace: st);
     });
+    // Subscribe to the bus so we can populate the replay ring AND
+    // fan out to live `tail --events` subscribers. Idempotent —
+    // we only attach when a bus is supplied.
+    final bus = events;
+    if (bus != null) {
+      _busSub = bus.on<DaemonEvent>().listen(_onBusEvent);
+    }
     log.info('ipc', 'IPC server listening at $path');
   }
 
@@ -73,6 +113,10 @@ class IpcServer {
     if (s == null) return;
     _socket = null;
     _socketPath = null;
+    await _busSub?.cancel();
+    _busSub = null;
+    _subscribers.clear();
+    _replay.clear();
     await _accepts?.cancel();
     _accepts = null;
     for (final c in List<Socket>.from(_clients)) {
@@ -116,6 +160,7 @@ class IpcServer {
       },
       onDone: () {
         _clients.remove(client);
+        _subscribers.remove(client);
         sub.cancel();
       },
       cancelOnError: true,
@@ -138,7 +183,33 @@ class IpcServer {
           ),
         );
       } else {
-        response = await dispatcher.dispatch(msg);
+        // Peel off the `_argv` envelope at the server layer so the
+        // streaming check sees the unwrapped command (T-129). Plain
+        // typed requests skip this path.
+        var req = msg;
+        if (req.cmd == argvSentinelCmd) {
+          final result = unwrapArgvRequest(req);
+          if (result is ArgvError) {
+            response = result.response;
+            // Fall through to write below.
+            try {
+              client.write('${response.encode()}\n');
+              await client.flush();
+            } catch (e) {
+              log.warn('ipc', 'client write failed: $e');
+            }
+            return;
+          }
+          req = (result as ArgvParsed).request;
+        }
+        if (_isTailSubscribe(req)) {
+          // Long-lived subscription branch (T-129). Send the streaming
+          // ack, replay matching ring buffer entries, register the
+          // client. The connection stays open until the client closes.
+          await _enterStreamingMode(client, req);
+          return;
+        }
+        response = await dispatcher.dispatch(req);
       }
     } on FormatException catch (e) {
       response = IpcResponse.err(
@@ -198,6 +269,94 @@ class IpcServer {
       throw StateError('socket $path exists and is unresponsive — refusing to clobber');
     }
   }
+
+  // -- event streaming (T-129) ----------------------------------------------
+
+  /// Recognise the `tail --events [--filter X]` subscription
+  /// request that the argv translator (T-125) produces.
+  bool _isTailSubscribe(IpcRequest req) {
+    if (req.cmd != 'tail') return false;
+    final flags = req.args['flags'];
+    return flags is Map && flags['events'] == true;
+  }
+
+  Future<void> _enterStreamingMode(Socket client, IpcRequest req) async {
+    final flags = req.args['flags'] as Map?;
+    final filter = (flags?['filter'] as String?) ?? '*';
+    // Streaming ack — `data.streaming: true` tells the C client to
+    // loop-read instead of exiting after one response.
+    final ack = IpcResponse.ok(id: req.id, data: {'streaming': true, 'filter': filter});
+    try {
+      client.write('${ack.encode()}\n');
+      await client.flush();
+    } catch (e) {
+      log.warn('ipc', 'streaming ack write failed: $e');
+      return;
+    }
+    // Replay matching events from the ring.
+    final replay = _replayFor(filter);
+    for (final ev in replay) {
+      if (!_sendEvent(client, ev)) return;
+    }
+    _subscribers[client] = filter;
+  }
+
+  Iterable<IpcEvent> _replayFor(String filter) {
+    if (filter == '*') {
+      // Flatten everything in arrival order. Per-subsystem rings
+      // preserve order within a subsystem; across subsystems the
+      // ordering is best-effort (interleaved-by-subsystem). Good
+      // enough for "what just happened".
+      return _replay.values.expand((q) => q);
+    }
+    return _replay[filter] ?? const [];
+  }
+
+  void _onBusEvent(DaemonEvent e) {
+    final ev = IpcEvent(
+      subsystem: e.subsystem,
+      kind: e.kind,
+      data: e.data,
+      timestamp: e.ts,
+    );
+    // Push to replay ring.
+    final ring = _replay.putIfAbsent(e.subsystem, () => Queue<IpcEvent>());
+    ring.addLast(ev);
+    while (ring.length > replayDepth) {
+      ring.removeFirst();
+    }
+    // Fan out to live subscribers whose filter matches.
+    final stale = <Socket>[];
+    for (final entry in _subscribers.entries) {
+      final filter = entry.value;
+      if (filter != '*' && filter != e.subsystem) continue;
+      if (!_sendEvent(entry.key, ev)) {
+        stale.add(entry.key);
+      }
+    }
+    for (final s in stale) {
+      _subscribers.remove(s);
+    }
+  }
+
+  /// Write an event line to [client]. Returns false on failure, which
+  /// the caller uses to drop the subscriber. We deliberately don't
+  /// await `flush` here — back-pressure handling per D-72: if the
+  /// socket's write buffer is full, dart:io's Socket.write enqueues
+  /// in-memory, and the kernel pushes through as it can. If the
+  /// client is genuinely gone the write throws or onDone fires and
+  /// the subscriber gets removed via _onClient's onDone.
+  bool _sendEvent(Socket client, IpcEvent ev) {
+    try {
+      client.write('${ev.encode()}\n');
+      return true;
+    } catch (e) {
+      log.warn('ipc', 'subscriber write failed (dropping): $e');
+      return false;
+    }
+  }
+
+  // -- internals ------------------------------------------------------------
 
   /// `chmod` via `chmod(1)` because dart:io doesn't expose the
   /// syscall on unix. Cheap; only runs at start/stop.

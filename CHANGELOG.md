@@ -32,6 +32,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   dumb pipe (T-99 / T-125).
 - `DaemonClient.reconnectAt(newPath)` — swap an active client onto a
   different socket without restart (project switch in T-127).
+- Event streaming over the IPC socket (T-99 / T-129) — `clide tail
+  --events [--filter X]` opens a long-lived subscription, replays up
+  to 16 recent matching events per subsystem (D-6), and streams new
+  ones as JSON lines. C client loops on `data.streaming` ack. Slow /
+  broken subscribers drop themselves without blocking the bus.
 - C `clide` shell client at `native/clide-cli/clide.c`. Walks CWD up
   to the git root, hashes to the per-workspace socket (D-70), ships
   argv. `make clide-cli` builds it; on PATH, `clide status` works

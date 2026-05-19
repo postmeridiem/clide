@@ -291,7 +291,6 @@ int main(int argc, char **argv) {
         close(fd);
         return EX_OSERR;
     }
-    close(fd);
 
     /* Pull out `ok`, `data`/`error` from the response. */
     size_t ok_len = 0, data_len = 0, code_len = 0, msg_len = 0;
@@ -302,11 +301,38 @@ int main(int argc, char **argv) {
         if (data) {
             fwrite(data, 1, data_len, stdout);
             fputc('\n', stdout);
+            fflush(stdout);
         } else {
             fputs("{}\n", stdout);
+            fflush(stdout);
         }
+        /* If the server flagged this as a streaming response
+         * (`tail --events` per T-129), loop-read event JSON-lines
+         * until the connection closes. Detection: look for the
+         * literal `"streaming":true` inside the data blob. */
+        if (data && data_len > 0) {
+            char data_copy[16384];
+            size_t copy_len = data_len < sizeof(data_copy) - 1 ? data_len : sizeof(data_copy) - 1;
+            memcpy(data_copy, data, copy_len);
+            data_copy[copy_len] = '\0';
+            if (strstr(data_copy, "\"streaming\":true") != NULL || strstr(data_copy, "\"streaming\": true") != NULL) {
+                /* Streaming mode — keep reading event lines. Exit
+                 * 0 on EOF (server closed cleanly), non-zero on
+                 * read error. */
+                char ev[65536];
+                while (read_line(fd, ev, sizeof(ev)) == 0) {
+                    fputs(ev, stdout);
+                    fputc('\n', stdout);
+                    fflush(stdout);
+                }
+                close(fd);
+                return 0;
+            }
+        }
+        close(fd);
         return 0;
     }
+    close(fd);
     const char *code_v = json_value(resp, "code", &code_len);
     const char *msg_v = json_value(resp, "message", &msg_len);
     int exit_code = code_v ? (int)strtol(code_v, NULL, 10) : EX_SOFTWARE;

@@ -11,6 +11,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
@@ -25,6 +27,7 @@ void main() {
   late final Directory workspaceRoot;
   late final IpcServer server;
   late final DaemonDispatcher dispatcher;
+  late final DaemonBus streamingBus;
 
   setUpAll(() async {
     final repoRoot = Directory.current.path;
@@ -52,10 +55,12 @@ void main() {
     Directory('${workspaceRoot.path}/.git').createSync();
     dispatcher = DaemonDispatcher();
     registerArgvUnwrap(dispatcher);
+    streamingBus = DaemonBus();
     server = IpcServer(
       dispatcher: dispatcher,
       workspaceRoot: workspaceRoot.path,
       log: Logger(minLevel: LogLevel.error, sinks: const []),
+      events: streamingBus,
     );
     await server.start();
   });
@@ -65,6 +70,7 @@ void main() {
     try {
       await server.stop();
     } catch (_) {}
+    await streamingBus.dispose();
     if (workspaceRoot.existsSync()) {
       workspaceRoot.deleteSync(recursive: true);
     }
@@ -133,6 +139,37 @@ void main() {
       final r = await runCli(['nosuchsub', 'nosuchverb']);
       expect(r.exitCode, isNot(0));
       expect(r.stderr.toString(), isNotEmpty);
+    });
+
+    test('tail --events streams bus events to stdout (T-129)', () async {
+      if (!hasCC) {
+        markTestSkipped('cc not available');
+        return;
+      }
+      final proc = await Process.start(binaryPath, ['tail', '--events', '--filter', 'pane'], workingDirectory: workspaceRoot.path);
+      addTearDown(() => proc.kill());
+      final lines = <String>[];
+      final sub = proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(lines.add);
+      addTearDown(sub.cancel);
+      // Wait for the ack so the server has registered us.
+      var attempts = 0;
+      while (lines.isEmpty && attempts < 50) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        attempts++;
+      }
+      expect(lines, isNotEmpty, reason: 'no ack received');
+      // Emit two events.
+      streamingBus.emit(DaemonEvent(subsystem: 'pane', kind: 'spawned', data: const {'id': 'p1'}, ts: DateTime.now().toUtc()));
+      streamingBus.emit(DaemonEvent(subsystem: 'pane', kind: 'closed', data: const {'id': 'p1'}, ts: DateTime.now().toUtc()));
+      attempts = 0;
+      while (lines.length < 3 && attempts < 100) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        attempts++;
+      }
+      expect(lines.length, greaterThanOrEqualTo(3), reason: 'expected ack + 2 events, got: $lines');
+      final concatenated = lines.skip(1).join('\n');
+      expect(concatenated, contains('"kind":"spawned"'));
+      expect(concatenated, contains('"kind":"closed"'));
     });
   });
 }

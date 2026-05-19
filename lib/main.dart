@@ -96,7 +96,12 @@ Future<void> main() async {
       ipcLog.warn('ipc', 'stop failed during swap: $e');
       ipcLog.debug('ipc', '$st');
     }
-    final server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot.path, log: ipcLog);
+    final server = IpcServer(
+      dispatcher: dispatcher,
+      workspaceRoot: workRoot.path,
+      log: ipcLog,
+      events: daemonBus,
+    );
     ipcServer = server;
     try {
       await server.start();
