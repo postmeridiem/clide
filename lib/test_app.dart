@@ -29,7 +29,6 @@ import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart' as pkg_ffi;
 import 'kernel/kernel.dart';
 import 'src/pty/ffi/libc.dart' as libc;
-import 'kernel/src/ipc/in_process.dart';
 import 'src/daemon/pane_commands.dart';
 import 'src/ipc/envelope.dart';
 import 'src/panes/event_sink.dart';
@@ -325,19 +324,25 @@ class _ClideTestAppState extends State<ClideTestApp> {
   Future<void> _runTerminalTests(Toolchain tc, String workDir) async {
     _say('--- terminal ---');
 
-    // Test PTY via InProcessClient — same path as the real app.
+    // Test PTY via the dispatcher directly — skip the socket
+    // round-trip for the smoke test since it adds setup without
+    // testing anything new for pane.spawn. The real app's path is
+    // covered by the IPC server + client tests under test/ipc/.
     await _testAsync('pane.spawn via IPC', () async {
       final dispatcher = DaemonDispatcher();
       final bus = DaemonBus();
       final eventSink = _TestEventSink(bus);
       final paneRegistry = PaneRegistry(events: eventSink);
       registerPaneCommands(dispatcher, paneRegistry);
-      final ipc = InProcessClient(log: Logger(), events: bus, dispatcher: dispatcher);
+
+      Future<IpcResponse> dispatch(String cmd, Map<String, Object?> args) {
+        return dispatcher.dispatch(IpcRequest(id: 'tm-${DateTime.now().microsecondsSinceEpoch}', cmd: cmd, args: args));
+      }
 
       // Spawn a pane running /bin/echo.
       // Use interactive shell — fast-exiting commands lose output on macOS
       // because the slave closes before we can read the master.
-      final spawnResp = await ipc.request('pane.spawn', args: {
+      final spawnResp = await dispatch('pane.spawn', {
         'argv': [tc.shell],
         'kind': 'terminal',
       });

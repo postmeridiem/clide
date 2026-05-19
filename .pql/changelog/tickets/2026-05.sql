@@ -2134,3 +2134,13 @@ Acceptance:
 5. Documented in assets/licenses.yaml + a one-paragraph note in CONTRIBUTING.md.
 
 Source: T-99 sketch. Depends on T-124 (server) + T-125 (argv translator).', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:58:57', '2026-05-18 16:04:29', NULL, 'e4be31e3d80dbaadd64e3a4a2fa029e0', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-127', 'task', 'T-99', 'replace InProcessClient call sites with the socket loopback', 'Fourth slice of T-99(a). Convert the in-process callers — KernelServices.boot''s daemonClientFactory and friends — to talk to the local socket instead of the direct in-process dispatch path. Delete InProcessClient afterward.
+
+Acceptance:
+1. lib/kernel/src/ipc/in_process.dart removed; nothing imports it.
+2. main.dart''s daemonClientFactory builds a socket-connected DaemonClient pointed at the local server.
+3. Test fixtures use a synthetic in-memory socket pair (or short-lived AF_UNIX socket in /tmp) for isolation.
+4. Wall-clock perf delta is within reason (no widget rebuild storm; round-trip ~ms) — measure before/after under a representative test.
+5. Falls back to in-process direct dispatch if the perf delta is unacceptable; surface the finding in a Q-record before doing so.
+
+Source: T-99 sketch. Depends on T-124 (server must exist). Blocks T-128 (legacy IPC cleanup).', 'done', 'high', NULL, NULL, NULL, '2026-05-18 11:59:02', '2026-05-19 10:03:26', NULL, 'af4a706880181411b2aecf51d90ea748', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

@@ -11,13 +11,15 @@ import 'package:flutter/foundation.dart';
 
 class DaemonClient extends ChangeNotifier {
   DaemonClient({
-    required this.socketPath,
+    required String socketPath,
     required Logger log,
     required DaemonBus events,
-  })  : _log = log,
+  })  : _socketPath = socketPath,
+        _log = log,
         _events = events;
 
-  final String socketPath;
+  String _socketPath;
+  String get socketPath => _socketPath;
   final Logger _log;
   final DaemonBus _events;
 
@@ -47,6 +49,28 @@ class DaemonClient extends ChangeNotifier {
     _setConnected(false);
   }
 
+  /// Point the client at a different socket path and reconnect.
+  /// Used on project switch — the workspace-derived socket path
+  /// (D-70) changes when the user opens a different project, so the
+  /// client follows. Cancels the reconnect timer, closes the live
+  /// socket (failing in-flight requests with `disconnect`), updates
+  /// the path, and re-arms the connect loop. Idempotent if the new
+  /// path equals the current one.
+  Future<void> reconnectAt(String newPath) async {
+    if (newPath == _socketPath && _connected) return;
+    _socketPath = newPath;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    final s = _socket;
+    _socket = null;
+    await s?.close();
+    _failPending('socket path changed');
+    _setConnected(false);
+    _disposed = false;
+    _backoff = const Duration(milliseconds: 200);
+    await _connect();
+  }
+
   Future<IpcResponse> request(
     String cmd, {
     Map<String, Object?> args = const {},
@@ -72,12 +96,12 @@ class DaemonClient extends ChangeNotifier {
   Future<void> _connect() async {
     if (_disposed) return;
     try {
-      final addr = InternetAddress(socketPath, type: InternetAddressType.unix);
+      final addr = InternetAddress(_socketPath, type: InternetAddressType.unix);
       final socket = await Socket.connect(addr, 0);
       _socket = socket;
       _backoff = const Duration(milliseconds: 200);
       _setConnected(true);
-      _log.info('ipc', 'connected to $socketPath');
+      _log.info('ipc', 'connected to $_socketPath');
       socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).listen(
         _handleLine,
         onDone: _handleDisconnect,

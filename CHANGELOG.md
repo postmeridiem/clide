@@ -30,6 +30,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   the umbrella commands (`status`, `tail`, `version`, `ping`) per D-6
   into the wire envelope. Pure Dart; lets the C client (T-126) stay a
   dumb pipe (T-99 / T-125).
+- `DaemonClient.reconnectAt(newPath)` — swap an active client onto a
+  different socket without restart (project switch in T-127).
 - C `clide` shell client at `native/clide-cli/clide.c`. Walks CWD up
   to the git root, hashes to the per-workspace socket (D-70), ships
   argv. `make clide-cli` builds it; on PATH, `clide status` works
@@ -43,9 +45,17 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- In-process IPC dispatch swapped for socket loopback (T-127). The
+  Flutter UI's `DaemonClient` now talks to its own `IpcServer` over
+  the same per-workspace Unix socket the C `clide` client uses — one
+  transport, one contract.
+
 ### Deprecated
 
 ### Removed
+
+- `lib/kernel/src/ipc/in_process.dart` (`InProcessClient`) — replaced
+  by the socket-loopback `DaemonClient` (T-127).
 
 ### Fixed
 

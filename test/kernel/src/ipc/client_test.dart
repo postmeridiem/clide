@@ -276,5 +276,45 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(flips, contains(true));
     });
+
+    test('reconnectAt swaps socket paths and re-binds (T-127)', () async {
+      final pathA = await _tmpSocket();
+      final daemonA = _TestDaemon(pathA);
+      await daemonA.start();
+      addTearDown(daemonA.close);
+
+      final bus = DaemonBus();
+      addTearDown(bus.dispose);
+      final client = _build(pathA, bus);
+      addTearDown(client.dispose);
+      await client.start();
+      await daemonA.waitForClient();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(client.isConnected, isTrue);
+      expect(client.socketPath, pathA);
+
+      // Spin up a SECOND daemon on a different socket and move the
+      // client over to it.
+      final pathB = await _tmpSocket();
+      final daemonB = _TestDaemon(pathB);
+      await daemonB.start();
+      addTearDown(daemonB.close);
+
+      await client.reconnectAt(pathB);
+      await daemonB.waitForClient();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(client.socketPath, pathB);
+      expect(client.isConnected, isTrue);
+
+      // A request goes to the NEW daemon — verify by reading the
+      // line off daemonB.lines.
+      final lineFuture = daemonB.lines.first;
+      final responseFuture = client.request('ping');
+      final reqLine = await lineFuture;
+      final reqJson = jsonDecode(reqLine) as Map<String, Object?>;
+      daemonB.send(IpcResponse.ok(id: reqJson['id'] as String, data: const {'pong': true}).encode());
+      final resp = await responseFuture;
+      expect(resp.ok, isTrue);
+    });
   });
 }

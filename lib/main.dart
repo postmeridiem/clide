@@ -29,7 +29,6 @@ import 'package:clide/builtin/welcome/welcome.dart';
 import 'dart:io' show Directory, Platform;
 
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/kernel/src/ipc/in_process.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
@@ -40,6 +39,7 @@ import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/ipc/envelope.dart';
+import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
 import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
 import 'package:clide/src/panes/registry.dart';
@@ -78,11 +78,13 @@ Future<void> main() async {
     toolchain.applyResolved(resolveToolchainPaths());
   }
 
-  InProcessClient? ipcClient;
+  DaemonClient? ipcClient;
   DaemonBus? daemonBus;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
-  // socket path is workspace-derived.
+  // socket path is workspace-derived. The local DaemonClient connects
+  // back to it over the socket so all IPC — including from UI widgets
+  // in the same process — goes through the wire contract (T-127).
   IpcServer? ipcServer;
   final ipcLog = Logger();
 
@@ -100,6 +102,14 @@ Future<void> main() async {
       await server.start();
     } catch (e, st) {
       ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
+      return;
+    }
+    // Point the in-process DaemonClient at the new socket. On first
+    // boot (no client yet) the daemonClientFactory below kicks it
+    // off; on project switch we just reconnect to the new path.
+    final client = ipcClient;
+    if (client != null) {
+      await client.reconnectAt(server.socketPath);
     }
   }
 
@@ -133,18 +143,28 @@ Future<void> main() async {
             daemonBus = events;
             final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
             final dispatcher = buildDispatcher(events, toolchain, workRoot);
-            ipcClient = InProcessClient(log: log, events: events, dispatcher: dispatcher);
-            // Fire-and-forget: bring up the IPC socket server alongside.
-            // Failure is logged, not fatal — the UI still works.
-            unawaited(swapIpcServer(dispatcher, workRoot));
-            return ipcClient!;
+            // Build the client at the workspace's socket path. The
+            // server is started below (swapIpcServer) which the
+            // client will then auto-connect to via its reconnect
+            // loop. autoStartDaemonClient:false means we own the
+            // lifecycle here.
+            final client = DaemonClient(
+              socketPath: workspaceSocketPath(workRoot.path),
+              log: log,
+              events: events,
+            );
+            ipcClient = client;
+            unawaited(() async {
+              await swapIpcServer(dispatcher, workRoot);
+              await client.start();
+            }());
+            return client;
           },
     onProjectOpen: kIsWeb
         ? null
         : (path) async {
-            if (ipcClient == null || daemonBus == null) return;
+            if (daemonBus == null) return;
             final dispatcher = buildDispatcher(daemonBus!, toolchain, Directory(path));
-            ipcClient!.dispatcher = dispatcher;
             await swapIpcServer(dispatcher, Directory(path));
           },
   );
