@@ -1,6 +1,3 @@
-import 'package:meta/meta.dart';
-
-@immutable
 abstract class ClideEvent {
   const ClideEvent();
 
@@ -10,7 +7,6 @@ abstract class ClideEvent {
   Map<String, Object?> payload() => const {};
 }
 
-@immutable
 class ClideEventEnvelope {
   const ClideEventEnvelope(this.event, this.timestamp);
 
