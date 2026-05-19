@@ -2167,3 +2167,16 @@ Acceptance:
 4. End-to-end smoke: launch app, run `clide tail --events --filter pane` in another shell, perform a pane action in the UI, observe the event.
 
 Source: T-99 sketch. Depends on T-124 + T-126.', 'done', 'medium', NULL, NULL, NULL, '2026-05-18 11:59:11', '2026-05-19 12:19:51', NULL, '44c9141fea8635a9c03053afa92f3999', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-130', 'task', 'T-99', 'MCP server alongside the CLI, wrapping the same dispatcher (D-68)', 'Seventh slice of T-99(a). Adds an /ide-compatible MCP endpoint per D-68 so Claude Code instances outside clide can connect via /ide.
+
+Minimum tools (per D-68): mcp__ide__getDiagnostics, mcp__ide__executeCode. Optional mcp__clide__* namespace deferred to Q-32. Transport choice (SSE vs WebSocket vs stdio) — resolve Q-33 at the start of this ticket.
+
+Both surfaces (CLI socket + MCP) wrap the SAME DaemonDispatcher — there is no second source of truth.
+
+Acceptance:
+1. lib/src/ipc/mcp_server.dart serves the chosen transport.
+2. Claude Code''s /ide command discovers and connects to clide.
+3. Both minimum tools work end-to-end against a real Claude Code session.
+4. Q-32 + Q-33 closed (either as decisions or with resolutions written into the ticket).
+
+Source: T-99 sketch. Depends on T-124 (server foundation must exist). Can land in parallel with T-127 / T-128 / T-129.', 'done', 'medium', NULL, NULL, 'D-68', '2026-05-18 11:59:17', '2026-05-19 12:33:52', NULL, '0d03fa2376bf179665ee817dc363e186', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

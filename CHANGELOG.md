@@ -37,6 +37,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   to 16 recent matching events per subsystem (D-6), and streams new
   ones as JSON lines. C client loops on `data.streaming` ack. Slow /
   broken subscribers drop themselves without blocking the bus.
+- MCP server over HTTP+SSE (T-99 / T-130, per D-68 / D-73). Localhost
+  HTTP listener advertises via `$HOME/.claude/ide/<pid>.lock` so
+  Claude Code's `/ide` discovers it. JSON-RPC 2.0 with the two
+  minimum `/ide` tools shipped as stubs
+  (`mcp__ide__getDiagnostics`, `mcp__ide__executeCode`); real
+  implementations follow.
 - C `clide` shell client at `native/clide-cli/clide.c`. Walks CWD up
   to the git root, hashes to the per-workspace socket (D-70), ships
   argv. `make clide-cli` builds it; on PATH, `clide status` works

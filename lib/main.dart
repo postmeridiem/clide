@@ -39,6 +39,7 @@ import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/ipc/envelope.dart';
+import 'package:clide/src/ipc/mcp_server.dart';
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
 import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
@@ -86,6 +87,11 @@ Future<void> main() async {
   // back to it over the socket so all IPC — including from UI widgets
   // in the same process — goes through the wire contract (T-127).
   IpcServer? ipcServer;
+  // MCP server (T-130, per D-68 + D-73). Localhost HTTP+SSE, advertised
+  // via $HOME/.claude/ide/<pid>.lock so Claude Code's /ide command
+  // discovers it. Restarted alongside the unix server on project
+  // switch so the discovery file reports the current workspace.
+  McpServer? mcpServer;
   final ipcLog = Logger();
 
   Future<void> swapIpcServer(DaemonDispatcher dispatcher, Directory workRoot) async {
@@ -95,6 +101,11 @@ Future<void> main() async {
     } catch (e, st) {
       ipcLog.warn('ipc', 'stop failed during swap: $e');
       ipcLog.debug('ipc', '$st');
+    }
+    try {
+      await mcpServer?.stop();
+    } catch (e) {
+      ipcLog.warn('mcp', 'stop failed during swap: $e');
     }
     final server = IpcServer(
       dispatcher: dispatcher,
@@ -108,6 +119,14 @@ Future<void> main() async {
     } catch (e, st) {
       ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
       return;
+    }
+    final mcp = McpServer(workspaceRoot: workRoot.path, log: ipcLog);
+    mcpServer = mcp;
+    try {
+      await mcp.start();
+    } catch (e, st) {
+      ipcLog.warn('mcp', 'MCP server start failed (non-fatal): $e');
+      ipcLog.debug('mcp', '$st');
     }
     // Point the in-process DaemonClient at the new socket. On first
     // boot (no client yet) the daemonClientFactory below kicks it
