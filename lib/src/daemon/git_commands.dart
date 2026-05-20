@@ -7,6 +7,7 @@ library;
 
 import '../git/client.dart';
 import '../git/operations.dart' show GitException;
+import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
@@ -21,6 +22,30 @@ const int _gitLogMaxCount = 1000;
 /// IPC request can't queue up an unbounded fan-out of subprocess
 /// arguments.
 const int _gitPathsMaxCount = 256;
+
+/// Schema for `git.checkout` (D-74). `positional[0]` → `branch`, so
+/// `clide git checkout <branch>` from the C client now reaches the
+/// handler; the leading-dash guard stops argv injection at the
+/// dispatcher (mirrors [validateGitRef], kept below as
+/// defense-in-depth since the git client is also UI-reachable).
+const CommandSchema _checkoutSchema = CommandSchema(
+  positional: ['branch'],
+  args: {
+    'branch': ArgSpec(required: true, rejectLeadingDash: true),
+  },
+);
+
+/// Schema for `git.push` (D-74). `clide git push <remote> <branch>`.
+/// Both refs optional (bare `git.push` is valid); leading-dash
+/// rejected on each.
+const CommandSchema _pushSchema = CommandSchema(
+  positional: ['remote', 'branch'],
+  args: {
+    'remote': ArgSpec(rejectLeadingDash: true),
+    'branch': ArgSpec(rejectLeadingDash: true),
+    'setUpstream': ArgSpec(type: ArgType.boolean),
+  },
+);
 
 void registerGitCommands(
   DaemonDispatcher d,
@@ -245,7 +270,7 @@ void registerGitCommands(
     } on GitException catch (e) {
       return _gitError(req.id, e);
     }
-  });
+  }, schema: _pushSchema);
 
   d.register('git.branches', (req) async {
     try {
@@ -279,7 +304,7 @@ void registerGitCommands(
     } on GitException catch (e) {
       return _gitError(req.id, e);
     }
-  });
+  }, schema: _checkoutSchema);
 }
 
 List<String> _pathList(Object? raw) {

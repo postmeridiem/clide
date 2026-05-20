@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Typed IPC command-schema framework (T-119/T-120, D-74) — commands
+  register an argument schema beside their handler; the dispatcher
+  normalises argv into named args, coerces types, and validates
+  (charset, leading-dash, ranges, caps) before the handler runs.
 - `clide panel resize <slot>` CLI verb (T-119) — set an absolute size
   with `--to` or nudge with `--by`; `editor` targets the split ratio.
   Completes user/Claude parity (D-6) with T-111's keyboard resize.

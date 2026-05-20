@@ -13,6 +13,7 @@
 /// `lib/src/daemon/panel_resizer_kernel.dart`.
 library;
 
+import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import 'dispatcher.dart';
@@ -47,29 +48,40 @@ abstract class PanelResizer {
 /// [PanelResizer.bumpEditorRatio] instead of [PanelResizer.setSlotSize].
 const String editorSplitSlot = 'editor';
 
+/// Schema for `panel.resize` (D-74). The dispatcher normalises the
+/// argv shape (`positional[0]` → `slot`, `--to/--by` flags) and
+/// coerces `to`/`by` to numbers before the handler runs. The
+/// "exactly one of to/by" rule is cross-argument semantics, so it
+/// stays in the handler.
+const CommandSchema _resizeSchema = CommandSchema(
+  positional: ['slot'],
+  args: {
+    'slot': ArgSpec(required: true),
+    'to': ArgSpec(type: ArgType.number),
+    'by': ArgSpec(type: ArgType.number),
+  },
+);
+
 void registerPanelCommands(DaemonDispatcher d, PanelResizer resizer) {
-  d.register('panel.resize', (req) => _resize(req, resizer));
+  d.register('panel.resize', (req) => _resize(req, resizer), schema: _resizeSchema);
 }
 
 Future<IpcResponse> _resize(IpcRequest req, PanelResizer r) async {
-  final view = _ResizeArgs.from(req.args);
-  if (view.slot == null || view.slot!.isEmpty) {
-    return _userErr(req.id, 'slot is required (e.g. "sidebar", "context", "$editorSplitSlot")');
-  }
-  if (!view.hasTo && !view.hasBy) {
+  // Args are schema-normalised + coerced by the dispatcher: `slot` is a
+  // non-empty string, `to`/`by` are num? when present.
+  final slot = req.args['slot'] as String;
+  final hasTo = req.args['to'] != null;
+  final hasBy = req.args['by'] != null;
+  if (!hasTo && !hasBy) {
     return _userErr(req.id, 'one of `to` (absolute) or `by` (delta) is required');
   }
-  if (view.hasTo && view.hasBy) {
+  if (hasTo && hasBy) {
     return _userErr(req.id, 'pass only one of `to` and `by`');
   }
-  final value = view.value;
-  if (value == null) {
-    return _userErr(req.id, '${view.hasTo ? "to" : "by"} must be numeric');
-  }
-  final slot = view.slot!;
+  final value = ((hasTo ? req.args['to'] : req.args['by']) as num).toDouble();
 
   if (slot == editorSplitSlot) {
-    if (view.hasTo) {
+    if (hasTo) {
       r.setEditorRatio(value);
     } else {
       r.bumpEditorRatio(value);
@@ -80,7 +92,7 @@ Future<IpcResponse> _resize(IpcRequest req, PanelResizer r) async {
     });
   }
 
-  final ok = view.hasTo ? r.setSlotSize(slot, value) : r.bumpSlotSize(slot, value);
+  final ok = hasTo ? r.setSlotSize(slot, value) : r.bumpSlotSize(slot, value);
   if (!ok) {
     return _notFound(req.id, 'no such slot: $slot');
   }
@@ -88,58 +100,6 @@ Future<IpcResponse> _resize(IpcRequest req, PanelResizer r) async {
     'slot': slot,
     'size': r.currentSlotSize(slot),
   });
-}
-
-/// Tiny adapter that lifts `panel.resize` arguments out of either
-/// the direct call shape (`{slot: ..., to: ...}`) or the argv-
-/// translator shape (`{positional: [slot], flags: {to: '...'}}`).
-/// Until T-120 formalises a shared schema, individual commands carry
-/// the lift themselves.
-class _ResizeArgs {
-  _ResizeArgs._({
-    required this.slot,
-    required this.hasTo,
-    required this.hasBy,
-    required this.value,
-  });
-
-  final String? slot;
-  final bool hasTo;
-  final bool hasBy;
-  final double? value;
-
-  factory _ResizeArgs.from(Map<String, Object?> args) {
-    String? slot;
-    final rawSlot = args['slot'];
-    if (rawSlot is String) slot = rawSlot;
-    final positional = args['positional'];
-    if (slot == null && positional is List && positional.isNotEmpty) {
-      slot = positional.first.toString();
-    }
-    final flags = args['flags'];
-    final flagsMap = flags is Map ? flags : const <Object?, Object?>{};
-    final hasTo = args.containsKey('to') || flagsMap.containsKey('to');
-    final hasBy = args.containsKey('by') || flagsMap.containsKey('by');
-    final raw = args.containsKey('to')
-        ? args['to']
-        : args.containsKey('by')
-            ? args['by']
-            : flagsMap.containsKey('to')
-                ? flagsMap['to']
-                : flagsMap['by'];
-    return _ResizeArgs._(
-      slot: slot,
-      hasTo: hasTo,
-      hasBy: hasBy,
-      value: _coerceNum(raw),
-    );
-  }
-
-  static double? _coerceNum(Object? v) {
-    if (v is num) return v.toDouble();
-    if (v is String) return double.tryParse(v);
-    return null;
-  }
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(

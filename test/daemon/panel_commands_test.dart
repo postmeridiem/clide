@@ -55,7 +55,7 @@ void main() {
       final r = await call(const {'slot': 'sidebar', 'to': 'lots'});
       expect(r.ok, isFalse);
       expect(r.error!.kind, 'user_error');
-      expect(r.error!.message, contains('numeric'));
+      expect(r.error!.message, contains('number'));
     });
 
     test('rejects an unknown slot with not-found', () async {

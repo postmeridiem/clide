@@ -252,6 +252,17 @@ void main() {
     expect(r.data['branch'], 'next');
   });
 
+  test('git.checkout via argv positional reaches the handler (D-74)', () async {
+    // `clide git checkout next` → {positional: ['next']}; the schema's
+    // positional ordering maps it to `branch` at the dispatcher.
+    await Process.run('git', ['branch', 'next'], workingDirectory: sandbox.path);
+    final r = await call('git.checkout', {
+      'positional': ['next'],
+    });
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['branch'], 'next');
+  });
+
   test('git.checkout to an unknown branch surfaces a tool error', () async {
     final r = await call('git.checkout', {'branch': 'no-such-branch'});
     expect(r.ok, isFalse);
