@@ -1892,3 +1892,37 @@ Source: consultants.md "Security — Findings — [Major]" item 1.', NULL, '2026
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-99', 'status', 'backlog', 'done', NULL, '2026-05-19 13:14:41', '2026-05-19 13:14:41', '2026-05-19 13:14:41', NULL, '5ff47ab0fc7fb8cb8e9e039be48ada2a', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-131', 'status', 'in_progress', 'done', NULL, '2026-05-19 13:14:41', '2026-05-19 13:14:41', '2026-05-19 13:14:41', NULL, 'a57b3fbe4e6815fcbb28691a08130801', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-119', 'status', 'ready', 'in_progress', NULL, '2026-05-19 14:44:43', '2026-05-19 14:44:43', '2026-05-19 14:44:43', NULL, '1d5048cf9a031c504aa3df570a7b0cae', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-119', 'status', 'in_progress', 'done', NULL, '2026-05-20 07:00:06', '2026-05-20 07:00:06', '2026-05-20 07:00:06', NULL, '1f2c2bcc722417d8f4c5bfa27faf0c93', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-120', 'description', 'T-104 covered the spot-fixes (argv-injection rejection, size/count caps on specific commands). What remains is the framework piece: a typed schema per IPC command — branch/remote/path/etc. with regex/charset constraints — applied at DaemonDispatcher dispatch time rather than scattered through individual handlers.
+
+Re-scope (2026-05-19, post T-99): the wire contract is now real — IpcRequest envelopes flow over the unix socket (per D-70/71/72) and through the C clide client which serialises raw argv under the `_argv` sentinel (per D-72/D-6). The argv parser (lib/src/cli/argv_to_request.dart) is the de-facto schema today; T-120 should formalise it by:
+
+- Lifting the per-cmd grammar from argv_to_request.dart into a typed registry keyed by cmd, sharing it with both the argv parser and the dispatcher.
+- Using the same registry to validate inbound IpcRequests at dispatch time (regex/charset constraints on branch/remote/path args).
+- Exposing the registry to the MCP server (T-130) so the `tools/list` payload is generated rather than hand-rolled.
+
+Design still open:
+- Where the schema lives (per-handler? central registry?).
+- Whether it generates handler boilerplate or wraps existing handlers.
+
+Source: consultants.md "Security — Findings — [Major]" item 1.', 'T-104 covered the spot-fixes (argv-injection rejection, size/count caps on specific commands). What remains is the framework piece: a typed schema per IPC command — branch/remote/path/etc. with regex/charset constraints — applied at DaemonDispatcher dispatch time rather than scattered through individual handlers.
+
+---
+Design resolved 2026-05-20 (see D-74). Co-registration model, NOT a central map:
+
+- The argv parser (lib/src/cli/argv_to_request.dart) only knows syntactic shape (identifier/flag charset, -- terminator); it has NO per-command argument knowledge. So this is build-fresh, not a lift — each handler currently hand-reads its own keys.
+- Extend the DaemonDispatcher registration API to carry an optional typed schema per command. The dispatcher accumulates a cmd->schema registry as commands register (built-in register*Commands modules supply theirs; extension CommandContributions carry their own — central static map rejected because it cannot see extension-contributed commands, D-46).
+- DaemonDispatcher.dispatch validates req.args against schema[cmd] BEFORE invoking the handler (hook at dispatcher.dart line 39, the `return h(req)` call). Violation -> userError (sysexit 64). Commands with no schema dispatch unvalidated (opt-in per command) until migrated.
+- Constraint vocabulary is hand-rolled (prefer-zero-deps): per-arg required/optional, kind, charset/regex, numeric range. Collapses the _ResizeArgs-style hand-lifts (panel_commands.dart, T-119) into schema.
+- KEEP existing T-104 checks as defense-in-depth: validateGitRef (lib/src/git/operations.dart:46) and the count/path caps (lib/src/daemon/git_commands.dart:18,23). The git client is callable directly from the Flutter UI, not only via the dispatcher — do not remove them.
+- OUT OF SCOPE: MCP tools/list generation from the registry — deferred to the T-130 track.
+
+Acceptance:
+1. Dispatcher validates req.args against a registered per-command schema before the handler runs; violations return userError.
+2. At least the security-relevant commands (git ref/remote/path args, panel.resize) carry schemas; argv-injection + caps still enforced (no regression vs T-104).
+3. validateGitRef + git caps retained as defense-in-depth.
+4. No third-party validation dep; no lint suppressions.
+5. Tests cover: schema accept/reject per constraint kind, dispatcher-level rejection, and that an unschema-d command still dispatches.
+
+Source: consultants.md "Security — Findings — [Major]" item 1. Decision: D-74.', NULL, '2026-05-20 15:54:35', '2026-05-20 15:54:35', '2026-05-20 15:54:35', NULL, '7f972739c82134897869432a3978d6ec', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-120', 'status', 'backlog', 'in_progress', NULL, '2026-05-20 15:54:38', '2026-05-20 15:54:38', '2026-05-20 15:54:38', NULL, 'fa11190ac1bd9cd8f67e3041a8ca7236', 1) ON CONFLICT(hash) DO NOTHING;
