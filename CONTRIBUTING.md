@@ -97,6 +97,9 @@ clide tail --events                  # stream every subsystem event
 clide tail --events --filter git     # stream a single subsystem
 clide pane focus editor              # drive the running app
 clide panel toggle git               # show/hide a panel
+clide panel resize sidebar --to 320  # absolute width (px)
+clide panel resize context --by -40  # relative nudge (px)
+clide panel resize editor --to 0.5   # editor split ratio (0.15–0.70)
 ```
 
 Output is JSON on stdout, one envelope per line. Streaming verbs

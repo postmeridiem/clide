@@ -34,6 +34,8 @@ import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/daemon/panel_commands.dart';
+import 'package:clide/src/daemon/panel_resizer_kernel.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
@@ -81,6 +83,7 @@ Future<void> main() async {
 
   DaemonClient? ipcClient;
   DaemonBus? daemonBus;
+  LayoutArrangement? kernelArrangement;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -137,7 +140,12 @@ Future<void> main() async {
     }
   }
 
-  DaemonDispatcher buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot) {
+  DaemonDispatcher buildDispatcher(
+    DaemonBus events,
+    Toolchain tc,
+    Directory workRoot,
+    LayoutArrangement arrangement,
+  ) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
     final paneRegistry = PaneRegistry(events: eventSink);
@@ -150,6 +158,7 @@ Future<void> main() async {
     registerGitCommands(dispatcher, gitClient, eventSink);
     final pql = PqlClient(workDir: workRoot, toolchain: tc);
     registerPqlCommands(dispatcher, pql);
+    registerPanelCommands(dispatcher, ArrangementPanelResizer(arrangement));
     registerArgvUnwrap(dispatcher);
     return dispatcher;
   }
@@ -163,10 +172,11 @@ Future<void> main() async {
     toolchain: toolchain,
     daemonClientFactory: kIsWeb
         ? null
-        : (log, events) {
+        : (log, events, arrangement) {
             daemonBus = events;
+            kernelArrangement = arrangement;
             final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
-            final dispatcher = buildDispatcher(events, toolchain, workRoot);
+            final dispatcher = buildDispatcher(events, toolchain, workRoot, arrangement);
             // Build the client at the workspace's socket path. The
             // server is started below (swapIpcServer) which the
             // client will then auto-connect to via its reconnect
@@ -187,8 +197,10 @@ Future<void> main() async {
     onProjectOpen: kIsWeb
         ? null
         : (path) async {
-            if (daemonBus == null) return;
-            final dispatcher = buildDispatcher(daemonBus!, toolchain, Directory(path));
+            final bus = daemonBus;
+            final arrangement = kernelArrangement;
+            if (bus == null || arrangement == null) return;
+            final dispatcher = buildDispatcher(bus, toolchain, Directory(path), arrangement);
             await swapIpcServer(dispatcher, Directory(path));
           },
   );

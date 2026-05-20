@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- `clide panel resize <slot>` CLI verb (T-119) — set an absolute size
+  with `--to` or nudge with `--by`; `editor` targets the split ratio.
+  Completes user/Claude parity (D-6) with T-111's keyboard resize.
 - Unix-domain IPC socket server in the Flutter app (T-99 / T-124).
   Per-workspace path (D-70: `$XDG_RUNTIME_DIR/clide/<hash>.sock` on
   Linux, `~/Library/Caches/clide/<hash>.sock` on macOS). 0600 socket

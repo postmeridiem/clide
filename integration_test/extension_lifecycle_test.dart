@@ -40,7 +40,7 @@ void main() {
         'builtin.ipc-status',
         'builtin.default-layout',
       ],
-      daemonClientFactory: (log, events) => FakeDaemonClient(log: log, events: events),
+      daemonClientFactory: (log, events, _) => FakeDaemonClient(log: log, events: events),
       autoStartDaemonClient: false,
     );
     services.extensions
