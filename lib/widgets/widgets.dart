@@ -20,6 +20,7 @@ export 'src/clide_pane_chrome.dart';
 export 'src/clide_resize_border.dart';
 export 'src/clide_pty_view.dart';
 export 'src/clide_scrollbar.dart';
+export 'src/clide_selection_area.dart';
 export 'src/clide_spine.dart';
 export 'src/clide_surface.dart';
 export 'src/clide_tab_bar.dart';

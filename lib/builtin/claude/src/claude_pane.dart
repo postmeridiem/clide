@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
@@ -7,8 +6,9 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
-import 'package:clide/src/terminal/terminal.dart';
 
+import 'conversation_controller.dart';
+import 'conversation_view.dart';
 import 'session_naming.dart';
 import 'tmux_session.dart' as tmux;
 
@@ -29,11 +29,15 @@ class ClaudePane extends StatefulWidget {
 }
 
 class _ClaudePaneState extends State<ClaudePane> {
-  static const _maxLines = 50000;
+  // Fixed tmux window size — Claude's TUI is no longer rendered (we read
+  // its transcript instead, T-137/D-75), so a sane default is enough to
+  // keep claude's layout happy inside the headless tmux session.
+  static const _cols = 120;
+  static const _rows = 40;
   static String? _tmuxConfPath;
 
-  late final Terminal _terminal;
   StreamSubscription<DaemonEvent>? _eventSub;
+  ConversationController? _conversation;
   String? _paneId;
   String? _sessionName;
   String? _error;
@@ -42,19 +46,20 @@ class _ClaudePaneState extends State<ClaudePane> {
   bool _spawned = false;
 
   @override
-  void initState() {
-    super.initState();
-    _terminal = Terminal(maxLines: _maxLines);
-    _terminal.onOutput = _onTerminalOutput;
-    _terminal.onResize = _onTerminalResize;
-    // Don't spawn here — wait for the first onResize from TerminalView
-    // so the PTY gets real dimensions, not 80x24 defaults.
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Spawn once, after the kernel is available. The conversation renders
+    // from the transcript, so we no longer wait on a terminal resize.
+    if (!_spawned) {
+      _spawned = true;
+      unawaited(_spawnWhenReady());
+    }
   }
 
   @override
   void dispose() {
-    _resizeTimer?.cancel();
-    _flushTimer?.cancel();
+    _conversation?.dispose();
+    _conversation = null;
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
@@ -132,8 +137,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
 
     final tmuxConf = await _ensureTmuxConf();
-    final cols = _terminal.viewWidth;
-    final rows = _terminal.viewHeight;
+    const cols = _cols;
+    const rows = _rows;
 
     var argv = <String>[
       'tmux',
@@ -188,75 +193,25 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     if (!mounted) return;
     _paneId = resp.data['id'] as String?;
+    // Render the conversation natively from the transcript (T-137/D-75)
+    // rather than the PTY's TUI output. claude runs in tmux; we tail its
+    // transcript JSONL for the workspace.
+    _conversation = ConversationController.forWorkspace(repoRoot);
     _subscribe();
     setState(() {});
-  }
-
-  // -- output batching ------------------------------------------------------
-
-  final _outputBuf = StringBuffer();
-  Timer? _flushTimer;
-
-  void _flushOutput() {
-    _flushTimer = null;
-    if (_outputBuf.isEmpty) return;
-    _terminal.write(_outputBuf.toString());
-    _outputBuf.clear();
   }
 
   void _subscribe() {
     final kernel = _kernel();
     if (kernel == null) return;
+    // Lifecycle only — content comes from the transcript, not pane.output.
     _eventSub = kernel.events.on<DaemonEvent>().listen((e) {
       if (e.subsystem != 'pane' || e.data['id'] != _paneId) return;
       switch (e.kind) {
-        case 'pane.output':
-          final b64 = e.data['bytes_b64'];
-          if (b64 is String) {
-            _outputBuf.write(utf8.decode(base64Decode(b64), allowMalformed: true));
-            _flushTimer ??= Timer(Duration.zero, _flushOutput);
-          }
         case 'pane.exit':
           setState(() => _statusLine = widget.isPrimary ? 'session exited — restart clide to retry' : 'session exited');
         case 'pane.closed':
           _paneId = null;
-      }
-    });
-  }
-
-  // -- terminal callbacks ---------------------------------------------------
-
-  void _onTerminalOutput(String text) {
-    final id = _paneId;
-    if (id == null) return;
-    _ipc()?.request('pane.write', args: {'id': id, 'text': text});
-  }
-
-  Timer? _resizeTimer;
-
-  void _onTerminalResize(int cols, int rows, int _, int __) {
-    if (!_spawned) {
-      _spawned = true;
-      _spawnWhenReady();
-      return;
-    }
-    _resizeTimer?.cancel();
-    _resizeTimer = Timer(const Duration(milliseconds: 150), () {
-      final id = _paneId;
-      if (id == null) return;
-      _ipc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
-      if (_sessionName != null) {
-        Process.run('tmux', [
-          '-L',
-          'clide',
-          'resize-window',
-          '-t',
-          _sessionName!,
-          '-x',
-          '$cols',
-          '-y',
-          '$rows',
-        ]);
       }
     });
   }
@@ -279,12 +234,17 @@ class _ClaudePaneState extends State<ClaudePane> {
   Widget build(BuildContext context) {
     final title = widget.isPrimary ? 'claude — primary' : 'claude — secondary ${widget.secondaryIndex}';
 
-    final body = _error != null
-        ? Padding(
-            padding: const EdgeInsets.all(16),
-            child: ClideText(_error!, muted: true),
-          )
-        : ClidePtyView(terminal: _terminal, label: title, autofocus: true);
+    final Widget body;
+    if (_error != null) {
+      body = Padding(
+        padding: const EdgeInsets.all(16),
+        child: ClideText(_error!, muted: true),
+      );
+    } else if (_conversation != null) {
+      body = ConversationView(controller: _conversation!);
+    } else {
+      body = const Center(child: ClideText('attaching…', muted: true));
+    }
 
     if (!widget.showChrome) return body;
 
