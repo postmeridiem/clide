@@ -25,13 +25,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('resolveClipboardAttachment', () {
-    test('files become space-joined @path tokens (no temp file)', () async {
+    test('files become attachments with isImage by extension', () async {
       final source = _FakeSource(files: ['/home/u/a.txt', '/home/u/b.png']);
       final result = await resolveClipboardAttachment(source);
-      expect(result, '@/home/u/a.txt @/home/u/b.png');
+      expect(result.map((a) => a.path), ['/home/u/a.txt', '/home/u/b.png']);
+      expect(result.map((a) => a.isImage), [false, true]);
+      expect(result.map((a) => a.pathToken), ['@/home/u/a.txt', '@/home/u/b.png']);
     });
 
-    test('a raw image is written to a temp file and referenced by @path', () async {
+    test('a raw image is written to a temp file and attached', () async {
       final dir = await Directory.systemTemp.createTemp('clide-paste-test-');
       addTearDown(() => dir.delete(recursive: true));
       final bytes = Uint8List.fromList([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
@@ -44,7 +46,9 @@ void main() {
       );
 
       final expectedPath = '${dir.path}/paste-1700000000000.png';
-      expect(result, '@$expectedPath');
+      expect(result, hasLength(1));
+      expect(result.single.isImage, isTrue);
+      expect(result.single.path, expectedPath);
       expect(await File(expectedPath).readAsBytes(), bytes);
     });
 
@@ -52,11 +56,18 @@ void main() {
       final result = await resolveClipboardAttachment(
         _FakeSource(files: ['/x/y'], image: Uint8List.fromList([1, 2])),
       );
-      expect(result, '@/x/y');
+      expect(result.map((a) => a.path), ['/x/y']);
     });
 
-    test('empty clipboard returns null (fall back to text)', () async {
-      expect(await resolveClipboardAttachment(_FakeSource()), isNull);
+    test('empty clipboard returns no attachments (fall back to text)', () async {
+      expect(await resolveClipboardAttachment(_FakeSource()), isEmpty);
+    });
+  });
+
+  group('ComposerAttachment', () {
+    test('fileName is the last path segment', () {
+      expect(const ComposerAttachment(path: '/a/b/c.png', isImage: true).fileName, 'c.png');
+      expect(const ComposerAttachment(path: 'bare.txt', isImage: false).fileName, 'bare.txt');
     });
   });
 

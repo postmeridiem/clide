@@ -13,6 +13,31 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+/// A pasted file or image the composer shows as a chip and sends to
+/// Claude as an `@path` reference.
+class ComposerAttachment {
+  const ComposerAttachment({required this.path, required this.isImage});
+
+  /// Absolute path on disk (a real file, or a temp file for a pasted
+  /// raw image).
+  final String path;
+
+  /// Whether [path] is a raster image — chips render a thumbnail for
+  /// these and a file icon otherwise.
+  final bool isImage;
+
+  /// The token inserted into the message Claude receives.
+  String get pathToken => '@$path';
+
+  /// Last path segment, for the chip label.
+  String get fileName => path.split('/').where((s) => s.isNotEmpty).lastOrNull ?? path;
+}
+
+bool _looksLikeImage(String path) {
+  final p = path.toLowerCase();
+  return p.endsWith('.png') || p.endsWith('.jpg') || p.endsWith('.jpeg') || p.endsWith('.gif') || p.endsWith('.webp') || p.endsWith('.bmp');
+}
+
 /// Read side of the OS clipboard for the non-text content the composer
 /// turns into `@path` tokens. Abstracted so the resolver is testable
 /// without the platform channel.
@@ -67,21 +92,23 @@ String pasteCacheDir() {
   return '$base/clide/pasted';
 }
 
-/// Resolve a paste into a string to insert at the composer's cursor, or
-/// null to fall back to plain-text paste.
+/// Resolve a paste into composer attachments, or an empty list to fall
+/// back to plain-text paste.
 ///
-/// Files already on disk become `@path` tokens directly. A raw image is
-/// written to [tempDir] (default [pasteCacheDir]) and referenced by its
-/// `@path`. Returns null when the clipboard holds neither, so the
+/// Files already on disk become attachments directly. A raw image is
+/// written to [tempDir] (default [pasteCacheDir]) and attached by its
+/// path. Returns an empty list when the clipboard holds neither, so the
 /// composer pastes text instead.
-Future<String?> resolveClipboardAttachment(
+Future<List<ComposerAttachment>> resolveClipboardAttachment(
   ClipboardSource source, {
   Directory? tempDir,
   DateTime Function() now = DateTime.now,
 }) async {
   final files = await source.readFiles();
   if (files.isNotEmpty) {
-    return files.map((p) => '@$p').join(' ');
+    return [
+      for (final p in files) ComposerAttachment(path: p, isImage: _looksLikeImage(p)),
+    ];
   }
 
   final image = await source.readImage();
@@ -90,8 +117,8 @@ Future<String?> resolveClipboardAttachment(
     await dir.create(recursive: true);
     final file = File('${dir.path}/paste-${now().millisecondsSinceEpoch}.png');
     await file.writeAsBytes(image);
-    return '@${file.path}';
+    return [ComposerAttachment(path: file.path, isImage: true)];
   }
 
-  return null;
+  return const [];
 }

@@ -1,17 +1,19 @@
 /// Native input composer for the Claude pane (epic T-132, T-138).
 ///
 /// A no-Material [EditableText] (D-7) below the [ConversationView].
-/// Enter submits; Shift+Enter inserts a newline. Submitted text is sent
-/// to Claude's tmux session via `pane.write` (the same CLI verb the
-/// terminal pane uses — D-6 parity), so there's no Claude-only input
-/// path. File/image paste (the `@path` mechanism) is layered on top via
-/// the paste-intent override; plain text paste falls through to the
-/// default.
+/// Enter submits; Shift+Enter inserts a newline. The composed message
+/// (typed text plus any attachment `@path` tokens) is handed to
+/// [ClaudeComposer.onSubmit]; the pane delivers it to Claude. Pasted
+/// files/images show as removable chips (T-142); plain text paste falls
+/// through to the default.
 library;
 
 import 'dart:async';
+import 'dart:io';
 
+import 'package:clide/builtin/claude/src/clipboard_paste.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -43,18 +45,18 @@ class ClaudeComposer extends StatefulWidget {
     this.pasteResolver,
   });
 
-  /// Called with the raw composed text when the user submits. The text
-  /// is not yet PTY-encoded — the pane wraps it with [encodeClaudeInput].
+  /// Called with the composed message (typed text plus attachment `@path`
+  /// tokens) when the user submits. The pane delivers it to Claude.
   final void Function(String text) onSubmit;
 
   final bool enabled;
   final String hint;
 
-  /// Optional override of paste handling: given nothing, returns the
-  /// text to insert at the cursor (e.g. `@/path/to/file`) or null to
-  /// fall back to the default plain-text paste. Injected so the pane can
-  /// wire in native file/image clipboard support and tests can fake it.
-  final Future<String?> Function()? pasteResolver;
+  /// Optional override of paste handling: returns the attachments on the
+  /// clipboard (files / images), or an empty list to fall back to the
+  /// default plain-text paste. Injected so the pane can wire in native
+  /// file/image clipboard support and tests can fake it.
+  final Future<List<ComposerAttachment>> Function()? pasteResolver;
 
   @override
   State<ClaudeComposer> createState() => _ClaudeComposerState();
@@ -63,6 +65,7 @@ class ClaudeComposer extends StatefulWidget {
 class _ClaudeComposerState extends State<ClaudeComposer> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focus = FocusNode();
+  final List<ComposerAttachment> _attachments = [];
 
   @override
   void initState() {
@@ -83,18 +86,25 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
   void _submit() {
     if (!widget.enabled) return;
     final text = _controller.text;
-    if (text.trim().isEmpty) return;
-    widget.onSubmit(text);
+    final tokens = _attachments.map((a) => a.pathToken);
+    if (text.trim().isEmpty && _attachments.isEmpty) return;
+    // Typed text first, then the attachment @path references.
+    final message = [
+      if (text.trim().isNotEmpty) text,
+      ...tokens,
+    ].join(' ');
+    widget.onSubmit(message);
     _controller.clear();
+    setState(() => _attachments.clear());
   }
 
   Future<void> _handlePaste() async {
     final resolver = widget.pasteResolver;
     if (resolver != null) {
-      final inserted = await resolver();
-      if (inserted != null) {
+      final attachments = await resolver();
+      if (attachments.isNotEmpty) {
         if (!mounted) return;
-        _insertAtCursor(inserted);
+        setState(() => _attachments.addAll(attachments));
         return;
       }
     }
@@ -104,6 +114,10 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     if (clip != null && clip.isNotEmpty && mounted) {
       _insertAtCursor(clip);
     }
+  }
+
+  void _removeAttachment(ComposerAttachment attachment) {
+    setState(() => _attachments.remove(attachment));
   }
 
   void _insertAtCursor(String insertion) {
@@ -120,66 +134,140 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final theme = ClideTheme.of(context).surface;
     final hasText = _controller.text.isNotEmpty;
-    final fg = widget.enabled ? tokens.globalForeground : tokens.globalTextMuted;
+    final fg = widget.enabled ? theme.globalForeground : theme.globalTextMuted;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: tokens.globalBorder),
+          border: Border.all(color: theme.globalBorder),
           borderRadius: BorderRadius.circular(6),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Semantics(
-          label: widget.hint,
-          textField: true,
-          child: Shortcuts(
-            shortcuts: const {
-              SingleActivator(LogicalKeyboardKey.enter): SubmitComposerIntent(),
-              SingleActivator(LogicalKeyboardKey.numpadEnter): SubmitComposerIntent(),
-            },
-            child: Actions(
-              actions: {
-                SubmitComposerIntent: CallbackAction<SubmitComposerIntent>(
-                  onInvoke: (_) {
-                    _submit();
-                    return null;
-                  },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_attachments.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [for (final a in _attachments) _chip(theme, a)],
                 ),
-                PasteTextIntent: CallbackAction<PasteTextIntent>(
-                  onInvoke: (_) {
-                    unawaited(_handlePaste());
-                    return null;
-                  },
-                ),
-              },
-              child: Stack(
-                children: [
-                  if (!hasText)
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      right: 0,
-                      child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
+              ),
+            Semantics(
+              label: widget.hint,
+              textField: true,
+              child: Shortcuts(
+                shortcuts: const {
+                  SingleActivator(LogicalKeyboardKey.enter): SubmitComposerIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadEnter): SubmitComposerIntent(),
+                },
+                child: Actions(
+                  actions: {
+                    SubmitComposerIntent: CallbackAction<SubmitComposerIntent>(
+                      onInvoke: (_) {
+                        _submit();
+                        return null;
+                      },
                     ),
-                  EditableText(
-                    controller: _controller,
-                    focusNode: _focus,
-                    readOnly: !widget.enabled,
-                    style: TextStyle(fontSize: clideFontBody, color: fg, height: 1.4),
-                    cursorColor: tokens.globalFocus,
-                    backgroundCursorColor: tokens.globalTextMuted,
-                    maxLines: 8,
-                    minLines: 1,
+                    PasteTextIntent: CallbackAction<PasteTextIntent>(
+                      onInvoke: (_) {
+                        unawaited(_handlePaste());
+                        return null;
+                      },
+                    ),
+                  },
+                  child: Stack(
+                    children: [
+                      if (!hasText)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          right: 0,
+                          child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
+                        ),
+                      EditableText(
+                        controller: _controller,
+                        focusNode: _focus,
+                        readOnly: !widget.enabled,
+                        style: TextStyle(fontSize: clideFontBody, color: fg, height: 1.4),
+                        cursorColor: theme.globalFocus,
+                        backgroundCursorColor: theme.globalTextMuted,
+                        maxLines: 8,
+                        minLines: 1,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
+  }
+
+  /// One attachment chip: a thumbnail (images) or file icon (other types),
+  /// the filename, and a remove × that cancels the attachment before send.
+  Widget _chip(SurfaceTokens theme, ComposerAttachment a) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 220),
+      decoration: BoxDecoration(
+        color: theme.panelBackground,
+        border: Border.all(color: theme.globalBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _chipLeading(theme, a),
+          const SizedBox(width: 6),
+          Flexible(
+            child: ClideText(
+              a.fileName,
+              fontSize: clideFontSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Semantics(
+            button: true,
+            label: 'Remove ${a.fileName}',
+            child: GestureDetector(
+              key: ValueKey('composer-remove-${a.path}'),
+              onTap: () => _removeAttachment(a),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: ClideIcon(PhosphorIcons.xMark, size: 12, color: theme.globalTextMuted),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chipLeading(SurfaceTokens theme, ComposerAttachment a) {
+    const dim = 28.0;
+    if (a.isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.file(
+          File(a.path),
+          width: dim,
+          height: dim,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => ClideIcon(PhosphorIcons.image, size: 18, color: theme.globalTextMuted),
+        ),
+      );
+    }
+    return ClideIcon(PhosphorIcons.fileText, size: 18, color: theme.globalTextMuted);
   }
 }
