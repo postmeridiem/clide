@@ -718,6 +718,31 @@ void main() {
         'reply number 199',
       );
     });
+
+    test('explicit file: tails that exact file, ignoring newest-discovery', () async {
+      // A teammate reader (T-139) points at one fixed subagent file rather
+      // than the newest .jsonl in the munged dir.
+      final dir = await Directory.systemTemp.createTemp('explicit_file_');
+      addTearDown(() => dir.delete(recursive: true));
+      final target = File('${dir.path}/agent-abc.jsonl');
+      writeLines(target, [assistantText('a1', 'from the explicit file')]);
+
+      final reader = TranscriptReader(
+        '/unused/workspace',
+        projectsBase: '/nonexistent',
+        pollInterval: const Duration(milliseconds: 20),
+        file: target.path,
+      );
+      final collected = <ConversationItem>[];
+      final sub = reader.stream.listen(collected.add);
+
+      await pumpUntil(() => collected.isNotEmpty);
+
+      await sub.cancel();
+      await reader.dispose();
+
+      expect(collected.whereType<AssistantTextMessage>().single.text, 'from the explicit file');
+    });
   });
 }
 

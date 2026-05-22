@@ -187,10 +187,12 @@ class TranscriptReader {
     void Function(String)? onWarn,
     String? projectsBase,
     int? initialTailBytes,
+    String? file,
   })  : _pollInterval = pollInterval,
         _onWarn = onWarn ?? _defaultWarn,
         _projectsBase = projectsBase ?? _defaultProjectsBase(),
-        _initialTailBytes = initialTailBytes ?? _defaultInitialTailBytes;
+        _initialTailBytes = initialTailBytes ?? _defaultInitialTailBytes,
+        _explicitFile = file;
 
   final String workspacePath;
   final Duration _pollInterval;
@@ -204,6 +206,11 @@ class TranscriptReader {
   /// `~/.claude/projects`; overridable so tests point the real reader at a
   /// temp directory instead of the user's home.
   final String _projectsBase;
+
+  /// When set, tail this exact file instead of discovering the newest
+  /// `.jsonl` in the munged dir. Used for teammate subagent transcripts
+  /// (T-139), whose path the team observer resolves explicitly.
+  final String? _explicitFile;
 
   static String _defaultProjectsBase() {
     final home = Platform.environment['HOME'] ?? '';
@@ -287,10 +294,9 @@ class TranscriptReader {
   }
 
   Future<void> _tick(StreamController<ConversationItem> controller) async {
-    final dir = _mungedDir();
-
-    // Discover or refresh the active session file.
-    final newest = await _newestJsonl(dir);
+    // A teammate reader tails one fixed file; otherwise discover the
+    // newest session `.jsonl` in the munged dir.
+    final newest = _explicitFile ?? await _newestJsonl(_mungedDir());
     if (newest == null) return;
 
     if (newest != _currentPath) {

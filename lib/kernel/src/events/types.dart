@@ -106,3 +106,74 @@ class DaemonEvent extends ClideEvent {
   @override
   Map<String, Object?> payload() => {'ts': ts.toIso8601String(), ...data};
 }
+
+/// A Claude Code tmux teammate appeared (its pane is live). Identity is
+/// taken from the team config, so it is reliable regardless of transcript
+/// drift (T-139, D-75). [transcriptPath] is the best-effort resolved
+/// subagent transcript, or null if it could not be joined yet.
+class TeamMemberBorn extends ClideEvent {
+  const TeamMemberBorn({
+    required this.team,
+    required this.agentId,
+    required this.name,
+    required this.agentType,
+    required this.paneId,
+    this.model,
+    this.color,
+    this.cwd,
+    this.transcriptPath,
+  });
+
+  /// Team name (the `~/.claude/teams/<team>` directory).
+  final String team;
+
+  /// Config agent id (`<name>@<team>`).
+  final String agentId;
+  final String name;
+  final String agentType;
+
+  /// tmux pane id (`%N`).
+  final String paneId;
+  final String? model;
+  final String? color;
+  final String? cwd;
+  final String? transcriptPath;
+
+  @override
+  String get subsystem => 'team';
+  @override
+  String get kind => 'member-born';
+  @override
+  Map<String, Object?> payload() => {
+        'team': team,
+        'agentId': agentId,
+        'name': name,
+        'agentType': agentType,
+        'paneId': paneId,
+        if (model != null) 'model': model,
+        if (color != null) 'color': color,
+        if (cwd != null) 'cwd': cwd,
+        if (transcriptPath != null) 'transcriptPath': transcriptPath,
+      };
+}
+
+/// A Claude Code tmux teammate's pane went away (it exited or the team
+/// dissolved) — T-139.
+class TeamMemberDied extends ClideEvent {
+  const TeamMemberDied({
+    required this.team,
+    required this.agentId,
+    required this.paneId,
+  });
+
+  final String team;
+  final String agentId;
+  final String paneId;
+
+  @override
+  String get subsystem => 'team';
+  @override
+  String get kind => 'member-died';
+  @override
+  Map<String, Object?> payload() => {'team': team, 'agentId': agentId, 'paneId': paneId};
+}
