@@ -6,10 +6,15 @@ library;
 
 import 'package:clide/builtin/editor/src/editor_view.dart';
 import 'package:clide/clide.dart';
+import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart';
+
+Finder _closeIcons() => find.byWidgetPredicate((w) => w is ClideIcon && w.painter is CloseIcon);
 
 IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data);
 
@@ -81,6 +86,60 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(activated, 'b_2');
+    });
+
+    testWidgets('closing a tab routes to editor.close', (tester) async {
+      stubBuffers([_buf('b_1', 'lib/a.dart')], active: 'b_1');
+      String? closed;
+      f.ipc.stub('editor.close', (a) async {
+        closed = a['id'] as String?;
+        return _ok(const {});
+      });
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+
+      expect(_closeIcons(), findsWidgets);
+      await tester.tap(_closeIcons().first);
+      await tester.pumpAndSettle();
+
+      expect(closed, 'b_1');
+    });
+
+    testWidgets('typing in the editor mirrors to editor.set-content', (tester) async {
+      stubBuffers([_buf('b_1', 'lib/a.dart')], active: 'b_1');
+      Map<String, Object?>? setArgs;
+      f.ipc.stub('editor.set-content', (a) async {
+        setArgs = a;
+        return _ok(const {});
+      });
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(EditableText), 'edited body');
+      await tester.pumpAndSettle();
+
+      expect(setArgs?['id'], 'b_1');
+      expect(setArgs?['text'], 'edited body');
+    });
+
+    testWidgets('Ctrl+S in the editor triggers editor.save', (tester) async {
+      stubBuffers([_buf('b_1', 'lib/a.dart')], active: 'b_1');
+      String? saved;
+      f.ipc.stub('editor.save', (a) async {
+        saved = a['id'] as String?;
+        return _ok(const {});
+      });
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(saved, 'b_1');
     });
   });
 }

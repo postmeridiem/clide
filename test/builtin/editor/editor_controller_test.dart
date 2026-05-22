@@ -200,26 +200,53 @@ void main() {
       expect(c.dirty, isFalse);
     });
 
-    test('editor.edited marks the buffer dirty', () async {
+    test('editor.edited marks the right buffer dirty, leaving siblings alone', () async {
       ipc.stub(
           'editor.list',
           (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
+                'buffers': [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')]
               }));
       ipc.stub(
           'editor.active',
           (_) async => _ok({
                 'active': {'id': 'b_1'}
               }));
-      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
+      ipc.stub('editor.read', (a) async => _ok(_read(a['id'] as String, 'a.dart', 'x')));
       await c.hydrate();
-      expect(c.buffers.single.dirty, isFalse);
+      expect(c.buffers.every((b) => !b.dirty), isTrue);
 
-      // A remote edit (not our own — no set-content was issued).
-      emitEditor(bus, 'editor.edited', {'id': 'b_1'});
+      // A remote edit of b_2 (not our own). b_1 stays clean — exercises
+      // the untouched-sibling branch of the dirty marker.
+      emitEditor(bus, 'editor.edited', {'id': 'b_2'});
       await pumpEventQueue();
 
-      expect(c.buffers.single.dirty, isTrue);
+      expect(c.buffers.firstWhere((b) => b.id == 'b_2').dirty, isTrue);
+      expect(c.buffers.firstWhere((b) => b.id == 'b_1').dirty, isFalse);
+    });
+
+    test('editor.active-changed to a different buffer loads its content', () async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub('editor.read', (a) async {
+        final id = a['id'] as String;
+        return _ok(_read(id, id == 'b_1' ? 'a.dart' : 'b.dart', 'body-$id'));
+      });
+      await c.hydrate();
+      expect(c.activeId, 'b_1');
+
+      emitEditor(bus, 'editor.active-changed', {'id': 'b_2'});
+      await pumpEventQueue();
+
+      expect(c.activeId, 'b_2');
+      expect(c.content, 'body-b_2');
     });
   });
 
@@ -250,6 +277,156 @@ void main() {
       expect(c.buffers.single.dirty, isTrue);
       expect(setArgs?['id'], 'b_1');
       expect(setArgs?['text'], 'xy');
+    });
+
+    test('save() issues editor.save for the active buffer', () async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'a.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
+      await c.hydrate();
+
+      String? saved;
+      ipc.stub('editor.save', (a) async {
+        saved = a['id'] as String?;
+        return _ok(const {});
+      });
+      await c.save();
+      expect(saved, 'b_1');
+    });
+
+    test('save() is a no-op with no active buffer', () async {
+      var calls = 0;
+      ipc.stub('editor.save', (_) async {
+        calls++;
+        return _ok(const {});
+      });
+      await c.save(); // never hydrated → no active
+      expect(calls, 0);
+    });
+  });
+
+  group('edge cases', () {
+    test('editor.active-changed to null clears the active buffer', () async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'a.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
+      await c.hydrate();
+      expect(c.activeId, 'b_1');
+
+      emitEditor(bus, 'editor.active-changed', const {}); // no id
+      await pumpEventQueue();
+      expect(c.activeId, isNull);
+      expect(c.content, '');
+    });
+
+    test('hydrate surfaces an error when editor.active fails', () async {
+      ipc.stub('editor.list', (_) async => _ok({'buffers': const []}));
+      ipc.stub(
+        'editor.active',
+        (_) async => IpcResponse.err(
+          id: '',
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+        ),
+      );
+      await c.hydrate();
+      expect(c.error, 'boom');
+    });
+
+    test('a missing-stub editor.list (not ok) leaves the buffer list empty', () async {
+      // No editor.list stub registered → FakeDaemonClient returns a
+      // notFound error; _refreshList bails without crashing.
+      ipc.stub('editor.active', (_) async => _ok(const {}));
+      await c.hydrate();
+      expect(c.buffers, isEmpty);
+    });
+
+    test('editor.opened with no id clears the active buffer', () async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'a.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
+      await c.hydrate();
+      expect(c.activeId, 'b_1');
+
+      emitEditor(bus, 'editor.opened', const {}); // no id
+      await pumpEventQueue();
+      expect(c.activeId, isNull);
+    });
+
+    test('a failing editor.read surfaces the error', () async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'a.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub(
+        'editor.read',
+        (_) async => IpcResponse.err(
+          id: '',
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'read failed'),
+        ),
+      );
+      await c.hydrate();
+      expect(c.error, 'read failed');
+    });
+
+    test('our own edit echo (editor.edited) is suppressed once, not reloaded', () async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'a.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'original')));
+      ipc.stub('editor.set-content', (_) async => _ok(const {}));
+      await c.hydrate();
+
+      // Local edit arms _suppressNextRemoteEdit.
+      c.pushLocalEdit(newContent: 'local', newSelection: const Selection.collapsed(5));
+      var reads = 0;
+      ipc.stub('editor.read', (_) async {
+        reads++;
+        return _ok(_read('b_1', 'a.dart', 'reloaded'));
+      });
+      // The echo of our own set-content comes back as editor.edited.
+      emitEditor(bus, 'editor.edited', {'id': 'b_1'});
+      await pumpEventQueue();
+
+      // Suppressed: no reload, local content preserved.
+      expect(reads, 0);
+      expect(c.content, 'local');
     });
   });
 }
