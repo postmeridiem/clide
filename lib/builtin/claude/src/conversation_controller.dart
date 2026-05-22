@@ -33,6 +33,8 @@ class ConversationController extends ChangeNotifier {
   final Future<void> Function()? _onDispose;
   late final StreamSubscription<ConversationItem> _sub;
   final List<ConversationItem> _items = [];
+  Timer? _notifyTimer;
+  bool _disposed = false;
 
   /// Items in arrival (transcript) order.
   List<ConversationItem> get items => List.unmodifiable(_items);
@@ -41,11 +43,22 @@ class ConversationController extends ChangeNotifier {
 
   void _onItem(ConversationItem item) {
     _items.add(item);
-    notifyListeners();
+    // Coalesce notifications: the reader emits a burst (the initial tail
+    // read), and a notify-per-item would thrash the view's rebuild +
+    // auto-scroll. A zero-duration Timer fires only after the microtask
+    // queue drains — the stream delivers one event per microtask, so a
+    // microtask-scheduled notify would interleave between deliveries and
+    // fire per item. The timer collapses a whole burst into one rebuild.
+    _notifyTimer ??= Timer(Duration.zero, () {
+      _notifyTimer = null;
+      if (!_disposed) notifyListeners();
+    });
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _notifyTimer?.cancel();
     unawaited(_sub.cancel());
     unawaited(_onDispose?.call());
     super.dispose();

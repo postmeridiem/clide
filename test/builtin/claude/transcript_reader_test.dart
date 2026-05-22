@@ -669,6 +669,43 @@ void main() {
       expect(collected, hasLength(1));
       expect((collected.first as UserMessage).text, 'real message');
     });
+
+    test('initial attach reads only the recent tail (initialTailBytes cap)', () async {
+      final projectDir = mungedDir(tempBase, workspace);
+      await projectDir.create(recursive: true);
+      final sessionFile = File('${projectDir.path}/session-abc.jsonl');
+
+      // A long pre-existing transcript — the kind that froze the UI when
+      // parsed in full on attach.
+      writeLines(sessionFile, [
+        for (var i = 0; i < 200; i++) assistantText('a$i', 'reply number $i'),
+      ]);
+
+      // Cap the initial read well below the file size so only the last
+      // records are within the tail window.
+      final reader = TranscriptReader(
+        workspace,
+        projectsBase: tempBase.path,
+        pollInterval: const Duration(milliseconds: 20),
+        initialTailBytes: 256,
+      );
+      final collected = <ConversationItem>[];
+      final sub = reader.stream.listen(collected.add);
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      await sub.cancel();
+      await reader.dispose();
+
+      // Far fewer than the 200 records — only the recent tail was read.
+      expect(collected, isNotEmpty);
+      expect(collected.length, lessThan(200));
+      // The most recent record is always intact at the end of the file.
+      expect(
+        collected.whereType<AssistantTextMessage>().last.text,
+        'reply number 199',
+      );
+    });
   });
 }
 

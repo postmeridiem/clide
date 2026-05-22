@@ -56,11 +56,15 @@ void main() {
       expect(c.isEmpty, isTrue);
       ctrl.add(_user('hi'));
       ctrl.add(_asst('hello'));
-      await Future<void>.delayed(Duration.zero);
+      // Wait past the coalescing timer (zero-duration, fires after the
+      // microtask queue drains).
+      await Future<void>.delayed(const Duration(milliseconds: 20));
 
       expect(c.items, hasLength(2));
       expect(c.items.first, isA<UserMessage>());
-      expect(notifications, 2);
+      // Notifications are coalesced: a burst of items collapses to a
+      // single notify so the view rebuilds once, not per item.
+      expect(notifications, 1);
       await ctrl.close();
     });
 

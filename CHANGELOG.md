@@ -97,6 +97,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude pane no longer freezes the app on open — the transcript reader
+  caps its initial read to the recent tail, parses off the UI isolate,
+  and coalesces view notifications into one rebuild per burst (T-137).
 - Daemon-not-connected on startup — panels and the Claude pane raced
   the socket loopback. Requests now wait briefly for an in-flight
   connection, the server isn't restarted for the same workspace, and

@@ -31,6 +31,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -145,6 +146,12 @@ String _shortId(String uuid) => uuid.length >= 8 ? uuid.substring(0, 8) : uuid;
 // Reader
 // ---------------------------------------------------------------------------
 
+/// On first attach to a session file, read at most this many recent
+/// bytes (not the whole file) — an active transcript can be many MB and
+/// parsing it all synchronously would freeze the UI. Appends after that
+/// stream incrementally.
+const _defaultInitialTailBytes = 256 * 1024;
+
 /// Known major transcript versions.
 const _knownMajorVersions = {1, 2};
 
@@ -174,13 +181,19 @@ class TranscriptReader {
     Duration pollInterval = const Duration(milliseconds: 500),
     void Function(String)? onWarn,
     String? projectsBase,
+    int? initialTailBytes,
   })  : _pollInterval = pollInterval,
         _onWarn = onWarn ?? _defaultWarn,
-        _projectsBase = projectsBase ?? _defaultProjectsBase();
+        _projectsBase = projectsBase ?? _defaultProjectsBase(),
+        _initialTailBytes = initialTailBytes ?? _defaultInitialTailBytes;
 
   final String workspacePath;
   final Duration _pollInterval;
   final void Function(String) _onWarn;
+
+  /// Max bytes of recent history to read when first attaching to a
+  /// session file (overridable for tests).
+  final int _initialTailBytes;
 
   /// Base dir holding the per-workspace transcript dirs. Defaults to
   /// `~/.claude/projects`; overridable so tests point the real reader at a
@@ -276,11 +289,16 @@ class TranscriptReader {
     if (newest == null) return;
 
     if (newest != _currentPath) {
-      // Session switch — reset cursor so we replay from the beginning of the
-      // new file. We intentionally re-emit items from the new file start;
-      // a future UI layer can de-dup by uuid if required.
+      // New session file. Start from the recent tail rather than byte 0:
+      // an active transcript can be many MB (thousands of records), and
+      // parsing the whole thing synchronously on first attach freezes the
+      // UI. Read at most [_initialTailBytes] of recent history, then stream
+      // appends. A partial first line (from landing mid-record) simply
+      // fails to JSON-parse and is skipped. Older scrollback is a future
+      // load-more concern.
       _currentPath = newest;
-      _cursor = 0;
+      final length = await File(newest).length();
+      _cursor = length > _initialTailBytes ? length - _initialTailBytes : 0;
     }
 
     await _tail(controller, newest);
@@ -291,199 +309,186 @@ class TranscriptReader {
     final length = await file.length();
     if (length <= _cursor) return; // no new bytes
 
+    final String chunk;
     final raf = await file.open();
     try {
       await raf.setPosition(_cursor);
       final newBytes = await raf.read(length - _cursor);
       _cursor = length;
-
-      final chunk = utf8.decode(newBytes, allowMalformed: true);
-      final lines = chunk.split('\n');
-
-      for (final raw in lines) {
-        final line = raw.trim();
-        if (line.isEmpty) continue;
-        for (final item in parseLine(line)) {
-          controller.add(item);
-        }
-      }
+      chunk = utf8.decode(newBytes, allowMalformed: true);
     } finally {
       await raf.close();
     }
+    if (controller.isClosed) return;
+
+    // Parse off the UI isolate — the initial chunk can be sizeable and
+    // JSON-decoding it on the main thread would jank the frame.
+    final parsed = await Isolate.run(() => parseTranscriptChunk(chunk));
+    if (controller.isClosed) return;
+    for (final w in parsed.warnings) {
+      _onWarn(w);
+    }
+    for (final item in parsed.items) {
+      if (controller.isClosed) break;
+      controller.add(item);
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Parsing — pure: takes a JSONL line, returns the items it yields.
-  //
-  // Public so tests exercise the real parser directly (no duplicate). The tail
-  // loop above feeds the returned items into the stream. Malformed JSON and
-  // skip/unknown types yield an empty list; the version drift-guard warns via
-  // [onWarn] but still parses what it can.
-  // ---------------------------------------------------------------------------
-
+  /// Parse a single JSONL line into its items (forwarding any version
+  /// warnings to [onWarn]). Public so tests exercise the real parser.
   List<ConversationItem> parseLine(String line) {
-    Map<String, dynamic> envelope;
-    try {
-      envelope = (jsonDecode(line) as Map).cast<String, dynamic>();
-    } catch (_) {
-      return const []; // malformed JSON — skip silently
+    final parsed = parseTranscriptChunk(line);
+    for (final w in parsed.warnings) {
+      _onWarn(w);
     }
+    return parsed.items;
+  }
+}
 
-    // Version drift-guard.
-    final rawVersion = envelope['version'] as String?;
-    if (rawVersion != null) {
-      final dotIdx = rawVersion.indexOf('.');
-      final majorStr = dotIdx > 0 ? rawVersion.substring(0, dotIdx) : rawVersion;
-      final major = int.tryParse(majorStr);
-      if (major != null && !_knownMajorVersions.contains(major)) {
-        _onWarn('unfamiliar transcript version "$rawVersion" (major=$major); '
-            'parsing will degrade gracefully');
-      }
-    }
+/// Result of [parseTranscriptChunk]: parsed items + version-drift warnings.
+typedef ParsedChunk = ({List<ConversationItem> items, List<String> warnings});
 
-    final type = envelope['type'] as String?;
-    if (type == null || _skipTypes.contains(type)) return const [];
+// ---------------------------------------------------------------------------
+// Parsing — pure + isolate-safe. Top-level (no instance state) so it can run
+// via Isolate.run. Malformed JSON and skip/unknown types are dropped; an
+// unfamiliar major `version` adds a warning but parsing still proceeds.
+// ---------------------------------------------------------------------------
 
-    final uuid = envelope['uuid'] as String? ?? '';
-    final isSidechain = envelope['isSidechain'] as bool? ?? false;
+ParsedChunk parseTranscriptChunk(String chunk) {
+  final items = <ConversationItem>[];
+  final warnings = <String>[];
+  for (final raw in chunk.split('\n')) {
+    final line = raw.trim();
+    if (line.isEmpty) continue;
+    _parseLineInto(line, items, warnings);
+  }
+  return (items: items, warnings: warnings);
+}
 
-    DateTime timestamp;
-    try {
-      timestamp = DateTime.parse(envelope['timestamp'] as String? ?? '');
-    } catch (_) {
-      timestamp = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    }
-
-    final out = <ConversationItem>[];
-    switch (type) {
-      case 'user':
-        _parseUser(envelope, uuid, timestamp, isSidechain, out);
-      case 'assistant':
-        _parseAssistant(envelope, uuid, timestamp, isSidechain, out);
-      default:
-        // Unknown type — degrade gracefully (don't emit, don't crash).
-        break;
-    }
-    return out;
+void _parseLineInto(String line, List<ConversationItem> out, List<String> warnings) {
+  Map<String, dynamic> envelope;
+  try {
+    envelope = (jsonDecode(line) as Map).cast<String, dynamic>();
+  } catch (_) {
+    return; // malformed JSON — skip silently
   }
 
-  void _parseUser(
-    Map<String, dynamic> envelope,
-    String uuid,
-    DateTime timestamp,
-    bool isSidechain,
-    List<ConversationItem> out,
-  ) {
-    final message = envelope['message'] as Map?;
-    if (message == null) return;
+  final rawVersion = envelope['version'] as String?;
+  if (rawVersion != null) {
+    final dotIdx = rawVersion.indexOf('.');
+    final majorStr = dotIdx > 0 ? rawVersion.substring(0, dotIdx) : rawVersion;
+    final major = int.tryParse(majorStr);
+    if (major != null && !_knownMajorVersions.contains(major)) {
+      warnings.add('unfamiliar transcript version "$rawVersion" (major=$major); '
+          'parsing will degrade gracefully');
+    }
+  }
 
-    final content = message['content'];
+  final type = envelope['type'] as String?;
+  if (type == null || _skipTypes.contains(type)) return;
 
-    if (content is String) {
-      // Plain string content.
-      if (content.isNotEmpty) {
-        out.add(UserMessage(
+  final uuid = envelope['uuid'] as String? ?? '';
+  final isSidechain = envelope['isSidechain'] as bool? ?? false;
+
+  DateTime timestamp;
+  try {
+    timestamp = DateTime.parse(envelope['timestamp'] as String? ?? '');
+  } catch (_) {
+    timestamp = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  }
+
+  switch (type) {
+    case 'user':
+      _parseUserInto(envelope, uuid, timestamp, isSidechain, out);
+    case 'assistant':
+      _parseAssistantInto(envelope, uuid, timestamp, isSidechain, out);
+    default:
+      break; // unknown type — degrade gracefully
+  }
+}
+
+void _parseUserInto(
+  Map<String, dynamic> envelope,
+  String uuid,
+  DateTime timestamp,
+  bool isSidechain,
+  List<ConversationItem> out,
+) {
+  final message = envelope['message'] as Map?;
+  if (message == null) return;
+  final content = message['content'];
+
+  if (content is String) {
+    if (content.isNotEmpty) {
+      out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: content));
+    }
+    return;
+  }
+  if (content is! List) return;
+
+  final textParts = <String>[];
+  for (final item in content) {
+    if (item is! Map) continue;
+    switch (item['type'] as String?) {
+      case 'text':
+        final text = item['text'] as String? ?? '';
+        if (text.isNotEmpty) textParts.add(text);
+      case 'tool_result':
+        final rawContent = item['content'];
+        out.add(ToolResultMessage(
           uuid: uuid,
           timestamp: timestamp,
           isSidechain: isSidechain,
-          text: content,
+          toolUseId: item['tool_use_id'] as String? ?? '',
+          content: rawContent is String ? rawContent : jsonEncode(rawContent),
+          isError: item['is_error'] as bool? ?? false,
         ));
-      }
-      return;
-    }
-
-    if (content is! List) return;
-
-    // Array content — may contain text parts and/or tool_result parts.
-    final textParts = <String>[];
-    for (final item in content) {
-      if (item is! Map) continue;
-      final itemType = item['type'] as String?;
-      switch (itemType) {
-        case 'text':
-          final text = item['text'] as String? ?? '';
-          if (text.isNotEmpty) textParts.add(text);
-        case 'tool_result':
-          final toolUseId = item['tool_use_id'] as String? ?? '';
-          final rawContent = item['content'];
-          final resultContent = rawContent is String ? rawContent : jsonEncode(rawContent);
-          final isError = item['is_error'] as bool? ?? false;
-          out.add(ToolResultMessage(
-            uuid: uuid,
-            timestamp: timestamp,
-            isSidechain: isSidechain,
-            toolUseId: toolUseId,
-            content: resultContent,
-            isError: isError,
-          ));
-        default:
-          break;
-      }
-    }
-
-    if (textParts.isNotEmpty) {
-      out.add(UserMessage(
-        uuid: uuid,
-        timestamp: timestamp,
-        isSidechain: isSidechain,
-        text: textParts.join('\n'),
-      ));
+      default:
+        break;
     }
   }
+  if (textParts.isNotEmpty) {
+    out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: textParts.join('\n')));
+  }
+}
 
-  void _parseAssistant(
-    Map<String, dynamic> envelope,
-    String uuid,
-    DateTime timestamp,
-    bool isSidechain,
-    List<ConversationItem> out,
-  ) {
-    final message = envelope['message'] as Map?;
-    if (message == null) return;
+void _parseAssistantInto(
+  Map<String, dynamic> envelope,
+  String uuid,
+  DateTime timestamp,
+  bool isSidechain,
+  List<ConversationItem> out,
+) {
+  final message = envelope['message'] as Map?;
+  if (message == null) return;
+  final content = message['content'];
+  if (content is! List) return;
 
-    final content = message['content'];
-    if (content is! List) return;
-
-    for (final item in content) {
-      if (item is! Map) continue;
-      final itemType = item['type'] as String?;
-      switch (itemType) {
-        case 'text':
-          final text = item['text'] as String? ?? '';
-          if (text.isNotEmpty) {
-            out.add(AssistantTextMessage(
-              uuid: uuid,
-              timestamp: timestamp,
-              isSidechain: isSidechain,
-              text: text,
-            ));
-          }
-        case 'thinking':
-          final thinking = item['thinking'] as String? ?? '';
-          if (thinking.isNotEmpty) {
-            out.add(AssistantThinkingMessage(
-              uuid: uuid,
-              timestamp: timestamp,
-              isSidechain: isSidechain,
-              thinking: thinking,
-            ));
-          }
-        case 'tool_use':
-          final toolUseId = item['id'] as String? ?? '';
-          final name = item['name'] as String? ?? '';
-          final rawInput = item['input'];
-          final input = rawInput is Map ? rawInput.cast<String, dynamic>() : <String, dynamic>{};
-          out.add(AssistantToolUse(
-            uuid: uuid,
-            timestamp: timestamp,
-            isSidechain: isSidechain,
-            toolUseId: toolUseId,
-            name: name,
-            input: input,
-          ));
-        default:
-          break;
-      }
+  for (final item in content) {
+    if (item is! Map) continue;
+    switch (item['type'] as String?) {
+      case 'text':
+        final text = item['text'] as String? ?? '';
+        if (text.isNotEmpty) {
+          out.add(AssistantTextMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: text));
+        }
+      case 'thinking':
+        final thinking = item['thinking'] as String? ?? '';
+        if (thinking.isNotEmpty) {
+          out.add(AssistantThinkingMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, thinking: thinking));
+        }
+      case 'tool_use':
+        final rawInput = item['input'];
+        out.add(AssistantToolUse(
+          uuid: uuid,
+          timestamp: timestamp,
+          isSidechain: isSidechain,
+          toolUseId: item['id'] as String? ?? '',
+          name: item['name'] as String? ?? '',
+          input: rawInput is Map ? rawInput.cast<String, dynamic>() : <String, dynamic>{},
+        ));
+      default:
+        break;
     }
   }
 }
