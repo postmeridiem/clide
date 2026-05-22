@@ -1926,3 +1926,31 @@ Acceptance:
 
 Source: consultants.md "Security — Findings — [Major]" item 1. Decision: D-74.', NULL, '2026-05-20 15:54:35', '2026-05-20 15:54:35', '2026-05-20 15:54:35', NULL, '7f972739c82134897869432a3978d6ec', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-120', 'status', 'backlog', 'in_progress', NULL, '2026-05-20 15:54:38', '2026-05-20 15:54:38', '2026-05-20 15:54:38', NULL, 'fa11190ac1bd9cd8f67e3041a8ca7236', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-120', 'status', 'in_progress', 'done', NULL, '2026-05-20 16:02:35', '2026-05-20 16:02:35', '2026-05-20 16:02:35', NULL, 'efffdd07c7281977d37ce0ad4285a36a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-97', 'status', 'backlog', 'done', NULL, '2026-05-20 16:02:46', '2026-05-20 16:02:46', '2026-05-20 16:02:46', NULL, '9c36d26b5ac3702441a87c7f88dbf830', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-122', 'description', 'T-115''s render-only widget test at test/builtin/welcome/widget_test.dart ''sticky-startup toggle renders on a seeded recent row'' verifies the toggle is constructed but does not exercise the tap → setStickyStartup path. Adding a tap-driven assertion hung the 10-minute Flutter test timeout consistently (find.byTooltip, find.bySemanticsLabel, and find.byKey + tap variants all reproduced).
+
+Hypothesis: ClideTooltip wraps the toggle in a MouseRegion whose onEnter awaits Future.delayed(showDelay). Some path during tap simulation (or surrounding pump scheduling) keeps that timer pending, and the test runner waits the full 10-minute idle timeout before declaring it stuck.
+
+Next steps:
+- Reproduce in isolation against a stripped-down harness pumping just the _StickyToggle widget.
+- Determine whether the hang is the MouseRegion timer or another future (e.g., the welcome-tab activation, toolchain check).
+- Either fix the underlying cause or use fakeAsync.run() to drain the timers explicitly.
+
+Until then, ProjectManager unit tests in test/kernel/src/project_test.dart cover the sticky-startup logic (14 cases including round-trip, no-op, idempotent flip, ambiguity, and openStickyOrNothing).', 'T-115 follow-up: tap-driven widget test for sticky-startup toggle.
+
+Adding a tap-driven (or even render-only) test that pumps WelcomeView with a non-empty recents list hangs the Flutter test runner until timeout.
+
+Investigation 2026-05-22 (narrowed the cause):
+- The hang is SYNCHRONOUS: `flutter test --timeout 45s` never fires; only an external `timeout` kills it. So the Dart isolate event loop is blocked, not awaiting.
+- Reduced to a minimal repro: pumping two NESTED ClideTappable widgets under the shared test harness (test/helpers/widget_harness.dart) hangs. A SINGLE ClideTappable (as in _ActionRow) renders fine — that is why all existing WelcomeView tests pass (empty recents = no nested tappable). The recents path nests one: _RecentRow is a ClideTappable whose subtree contains _StickyToggle (a Semantics-wrapped ClideTappable).
+- The shared harness uses `Overlay(canSizeOverlay: true)` over a zero-size `MediaQuery`, which triggers an intrinsic-sizing pass. Strongly suspect the nested ClideTappable (Focus + MouseRegion + GestureDetector + DecoratedBox stack) diverges under intrinsic dimension computation.
+- Workarounds that did NOT help: setting tester.view.physicalSize; wrapping in SizedBox; wrapping in Center+SizedBox; a custom bounded MediaQuery harness (that custom harness hung even on a single tappable — likely its own confound, do not reuse it).
+- The prior ClideTooltip/MouseRegion-timer hypothesis is WRONG: the recents widgets pass no tooltip to ClideTappable, so no ClideTooltip is built, and _StickyToggle uses Semantics(tooltip:) (metadata only, no widget/timer).
+
+Next steps:
+- Decide whether this is a real ClideTappable bug (nested tappables would also hang the live app welcome screen with recents) or strictly a canSizeOverlay-intrinsic-sizing test artifact. Check the running app: open welcome with >=1 recent project and confirm it does NOT hang. If the app is fine, the fix is harness-side (give WelcomeView tight constraints so no intrinsic pass), and the shared harness or a welcome-specific harness needs adjusting. If the app DOES hang, ClideTappable has a real nested-layout bug — fix it (likely in lib/widgets/src/clide_tappable.dart intrinsic/layout handling) and this becomes higher priority.
+- Once unblocked, this also unblocks lib/builtin/welcome/src/welcome_view.dart coverage (74 uncovered lines, the dominant lib/builtin/ gap toward the T-89 95% target).
+
+ProjectManager sticky-startup logic is already covered by test/kernel/src/project_test.dart (14 cases).', NULL, '2026-05-22 06:55:02', '2026-05-22 06:55:02', '2026-05-22 06:55:02', NULL, 'b7c13548cef5d962c7b5b4500ea39b9e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-122', 'priority', 'low', 'medium', NULL, '2026-05-22 06:55:02', '2026-05-22 06:55:02', '2026-05-22 06:55:02', NULL, 'e7d5dd1b89eded661de7f6d64edea04c', 1) ON CONFLICT(hash) DO NOTHING;

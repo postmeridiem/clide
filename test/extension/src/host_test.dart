@@ -52,5 +52,19 @@ void main() {
       final out = await const ExtensionScanner().discover(root: root);
       expect(out.map((m) => m.id).toList(), ['ext.ok']);
     });
+
+    test('defaultRoot points at ~/.clide/extensions', () {
+      final scanner = ExtensionScanner();
+      final home = Platform.environment['HOME'] ?? '/tmp';
+      expect(scanner.defaultRoot().path, '$home/.clide/extensions');
+    });
+
+    test('discover() with no root falls back to defaultRoot', () async {
+      // Exercises the `root ?? defaultRoot()` fallback. The install
+      // root rarely exists in CI, so this returns a (possibly empty)
+      // list rather than throwing.
+      final out = await const ExtensionScanner().discover();
+      expect(out, isA<List<ExtensionManifest>>());
+    });
   });
 }
