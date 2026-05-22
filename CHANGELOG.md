@@ -86,6 +86,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- User messages in the Claude conversation now render as a distinct card
+  (accent stripe + filled background) so your prompts read apart from
+  Claude's flat-markdown responses (T-143).
 - Claude conversation content now flows through the kernel MessageBus —
   a reader tails the transcript and publishes items; the pane subscribes.
   Decouples reading from rendering so the upcoming team panels can show

@@ -105,7 +105,7 @@ class _ConversationTurn extends StatelessWidget {
   Widget build(BuildContext context) {
     final i = item;
     return switch (i) {
-      UserMessage() => _labelled('you', tokens.globalForeground, ClideMarkdown(i.text)),
+      UserMessage() => _userCard(i),
       AssistantTextMessage() => _labelled('claude', tokens.globalFocus, ClideMarkdown(i.text)),
       AssistantThinkingMessage() => _labelled(
           'thinking',
@@ -115,6 +115,46 @@ class _ConversationTurn extends StatelessWidget {
       AssistantToolUse() => _toolUse(i),
       ToolResultMessage() => _toolResult(i),
     };
+  }
+
+  /// The user's own message — a distinct card (accent stripe + fill) so
+  /// it reads apart from Claude's flat-markdown responses.
+  Widget _userCard(UserMessage m) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: ColoredBox(
+          color: tokens.globalBackground,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 3, color: tokens.globalFocus),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClideText(
+                          'you',
+                          fontSize: clideFontSmall,
+                          color: tokens.globalFocus,
+                          fontFamily: clideMonoFamily,
+                        ),
+                        const SizedBox(height: 4),
+                        ClideMarkdown(m.text),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// A labelled turn: a small role tag above the body.
