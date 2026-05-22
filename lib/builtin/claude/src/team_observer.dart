@@ -10,7 +10,7 @@
 ///   `tmuxPaneId` (`%N`, empty for the lead), `name`, `agentType`, `model`,
 ///   `color`, `cwd`, `joinedAt`. Polling `tmux -L clide list-panes -a` and
 ///   correlating live pane ids with `tmuxPaneId` gives a dependable
-///   born/died signal and full identity — no transcript needed.
+///   joined/left signal and full identity — no transcript needed.
 /// - **Fragile — per-teammate transcript join.** A teammate's transcript is
 ///   a subagent file `<munged-cwd>/<leadSessionId>/subagents/agent-<hex>.jsonl`
 ///   whose only ids are a random hex (the filename) and a `slug`; it carries
@@ -137,8 +137,8 @@ class _LiveMember {
   final TranscriptPublisher? publisher;
 }
 
-/// Watches a workspace's tmux team and emits [TeamMemberBorn] /
-/// [TeamMemberDied] as panes appear/disappear, publishing each teammate's
+/// Watches a workspace's tmux team and emits [TeamMemberJoined] /
+/// [TeamMemberLeft] as panes appear/disappear, publishing each teammate's
 /// transcript onto the [MessageBus] under its per-agent channel.
 class TeamObserver {
   TeamObserver({
@@ -200,7 +200,7 @@ class TeamObserver {
   }
 
   /// One poll cycle (public for tests). Diffs the config roster against the
-  /// live panes and emits born/died.
+  /// live panes and emits joined/left.
   Future<void> tick() async {
     final config = await discoverTeam(workspacePath, teamsBase: _teamsBase);
     if (config == null) {
@@ -215,19 +215,19 @@ class TeamObserver {
       final paneLive = livePanes.contains(m.tmuxPaneId);
       final tracked = _live.containsKey(m.agentId);
       if (paneLive && !tracked) {
-        await _born(config, m);
+        await _joined(config, m);
       } else if (!paneLive && tracked) {
-        await _died(m.agentId);
+        await _left(m.agentId);
       }
     }
 
-    // A member dropped from the config (team reshaped) also counts as died.
+    // A member dropped from the config (team reshaped) also counts as left.
     for (final id in _live.keys.toList()) {
-      if (!configIds.contains(id)) await _died(id);
+      if (!configIds.contains(id)) await _left(id);
     }
   }
 
-  Future<void> _born(TeamConfig config, TeamMember m) async {
+  Future<void> _joined(TeamConfig config, TeamMember m) async {
     final path = await _resolveTranscript(config, m);
     TranscriptPublisher? pub;
     if (path != null) {
@@ -238,7 +238,7 @@ class TeamObserver {
       );
     }
     _live[m.agentId] = _LiveMember(m, config.team, pub);
-    _events.emit(TeamMemberBorn(
+    _events.emit(TeamMemberJoined(
       team: config.team,
       agentId: m.agentId,
       name: m.name,
@@ -251,16 +251,16 @@ class TeamObserver {
     ));
   }
 
-  Future<void> _died(String agentId) async {
+  Future<void> _left(String agentId) async {
     final live = _live.remove(agentId);
     if (live == null) return;
     await live.publisher?.dispose();
-    _events.emit(TeamMemberDied(team: live.team, agentId: agentId, paneId: live.member.tmuxPaneId));
+    _events.emit(TeamMemberLeft(team: live.team, agentId: agentId, paneId: live.member.tmuxPaneId));
   }
 
   Future<void> _killAll() async {
     for (final id in _live.keys.toList()) {
-      await _died(id);
+      await _left(id);
     }
   }
 

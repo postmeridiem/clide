@@ -1,5 +1,5 @@
 /// Tests for the tmux team observer (T-139). Pure Dart (no Flutter):
-/// config parsing/discovery, the config-driven born/died lifecycle, and
+/// config parsing/discovery, the config-driven joined/left lifecycle, and
 /// the best-effort subagent-transcript join — all exercised against
 /// on-disk fixtures, mirroring how the T-134 spike validated CC's
 /// undocumented team artifacts.
@@ -54,8 +54,8 @@ Future<Directory> _writeTeam(Directory teamsBase, String team, String json) asyn
 
 void main() {
   group('team events', () {
-    test('TeamMemberBorn payload carries identity + optional fields', () {
-      const e = TeamMemberBorn(
+    test('TeamMemberJoined payload carries identity + optional fields', () {
+      const e = TeamMemberJoined(
         team: 'myteam',
         agentId: 'alice@myteam',
         name: 'alice',
@@ -67,7 +67,7 @@ void main() {
         transcriptPath: '/t/agent-a.jsonl',
       );
       expect(e.subsystem, 'team');
-      expect(e.kind, 'member-born');
+      expect(e.kind, 'member-joined');
       expect(e.payload(), {
         'team': 'myteam',
         'agentId': 'alice@myteam',
@@ -81,15 +81,15 @@ void main() {
       });
     });
 
-    test('TeamMemberBorn omits null optional fields', () {
-      const e = TeamMemberBorn(team: 't', agentId: 'a@t', name: 'a', agentType: 'a', paneId: '%1');
+    test('TeamMemberJoined omits null optional fields', () {
+      const e = TeamMemberJoined(team: 't', agentId: 'a@t', name: 'a', agentType: 'a', paneId: '%1');
       expect(e.payload().keys, ['team', 'agentId', 'name', 'agentType', 'paneId']);
     });
 
-    test('TeamMemberDied payload', () {
-      const e = TeamMemberDied(team: 't', agentId: 'a@t', paneId: '%1');
+    test('TeamMemberLeft payload', () {
+      const e = TeamMemberLeft(team: 't', agentId: 'a@t', paneId: '%1');
       expect(e.subsystem, 'team');
-      expect(e.kind, 'member-died');
+      expect(e.kind, 'member-left');
       expect(e.payload(), {'team': 't', 'agentId': 'a@t', 'paneId': '%1'});
     });
   });
@@ -145,18 +145,18 @@ void main() {
     late Directory projectsBase;
     late DaemonBus events;
     late MessageBus messages;
-    late List<TeamMemberBorn> born;
-    late List<TeamMemberDied> died;
+    late List<TeamMemberJoined> joined;
+    late List<TeamMemberLeft> left;
 
     setUp(() async {
       teamsBase = await Directory.systemTemp.createTemp('teams_');
       projectsBase = await Directory.systemTemp.createTemp('projects_');
       events = DaemonBus();
       messages = MessageBus();
-      born = [];
-      died = [];
-      events.on<TeamMemberBorn>().listen(born.add);
-      events.on<TeamMemberDied>().listen(died.add);
+      joined = [];
+      left = [];
+      events.on<TeamMemberJoined>().listen(joined.add);
+      events.on<TeamMemberLeft>().listen(left.add);
     });
 
     tearDown(() async {
@@ -168,7 +168,7 @@ void main() {
 
     Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 10));
 
-    test('emits born when a teammate pane is live, died when it goes', () async {
+    test('emits joined when a teammate pane is live, left when it goes', () async {
       await _writeTeam(teamsBase, 'myteam', _configJson(teammates: [_member('alice', '%5')]));
       var panes = {'%5'};
       final obs = TeamObserver(
@@ -183,21 +183,21 @@ void main() {
 
       await obs.tick();
       await settle();
-      expect(born.map((b) => b.name), ['alice']);
-      expect(born.single.paneId, '%5');
-      expect(born.single.agentId, 'alice@myteam');
-      expect(died, isEmpty);
+      expect(joined.map((b) => b.name), ['alice']);
+      expect(joined.single.paneId, '%5');
+      expect(joined.single.agentId, 'alice@myteam');
+      expect(left, isEmpty);
 
-      // Same pane still live -> no duplicate born.
+      // Same pane still live -> no duplicate joined.
       await obs.tick();
       await settle();
-      expect(born, hasLength(1));
+      expect(joined, hasLength(1));
 
-      // Pane gone -> died.
+      // Pane gone -> left.
       panes = {};
       await obs.tick();
       await settle();
-      expect(died.map((d) => d.agentId), ['alice@myteam']);
+      expect(left.map((d) => d.agentId), ['alice@myteam']);
     });
 
     test('start() polls on a timer and dispose() stops it', () async {
@@ -212,16 +212,16 @@ void main() {
         pollInterval: const Duration(milliseconds: 20),
       );
       obs.start();
-      // Poll until the timer-driven tick emits born (or time out).
+      // Poll until the timer-driven tick emits joined (or time out).
       final deadline = DateTime.now().add(const Duration(seconds: 2));
-      while (born.isEmpty && DateTime.now().isBefore(deadline)) {
+      while (joined.isEmpty && DateTime.now().isBefore(deadline)) {
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }
-      expect(born.map((b) => b.name), ['alice']);
+      expect(joined.map((b) => b.name), ['alice']);
       await obs.dispose();
-      // dispose emits died for the tracked member.
+      // dispose emits left for the tracked member.
       await settle();
-      expect(died.map((d) => d.agentId), ['alice@myteam']);
+      expect(left.map((d) => d.agentId), ['alice@myteam']);
     });
 
     test('constructs with default base dirs / pane lister', () {
@@ -242,8 +242,8 @@ void main() {
       addTearDown(obs.dispose);
       await obs.tick();
       await settle();
-      expect(born, isEmpty);
-      expect(died, isEmpty);
+      expect(joined, isEmpty);
+      expect(left, isEmpty);
     });
 
     test('joins the teammate transcript via a matching .meta.json', () async {
@@ -266,7 +266,7 @@ void main() {
 
       await obs.tick();
       await settle();
-      expect(born.single.transcriptPath, endsWith('agent-aaa111.jsonl'));
+      expect(joined.single.transcriptPath, endsWith('agent-aaa111.jsonl'));
     });
 
     test('falls back to joinedAt<->mtime order when no .meta.json', () async {
@@ -300,7 +300,7 @@ void main() {
 
       await obs.tick();
       await settle();
-      final byName = {for (final b in born) b.name: b.transcriptPath};
+      final byName = {for (final b in joined) b.name: b.transcriptPath};
       expect(byName['first'], endsWith('agent-older.jsonl'));
       expect(byName['second'], endsWith('agent-newer.jsonl'));
     });

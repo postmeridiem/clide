@@ -111,8 +111,8 @@ class DaemonEvent extends ClideEvent {
 /// taken from the team config, so it is reliable regardless of transcript
 /// drift (T-139, D-75). [transcriptPath] is the best-effort resolved
 /// subagent transcript, or null if it could not be joined yet.
-class TeamMemberBorn extends ClideEvent {
-  const TeamMemberBorn({
+class TeamMemberJoined extends ClideEvent {
+  const TeamMemberJoined({
     required this.team,
     required this.agentId,
     required this.name,
@@ -142,7 +142,7 @@ class TeamMemberBorn extends ClideEvent {
   @override
   String get subsystem => 'team';
   @override
-  String get kind => 'member-born';
+  String get kind => 'member-joined';
   @override
   Map<String, Object?> payload() => {
         'team': team,
@@ -159,8 +159,8 @@ class TeamMemberBorn extends ClideEvent {
 
 /// A Claude Code tmux teammate's pane went away (it exited or the team
 /// dissolved) — T-139.
-class TeamMemberDied extends ClideEvent {
-  const TeamMemberDied({
+class TeamMemberLeft extends ClideEvent {
+  const TeamMemberLeft({
     required this.team,
     required this.agentId,
     required this.paneId,
@@ -173,7 +173,7 @@ class TeamMemberDied extends ClideEvent {
   @override
   String get subsystem => 'team';
   @override
-  String get kind => 'member-died';
+  String get kind => 'member-left';
   @override
   Map<String, Object?> payload() => {'team': team, 'agentId': agentId, 'paneId': paneId};
 }
