@@ -8,7 +8,9 @@ import 'dart:async';
 
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
+import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +77,35 @@ void main() {
       c.dispose();
       expect(disposed, isTrue);
       await ctrl.close();
+    });
+  });
+
+  group('ConversationController.fromBus', () {
+    test('consumes items published on its publisher/channel', () async {
+      final bus = MessageBus();
+      addTearDown(bus.dispose);
+      final c = ConversationController.fromBus(messages: bus);
+      addTearDown(c.dispose);
+
+      bus.publish(ClaudeConversation.publisher, ClaudeConversation.leadChannel, {ClaudeConversation.itemKey: _user('hi')});
+      bus.publish(ClaudeConversation.publisher, ClaudeConversation.leadChannel, {ClaudeConversation.itemKey: _asst('hello')});
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(c.items, hasLength(2));
+      expect(c.items.first, isA<UserMessage>());
+    });
+
+    test('ignores other publishers and channels', () async {
+      final bus = MessageBus();
+      addTearDown(bus.dispose);
+      final c = ConversationController.fromBus(messages: bus);
+      addTearDown(c.dispose);
+
+      bus.publish('someone.else', ClaudeConversation.leadChannel, {ClaudeConversation.itemKey: _user('nope')});
+      bus.publish(ClaudeConversation.publisher, 'conversation/other', {ClaudeConversation.itemKey: _user('nope')});
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(c.items, isEmpty);
     });
   });
 

@@ -76,6 +76,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Claude conversation content now flows through the kernel MessageBus —
+  a reader tails the transcript and publishes items; the pane subscribes.
+  Decouples reading from rendering so the upcoming team panels can show
+  one lead plus a tile per teammate (T-137).
 - In-process IPC dispatch swapped for socket loopback (T-127). The
   Flutter UI's `DaemonClient` now talks to its own `IpcServer` over
   the same per-workspace Unix socket the C `clide` client uses — one

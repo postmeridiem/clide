@@ -9,7 +9,9 @@ library;
 
 import 'dart:async';
 
+import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:flutter/foundation.dart';
 
 class ConversationController extends ChangeNotifier {
@@ -23,11 +25,18 @@ class ConversationController extends ChangeNotifier {
     _sub = stream.listen(_onItem);
   }
 
-  /// Convenience: build a controller backed by a live [TranscriptReader]
-  /// for [workspacePath].
-  factory ConversationController.forWorkspace(String workspacePath) {
-    final reader = TranscriptReader(workspacePath);
-    return ConversationController(stream: reader.stream, onDispose: reader.dispose);
+  /// Build a controller fed from the kernel [MessageBus] — it consumes
+  /// the [ConversationItem]s a [TranscriptPublisher] writes onto
+  /// [publisher]/[channel]. Decouples the view from the reader so several
+  /// panels can render the same conversation (team work, T-139/T-140).
+  factory ConversationController.fromBus({
+    required MessageBus messages,
+    String channel = ClaudeConversation.leadChannel,
+    Future<void> Function()? onDispose,
+  }) {
+    final stream =
+        messages.subscribe(publisher: ClaudeConversation.publisher, channel: channel).map((m) => m.data[ClaudeConversation.itemKey] as ConversationItem);
+    return ConversationController(stream: stream, onDispose: onDispose);
   }
 
   final Future<void> Function()? _onDispose;

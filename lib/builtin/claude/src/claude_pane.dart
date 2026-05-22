@@ -11,6 +11,8 @@ import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'session_naming.dart';
 import 'tmux_session.dart' as tmux;
+import 'transcript_publisher.dart';
+import 'transcript_reader.dart';
 
 class ClaudePane extends StatefulWidget {
   const ClaudePane({
@@ -38,6 +40,7 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   StreamSubscription<DaemonEvent>? _eventSub;
   ConversationController? _conversation;
+  TranscriptPublisher? _feed;
   String? _paneId;
   String? _sessionName;
   String? _error;
@@ -60,6 +63,8 @@ class _ClaudePaneState extends State<ClaudePane> {
   void dispose() {
     _conversation?.dispose();
     _conversation = null;
+    unawaited(_feed?.dispose());
+    _feed = null;
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
@@ -194,9 +199,14 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (!mounted) return;
     _paneId = resp.data['id'] as String?;
     // Render the conversation natively from the transcript (T-137/D-75)
-    // rather than the PTY's TUI output. claude runs in tmux; we tail its
-    // transcript JSONL for the workspace.
-    _conversation = ConversationController.forWorkspace(repoRoot);
+    // rather than the PTY's TUI output. claude runs in tmux; a reader
+    // tails its transcript JSONL and a publisher fans the items onto the
+    // kernel MessageBus, which the view's controller subscribes to. The
+    // subscription is wired before the reader's first poll so the initial
+    // tail is never missed.
+    final messages = _kernel()!.messages;
+    _feed = TranscriptPublisher(messages: messages, reader: TranscriptReader(repoRoot));
+    _conversation = ConversationController.fromBus(messages: messages);
     _subscribe();
     setState(() {});
   }
