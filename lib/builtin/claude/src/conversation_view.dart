@@ -94,6 +94,10 @@ class _ConversationViewState extends State<ConversationView> {
   }
 }
 
+/// Claude's brand coral-orange — a fixed brand accent (not a theme token)
+/// used for the "claude" message card's stripe + label.
+const claudeAccent = Color(0xFFD97757);
+
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({required this.item, required this.tokens});
@@ -105,8 +109,8 @@ class _ConversationTurn extends StatelessWidget {
   Widget build(BuildContext context) {
     final i = item;
     return switch (i) {
-      UserMessage() => _userCard(i),
-      AssistantTextMessage() => _labelled('claude', tokens.globalFocus, ClideMarkdown(i.text)),
+      UserMessage() => _messageCard('you', tokens.globalFocus, ClideMarkdown(i.text)),
+      AssistantTextMessage() => _messageCard('claude', claudeAccent, ClideMarkdown(i.text)),
       AssistantThinkingMessage() => _labelled(
           'thinking',
           tokens.globalTextMuted,
@@ -117,9 +121,10 @@ class _ConversationTurn extends StatelessWidget {
     };
   }
 
-  /// The user's own message — a distinct card (accent stripe + fill) so
-  /// it reads apart from Claude's flat-markdown responses.
-  Widget _userCard(UserMessage m) {
+  /// A turn rendered as a distinct card: an [accent]-coloured left stripe
+  /// and label over a filled background, so user and Claude turns read
+  /// apart from each other (and from the panel canvas) by accent.
+  Widget _messageCard(String label, Color accent, Widget body) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: ClipRRect(
@@ -130,7 +135,7 @@ class _ConversationTurn extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 3, color: tokens.globalFocus),
+                Container(width: 3, color: accent),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -138,13 +143,13 @@ class _ConversationTurn extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClideText(
-                          'you',
+                          label,
                           fontSize: clideFontSmall,
-                          color: tokens.globalFocus,
+                          color: accent,
                           fontFamily: clideMonoFamily,
                         ),
                         const SizedBox(height: 4),
-                        ClideMarkdown(m.text),
+                        body,
                       ],
                     ),
                   ),
