@@ -245,6 +245,68 @@ static void clide_app_activate(GApplication* application) {
       },
       window, nullptr);
 
+  // T-138: method channel for native clipboard image/file reads. Flutter's
+  // built-in clipboard is text-only; the composer turns a pasted file or
+  // image into a Claude `@path` reference, which needs the non-text
+  // clipboard targets read here.
+  g_autoptr(FlStandardMethodCodec) clip_codec = fl_standard_method_codec_new();
+  FlMethodChannel* clip_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(engine), "clide/clipboard",
+      FL_METHOD_CODEC(clip_codec));
+  g_object_set_data(G_OBJECT(window), "clide_clipboard_channel", clip_channel);
+  fl_method_channel_set_method_call_handler(
+      clip_channel,
+      [](FlMethodChannel* channel, FlMethodCall* method_call,
+         gpointer user_data) {
+        const gchar* method = fl_method_call_get_name(method_call);
+        g_autoptr(FlMethodResponse) response = nullptr;
+        GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+
+        if (g_strcmp0(method, "readImage") == 0) {
+          GdkPixbuf* pixbuf = gtk_clipboard_wait_for_image(clipboard);
+          if (pixbuf != nullptr) {
+            gchar* buffer = nullptr;
+            gsize buffer_size = 0;
+            g_autoptr(GError) error = nullptr;
+            if (gdk_pixbuf_save_to_buffer(pixbuf, &buffer, &buffer_size, "png",
+                                          &error, nullptr)) {
+              g_autoptr(FlValue) val =
+                  fl_value_new_uint8_list((const uint8_t*)buffer, buffer_size);
+              response = FL_METHOD_RESPONSE(fl_method_success_response_new(val));
+              g_free(buffer);
+            } else {
+              response = FL_METHOD_RESPONSE(
+                  fl_method_success_response_new(fl_value_new_null()));
+            }
+            g_object_unref(pixbuf);
+          } else {
+            response = FL_METHOD_RESPONSE(
+                fl_method_success_response_new(fl_value_new_null()));
+          }
+        } else if (g_strcmp0(method, "readFiles") == 0) {
+          g_autoptr(FlValue) list = fl_value_new_list();
+          gchar** uris = gtk_clipboard_wait_for_uris(clipboard);
+          if (uris != nullptr) {
+            for (int i = 0; uris[i] != nullptr; i++) {
+              g_autofree gchar* path =
+                  g_filename_from_uri(uris[i], nullptr, nullptr);
+              if (path != nullptr) {
+                fl_value_append_take(list, fl_value_new_string(path));
+              }
+            }
+            g_strfreev(uris);
+          }
+          response =
+              FL_METHOD_RESPONSE(fl_method_success_response_new(list));
+        } else {
+          response =
+              FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+        }
+
+        fl_method_call_respond(method_call, response, nullptr);
+      },
+      window, nullptr);
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 

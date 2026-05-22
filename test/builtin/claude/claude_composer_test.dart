@@ -79,5 +79,32 @@ void main() {
       await pump(tester, enabled: false);
       expect(tester.widget<EditableText>(find.byType(EditableText)).readOnly, isTrue);
     });
+
+    testWidgets('Ctrl+V routes through the paste resolver and inserts its @path', (tester) async {
+      // WidgetsApp provides DefaultTextEditingShortcuts in the real app;
+      // the bare harness doesn't, so wrap explicitly to map Ctrl+V ->
+      // PasteTextIntent, which the composer's Actions override intercepts.
+      await tester.pumpWidget(harness(
+        f,
+        DefaultTextEditingShortcuts(
+          child: ClaudeComposer(
+            onSubmit: (_) {},
+            pasteResolver: () async => '@/tmp/shot.png',
+          ),
+        ),
+      ));
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.requestFocus();
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<EditableText>(find.byType(EditableText)).controller.text,
+        '@/tmp/shot.png',
+      );
+    });
   });
 }

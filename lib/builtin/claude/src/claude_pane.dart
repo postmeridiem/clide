@@ -8,6 +8,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
 import 'claude_composer.dart';
+import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'session_naming.dart';
@@ -268,6 +269,7 @@ class _ClaudePaneState extends State<ClaudePane> {
           ClaudeComposer(
             enabled: _paneId != null,
             onSubmit: _send,
+            pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
           ),
         ],
       );

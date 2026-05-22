@@ -64,5 +64,35 @@ class AppDelegate: FlutterAppDelegate {
         result(FlutterMethodNotImplemented)
       }
     }
+
+    // T-138: native clipboard image/file reads. Flutter's built-in
+    // clipboard is text-only; the composer turns a pasted file or image
+    // into a Claude `@path` reference, which needs the non-text pasteboard
+    // contents read here.
+    let clipboardChannel = FlutterMethodChannel(
+      name: "clide/clipboard",
+      binaryMessenger: flutterVC.engine.binaryMessenger)
+
+    clipboardChannel.setMethodCallHandler { (call, result) in
+      let pasteboard = NSPasteboard.general
+      switch call.method {
+      case "readImage":
+        if let image = NSImage(pasteboard: pasteboard),
+           let tiff = image.tiffRepresentation,
+           let rep = NSBitmapImageRep(data: tiff),
+           let png = rep.representation(using: .png, properties: [:]) {
+          result(FlutterStandardTypedData(bytes: png))
+        } else {
+          result(nil)
+        }
+      case "readFiles":
+        let urls = pasteboard.readObjects(
+          forClasses: [NSURL.self],
+          options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        result(urls.map { $0.path })
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }

@@ -22,6 +22,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   conversation and press Enter to send (Shift+Enter for a newline);
   input reaches Claude over `pane.write`. Multi-line text is sent as a
   bracketed paste so it submits as one message.
+- File and image paste in the composer (T-138) — Ctrl/Cmd+V of a copied
+  file or a clipboard image inserts an `@path` reference (images are
+  saved to a cache dir first); plain text pastes inline. Backed by a
+  native `clide/clipboard` channel (GTK + macOS).
 - Claude pane renders natively from the transcript (T-137, D-75) — the
   conversation shows as native cards (user / assistant markdown /
   thinking / tool-use / result) instead of a terminal, with text
