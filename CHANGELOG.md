@@ -18,11 +18,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Native composer in the Claude pane (T-138) — type below the
+  conversation and press Enter to send (Shift+Enter for a newline);
+  input reaches Claude over `pane.write`. Multi-line text is sent as a
+  bracketed paste so it submits as one message.
 - Claude pane renders natively from the transcript (T-137, D-75) — the
   conversation shows as native cards (user / assistant markdown /
   thinking / tool-use / result) instead of a terminal, with text
   selection + copy across cards. Claude still runs in tmux; the terminal
-  builtin stays for general use. (Input composer lands next, T-138.)
+  builtin stays for general use.
 - Multi-file editor tabs — the editor pane now shows one tab per open
   buffer (filename + a dot when unsaved) via the shared tab strip;
   opening a second file no longer replaces the first. Click a tab to

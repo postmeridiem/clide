@@ -7,6 +7,7 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
+import 'claude_composer.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'session_naming.dart';
@@ -211,6 +212,16 @@ class _ClaudePaneState extends State<ClaudePane> {
     setState(() {});
   }
 
+  // Send composed text to Claude's tmux session. pane.write delivers it
+  // to the PTY (the attached tmux client), which forwards to claude — the
+  // same input verb the terminal pane uses, so D-6 parity holds.
+  void _send(String text) {
+    final id = _paneId;
+    final ipc = _ipc();
+    if (id == null || ipc == null) return;
+    unawaited(ipc.request('pane.write', args: {'id': id, 'text': encodeClaudeInput(text)}));
+  }
+
   void _subscribe() {
     final kernel = _kernel();
     if (kernel == null) return;
@@ -251,7 +262,15 @@ class _ClaudePaneState extends State<ClaudePane> {
         child: ClideText(_error!, muted: true),
       );
     } else if (_conversation != null) {
-      body = ConversationView(controller: _conversation!);
+      body = Column(
+        children: [
+          Expanded(child: ConversationView(controller: _conversation!)),
+          ClaudeComposer(
+            enabled: _paneId != null,
+            onSubmit: _send,
+          ),
+        ],
+      );
     } else {
       body = const Center(child: ClideText('attaching…', muted: true));
     }
