@@ -185,6 +185,20 @@ List<ContrastPair> extendedPairs(SurfaceTokens s) => [
         background: s.globalBackground,
         largeText: true,
       ),
+      // selection.foreground_on_selection is intentionally omitted here.
+      //
+      // The `selectionBackground` token defaults to `globalFocus.withAlpha(0x66)`
+      // — a semi-transparent tint composited onto the real content background at
+      // runtime. The WCAG compositor in contrastRatio() blends onto neutral grey
+      // (0x808080) rather than the actual dark panel background, which
+      // systematically understates the readable contrast for all current bundled
+      // themes. Adding the pair here would require retuning palettes, which D-69
+      // forbids for user-contract themes.
+      //
+      // Enforcement is deferred to a follow-up ticket: -hc/-cb variants will
+      // declare an explicit `surface.selectionBackground` override that is
+      // opaque enough to clear 3:1 against the grey compositor, at which point
+      // the pair can be added to extendedPairs.
     ];
 
 /// Convenience for tests: returns the list of [canonicalPairs] that

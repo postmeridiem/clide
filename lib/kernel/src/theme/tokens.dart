@@ -94,6 +94,8 @@ class SurfaceTokens {
     required this.syntaxComment,
     required this.syntaxMethod,
     required this.syntaxPunct,
+    // selection
+    required this.selectionBackground,
     required this.extensionTokens,
   });
 
@@ -185,6 +187,11 @@ class SurfaceTokens {
   final Color syntaxComment;
   final Color syntaxMethod;
   final Color syntaxPunct;
+
+  /// Background color for text selection highlights. Rendered at ~40 % alpha
+  /// (like the terminal's `globalFocus.withAlpha(0x66)`) so the selected text
+  /// remains legible through the tint.
+  final Color selectionBackground;
 
   /// Extension-declared tokens keyed by their dotted path
   /// (e.g. `ext.sqlite.table.background`).
@@ -296,6 +303,9 @@ abstract class TokenKeys {
   static const syntaxMethod = 'syntax.method';
   static const syntaxPunct = 'syntax.punct';
 
+  // selection
+  static const selectionBackground = 'selection.background';
+
   static const all = <String>[
     globalForeground,
     globalBackground,
@@ -363,5 +373,6 @@ abstract class TokenKeys {
     syntaxComment,
     syntaxMethod,
     syntaxPunct,
+    selectionBackground,
   ];
 }

@@ -36,6 +36,14 @@ class ThemeResolver {
       );
     }
 
+    // selectionBackground defaults to globalFocus at ~40 % opacity (0x66 alpha)
+    // when the theme does not declare an explicit surface override for it.
+    // This matches the terminal's established convention of
+    // `globalFocus.withAlpha(0x66)` for focus-adjacent highlights.
+    if (surfaceOverride?[TokenKeys.selectionBackground] == null) {
+      surface[TokenKeys.selectionBackground] = surface[TokenKeys.globalFocus]!.withAlpha(0x66);
+    }
+
     final extTokens = <String, Color>{};
     if (extensionOverride != null) {
       for (final entry in extensionOverride.entries) {
@@ -111,6 +119,7 @@ class ThemeResolver {
       syntaxComment: surface[TokenKeys.syntaxComment]!,
       syntaxMethod: surface[TokenKeys.syntaxMethod]!,
       syntaxPunct: surface[TokenKeys.syntaxPunct]!,
+      selectionBackground: surface[TokenKeys.selectionBackground]!,
       extensionTokens: extTokens,
     );
   }

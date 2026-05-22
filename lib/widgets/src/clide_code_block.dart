@@ -76,7 +76,7 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: RichText(text: textSpan),
+        child: Text.rich(textSpan),
       ),
     );
   }

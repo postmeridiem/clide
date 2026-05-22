@@ -65,8 +65,8 @@ class ClideMarkdown extends StatelessWidget {
           spans.add(_inlineElementSpan(n, tokens, onRecordTap));
         }
       }
-      out.add(RichText(
-        text: TextSpan(
+      out.add(Text.rich(
+        TextSpan(
           style: TextStyle(
             fontFamily: clideUiFamily,
             fontFamilyFallback: clideUiFamilyFallback,
@@ -235,11 +235,11 @@ class ClideMarkdown extends StatelessWidget {
   }
 
   static Widget _inlineText(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {double? fontSize, FontWeight? fontWeight}) {
-    return RichText(text: _buildInlineSpan(el, tokens, onRecordTap, fontSize: fontSize, fontWeight: fontWeight));
+    return Text.rich(_buildInlineSpan(el, tokens, onRecordTap, fontSize: fontSize, fontWeight: fontWeight));
   }
 
   static Widget _inlineRichText(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
-    return RichText(text: _buildInlineSpan(el, tokens, onRecordTap));
+    return Text.rich(_buildInlineSpan(el, tokens, onRecordTap));
   }
 
   static TextSpan _buildInlineSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {double? fontSize, FontWeight? fontWeight}) {
