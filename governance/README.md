@@ -116,6 +116,7 @@ You might also want, project-permitting:
 - [D-72: IPC server is multi-connection with serial dispatch on the main isolate](decisions/architecture.md#d-72-ipc-server-is-multi-connection-with-serial-dispatch-on-the-main-isolate) — _architecture_
 - [D-73: MCP transport for /ide is SSE over HTTP](decisions/architecture.md#d-73-mcp-transport-for-ide-is-sse-over-http) — _architecture_
 - [D-74: IPC command schema is co-registered with the handler, validated at dispatch](decisions/architecture.md#d-74-ipc-command-schema-is-co-registered-with-the-handler-validated-at-dispatch) — _architecture_
+- [D-75: Claude rendered natively from transcripts; terminal retained as general tool only](decisions/architecture.md#d-75-claude-rendered-natively-from-transcripts-terminal-retained-as-general-tool-only) — _architecture_
 
 ## Open questions
 
