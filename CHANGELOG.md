@@ -92,6 +92,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Daemon not connected on startup — the socket-loopback `DaemonClient`
+  raced the UI: panels queried before the socket finished connecting
+  and cached a "daemon not connected" error, and the Claude pane's
+  spawn gate tripped. Requests now wait briefly for the in-flight
+  connection instead of failing instantly, the server is no longer
+  needlessly restarted when the opened project matches the launch
+  workspace, and the client connects once instead of twice.
+
 ### Security
 
 ## [2.1.0] — 2026-05-18

@@ -1954,3 +1954,122 @@ Next steps:
 
 ProjectManager sticky-startup logic is already covered by test/kernel/src/project_test.dart (14 cases).', NULL, '2026-05-22 06:55:02', '2026-05-22 06:55:02', '2026-05-22 06:55:02', NULL, 'b7c13548cef5d962c7b5b4500ea39b9e', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-122', 'priority', 'low', 'medium', NULL, '2026-05-22 06:55:02', '2026-05-22 06:55:02', '2026-05-22 06:55:02', NULL, 'e7d5dd1b89eded661de7f6d64edea04c', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-89', 'description', 'Today: total line coverage **34.9%** (2984/8549 lines). Per area:
+
+| area | hit / total | % |
+|---|---|---|
+| `lib/src/terminal/` | 12 / 3167 | **0.4%** |
+| `lib/widgets/` | 537 / 1184 | 45.4% |
+| `lib/src/pql/` | 45 / 94 | 47.9% |
+| `lib/builtin/` | 269 / 550 | 48.9% |
+| `lib/kernel/` | 889 / 1691 | 52.6% |
+| `lib/src/daemon/` | 320 / 584 | 54.8% |
+| `lib/src/pty/` | 130 / 216 | 60.2% |
+| `lib/src/git/` | 356 / 518 | 68.7% |
+| `lib/src/ipc/` | 110 / 156 | 70.5% |
+| `lib/src/files/` | 98 / 133 | 73.7% |
+| `lib/extension/` | 41 / 54 | 75.9% |
+| `lib/src/editor/` | 107 / 129 | 82.9% |
+| `lib/src/panes/` | 70 / 73 | 95.9% |
+
+The dominant hole is `lib/src/terminal/` — the terminal emulator code. Header still credits xterm.dart upstream, but per CLAUDE.md ("Own the rendering stack") and the explicit guidance attached to this epic: in-tree code is owned, no carve-outs, same coverage bar.
+
+**End state:**
+- Total line coverage ≥ 95% (no per-area carve-outs).
+- Pre-push gate hard-fails on coverage drops via a committed floor (`coverage/floor.txt`); floor ratchets up only.
+- Per D-66 the gate lands at the *current* floor in the first child ticket; subsequent floor bumps come with the test-writing children.
+
+**Acceptance criteria for closing this epic:**
+1. `coverage/floor.txt` reads `95` (or higher).
+2. `flutter test --coverage --exclude-tags forkpty` produces ≥95% line coverage.
+3. The pre-push gate computes coverage and rejects pushes below the floor.
+4. No new `// ignore:` / `// ignore_for_file:` / analysis-options excludes were added to dodge the gate. Any suppression added during this campaign needs explicit approval and an inline reason at the suppression site.
+
+**Strategy / child shape:**
+The gate plumbing lands first so future test additions are visible as floor bumps. Then per-area sweeps — biggest holes first because they move the global number fastest, but each area is its own child ticket with its own scope.
+
+1. **Gate plumbing** (first child) — install the ratchet, lock in current floor, expose `make coverage-gate` and wire it into `make push-check`.
+2. **`lib/src/terminal/` sweep** (second child, by far the largest) — likely splits into sub-children once the area''s structure is mapped (parser, buffer, painter, gesture handling, mouse reporting, escape sequences, cell-grid measurement, etc.).
+3. **Per-area sweeps** — claim a child ticket when starting an area; close when the area hits 95%. Order by impact: terminal → widgets → pql → builtin → kernel → daemon → pty → git → ipc → files → extension → editor.
+4. **Final ratchet** — once total ≥ 95%, set floor to 95 and close the epic.
+
+**Out of scope:**
+- Branch coverage (lcov data is weak for branch on Dart; line coverage is the contract).
+- Integration / E2E coverage (only widget + unit feed lcov).
+- `lib/test_app.dart` exclusion: verify in the gate child whether Dart''s coverage tooling already excludes it; if not, decide explicitly rather than carve it out silently.
+
+**Cross-references:** D-66 (this epic''s decision record), D-29 (pre-push gate scope), "Own the rendering stack" guardrail (CLAUDE.md).
+', '## OUTCOME (closed 2026-05-18)
+
+Epic met. Final measured line coverage **95.27%** (9551 / 10025), floor `coverage_floor: 95` in `pubspec.yaml`, gate wired into `make push-check`.
+
+Final per-area (vs. opening 34.9% total):
+
+| area | hit / total | % |
+|---|---|---|
+| `lib/src/terminal/` | 3185 / 3188 | **99.9%** (was 0.4%) |
+| `lib/extension/` | 54 / 54 | 100.0% |
+| `lib/src/editor/` | 129 / 129 | 100.0% |
+| `lib/src/files/` | 139 / 140 | 99.3% |
+| `lib/src/pql/` | 91 / 92 | 98.9% |
+| `lib/src/panes/` | 75 / 76 | 98.7% |
+| `lib/src/git/` | 517 / 531 | 97.4% |
+| `lib/src/daemon/` | 616 / 644 | 95.7% |
+| `lib/kernel/` | 2122 / 2233 | 95.0% |
+| `lib/src/ipc/` | 429 / 452 | 94.9% |
+| `lib/widgets/` | 1178 / 1261 | 93.4% |
+| `lib/builtin/` | 754 / 875 | 86.2% |
+| `lib/src/pty/` | 177 / 262 | 67.6% (forkpty paths excluded from gate) |
+
+Acceptance: (1) floor reads 95 done (2) total >=95% done (3) gate hard-fails below floor done (4) no coverage-dodging suppressions done. The strategy''s tail per-area sweeps (widgets/builtin/pty) didn''t all individually reach 95%, but the contract is *total* line coverage, which is satisfied; remaining per-area headroom can be its own tickets if desired.
+
+---
+
+Today: total line coverage **34.9%** (2984/8549 lines). Per area:
+
+| area | hit / total | % |
+|---|---|---|
+| `lib/src/terminal/` | 12 / 3167 | **0.4%** |
+| `lib/widgets/` | 537 / 1184 | 45.4% |
+| `lib/src/pql/` | 45 / 94 | 47.9% |
+| `lib/builtin/` | 269 / 550 | 48.9% |
+| `lib/kernel/` | 889 / 1691 | 52.6% |
+| `lib/src/daemon/` | 320 / 584 | 54.8% |
+| `lib/src/pty/` | 130 / 216 | 60.2% |
+| `lib/src/git/` | 356 / 518 | 68.7% |
+| `lib/src/ipc/` | 110 / 156 | 70.5% |
+| `lib/src/files/` | 98 / 133 | 73.7% |
+| `lib/extension/` | 41 / 54 | 75.9% |
+| `lib/src/editor/` | 107 / 129 | 82.9% |
+| `lib/src/panes/` | 70 / 73 | 95.9% |
+
+The dominant hole is `lib/src/terminal/` — the terminal emulator code. Header still credits xterm.dart upstream, but per CLAUDE.md ("Own the rendering stack") and the explicit guidance attached to this epic: in-tree code is owned, no carve-outs, same coverage bar.
+
+**End state:**
+- Total line coverage ≥ 95% (no per-area carve-outs).
+- Pre-push gate hard-fails on coverage drops via a committed floor (`coverage/floor.txt`); floor ratchets up only.
+- Per D-66 the gate lands at the *current* floor in the first child ticket; subsequent floor bumps come with the test-writing children.
+
+**Acceptance criteria for closing this epic:**
+1. `coverage/floor.txt` reads `95` (or higher).
+2. `flutter test --coverage --exclude-tags forkpty` produces ≥95% line coverage.
+3. The pre-push gate computes coverage and rejects pushes below the floor.
+4. No new `// ignore:` / `// ignore_for_file:` / analysis-options excludes were added to dodge the gate. Any suppression added during this campaign needs explicit approval and an inline reason at the suppression site.
+
+**Strategy / child shape:**
+The gate plumbing lands first so future test additions are visible as floor bumps. Then per-area sweeps — biggest holes first because they move the global number fastest, but each area is its own child ticket with its own scope.
+
+1. **Gate plumbing** (first child) — install the ratchet, lock in current floor, expose `make coverage-gate` and wire it into `make push-check`.
+2. **`lib/src/terminal/` sweep** (second child, by far the largest) — likely splits into sub-children once the area''s structure is mapped (parser, buffer, painter, gesture handling, mouse reporting, escape sequences, cell-grid measurement, etc.).
+3. **Per-area sweeps** — claim a child ticket when starting an area; close when the area hits 95%. Order by impact: terminal → widgets → pql → builtin → kernel → daemon → pty → git → ipc → files → extension → editor.
+4. **Final ratchet** — once total ≥ 95%, set floor to 95 and close the epic.
+
+**Out of scope:**
+- Branch coverage (lcov data is weak for branch on Dart; line coverage is the contract).
+- Integration / E2E coverage (only widget + unit feed lcov).
+- `lib/test_app.dart` exclusion: verify in the gate child whether Dart''s coverage tooling already excludes it; if not, decide explicitly rather than carve it out silently.
+
+**Cross-references:** D-66 (this epic''s decision record), D-29 (pre-push gate scope), "Own the rendering stack" guardrail (CLAUDE.md).
+', NULL, '2026-05-22 13:37:43', '2026-05-22 13:37:43', '2026-05-22 13:37:43', NULL, 'b83aa45596e35a95e689b922c66c27ef', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-89', 'status', 'in_progress', 'done', NULL, '2026-05-22 13:37:46', '2026-05-22 13:37:46', '2026-05-22 13:37:46', NULL, '5698b8e8cbd5113a84791ae2dad26c6d', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-91', 'status', 'in_progress', 'done', NULL, '2026-05-22 13:37:46', '2026-05-22 13:37:46', '2026-05-22 13:37:46', NULL, 'dad314c05e04d8f17357ac2ea054a9bd', 1) ON CONFLICT(hash) DO NOTHING;

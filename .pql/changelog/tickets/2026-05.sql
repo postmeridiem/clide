@@ -2279,3 +2279,120 @@ Next steps:
 - Once unblocked, this also unblocks lib/builtin/welcome/src/welcome_view.dart coverage (74 uncovered lines, the dominant lib/builtin/ gap toward the T-89 95% target).
 
 ProjectManager sticky-startup logic is already covered by test/kernel/src/project_test.dart (14 cases).', 'backlog', 'medium', NULL, NULL, NULL, '2026-05-18 09:06:59', '2026-05-22 06:55:02', NULL, 'bcb79420d9e359813ad5f75dfb89cc05', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-91', 'task', 'T-89', 'test sweep: drive lib/src/terminal/ to 95%', 'Second child of T-89. The dominant coverage hole — `lib/src/terminal/` is 12 / 3167 lines (0.4%), about 56% of the global gap.
+
+**Today''s distribution within `lib/src/terminal/src/`:**
+
+| sub-area | hit / total | % | shape |
+|---|---|---|---|
+| `core/buffer/` | 0 / 581 | 0.0% | pure data structures |
+| `core/escape/` | 1 / 473 | 0.2% | pure parser logic |
+| `core/input/` | 4 / 292 | 1.4% | key + keytab tables |
+| `core/(root)` | 0 / 188 | 0.0% | callback wiring |
+| `core/mouse/` | 3 / 51 | 5.9% | encoder logic |
+| `ui/` | 3 / 823 | 0.4% | painters + render objects |
+| `(root)` | 0 / 471 | 0.0% | `Terminal` + `TerminalView` |
+| `utils/` | 1 / 251 | 0.4% | circular buffer etc. |
+
+**Strategy — pure logic first, then UI:**
+
+1. **`core/buffer/`** (581 lines, biggest single chunk, all pure Dart) — line/segment/cell models, scrollback math, range queries. Unit tests exercise the data structure directly.
+2. **`core/escape/`** (473 lines, pure state machine) — feed ANSI/VT byte streams in, assert the resulting buffer/cursor state. Reusable corpus from xterm.js / xterm.dart upstream is fair game.
+3. **`core/input/`** (292 lines) — key + keytab tables; assert mapping from logical key to escape bytes per terminal mode.
+4. **`core/mouse/`** (51 lines) — encoder for SGR-1006 / X11 mouse protocols. Small, fast.
+5. **`utils/`** (251 lines) — circular buffer + helpers; trivial unit tests.
+6. **`(root)`** (`terminal.dart`, `terminal_view.dart`, 471 lines) — orchestration; some unit-testable, some needs widget tests.
+7. **`ui/`** (823 lines) — painters and render objects; widget + golden tests. Hardest, most pixel-sensitive.
+
+**Acceptance:**
+- `lib/src/terminal/` line coverage ≥ 95%.
+- All tests fast (<5 s for the area''s test files combined; no real PTY shell-out).
+- Helper fixtures live in `test/terminal/_helpers/` if they get reused across files.
+- Per D-66, no `// ignore:` directives or analysis_options excludes added to dodge coverage.
+- `coverage_floor:` in `pubspec.yaml` is bumped in lockstep — every commit that adds covering tests bumps the floor by the measured delta (rounded down to the integer below the new percentage).
+
+**Strategy on commit cadence:**
+Land tests in batches per sub-area (one commit per `core/buffer/`, `core/escape/`, etc.). Each batch:
+- Adds tests under `test/terminal/<sub-area>/`.
+- Re-measures coverage, bumps `coverage_floor:` to the new integer (or as high as the gate currently allows).
+- Documents in CHANGELOG under "Changed" (test-only changes can also fold into one CHANGELOG entry per area).
+
+**Out of scope:**
+- Refactoring `lib/src/terminal/` for testability — if a piece is genuinely untestable, surface it (don''t silence it). Code under `lib/` is owned regardless of upstream attribution; refactor to make it testable rather than carving it out.
+- Branch coverage (D-66 explicitly excludes).
+- Mouse / keyboard *protocol* round-trips against real TUIs (that''s T-74 and integration work).
+
+**Cross-references:** D-66 (coverage gate), T-89 (epic), T-90 (gate plumbing).
+', 'done', 'high', NULL, NULL, 'D-66', '2026-05-06 20:49:47', '2026-05-22 13:37:46', NULL, '076081a76e2301e97262f230c5cd5516', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-89', 'epic', NULL, 'drive line coverage from 35% to 95%', '## OUTCOME (closed 2026-05-18)
+
+Epic met. Final measured line coverage **95.27%** (9551 / 10025), floor `coverage_floor: 95` in `pubspec.yaml`, gate wired into `make push-check`.
+
+Final per-area (vs. opening 34.9% total):
+
+| area | hit / total | % |
+|---|---|---|
+| `lib/src/terminal/` | 3185 / 3188 | **99.9%** (was 0.4%) |
+| `lib/extension/` | 54 / 54 | 100.0% |
+| `lib/src/editor/` | 129 / 129 | 100.0% |
+| `lib/src/files/` | 139 / 140 | 99.3% |
+| `lib/src/pql/` | 91 / 92 | 98.9% |
+| `lib/src/panes/` | 75 / 76 | 98.7% |
+| `lib/src/git/` | 517 / 531 | 97.4% |
+| `lib/src/daemon/` | 616 / 644 | 95.7% |
+| `lib/kernel/` | 2122 / 2233 | 95.0% |
+| `lib/src/ipc/` | 429 / 452 | 94.9% |
+| `lib/widgets/` | 1178 / 1261 | 93.4% |
+| `lib/builtin/` | 754 / 875 | 86.2% |
+| `lib/src/pty/` | 177 / 262 | 67.6% (forkpty paths excluded from gate) |
+
+Acceptance: (1) floor reads 95 done (2) total >=95% done (3) gate hard-fails below floor done (4) no coverage-dodging suppressions done. The strategy''s tail per-area sweeps (widgets/builtin/pty) didn''t all individually reach 95%, but the contract is *total* line coverage, which is satisfied; remaining per-area headroom can be its own tickets if desired.
+
+---
+
+Today: total line coverage **34.9%** (2984/8549 lines). Per area:
+
+| area | hit / total | % |
+|---|---|---|
+| `lib/src/terminal/` | 12 / 3167 | **0.4%** |
+| `lib/widgets/` | 537 / 1184 | 45.4% |
+| `lib/src/pql/` | 45 / 94 | 47.9% |
+| `lib/builtin/` | 269 / 550 | 48.9% |
+| `lib/kernel/` | 889 / 1691 | 52.6% |
+| `lib/src/daemon/` | 320 / 584 | 54.8% |
+| `lib/src/pty/` | 130 / 216 | 60.2% |
+| `lib/src/git/` | 356 / 518 | 68.7% |
+| `lib/src/ipc/` | 110 / 156 | 70.5% |
+| `lib/src/files/` | 98 / 133 | 73.7% |
+| `lib/extension/` | 41 / 54 | 75.9% |
+| `lib/src/editor/` | 107 / 129 | 82.9% |
+| `lib/src/panes/` | 70 / 73 | 95.9% |
+
+The dominant hole is `lib/src/terminal/` — the terminal emulator code. Header still credits xterm.dart upstream, but per CLAUDE.md ("Own the rendering stack") and the explicit guidance attached to this epic: in-tree code is owned, no carve-outs, same coverage bar.
+
+**End state:**
+- Total line coverage ≥ 95% (no per-area carve-outs).
+- Pre-push gate hard-fails on coverage drops via a committed floor (`coverage/floor.txt`); floor ratchets up only.
+- Per D-66 the gate lands at the *current* floor in the first child ticket; subsequent floor bumps come with the test-writing children.
+
+**Acceptance criteria for closing this epic:**
+1. `coverage/floor.txt` reads `95` (or higher).
+2. `flutter test --coverage --exclude-tags forkpty` produces ≥95% line coverage.
+3. The pre-push gate computes coverage and rejects pushes below the floor.
+4. No new `// ignore:` / `// ignore_for_file:` / analysis-options excludes were added to dodge the gate. Any suppression added during this campaign needs explicit approval and an inline reason at the suppression site.
+
+**Strategy / child shape:**
+The gate plumbing lands first so future test additions are visible as floor bumps. Then per-area sweeps — biggest holes first because they move the global number fastest, but each area is its own child ticket with its own scope.
+
+1. **Gate plumbing** (first child) — install the ratchet, lock in current floor, expose `make coverage-gate` and wire it into `make push-check`.
+2. **`lib/src/terminal/` sweep** (second child, by far the largest) — likely splits into sub-children once the area''s structure is mapped (parser, buffer, painter, gesture handling, mouse reporting, escape sequences, cell-grid measurement, etc.).
+3. **Per-area sweeps** — claim a child ticket when starting an area; close when the area hits 95%. Order by impact: terminal → widgets → pql → builtin → kernel → daemon → pty → git → ipc → files → extension → editor.
+4. **Final ratchet** — once total ≥ 95%, set floor to 95 and close the epic.
+
+**Out of scope:**
+- Branch coverage (lcov data is weak for branch on Dart; line coverage is the contract).
+- Integration / E2E coverage (only widget + unit feed lcov).
+- `lib/test_app.dart` exclusion: verify in the gate child whether Dart''s coverage tooling already excludes it; if not, decide explicitly rather than carve it out silently.
+
+**Cross-references:** D-66 (this epic''s decision record), D-29 (pre-push gate scope), "Own the rendering stack" guardrail (CLAUDE.md).
+', 'done', 'high', NULL, NULL, 'D-66', '2026-05-06 20:36:42', '2026-05-22 13:37:46', NULL, '294d10b6817279f2c76e147f3066db50', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

@@ -99,6 +99,20 @@ Future<void> main() async {
 
   Future<void> swapIpcServer(DaemonDispatcher dispatcher, Directory workRoot) async {
     if (kIsWeb) return;
+    // Already serving this exact workspace? Reuse the live server.
+    // The startup factory binds the launch CWD, then the project-open
+    // flow fires for (usually) that same path — tearing the server
+    // down and rebinding would drop every live connection (the UI's
+    // DaemonClient, the Claude pane's spawn gate fires right on
+    // ProjectOpened) for no gain, leaving panes stranded. A genuine
+    // project switch (different path) falls through and rebinds.
+    final live = ipcServer;
+    if (live != null && live.isRunning && live.workspaceRoot == workRoot.path) {
+      ipcLog.info('ipc', 'already serving ${workRoot.path}; reusing the live server');
+      // Idempotent — a no-op when the client is already connected here.
+      await ipcClient?.reconnectAt(live.socketPath);
+      return;
+    }
     try {
       await ipcServer?.stop();
     } catch (e, st) {
@@ -188,10 +202,14 @@ Future<void> main() async {
               events: events,
             );
             ipcClient = client;
-            unawaited(() async {
-              await swapIpcServer(dispatcher, workRoot);
-              await client.start();
-            }());
+            // start() synchronously marks the client "connecting" (so
+            // requests issued during the startup window park for the
+            // socket instead of failing) and arms the reconnect loop.
+            // swapIpcServer then binds the server and reconnectAt makes
+            // the connect immediate. _connect's already-connected guard
+            // keeps these two paths from opening a second socket.
+            unawaited(client.start());
+            unawaited(swapIpcServer(dispatcher, workRoot));
             return client;
           },
     onProjectOpen: kIsWeb

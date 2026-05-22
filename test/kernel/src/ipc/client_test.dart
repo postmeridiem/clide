@@ -131,8 +131,8 @@ void main() {
   });
 
   group('DaemonClient — error + lifecycle paths', () {
-    test('request while disconnected returns a not-connected error', () async {
-      // Don't connect — point at a non-existent socket path.
+    test('request while disconnected (never started) returns a not-connected error fast', () async {
+      // Never started → no connect attempt in flight → fail fast (no wait).
       final bus = DaemonBus();
       addTearDown(bus.dispose);
       final client = _build('/tmp/does-not-exist.sock', bus);
@@ -140,6 +140,37 @@ void main() {
       final resp = await client.request('anything');
       expect(resp.ok, isFalse);
       expect(resp.error?.message, contains('not connected'));
+    });
+
+    test('a request issued before connect waits, then sends once connected', () async {
+      // Reproduces the startup race: the UI queries before the socket
+      // finishes connecting. Started (so a connect is in flight) but no
+      // server yet — the request must park, not fail, and send once the
+      // server comes up.
+      final path = await _tmpSocket();
+      final bus = DaemonBus();
+      addTearDown(bus.dispose);
+      final client = _build(path, bus);
+      addTearDown(client.dispose);
+
+      await client.start(); // no server yet → connect fails, reconnect armed
+      expect(client.isConnected, isFalse);
+
+      final respFuture = client.request('ping'); // parks (does not fail)
+
+      // Bring the server up; the reconnect loop connects, waking the request.
+      final daemon = _TestDaemon(path);
+      await daemon.start();
+      addTearDown(daemon.close);
+
+      final line = await daemon.lines.first;
+      expect(line, contains('ping'));
+      final req = IpcMessage.decode(line) as IpcRequest;
+      daemon.send(IpcResponse.ok(id: req.id, data: const {'pong': true}).encode());
+
+      final resp = await respFuture;
+      expect(resp.ok, isTrue);
+      expect(resp.data['pong'], isTrue);
     });
 
     test('malformed line is logged and skipped, real lines still work', () async {
