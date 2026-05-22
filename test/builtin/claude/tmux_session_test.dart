@@ -103,4 +103,15 @@ void main() {
       ]);
     });
   });
+
+  group('sendMessage', () {
+    test('loads a bracketed paste buffer then submits with Enter', () async {
+      await tmux.sendMessage('clide-claude-foo', 'hello\nworld');
+      expect(runner.calls, [
+        ['-L', 'clide', 'set-buffer', '-b', 'clide-compose', '--', 'hello\nworld'],
+        ['-L', 'clide', 'paste-buffer', '-p', '-d', '-b', 'clide-compose', '-t', 'clide-claude-foo'],
+        ['-L', 'clide', 'send-keys', '-t', 'clide-claude-foo', 'Enter'],
+      ]);
+    });
+  });
 }

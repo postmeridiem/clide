@@ -54,3 +54,21 @@ Future<void> killAllForRepo(String primaryName) async {
     }
   }
 }
+
+/// Named tmux paste buffer clide loads composed messages into.
+const _composeBuffer = 'clide-compose';
+
+/// Submit [text] to [session] as a single message: load it into a named
+/// paste buffer, paste it in bracketed mode (so multi-line content and
+/// special characters arrive as one block rather than a stream of
+/// submits), then press Enter.
+///
+/// This goes through the tmux *server*, so it reaches Claude whether or
+/// not a client is attached. Writing to the app's spawned client PTY
+/// (`pane.write`) does not — once that client detaches, the PTY is dead
+/// and keystrokes vanish (the bug this replaces).
+Future<void> sendMessage(String session, String text) async {
+  await tmuxRunner([..._socket, 'set-buffer', '-b', _composeBuffer, '--', text]);
+  await tmuxRunner([..._socket, 'paste-buffer', '-p', '-d', '-b', _composeBuffer, '-t', session]);
+  await tmuxRunner([..._socket, 'send-keys', '-t', session, 'Enter']);
+}

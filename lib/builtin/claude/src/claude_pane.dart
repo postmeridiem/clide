@@ -49,6 +49,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   String _statusLine = 'attaching…';
 
   bool _spawned = false;
+  bool _usingTmux = false;
 
   @override
   void didChangeDependencies() {
@@ -193,8 +194,10 @@ class _ClaudePaneState extends State<ClaudePane> {
         setState(() => _error = resp.error?.message ?? 'spawn failed');
         return;
       }
+      _usingTmux = false;
       setState(() => _statusLine = 'no-tmux · fresh every launch');
     } else {
+      _usingTmux = true;
       setState(() => _statusLine = 'tmux · $_sessionName');
     }
 
@@ -213,10 +216,17 @@ class _ClaudePaneState extends State<ClaudePane> {
     setState(() {});
   }
 
-  // Send composed text to Claude's tmux session. pane.write delivers it
-  // to the PTY (the attached tmux client), which forwards to claude — the
-  // same input verb the terminal pane uses, so D-6 parity holds.
+  // Send composed text to Claude. On the tmux path, submit via the tmux
+  // server (paste-buffer + Enter) — it reaches Claude even with no client
+  // attached, unlike pane.write to the (now-detached) spawned client PTY.
+  // The no-tmux fallback runs claude directly in our PTY, where pane.write
+  // does reach it.
   void _send(String text) {
+    if (_usingTmux) {
+      final session = _sessionName;
+      if (session != null) unawaited(tmux.sendMessage(session, text));
+      return;
+    }
     final id = _paneId;
     final ipc = _ipc();
     if (id == null || ipc == null) return;
