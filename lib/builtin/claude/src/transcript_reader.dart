@@ -152,6 +152,11 @@ String _shortId(String uuid) => uuid.length >= 8 ? uuid.substring(0, 8) : uuid;
 /// stream incrementally.
 const _defaultInitialTailBytes = 256 * 1024;
 
+/// Chunks at least this large are parsed in a background isolate; smaller
+/// ones parse inline. Streaming appends are small, so this keeps the
+/// off-thread parse to the initial-tail case that actually janks a frame.
+const _isolateParseThreshold = 64 * 1024;
+
 /// Known major transcript versions.
 const _knownMajorVersions = {1, 2};
 
@@ -321,9 +326,12 @@ class TranscriptReader {
     }
     if (controller.isClosed) return;
 
-    // Parse off the UI isolate — the initial chunk can be sizeable and
-    // JSON-decoding it on the main thread would jank the frame.
-    final parsed = await Isolate.run(() => parseTranscriptChunk(chunk));
+    // Parse off the UI isolate only when the chunk is big enough to jank a
+    // frame — the initial tail read (up to [_initialTailBytes]) is the case
+    // that froze the app. Streaming appends are small (a message at a time);
+    // parsing those inline avoids spawning a one-shot isolate every poll
+    // tick, which is pure overhead and adds latency under load.
+    final parsed = chunk.length >= _isolateParseThreshold ? await Isolate.run(() => parseTranscriptChunk(chunk)) : parseTranscriptChunk(chunk);
     if (controller.isClosed) return;
     for (final w in parsed.warnings) {
       _onWarn(w);

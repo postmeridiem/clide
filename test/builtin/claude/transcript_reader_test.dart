@@ -30,6 +30,19 @@ void appendLines(File file, List<Map<String, dynamic>> lines) {
   );
 }
 
+/// Poll [ready] until it returns true or [timeout] elapses. Streaming
+/// assertions use this instead of a fixed delay so they don't flake under
+/// load (the reader polls on a timer and may parse off-isolate).
+Future<void> pumpUntil(
+  bool Function() ready, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (!ready() && DateTime.now().isBefore(deadline)) {
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+}
+
 /// JSONL envelope skeleton with default sentinel values.
 Map<String, dynamic> envelope({
   required String type,
@@ -559,8 +572,7 @@ void main() {
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
-      // Allow a few poll cycles.
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await pumpUntil(() => collected.whereType<UserMessage>().isNotEmpty && collected.whereType<AssistantTextMessage>().isNotEmpty);
 
       await sub.cancel();
       await reader.dispose();
@@ -585,14 +597,14 @@ void main() {
       final sub = reader.stream.listen(collected.add);
 
       // Let the reader consume the initial lines.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await pumpUntil(() => collected.whereType<UserMessage>().isNotEmpty);
       final countAfterInit = collected.length;
 
       // Append new lines.
       appendLines(sessionFile, [assistantText('a1', 'appended reply')]);
 
       // Let the reader pick up the append.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await pumpUntil(() => collected.whereType<AssistantTextMessage>().isNotEmpty);
 
       await sub.cancel();
       await reader.dispose();
@@ -619,7 +631,7 @@ void main() {
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await pumpUntil(() => collected.whereType<UserMessage>().any((m) => m.text == 'old session'));
 
       // Create a newer session file (ensure mtime difference with touch-like approach).
       final newerFile = File('${projectDir.path}/session-xyz.jsonl');
@@ -631,7 +643,7 @@ void main() {
       final now = DateTime.now();
       await newerFile.setLastModified(now);
 
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await pumpUntil(() => collected.whereType<UserMessage>().any((m) => m.text == 'new session'));
 
       await sub.cancel();
       await reader.dispose();
@@ -661,7 +673,7 @@ void main() {
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await pumpUntil(() => collected.isNotEmpty);
 
       await sub.cancel();
       await reader.dispose();
@@ -692,7 +704,7 @@ void main() {
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await pumpUntil(() => collected.isNotEmpty);
 
       await sub.cancel();
       await reader.dispose();
