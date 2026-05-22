@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- tmux agent teams surface as native teammate tiles (T-139, T-140) —
+  when a Claude team is running, each teammate shows as a live
+  conversation tile beside the lead in a grid that wraps 1→2→3 columns,
+  with a resizable split. Identity and lifecycle come from the team
+  config; per-teammate content streams over the MessageBus.
 - Native composer in the Claude pane (T-138) — type below the
   conversation and press Enter to send (Shift+Enter for a newline).
   Submits via the tmux server (bracketed paste + Enter), so input

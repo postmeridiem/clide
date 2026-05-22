@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
+import 'package:clide/builtin/claude/src/team_observer.dart';
+import 'package:clide/builtin/claude/src/team_panel_host.dart';
 import 'package:clide/builtin/claude/src/tmux_session.dart' as tmux;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -19,6 +23,9 @@ class ClaudeExtension extends ClideExtension {
   ClideExtensionContext? _ctx;
   final GlobalKey<ClaudeSessionHostState> _hostKey = GlobalKey();
 
+  TeamObserver? _observer;
+  final List<StreamSubscription<dynamic>> _subs = [];
+
   @override
   List<ContributionPoint> get contributions => [
         TabContribution(
@@ -28,7 +35,7 @@ class ClaudeExtension extends ClideExtension {
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: 90,
-          build: (_) => ClaudeSessionHost(key: _hostKey),
+          build: (_) => TeamPanelHost(lead: ClaudeSessionHost(key: _hostKey)),
         ),
         CommandContribution(
           id: 'claude.new-secondary',
@@ -59,10 +66,38 @@ class ClaudeExtension extends ClideExtension {
     // teardown, not on app quit / kill -9 / OOM.
     final primary = await _primarySessionName();
     if (primary != null) await tmux.reapSecondaries(primary);
+
+    // Observe a tmux agent team for the open workspace (T-139/T-140). The
+    // observer emits TeamMemberJoined/Left, which TeamPanelHost renders as
+    // teammate tiles. Restart it as the project changes.
+    if (ctx.project.current != null) _restartObserver(ctx.project.current!.path);
+    _subs.add(ctx.events.on<ProjectOpened>().listen((e) => _restartObserver(e.path)));
+    _subs.add(ctx.events.on<ProjectClosed>().listen((_) => _stopObserver()));
+  }
+
+  void _restartObserver(String workspacePath) {
+    final ctx = _ctx;
+    if (ctx == null) return;
+    unawaited(_observer?.dispose());
+    _observer = TeamObserver(
+      workspacePath: workspacePath,
+      events: ctx.events,
+      messages: ctx.messages,
+    )..start();
+  }
+
+  void _stopObserver() {
+    unawaited(_observer?.dispose());
+    _observer = null;
   }
 
   @override
   Future<void> deactivate() async {
+    for (final s in _subs) {
+      unawaited(s.cancel());
+    }
+    _subs.clear();
+    _stopObserver();
     // Best-effort cleanup on explicit extension teardown. The cold-
     // start reap in activate is the actual safety net.
     final primary = await _primarySessionName();

@@ -19,9 +19,18 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 class ConversationView extends StatefulWidget {
-  const ConversationView({super.key, required this.controller});
+  const ConversationView({
+    super.key,
+    required this.controller,
+    this.wrapInSelectionArea = true,
+  });
 
   final ConversationController controller;
+
+  /// Whether to wrap the list in its own [ClideSelectionArea]. The team
+  /// grid sets this false and wraps all tiles in one shared area so
+  /// selection spans tiles — nesting SelectionAreas is illegal (T-140).
+  final bool wrapInSelectionArea;
 
   @override
   State<ConversationView> createState() => _ConversationViewState();
@@ -77,19 +86,18 @@ class _ConversationViewState extends State<ConversationView> {
       );
     }
 
+    final list = ClideScrollbar(
+      controller: _scroll,
+      child: ListView.builder(
+        controller: _scroll,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        itemCount: items.length,
+        itemBuilder: (context, i) => _ConversationTurn(item: items[i], tokens: tokens),
+      ),
+    );
     return ColoredBox(
       color: tokens.panelBackground,
-      child: ClideSelectionArea(
-        child: ClideScrollbar(
-          controller: _scroll,
-          child: ListView.builder(
-            controller: _scroll,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: items.length,
-            itemBuilder: (context, i) => _ConversationTurn(item: items[i], tokens: tokens),
-          ),
-        ),
-      ),
+      child: widget.wrapInSelectionArea ? ClideSelectionArea(child: list) : list,
     );
   }
 }
