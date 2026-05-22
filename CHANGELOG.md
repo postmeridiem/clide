@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Multi-file editor tabs — the editor pane now shows one tab per open
+  buffer (filename + a dot when unsaved) via the shared tab strip;
+  opening a second file no longer replaces the first. Click a tab to
+  switch, × to close. Backed by the daemon's existing multi-buffer
+  model.
 - Typed IPC command-schema framework (T-119/T-120, D-74) — commands
   register an argument schema beside their handler; the dispatcher
   normalises argv into named args, coerces types, and validates

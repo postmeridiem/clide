@@ -10,10 +10,13 @@ import 'package:flutter/widgets.dart';
 import 'editor_controller.dart';
 import 'syntax_text_controller.dart';
 
-/// Tier-2 editor tab. One tab — the content reflects the daemon's
-/// active buffer. Multi-file tabs live in the workspace-slot plan but
-/// aren't in Tier 2's scope; opening a new file swaps this view's
-/// content.
+/// Tier-2 editor pane. Shows one tab per open buffer via the shared
+/// [MultitabPane] (the same strip the Claude pane uses); the body
+/// reflects the daemon's active buffer. The daemon ([EditorRegistry])
+/// is the source of truth for which buffers are open and which is
+/// active — the local [MultitabController] is reconciled from it, and
+/// tab gestures (select / close) are routed back as `editor.activate`
+/// / `editor.close`.
 ///
 /// Uses Flutter's low-level `EditableText` so we stay off Material
 /// per D-007. Owning more of the editor stack (line numbers, gutter,
@@ -27,10 +30,16 @@ class EditorView extends StatefulWidget {
 
 class _EditorViewState extends State<EditorView> {
   EditorController? _controller;
+  final MultitabController<String> _tabs = MultitabController<String>();
   final TreeSitterService _syntax = TreeSitterService.shared;
   late final SyntaxTextController _text;
   late final FocusNode _focus;
   String? _lastRemoteContent;
+
+  /// Guards the controller→tabstrip reconcile so the tabstrip's own
+  /// change notifications (from us mutating it) don't bounce back as
+  /// daemon calls.
+  bool _applyingRemote = false;
 
   @override
   void initState() {
@@ -38,6 +47,7 @@ class _EditorViewState extends State<EditorView> {
     _text = SyntaxTextController(syntax: _syntax);
     _focus = FocusNode();
     _text.addListener(_onTextChanged);
+    _tabs.addListener(_onTabsChanged);
   }
 
   @override
@@ -54,6 +64,8 @@ class _EditorViewState extends State<EditorView> {
     _text.removeListener(_onTextChanged);
     _text.dispose();
     _focus.dispose();
+    _tabs.removeListener(_onTabsChanged);
+    _tabs.dispose();
     _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
     super.dispose();
@@ -61,6 +73,7 @@ class _EditorViewState extends State<EditorView> {
 
   void _onControllerChanged() {
     final c = _controller!;
+    _syncTabs(c);
     _text.updatePath(c.activePath);
     if (c.content != _lastRemoteContent) {
       _lastRemoteContent = c.content;
@@ -72,7 +85,46 @@ class _EditorViewState extends State<EditorView> {
       _text.value = TextEditingValue(text: c.content, selection: sel);
       _text.addListener(_onTextChanged);
     }
-    setState(() {}); // subtitle refresh
+    setState(() {}); // tab/title refresh
+  }
+
+  /// Reconcile the local tab strip to match the daemon's open-buffer
+  /// list + active selection. Membership and order follow the daemon;
+  /// titles carry a dirty marker.
+  void _syncTabs(EditorController c) {
+    _applyingRemote = true;
+    final bufs = c.buffers;
+    final liveIds = {for (final b in bufs) b.id};
+    for (final e in _tabs.entries) {
+      if (!liveIds.contains(e.id)) _tabs.remove(e.id);
+    }
+    for (final b in bufs) {
+      final title = _tabTitle(b);
+      final existing = _tabs.entries.where((e) => e.id == b.id).toList();
+      if (existing.isEmpty) {
+        _tabs.add(MultitabEntry<String>(id: b.id, title: title, payload: b.id), activate: false);
+      } else if (existing.first.title != title) {
+        _tabs.replace(b.id, MultitabEntry<String>(id: b.id, title: title, payload: b.id));
+      }
+    }
+    final act = c.activeId;
+    if (act != null && _tabs.activeId != act) _tabs.activate(act);
+    _applyingRemote = false;
+  }
+
+  /// User tapped a tab. The tab strip already updated its local active
+  /// selection; mirror that choice to the daemon.
+  void _onTabsChanged() {
+    if (_applyingRemote) return;
+    final id = _tabs.activeId;
+    if (id != null && id != _controller?.activeId) {
+      unawaited(_controller?.activate(id) ?? Future.value());
+    }
+  }
+
+  String _tabTitle(OpenBuffer b) {
+    final name = b.path.split('/').last;
+    return b.dirty ? '$name •' : name;
   }
 
   void _onTextChanged() {
@@ -112,32 +164,29 @@ class _EditorViewState extends State<EditorView> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final title = c.activePath ?? 'editor';
-        final subtitle = c.activeId == null
-            ? 'no buffer · use `clide open <path>` or pick a file in the tree'
-            : '${c.activeId} · ${c.dirty ? 'modified' : 'saved'}'
-                '${c.error == null ? '' : ' · ${c.error}'}';
-
-        return ClidePaneChrome(
-          title: title,
-          subtitle: subtitle,
-          child: c.activeId == null
-              ? const Center(
-                  child: ClideText(
-                    'Open a file to begin editing.',
-                    muted: true,
-                  ),
-                )
-              : Focus(
-                  onKeyEvent: _onKey,
-                  child: _TextBody(
-                    controller: _text,
-                    focus: _focus,
-                    background: tokens.panelBackground,
-                    foreground: tokens.globalForeground,
-                    accent: tokens.globalFocus,
-                  ),
-                ),
+        if (c.buffers.isEmpty) {
+          return ClidePaneChrome(
+            title: 'editor',
+            subtitle: 'no buffer · use `clide open <path>` or pick a file in the tree',
+            child: const Center(
+              child: ClideText('Open a file to begin editing.', muted: true),
+            ),
+          );
+        }
+        return MultitabPane<String>(
+          controller: _tabs,
+          allowReorder: false,
+          onCloseRequested: (entry) => unawaited(c.closeBuffer(entry.id)),
+          bodyBuilder: (context, _) => Focus(
+            onKeyEvent: _onKey,
+            child: _TextBody(
+              controller: _text,
+              focus: _focus,
+              background: tokens.panelBackground,
+              foreground: tokens.globalForeground,
+              accent: tokens.globalFocus,
+            ),
+          ),
         );
       },
     );
