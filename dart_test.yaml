@@ -3,8 +3,10 @@
 # both honor them. Undeclared tags are ignored by the runners, which
 # silently breaks selective excludes.
 tags:
-  # Tests that call `forkpty()` via Dart FFI. Must run under `dart test`,
-  # not `flutter test` — the latter's runner hosts a multi-threaded
-  # Flutter engine in which forkpty produces a master fd that never
-  # delivers output. See `test/pty/session_test.dart`.
-  forkpty:
+  # Native-PTY tests (posix_openpt + posix_spawn via Dart FFI). Must run
+  # under `dart test`, not `flutter test`: the flutter-test runner hosts a
+  # multi-threaded engine in which the PTY master fd doesn't reliably
+  # deliver output, so these flake there (verified). They are reliable
+  # under `dart test`. (Tag was historically named `forkpty`, before
+  # T-96 replaced forkpty with posix_spawn.) See `test/pty/session_test.dart`.
+  pty:

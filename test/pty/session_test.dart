@@ -3,7 +3,7 @@
 /// Exercises posix_spawn() end-to-end: spawn → child output through the
 /// reader isolate. Linux + macOS only; skipped elsewhere.
 ///
-/// Per-test `tags: ['forkpty']` marks the tests that depend on the
+/// Per-test `tags: ['pty']` marks the tests that depend on the
 /// reader isolate delivering output from the master fd — reads from a
 /// pty master under the flutter test runner are unstable when other
 /// suites run in parallel (intermittently empty). Only the
@@ -24,7 +24,7 @@ void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
   group('NativePty', () {
-    test('spawns shell -c echo and reads output', tags: ['forkpty'], retry: 2, () async {
+    test('spawns shell -c echo and reads output', tags: ['pty'], retry: 2, () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: ['-c', 'echo hello-pty'],
@@ -42,7 +42,7 @@ void main() {
       expect(got, contains('hello-pty'));
     });
 
-    test('write sends keystrokes to child', tags: ['forkpty'], retry: 2, () async {
+    test('write sends keystrokes to child', tags: ['pty'], retry: 2, () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -77,7 +77,7 @@ void main() {
       expect(result, contains('write-test-ok'));
     });
 
-    test('close kills child and closes output', tags: ['forkpty'], retry: 2, () async {
+    test('close kills child and closes output', tags: ['pty'], retry: 2, () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -101,7 +101,7 @@ void main() {
       expect(s.isClosed, isTrue);
     });
 
-    test('bare command name resolves via the PATH env var', tags: ['forkpty'], retry: 2, () async {
+    test('bare command name resolves via the PATH env var', tags: ['pty'], retry: 2, () async {
       // 'sh' is a bare command; without resolution, execve would fail.
       final s = NativePty.start(
         executable: 'sh',
@@ -163,7 +163,7 @@ void main() {
     test('start with a bare command name resolves it via PATH (no read)', () async {
       // Resolves "cat" to /bin/cat (or wherever it lives on PATH).
       // Doesn't read the master fd — that path is exercised by the
-      // forkpty-tagged version of this test under `dart test`.
+      // pty-tagged version of this test under `dart test`.
       final s = NativePty.start(
         executable: 'cat',
         arguments: const [],

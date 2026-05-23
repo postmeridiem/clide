@@ -1,7 +1,7 @@
 /// Unit tests for [PaneRegistry].
 ///
 /// Exercises spawn / list / write / resize / close against the real
-/// NativePty (forkpty via FFI). Events are captured via
+/// NativePty (posix_spawn via FFI). Events are captured via
 /// [RecordingEventSink].
 library;
 
@@ -41,7 +41,7 @@ void main() {
       expect(evt.data['id'], pane.id);
     });
 
-    test('output events base64-encode the child bytes', tags: ['forkpty'], retry: 2, () async {
+    test('output events base64-encode the child bytes', tags: ['pty'], retry: 2, () async {
       // Subscribe to the sink stream BEFORE spawn so we don't miss
       // any pane.output events that arrive between spawn and listen.
       final buf = StringBuffer();

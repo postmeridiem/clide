@@ -11,8 +11,8 @@ import 'package:test/test.dart';
 void main() {
   group('PtyException', () {
     test('toString includes the op + message', () {
-      const e = PtyException('forkpty', 'kaboom');
-      expect(e.toString(), contains('forkpty'));
+      const e = PtyException('posix_spawn', 'kaboom');
+      expect(e.toString(), contains('posix_spawn'));
       expect(e.toString(), contains('kaboom'));
       expect(e.toString(), isNot(contains('errno=')));
     });
