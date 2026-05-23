@@ -136,6 +136,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The git / tickets / decisions / pql / problems tabs no longer log
+  `i18n: namespace not registered` on boot (T-155). An extension's
+  localized tab title is now loaded automatically on activation, and the
+  five missing catalogs were added.
 - Slash commands sent from the Claude composer now actually run (T-153).
   Recognised commands are delivered as typed input so Claude's TUI parses
   them; other input (and stray leading slashes like a `/tmp` path) stays

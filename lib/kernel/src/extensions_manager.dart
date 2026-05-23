@@ -146,6 +146,16 @@ class ExtensionManager extends ChangeNotifier {
       for (final c in ext.contributions) {
         _applyContribution(c);
       }
+      // Eagerly load the i18n catalog for any localized tab this extension
+      // contributes, so its title resolves without a "namespace not
+      // registered" warning — and without the namespace having to be listed
+      // by hand at boot (T-155).
+      for (final ns in {
+        for (final c in ext.contributions)
+          if (c is TabContribution && c.i18nNamespace != null) c.i18nNamespace!,
+      }) {
+        await i18n.ensureNamespaceLoaded(ns);
+      }
       _activated.add(id);
       _failed.remove(id);
       events.emit(ExtensionActivated(id: id));

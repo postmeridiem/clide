@@ -105,6 +105,48 @@ void main() {
       );
     });
 
+    test('activating an extension auto-loads its localized tab namespace (T-155)', () async {
+      final local = await KernelFixture.create(
+        i18nCatalogs: {
+          'ext.localized': {
+            const Locale('en', 'US'): {
+              'tab.title': {'translation': 'Localized'},
+            },
+          },
+        },
+        preloadNamespaces: const [], // loadable, but not preloaded at boot
+      );
+      addTearDown(local.dispose);
+
+      // Not registered yet → string() falls back to the placeholder.
+      expect(
+        local.services.i18n.string('tab.title', namespace: 'ext.localized', placeholder: 'fallback'),
+        'fallback',
+      );
+
+      local.services.extensions.register(_Ext(
+        id: 'ext.localized',
+        contributions: [
+          TabContribution(
+            id: 'ext.localized.view',
+            slot: Slots.workspace,
+            title: 'Fallback',
+            titleKey: 'tab.title',
+            i18nNamespace: 'ext.localized',
+            build: (_) => const SizedBox.shrink(),
+          ),
+        ],
+      ));
+      await local.services.extensions.activateAll();
+
+      // Activation auto-loaded the catalog → resolves, no "namespace not
+      // registered" warning.
+      expect(
+        local.services.i18n.string('tab.title', namespace: 'ext.localized', placeholder: 'fallback'),
+        'Localized',
+      );
+    });
+
     test('deactivate removes contributions from the registry', () async {
       f.services.extensions.register(_Ext(
         id: 'ephemeral',

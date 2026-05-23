@@ -18,6 +18,7 @@ class KernelFixture {
   static Future<KernelFixture> create({
     List<ThemeDefinition>? bundledThemes,
     Map<String, Map<Locale, Map<String, Object?>>>? i18nCatalogs,
+    List<String>? preloadNamespaces,
     Locale? initialLocale,
     Locale defaultLocale = const Locale('en', 'US'),
   }) async {
@@ -29,7 +30,7 @@ class KernelFixture {
       appDir: tempDir,
       bundledThemes: themes,
       i18nLoader: InMemoryCatalogLoader(catalogs),
-      preloadNamespaces: catalogs.keys.toList(),
+      preloadNamespaces: preloadNamespaces ?? catalogs.keys.toList(),
       defaultLocale: defaultLocale,
       initialLocale: initialLocale,
       daemonClientFactory: (log, events, _) {
