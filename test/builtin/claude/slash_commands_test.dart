@@ -35,4 +35,57 @@ void main() {
       expect(isKnownSlashCommand('/clear\nand more', {'clear'}), isFalse);
     });
   });
+
+  group('activeSlashQuery', () {
+    test('matches a slash token at the cursor, including inline', () {
+      expect(activeSlashQuery('/mod', 4), const SlashQuery(start: 0, query: 'mod'));
+      expect(activeSlashQuery('go /mo', 6), const SlashQuery(start: 3, query: 'mo'));
+      expect(activeSlashQuery('/', 1), const SlashQuery(start: 0, query: ''));
+    });
+
+    test('no match for paths, post-space, or non-slash runs', () {
+      expect(activeSlashQuery('a/b', 3), isNull); // slash mid-token (path)
+      expect(activeSlashQuery('/model sonnet', 13), isNull); // closed after space
+      expect(activeSlashQuery('hello', 5), isNull);
+      expect(activeSlashQuery('/model ', 7), isNull); // cursor right after space
+    });
+
+    test('uses the cursor, not the end of text', () {
+      // Cursor sits right after "/mo" inside "/model".
+      expect(activeSlashQuery('/model', 3), const SlashQuery(start: 0, query: 'mo'));
+    });
+  });
+
+  group('filterSlashCommands', () {
+    const commands = ['model', 'memory', 'clear', 'compact', 'context'];
+
+    test('prefix-filters case-insensitively and sorts', () {
+      expect(filterSlashCommands('co', commands), ['compact', 'context']);
+      expect(filterSlashCommands('M', commands), ['memory', 'model']);
+    });
+
+    test('empty query returns all (sorted, capped)', () {
+      expect(filterSlashCommands('', commands, limit: 3), ['clear', 'compact', 'context']);
+    });
+
+    test('de-duplicates', () {
+      expect(filterSlashCommands('p', ['pql', 'pql', 'plan']), ['plan', 'pql']);
+    });
+  });
+
+  group('completeSlash', () {
+    test('replaces the token with /command and a trailing space', () {
+      const q = SlashQuery(start: 0, query: 'mo');
+      final r = completeSlash('/mo', q, 'model');
+      expect(r.text, '/model ');
+      expect(r.cursor, 7);
+    });
+
+    test('completes an inline token without disturbing surrounding text', () {
+      const q = SlashQuery(start: 3, query: 'mo');
+      final r = completeSlash('go /mo now', q, 'model');
+      expect(r.text, 'go /model  now');
+      expect(r.cursor, 10);
+    });
+  });
 }

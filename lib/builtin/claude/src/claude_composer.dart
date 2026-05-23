@@ -11,7 +11,9 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/clipboard_paste.dart';
+import 'package:clide/builtin/claude/src/slash_commands.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -43,6 +45,7 @@ class ClaudeComposer extends StatefulWidget {
     this.enabled = true,
     this.hint = 'Message Claude…  (Enter to send · Shift+Enter for newline)',
     this.pasteResolver,
+    this.slashCommandsResolver,
   });
 
   /// Called with the composed message (typed text plus attachment `@path`
@@ -58,30 +61,187 @@ class ClaudeComposer extends StatefulWidget {
   /// file/image clipboard support and tests can fake it.
   final Future<List<ComposerAttachment>> Function()? pasteResolver;
 
+  /// Source of the slash-command list for the typeahead. Defaults to the
+  /// app-wide [ClaudeConfig]; injected in tests (T-152).
+  final Iterable<String> Function()? slashCommandsResolver;
+
   @override
   State<ClaudeComposer> createState() => _ClaudeComposerState();
 }
 
 class _ClaudeComposerState extends State<ClaudeComposer> {
   final TextEditingController _controller = TextEditingController();
-  final FocusNode _focus = FocusNode();
+  late final FocusNode _focus = FocusNode(onKeyEvent: _onKey);
   final List<ComposerAttachment> _attachments = [];
+
+  // Slash typeahead state (T-152).
+  final LayerLink _link = LayerLink();
+  OverlayEntry? _overlay;
+  SlashQuery? _query;
+  List<String> _suggestions = const [];
+  int _selected = 0;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
+    _focus.addListener(_onFocusChanged);
   }
 
   @override
   void dispose() {
+    _closeTypeahead();
     _controller.removeListener(_onTextChanged);
+    _focus.removeListener(_onFocusChanged);
     _controller.dispose();
     _focus.dispose();
     super.dispose();
   }
 
-  void _onTextChanged() => setState(() {});
+  void _onTextChanged() {
+    setState(() {});
+    _syncTypeahead();
+  }
+
+  void _onFocusChanged() {
+    if (!_focus.hasFocus) _closeTypeahead();
+  }
+
+  Iterable<String> _commands() => (widget.slashCommandsResolver ?? () => activeClaudeConfig?.slashCommands ?? const <String>[])();
+
+  /// Recompute the active slash query + suggestions from the current text and
+  /// caret, opening/updating/closing the typeahead overlay accordingly.
+  void _syncTypeahead() {
+    if (!widget.enabled) return;
+    final sel = _controller.selection;
+    final q = sel.isCollapsed && sel.baseOffset >= 0 ? activeSlashQuery(_controller.text, sel.baseOffset) : null;
+    final suggestions = q == null ? const <String>[] : filterSlashCommands(q.query, _commands());
+    if (q == null || suggestions.isEmpty) {
+      _closeTypeahead();
+      return;
+    }
+    _query = q;
+    _suggestions = suggestions;
+    _selected = 0;
+    if (_overlay == null) {
+      _overlay = OverlayEntry(builder: _buildTypeahead);
+      Overlay.of(context).insert(_overlay!);
+    } else {
+      _overlay!.markNeedsBuild();
+    }
+  }
+
+  void _closeTypeahead() {
+    _overlay?.remove();
+    _overlay = null;
+    _query = null;
+    _suggestions = const [];
+    _selected = 0;
+  }
+
+  void _moveSelection(int delta) {
+    if (_suggestions.isEmpty) return;
+    _selected = (_selected + delta) % _suggestions.length;
+    if (_selected < 0) _selected += _suggestions.length;
+    _overlay?.markNeedsBuild();
+  }
+
+  void _completeSelected() {
+    final q = _query;
+    if (q == null || _suggestions.isEmpty) return;
+    final r = completeSlash(_controller.text, q, _suggestions[_selected]);
+    _controller.value = TextEditingValue(
+      text: r.text,
+      selection: TextSelection.collapsed(offset: r.cursor),
+    );
+    // The replacement re-runs _syncTypeahead via the controller listener; the
+    // caret now sits after a space, so the query closes.
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (_overlay == null) return KeyEventResult.ignored;
+    if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+    switch (e.logicalKey) {
+      case LogicalKeyboardKey.arrowDown:
+        _moveSelection(1);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowUp:
+        _moveSelection(-1);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.escape:
+        _closeTypeahead();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
+      case LogicalKeyboardKey.tab:
+        _completeSelected();
+        return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  Widget _buildTypeahead(BuildContext ctx) {
+    final theme = ClideTheme.of(ctx).surface;
+    return Positioned(
+      left: 0,
+      top: 0,
+      child: CompositedTransformFollower(
+        link: _link,
+        targetAnchor: Alignment.topLeft,
+        followerAnchor: Alignment.bottomLeft,
+        offset: const Offset(0, -4),
+        showWhenUnlinked: false,
+        child: SizedBox(
+          width: 320,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.panelBackground,
+              border: Border.all(color: theme.globalBorder),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < _suggestions.length; i++) _suggestionRow(theme, i),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _suggestionRow(SurfaceTokens theme, int i) {
+    final selected = i == _selected;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '/${_suggestions[i]}',
+      child: GestureDetector(
+        onTap: () {
+          _selected = i;
+          _completeSelected();
+          _focus.requestFocus();
+        },
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            color: selected ? theme.panelActiveBorder : null,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: ClideText(
+              '/${_suggestions[i]}',
+              fontSize: clideFontSmall,
+              fontFamily: clideMonoFamily,
+              color: theme.globalForeground,
+              maxLines: 1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _submit() {
     if (!widget.enabled) return;
@@ -140,73 +300,76 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.globalBorder),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_attachments.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [for (final a in _attachments) _chip(theme, a)],
+      child: CompositedTransformTarget(
+        link: _link,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.globalBorder),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_attachments.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [for (final a in _attachments) _chip(theme, a)],
+                  ),
                 ),
-              ),
-            Semantics(
-              label: widget.hint,
-              textField: true,
-              child: Shortcuts(
-                shortcuts: const {
-                  SingleActivator(LogicalKeyboardKey.enter): SubmitComposerIntent(),
-                  SingleActivator(LogicalKeyboardKey.numpadEnter): SubmitComposerIntent(),
-                },
-                child: Actions(
-                  actions: {
-                    SubmitComposerIntent: CallbackAction<SubmitComposerIntent>(
-                      onInvoke: (_) {
-                        _submit();
-                        return null;
-                      },
-                    ),
-                    PasteTextIntent: CallbackAction<PasteTextIntent>(
-                      onInvoke: (_) {
-                        unawaited(_handlePaste());
-                        return null;
-                      },
-                    ),
+              Semantics(
+                label: widget.hint,
+                textField: true,
+                child: Shortcuts(
+                  shortcuts: const {
+                    SingleActivator(LogicalKeyboardKey.enter): SubmitComposerIntent(),
+                    SingleActivator(LogicalKeyboardKey.numpadEnter): SubmitComposerIntent(),
                   },
-                  child: Stack(
-                    children: [
-                      if (!hasText)
-                        Positioned(
-                          left: 0,
-                          top: 0,
-                          right: 0,
-                          child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
-                        ),
-                      EditableText(
-                        controller: _controller,
-                        focusNode: _focus,
-                        readOnly: !widget.enabled,
-                        style: TextStyle(fontSize: clideFontBody, color: fg, height: 1.4),
-                        cursorColor: theme.globalFocus,
-                        backgroundCursorColor: theme.globalTextMuted,
-                        maxLines: 8,
-                        minLines: 1,
+                  child: Actions(
+                    actions: {
+                      SubmitComposerIntent: CallbackAction<SubmitComposerIntent>(
+                        onInvoke: (_) {
+                          _submit();
+                          return null;
+                        },
                       ),
-                    ],
+                      PasteTextIntent: CallbackAction<PasteTextIntent>(
+                        onInvoke: (_) {
+                          unawaited(_handlePaste());
+                          return null;
+                        },
+                      ),
+                    },
+                    child: Stack(
+                      children: [
+                        if (!hasText)
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            right: 0,
+                            child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
+                          ),
+                        EditableText(
+                          controller: _controller,
+                          focusNode: _focus,
+                          readOnly: !widget.enabled,
+                          style: TextStyle(fontSize: clideFontBody, color: fg, height: 1.4),
+                          cursorColor: theme.globalFocus,
+                          backgroundCursorColor: theme.globalTextMuted,
+                          maxLines: 8,
+                          minLines: 1,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

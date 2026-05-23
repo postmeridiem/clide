@@ -130,6 +130,84 @@ void main() {
       expect(find.text('notes.txt'), findsNothing);
     });
 
+    Future<List<String>> pumpWithCommands(
+      WidgetTester tester,
+      List<String> commands,
+    ) async {
+      final submitted = <String>[];
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(
+          onSubmit: submitted.add,
+          slashCommandsResolver: () => commands,
+        ),
+      ));
+      return submitted;
+    }
+
+    testWidgets('typing a slash opens the typeahead with matching commands', (tester) async {
+      await pumpWithCommands(tester, ['model', 'memory', 'clear']);
+      await tester.enterText(find.byType(EditableText), '/m');
+      await tester.pump();
+
+      expect(find.text('/model'), findsOneWidget);
+      expect(find.text('/memory'), findsOneWidget);
+      expect(find.text('/clear'), findsNothing);
+    });
+
+    testWidgets('an inline slash (mid-message) also opens the typeahead', (tester) async {
+      await pumpWithCommands(tester, ['clear', 'compact']);
+      await tester.enterText(find.byType(EditableText), 'hey /cl');
+      await tester.pump();
+      expect(find.text('/clear'), findsOneWidget);
+    });
+
+    testWidgets('arrow-down + Enter completes the selected command (no submit)', (tester) async {
+      final submitted = await pumpWithCommands(tester, ['model', 'memory']);
+      await tester.enterText(find.byType(EditableText), '/m'); // → [memory, model]
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // select 'model'
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '/model ');
+      expect(submitted, isEmpty, reason: 'Enter completes, it does not submit, while the popup is open');
+      expect(find.text('/memory'), findsNothing, reason: 'popup closes after completion');
+    });
+
+    testWidgets('Tab completes the top suggestion', (tester) async {
+      await pumpWithCommands(tester, ['clear', 'compact']);
+      await tester.enterText(find.byType(EditableText), '/cle');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '/clear ');
+    });
+
+    testWidgets('Escape dismisses the typeahead', (tester) async {
+      await pumpWithCommands(tester, ['model']);
+      await tester.enterText(find.byType(EditableText), '/mo');
+      await tester.pump();
+      expect(find.text('/model'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(find.text('/model'), findsNothing);
+    });
+
+    testWidgets('with the popup closed, Enter still submits', (tester) async {
+      final submitted = await pumpWithCommands(tester, ['model']);
+      await tester.enterText(find.byType(EditableText), 'plain message');
+      await tester.pump();
+      expect(find.text('/model'), findsNothing);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(submitted, ['plain message']);
+    });
+
     testWidgets('remove × cancels the attachment before send', (tester) async {
       final submitted = <String>[];
       await tester.pumpWidget(harness(

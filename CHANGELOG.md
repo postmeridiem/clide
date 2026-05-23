@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Slash-command typeahead in the Claude composer (T-152) — typing `/`
+  (anywhere in the message, not just at the start) pops a list of
+  matching commands and skills sourced from the Claude environment;
+  arrow keys move, Enter/Tab completes, Escape dismisses.
+- Claude environment service (T-151) — clide reads skills, commands,
+  settings, and permissions from `~/.claude` and the repo's `.claude`
+  (layered), and caches the slash-command list per claude version. Backs
+  the typeahead and command-aware send.
 - Per-session status in the bottom status bar (T-145, T-150) — the
   active Claude pane shows its model · permission mode (accept-edits /
   plan / …) · context-token count in a status-bar slot, swapping to the
