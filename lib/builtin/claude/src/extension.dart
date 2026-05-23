@@ -6,6 +6,8 @@ import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
+import 'package:clide/builtin/claude/src/session_index.dart';
+import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/team_observer.dart';
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
 import 'package:clide/builtin/claude/src/tmux_session.dart' as tmux;
@@ -59,6 +61,12 @@ class ClaudeExtension extends ClideExtension {
           command: 'claude.kill-all-sessions',
           title: 'Claude: kill all tmux sessions for this repo',
           run: _killAllSessions,
+        ),
+        CommandContribution(
+          id: 'claude.session-storage',
+          command: 'claude.session-storage',
+          title: 'Claude: session storage (disk usage + cleanup)',
+          run: _manageStorage,
         ),
         // In-pane status slot (T-145): the active Claude pane publishes
         // its model · permission-mode · context line here.
@@ -169,6 +177,24 @@ class ClaudeExtension extends ClideExtension {
     if (primary != null) await tmux.killAllForRepo(primary);
 
     return IpcResponse.ok(id: '', data: const {'status': 'killed'});
+  }
+
+  /// Open the session-storage manager: per-session transcript sizes, a total,
+  /// and a user-driven cleanup (T-148). Enumerates the workspace's sessions
+  /// and shows the modal; deletion happens inside the dialog.
+  Future<IpcResponse> _manageStorage(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return IpcResponse.ok(id: '', data: const {});
+    final resp = await ctx.ipc.request('files.root');
+    final root = resp.ok ? resp.data['path'] as String? : null;
+    final home = Platform.environment['HOME'];
+    if (root == null || home == null) return IpcResponse.ok(id: '', data: const {});
+    final dir = Directory('$home/.claude/projects/${root.replaceAll('/', '-')}');
+    final sessions = await listSessions(dir);
+    await ctx.dialog.show<Object>(
+      (c, dismiss) => SessionStorageDialog(dir: dir, sessions: sessions, onClose: dismiss),
+    );
+    return IpcResponse.ok(id: '', data: const {'status': 'shown'});
   }
 
   Future<String?> _primarySessionName() async {

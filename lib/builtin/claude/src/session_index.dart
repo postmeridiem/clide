@@ -18,6 +18,7 @@ class SessionSummary {
     required this.modified,
     this.firstUser,
     this.lastUser,
+    this.sizeBytes = 0,
   });
 
   /// The session id (the `<uuid>` of `<uuid>.jsonl`).
@@ -28,6 +29,10 @@ class SessionSummary {
   /// records don't count), or null if none.
   final String? firstUser;
   final String? lastUser;
+
+  /// On-disk size of this session: the transcript `<id>.jsonl` plus its
+  /// `<id>/` subagents directory, in bytes (T-148).
+  final int sizeBytes;
 
   /// "first … last" — the picker's primary label. Falls back to the id when
   /// the session carries no user prompt.
@@ -103,15 +108,50 @@ Future<List<SessionSummary>> listSessions(
   for (final f in files) {
     final stat = await f.stat();
     final bookends = await _bookends(f, window);
+    final id = _sessionId(f.path);
     summaries.add(SessionSummary(
-      id: _sessionId(f.path),
+      id: id,
       modified: stat.modified,
       firstUser: bookends.first,
       lastUser: bookends.last,
+      sizeBytes: stat.size + await _dirSize(Directory('${dir.path}/$id')),
     ));
   }
   summaries.sort((a, b) => b.modified.compareTo(a.modified));
   return summaries.length > max ? summaries.sublist(0, max) : summaries;
+}
+
+/// Total bytes of [dir]'s files (recursive), or 0 if it doesn't exist. Used to
+/// fold a session's `<id>/subagents/` transcripts into its reported size.
+Future<int> _dirSize(Directory dir) async {
+  if (!await dir.exists()) return 0;
+  var total = 0;
+  await for (final e in dir.list(recursive: true, followLinks: false)) {
+    if (e is File) total += await e.length();
+  }
+  return total;
+}
+
+/// Delete a session's transcript (`<id>.jsonl`) and its `<id>/` subagents
+/// directory from [dir] (T-148). User-driven only — clide never calls this
+/// on its own. [id] must be a bare filename component; a value with a path
+/// separator or `..` is rejected to keep the delete inside [dir].
+Future<void> deleteSession(Directory dir, String id) async {
+  if (id.isEmpty || id.contains('/') || id.contains(r'\') || id.contains('..')) {
+    throw ArgumentError('refusing to delete unsafe session id: $id');
+  }
+  final file = File('${dir.path}/$id.jsonl');
+  if (await file.exists()) await file.delete();
+  final sub = Directory('${dir.path}/$id');
+  if (await sub.exists()) await sub.delete(recursive: true);
+}
+
+/// Human-readable byte size: `0 B`, `12 KB`, `3.4 MB`, `1.2 GB`.
+String formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+  if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 }
 
 String _sessionId(String path) {

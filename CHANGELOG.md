@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Claude session storage view (T-148) — the `claude.session-storage`
+  command opens a modal listing the workspace's session transcripts with
+  their on-disk sizes and a total, each removable with a two-click
+  confirm. User-driven only; clide never deletes transcripts on its own.
 - Slash-command typeahead in the Claude composer (T-152) — typing `/`
   (anywhere in the message, not just at the start) pops a list of
   matching commands and skills sourced from the Claude environment;

@@ -112,5 +112,50 @@ void main() {
       expect(sessions.single.firstUser, 'the very first prompt');
       expect(sessions.single.lastUser, 'the very last prompt');
     });
+
+    test('sizeBytes folds the transcript and its subagents dir (T-148)', () async {
+      final main = '${userLine('hi')}\n';
+      await File('${dir.path}/sz.jsonl').writeAsString(main);
+      final subDir = Directory('${dir.path}/sz/subagents')..createSync(recursive: true);
+      const subBody = 'agent transcript bytes';
+      await File('${subDir.path}/agent-1.jsonl').writeAsString(subBody);
+
+      final s = (await listSessions(dir)).single;
+      expect(s.sizeBytes, main.length + subBody.length);
+    });
+  });
+
+  group('deleteSession', () {
+    late Directory dir;
+    setUp(() async => dir = await Directory.systemTemp.createTemp('session_del_test'));
+    tearDown(() async {
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    test('removes the transcript and its subagents dir', () async {
+      await File('${dir.path}/del.jsonl').writeAsString('x');
+      Directory('${dir.path}/del/subagents').createSync(recursive: true);
+      await File('${dir.path}/del/subagents/a.jsonl').writeAsString('y');
+
+      await deleteSession(dir, 'del');
+      expect(File('${dir.path}/del.jsonl').existsSync(), isFalse);
+      expect(Directory('${dir.path}/del').existsSync(), isFalse);
+    });
+
+    test('rejects ids that could escape the dir', () async {
+      expect(() => deleteSession(dir, '../evil'), throwsArgumentError);
+      expect(() => deleteSession(dir, 'a/b'), throwsArgumentError);
+      expect(() => deleteSession(dir, ''), throwsArgumentError);
+    });
+  });
+
+  group('formatBytes', () {
+    test('scales B / KB / MB / GB', () {
+      expect(formatBytes(0), '0 B');
+      expect(formatBytes(512), '512 B');
+      expect(formatBytes(2048), '2 KB');
+      expect(formatBytes((1.5 * 1024 * 1024).round()), '1.5 MB');
+      expect(formatBytes((2 * 1024 * 1024 * 1024).round()), '2.0 GB');
+    });
   });
 }
