@@ -124,4 +124,14 @@ void main() {
       ]);
     });
   });
+
+  group('sendCommand', () {
+    test('types the text literally (no bracketed paste) then submits Enter', () async {
+      await tmux.sendCommand('clide-claude-foo', '/whats-next');
+      expect(runner.calls, [
+        ['-L', 'clide', 'send-keys', '-t', 'clide-claude-foo', '-l', '--', '/whats-next'],
+        ['-L', 'clide', 'send-keys', '-t', 'clide-claude-foo', 'Enter'],
+      ]);
+    });
+  });
 }

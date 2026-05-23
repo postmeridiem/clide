@@ -9,11 +9,13 @@ import 'package:flutter/widgets.dart';
 
 import 'claude_banner.dart';
 import 'claude_composer.dart';
+import 'claude_config.dart';
 import 'claude_status.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'session_naming.dart';
+import 'slash_commands.dart';
 import 'tmux_session.dart' as tmux;
 import 'transcript_publisher.dart';
 import 'transcript_reader.dart';
@@ -90,6 +92,9 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (!_spawned) {
       _spawned = true;
       unawaited(_spawnWhenReady());
+      // Warm the slash-command list in the background (lazy, idempotent) so
+      // custom commands are recognised by the time the user types one (T-153).
+      unawaited(activeClaudeConfig?.ensureProbe());
     }
   }
 
@@ -298,7 +303,16 @@ class _ClaudePaneState extends State<ClaudePane> {
   void _send(String text) {
     if (_usingTmux) {
       final session = _sessionName;
-      if (session != null) unawaited(tmux.sendMessage(session, text));
+      if (session == null) return;
+      // Recognised slash commands go typed (so the TUI fires them); anything
+      // else is bracketed-pasted, keeping multi-line text and stray leading
+      // slashes literal (T-153).
+      final known = activeClaudeConfig?.slashCommands ?? kFallbackSlashCommands;
+      if (isKnownSlashCommand(text, known)) {
+        unawaited(tmux.sendCommand(session, text));
+      } else {
+        unawaited(tmux.sendMessage(session, text));
+      }
       return;
     }
     final id = _paneId;

@@ -128,6 +128,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Slash commands sent from the Claude composer now actually run (T-153).
+  Recognised commands are delivered as typed input so Claude's TUI parses
+  them; other input (and stray leading slashes like a `/tmp` path) stays
+  bracketed-pasted as literal text.
 - Claude secondary panes no longer flash a false "session exited" while
   the session is alive (a transient tmux client exit is now verified
   against the live session), and the tab and banner agree on the label

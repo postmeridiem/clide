@@ -80,3 +80,13 @@ Future<void> sendMessage(String session, String text) async {
   await tmuxRunner([..._socket, 'paste-buffer', '-p', '-d', '-b', _composeBuffer, '-t', session]);
   await tmuxRunner([..._socket, 'send-keys', '-t', session, 'Enter']);
 }
+
+/// Submit [text] to [session] as TYPED input (literal keystrokes, no bracketed
+/// paste), then Enter — so Claude's TUI parses a leading `/` as a slash
+/// command, exactly as if the user had typed it (T-153). For single-line
+/// slash-command input only; regular messages go through [sendMessage] so
+/// bracketed paste keeps multi-line content and stray slashes literal.
+Future<void> sendCommand(String session, String text) async {
+  await tmuxRunner([..._socket, 'send-keys', '-t', session, '-l', '--', text]);
+  await tmuxRunner([..._socket, 'send-keys', '-t', session, 'Enter']);
+}
