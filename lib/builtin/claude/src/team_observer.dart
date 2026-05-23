@@ -131,10 +131,14 @@ Future<TeamConfig?> discoverTeam(String workspacePath, {required String teamsBas
 typedef PaneLister = Future<Set<String>> Function();
 
 class _LiveMember {
-  _LiveMember(this.member, this.team, this.publisher);
+  _LiveMember(this.member, this.team, this.publisher, this.statusSub);
   final TeamMember member;
   final String team;
   final TranscriptPublisher? publisher;
+
+  /// Forwards the member's status onto [ClaudeConversation.memberStatusChannel]
+  /// (T-157); cancelled when the member leaves.
+  final StreamSubscription<SessionStatus>? statusSub;
 }
 
 /// Watches a workspace's tmux team and emits [TeamMemberJoined] /
@@ -230,14 +234,22 @@ class TeamObserver {
   Future<void> _joined(TeamConfig config, TeamMember m) async {
     final path = await _resolveTranscript(config, m);
     TranscriptPublisher? pub;
+    StreamSubscription<SessionStatus>? statusSub;
     if (path != null) {
       pub = TranscriptPublisher(
         messages: _messages,
         reader: TranscriptReader(m.cwd ?? workspacePath, file: path, projectsBase: _projectsBase),
         channel: ClaudeConversation.teammateChannel(m.agentId),
       );
+      // Forward this member's status onto the shared status channel so the
+      // team sidebar can show its mode + context without re-tailing (T-157).
+      statusSub = pub.statusStream.listen((s) => _messages.publish(
+            ClaudeConversation.publisher,
+            ClaudeConversation.memberStatusChannel,
+            ClaudeConversation.memberStatusData(m.agentId, s),
+          ));
     }
-    _live[m.agentId] = _LiveMember(m, config.team, pub);
+    _live[m.agentId] = _LiveMember(m, config.team, pub, statusSub);
     _events.emit(TeamMemberJoined(
       team: config.team,
       agentId: m.agentId,
@@ -254,6 +266,7 @@ class TeamObserver {
   Future<void> _left(String agentId) async {
     final live = _live.remove(agentId);
     if (live == null) return;
+    await live.statusSub?.cancel();
     await live.publisher?.dispose();
     _events.emit(TeamMemberLeft(team: live.team, agentId: agentId, paneId: live.member.tmuxPaneId));
   }

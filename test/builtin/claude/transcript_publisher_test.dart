@@ -79,5 +79,20 @@ void main() {
     test('teammateChannel namespaces by agentId', () {
       expect(ClaudeConversation.teammateChannel('coder@team-x'), 'conversation/coder@team-x');
     });
+
+    test('memberStatusData encodes agentId + present status fields (T-157)', () {
+      final full = ClaudeConversation.memberStatusData(
+        'coder@team-x',
+        const SessionStatus(model: 'claude-opus-4-7', permissionMode: 'plan', contextTokens: 21000),
+      );
+      expect(full, {
+        'agentId': 'coder@team-x',
+        'model': 'claude-opus-4-7',
+        'permissionMode': 'plan',
+        'contextTokens': 21000,
+      });
+      // Absent fields are omitted (only agentId is always present).
+      expect(ClaudeConversation.memberStatusData('a', const SessionStatus()), {'agentId': 'a'});
+    });
   });
 }

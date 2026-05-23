@@ -31,6 +31,18 @@ abstract final class ClaudeConversation {
 
   /// Key under which the [ConversationItem] travels in a [Message]'s data.
   static const itemKey = 'item';
+
+  /// Shared channel carrying each team member's live status (T-157). Every
+  /// message identifies its member via the `agentId` key.
+  static const memberStatusChannel = 'member-status';
+
+  /// Encode [status] for [agentId] as a [memberStatusChannel] message body.
+  static Map<String, Object?> memberStatusData(String agentId, SessionStatus status) => {
+        'agentId': agentId,
+        if (status.model != null) 'model': status.model,
+        if (status.permissionMode != null) 'permissionMode': status.permissionMode,
+        if (status.contextTokens != null) 'contextTokens': status.contextTokens,
+      };
 }
 
 class TranscriptPublisher {

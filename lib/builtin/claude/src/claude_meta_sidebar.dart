@@ -13,8 +13,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/claude_stats.dart';
-import 'package:clide/builtin/claude/src/claude_status.dart' show shortModelLabel;
+import 'package:clide/builtin/claude/src/claude_status.dart' show formatTokenCount, permissionModeLabel, shortModelLabel;
 import 'package:clide/builtin/claude/src/team_panel_host.dart' show teamColor;
+import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
+import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -37,8 +39,10 @@ class ClaudeMetaSidebar extends StatefulWidget {
 class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   ClaudeStats _stats = const ClaudeStats();
   final List<TeamMemberJoined> _members = [];
+  final Map<String, SessionStatus> _memberStatus = {};
   StreamSubscription<TeamMemberJoined>? _joinSub;
   StreamSubscription<TeamMemberLeft>? _leftSub;
+  StreamSubscription<Message>? _statusSub;
   Timer? _timer;
   late final Future<ClaudeStats> Function() _load;
   bool _subscribed = false;
@@ -71,13 +75,28 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     super.didChangeDependencies();
     if (_subscribed) return;
     _subscribed = true;
-    final events = ClideKernel.of(context).events;
-    _joinSub = events.on<TeamMemberJoined>().listen((m) {
+    final kernel = ClideKernel.of(context);
+    _joinSub = kernel.events.on<TeamMemberJoined>().listen((m) {
       if (_members.any((x) => x.agentId == m.agentId)) return;
       setState(() => _members.add(m));
     });
-    _leftSub = events.on<TeamMemberLeft>().listen((m) {
-      setState(() => _members.removeWhere((x) => x.agentId == m.agentId));
+    _leftSub = kernel.events.on<TeamMemberLeft>().listen((m) {
+      setState(() {
+        _members.removeWhere((x) => x.agentId == m.agentId);
+        _memberStatus.remove(m.agentId);
+      });
+    });
+    // Live per-member status forwarded by the observer (T-157).
+    _statusSub = kernel.messages.subscribe(channel: ClaudeConversation.memberStatusChannel).listen((msg) {
+      final agentId = msg.data['agentId'] as String?;
+      if (agentId == null || !mounted) return;
+      setState(() {
+        _memberStatus[agentId] = SessionStatus(
+          model: msg.data['model'] as String?,
+          permissionMode: msg.data['permissionMode'] as String?,
+          contextTokens: msg.data['contextTokens'] as int?,
+        );
+      });
     });
   }
 
@@ -91,6 +110,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _timer?.cancel();
     _joinSub?.cancel();
     _leftSub?.cancel();
+    _statusSub?.cancel();
     super.dispose();
   }
 
@@ -151,7 +171,14 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
 
   Widget _memberRow(SurfaceTokens tokens, TeamMemberJoined m) {
     final color = teamColor(m.color, fallback: tokens.globalForeground);
-    final sub = [m.agentType, if (m.model != null) shortModelLabel(m.model!)].join('  ·  ');
+    final st = _memberStatus[m.agentId];
+    final model = st?.model ?? m.model; // prefer the live model once it's known
+    final sub = [
+      m.agentType,
+      if (model != null) shortModelLabel(model),
+      if (st?.permissionMode != null) permissionModeLabel(st!.permissionMode!),
+      if (st?.contextTokens != null) '${formatTokenCount(st!.contextTokens!)} ctx',
+    ].join('  ·  ');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
