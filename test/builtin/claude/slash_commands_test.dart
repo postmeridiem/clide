@@ -37,9 +37,10 @@ void main() {
   });
 
   group('clideOwnedCommand', () {
-    test('recognises /clear as clide-owned', () {
+    test('recognises /clear and /resume as clide-owned', () {
       expect(clideOwnedCommand('/clear'), 'clear');
       expect(clideOwnedCommand('/clear '), 'clear');
+      expect(clideOwnedCommand('/resume'), 'resume');
     });
 
     test('returns null for commands clide forwards to Claude', () {

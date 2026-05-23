@@ -144,6 +144,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   empty session — instead of being forwarded to Claude Code, whose `/clear`
   forked to a new session clide couldn't follow and left the pane
   unresponsive (T-156).
+- `/resume` is now handled by clide too (T-156): it opens a picker of the
+  workspace's past sessions — each labelled by its first … last user message
+  and when it was last active — and re-binds the pane to the chosen one,
+  instead of forwarding Claude Code's session-forking `/resume`.
 - Claude secondary panes no longer flash a false "session exited" while
   the session is alive (a transient tmux client exit is now verified
   against the live session), and the tab and banner agree on the label

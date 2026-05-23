@@ -14,7 +14,9 @@ import 'claude_status.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
+import 'session_index.dart';
 import 'session_naming.dart';
+import 'session_picker.dart';
 import 'slash_commands.dart';
 import 'tmux_session.dart' as tmux;
 import 'transcript_publisher.dart';
@@ -302,11 +304,16 @@ class _ClaudePaneState extends State<ClaudePane> {
   // does reach it.
   void _send(String text) {
     // Commands clide owns (T-156) are handled here, never forwarded — Claude
-    // Code's /clear forks the session to a new id our reader can't follow, so
-    // we tear this session down and start a fresh one instead.
-    if (clideOwnedCommand(text) == 'clear') {
-      unawaited(_clearSession());
-      return;
+    // Code's /clear and /resume fork the session to a new id our reader can't
+    // follow, so clide drives them: /clear starts fresh, /resume picks a past
+    // session and re-binds to it.
+    switch (clideOwnedCommand(text)) {
+      case 'clear':
+        unawaited(_clearSession());
+        return;
+      case 'resume':
+        unawaited(_resumeFlow());
+        return;
     }
     if (_usingTmux) {
       final session = _sessionName;
@@ -328,13 +335,42 @@ class _ClaudePaneState extends State<ClaudePane> {
     unawaited(ipc.request('pane.write', args: {'id': id, 'text': encodeClaudeInput(text)}));
   }
 
-  /// clide-owned `/clear` (T-156): tear this pane's session down and respawn a
-  /// brand-new, empty one. A fresh session id is forced — even for the primary,
-  /// whose id is normally deterministic — so we start empty rather than resume
-  /// the old transcript; _spawn's self-heal kills the now-stale tmux session
-  /// because the new id has no transcript yet. The old transcript is left on
-  /// disk (history preserved, just detached from this pane).
+  /// clide-owned `/clear` (T-156): respawn this pane on a brand-new, empty
+  /// session. A fresh id is forced — even for the primary, whose id is normally
+  /// deterministic — so we start empty rather than resume the old transcript.
   Future<void> _clearSession() async {
+    if (mounted) setState(() => _statusLine = 'clearing…');
+    await _respawnWithSession(freshSessionId());
+  }
+
+  /// clide-owned `/resume` (T-156): pick a past session for this workspace and
+  /// re-bind the pane to it. Claude Code's own /resume forks to a session our
+  /// reader can't follow, so clide drives the switch.
+  Future<void> _resumeFlow() async {
+    final root = _repoRoot;
+    final dialog = _kernel()?.dialog;
+    if (root == null || dialog == null) return;
+    final home = Platform.environment['HOME'] ?? '';
+    final dir = Directory('$home/.claude/projects/${root.replaceAll('/', '-')}');
+    final sessions = await listSessions(dir);
+    if (!mounted) return;
+    final picked = await dialog.show<String>(
+      (ctx, dismiss) => SessionPickerDialog(
+        sessions: sessions,
+        onPick: (id) => dismiss(id),
+        onCancel: dismiss,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _statusLine = 'resuming…');
+    await _respawnWithSession(picked);
+  }
+
+  /// Tear the current session down and respawn the pane bound to [sessionId].
+  /// The tmux session is killed first so `new-session` starts a fresh client
+  /// on the new id rather than re-attaching the still-running old claude; the
+  /// old transcript is left on disk (history preserved, detached).
+  Future<void> _respawnWithSession(String sessionId) async {
     _conversation?.dispose();
     _conversation = null;
     unawaited(_feed?.dispose());
@@ -343,13 +379,10 @@ class _ClaudePaneState extends State<ClaudePane> {
     _statusSub = null;
     _eventSub?.cancel();
     _eventSub = null;
-    _sessionId = freshSessionId();
-    if (mounted) {
-      setState(() {
-        _status = const SessionStatus();
-        _statusLine = 'clearing…';
-      });
-    }
+    final old = _sessionName;
+    if (old != null) await tmux.killSession(old);
+    _sessionId = sessionId;
+    if (mounted) setState(() => _status = const SessionStatus());
     await _spawn();
   }
 
