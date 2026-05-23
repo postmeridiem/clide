@@ -743,6 +743,35 @@ void main() {
 
       expect(collected.whereType<AssistantTextMessage>().single.text, 'from the explicit file');
     });
+
+    test('explicit file: waits without error until the file appears', () async {
+      // claude writes <session-id>.jsonl shortly after spawn (T-146); the
+      // reader must poll without throwing until it exists, then stream it.
+      final dir = await Directory.systemTemp.createTemp('late_file_');
+      addTearDown(() => dir.delete(recursive: true));
+      final target = File('${dir.path}/agent-late.jsonl');
+
+      final reader = TranscriptReader(
+        '/unused',
+        projectsBase: '/nonexistent',
+        pollInterval: const Duration(milliseconds: 20),
+        file: target.path,
+      );
+      final collected = <ConversationItem>[];
+      final sub = reader.stream.listen(collected.add);
+
+      // Let it poll a few times against the missing file — must not throw.
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(collected, isEmpty);
+
+      // Now the file appears.
+      writeLines(target, [assistantText('a1', 'arrived late')]);
+      await pumpUntil(() => collected.isNotEmpty);
+
+      await sub.cancel();
+      await reader.dispose();
+      expect(collected.whereType<AssistantTextMessage>().single.text, 'arrived late');
+    });
   });
 }
 

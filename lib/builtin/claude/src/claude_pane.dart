@@ -45,6 +45,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   TranscriptPublisher? _feed;
   String? _paneId;
   String? _sessionName;
+  String? _sessionId;
   String? _error;
   String _statusLine = 'attaching…';
 
@@ -143,6 +144,11 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
 
     _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
+    // Bind this pane to a specific Claude session id so concurrent
+    // sessions in one workspace don't collide on the newest transcript
+    // (T-146). Primary: deterministic → resumes across restarts.
+    // Secondary: fresh → always a clean session.
+    _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : freshSessionId();
 
     final tmuxConf = await _ensureTmuxConf();
     const cols = _cols;
@@ -162,6 +168,8 @@ class _ClaudePaneState extends State<ClaudePane> {
       '-y',
       '$rows',
       'claude',
+      '--session-id',
+      _sessionId!,
     ];
 
     // CLAUDE_CODE_NO_FLICKER=1 enables claude's fullscreen TUI mode:
@@ -180,7 +188,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     });
 
     if (!resp.ok) {
-      argv = ['claude'];
+      argv = ['claude', '--session-id', _sessionId!];
       resp = await ipc.request('pane.spawn', args: {
         'argv': argv,
         'kind': PaneKind.claude.wire,
@@ -209,9 +217,20 @@ class _ClaudePaneState extends State<ClaudePane> {
     // kernel MessageBus, which the view's controller subscribes to. The
     // subscription is wired before the reader's first poll so the initial
     // tail is never missed.
+    // Tail this session's own transcript (<munged-cwd>/<sessionId>.jsonl),
+    // not just the newest in the workspace — that's what kept secondaries
+    // showing the primary's conversation (T-146). Each pane gets its own
+    // bus channel so their controllers don't cross-talk.
     final messages = _kernel()!.messages;
-    _feed = TranscriptPublisher(messages: messages, reader: TranscriptReader(repoRoot));
-    _conversation = ConversationController.fromBus(messages: messages);
+    final home = Platform.environment['HOME'] ?? '';
+    final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
+    final channel = ClaudeConversation.sessionChannel(_sessionId!);
+    _feed = TranscriptPublisher(
+      messages: messages,
+      reader: TranscriptReader(repoRoot, file: transcriptFile),
+      channel: channel,
+    );
+    _conversation = ConversationController.fromBus(messages: messages, channel: channel);
     _subscribe();
     setState(() {});
   }

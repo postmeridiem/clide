@@ -52,4 +52,28 @@ void main() {
       expect(primarySessionName(long), primarySessionName(long));
     });
   });
+
+  group('claude session ids (T-146)', () {
+    final uuidRe = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+    test('primary id is a valid v4-format UUID', () {
+      expect(primarySessionId('/home/me/clide'), matches(uuidRe));
+    });
+
+    test('primary id is deterministic per repo (resumes across restarts)', () {
+      expect(primarySessionId('/home/me/clide'), primarySessionId('/home/me/clide'));
+    });
+
+    test('different repos get different primary ids', () {
+      expect(primarySessionId('/home/me/clide'), isNot(primarySessionId('/home/me/other')));
+    });
+
+    test('fresh ids are valid UUIDs and unique per call (clean secondaries)', () {
+      final a = freshSessionId();
+      final b = freshSessionId();
+      expect(a, matches(uuidRe));
+      expect(b, matches(uuidRe));
+      expect(a, isNot(b));
+    });
+  });
 }

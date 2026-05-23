@@ -294,10 +294,13 @@ class TranscriptReader {
   }
 
   Future<void> _tick(StreamController<ConversationItem> controller) async {
-    // A teammate reader tails one fixed file; otherwise discover the
+    // A pane/teammate reader tails one fixed file; otherwise discover the
     // newest session `.jsonl` in the munged dir.
     final newest = _explicitFile ?? await _newestJsonl(_mungedDir());
     if (newest == null) return;
+    // An explicit file may not exist yet (claude writes it shortly after
+    // spawn) — wait for it rather than throwing in the poll loop.
+    if (!await File(newest).exists()) return;
 
     if (newest != _currentPath) {
       // New session file. Start from the recent tail rather than byte 0:

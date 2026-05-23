@@ -120,6 +120,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Secondary Claude tabs showed the primary's conversation instead of
+  their own (T-146). Each pane now binds to its own session via
+  `claude --session-id`, so concurrent sessions in one workspace stop
+  colliding on the newest transcript — the primary keeps a stable id
+  (resumes), secondaries get a fresh one (clean session).
 - Claude pane no longer freezes the app on open — the transcript reader
   caps its initial read to the recent tail, parses off the UI isolate,
   and coalesces view notifications into one rebuild per burst (T-137).

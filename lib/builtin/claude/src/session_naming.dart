@@ -6,9 +6,18 @@
 ///   /var/mnt/data/myapp  → clide-claude-var-mnt-data-myapp
 ///
 /// Secondary sessions append `-N`.
+///
+/// Also derives the Claude `--session-id` for each pane (T-146): a pane's
+/// transcript is named `<session-id>.jsonl`, so binding each pane to a
+/// distinct UUID is how concurrent sessions in one workspace stay
+/// independent. The primary's id is deterministic from its (stable)
+/// session name so it resumes across restarts; secondaries get a fresh
+/// random id each spawn so a clean session is always one click away.
 library;
 
+import 'dart:convert';
 import 'dart:io' show Platform;
+import 'dart:math';
 
 /// Stable session name for the primary Claude pane of [repoRoot].
 String primarySessionName(String repoRoot) {
@@ -48,4 +57,47 @@ String _hash(String s) {
     h = (h * 16777619) & 0xffffffff;
   }
   return h.toRadixString(16).padLeft(8, '0');
+}
+
+// ---------------------------------------------------------------------------
+// Claude session-id (UUID) derivation — T-146
+// ---------------------------------------------------------------------------
+
+/// Stable session id for the primary pane of [repoRoot]: a UUID
+/// deterministically derived from the primary session name, so the same
+/// workspace re-binds the same `<uuid>.jsonl` across restarts (resume).
+String primarySessionId(String repoRoot) => _deterministicUuid(primarySessionName(repoRoot));
+
+/// A fresh random session id for a secondary pane — secondaries are
+/// always clean sessions, never resumed.
+String freshSessionId() {
+  final r = Random.secure();
+  return _formatUuid(List<int>.generate(16, (_) => r.nextInt(256)));
+}
+
+/// Deterministic, valid-format UUID derived from [seed] (same seed →
+/// same id). Expands an FNV-1a stream into 16 bytes.
+String _deterministicUuid(String seed) {
+  final bytes = <int>[];
+  var h = 0xcbf29ce484222325;
+  const prime = 0x100000001b3;
+  for (var i = 0; i < 16; i++) {
+    for (final c in utf8.encode('$seed:$i')) {
+      h ^= c;
+      h = (h * prime) & 0xFFFFFFFFFFFFFFFF;
+    }
+    bytes.add(h & 0xff);
+  }
+  return _formatUuid(bytes);
+}
+
+/// Format 16 [bytes] as a canonical v4 UUID string (sets the version and
+/// variant nibbles so it passes `--session-id`'s UUID validation).
+String _formatUuid(List<int> bytes) {
+  final b = List<int>.of(bytes);
+  b[6] = (b[6] & 0x0f) | 0x40; // version 4
+  b[8] = (b[8] & 0x3f) | 0x80; // RFC 4122 variant
+  final hex = b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-'
+      '${hex.substring(16, 20)}-${hex.substring(20)}';
 }

@@ -22,6 +22,10 @@ abstract final class ClaudeConversation {
   /// Channel for the lead (or single) Claude pane's conversation.
   static const leadChannel = 'conversation';
 
+  /// Per-session channel, keyed by the Claude session id (T-146) so
+  /// concurrent panes in one workspace don't cross-talk.
+  static String sessionChannel(String sessionId) => 'conversation/$sessionId';
+
   /// Channel for a teammate's conversation (team work, T-139/T-140).
   static String teammateChannel(String agentId) => 'conversation/$agentId';
 

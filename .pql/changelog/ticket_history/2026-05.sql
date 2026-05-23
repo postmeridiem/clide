@@ -2151,3 +2151,44 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-144', 'status', 'in_progress', 'done', NULL, '2026-05-22 22:43:45', '2026-05-22 22:43:45', '2026-05-22 22:43:45', NULL, 'da17b2710e17b1821882d47724790cbb', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-139', 'status', 'backlog', 'in_progress', NULL, '2026-05-22 22:50:41', '2026-05-22 22:50:41', '2026-05-22 22:50:41', NULL, 'ad063f0c3c65e5b35d3dcea036412ad9', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-139', 'status', 'in_progress', 'done', NULL, '2026-05-22 23:16:28', '2026-05-22 23:16:28', '2026-05-22 23:16:28', NULL, 'add82dc118e2081500f19cbb321272d4', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-140', 'status', 'backlog', 'done', NULL, '2026-05-22 23:31:46', '2026-05-22 23:31:46', '2026-05-22 23:31:46', NULL, 'e6204c6f0a0dbd38396a69dfef2c7080', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-145', 'description', NULL, 'A compact per-session status strip in the lead Claude pane header AND each teammate tile header (T-140), showing: current model, permission mode (accept-edits / plan / default / bypass), and context-window usage %.
+
+Shared status source (this ticket owns it): extract per-session status in the drift-contained reader/observer (D-75) — do NOT parse CC internals in the widgets.
+- Model: team config member.model, overridden by the latest assistant message.model in the transcript when present.
+- Permission mode: the transcript''s `permission-mode` records (TranscriptReader currently SKIPS these — surface the latest instead). Also honor config member.planModeRequired for teammates.
+- Context %: latest assistant message.usage (input_tokens + cache_read_input_tokens + cache_creation_input_tokens + output_tokens) over the model''s context limit.
+
+Delivery: emit a per-session status to the UI via the bus/events (e.g. a TeamMemberStatus event or an extra MessageBus channel) so BOTH the header strip and the T-141 sidebar render from one source without re-tailing.
+
+Applies to the lead session and every teammate. Re-validate field names against a live team run / CC version bump (undocumented, per T-134).
+
+Acceptance: lead pane header and each teammate tile header show current model + an accept-edits/plan-mode badge + a context-usage indicator, updating live from the transcript. Blocked by T-137 (done), T-140 (done).
+', NULL, '2026-05-23 06:07:59', '2026-05-23 06:07:59', '2026-05-23 06:07:59', NULL, '26bb1c89f3fef8d916f3eb6a1ba9d065', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-141', 'description', 'New sidebar panel contributed to Slots.sidebar: roster from ~/.claude/teams config; live status verb / elapsed / down+up tokens / edit-mode from transcript tailing; team token budget pulled from the Anthropic usage API on a timer. Acceptance: roster matches list-panes/config; budget refreshes on the timer; appears in team mode. Blocked by T7.', 'New sidebar panel (contributed to Slots.sidebar), visible only in team mode: a roster row per team member that MIRRORS the per-session status surfaced by T-145, plus team-wide meta.
+
+Per-member row:
+- Identity from the team config + observer: name, agentType, color; membership/lifecycle from TeamMemberJoined/Left.
+- Mirror of T-145''s shared status: current model, permission-mode badge (accept-edits / plan / default / bypass), context-window usage %. Consume the SAME status source/event T-145 emits — do NOT re-tail transcripts or re-parse CC internals here (D-75).
+- Live status verb + elapsed-since-last-activity + down/up token deltas from that same status feed.
+
+Team-wide:
+- Team/account token budget pulled from the Anthropic usage API on a timer (distinct from per-conversation context above).
+
+Acceptance: roster matches list-panes/config; each row mirrors the member''s model + accept-edits/plan badge + context-usage; status verb and token deltas update live; account budget refreshes on its timer; panel appears only when a team is active. Depends on T-145 (status source) + T-139 (done).
+', NULL, '2026-05-23 06:08:24', '2026-05-23 06:08:24', '2026-05-23 06:08:24', NULL, 'cfa1ce349be286d89a1f8e169605f04d', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-146', 'description', NULL, 'Regression from T-137: every Claude pane renders the newest .jsonl in the workspace''s munged dir, so concurrent sessions in one workspace (primary + secondaries) all converge on the same transcript — a secondary tab shows the primary''s conversation (and the primary follows whichever session is newest). The pre-T-137 terminal pane rendered each tab''s own PTY, so tabs were independent.
+
+Fix: bind each pane to a specific Claude session id.
+- claude CLI supports `--session-id <uuid>` (verified via --help). Spawn each pane''s claude with its own UUID; a transcript is named <session-id>.jsonl, so the pane''s transcript is <munged-cwd>/<uuid>.jsonl.
+- Reader targets that exact file via TranscriptReader''s `file:` param (added in T-139). Guard _tail against the file not existing yet (claude writes it shortly after spawn).
+- Each pane publishes/subscribes on a per-session MessageBus channel (conversation/<uuid>) so primary and secondary controllers don''t cross-talk.
+- UUID per pane, seeded by the tmux session name (the identity we already have): primary = deterministic from its stable session name (clide-claude-<slug>) so it RESUMES across restarts (D-41 continuity); secondary = random per spawn so each is a clean/fresh session (a deterministic secondary id would make starting a clean session impossible).
+
+Migration caveat: an existing tmux session created by the OLD code (no --session-id, claude picked its own id) won''t match the new deterministic id — it must be killed (claude.kill-all-sessions) once so the next spawn binds the controlled id.
+
+Open question to validate live: whether `claude --session-id <existing-uuid>` resumes vs. errors when re-spawned after the tmux session was killed (display works either way since the file is <uuid>.jsonl, but worth confirming claude starts).
+
+Acceptance: a secondary tab shows its OWN fresh conversation, independent of the primary; the primary keeps its conversation; both update live. Regression of T-137; relates to D-41.
+', NULL, '2026-05-23 06:19:51', '2026-05-23 06:19:51', '2026-05-23 06:19:51', NULL, '9e46b8eec7cc5e42132249a81d4925d1', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-146', 'status', 'backlog', 'in_progress', NULL, '2026-05-23 06:19:51', '2026-05-23 06:19:51', '2026-05-23 06:19:51', NULL, 'dd4ec6cfbbc3118cd4cf02604b91108b', 1) ON CONFLICT(hash) DO NOTHING;
