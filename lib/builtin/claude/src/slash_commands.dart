@@ -27,6 +27,18 @@ bool isKnownSlashCommand(String text, Iterable<String> known) {
   return token != null && known.contains(token);
 }
 
+/// Slash commands clide handles itself instead of forwarding to Claude:
+/// Claude Code's own handling forks the session to a new id that clide's
+/// transcript reader can't follow, so clide owns the semantics (T-156).
+const Set<String> kClideOwnedCommands = {'clear'};
+
+/// The clide-owned command in [text] (a single-line leading-slash token in
+/// [kClideOwnedCommands]), or null.
+String? clideOwnedCommand(String text) {
+  final token = slashCommandToken(text);
+  return token != null && kClideOwnedCommands.contains(token) ? token : null;
+}
+
 bool _isWs(String c) => c == ' ' || c == '\t' || c == '\n';
 
 /// An in-progress slash query at the cursor — the `/` position and the word

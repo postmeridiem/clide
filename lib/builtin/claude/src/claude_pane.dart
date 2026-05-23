@@ -301,6 +301,13 @@ class _ClaudePaneState extends State<ClaudePane> {
   // The no-tmux fallback runs claude directly in our PTY, where pane.write
   // does reach it.
   void _send(String text) {
+    // Commands clide owns (T-156) are handled here, never forwarded — Claude
+    // Code's /clear forks the session to a new id our reader can't follow, so
+    // we tear this session down and start a fresh one instead.
+    if (clideOwnedCommand(text) == 'clear') {
+      unawaited(_clearSession());
+      return;
+    }
     if (_usingTmux) {
       final session = _sessionName;
       if (session == null) return;
@@ -319,6 +326,31 @@ class _ClaudePaneState extends State<ClaudePane> {
     final ipc = _ipc();
     if (id == null || ipc == null) return;
     unawaited(ipc.request('pane.write', args: {'id': id, 'text': encodeClaudeInput(text)}));
+  }
+
+  /// clide-owned `/clear` (T-156): tear this pane's session down and respawn a
+  /// brand-new, empty one. A fresh session id is forced — even for the primary,
+  /// whose id is normally deterministic — so we start empty rather than resume
+  /// the old transcript; _spawn's self-heal kills the now-stale tmux session
+  /// because the new id has no transcript yet. The old transcript is left on
+  /// disk (history preserved, just detached from this pane).
+  Future<void> _clearSession() async {
+    _conversation?.dispose();
+    _conversation = null;
+    unawaited(_feed?.dispose());
+    _feed = null;
+    _statusSub?.cancel();
+    _statusSub = null;
+    _eventSub?.cancel();
+    _eventSub = null;
+    _sessionId = freshSessionId();
+    if (mounted) {
+      setState(() {
+        _status = const SessionStatus();
+        _statusLine = 'clearing…';
+      });
+    }
+    await _spawn();
   }
 
   void _subscribe() {

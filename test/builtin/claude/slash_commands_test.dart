@@ -36,6 +36,20 @@ void main() {
     });
   });
 
+  group('clideOwnedCommand', () {
+    test('recognises /clear as clide-owned', () {
+      expect(clideOwnedCommand('/clear'), 'clear');
+      expect(clideOwnedCommand('/clear '), 'clear');
+    });
+
+    test('returns null for commands clide forwards to Claude', () {
+      expect(clideOwnedCommand('/model sonnet'), isNull);
+      expect(clideOwnedCommand('/compact'), isNull);
+      expect(clideOwnedCommand('not a command'), isNull);
+      expect(clideOwnedCommand('/clearairspace'), isNull); // token must be exactly "clear"
+    });
+  });
+
   group('activeSlashQuery', () {
     test('matches a slash token at the cursor, including inline', () {
       expect(activeSlashQuery('/mod', 4), const SlashQuery(start: 0, query: 'mod'));

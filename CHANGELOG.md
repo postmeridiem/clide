@@ -140,6 +140,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   Recognised commands are delivered as typed input so Claude's TUI parses
   them; other input (and stray leading slashes like a `/tmp` path) stays
   bracketed-pasted as literal text.
+- `/clear` is now handled by clide — it resets the Claude pane to a fresh,
+  empty session — instead of being forwarded to Claude Code, whose `/clear`
+  forked to a new session clide couldn't follow and left the pane
+  unresponsive (T-156).
 - Claude secondary panes no longer flash a false "session exited" while
   the session is alive (a transient tmux client exit is now verified
   against the live session), and the tab and banner agree on the label
