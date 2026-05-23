@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart';
 class FocusTracker extends ChangeNotifier {
   SlotId? _slot;
   String? _contributionId;
+  Widget? _activeStatusWidget;
   final Map<SlotId, FocusScopeNode> _scopes = {};
 
   /// Static order panels cycle through. Matches the visual left-to-right
@@ -26,17 +27,37 @@ class FocusTracker extends ChangeNotifier {
   SlotId? get activeSlot => _slot;
   String? get activeContributionId => _contributionId;
 
+  /// The focused pane's status-bar widget (T-150). The status bar renders
+  /// this; it's null when the focused contribution has no status, so the
+  /// bar clears automatically on focus change.
+  Widget? get activeStatusWidget => _activeStatusWidget;
+
   void setActive({required SlotId slot, required String contributionId}) {
     if (_slot == slot && _contributionId == contributionId) return;
     _slot = slot;
     _contributionId = contributionId;
+    // Focus moved — the previous pane's status no longer applies. The
+    // newly-focused pane re-conveys its own via [setStatusWidget].
+    _activeStatusWidget = null;
+    notifyListeners();
+  }
+
+  /// Convey [widget] (or null) as the status-bar content for
+  /// [contributionId]. Applied only while that contribution is focused —
+  /// a background pane's update is ignored, so it keeps its content
+  /// locally and re-conveys when it regains focus (T-150).
+  void setStatusWidget(String contributionId, Widget? widget) {
+    if (contributionId != _contributionId) return;
+    if (identical(_activeStatusWidget, widget)) return;
+    _activeStatusWidget = widget;
     notifyListeners();
   }
 
   void clear() {
-    if (_slot == null && _contributionId == null) return;
+    if (_slot == null && _contributionId == null && _activeStatusWidget == null) return;
     _slot = null;
     _contributionId = null;
+    _activeStatusWidget = null;
     notifyListeners();
   }
 

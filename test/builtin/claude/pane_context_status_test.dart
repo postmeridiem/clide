@@ -1,9 +1,11 @@
-/// Tests for the status-bar in-pane context slot (T-145): it shows the
-/// latest text published on the bus channel and clears on empty.
+/// Tests for the focus-driven status-bar slot item (T-150): it renders
+/// the focused pane's status widget and clears when focus moves to a
+/// pane with no status.
 library;
 
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
-import 'package:clide/widgets/widgets.dart';
+import 'package:clide/kernel/src/panels/slot_id.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -14,27 +16,20 @@ void main() {
   setUp(() async => f = await KernelFixture.create());
   tearDown(() => f.dispose());
 
-  testWidgets('renders the latest published context, clears on empty', (tester) async {
+  testWidgets('renders the focused pane status, clears on focus change', (tester) async {
     await tester.pumpWidget(harness(f, const PaneContextStatusItem()));
     await tester.pump();
-    expect(find.byType(ClideText), findsNothing); // nothing published yet
+    expect(find.text('S'), findsNothing); // nothing focused
 
-    publishPaneContext(f.services.messages, 'builtin.claude', 'opus 4.7  ·  default  ·  21k ctx');
+    final focus = f.services.focus;
+    focus.setActive(slot: Slots.workspace, contributionId: 'pane.x');
+    focus.setStatusWidget('pane.x', const Text('S', textDirection: TextDirection.ltr));
     await tester.pump();
-    await tester.pump();
-    expect(find.textContaining('opus 4.7'), findsOneWidget);
+    expect(find.text('S'), findsOneWidget);
 
-    // A newer publisher overwrites the slot.
-    publishPaneContext(f.services.messages, 'builtin.editor', 'lib/app.dart  ·  modified');
+    // Focus a pane with no status → the slot clears.
+    focus.setActive(slot: Slots.workspace, contributionId: 'pane.y');
     await tester.pump();
-    await tester.pump();
-    expect(find.textContaining('opus 4.7'), findsNothing);
-    expect(find.textContaining('lib/app.dart'), findsOneWidget);
-
-    // Empty clears it.
-    publishPaneContext(f.services.messages, 'builtin.editor', '');
-    await tester.pump();
-    await tester.pump();
-    expect(find.byType(ClideText), findsNothing);
+    expect(find.text('S'), findsNothing);
   });
 }

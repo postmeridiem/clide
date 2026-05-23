@@ -18,10 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- Per-session status in the bottom status bar (T-145) — the active
-  Claude pane publishes its model · permission mode (accept-edits /
-  plan / …) · context-token count to a status-bar context slot, swapping
-  to the focused pane on tab switch. Context is a token count, not a %
+- Per-session status in the bottom status bar (T-145, T-150) — the
+  active Claude pane shows its model · permission mode (accept-edits /
+  plan / …) · context-token count in a status-bar slot, swapping to the
+  focused pane on tab switch and clearing when focus leaves. Long text
+  marquee-scrolls within the slot. Context is a token count, not a %
   (the transcript doesn't carry the model's window limit).
 - tmux agent teams surface as native teammate tiles (T-139, T-140) —
   when a Claude team is running, each teammate shows as a live
