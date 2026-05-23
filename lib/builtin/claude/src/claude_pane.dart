@@ -150,6 +150,24 @@ class _ClaudePaneState extends State<ClaudePane> {
     // Secondary: fresh → always a clean session.
     _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : freshSessionId();
 
+    final home = Platform.environment['HOME'] ?? '';
+    final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
+
+    // Self-heal (T-147): if no transcript is bound to our session id, any
+    // clide tmux session of this name is stale (created before --session-id
+    // binding, or otherwise unconnectable) and `new-session -A` would
+    // attach to it and leave the pane stuck waiting forever. Kill it so a
+    // clean session is created with our --session-id.
+    //
+    // Safe by construction: this only ever kills clide's OWN session — by
+    // its exact `clide-claude-<slug>` name, on the private `-L clide`
+    // socket the user's terminal claude never runs on — and never deletes
+    // any transcript file. A healthy session's transcript already exists,
+    // so re-attach (D-41 continuity) is preserved.
+    if (!await File(transcriptFile).exists()) {
+      await tmux.killSession(_sessionName!);
+    }
+
     final tmuxConf = await _ensureTmuxConf();
     const cols = _cols;
     const rows = _rows;
@@ -222,8 +240,6 @@ class _ClaudePaneState extends State<ClaudePane> {
     // showing the primary's conversation (T-146). Each pane gets its own
     // bus channel so their controllers don't cross-talk.
     final messages = _kernel()!.messages;
-    final home = Platform.environment['HOME'] ?? '';
-    final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
     final channel = ClaudeConversation.sessionChannel(_sessionId!);
     _feed = TranscriptPublisher(
       messages: messages,

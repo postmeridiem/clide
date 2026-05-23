@@ -120,6 +120,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude pane no longer gets stuck on "Waiting for Claude…" when its
+  session can't be bound (T-147) — e.g. a session left over from before
+  session-id binding, or a fresh machine. It now retires that stale
+  clide session and starts a clean one. Only clide's own `-L clide`
+  sessions are touched (never a terminal Claude, never transcript files).
 - Secondary Claude tabs showed the primary's conversation instead of
   their own (T-146). Each pane now binds to its own session via
   `claude --session-id`, so concurrent sessions in one workspace stop
