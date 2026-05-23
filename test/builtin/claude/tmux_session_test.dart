@@ -104,6 +104,16 @@ void main() {
     });
   });
 
+  group('hasSession', () {
+    test('true on exit 0, false otherwise', () async {
+      runner.exitCode = 0;
+      expect(await tmux.hasSession('clide-claude-foo'), isTrue);
+      expect(runner.calls.last, ['-L', 'clide', 'has-session', '-t', 'clide-claude-foo']);
+      runner.exitCode = 1;
+      expect(await tmux.hasSession('clide-claude-foo'), isFalse);
+    });
+  });
+
   group('sendMessage', () {
     test('loads a bracketed paste buffer then submits with Enter', () async {
       await tmux.sendMessage('clide-claude-foo', 'hello\nworld');

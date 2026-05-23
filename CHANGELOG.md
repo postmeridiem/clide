@@ -123,6 +123,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude secondary panes no longer flash a false "session exited" while
+  the session is alive (a transient tmux client exit is now verified
+  against the live session), and the tab and banner agree on the label
+  ("session N") (T-149).
 - Claude pane no longer gets stuck on "Waiting for Claude…" when its
   session can't be bound (T-147) — e.g. a session left over from before
   session-id binding, or a fresh machine. It now retires that stale

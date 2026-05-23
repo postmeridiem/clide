@@ -24,6 +24,14 @@ Future<void> killSession(String name) async {
   await tmuxRunner([..._socket, 'kill-session', '-t', name]);
 }
 
+/// Whether [name] is a live session on the clide socket. Used to suppress
+/// a spurious "session exited" when a transient tmux client process exits
+/// but the session itself is fine (T-149 follow-up).
+Future<bool> hasSession(String name) async {
+  final r = await tmuxRunner([..._socket, 'has-session', '-t', name]);
+  return r.exitCode == 0;
+}
+
 /// Return the names of all sessions currently alive on the clide
 /// socket. Empty list if the server is not running.
 Future<List<String>> listClideSessions() async {

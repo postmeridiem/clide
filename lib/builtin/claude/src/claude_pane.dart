@@ -275,10 +275,18 @@ class _ClaudePaneState extends State<ClaudePane> {
     final kernel = _kernel();
     if (kernel == null) return;
     // Lifecycle only — content comes from the transcript, not pane.output.
-    _eventSub = kernel.events.on<DaemonEvent>().listen((e) {
+    _eventSub = kernel.events.on<DaemonEvent>().listen((e) async {
       if (e.subsystem != 'pane' || e.data['id'] != _paneId) return;
       switch (e.kind) {
         case 'pane.exit':
+          // A transient tmux client can exit (e.g. during spawn/respawn)
+          // while the session — and Claude — stay alive. Don't report
+          // "exited" then; only when the tmux session is actually gone.
+          // (The no-tmux fallback has no session, so the exit is real.)
+          if (_usingTmux && _sessionName != null && await tmux.hasSession(_sessionName!)) {
+            return;
+          }
+          if (!mounted) return;
           setState(() => _statusLine = widget.isPrimary ? 'session exited — restart clide to retry' : 'session exited');
         case 'pane.closed':
           _paneId = null;
@@ -317,7 +325,7 @@ class _ClaudePaneState extends State<ClaudePane> {
             child: ConversationView(
               controller: _conversation!,
               emptyState: ClaudeBanner(
-                role: widget.isPrimary ? 'primary' : 'secondary ${widget.secondaryIndex}',
+                role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
                 workspace: _repoRoot,
                 statusLine: _statusLine,
               ),
