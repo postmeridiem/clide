@@ -6,6 +6,7 @@ import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
+import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/team_observer.dart';
@@ -13,6 +14,7 @@ import 'package:clide/builtin/claude/src/team_panel_host.dart';
 import 'package:clide/builtin/claude/src/tmux_session.dart' as tmux;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 class ClaudeExtension extends ClideExtension {
@@ -67,6 +69,16 @@ class ClaudeExtension extends ClideExtension {
           command: 'claude.session-storage',
           title: 'Claude: session storage (disk usage + cleanup)',
           run: _manageStorage,
+        ),
+        // Always-pickable left-panel tab: Claude activity (from
+        // stats-cache.json) + the team roster when a team is running (T-141).
+        TabContribution(
+          id: 'claude.meta',
+          slot: Slots.sidebar,
+          title: 'Activity',
+          icon: PhosphorIcons.robot,
+          priority: 60,
+          build: (_) => const ClaudeMetaSidebar(),
         ),
         // In-pane status slot (T-145): the active Claude pane publishes
         // its model · permission-mode · context line here.

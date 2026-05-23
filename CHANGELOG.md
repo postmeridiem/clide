@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Claude meta sidebar (T-141) — an always-pickable left-panel tab showing
+  Claude activity (the latest day's messages/sessions/tool-calls plus
+  lifetime totals, from `stats-cache.json`) and, when a tmux team is
+  running, a roster of its members (colour · name · agent type · model).
 - Claude session storage view (T-148) — the `claude.session-storage`
   command opens a modal listing the workspace's session transcripts with
   their on-disk sizes and a total, each removable with a two-click
