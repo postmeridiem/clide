@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
@@ -25,7 +27,12 @@ class ClaudeExtension extends ClideExtension {
   final GlobalKey<ClaudeSessionHostState> _hostKey = GlobalKey();
 
   TeamObserver? _observer;
+  ClaudeConfig? _config;
   final List<StreamSubscription<dynamic>> _subs = [];
+
+  /// App-wide Claude environment (skills, commands, settings, permissions,
+  /// slash list). Built and loaded at activation (D-76, T-151).
+  ClaudeConfig? get config => _config;
 
   @override
   List<ContributionPoint> get contributions => [
@@ -65,6 +72,24 @@ class ClaudeExtension extends ClideExtension {
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
     _ctx = ctx;
+
+    // Resolve the Claude environment up front (app-init): version + the
+    // version-keyed slash probe + the layered global/local config. Exposed
+    // as the builtin-owned singleton so panes + the status item read one
+    // source of truth (D-76, T-151). Reloaded as the workspace changes.
+    final home = Platform.environment['HOME'];
+    if (home != null) {
+      final cfg = ClaudeConfig(
+        globalDir: Directory('$home/.claude'),
+        cacheDir: Directory('${ctx.settings.appDir.path}/claude'),
+        projectDir: ctx.settings.projectDir,
+      );
+      _config = cfg;
+      activeClaudeConfig = cfg;
+      unawaited(cfg.load());
+      _subs.add(ctx.events.on<ProjectOpened>().listen((e) => cfg.setProjectDir(Directory(e.path))));
+    }
+
     // Cold-start reap: kill any leftover secondary tmux sessions from
     // a previous run. D-41's "secondary numbering resets between
     // clide runs" only holds if the leftovers are gone before the new
@@ -106,6 +131,9 @@ class ClaudeExtension extends ClideExtension {
     }
     _subs.clear();
     _stopObserver();
+    if (identical(activeClaudeConfig, _config)) activeClaudeConfig = null;
+    _config?.dispose();
+    _config = null;
     // Best-effort cleanup on explicit extension teardown. The cold-
     // start reap in activate is the actual safety net.
     final primary = await _primarySessionName();
