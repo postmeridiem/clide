@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import 'claude_banner.dart';
 import 'claude_composer.dart';
+import 'claude_status_strip.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
@@ -42,8 +43,10 @@ class _ClaudePaneState extends State<ClaudePane> {
   static String? _tmuxConfPath;
 
   StreamSubscription<DaemonEvent>? _eventSub;
+  StreamSubscription<SessionStatus>? _statusSub;
   ConversationController? _conversation;
   TranscriptPublisher? _feed;
+  SessionStatus _status = const SessionStatus();
   String? _paneId;
   String? _sessionName;
   String? _sessionId;
@@ -71,6 +74,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _conversation = null;
     unawaited(_feed?.dispose());
     _feed = null;
+    _statusSub?.cancel();
+    _statusSub = null;
     _eventSub?.cancel();
     _eventSub = null;
     final id = _paneId;
@@ -250,6 +255,9 @@ class _ClaudePaneState extends State<ClaudePane> {
       channel: channel,
     );
     _conversation = ConversationController.fromBus(messages: messages, channel: channel);
+    _statusSub = _feed!.statusStream.listen((s) {
+      if (mounted) setState(() => _status = s);
+    });
     _subscribe();
     setState(() {});
   }
@@ -321,6 +329,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     } else if (_conversation != null) {
       body = Column(
         children: [
+          if (!_status.isEmpty) ClaudeStatusStrip(status: _status),
           Expanded(
             child: ConversationView(
               controller: _conversation!,

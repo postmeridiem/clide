@@ -534,6 +534,58 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  group('SessionStatus (T-145)', () {
+    test('parseTranscriptChunk extracts model, permission-mode, context tokens', () {
+      final chunk = [
+        jsonEncode({'type': 'permission-mode', 'permissionMode': 'plan', 'sessionId': 's'}),
+        jsonEncode({
+          'type': 'assistant',
+          'uuid': 'a1',
+          'version': '2.1.143',
+          'timestamp': '2026-05-16T08:53:06.708Z',
+          'message': {
+            'role': 'assistant',
+            'model': 'claude-opus-4-7',
+            'content': [
+              {'type': 'text', 'text': 'hi'}
+            ],
+            'usage': {
+              'input_tokens': 2,
+              'cache_read_input_tokens': 1000,
+              'cache_creation_input_tokens': 500,
+              'output_tokens': 99,
+            },
+          },
+        }),
+      ].join('\n');
+
+      final parsed = parseTranscriptChunk(chunk);
+      expect(parsed.status.permissionMode, 'plan');
+      expect(parsed.status.model, 'claude-opus-4-7');
+      expect(parsed.status.contextTokens, 1502); // input 2 + read 1000 + create 500 (not output)
+      // The assistant text item is still emitted alongside.
+      expect(parsed.items.whereType<AssistantTextMessage>(), hasLength(1));
+    });
+
+    test('empty chunk yields an empty status', () {
+      expect(parseTranscriptChunk('').status.isEmpty, isTrue);
+    });
+
+    test('merge overlays non-null fields only', () {
+      const a = SessionStatus(model: 'm1', permissionMode: 'default');
+      const b = SessionStatus(permissionMode: 'plan', contextTokens: 10);
+      final m = a.merge(b);
+      expect(m.model, 'm1'); // kept — b.model is null
+      expect(m.permissionMode, 'plan'); // overlaid
+      expect(m.contextTokens, 10);
+    });
+
+    test('equality compares all fields', () {
+      expect(const SessionStatus(model: 'x'), const SessionStatus(model: 'x'));
+      expect(const SessionStatus(model: 'x'), isNot(const SessionStatus(model: 'y')));
+    });
+  });
+
   group('TranscriptReader — append streaming (filesystem)', () {
     late Directory tempBase;
 
@@ -771,6 +823,42 @@ void main() {
       await sub.cancel();
       await reader.dispose();
       expect(collected.whereType<AssistantTextMessage>().single.text, 'arrived late');
+    });
+
+    test('statusStream emits model / permission-mode / context tokens', () async {
+      final projectDir = mungedDir(tempBase, workspace);
+      await projectDir.create(recursive: true);
+      File('${projectDir.path}/session-abc.jsonl').writeAsStringSync(
+        '${[
+          jsonEncode({'type': 'permission-mode', 'permissionMode': 'acceptEdits', 'sessionId': 's'}),
+          jsonEncode({
+            'type': 'assistant',
+            'uuid': 'a1',
+            'version': '2.1.143',
+            'timestamp': '2026-05-16T08:53:06.708Z',
+            'message': {
+              'role': 'assistant',
+              'model': 'claude-sonnet-4-6',
+              'content': [
+                {'type': 'text', 'text': 'hi'}
+              ],
+              'usage': {'input_tokens': 5, 'cache_read_input_tokens': 200, 'cache_creation_input_tokens': 0, 'output_tokens': 10},
+            },
+          }),
+        ].join('\n')}\n',
+      );
+
+      final reader = TranscriptReader(workspace, projectsBase: tempBase.path, pollInterval: const Duration(milliseconds: 20));
+      final statuses = <SessionStatus>[];
+      final sub = reader.statusStream.listen(statuses.add);
+
+      await pumpUntil(() => statuses.isNotEmpty && statuses.last.model != null && statuses.last.permissionMode != null);
+
+      await sub.cancel();
+      await reader.dispose();
+      expect(statuses.last.permissionMode, 'acceptEdits');
+      expect(statuses.last.model, 'claude-sonnet-4-6');
+      expect(statuses.last.contextTokens, 205);
     });
   });
 }

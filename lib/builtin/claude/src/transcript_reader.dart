@@ -218,6 +218,8 @@ class TranscriptReader {
   }
 
   StreamController<ConversationItem>? _controller;
+  final StreamController<SessionStatus> _statusController = StreamController<SessionStatus>.broadcast();
+  SessionStatus _status = const SessionStatus();
   Timer? _timer;
   String? _currentPath;
   int _cursor = 0;
@@ -267,10 +269,19 @@ class TranscriptReader {
     return _controller!.stream;
   }
 
+  /// Live [SessionStatus] updates (model / permission-mode / context
+  /// tokens), emitted only when a value changes (T-145). Starts polling
+  /// too, so a status-only consumer still drives the tail.
+  Stream<SessionStatus> get statusStream {
+    _controller ??= _start();
+    return _statusController.stream;
+  }
+
   /// Cancels polling and closes the underlying stream.
   Future<void> dispose() async {
     _timer?.cancel();
     _timer = null;
+    unawaited(_statusController.close());
     await _controller?.close();
     _controller = null;
   }
@@ -349,6 +360,14 @@ class TranscriptReader {
       if (controller.isClosed) break;
       controller.add(item);
     }
+
+    // Fold this chunk's status deltas into the running status; emit only
+    // on change so listeners (the status strip) don't churn.
+    final merged = _status.merge(parsed.status);
+    if (merged != _status) {
+      _status = merged;
+      if (!_statusController.isClosed) _statusController.add(_status);
+    }
   }
 
   /// Parse a single JSONL line into its items (forwarding any version
@@ -362,8 +381,50 @@ class TranscriptReader {
   }
 }
 
-/// Result of [parseTranscriptChunk]: parsed items + version-drift warnings.
-typedef ParsedChunk = ({List<ConversationItem> items, List<String> warnings});
+/// Live per-session status surfaced for the status strip / sidebar
+/// (T-145). All fields nullable — a chunk only carries what it saw, and
+/// the reader [merge]s deltas into a running status.
+class SessionStatus {
+  const SessionStatus({this.model, this.permissionMode, this.contextTokens});
+
+  /// Assistant `message.model`, e.g. `claude-opus-4-7`.
+  final String? model;
+
+  /// Latest `permissionMode` (default / acceptEdits / plan / bypassPermissions).
+  final String? permissionMode;
+
+  /// Input context-window tokens in the most recent assistant turn
+  /// (input + cache-read + cache-creation). A count, not a percentage —
+  /// the transcript doesn't carry the model's context limit.
+  final int? contextTokens;
+
+  bool get isEmpty => model == null && permissionMode == null && contextTokens == null;
+
+  /// Overlay [other]'s non-null fields onto this one.
+  SessionStatus merge(SessionStatus other) => SessionStatus(
+        model: other.model ?? model,
+        permissionMode: other.permissionMode ?? permissionMode,
+        contextTokens: other.contextTokens ?? contextTokens,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is SessionStatus && other.model == model && other.permissionMode == permissionMode && other.contextTokens == contextTokens;
+
+  @override
+  int get hashCode => Object.hash(model, permissionMode, contextTokens);
+}
+
+/// Result of [parseTranscriptChunk]: items, version-drift warnings, and
+/// the latest [SessionStatus] deltas seen in the chunk.
+typedef ParsedChunk = ({List<ConversationItem> items, List<String> warnings, SessionStatus status});
+
+class _StatusAcc {
+  String? model;
+  String? permissionMode;
+  int? contextTokens;
+  SessionStatus toStatus() => SessionStatus(model: model, permissionMode: permissionMode, contextTokens: contextTokens);
+}
 
 // ---------------------------------------------------------------------------
 // Parsing — pure + isolate-safe. Top-level (no instance state) so it can run
@@ -374,15 +435,16 @@ typedef ParsedChunk = ({List<ConversationItem> items, List<String> warnings});
 ParsedChunk parseTranscriptChunk(String chunk) {
   final items = <ConversationItem>[];
   final warnings = <String>[];
+  final status = _StatusAcc();
   for (final raw in chunk.split('\n')) {
     final line = raw.trim();
     if (line.isEmpty) continue;
-    _parseLineInto(line, items, warnings);
+    _parseLineInto(line, items, warnings, status);
   }
-  return (items: items, warnings: warnings);
+  return (items: items, warnings: warnings, status: status.toStatus());
 }
 
-void _parseLineInto(String line, List<ConversationItem> out, List<String> warnings) {
+void _parseLineInto(String line, List<ConversationItem> out, List<String> warnings, _StatusAcc status) {
   Map<String, dynamic> envelope;
   try {
     envelope = (jsonDecode(line) as Map).cast<String, dynamic>();
@@ -402,7 +464,16 @@ void _parseLineInto(String line, List<ConversationItem> out, List<String> warnin
   }
 
   final type = envelope['type'] as String?;
-  if (type == null || _skipTypes.contains(type)) return;
+  if (type == null) return;
+
+  // Status extraction runs for skip-types too (permission-mode is skipped
+  // as an item but carries the current mode).
+  if (type == 'permission-mode') {
+    final pm = envelope['permissionMode'] as String?;
+    if (pm != null && pm.isNotEmpty) status.permissionMode = pm;
+  }
+
+  if (_skipTypes.contains(type)) return;
 
   final uuid = envelope['uuid'] as String? ?? '';
   final isSidechain = envelope['isSidechain'] as bool? ?? false;
@@ -419,8 +490,22 @@ void _parseLineInto(String line, List<ConversationItem> out, List<String> warnin
       _parseUserInto(envelope, uuid, timestamp, isSidechain, out);
     case 'assistant':
       _parseAssistantInto(envelope, uuid, timestamp, isSidechain, out);
+      _extractAssistantStatus(envelope, status);
     default:
       break; // unknown type — degrade gracefully
+  }
+}
+
+/// Capture model + context tokens from an assistant turn's message.
+void _extractAssistantStatus(Map<String, dynamic> envelope, _StatusAcc status) {
+  final message = envelope['message'] as Map?;
+  if (message == null) return;
+  final model = message['model'] as String?;
+  if (model != null && model.isNotEmpty) status.model = model;
+  final usage = message['usage'] as Map?;
+  if (usage != null) {
+    int n(String k) => (usage[k] as num?)?.toInt() ?? 0;
+    status.contextTokens = n('input_tokens') + n('cache_read_input_tokens') + n('cache_creation_input_tokens');
   }
 }
 

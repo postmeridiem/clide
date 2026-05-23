@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Per-session status strip in the Claude pane (T-145) — current model,
+  permission mode (accept-edits / plan / …), and context-window token
+  count above the conversation, updated live from the transcript. Context
+  is a token count, not a %, since the transcript doesn't carry the
+  model's window limit.
 - tmux agent teams surface as native teammate tiles (T-139, T-140) —
   when a Claude team is running, each teammate shows as a live
   conversation tile beside the lead in a grid that wraps 1→2→3 columns,

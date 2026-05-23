@@ -56,6 +56,10 @@ class TranscriptPublisher {
   final String channel;
   late final StreamSubscription<ConversationItem> _sub;
 
+  /// Live session status (model / permission-mode / context) from the
+  /// underlying reader — passed through for the status strip (T-145).
+  Stream<SessionStatus> get statusStream => _reader.statusStream;
+
   /// Stops publishing and tears down the underlying reader.
   Future<void> dispose() async {
     await _sub.cancel();
