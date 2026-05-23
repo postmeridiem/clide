@@ -620,8 +620,12 @@ void main() {
       await projectDir.create(recursive: true);
       final sessionFile = File('${projectDir.path}/session-abc.jsonl');
 
-      // Write session A.
+      // Write session A and backdate it to a fixed past time. This makes
+      // "newest by mtime" deterministic: relying on wall-clock mtimes lets
+      // the two files tie under timing pressure, so the reader never
+      // switches and the test flakes. A fixed old mtime removes the race.
       writeLines(sessionFile, [userText('u1', 'old session')]);
+      await sessionFile.setLastModified(DateTime.utc(2020));
 
       final reader = TranscriptReader(
         workspace,
@@ -633,15 +637,11 @@ void main() {
 
       await pumpUntil(() => collected.whereType<UserMessage>().any((m) => m.text == 'old session'));
 
-      // Create a newer session file (ensure mtime difference with touch-like approach).
+      // A newer session file — its mtime (now, then pinned to 2021) is
+      // unambiguously after session A's 2020, so the switch is guaranteed.
       final newerFile = File('${projectDir.path}/session-xyz.jsonl');
       writeLines(newerFile, [userText('u2', 'new session')]);
-      // Force a newer mtime (sleep is disallowed in long loops but a short
-      // fixed delay within a test is acceptable as a one-shot wait).
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      // Re-touch the newer file to guarantee mtime is after the old one.
-      final now = DateTime.now();
-      await newerFile.setLastModified(now);
+      await newerFile.setLastModified(DateTime.utc(2021));
 
       await pumpUntil(() => collected.whereType<UserMessage>().any((m) => m.text == 'new session'));
 
