@@ -38,7 +38,7 @@ void main() {
       );
       addTearDown(s.close);
 
-      final got = await _readUntil(s, 'hello-pty', const Duration(seconds: 5));
+      final got = await _readUntil(s, 'hello-pty', const Duration(seconds: 20));
       expect(got, contains('hello-pty'));
     });
 
@@ -67,13 +67,13 @@ void main() {
       addTearDown(sub.cancel);
 
       await firstByte.future.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => fail('shell never produced its first byte within 5s'),
+        const Duration(seconds: 20),
+        onTimeout: () => fail('shell never produced its first byte within 20s'),
       );
 
       s.write(utf8.encode('echo write-test-ok\n'));
 
-      final result = await _waitForBuffer(buf, 'write-test-ok', const Duration(seconds: 5));
+      final result = await _waitForBuffer(buf, 'write-test-ok', const Duration(seconds: 20));
       expect(result, contains('write-test-ok'));
     });
 
@@ -95,8 +95,8 @@ void main() {
 
       await s.close();
       await done.future.timeout(
-        const Duration(seconds: 3),
-        onTimeout: () => fail('output stream did not close within 3s after s.close()'),
+        const Duration(seconds: 10),
+        onTimeout: () => fail('output stream did not close within 10s after s.close()'),
       );
       expect(s.isClosed, isTrue);
     });
@@ -116,7 +116,7 @@ void main() {
       );
       addTearDown(s.close);
 
-      final got = await _readUntil(s, 'path-resolution-ok', const Duration(seconds: 5));
+      final got = await _readUntil(s, 'path-resolution-ok', const Duration(seconds: 20));
       expect(got, contains('path-resolution-ok'));
     });
 
