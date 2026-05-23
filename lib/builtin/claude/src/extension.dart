@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
+import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/team_observer.dart';
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
 import 'package:clide/builtin/claude/src/tmux_session.dart' as tmux;
@@ -51,6 +52,13 @@ class ClaudeExtension extends ClideExtension {
           command: 'claude.kill-all-sessions',
           title: 'Claude: kill all tmux sessions for this repo',
           run: _killAllSessions,
+        ),
+        // In-pane status slot (T-145): the active Claude pane publishes
+        // its model · permission-mode · context line here.
+        StatusItemContribution(
+          id: 'claude.status-context',
+          priority: 50,
+          build: (_) => const PaneContextStatusItem(),
         ),
       ];
 

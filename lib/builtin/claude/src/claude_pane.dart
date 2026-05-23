@@ -9,12 +9,13 @@ import 'package:flutter/widgets.dart';
 
 import 'claude_banner.dart';
 import 'claude_composer.dart';
-import 'claude_status_strip.dart';
+import 'claude_status.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'session_naming.dart';
 import 'tmux_session.dart' as tmux;
+import 'pane_context_status.dart';
 import 'transcript_publisher.dart';
 import 'transcript_reader.dart';
 
@@ -24,11 +25,16 @@ class ClaudePane extends StatefulWidget {
     this.isPrimary = true,
     this.secondaryIndex,
     this.showChrome = true,
+    this.active = true,
   }) : assert(isPrimary || secondaryIndex != null, 'secondary panes need an index');
 
   final bool isPrimary;
   final bool showChrome;
   final int? secondaryIndex;
+
+  /// Whether this pane is the visible/focused tab. Only the active pane
+  /// publishes its status to the status-bar context slot (T-145).
+  final bool active;
 
   @override
   State<ClaudePane> createState() => _ClaudePaneState();
@@ -56,6 +62,24 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   bool _spawned = false;
   bool _usingTmux = false;
+
+  // Publish this pane's status line to the status-bar context slot, but
+  // only when it's the active tab — the active pane owns the slot; an
+  // inactive pane staying quiet lets the active one win without a race
+  // (T-145). Switching tabs re-publishes from the newly-active pane.
+  void _publishContext() {
+    if (!widget.active || _status.isEmpty) return;
+    final messages = _kernel()?.messages;
+    if (messages == null) return;
+    publishPaneContext(messages, 'builtin.claude', formatStatusLine(_status));
+  }
+
+  @override
+  void didUpdateWidget(ClaudePane old) {
+    super.didUpdateWidget(old);
+    // Became the active tab → push our status into the slot.
+    if (widget.active && !old.active) _publishContext();
+  }
 
   @override
   void didChangeDependencies() {
@@ -256,7 +280,9 @@ class _ClaudePaneState extends State<ClaudePane> {
     );
     _conversation = ConversationController.fromBus(messages: messages, channel: channel);
     _statusSub = _feed!.statusStream.listen((s) {
-      if (mounted) setState(() => _status = s);
+      if (!mounted) return;
+      setState(() => _status = s);
+      _publishContext();
     });
     _subscribe();
     setState(() {});
@@ -329,7 +355,6 @@ class _ClaudePaneState extends State<ClaudePane> {
     } else if (_conversation != null) {
       body = Column(
         children: [
-          if (!_status.isEmpty) ClaudeStatusStrip(status: _status),
           Expanded(
             child: ConversationView(
               controller: _conversation!,

@@ -69,6 +69,8 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
           // The MultitabPane already provides the tab strip header;
           // suppressing the ClaudePane's own chrome avoids a double row.
           showChrome: false,
+          // Only the visible sub-tab publishes to the status-bar slot.
+          active: entry.id == _controller.activeId,
         );
       },
     );
