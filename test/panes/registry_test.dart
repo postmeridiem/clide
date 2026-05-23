@@ -13,6 +13,8 @@ import 'package:clide/clide.dart';
 import 'package:clide/src/panes/registry.dart';
 import 'package:test/test.dart';
 
+import '../helpers/timeouts.dart';
+
 void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
@@ -63,8 +65,8 @@ void main() {
       );
 
       final decoded = await got.future.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => fail('pane.output never carried "hello-panes" within 5s'),
+        ioTimeout,
+        onTimeout: () => fail('pane.output never carried "hello-panes" within ${ioTimeout.inSeconds}s'),
       );
       expect(decoded, contains('hello-panes'));
       expect(sink.ofKind('pane.output'), isNotEmpty);

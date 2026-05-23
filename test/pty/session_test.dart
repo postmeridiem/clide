@@ -20,6 +20,8 @@ import 'package:clide/src/pty/errors.dart';
 import 'package:clide/src/pty/native_pty.dart';
 import 'package:test/test.dart';
 
+import '../helpers/timeouts.dart';
+
 void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
@@ -38,7 +40,7 @@ void main() {
       );
       addTearDown(s.close);
 
-      final got = await _readUntil(s, 'hello-pty', const Duration(seconds: 20));
+      final got = await _readUntil(s, 'hello-pty', ioTimeout);
       expect(got, contains('hello-pty'));
     });
 
@@ -67,13 +69,13 @@ void main() {
       addTearDown(sub.cancel);
 
       await firstByte.future.timeout(
-        const Duration(seconds: 20),
-        onTimeout: () => fail('shell never produced its first byte within 20s'),
+        ioTimeout,
+        onTimeout: () => fail('shell never produced its first byte within ${ioTimeout.inSeconds}s'),
       );
 
       s.write(utf8.encode('echo write-test-ok\n'));
 
-      final result = await _waitForBuffer(buf, 'write-test-ok', const Duration(seconds: 20));
+      final result = await _waitForBuffer(buf, 'write-test-ok', ioTimeout);
       expect(result, contains('write-test-ok'));
     });
 
@@ -95,8 +97,8 @@ void main() {
 
       await s.close();
       await done.future.timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => fail('output stream did not close within 10s after s.close()'),
+        ioTimeout,
+        onTimeout: () => fail('output stream did not close within ${ioTimeout.inSeconds}s after s.close()'),
       );
       expect(s.isClosed, isTrue);
     });
@@ -116,7 +118,7 @@ void main() {
       );
       addTearDown(s.close);
 
-      final got = await _readUntil(s, 'path-resolution-ok', const Duration(seconds: 20));
+      final got = await _readUntil(s, 'path-resolution-ok', ioTimeout);
       expect(got, contains('path-resolution-ok'));
     });
 

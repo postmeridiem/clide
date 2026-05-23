@@ -8,6 +8,8 @@ import 'package:clide/src/files/ignore.dart';
 import 'package:clide/src/files/watcher.dart';
 import 'package:test/test.dart';
 
+import '../helpers/timeouts.dart';
+
 void main() {
   group('FileChangeKind', () {
     test('fromEvent maps every FileSystemEvent.type to a wire kind', () {
@@ -69,8 +71,8 @@ void main() {
       );
       await File('${sandbox.path}/new.txt').writeAsString('hi');
       final change = await saw.timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => fail('no `new.txt` event within 5s'),
+        ioTimeout,
+        onTimeout: () => fail('no `new.txt` event within ${ioTimeout.inSeconds}s'),
       );
       expect(change.path, 'new.txt');
     });
@@ -115,13 +117,13 @@ void main() {
 
 /// Wait until [received] satisfies [predicate]. Polls the list (it
 /// gets mutated by the listener subscription) every 25 ms with a
-/// generous 8 s ceiling; fails loudly on miss instead of silently
-/// continuing as the old fixed-sleep tests did.
+/// generous [ioTimeout] ceiling; fails loudly on miss instead of
+/// silently continuing as the old fixed-sleep tests did.
 Future<void> _expectReceived<T>(List<T> received, bool Function(T) predicate) async {
-  final deadline = DateTime.now().add(const Duration(seconds: 8));
+  final deadline = DateTime.now().add(ioTimeout);
   while (!received.any(predicate)) {
     if (DateTime.now().isAfter(deadline)) {
-      fail('expected event never arrived within 8s; received=${received.length} entries');
+      fail('expected event never arrived within ${ioTimeout.inSeconds}s; received=${received.length} entries');
     }
     await Future<void>.delayed(const Duration(milliseconds: 25));
   }
