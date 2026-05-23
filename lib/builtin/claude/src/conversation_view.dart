@@ -23,6 +23,7 @@ class ConversationView extends StatefulWidget {
     super.key,
     required this.controller,
     this.wrapInSelectionArea = true,
+    this.emptyState,
   });
 
   final ConversationController controller;
@@ -31,6 +32,10 @@ class ConversationView extends StatefulWidget {
   /// grid sets this false and wraps all tiles in one shared area so
   /// selection spans tiles — nesting SelectionAreas is illegal (T-140).
   final bool wrapInSelectionArea;
+
+  /// Shown while there are no items yet (e.g. the [ClaudeBanner] startup
+  /// banner). Defaults to a plain "Waiting for Claude…" hint.
+  final Widget? emptyState;
 
   @override
   State<ConversationView> createState() => _ConversationViewState();
@@ -80,9 +85,7 @@ class _ConversationViewState extends State<ConversationView> {
     if (items.isEmpty) {
       return ColoredBox(
         color: tokens.panelBackground,
-        child: const Center(
-          child: ClideText('Waiting for Claude…', muted: true),
-        ),
+        child: widget.emptyState ?? const Center(child: ClideText('Waiting for Claude…', muted: true)),
       );
     }
 

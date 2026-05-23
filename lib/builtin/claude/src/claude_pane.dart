@@ -7,6 +7,7 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
+import 'claude_banner.dart';
 import 'claude_composer.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
@@ -46,6 +47,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   String? _paneId;
   String? _sessionName;
   String? _sessionId;
+  String? _repoRoot;
   String? _error;
   String _statusLine = 'attaching…';
 
@@ -142,6 +144,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (rootResp.ok) {
       repoRoot = (rootResp.data['path'] as String?) ?? repoRoot;
     }
+    _repoRoot = repoRoot;
 
     _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
     // Bind this pane to a specific Claude session id so concurrent
@@ -310,7 +313,16 @@ class _ClaudePaneState extends State<ClaudePane> {
     } else if (_conversation != null) {
       body = Column(
         children: [
-          Expanded(child: ConversationView(controller: _conversation!)),
+          Expanded(
+            child: ConversationView(
+              controller: _conversation!,
+              emptyState: ClaudeBanner(
+                role: widget.isPrimary ? 'primary' : 'secondary ${widget.secondaryIndex}',
+                workspace: _repoRoot,
+                statusLine: _statusLine,
+              ),
+            ),
+          ),
           ClaudeComposer(
             enabled: _paneId != null,
             onSubmit: _send,

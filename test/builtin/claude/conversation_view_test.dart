@@ -6,6 +6,7 @@ library;
 
 import 'dart:async';
 
+import 'package:clide/builtin/claude/src/claude_banner.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
@@ -137,6 +138,21 @@ void main() {
       expect(find.text('Waiting for Claude…'), findsOneWidget);
     });
 
+    testWidgets('empty controller shows the provided emptyState instead', (tester) async {
+      final stream = StreamController<ConversationItem>.broadcast();
+      final c = ConversationController(stream: stream.stream);
+      addTearDown(c.dispose);
+      await tester.pumpWidget(harness(
+        f,
+        ConversationView(
+          controller: c,
+          emptyState: const ClideText('CUSTOM EMPTY'),
+        ),
+      ));
+      expect(find.text('CUSTOM EMPTY'), findsOneWidget);
+      expect(find.text('Waiting for Claude…'), findsNothing);
+    });
+
     testWidgets('renders a card per item kind with role/tool labels', (tester) async {
       await pumpWith(tester, [
         _user('a question'),
@@ -181,6 +197,29 @@ void main() {
       final copied = clipboard.text ?? '';
       expect(copied, contains('question text'));
       expect(copied, contains('answer text'));
+    });
+  });
+
+  group('ClaudeBanner', () {
+    late KernelFixture f;
+    setUp(() async => f = await KernelFixture.create());
+    tearDown(() => f.dispose());
+
+    testWidgets('shows role, workspace, status, and a hint', (tester) async {
+      await tester.pumpWidget(harness(
+        f,
+        const ClaudeBanner(
+          role: 'primary',
+          workspace: '/work/space',
+          statusLine: 'tmux · clide-claude-x',
+        ),
+      ));
+      await tester.pump();
+      expect(find.text('Claude'), findsOneWidget);
+      expect(find.text('primary'), findsOneWidget);
+      expect(find.text('/work/space'), findsOneWidget);
+      expect(find.text('tmux · clide-claude-x'), findsOneWidget);
+      expect(find.textContaining('Warming up'), findsOneWidget);
     });
   });
 }

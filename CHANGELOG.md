@@ -91,6 +91,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- The empty Claude pane now shows a native startup banner — clide logo,
+  session role, workspace, and tmux status — instead of a bare "Waiting
+  for Claude…" (T-149).
 - User and Claude turns in the conversation now render as distinct
   accent-striped cards over a filled background — your prompts in the
   theme focus colour, Claude's replies in Claude's brand orange

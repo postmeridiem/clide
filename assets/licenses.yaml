@@ -226,4 +226,20 @@ dev_dependencies:
     license: BSD-3-Clause
     purpose: >-
       Dart test runner for the Flutter-free PTY tests under
-      `dart test --tags forkpty` (flutter_test is used elsewhere).
+      `dart test --tags pty` (flutter_test is used elsewhere).
+
+# Trademark / brand notices — third-party marks clide references but does
+# NOT bundle. No artefact ships for these; tracked here for audit
+# completeness and to record the nominative-use basis.
+trademark_notices:
+  - mark: Claude name + accent colour (#d97757)
+    owner: Anthropic, PBC
+    reference: https://github.com/anthropics/skills/tree/main/skills/brand-guidelines
+    usage: >-
+      Nominative use only. "Claude" identifies the CLI that clide
+      integrates with; #d97757 is Anthropic's published Claude accent
+      colour, used solely to mark Claude's own messages/labels in the
+      conversation UI (not as clide's brand colour). clide is not
+      affiliated with, endorsed by, or partnered with Anthropic, bundles
+      no Anthropic logo or brand artwork, and ships its own logo. CLAUDE
+      is a registered trademark of Anthropic, PBC.
