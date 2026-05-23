@@ -26,10 +26,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   settings, and permissions from `~/.claude` and the repo's `.claude`
   (layered), and caches the slash-command list per claude version. Backs
   the typeahead and command-aware send.
-- Per-session status in the bottom status bar (T-145, T-150) — the
+- Per-session status in the bottom status bar (T-145, T-150, T-154) — the
   active Claude pane shows its model · permission mode (accept-edits /
-  plan / …) · context-token count in a status-bar slot, swapping to the
-  focused pane on tab switch and clearing on blur. Long status text
+  plan / …) · context-token count · configured skills count, swapping to
+  the focused pane on tab switch and clearing on blur. Long status text
   marquee-scrolls within the slot.
 - tmux agent teams surface as native teammate tiles (T-139, T-140) —
   when a Claude team is running, each teammate shows as a live

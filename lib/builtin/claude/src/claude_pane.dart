@@ -72,18 +72,29 @@ class _ClaudePaneState extends State<ClaudePane> {
   bool _spawned = false;
   bool _usingTmux = false;
 
-  // The status line surfaced to the bottom status bar via ClidePane —
-  // null until Claude reports a model/mode/context. ClidePane conveys it
-  // while this pane is the focused one (T-150).
+  // The status line surfaced to the bottom status bar via ClidePane — the
+  // live session fields (model/mode/context, T-150) plus the configured
+  // skills count from ClaudeConfig (T-154). Null when there's nothing yet.
   Widget? _statusWidget(SurfaceTokens tokens) {
-    if (_status.isEmpty) return null;
+    final skills = formatSkillsLabel(activeClaudeConfig?.skills.length ?? 0);
+    final parts = [
+      if (!_status.isEmpty) formatStatusLine(_status),
+      if (skills != null) skills,
+    ];
+    if (parts.isEmpty) return null;
     return ClideText(
-      formatStatusLine(_status),
+      parts.join('  ·  '),
       fontSize: clideFontSmall,
       fontFamily: clideMonoFamily,
       color: tokens.statusBarForeground,
       maxLines: 1,
     );
+  }
+
+  // Rebuild when the Claude environment changes (e.g. skills load or a
+  // watched .claude file changes) so the status line stays current (T-154).
+  void _onConfigChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -97,11 +108,14 @@ class _ClaudePaneState extends State<ClaudePane> {
       // Warm the slash-command list in the background (lazy, idempotent) so
       // custom commands are recognised by the time the user types one (T-153).
       unawaited(activeClaudeConfig?.ensureProbe());
+      // Reflect skills/config changes in the status line (T-154).
+      activeClaudeConfig?.addListener(_onConfigChanged);
     }
   }
 
   @override
   void dispose() {
+    activeClaudeConfig?.removeListener(_onConfigChanged);
     _conversation?.dispose();
     _conversation = null;
     unawaited(_feed?.dispose());

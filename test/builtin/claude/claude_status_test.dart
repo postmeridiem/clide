@@ -26,6 +26,12 @@ void main() {
       expect(formatTokenCount(765000), '765k');
       expect(formatTokenCount(1200000), '1.2M');
     });
+
+    test('formatSkillsLabel pluralises and hides zero', () {
+      expect(formatSkillsLabel(0), isNull);
+      expect(formatSkillsLabel(1), '1 skill');
+      expect(formatSkillsLabel(12), '12 skills');
+    });
   });
 
   group('formatStatusLine', () {

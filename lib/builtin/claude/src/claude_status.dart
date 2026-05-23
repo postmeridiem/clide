@@ -43,6 +43,11 @@ String permissionModeLabel(String mode) {
   }
 }
 
+/// Configured-skills count for the status line (`12 skills`), from
+/// ClaudeConfig — the *environment* side alongside the live session fields
+/// (T-154). Null when there are none to show.
+String? formatSkillsLabel(int count) => count > 0 ? '$count skill${count == 1 ? '' : 's'}' : null;
+
 /// Compact token count: `765k`, `1.2M`, or the raw number under 1k.
 String formatTokenCount(int n) {
   if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
