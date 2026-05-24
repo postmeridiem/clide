@@ -118,6 +118,7 @@ You might also want, project-permitting:
 - [D-74: IPC command schema is co-registered with the handler, validated at dispatch](decisions/architecture.md#d-74-ipc-command-schema-is-co-registered-with-the-handler-validated-at-dispatch) — _architecture_
 - [D-75: Claude rendered natively from transcripts; terminal retained as general tool only](decisions/architecture.md#d-75-claude-rendered-natively-from-transcripts-terminal-retained-as-general-tool-only) — _architecture_
 - [D-76: ClaudeConfig — Claude's config surface is clide's app settings (builtin-owned, watched, probe-cached per version)](decisions/architecture.md#d-76-claudeconfig--claudes-config-surface-is-clides-app-settings-builtin-owned-watched-probe-cached-per-version) — _architecture_
+- [D-77: Drive Claude via the stream-json control protocol; teams become a clide-owned coordination layer](decisions/architecture.md#d-77-drive-claude-via-the-stream-json-control-protocol-teams-become-a-clide-owned-coordination-layer) — _architecture_
 
 ## Open questions
 
