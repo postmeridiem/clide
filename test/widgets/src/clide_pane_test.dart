@@ -2,6 +2,7 @@
 /// FocusTracker slot only while it is the shown (focused + active) pane.
 library;
 
+import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/kernel/src/panels/slot_id.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -34,6 +35,30 @@ void main() {
     focus.setActive(slot: Slots.workspace, contributionId: 'other');
     await tester.pump();
     expect(focus.activeStatusWidget, isNull); // focus moved away → cleared
+  });
+
+  testWidgets('mounting while focused does not notify focus listeners during build', (tester) async {
+    // Regression: ClidePane.didChangeDependencies runs during the build phase,
+    // and conveying synchronously rebuilt the focus-listening status item
+    // mid-build ("markNeedsBuild during build"). A focus listener must be in
+    // the tree to reproduce it.
+    f.services.focus.setActive(slot: Slots.workspace, contributionId: 'pane.x');
+    await tester.pumpWidget(harness(
+      f,
+      const Column(
+        children: [
+          PaneContextStatusItem(),
+          ClidePane(
+            contributionId: 'pane.x',
+            statusWidget: Text('S', textDirection: TextDirection.ltr),
+            child: SizedBox(),
+          ),
+        ],
+      ),
+    ));
+    await tester.pump(); // run the deferred post-frame convey
+    expect(tester.takeException(), isNull);
+    expect(f.services.focus.activeStatusWidget, isA<Text>());
   });
 
   testWidgets('an inactive pane never conveys', (tester) async {

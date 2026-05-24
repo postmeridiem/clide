@@ -145,6 +145,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude pane no longer floods the console with "markNeedsBuild called
+  during build" (T-159) — a focused pane surfacing its status-bar widget
+  now defers the notification out of the build phase instead of rebuilding
+  the status item mid-build.
 - The git / tickets / decisions / pql / problems tabs no longer log
   `i18n: namespace not registered` on boot (T-155). An extension's
   localized tab title is now loaded automatically on activation, and the

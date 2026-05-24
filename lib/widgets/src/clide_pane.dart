@@ -12,6 +12,7 @@ library;
 
 import 'package:clide/kernel/src/facade.dart';
 import 'package:clide/kernel/src/focus.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 class ClidePane extends StatefulWidget {
@@ -68,12 +69,33 @@ class _ClidePaneState extends State<ClidePane> {
   // notifies (→ _sync again), but the identical-widget guard there makes
   // the second pass a no-op.
   void _sync() {
-    if (_shown) _focus?.setStatusWidget(widget.contributionId, widget.statusWidget);
+    if (_shown) _convey(widget.statusWidget);
+  }
+
+  // Push [w] to the focus tracker's status slot. setStatusWidget notifies
+  // focus listeners (the status-bar item rebuilds) — but didChangeDependencies
+  // and didUpdateWidget run during the build phase, where a synchronous notify
+  // would markNeedsBuild-during-build. So defer the convey to after the frame
+  // when we're mid-build, and re-check focus then (it may have moved).
+  void _convey(Widget? w) {
+    final focus = _focus;
+    if (focus == null) return;
+    void apply() {
+      if (focus.activeContributionId == widget.contributionId) {
+        focus.setStatusWidget(widget.contributionId, w);
+      }
+    }
+
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => apply());
+    } else {
+      apply();
+    }
   }
 
   @override
   void dispose() {
-    if (_shown) _focus?.setStatusWidget(widget.contributionId, null);
+    if (_shown) _convey(null);
     _focus?.removeListener(_sync);
     super.dispose();
   }
