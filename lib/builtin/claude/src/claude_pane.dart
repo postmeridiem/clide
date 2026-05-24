@@ -207,21 +207,26 @@ class _ClaudePaneState extends State<ClaudePane> {
     final home = Platform.environment['HOME'] ?? '';
     final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
 
+    // A transcript already on disk means this session existed before, so we
+    // resume it; otherwise it's new. This drives both the self-heal kill and
+    // the launch flag — `claude --session-id <id>` REFUSES an existing id
+    // ("already in use"), so an existing session must launch with `--resume`
+    // (T-161).
+    final transcriptExists = await File(transcriptFile).exists();
+
     // Self-heal (T-147): if no transcript is bound to our session id, any
-    // clide tmux session of this name is stale (created before --session-id
+    // clide tmux session of this name is stale (created before session-id
     // binding, or otherwise unconnectable) and `new-session -A` would
     // attach to it and leave the pane stuck waiting forever. Kill it so a
-    // clean session is created with our --session-id.
-    //
-    // Safe by construction: this only ever kills clide's OWN session — by
-    // its exact `clide-claude-<slug>` name, on the private `-L clide`
-    // socket the user's terminal claude never runs on — and never deletes
-    // any transcript file. A healthy session's transcript already exists,
-    // so re-attach (D-41 continuity) is preserved.
-    if (!await File(transcriptFile).exists()) {
+    // clean session is created. Safe by construction: only ever kills clide's
+    // OWN `clide-claude-<slug>` session on the private `-L clide` socket, and
+    // never deletes any transcript. A healthy session's transcript exists, so
+    // re-attach (D-41 continuity) is preserved.
+    if (!transcriptExists) {
       await tmux.killSession(_sessionName!);
     }
 
+    final launch = claudeLaunchArgs(_sessionId!, resume: transcriptExists);
     final tmuxConf = await _ensureTmuxConf();
     const cols = _cols;
     const rows = _rows;
@@ -239,9 +244,7 @@ class _ClaudePaneState extends State<ClaudePane> {
       '$cols',
       '-y',
       '$rows',
-      'claude',
-      '--session-id',
-      _sessionId!,
+      ...launch,
     ];
 
     // CLAUDE_CODE_NO_FLICKER=1 enables claude's fullscreen TUI mode:
@@ -260,7 +263,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     });
 
     if (!resp.ok) {
-      argv = ['claude', '--session-id', _sessionId!];
+      argv = launch;
       resp = await ipc.request('pane.spawn', args: {
         'argv': argv,
         'kind': PaneKind.claude.wire,

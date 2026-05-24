@@ -145,6 +145,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude pane is no longer dead-on-arrival when resuming a session (T-161).
+  The primary pane (and `/resume`) relaunched Claude with `--session-id
+  <existing-id>`, which Claude rejects as "already in use" — so the pane had
+  no live backend and typed input vanished. clide now uses `--resume` for an
+  existing session and `--session-id` only for a brand-new one.
 - Claude pane no longer floods the console with "markNeedsBuild called
   during build" (T-159) — a focused pane surfacing its status-bar widget
   now defers the notification out of the build phase instead of rebuilding
