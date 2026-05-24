@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Conversation message cards (T-173) — every turn in the Claude pane now
+  renders through one card template with a copy button on hover and a
+  collapse/expand caret for tool calls, results, and thinking.
 - Claude meta sidebar (T-141, T-157) — an always-pickable left-panel tab
   showing Claude activity (the latest day's messages/sessions/tool-calls
   plus lifetime totals, from `stats-cache.json`) and, when a tmux team is
