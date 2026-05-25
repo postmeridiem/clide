@@ -1,0 +1,54 @@
+{
+  "name": "Clide — sidebar Team tab",
+  "shapes": {
+    "panel": {"type": "Rectangle", "left": 40, "top": 24, "width": 340, "height": 740, "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]},
+
+    "tab-a": {"type": "Text", "parent": "panel", "left": 58, "top": 40, "text": "Activity", "fontColor": "#7a8290", "fontSize": 13},
+    "tab-t": {"type": "Text", "parent": "panel", "left": 140, "top": 40, "text": "Team", "fontColor": "#5aa0e0", "fontSize": 13},
+    "tab-t-u": {"type": "Rectangle", "parent": "panel", "left": 138, "top": 60, "width": 44, "height": 2, "fillColor": "#5aa0e0", "strokeColor": "#5aa0e0", "corners": [0, 0, 0, 0]},
+    "tab-c": {"type": "Text", "parent": "panel", "left": 210, "top": 40, "text": "Config", "fontColor": "#7a8290", "fontSize": 13},
+    "strip": {"type": "Line", "parent": "panel", "left": 40, "top": 62, "width": 340, "height": 1, "strokeColor": "#2a3038"},
+
+    "d-main": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 88, "width": 9, "height": 9, "fillColor": "#d97757", "strokeColor": "#d97757", "corners": [2, 2, 2, 2]},
+    "n-main": {"type": "Text", "parent": "panel", "left": 74, "top": 84, "text": "main · lead", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-main": {"type": "Text", "parent": "panel", "left": 180, "top": 85, "text": "synthesizing", "fontColor": "#7a8290", "fontSize": 11},
+    "p-main": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 82, "width": 22, "height": 18, "fillColor": "#1f2a44", "strokeColor": "#5aa0e0", "corners": [3, 3, 3, 3]},
+    "pt-main": {"type": "Text", "parent": "panel", "left": 343, "top": 83, "text": "P", "fontColor": "#5aa0e0", "fontSize": 12},
+
+    "d-tyre": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 120, "width": 9, "height": 9, "fillColor": "#b08cff", "strokeColor": "#b08cff", "corners": [2, 2, 2, 2]},
+    "n-tyre": {"type": "Text", "parent": "panel", "left": 74, "top": 116, "text": "tyre", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-tyre": {"type": "Text", "parent": "panel", "left": 180, "top": 117, "text": "thinking · 38%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-tyre": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 114, "width": 22, "height": 18, "fillColor": "#1d2e22", "strokeColor": "#5cb87a", "corners": [3, 3, 3, 3]},
+    "pt-tyre": {"type": "Text", "parent": "panel", "left": 343, "top": 115, "text": "A", "fontColor": "#5cb87a", "fontSize": 12},
+
+    "d-gest": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 152, "width": 9, "height": 9, "fillColor": "#e36fb0", "strokeColor": "#e36fb0", "corners": [2, 2, 2, 2]},
+    "n-gest": {"type": "Text", "parent": "panel", "left": 74, "top": 148, "text": "gestalt", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-gest": {"type": "Text", "parent": "panel", "left": 180, "top": 149, "text": "reading · 26%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-gest": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 146, "width": 22, "height": 18, "fillColor": "#22262e", "strokeColor": "#7a8290", "corners": [3, 3, 3, 3]},
+    "pt-gest": {"type": "Text", "parent": "panel", "left": 343, "top": 147, "text": "D", "fontColor": "#9aa4b2", "fontSize": 12},
+
+    "d-nig": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 184, "width": 9, "height": 9, "fillColor": "#3fb9b0", "strokeColor": "#3fb9b0", "corners": [2, 2, 2, 2]},
+    "n-nig": {"type": "Text", "parent": "panel", "left": 74, "top": 180, "text": "nigel", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-nig": {"type": "Text", "parent": "panel", "left": 180, "top": 181, "text": "thinking · 32%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-nig": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 178, "width": 22, "height": 18, "fillColor": "#1d2e22", "strokeColor": "#5cb87a", "corners": [3, 3, 3, 3]},
+    "pt-nig": {"type": "Text", "parent": "panel", "left": 343, "top": 179, "text": "A", "fontColor": "#5cb87a", "fontSize": 12},
+
+    "div1": {"type": "Line", "parent": "panel", "left": 58, "top": 214, "width": 304, "height": 1, "strokeColor": "#2a3038"},
+    "h-tasks": {"type": "Text", "parent": "panel", "left": 58, "top": 226, "text": "TASKS", "fontColor": "#7a8290", "fontSize": 12},
+    "t1": {"type": "Text", "parent": "panel", "left": 58, "top": 250, "text": "◐  tile-type taxonomy", "fontColor": "#c8d0e0", "fontSize": 12},
+    "t1a": {"type": "Text", "parent": "panel", "left": 330, "top": 250, "text": "tyre", "fontColor": "#b08cff", "fontSize": 11},
+    "t2": {"type": "Text", "parent": "panel", "left": 58, "top": 274, "text": "○  reverse requirements", "fontColor": "#c8d0e0", "fontSize": 12},
+    "t2a": {"type": "Text", "parent": "panel", "left": 322, "top": 274, "text": "gestalt", "fontColor": "#e36fb0", "fontSize": 11},
+
+    "div2": {"type": "Line", "parent": "panel", "left": 58, "top": 306, "width": 304, "height": 1, "strokeColor": "#2a3038"},
+    "h-msg": {"type": "Text", "parent": "panel", "left": 58, "top": 318, "text": "MESSAGES", "fontColor": "#7a8290", "fontSize": 12},
+    "popout": {"type": "Text", "parent": "panel", "left": 300, "top": 318, "text": "⤢ pop out", "fontColor": "#5aa0e0", "fontSize": 11},
+    "m1n": {"type": "Text", "parent": "panel", "left": 58, "top": 344, "text": "tyre → lead", "fontColor": "#b08cff", "fontSize": 11},
+    "m1t": {"type": "Text", "parent": "panel", "left": 58, "top": 360, "text": "opening position: tiles are a discrete…", "fontColor": "#9aa4b2", "fontSize": 11},
+    "m2n": {"type": "Text", "parent": "panel", "left": 58, "top": 386, "text": "lead → you", "fontColor": "#d97757", "fontSize": 11},
+    "m2t": {"type": "Text", "parent": "panel", "left": 58, "top": 402, "text": "relaying gestalt's flat-taxonomy take…", "fontColor": "#9aa4b2", "fontSize": 11},
+
+    "postbox": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 700, "width": 304, "height": 36, "fillColor": "#14181d", "strokeColor": "#333340", "corners": [4, 4, 4, 4]},
+    "post-t": {"type": "Text", "parent": "panel", "left": 70, "top": 710, "text": "@team  message…", "fontColor": "#5b6470", "fontSize": 12}
+  }
+}

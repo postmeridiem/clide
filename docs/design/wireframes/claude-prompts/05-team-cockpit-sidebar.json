@@ -1,0 +1,63 @@
+{
+  "name": "Clide — team cockpit sidebar",
+  "shapes": {
+    "panel": {"type": "Rectangle", "left": 40, "top": 24, "width": 340, "height": 740, "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]},
+
+    "h-team": {"type": "Text", "parent": "panel", "left": 58, "top": 40, "text": "TEAM", "fontColor": "#7a8290", "fontSize": 12},
+
+    "d-main": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 70, "width": 9, "height": 9, "fillColor": "#d97757", "strokeColor": "#d97757", "corners": [2, 2, 2, 2]},
+    "n-main": {"type": "Text", "parent": "panel", "left": 74, "top": 66, "text": "main · lead", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-main": {"type": "Text", "parent": "panel", "left": 170, "top": 67, "text": "synthesizing", "fontColor": "#7a8290", "fontSize": 11},
+    "p-main": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 64, "width": 22, "height": 18, "fillColor": "#1f2a44", "strokeColor": "#5aa0e0", "corners": [3, 3, 3, 3]},
+    "pt-main": {"type": "Text", "parent": "panel", "left": 343, "top": 65, "text": "P", "fontColor": "#5aa0e0", "fontSize": 12},
+
+    "d-tyre": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 104, "width": 9, "height": 9, "fillColor": "#b08cff", "strokeColor": "#b08cff", "corners": [2, 2, 2, 2]},
+    "n-tyre": {"type": "Text", "parent": "panel", "left": 74, "top": 100, "text": "tyre", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-tyre": {"type": "Text", "parent": "panel", "left": 170, "top": 101, "text": "thinking · 38%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-tyre": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 98, "width": 22, "height": 18, "fillColor": "#1d2e22", "strokeColor": "#5cb87a", "corners": [3, 3, 3, 3]},
+    "pt-tyre": {"type": "Text", "parent": "panel", "left": 343, "top": 99, "text": "A", "fontColor": "#5cb87a", "fontSize": 12},
+
+    "d-burn": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 138, "width": 9, "height": 9, "fillColor": "#e0a04a", "strokeColor": "#e0a04a", "corners": [2, 2, 2, 2]},
+    "n-burn": {"type": "Text", "parent": "panel", "left": 74, "top": 134, "text": "burnelli", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-burn": {"type": "Text", "parent": "panel", "left": 170, "top": 135, "text": "writing · 26%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-burn": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 132, "width": 22, "height": 18, "fillColor": "#1d2e22", "strokeColor": "#5cb87a", "corners": [3, 3, 3, 3]},
+    "pt-burn": {"type": "Text", "parent": "panel", "left": 343, "top": 133, "text": "A", "fontColor": "#5cb87a", "fontSize": 12},
+
+    "d-gest": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 172, "width": 9, "height": 9, "fillColor": "#e36fb0", "strokeColor": "#e36fb0", "corners": [2, 2, 2, 2]},
+    "n-gest": {"type": "Text", "parent": "panel", "left": 74, "top": 168, "text": "gestalt", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-gest": {"type": "Text", "parent": "panel", "left": 170, "top": 169, "text": "reading · 26%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-gest": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 166, "width": 22, "height": 18, "fillColor": "#22262e", "strokeColor": "#7a8290", "corners": [3, 3, 3, 3]},
+    "pt-gest": {"type": "Text", "parent": "panel", "left": 343, "top": 167, "text": "D", "fontColor": "#9aa4b2", "fontSize": 12},
+
+    "d-nig": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 206, "width": 9, "height": 9, "fillColor": "#3fb9b0", "strokeColor": "#3fb9b0", "corners": [2, 2, 2, 2]},
+    "n-nig": {"type": "Text", "parent": "panel", "left": 74, "top": 202, "text": "nigel", "fontColor": "#c8d0e0", "fontSize": 13},
+    "s-nig": {"type": "Text", "parent": "panel", "left": 170, "top": 203, "text": "thinking · 32%", "fontColor": "#7a8290", "fontSize": 11},
+    "p-nig": {"type": "Rectangle", "parent": "panel", "left": 336, "top": 200, "width": 22, "height": 18, "fillColor": "#1d2e22", "strokeColor": "#5cb87a", "corners": [3, 3, 3, 3]},
+    "pt-nig": {"type": "Text", "parent": "panel", "left": 343, "top": 201, "text": "A", "fontColor": "#5cb87a", "fontSize": 12},
+
+    "perm-note": {"type": "Text", "parent": "panel", "left": 58, "top": 232, "text": "click the mode badge to cycle (D→A→P) · shift-click for bypass", "fontColor": "#5b6470", "fontSize": 10},
+
+    "div1": {"type": "Line", "parent": "panel", "left": 58, "top": 256, "width": 304, "height": 1, "strokeColor": "#2a3038"},
+
+    "h-tasks": {"type": "Text", "parent": "panel", "left": 58, "top": 268, "text": "TASKS", "fontColor": "#7a8290", "fontSize": 12},
+    "t1": {"type": "Text", "parent": "panel", "left": 58, "top": 294, "text": "◐  tile-type taxonomy", "fontColor": "#c8d0e0", "fontSize": 12},
+    "t1a": {"type": "Text", "parent": "panel", "left": 330, "top": 294, "text": "tyre", "fontColor": "#b08cff", "fontSize": 11},
+    "t2": {"type": "Text", "parent": "panel", "left": 58, "top": 318, "text": "○  reverse requirements", "fontColor": "#c8d0e0", "fontSize": 12},
+    "t2a": {"type": "Text", "parent": "panel", "left": 322, "top": 318, "text": "gestalt", "fontColor": "#e36fb0", "fontSize": 11},
+    "t3": {"type": "Text", "parent": "panel", "left": 58, "top": 342, "text": "✓  water-model brief", "fontColor": "#7a8290", "fontSize": 12},
+
+    "div2": {"type": "Line", "parent": "panel", "left": 58, "top": 372, "width": 304, "height": 1, "strokeColor": "#2a3038"},
+
+    "h-msg": {"type": "Text", "parent": "panel", "left": 58, "top": 384, "text": "MESSAGES", "fontColor": "#7a8290", "fontSize": 12},
+    "popout": {"type": "Text", "parent": "panel", "left": 300, "top": 384, "text": "⤢ pop out", "fontColor": "#5aa0e0", "fontSize": 11},
+    "m1n": {"type": "Text", "parent": "panel", "left": 58, "top": 410, "text": "tyre → lead", "fontColor": "#b08cff", "fontSize": 11},
+    "m1t": {"type": "Text", "parent": "panel", "left": 58, "top": 426, "text": "opening position: tiles are a discrete…", "fontColor": "#9aa4b2", "fontSize": 11},
+    "m2n": {"type": "Text", "parent": "panel", "left": 58, "top": 452, "text": "lead → you", "fontColor": "#d97757", "fontSize": 11},
+    "m2t": {"type": "Text", "parent": "panel", "left": 58, "top": 468, "text": "relaying gestalt's flat-taxonomy take…", "fontColor": "#9aa4b2", "fontSize": 11},
+    "m3n": {"type": "Text", "parent": "panel", "left": 58, "top": 494, "text": "you → team", "fontColor": "#5aa0e0", "fontSize": 11},
+    "m3t": {"type": "Text", "parent": "panel", "left": 58, "top": 510, "text": "focus on tile types only", "fontColor": "#9aa4b2", "fontSize": 11},
+
+    "postbox": {"type": "Rectangle", "parent": "panel", "left": 58, "top": 700, "width": 304, "height": 36, "fillColor": "#14181d", "strokeColor": "#333340", "corners": [4, 4, 4, 4]},
+    "post-t": {"type": "Text", "parent": "panel", "left": 70, "top": 710, "text": "@team  message…", "fontColor": "#5b6470", "fontSize": 12}
+  }
+}
