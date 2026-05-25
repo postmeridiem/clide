@@ -91,6 +91,7 @@ class ToolPrompt {
     required this.input,
     this.description,
     this.toolUseId = '',
+    this.permissionSuggestions = const [],
   });
 
   /// The control_request `request_id` — the key passed to [StreamJsonSession.resolvePrompt].
@@ -111,6 +112,11 @@ class ToolPrompt {
   /// The tool's proposed input — echoed back (possibly modified) on allow.
   final Map<String, dynamic> input;
 
+  /// Permission-rule suggestions from the request (e.g. a `setMode` /
+  /// `localSettings` entry). Non-empty → an "allow & don't ask again" path is
+  /// available; echo a chosen entry back as `updatedPermissions` (D-78).
+  final List<dynamic> permissionSuggestions;
+
   /// AskUserQuestion is answered through the same channel (D-78).
   bool get isQuestion => toolName == 'AskUserQuestion';
 }
@@ -124,11 +130,22 @@ sealed class ToolDecision {
 /// Allow the tool. [updatedInput] is REQUIRED by the protocol — pass the
 /// request's input unchanged to allow as-is, or modified to alter the call.
 /// For AskUserQuestion, include the `answers` map (question text → label).
+///
+/// [updatedPermissions] echoes a permission suggestion back to skip future
+/// prompts ("don't ask again"). [followUpNote] is NOT part of the protocol —
+/// the protocol has no allow-with-message — so the session sends it as a
+/// separate user message right after allowing (D-78).
 final class AllowTool extends ToolDecision {
-  const AllowTool(this.updatedInput);
+  const AllowTool(this.updatedInput, {this.updatedPermissions, this.followUpNote});
   final Map<String, dynamic> updatedInput;
+  final List<dynamic>? updatedPermissions;
+  final String? followUpNote;
   @override
-  Map<String, dynamic> toJson() => {'behavior': 'allow', 'updatedInput': updatedInput};
+  Map<String, dynamic> toJson() => {
+        'behavior': 'allow',
+        'updatedInput': updatedInput,
+        if (updatedPermissions != null && updatedPermissions!.isNotEmpty) 'updatedPermissions': updatedPermissions,
+      };
 }
 
 /// Deny the tool with a user-facing [message] (required by the protocol).
@@ -218,6 +235,7 @@ class StreamJsonSession {
         description: request['description'] as String?,
         toolUseId: request['tool_use_id'] as String? ?? '',
         input: input,
+        permissionSuggestions: (request['permission_suggestions'] as List?) ?? const [],
       ));
       _pendingCtl.add(pendingPrompt);
       return; // awaits resolvePrompt
@@ -232,13 +250,27 @@ class StreamJsonSession {
   /// [ToolPrompt.promptId]. No-op if unknown or already resolved. Advances the
   /// queue so the next pending prompt (if any) surfaces.
   void resolvePrompt(String promptId, ToolDecision decision) {
-    final before = _queue.length;
-    _queue.removeWhere((p) => p.promptId == promptId);
-    if (_queue.length == before) return; // unknown / already resolved
+    final idx = _queue.indexWhere((p) => p.promptId == promptId);
+    if (idx < 0) return; // unknown / already resolved
+    final prompt = _queue.removeAt(idx);
     _proc.writeLine(jsonEncode({
       'type': 'control_response',
       'response': {'subtype': 'success', 'request_id': promptId, 'response': decision.toJson()},
     }));
+    if (decision is AllowTool) {
+      // The prompt card is ephemeral (it vanishes once resolved), so leave a
+      // compact record of an answered question in the conversation log (D-78).
+      if (prompt.isQuestion) {
+        final answers = decision.updatedInput['answers'];
+        if (answers is Map && answers.isNotEmpty) {
+          final summary = answers.entries.map((e) => '${e.key} → ${e.value}').join('; ');
+          _items.add(UserMessage(uuid: 'local-${_localSeq++}', timestamp: DateTime.now(), isSidechain: false, text: '✓ answered: $summary'));
+        }
+      }
+      // The protocol has no allow-with-message, so an allow note rides as a
+      // follow-up user message right after the approval (D-78).
+      if (decision.followUpNote?.trim().isNotEmpty ?? false) send(decision.followUpNote!.trim());
+    }
     _pendingCtl.add(pendingPrompt);
   }
 

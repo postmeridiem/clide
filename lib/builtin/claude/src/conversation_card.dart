@@ -37,6 +37,7 @@ class ConversationCard extends StatefulWidget {
     this.actions = const [],
     this.collapsible = false,
     this.collapsedByDefault = false,
+    this.collapsedSummary,
     this.borderColor,
   });
 
@@ -53,6 +54,11 @@ class ConversationCard extends StatefulWidget {
 
   final bool collapsible;
   final bool collapsedByDefault;
+
+  /// One-line gist shown next to the label while collapsed (e.g. the tool's
+  /// key arg, or a result's first line), so a collapsed card still says what
+  /// it holds. Null → just the label.
+  final String? collapsedSummary;
 
   /// Border colour for the bordered variant (e.g. error red); defaults to the
   /// panel border.
@@ -127,11 +133,20 @@ class _ConversationCardState extends State<ConversationCard> {
   }
 
   Widget _header(SurfaceTokens tokens) {
+    final summary = widget.collapsedSummary;
     return Row(
       children: [
         if (widget.collapsible) _caret(tokens),
         ClideText(widget.label, fontSize: clideFontSmall, color: widget.accent, fontFamily: clideMonoFamily),
-        const Spacer(),
+        // While collapsed, show a one-line gist next to the label so the card
+        // still says what it holds.
+        if (_collapsed && summary != null) ...[
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClideText(summary, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily, maxLines: 1),
+          ),
+        ] else
+          const Spacer(),
         // Hover-revealed actions. (Always-reachable keyboard a11y for these is
         // a follow-up detail; the collapse caret above is always visible.)
         if (_hover) ..._actions(tokens),

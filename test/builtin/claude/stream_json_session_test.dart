@@ -179,6 +179,50 @@ void main() {
     expect((decision['updatedInput'] as Map)['content'], 'banana');
   });
 
+  test('a permission request carries its permission_suggestions', () async {
+    proc.emit(jsonEncode({
+      'type': 'control_request',
+      'request_id': 'rs',
+      'request': {
+        'subtype': 'can_use_tool',
+        'tool_name': 'Write',
+        'input': {'file_path': '/tmp/x'},
+        'permission_suggestions': [
+          {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'}
+        ],
+      },
+    }));
+    await Future<void>.delayed(Duration.zero);
+    expect(session.pendingPrompt!.permissionSuggestions, hasLength(1));
+  });
+
+  test('resolvePrompt(allow with updatedPermissions) echoes them in the response', () async {
+    proc.emit(canUseTool('rp'));
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt(
+        'rp',
+        AllowTool(const {
+          'x': 1
+        }, updatedPermissions: const [
+          {'type': 'setMode'}
+        ]));
+    final decision = ((jsonDecode(proc.writes.single) as Map)['response'] as Map)['response'] as Map;
+    expect(decision['behavior'], 'allow');
+    expect(decision['updatedPermissions'], hasLength(1));
+  });
+
+  test('resolvePrompt(allow with a follow-up note) sends the note as a user message', () async {
+    proc.emit(canUseTool('rn'));
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt('rn', AllowTool(const {'x': 1}, followUpNote: 'use docs/ instead'));
+
+    // first write = control_response (allow), second = the follow-up message
+    expect(proc.writes, hasLength(2));
+    final follow = jsonDecode(proc.writes[1]) as Map;
+    expect(follow['type'], 'user');
+    expect((follow['message'] as Map)['content'], 'use docs/ instead');
+  });
+
   test('resolvePrompt(deny) writes a deny decision with a message', () async {
     proc.emit(canUseTool('req-3'));
     await Future<void>.delayed(Duration.zero);
@@ -187,6 +231,29 @@ void main() {
     final decision = ((jsonDecode(proc.writes.single) as Map)['response'] as Map)['response'] as Map;
     expect(decision['behavior'], 'deny');
     expect(decision['message'], 'nope');
+  });
+
+  test('resolving an AskUserQuestion leaves an answered echo in the log', () async {
+    proc.emit(jsonEncode({
+      'type': 'control_request',
+      'request_id': 'aq',
+      'request': {
+        'subtype': 'can_use_tool',
+        'tool_name': 'AskUserQuestion',
+        'input': {'questions': <dynamic>[]},
+      },
+    }));
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt(
+        'aq',
+        AllowTool(const {
+          'answers': {'Pet': 'Dogs'}
+        }));
+    await Future<void>.delayed(Duration.zero);
+
+    final echo = items.whereType<UserMessage>().toList();
+    expect(echo, hasLength(1));
+    expect(echo.single.text, contains('Pet → Dogs'));
   });
 
   test('prompts queue: resolving the head surfaces the next', () async {

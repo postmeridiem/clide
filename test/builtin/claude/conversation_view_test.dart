@@ -170,6 +170,24 @@ void main() {
       expect(find.text('error'), findsOneWidget);
     });
 
+    testWidgets('a one-line tool result renders inline (no collapse caret)', (tester) async {
+      await pumpWith(tester, [_result('hello-from-spike')]);
+      expect(find.text('hello-from-spike'), findsOneWidget);
+      expect(find.byType(ClideIcon), findsNothing); // not collapsible → no caret
+    });
+
+    testWidgets('a multi-line tool result starts collapsed with a first-line summary', (tester) async {
+      await pumpWith(tester, [_result('first line\nsecond line\nthird line')]);
+      // Collapsed: caret present, summary (first line) shown, full body hidden.
+      expect(find.byType(ClideIcon), findsOneWidget);
+      expect(find.text('first line'), findsOneWidget);
+      expect(find.text('first line\nsecond line\nthird line'), findsNothing);
+
+      await tester.tap(find.byType(ClideIcon));
+      await tester.pump();
+      expect(find.text('first line\nsecond line\nthird line'), findsOneWidget);
+    });
+
     testWidgets('select-all + copy spans multiple cards', (tester) async {
       final clipboard = _MockClipboard();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, clipboard.handleMethodCall);

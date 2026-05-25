@@ -149,26 +149,34 @@ class _ConversationTurn extends StatelessWidget {
 
   Widget _toolUse(AssistantToolUse t) {
     final pretty = const JsonEncoder.withIndent('  ').convert(t.input);
+    // Collapse only the bulky multi-line form; a trivial one-liner just shows.
+    final multiline = pretty.contains('\n');
     return ConversationCard(
       variant: ConversationCardVariant.bordered,
       accent: tokens.globalFocus,
       label: t.name,
       copyText: pretty,
-      collapsible: true,
+      collapsible: multiline,
+      collapsedByDefault: multiline,
+      collapsedSummary: multiline ? _toolUseSummary(t) : null,
       body: ClideCodeBlock(source: pretty, language: 'json'),
     );
   }
 
   Widget _toolResult(ToolResultMessage t) {
     final accent = t.isError ? tokens.statusError : tokens.globalTextMuted;
+    // A one-line result is all chrome to collapse — show it inline. Only fold
+    // away multi-line output, behind a summary of its first line.
+    final multiline = t.content.contains('\n');
     return ConversationCard(
       variant: ConversationCardVariant.bordered,
       accent: accent,
       borderColor: t.isError ? tokens.statusError : tokens.panelBorder,
       label: t.isError ? 'error' : 'result',
       copyText: t.content,
-      collapsible: true,
-      collapsedByDefault: true,
+      collapsible: multiline,
+      collapsedByDefault: multiline,
+      collapsedSummary: multiline ? _firstLine(t.content) : null,
       body: ClideText(
         t.content,
         fontSize: clideFontMeta,
@@ -176,5 +184,19 @@ class _ConversationTurn extends StatelessWidget {
         color: tokens.globalForeground,
       ),
     );
+  }
+
+  /// A compact one-liner for a collapsed tool-use card: the most telling arg.
+  String _toolUseSummary(AssistantToolUse t) {
+    final input = t.input;
+    final key =
+        input['file_path'] ?? input['command'] ?? input['path'] ?? input['pattern'] ?? input['url'] ?? (input.values.isNotEmpty ? input.values.first : null);
+    final s = key?.toString().replaceAll('\n', ' ') ?? '';
+    return s.length > 80 ? '${s.substring(0, 80)}…' : s;
+  }
+
+  String _firstLine(String content) {
+    final line = content.split('\n').first.trim();
+    return line.length > 80 ? '${line.substring(0, 80)}…' : line;
   }
 }

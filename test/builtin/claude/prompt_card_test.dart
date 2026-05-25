@@ -1,16 +1,18 @@
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart';
 
-ToolPrompt permissionPrompt() => const ToolPrompt(
+ToolPrompt permissionPrompt({List<dynamic> suggestions = const []}) => ToolPrompt(
       promptId: 'req-1',
       toolName: 'Write',
       displayName: 'Write',
       description: 'banana.txt',
-      input: {'file_path': '/tmp/banana.txt', 'content': 'banana'},
+      input: const {'file_path': '/tmp/banana.txt', 'content': 'banana'},
+      permissionSuggestions: suggestions,
     );
 
 ToolPrompt questionPrompt({bool multi = false}) => ToolPrompt(
@@ -26,6 +28,34 @@ ToolPrompt questionPrompt({bool multi = false}) => ToolPrompt(
             'options': [
               {'label': 'Cats', 'description': 'cat person'},
               {'label': 'Dogs', 'description': 'dog person'},
+            ],
+          },
+        ],
+      },
+    );
+
+ToolPrompt twoQuestionPrompt() => const ToolPrompt(
+      promptId: 'req-2q',
+      toolName: 'AskUserQuestion',
+      displayName: 'AskUserQuestion',
+      input: {
+        'questions': [
+          {
+            'question': 'Which pet?',
+            'header': 'Pet',
+            'multiSelect': false,
+            'options': [
+              {'label': 'Cats', 'description': ''},
+              {'label': 'Dogs', 'description': ''},
+            ],
+          },
+          {
+            'question': 'How eaten?',
+            'header': 'Eaten',
+            'multiSelect': false,
+            'options': [
+              {'label': 'Fresh', 'description': ''},
+              {'label': 'Smoothie', 'description': ''},
             ],
           },
         ],
@@ -79,6 +109,51 @@ void main() {
     expect((decision as DenyTool).message, isNotEmpty);
   });
 
+  testWidgets('permission: no "don\'t ask again" button without a suggestion', (tester) async {
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, __) {})));
+    await tester.pump();
+    expect(find.text("Allow & don't ask again"), findsNothing);
+  });
+
+  testWidgets('permission: "don\'t ask again" shows with a suggestion and returns updatedPermissions', (tester) async {
+    ToolDecision? decision;
+    const sugg = [
+      {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'}
+    ];
+    await tester.pumpWidget(harness(
+      f,
+      ToolPromptCard(prompt: permissionPrompt(suggestions: sugg), onResolve: (_, d) => decision = d),
+    ));
+    await tester.pump();
+
+    expect(find.text("Allow & don't ask again"), findsOneWidget);
+    await tester.tap(find.text("Allow & don't ask again"));
+    await tester.pump();
+    expect((decision as AllowTool).updatedPermissions, hasLength(1));
+  });
+
+  testWidgets('permission: a typed note rides Deny as the message', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), 'write it under docs/ instead');
+    await tester.pump();
+    await tester.tap(find.text('Deny'));
+    await tester.pump();
+    expect((decision as DenyTool).message, 'write it under docs/ instead');
+  });
+
+  testWidgets('permission: a typed note rides Allow as a follow-up note', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), 'fyi: sandbox only');
+    await tester.pump();
+    await tester.tap(find.text('Allow'));
+    await tester.pump();
+    expect((decision as AllowTool).followUpNote, 'fyi: sandbox only');
+  });
+
   testWidgets('question card: Submit is gated until an option is picked, then returns answers', (tester) async {
     ToolDecision? decision;
     await tester.pumpWidget(harness(
@@ -121,5 +196,79 @@ void main() {
 
     final answers = (decision as AllowTool).updatedInput['answers'] as Map;
     expect(answers['Do you prefer cats or dogs?'], 'Cats, Dogs');
+  });
+
+  testWidgets('question card: "Other…" free-text becomes the answer value', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+
+    await tester.tap(find.text('○ Other…'));
+    await tester.pump();
+    // Two fields now: [0] = the Other free-text, [1] = the per-choice note.
+    await tester.enterText(find.byType(EditableText).first, 'Kiwi');
+    await tester.pump();
+    await tester.tap(find.text('Submit'));
+    await tester.pump();
+
+    final answers = (decision as AllowTool).updatedInput['answers'] as Map;
+    expect(answers['Do you prefer cats or dogs?'], 'Kiwi'); // not the word "Other"
+  });
+
+  testWidgets('question card: a per-choice note is appended to the label', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+
+    await tester.tap(find.textContaining('Dogs'));
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), 'only big ones'); // the note field
+    await tester.pump();
+    await tester.tap(find.text('Submit'));
+    await tester.pump();
+
+    final answers = (decision as AllowTool).updatedInput['answers'] as Map;
+    expect(answers['Do you prefer cats or dogs?'], 'Dogs — only big ones');
+  });
+
+  testWidgets('multi-question: steps through to review, then submits both answers', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: twoQuestionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+
+    // Stepper nav shows numbered headers; only question 1 is visible.
+    expect(find.textContaining('1 · Pet'), findsOneWidget);
+    expect(find.text('Which pet?'), findsOneWidget);
+    expect(find.text('How eaten?'), findsNothing);
+
+    await tester.tap(find.textContaining('Dogs'));
+    await tester.pump();
+    await tester.tap(find.text('Next ›'));
+    await tester.pump();
+
+    expect(find.text('How eaten?'), findsOneWidget);
+    await tester.tap(find.textContaining('Fresh'));
+    await tester.pump();
+    await tester.tap(find.text('Review ›'));
+    await tester.pump();
+
+    // Review screen lists both answers; submit delivers them.
+    expect(find.text('Review your answers'), findsOneWidget);
+    await tester.tap(find.text('Submit answers'));
+    await tester.pump();
+
+    final answers = (decision as AllowTool).updatedInput['answers'] as Map;
+    expect(answers['Which pet?'], 'Dogs');
+    expect(answers['How eaten?'], 'Fresh');
+  });
+
+  testWidgets('question card: "chat instead" denies the prompt', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+
+    await tester.tap(find.text('chat instead'));
+    await tester.pump();
+    expect(decision, isA<DenyTool>());
   });
 }
