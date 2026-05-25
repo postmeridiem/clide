@@ -68,11 +68,12 @@ String _hash(String s) {
 /// workspace re-binds the same `<uuid>.jsonl` across restarts (resume).
 String primarySessionId(String repoRoot) => _deterministicUuid(primarySessionName(repoRoot));
 
-/// The `claude` argv to launch [sessionId]: `--resume` an existing session,
-/// or `--session-id` to create a new one. `--session-id` REFUSES an id that
-/// already exists ("Session ID … is already in use") — so resuming a pane
-/// whose transcript already exists must use `--resume` (T-161).
-List<String> claudeLaunchArgs(String sessionId, {required bool resume}) => resume ? ['claude', '--resume', sessionId] : ['claude', '--session-id', sessionId];
+/// The session-selection args for launching [sessionId]: `--resume` an
+/// existing session, or `--session-id` to create a new one. `--session-id`
+/// REFUSES an id that already exists ("Session ID … is already in use") — so
+/// resuming a pane whose transcript already exists must use `--resume`
+/// (T-161). Appended after the stream-json flags by [ClaudeStreamJsonProcess].
+List<String> claudeLaunchArgs(String sessionId, {required bool resume}) => resume ? ['--resume', sessionId] : ['--session-id', sessionId];
 
 /// A fresh random session id for a secondary pane — secondaries are
 /// always clean sessions, never resumed.

@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
 import 'claude_banner.dart';
@@ -14,14 +12,19 @@ import 'claude_status.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
+import 'prompt_card.dart';
 import 'session_index.dart';
 import 'session_naming.dart';
 import 'session_picker.dart';
 import 'slash_commands.dart';
-import 'tmux_session.dart' as tmux;
-import 'transcript_publisher.dart';
+import 'stream_json_session.dart';
 import 'transcript_reader.dart';
 
+/// The Claude conversation pane. Drives `claude` over the stream-json control
+/// protocol (D-77/D-78): a [StreamJsonSession] owns the process, its events
+/// feed the [ConversationController], permission / AskUserQuestion prompts come
+/// back as [ToolPrompt] cards the user answers, and input is written to the
+/// process stdin. No tmux — `--resume` (D-77) provides session continuity.
 class ClaudePane extends StatefulWidget {
   const ClaudePane({
     super.key,
@@ -50,27 +53,16 @@ class ClaudePane extends StatefulWidget {
 }
 
 class _ClaudePaneState extends State<ClaudePane> {
-  // Fixed tmux window size — Claude's TUI is no longer rendered (we read
-  // its transcript instead, T-137/D-75), so a sane default is enough to
-  // keep claude's layout happy inside the headless tmux session.
-  static const _cols = 120;
-  static const _rows = 40;
-  static String? _tmuxConfPath;
-
-  StreamSubscription<DaemonEvent>? _eventSub;
   StreamSubscription<SessionStatus>? _statusSub;
   ConversationController? _conversation;
-  TranscriptPublisher? _feed;
+  StreamJsonSession? _session;
   SessionStatus _status = const SessionStatus();
-  String? _paneId;
-  String? _sessionName;
   String? _sessionId;
   String? _repoRoot;
   String? _error;
-  String _statusLine = 'attaching…';
+  String _statusLine = 'starting…';
 
   bool _spawned = false;
-  bool _usingTmux = false;
 
   // The status line surfaced to the bottom status bar via ClidePane — the
   // live session fields (model/mode/context, T-150) plus the configured
@@ -100,8 +92,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Spawn once, after the kernel is available. The conversation renders
-    // from the transcript, so we no longer wait on a terminal resize.
+    // Spawn once, after the kernel is available.
     if (!_spawned) {
       _spawned = true;
       unawaited(_spawnWhenReady());
@@ -116,50 +107,13 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void dispose() {
     activeClaudeConfig?.removeListener(_onConfigChanged);
-    _conversation?.dispose();
-    _conversation = null;
-    unawaited(_feed?.dispose());
-    _feed = null;
     _statusSub?.cancel();
     _statusSub = null;
-    _eventSub?.cancel();
-    _eventSub = null;
-    final id = _paneId;
-    final sessionName = _sessionName;
-    _paneId = null;
-    // Secondary panes own their tmux session — close on dispose.
-    // Primary panes leave the tmux session alive so the next launch
-    // re-attaches via `tmux new-session -A` (D-41).
-    //
-    // pane.close kills the PTY-spawned tmux *client*; the tmux server
-    // keeps the session alive. We need an explicit kill-session for
-    // secondaries to actually disappear (D-41 close semantics).
-    if (id != null && !widget.isPrimary) {
-      unawaited(_ipc()?.request('pane.close', args: {'id': id}));
-      if (sessionName != null) {
-        unawaited(tmux.killSession(sessionName));
-      }
-    }
+    // The controller's onDispose kills the session (process + streams).
+    _conversation?.dispose();
+    _conversation = null;
+    _session = null;
     super.dispose();
-  }
-
-  // -- tmux config extraction -----------------------------------------------
-
-  static Future<String?> _ensureTmuxConf() async {
-    if (_tmuxConfPath != null) return _tmuxConfPath;
-    try {
-      final content = await rootBundle.loadString('assets/clide.tmux.conf');
-      final dir = Directory(
-        '${Platform.environment['HOME'] ?? '/tmp'}/.config/clide',
-      );
-      if (!dir.existsSync()) dir.createSync(recursive: true);
-      final file = File('${dir.path}/tmux.conf');
-      file.writeAsStringSync(content);
-      _tmuxConfPath = file.path;
-      return _tmuxConfPath;
-    } catch (_) {
-      return null;
-    }
   }
 
   // -- spawn ----------------------------------------------------------------
@@ -197,133 +151,44 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
     _repoRoot = repoRoot;
 
-    _sessionName = widget.isPrimary ? primarySessionName(repoRoot) : secondarySessionName(repoRoot, widget.secondaryIndex!);
-    // Bind this pane to a specific Claude session id so concurrent
-    // sessions in one workspace don't collide on the newest transcript
-    // (T-146). Primary: deterministic → resumes across restarts.
-    // Secondary: fresh → always a clean session.
+    // Bind this pane to a specific session id (T-146). Primary: deterministic
+    // → resumes across restarts. Secondary: fresh → a clean session.
     _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : freshSessionId();
 
+    // A transcript already on disk means the session existed before, so resume
+    // it; `claude --session-id <id>` refuses an existing id (T-161/D-77).
     final home = Platform.environment['HOME'] ?? '';
     final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
+    final resume = await File(transcriptFile).exists();
+    final sessionArgs = claudeLaunchArgs(_sessionId!, resume: resume);
 
-    // A transcript already on disk means this session existed before, so we
-    // resume it; otherwise it's new. This drives both the self-heal kill and
-    // the launch flag — `claude --session-id <id>` REFUSES an existing id
-    // ("already in use"), so an existing session must launch with `--resume`
-    // (T-161).
-    final transcriptExists = await File(transcriptFile).exists();
-
-    // Self-heal (T-147): if no transcript is bound to our session id, any
-    // clide tmux session of this name is stale (created before session-id
-    // binding, or otherwise unconnectable) and `new-session -A` would
-    // attach to it and leave the pane stuck waiting forever. Kill it so a
-    // clean session is created. Safe by construction: only ever kills clide's
-    // OWN `clide-claude-<slug>` session on the private `-L clide` socket, and
-    // never deletes any transcript. A healthy session's transcript exists, so
-    // re-attach (D-41 continuity) is preserved.
-    if (!transcriptExists) {
-      await tmux.killSession(_sessionName!);
+    final StreamJsonSession session;
+    try {
+      final proc = await ClaudeStreamJsonProcess.start(sessionArgs: sessionArgs, cwd: repoRoot);
+      session = StreamJsonSession(proc)..start();
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not start claude: $e');
+      return;
+    }
+    if (!mounted) {
+      await session.dispose();
+      return;
     }
 
-    final launch = claudeLaunchArgs(_sessionId!, resume: transcriptExists);
-    final tmuxConf = await _ensureTmuxConf();
-    const cols = _cols;
-    const rows = _rows;
-
-    var argv = <String>[
-      'tmux',
-      '-L',
-      'clide',
-      if (tmuxConf != null) ...['-f', tmuxConf],
-      'new-session',
-      '-A',
-      '-s',
-      _sessionName!,
-      '-x',
-      '$cols',
-      '-y',
-      '$rows',
-      ...launch,
-    ];
-
-    // CLAUDE_CODE_NO_FLICKER=1 enables claude's fullscreen TUI mode:
-    // input box pinned to the bottom of the alt-screen, claude owns
-    // its own scrollback. Removes the need for tmux scroll forwarding.
-    final env = {'CLAUDE_CODE_NO_FLICKER': '1'};
-
-    var resp = await ipc.request('pane.spawn', args: {
-      'argv': argv,
-      'kind': PaneKind.claude.wire,
-      'cwd': repoRoot,
-      'cols': cols,
-      'rows': rows,
-      'title': _sessionName,
-      'env': env,
-    });
-
-    if (!resp.ok) {
-      argv = launch;
-      resp = await ipc.request('pane.spawn', args: {
-        'argv': argv,
-        'kind': PaneKind.claude.wire,
-        'cwd': repoRoot,
-        'cols': cols,
-        'rows': rows,
-        'title': _sessionName,
-        'env': env,
-      });
-      if (!resp.ok) {
-        setState(() => _error = resp.error?.message ?? 'spawn failed');
-        return;
-      }
-      _usingTmux = false;
-      setState(() => _statusLine = 'no-tmux · fresh every launch');
-    } else {
-      _usingTmux = true;
-      setState(() => _statusLine = 'tmux · $_sessionName');
-    }
-
-    if (!mounted) return;
-    _paneId = resp.data['id'] as String?;
-    // Render the conversation natively from the transcript (T-137/D-75)
-    // rather than the PTY's TUI output. claude runs in tmux; a reader
-    // tails its transcript JSONL and a publisher fans the items onto the
-    // kernel MessageBus, which the view's controller subscribes to. The
-    // subscription is wired before the reader's first poll so the initial
-    // tail is never missed.
-    // Tail this session's own transcript (<munged-cwd>/<sessionId>.jsonl),
-    // not just the newest in the workspace — that's what kept secondaries
-    // showing the primary's conversation (T-146). Each pane gets its own
-    // bus channel so their controllers don't cross-talk.
-    final messages = _kernel()!.messages;
-    final channel = ClaudeConversation.sessionChannel(_sessionId!);
-    _feed = TranscriptPublisher(
-      messages: messages,
-      reader: TranscriptReader(repoRoot, file: transcriptFile),
-      channel: channel,
-    );
-    _conversation = ConversationController.fromBus(messages: messages, channel: channel);
-    // On status change, rebuild — ClidePane re-conveys the new statusWidget
-    // to the bar while this pane is focused (T-150).
-    _statusSub = _feed!.statusStream.listen((s) {
+    _session = session;
+    _conversation = ConversationController(stream: session.items, onDispose: session.dispose);
+    _statusSub = session.statusStream.listen((s) {
       if (!mounted) return;
       setState(() => _status = s);
     });
-    _subscribe();
-    setState(() {});
+    setState(() => _statusLine = resume ? 'resumed · $_sessionId' : 'new session · $_sessionId');
   }
 
-  // Send composed text to Claude. On the tmux path, submit via the tmux
-  // server (paste-buffer + Enter) — it reaches Claude even with no client
-  // attached, unlike pane.write to the (now-detached) spawned client PTY.
-  // The no-tmux fallback runs claude directly in our PTY, where pane.write
-  // does reach it.
+  // Send composed text to Claude over the stream-json channel. Commands clide
+  // owns (T-156) are handled here, never forwarded — /clear and /resume fork
+  // the session to a new id, so clide drives them: /clear starts fresh,
+  // /resume picks a past session and re-binds to it.
   void _send(String text) {
-    // Commands clide owns (T-156) are handled here, never forwarded — Claude
-    // Code's /clear and /resume fork the session to a new id our reader can't
-    // follow, so clide drives them: /clear starts fresh, /resume picks a past
-    // session and re-binds to it.
     switch (clideOwnedCommand(text)) {
       case 'clear':
         unawaited(_clearSession());
@@ -332,37 +197,17 @@ class _ClaudePaneState extends State<ClaudePane> {
         unawaited(_resumeFlow());
         return;
     }
-    if (_usingTmux) {
-      final session = _sessionName;
-      if (session == null) return;
-      // Recognised slash commands go typed (so the TUI fires them); anything
-      // else is bracketed-pasted, keeping multi-line text and stray leading
-      // slashes literal (T-153).
-      final known = activeClaudeConfig?.slashCommands ?? kFallbackSlashCommands;
-      if (isKnownSlashCommand(text, known)) {
-        unawaited(tmux.sendCommand(session, text));
-      } else {
-        unawaited(tmux.sendMessage(session, text));
-      }
-      return;
-    }
-    final id = _paneId;
-    final ipc = _ipc();
-    if (id == null || ipc == null) return;
-    unawaited(ipc.request('pane.write', args: {'id': id, 'text': encodeClaudeInput(text)}));
+    _session?.send(text);
   }
 
-  /// clide-owned `/clear` (T-156): respawn this pane on a brand-new, empty
-  /// session. A fresh id is forced — even for the primary, whose id is normally
-  /// deterministic — so we start empty rather than resume the old transcript.
+  /// clide-owned `/clear` (T-156): respawn on a brand-new, empty session.
   Future<void> _clearSession() async {
     if (mounted) setState(() => _statusLine = 'clearing…');
     await _respawnWithSession(freshSessionId());
   }
 
   /// clide-owned `/resume` (T-156): pick a past session for this workspace and
-  /// re-bind the pane to it. Claude Code's own /resume forks to a session our
-  /// reader can't follow, so clide drives the switch.
+  /// re-bind the pane to it.
   Future<void> _resumeFlow() async {
     final root = _repoRoot;
     final dialog = _kernel()?.dialog;
@@ -383,47 +228,17 @@ class _ClaudePaneState extends State<ClaudePane> {
     await _respawnWithSession(picked);
   }
 
-  /// Tear the current session down and respawn the pane bound to [sessionId].
-  /// The tmux session is killed first so `new-session` starts a fresh client
-  /// on the new id rather than re-attaching the still-running old claude; the
-  /// old transcript is left on disk (history preserved, detached).
+  /// Tear the current session down and respawn bound to [sessionId]. The old
+  /// process is killed; its transcript stays on disk (history preserved).
   Future<void> _respawnWithSession(String sessionId) async {
-    _conversation?.dispose();
-    _conversation = null;
-    unawaited(_feed?.dispose());
-    _feed = null;
     _statusSub?.cancel();
     _statusSub = null;
-    _eventSub?.cancel();
-    _eventSub = null;
-    final old = _sessionName;
-    if (old != null) await tmux.killSession(old);
+    _conversation?.dispose(); // onDispose kills the old session
+    _conversation = null;
+    _session = null;
     _sessionId = sessionId;
     if (mounted) setState(() => _status = const SessionStatus());
     await _spawn();
-  }
-
-  void _subscribe() {
-    final kernel = _kernel();
-    if (kernel == null) return;
-    // Lifecycle only — content comes from the transcript, not pane.output.
-    _eventSub = kernel.events.on<DaemonEvent>().listen((e) async {
-      if (e.subsystem != 'pane' || e.data['id'] != _paneId) return;
-      switch (e.kind) {
-        case 'pane.exit':
-          // A transient tmux client can exit (e.g. during spawn/respawn)
-          // while the session — and Claude — stay alive. Don't report
-          // "exited" then; only when the tmux session is actually gone.
-          // (The no-tmux fallback has no session, so the exit is real.)
-          if (_usingTmux && _sessionName != null && await tmux.hasSession(_sessionName!)) {
-            return;
-          }
-          if (!mounted) return;
-          setState(() => _statusLine = widget.isPrimary ? 'session exited — restart clide to retry' : 'session exited');
-        case 'pane.closed':
-          _paneId = null;
-      }
-    });
   }
 
   // -- helpers --------------------------------------------------------------
@@ -464,29 +279,34 @@ class _ClaudePaneState extends State<ClaudePane> {
               ),
             ),
           ),
-          ClaudeComposer(
-            enabled: _paneId != null,
-            onSubmit: _send,
-            pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
+          // The composer zone: an open prompt (permission / AskUserQuestion)
+          // takes this space and hides the text input until it's answered, so
+          // interaction stays out of the conversation stream (D-78).
+          StreamBuilder<ToolPrompt?>(
+            stream: _session?.pendingPromptStream,
+            initialData: _session?.pendingPrompt,
+            builder: (context, snap) {
+              final prompt = snap.data;
+              if (prompt != null && _session != null) {
+                return ToolPromptCard(prompt: prompt, onResolve: _session!.resolvePrompt);
+              }
+              return ClaudeComposer(
+                enabled: _session != null,
+                onSubmit: _send,
+                pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
+              );
+            },
           ),
         ],
       );
     } else {
-      body = const Center(child: ClideText('attaching…', muted: true));
+      body = const Center(child: ClideText('starting…', muted: true));
     }
 
     final content = widget.showChrome
         ? ClidePaneChrome(
             title: title,
             subtitle: _error ?? _statusLine,
-            onClose: widget.isPrimary
-                ? null
-                : () {
-                    final id = _paneId;
-                    if (id != null) {
-                      unawaited(_ipc()?.request('pane.close', args: {'id': id}));
-                    }
-                  },
             child: body,
           )
         : body;

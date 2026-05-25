@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Native permission & AskUserQuestion prompts (T-166, D-78) — when Claude
+  needs tool approval or asks a question, an inline card appears in the
+  conversation with Allow/Deny or selectable options; the decision is
+  returned over the stream-json control channel. Closes the prompt gap
+  the tmux model couldn't surface.
 - Conversation message cards (T-173) — every turn in the Claude pane now
   renders through one card template with a copy button on hover and a
   collapse/expand caret for tool calls, results, and thinking.

@@ -81,11 +81,11 @@ void main() {
     test('resumes an existing session with --resume, not --session-id', () {
       // --session-id refuses an existing id ("already in use"), so resuming
       // (transcript on disk) must use --resume.
-      expect(claudeLaunchArgs('abc', resume: true), ['claude', '--resume', 'abc']);
+      expect(claudeLaunchArgs('abc', resume: true), ['--resume', 'abc']);
     });
 
     test('creates a new session with --session-id', () {
-      expect(claudeLaunchArgs('abc', resume: false), ['claude', '--session-id', 'abc']);
+      expect(claudeLaunchArgs('abc', resume: false), ['--session-id', 'abc']);
     });
   });
 }
