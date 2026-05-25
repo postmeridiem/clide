@@ -186,6 +186,19 @@ class StreamJsonSession {
   Set<String> get promptedToolUseIds => _promptedToolUses;
   Map<String, bool> get toolUseOutcomes => _toolUseOutcome;
 
+  /// Whether a turn is in flight (between a send and claude's `result`). Drives
+  /// the composer's Stop affordance.
+  bool _busy = false;
+  final _busyCtl = StreamController<bool>.broadcast();
+  bool get busy => _busy;
+  Stream<bool> get busyStream => _busyCtl.stream;
+
+  void _setBusy(bool value) {
+    if (_busy == value) return;
+    _busy = value;
+    _busyCtl.add(value);
+  }
+
   /// The prompt currently awaiting a decision (queue head), or null.
   ToolPrompt? get pendingPrompt => _queue.isEmpty ? null : _queue.first;
 
@@ -220,6 +233,8 @@ class StreamJsonSession {
       _onControlRequest(ev);
       return;
     }
+    // A `result` ends the turn — clear the busy/interruptible state.
+    if (ev['type'] == 'result') _setBusy(false);
     // Items + assistant model/tokens reuse the transcript parser (identical
     // message.content shapes).
     final parsed = parseTranscriptChunk(trimmed);
@@ -320,6 +335,18 @@ class StreamJsonSession {
       isSidechain: false,
       text: text,
     ));
+    _setBusy(true);
+  }
+
+  /// Interrupt the running turn (the escape hatch for a runaway — D-78). Sends
+  /// the `interrupt` control_request; claude cancels the current turn and ends
+  /// it with a `result`, which clears [busy]. Safe to call when idle.
+  void interrupt() {
+    _proc.writeLine(jsonEncode({
+      'type': 'control_request',
+      'request_id': 'interrupt-${_localSeq++}',
+      'request': {'subtype': 'interrupt'},
+    }));
   }
 
   Future<void> dispose() async {
@@ -328,5 +355,6 @@ class StreamJsonSession {
     await _items.close();
     await _statusCtl.close();
     await _pendingCtl.close();
+    await _busyCtl.close();
   }
 }

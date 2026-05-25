@@ -337,6 +337,26 @@ void main() {
     expect(resp['error'], contains('mystery_subtype'));
   });
 
+  test('interrupt writes an interrupt control_request', () async {
+    session.interrupt();
+    final sent = jsonDecode(proc.writes.single) as Map<String, dynamic>;
+    expect(sent['type'], 'control_request');
+    expect((sent['request'] as Map)['subtype'], 'interrupt');
+    expect(sent['request_id'], isNotNull);
+  });
+
+  test('busy goes true on send and false on a result event', () async {
+    final busy = <bool>[];
+    session.busyStream.listen(busy.add);
+    session.send('hi');
+    expect(session.busy, isTrue);
+
+    proc.emit(jsonEncode({'type': 'result', 'subtype': 'success'}));
+    await Future<void>.delayed(Duration.zero);
+    expect(session.busy, isFalse);
+    expect(busy, [true, false]);
+  });
+
   test('dispose kills the process', () async {
     await session.dispose();
     expect(proc.killed, isTrue);

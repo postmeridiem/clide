@@ -311,10 +311,16 @@ class _ClaudePaneState extends State<ClaudePane> {
               if (prompt != null && _session != null)
                 ToolPromptCard(prompt: prompt, onResolve: _session!.resolvePrompt)
               else
-                ClaudeComposer(
-                  enabled: _session != null,
-                  onSubmit: _send,
-                  pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
+                StreamBuilder<bool>(
+                  stream: _session?.busyStream,
+                  initialData: _session?.busy ?? false,
+                  builder: (context, busySnap) => ClaudeComposer(
+                    enabled: _session != null,
+                    busy: busySnap.data ?? false,
+                    onInterrupt: _session?.interrupt,
+                    onSubmit: _send,
+                    pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
+                  ),
                 ),
             ],
           );

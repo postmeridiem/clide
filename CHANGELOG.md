@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Interrupt a running Claude turn (D-78) — Escape in the composer (when no
+  typeahead is open) or a Stop button shown while busy cancels the current
+  turn over the stream-json control channel. The escape hatch from a
+  runaway turn.
 - Native permission & AskUserQuestion prompts (T-166, T-175, T-176, T-179,
   D-78) — the composer becomes a prompt: Allow / Allow-and-don't-ask-again /
   Deny showing the command, or an AskUserQuestion option picker (single or

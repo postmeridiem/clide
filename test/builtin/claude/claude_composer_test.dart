@@ -231,5 +231,66 @@ void main() {
       await tester.pumpAndSettle();
       expect(submitted, ['just text']);
     });
+
+    testWidgets('Escape interrupts when the typeahead is closed', (tester) async {
+      var interrupts = 0;
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, onInterrupt: () => interrupts++),
+      ));
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.requestFocus();
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(interrupts, 1);
+    });
+
+    testWidgets('Escape closes the typeahead before it interrupts', (tester) async {
+      var interrupts = 0;
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(
+          onSubmit: (_) {},
+          onInterrupt: () => interrupts++,
+          slashCommandsResolver: () => ['model'],
+        ),
+      ));
+      await tester.enterText(find.byType(EditableText), '/mo');
+      await tester.pump();
+      expect(find.text('/model'), findsOneWidget);
+
+      // First Escape only dismisses the popup; it does not interrupt.
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(find.text('/model'), findsNothing);
+      expect(interrupts, 0);
+
+      // A second Escape, now with the popup closed, interrupts.
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(interrupts, 1);
+    });
+
+    testWidgets('the Stop button shows when busy and interrupts on tap', (tester) async {
+      var interrupts = 0;
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, busy: true, onInterrupt: () => interrupts++),
+      ));
+      expect(find.text('Stop  ⎋'), findsOneWidget);
+
+      await tester.tap(find.text('Stop  ⎋'));
+      await tester.pump();
+      expect(interrupts, 1);
+    });
+
+    testWidgets('no Stop button when idle', (tester) async {
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, onInterrupt: () {}),
+      ));
+      expect(find.text('Stop  ⎋'), findsNothing);
+    });
   });
 }

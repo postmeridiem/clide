@@ -46,6 +46,8 @@ class ClaudeComposer extends StatefulWidget {
     this.hint = 'Message Claude…  (Enter to send · Shift+Enter for newline)',
     this.pasteResolver,
     this.slashCommandsResolver,
+    this.onInterrupt,
+    this.busy = false,
   });
 
   /// Called with the composed message (typed text plus attachment `@path`
@@ -64,6 +66,13 @@ class ClaudeComposer extends StatefulWidget {
   /// Source of the slash-command list for the typeahead. Defaults to the
   /// app-wide [ClaudeConfig]; injected in tests (T-152).
   final Iterable<String> Function()? slashCommandsResolver;
+
+  /// Interrupt the running turn — fired by the Stop button and by Escape
+  /// (when the typeahead is closed). The escape hatch for a runaway turn.
+  final VoidCallback? onInterrupt;
+
+  /// Whether a turn is in flight; shows the Stop affordance.
+  final bool busy;
 
   @override
   State<ClaudeComposer> createState() => _ClaudeComposerState();
@@ -159,17 +168,27 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
-    if (_overlay == null) return KeyEventResult.ignored;
     if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+    // Escape: dismiss the typeahead if open, otherwise interrupt the running
+    // turn — the escape hatch from a runaway (D-78).
+    if (e.logicalKey == LogicalKeyboardKey.escape) {
+      if (_overlay != null) {
+        _closeTypeahead();
+        return KeyEventResult.handled;
+      }
+      if (widget.onInterrupt != null) {
+        widget.onInterrupt!();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+    if (_overlay == null) return KeyEventResult.ignored;
     switch (e.logicalKey) {
       case LogicalKeyboardKey.arrowDown:
         _moveSelection(1);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowUp:
         _moveSelection(-1);
-        return KeyEventResult.handled;
-      case LogicalKeyboardKey.escape:
-        _closeTypeahead();
         return KeyEventResult.handled;
       case LogicalKeyboardKey.enter:
       case LogicalKeyboardKey.numpadEnter:
@@ -312,6 +331,23 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Running turn → an always-reachable Stop (also bound to Escape).
+              if (widget.busy && widget.onInterrupt != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      ClideText('running…', muted: true, fontSize: clideFontMeta),
+                      const Spacer(),
+                      ClideButton(
+                        label: 'Stop  ⎋',
+                        variant: ClideButtonVariant.primary,
+                        onPressed: widget.onInterrupt,
+                        semanticHint: 'Interrupt the running turn (Escape)',
+                      ),
+                    ],
+                  ),
+                ),
               if (_attachments.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
