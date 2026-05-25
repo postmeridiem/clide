@@ -1,0 +1,60 @@
+{
+  "name": "Clide — permission prompt",
+  "shapes": {
+    "panel": {
+      "type": "Rectangle", "left": 40, "top": 40, "width": 840, "height": 300,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "accent": {
+      "type": "Rectangle", "left": 40, "top": 40, "width": 840, "height": 4,
+      "fillColor": "#d9a441", "strokeColor": "#d9a441", "corners": [8, 8, 0, 0]
+    },
+    "label": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 60, "text": "permission · Write", "fontColor": "#d9a441", "fontSize": 14
+    },
+    "desc": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 86, "text": "/tmp/banana.txt", "fontColor": "#9aa4b2", "fontSize": 13
+    },
+    "opt-allow": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 118, "width": 120, "height": 34,
+      "fillColor": "#2f9e44", "strokeColor": "#2f9e44", "corners": [4, 4, 4, 4]
+    },
+    "opt-allow-t": {
+      "type": "Text", "parent": "panel", "left": 86, "top": 126, "text": "① Allow", "fontColor": "#ffffff", "fontSize": 14
+    },
+    "opt-always": {
+      "type": "Rectangle", "parent": "panel", "left": 194, "top": 118, "width": 230, "height": 34,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "opt-always-t": {
+      "type": "Text", "parent": "panel", "left": 208, "top": 126, "text": "② Allow & don't ask again", "fontColor": "#c8d0e0", "fontSize": 14
+    },
+    "opt-deny": {
+      "type": "Rectangle", "parent": "panel", "left": 434, "top": 118, "width": 110, "height": 34,
+      "fillColor": "#3a2630", "strokeColor": "#c0506a", "corners": [4, 4, 4, 4]
+    },
+    "opt-deny-t": {
+      "type": "Text", "parent": "panel", "left": 456, "top": 126, "text": "③ Deny", "fontColor": "#e58ba0", "fontSize": 14
+    },
+    "deny-hint": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 174, "text": "tell Claude what to do differently (optional)", "fontColor": "#7a8290", "fontSize": 12
+    },
+    "deny-field": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 196, "width": 752, "height": 32,
+      "fillColor": "#14181d", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "deny-field-t": {
+      "type": "Text", "parent": "panel", "left": 78, "top": 204, "text": "tell Claude what to do differently…", "fontColor": "#5b6470", "fontSize": 13
+    },
+    "divider": {
+      "type": "Line", "parent": "panel", "left": 64, "top": 252, "width": 752, "height": 1, "strokeColor": "#2a3038"
+    },
+    "send-deny": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 266, "width": 130, "height": 34,
+      "fillColor": "#c0392b", "strokeColor": "#c0392b", "corners": [4, 4, 4, 4]
+    },
+    "send-deny-t": {
+      "type": "Text", "parent": "panel", "left": 86, "top": 274, "text": "Deny + note", "fontColor": "#ffffff", "fontSize": 14
+    }
+  }
+}

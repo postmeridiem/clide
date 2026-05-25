@@ -1,0 +1,48 @@
+{
+  "name": "Clide — AskUserQuestion (review)",
+  "shapes": {
+    "panel": {
+      "type": "Rectangle", "left": 40, "top": 40, "width": 840, "height": 270,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "accent": {
+      "type": "Rectangle", "left": 40, "top": 40, "width": 840, "height": 4,
+      "fillColor": "#5cb87a", "strokeColor": "#5cb87a", "corners": [8, 8, 0, 0]
+    },
+    "label": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 60, "text": "review", "fontColor": "#5cb87a", "fontSize": 13
+    },
+    "header": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 84, "text": "Review your answers", "fontColor": "#c8d0e0", "fontSize": 16
+    },
+    "row1-q": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 124, "text": "Pet", "fontColor": "#7a8290", "fontSize": 13
+    },
+    "row1-a": {
+      "type": "Text", "parent": "panel", "left": 180, "top": 124, "text": "→ Banana  — only the big ripe ones", "fontColor": "#c8d0e0", "fontSize": 14
+    },
+    "row2-q": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 152, "text": "Eaten", "fontColor": "#7a8290", "fontSize": 13
+    },
+    "row2-a": {
+      "type": "Text", "parent": "panel", "left": 180, "top": 152, "text": "→ Fresh / whole", "fontColor": "#c8d0e0", "fontSize": 14
+    },
+    "divider": {
+      "type": "Line", "parent": "panel", "left": 64, "top": 196, "width": 752, "height": 1, "strokeColor": "#2a3038"
+    },
+    "back": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 214, "width": 86, "height": 34,
+      "fillColor": "#1f242c", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4]
+    },
+    "back-t": {
+      "type": "Text", "parent": "panel", "left": 84, "top": 222, "text": "‹ Back", "fontColor": "#9aa4b2", "fontSize": 14
+    },
+    "submit": {
+      "type": "Rectangle", "parent": "panel", "left": 160, "top": 214, "width": 160, "height": 34,
+      "fillColor": "#2f9e44", "strokeColor": "#2f9e44", "corners": [4, 4, 4, 4]
+    },
+    "submit-t": {
+      "type": "Text", "parent": "panel", "left": 188, "top": 222, "text": "Submit answers", "fontColor": "#ffffff", "fontSize": 14
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "name": "Clide — AskUserQuestion (stepper)",
+  "shapes": {
+    "panel": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 840, "height": 330,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "accent": {
+      "type": "Rectangle", "left": 40, "top": 40, "width": 840, "height": 4,
+      "fillColor": "#5aa0e0", "strokeColor": "#5aa0e0", "corners": [8, 8, 0, 0]
+    },
+    "nav-left": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 62, "text": "‹", "fontColor": "#7a8290", "fontSize": 16
+    },
+    "chip-pet-t": {
+      "type": "Text", "parent": "panel", "left": 88, "top": 64, "text": "1 · Pet ✓", "fontColor": "#5cb87a", "fontSize": 13
+    },
+    "chip-eaten": {
+      "type": "Rectangle", "parent": "panel", "left": 188, "top": 58, "width": 120, "height": 26,
+      "fillColor": "#27406a", "strokeColor": "#5aa0e0", "corners": [4, 4, 4, 4]
+    },
+    "chip-eaten-t": {
+      "type": "Text", "parent": "panel", "left": 200, "top": 64, "text": "2 · Eaten", "fontColor": "#dbe6f5", "fontSize": 13
+    },
+    "chip-review-t": {
+      "type": "Text", "parent": "panel", "left": 326, "top": 64, "text": "Review", "fontColor": "#7a8290", "fontSize": 13
+    },
+    "nav-right": {
+      "type": "Text", "parent": "panel", "left": 404, "top": 62, "text": "›", "fontColor": "#7a8290", "fontSize": 16
+    },
+    "step-count": {
+      "type": "Text", "parent": "panel", "left": 770, "top": 64, "text": "2 of 2", "fontColor": "#5b6470", "fontSize": 12
+    },
+    "divider-top": {
+      "type": "Line", "parent": "panel", "left": 64, "top": 94, "width": 752, "height": 1, "strokeColor": "#2a3038"
+    },
+    "header": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 106, "text": "EATEN", "fontColor": "#7a8290", "fontSize": 12
+    },
+    "qtext": {
+      "type": "Text", "parent": "panel", "left": 64, "top": 126, "text": "How do you most often eat your fruit?", "fontColor": "#c8d0e0", "fontSize": 16
+    },
+    "opt-fresh": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 162, "width": 160, "height": 34,
+      "fillColor": "#27406a", "strokeColor": "#5aa0e0", "corners": [4, 4, 4, 4]
+    },
+    "opt-fresh-t": {
+      "type": "Text", "parent": "panel", "left": 78, "top": 170, "text": "① Fresh / whole", "fontColor": "#dbe6f5", "fontSize": 14
+    },
+    "opt-smoothie": {
+      "type": "Rectangle", "parent": "panel", "left": 234, "top": 162, "width": 140, "height": 34,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "opt-smoothie-t": {
+      "type": "Text", "parent": "panel", "left": 248, "top": 170, "text": "② Smoothie", "fontColor": "#c8d0e0", "fontSize": 14
+    },
+    "opt-salad": {
+      "type": "Rectangle", "parent": "panel", "left": 384, "top": 162, "width": 120, "height": 34,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "opt-salad-t": {
+      "type": "Text", "parent": "panel", "left": 398, "top": 170, "text": "③ Salad", "fontColor": "#c8d0e0", "fontSize": 14
+    },
+    "opt-other": {
+      "type": "Rectangle", "parent": "panel", "left": 514, "top": 162, "width": 120, "height": 34,
+      "fillColor": "#1f242c", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4]
+    },
+    "opt-other-t": {
+      "type": "Text", "parent": "panel", "left": 528, "top": 170, "text": "Other…", "fontColor": "#9aa4b2", "fontSize": 14
+    },
+    "note-field": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 212, "width": 752, "height": 30,
+      "fillColor": "#14181d", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "note-field-t": {
+      "type": "Text", "parent": "panel", "left": 78, "top": 219, "text": "✎ add a note (optional)", "fontColor": "#5b6470", "fontSize": 12
+    },
+    "divider-bot": {
+      "type": "Line", "parent": "panel", "left": 64, "top": 262, "width": 752, "height": 1, "strokeColor": "#2a3038"
+    },
+    "back": {
+      "type": "Rectangle", "parent": "panel", "left": 64, "top": 278, "width": 86, "height": 34,
+      "fillColor": "#1f242c", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4]
+    },
+    "back-t": {
+      "type": "Text", "parent": "panel", "left": 84, "top": 286, "text": "‹ Back", "fontColor": "#9aa4b2", "fontSize": 14
+    },
+    "next": {
+      "type": "Rectangle", "parent": "panel", "left": 160, "top": 278, "width": 110, "height": 34,
+      "fillColor": "#3b5bdb", "strokeColor": "#3b5bdb", "corners": [4, 4, 4, 4]
+    },
+    "next-t": {
+      "type": "Text", "parent": "panel", "left": 188, "top": 286, "text": "Next ›", "fontColor": "#ffffff", "fontSize": 14
+    },
+    "chat": {
+      "type": "Text", "parent": "panel", "left": 700, "top": 286, "text": "› chat instead", "fontColor": "#7a8290", "fontSize": 13
+    }
+  }
+}
