@@ -18,23 +18,28 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- Native permission & AskUserQuestion prompts (T-166, T-175, T-176, D-78) —
-  when Claude needs tool approval or asks a question, the composer is
+- Native permission & AskUserQuestion prompts (T-166, T-175, T-176, T-179,
+  D-78) — when Claude needs tool approval or asks a question, the composer is
   replaced by a prompt: Allow / Allow-and-don't-ask-again / Deny for
-  permissions (with an optional note), and a single-question or
-  stepped-with-review option picker for AskUserQuestion (with "Other"
-  free-text and per-choice notes). Closes the prompt gap the tmux model
-  couldn't surface.
+  permissions (showing the command/input being permitted, with an optional
+  note), and a single-question or stepped-with-review option picker for
+  AskUserQuestion (with "Other" free-text and per-choice notes). Closes the
+  prompt gap the tmux model couldn't surface.
 - Conversation message cards (T-173) — every turn in the Claude pane now
   renders through one card template with a copy button on hover and a
   collapse/expand caret for tool calls, results, and thinking.
 - Collapsed-by-default tool cards (T-177) — multi-line tool calls and
   results start collapsed behind a one-line summary; one-line output stays
   inline so a caret never hides a single line.
-- Prompted tool calls no longer duplicate their payload in the log — a
-  permission/AskUserQuestion request shows as the prompt, not a raw
-  tool-use card; the result is still kept (AskUserQuestion's is replaced by
-  the logged answer).
+- Prompted tool calls are quieter in the log (T-179) — a permission request
+  shows the command in the prompt, not as a raw tool-use card; once decided
+  it collapses to a one-line summary with a green (approved) or red (denied)
+  border, and the result is kept. AskUserQuestion's tool-use + result are
+  replaced by the logged answer.
+- Harness-injected messages are de-emphasized (T-178) — skill loads,
+  slash-command expansions, and system reminders (Claude's `isSynthetic`
+  messages) render as a muted, collapsed "context" card instead of a blue
+  "you" message, since they weren't typed by the user.
 - Claude meta sidebar (T-141, T-157) — an always-pickable left-panel tab
   showing Claude activity (the latest day's messages/sessions/tool-calls
   plus lifetime totals, from `stats-cache.json`) and, when a tmux team is

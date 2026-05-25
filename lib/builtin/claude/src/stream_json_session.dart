@@ -174,11 +174,17 @@ class StreamJsonSession {
   final _pendingCtl = StreamController<ToolPrompt?>.broadcast();
 
   /// tool_use_ids that surfaced as a prompt — the view hides their raw
-  /// tool-use card (it showed as a prompt) but keeps the result (D-78).
+  /// tool-use card while pending (it shows as a prompt) but keeps the result.
   final _promptedToolUses = <String>{};
 
-  /// Read-only view of [_promptedToolUses] for the conversation view.
+  /// Resolved outcome per prompted tool_use_id: true = allowed, false = denied.
+  /// Absent = still pending. The view shows resolved tool-uses collapsed with a
+  /// green/red border (D-78).
+  final _toolUseOutcome = <String, bool>{};
+
+  /// Read-only views for the conversation view.
   Set<String> get promptedToolUseIds => _promptedToolUses;
+  Map<String, bool> get toolUseOutcomes => _toolUseOutcome;
 
   /// The prompt currently awaiting a decision (queue head), or null.
   ToolPrompt? get pendingPrompt => _queue.isEmpty ? null : _queue.first;
@@ -262,6 +268,7 @@ class StreamJsonSession {
     final idx = _queue.indexWhere((p) => p.promptId == promptId);
     if (idx < 0) return; // unknown / already resolved
     final prompt = _queue.removeAt(idx);
+    if (prompt.toolUseId.isNotEmpty) _toolUseOutcome[prompt.toolUseId] = decision is AllowTool;
     _proc.writeLine(jsonEncode({
       'type': 'control_response',
       'response': {'subtype': 'success', 'request_id': promptId, 'response': decision.toJson()},

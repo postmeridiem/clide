@@ -142,6 +142,36 @@ void main() {
     expect(echoed.single.text, 'do the thing');
   });
 
+  test('a synthetic user message (skill/command inject) is flagged injected', () async {
+    proc.emit(jsonEncode({
+      'type': 'user',
+      'isSynthetic': true,
+      'message': {
+        'role': 'user',
+        'content': [
+          {'type': 'text', 'text': 'Base directory for this skill: /x'}
+        ],
+      },
+    }));
+    await Future<void>.delayed(Duration.zero);
+    final u = items.whereType<UserMessage>().single;
+    expect(u.injected, isTrue);
+  });
+
+  test('a plain user text event is not flagged injected', () async {
+    proc.emit(jsonEncode({
+      'type': 'user',
+      'message': {
+        'role': 'user',
+        'content': [
+          {'type': 'text', 'text': 'hello'}
+        ],
+      },
+    }));
+    await Future<void>.delayed(Duration.zero);
+    expect(items.whereType<UserMessage>().single.injected, isFalse);
+  });
+
   test('a can_use_tool control_request becomes a pending prompt (not a conversation item)', () async {
     final emitted = <ToolPrompt?>[];
     session.pendingPromptStream.listen(emitted.add);
@@ -221,6 +251,20 @@ void main() {
     final follow = jsonDecode(proc.writes[1]) as Map;
     expect(follow['type'], 'user');
     expect((follow['message'] as Map)['content'], 'use docs/ instead');
+  });
+
+  test('resolvePrompt records the tool outcome — allow', () async {
+    proc.emit(canUseTool('o1'));
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt('o1', AllowTool(const {}));
+    expect(session.toolUseOutcomes['toolu_1'], isTrue);
+  });
+
+  test('resolvePrompt records the tool outcome — deny', () async {
+    proc.emit(canUseTool('o2'));
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt('o2', const DenyTool('no'));
+    expect(session.toolUseOutcomes['toolu_1'], isFalse);
   });
 
   test('resolvePrompt(deny) writes a deny decision with a message', () async {

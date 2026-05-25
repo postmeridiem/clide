@@ -53,13 +53,19 @@ final class UserMessage extends ConversationItem {
     required super.timestamp,
     required super.isSidechain,
     required this.text,
+    this.injected = false,
   });
 
   /// The concatenated text of all `text` parts in the content array.
   final String text;
 
+  /// True when this "user" message was injected by the harness (a skill load,
+  /// a slash-command expansion, a system reminder) rather than typed by the
+  /// user — the view de-emphasises these (D-78).
+  final bool injected;
+
   @override
-  String toString() => 'UserMessage(${_shortId(uuid)}, ${text.length} chars)';
+  String toString() => 'UserMessage(${_shortId(uuid)}, ${text.length} chars${injected ? ', injected' : ''})';
 }
 
 /// A tool-result delivered from the host back to Claude as a user message.
@@ -520,9 +526,14 @@ void _parseUserInto(
   if (message == null) return;
   final content = message['content'];
 
+  // Harness-injected user messages (skill loads, slash-command expansions,
+  // system reminders) — `isSynthetic` on the stream-json wire, `isMeta` in the
+  // transcript. The view de-emphasises these (D-78).
+  final injected = envelope['isSynthetic'] == true || envelope['isMeta'] == true;
+
   if (content is String) {
     if (content.isNotEmpty) {
-      out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: content));
+      out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: content, injected: injected));
     }
     return;
   }
@@ -550,7 +561,7 @@ void _parseUserInto(
     }
   }
   if (textParts.isNotEmpty) {
-    out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: textParts.join('\n')));
+    out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, text: textParts.join('\n'), injected: injected));
   }
 }
 

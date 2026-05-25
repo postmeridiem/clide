@@ -1,5 +1,6 @@
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
+import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -92,6 +93,12 @@ void main() {
     expect(id, 'req-1');
     expect(decision, isA<AllowTool>());
     expect((decision as AllowTool).updatedInput['content'], 'banana');
+  });
+
+  testWidgets('permission card shows the command being permitted', (tester) async {
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, __) {})));
+    await tester.pump();
+    expect(find.byType(ClideCodeBlock), findsOneWidget);
   });
 
   testWidgets('permission card: Deny returns DenyTool with a message', (tester) async {

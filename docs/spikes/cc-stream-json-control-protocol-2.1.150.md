@@ -52,9 +52,17 @@ One JSON object per line. Types seen:
   transcript: `text` / `thinking` (+`signature`) / `tool_use`(`id`,`name`,`input`).
   `message.usage` carries `input_tokens` + `cache_read_input_tokens` +
   `cache_creation_input_tokens` (→ context-token count).
-- `user` — tool results Claude received: `message.content:[{type:"tool_result",
-  tool_use_id,content,is_error}]` plus a top-level `tool_use_result` with richer
-  structured data (e.g. Bash `{stdout,stderr,interrupted,…}`).
+- `user` — two flavours: (a) **tool results** Claude received —
+  `message.content:[{type:"tool_result",tool_use_id,content,is_error}]` plus a
+  top-level `tool_use_result`; (b) **harness-injected user messages** — a skill
+  load (`Skill` tool → text begins `"Base directory for this skill:"`), a
+  slash-command expansion, or a system reminder. Injected ones carry
+  **`isSynthetic: true`** at the top level (the transcript uses `isMeta`
+  instead). Verified by boundary test: the inject only appears once the `Skill`
+  tool is actually invoked (it's auto-allowed, no prompt); if Claude just runs a
+  command inferred from the slash text, no inject is emitted. clide flags these
+  (`UserMessage.injected`) and renders them as a muted, collapsed "context"
+  card, not a blue "you" message.
 - `result` — terminal turn summary: `result` (final text), `usage`, `total_cost_usd`,
   `permission_denials[]`, `num_turns`, **`modelUsage.<model>.contextWindow`** (e.g.
   `1000000`) **and `maxOutputTokens`** — i.e. the context-window *size* IS exposed

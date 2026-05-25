@@ -26,14 +26,20 @@ class ConversationView extends StatefulWidget {
     this.wrapInSelectionArea = true,
     this.emptyState,
     this.hiddenToolUseIds = const <String>{},
+    this.toolUseOutcomes = const <String, bool>{},
   });
 
   final ConversationController controller;
 
-  /// tool_use_ids whose raw tool-use card should be hidden because the call
-  /// surfaced as a prompt (permission / AskUserQuestion) — D-78. The result is
-  /// still shown (it's the useful answer); only the request payload is hidden.
+  /// tool_use_ids that surfaced as a prompt (permission / AskUserQuestion) —
+  /// D-78. While pending (not in [toolUseOutcomes]) the raw tool-use card is
+  /// hidden (it shows as a prompt). The result is always kept.
   final Set<String> hiddenToolUseIds;
+
+  /// Resolved outcome per prompted tool_use_id (true = allowed, false = denied)
+  /// — a resolved permission tool-use renders collapsed with a green/red
+  /// border instead of being hidden (D-78).
+  final Map<String, bool> toolUseOutcomes;
 
   /// Whether to wrap the list in its own [ClideSelectionArea]. The team
   /// grid sets this false and wraps all tiles in one shared area so
@@ -83,8 +89,14 @@ class _ConversationViewState extends State<ConversationView> {
       for (final it in items)
         if (it is AssistantToolUse && it.name == 'AskUserQuestion') it.toolUseId,
     };
+    final outcomes = widget.toolUseOutcomes;
     bool drop(ConversationItem it) {
-      if (it is AssistantToolUse) return it.name == 'AskUserQuestion' || hidden.contains(it.toolUseId);
+      if (it is AssistantToolUse) {
+        if (it.name == 'AskUserQuestion') return true;
+        // Permission-prompted: hide only while pending; once resolved it shows
+        // collapsed with a green/red border.
+        return hidden.contains(it.toolUseId) && !outcomes.containsKey(it.toolUseId);
+      }
       if (it is ToolResultMessage) return auqIds.contains(it.toolUseId); // AUQ result only; keep permission results
       return false;
     }
@@ -124,7 +136,7 @@ class _ConversationViewState extends State<ConversationView> {
         controller: _scroll,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: items.length,
-        itemBuilder: (context, i) => _ConversationTurn(item: items[i], tokens: tokens),
+        itemBuilder: (context, i) => _ConversationTurn(item: items[i], tokens: tokens, toolUseOutcomes: widget.toolUseOutcomes),
       ),
     );
     return ColoredBox(
@@ -140,21 +152,36 @@ const claudeAccent = Color(0xFFD97757);
 
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
-  const _ConversationTurn({required this.item, required this.tokens});
+  const _ConversationTurn({required this.item, required this.tokens, this.toolUseOutcomes = const <String, bool>{}});
 
   final ConversationItem item;
   final SurfaceTokens tokens;
+  final Map<String, bool> toolUseOutcomes;
 
   @override
   Widget build(BuildContext context) {
     final i = item;
     return switch (i) {
-      UserMessage() => ConversationCard(
-          accent: tokens.globalFocus,
-          label: 'you',
-          copyText: i.text,
-          body: ClideMarkdown(i.text),
-        ),
+      UserMessage() => i.injected
+          // Harness-injected (skill load / command expansion / system
+          // reminder) — not typed by the user, so de-emphasise: a muted,
+          // collapsed "context" card rather than the "you" accent (D-78).
+          ? ConversationCard(
+              variant: ConversationCardVariant.bare,
+              accent: tokens.globalTextMuted,
+              label: 'context',
+              copyText: i.text,
+              collapsible: true,
+              collapsedByDefault: true,
+              collapsedSummary: _firstLine(i.text),
+              body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
+            )
+          : ConversationCard(
+              accent: tokens.globalFocus,
+              label: 'you',
+              copyText: i.text,
+              body: ClideMarkdown(i.text),
+            ),
       AssistantTextMessage() => ConversationCard(
           accent: claudeAccent,
           label: 'claude',
@@ -177,6 +204,23 @@ class _ConversationTurn extends StatelessWidget {
 
   Widget _toolUse(AssistantToolUse t) {
     final pretty = const JsonEncoder.withIndent('  ').convert(t.input);
+    // A resolved permission-prompted call: collapsed, green if approved / red
+    // if denied — a quiet record of what was permitted (D-78).
+    final outcome = toolUseOutcomes[t.toolUseId];
+    if (outcome != null) {
+      final color = outcome ? tokens.statusSuccess : tokens.statusError;
+      return ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: color,
+        borderColor: color,
+        label: t.name,
+        copyText: pretty,
+        collapsible: true,
+        collapsedByDefault: true,
+        collapsedSummary: _toolUseSummary(t),
+        body: ClideCodeBlock(source: pretty, language: 'json'),
+      );
+    }
     // Collapse only the bulky multi-line form; a trivial one-liner just shows.
     final multiline = pretty.contains('\n');
     return ConversationCard(

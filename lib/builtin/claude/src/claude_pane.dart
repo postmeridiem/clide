@@ -281,6 +281,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                 child: ConversationView(
                   controller: _conversation!,
                   hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
+                  toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
                   emptyState: ClaudeBanner(
                     role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
                     workspace: _repoRoot,

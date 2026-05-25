@@ -115,7 +115,8 @@ void main() {
     setUp(() async => f = await KernelFixture.create());
     tearDown(() => f.dispose());
 
-    Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items, {Set<String> hiddenToolUseIds = const {}}) async {
+    Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items,
+        {Set<String> hiddenToolUseIds = const {}, Map<String, bool> toolUseOutcomes = const {}}) async {
       tester.view.physicalSize = const Size(900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -125,7 +126,7 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(f, ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds)));
+      await tester.pumpWidget(harness(f, ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds, toolUseOutcomes: toolUseOutcomes)));
       for (final it in items) {
         stream.add(it);
       }
@@ -194,6 +195,29 @@ void main() {
       expect(find.text('Write'), findsNothing); // payload hidden
       expect(find.text('done'), findsOneWidget); // result kept
       expect(find.text('result'), findsOneWidget);
+    });
+
+    testWidgets('a resolved permission tool-use is shown collapsed, not hidden', (tester) async {
+      await pumpWith(
+        tester,
+        [
+          _tool('Write', {'file_path': '/tmp/x'}),
+          _result('done')
+        ],
+        hiddenToolUseIds: {'x1'},
+        toolUseOutcomes: {'x1': true}, // approved
+      );
+      expect(find.text('Write'), findsOneWidget); // shown (resolved)
+      expect(find.byType(ClideIcon), findsOneWidget); // collapsed caret
+    });
+
+    testWidgets('an injected user message renders as a muted "context" card, not "you"', (tester) async {
+      await pumpWith(tester, [
+        UserMessage(uuid: 'i', timestamp: _t, isSidechain: false, text: 'Base directory for this skill: /x\n\n# pql', injected: true),
+        _user('a real question'),
+      ]);
+      expect(find.text('context'), findsOneWidget);
+      expect(find.text('you'), findsOneWidget); // the real one
     });
 
     testWidgets('a one-line tool result renders inline (no collapse caret)', (tester) async {
