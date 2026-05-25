@@ -20,6 +20,38 @@ class _FakeProc implements StreamJsonProcess {
   void emit(String line) => _ctl.add(line);
 }
 
+class _FakeMcpServer implements McpServer {
+  @override
+  String get name => 'clide-team';
+  @override
+  String get version => '9.9.9';
+  final List<String> calls = [];
+  @override
+  List<Map<String, dynamic>> get tools => [
+        {
+          'name': 'ping',
+          'description': 'p',
+          'inputSchema': {'type': 'object', 'properties': <String, dynamic>{}},
+        },
+      ];
+  @override
+  Future<Map<String, dynamic>> callTool(String name, Map<String, dynamic> arguments) async {
+    calls.add(name);
+    return {
+      'content': [
+        {'type': 'text', 'text': 'pong'},
+      ],
+      'isError': false,
+    };
+  }
+}
+
+String mcpMessage(String rid, Map<String, dynamic> message, {String server = 'clide-team'}) => jsonEncode({
+      'type': 'control_request',
+      'request_id': rid,
+      'request': {'subtype': 'mcp_message', 'server_name': server, 'message': message},
+    });
+
 String assistantText(String text) => jsonEncode({
       'type': 'assistant',
       'uuid': 'a1',
@@ -360,5 +392,73 @@ void main() {
   test('dispose kills the process', () async {
     await session.dispose();
     expect(proc.killed, isTrue);
+  });
+
+  group('MCP server hosting (T-170)', () {
+    late _FakeProc mproc;
+    late StreamJsonSession msession;
+    late _FakeMcpServer server;
+
+    setUp(() {
+      mproc = _FakeProc();
+      server = _FakeMcpServer();
+      msession = StreamJsonSession(mproc, mcpServers: [server]);
+      msession.start();
+    });
+
+    tearDown(() => msession.dispose());
+
+    Map<String, dynamic> mcpResponseOf(String write) {
+      final resp = jsonDecode(write) as Map<String, dynamic>;
+      return ((resp['response'] as Map)['response'] as Map)['mcp_response'] as Map<String, dynamic>;
+    }
+
+    test('declares its sdkMcpServers in the initialize handshake', () {
+      final init = mproc.writes.map((w) => jsonDecode(w) as Map).firstWhere(
+            (m) => (m['request'] as Map?)?['subtype'] == 'initialize',
+          );
+      expect((init['request'] as Map)['sdkMcpServers'], ['clide-team']);
+    });
+
+    test('answers mcp initialize with our serverInfo', () async {
+      mproc.emit(mcpMessage('m1', {
+        'method': 'initialize',
+        'params': {'protocolVersion': '2025-11-25'},
+        'jsonrpc': '2.0',
+        'id': 0,
+      }));
+      await Future<void>.delayed(Duration.zero);
+      final r = mcpResponseOf(mproc.writes.last);
+      expect((r['result'] as Map)['serverInfo'], {'name': 'clide-team', 'version': '9.9.9'});
+    });
+
+    test('answers tools/list with the server tools', () async {
+      mproc.emit(mcpMessage('m2', {'method': 'tools/list', 'jsonrpc': '2.0', 'id': 1}));
+      await Future<void>.delayed(Duration.zero);
+      final r = mcpResponseOf(mproc.writes.last);
+      final tools = (r['result'] as Map)['tools'] as List;
+      expect(tools.single['name'], 'ping');
+    });
+
+    test('routes tools/call to the server and returns its result', () async {
+      mproc.emit(mcpMessage('m3', {
+        'method': 'tools/call',
+        'params': {'name': 'ping', 'arguments': <String, dynamic>{}},
+        'jsonrpc': '2.0',
+        'id': 2,
+      }));
+      await Future<void>.delayed(Duration.zero);
+      expect(server.calls, ['ping']);
+      final r = mcpResponseOf(mproc.writes.last);
+      final content = (r['result'] as Map)['content'] as List;
+      expect(content.single['text'], 'pong');
+    });
+
+    test('an mcp_message for an unknown server is answered with an error', () async {
+      mproc.emit(mcpMessage('m4', {'method': 'tools/list', 'jsonrpc': '2.0', 'id': 3}, server: 'nope'));
+      await Future<void>.delayed(Duration.zero);
+      final r = mcpResponseOf(mproc.writes.last);
+      expect(r['error'], isNotNull);
+    });
   });
 }

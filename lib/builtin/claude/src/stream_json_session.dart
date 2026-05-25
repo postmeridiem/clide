@@ -78,6 +78,37 @@ class ClaudeStreamJsonProcess implements StreamJsonProcess {
   }
 }
 
+/// An in-process MCP server clide hosts for a session, entirely over the
+/// stream-json control channel — no subprocess, no `--mcp-config`, no socket
+/// (T-170, D-77).
+///
+/// Registration: the session lists this server's [name] in the `initialize`
+/// control_request's `sdkMcpServers`. claude then drives the MCP JSON-RPC
+/// handshake (`initialize` → `notifications/initialized` → `tools/list`) and
+/// each `tools/call` as `mcp_message` control_requests, which the session
+/// answers with the JSON-RPC result wrapped in `response.response.mcp_response`.
+/// claude exposes the tools to the model as `mcp__<name>__<tool>` and gates each
+/// call through the normal `can_use_tool` channel. Verified live against claude
+/// 2.1.150 — see docs/spikes/cc-stream-json-control-protocol-2.1.150.md §6.
+///
+/// Implementations stay Flutter-free (this whole module runs under `dart test`).
+abstract class McpServer {
+  /// Server name; claude addresses it as `server_name` and exposes its tools
+  /// as `mcp__<name>__<tool>`.
+  String get name;
+
+  /// Reported in the `initialize` result's `serverInfo.version`.
+  String get version;
+
+  /// Tool definitions returned for `tools/list` — each
+  /// `{name, description, inputSchema}`.
+  List<Map<String, dynamic>> get tools;
+
+  /// Run a `tools/call`. Returns an MCP result object
+  /// (`{content: [{type: 'text', text: ...}], isError: bool}`).
+  Future<Map<String, dynamic>> callTool(String name, Map<String, dynamic> arguments);
+}
+
 /// An interactive prompt Claude is blocked on, from the stream-json control
 /// channel (a `can_use_tool` control_request) — a tool needing permission, or
 /// an `AskUserQuestion`. Pure data; the decision goes back via
@@ -159,9 +190,14 @@ final class DenyTool extends ToolDecision {
 /// Parses a [StreamJsonProcess]'s events into conversation items + status,
 /// answers control-channel prompts, and sends user messages.
 class StreamJsonSession {
-  StreamJsonSession(this._proc);
+  StreamJsonSession(this._proc, {List<McpServer> mcpServers = const []}) : _mcpServers = mcpServers;
 
   final StreamJsonProcess _proc;
+
+  /// In-process MCP servers hosted for this session over the control channel
+  /// (T-170). Declared in the `initialize` handshake; their `mcp_message`
+  /// round-trips are answered by [_handleMcpMessage].
+  final List<McpServer> _mcpServers;
   final _items = StreamController<ConversationItem>.broadcast();
   final _statusCtl = StreamController<SessionStatus>.broadcast();
   StreamSubscription<String>? _sub;
@@ -216,6 +252,20 @@ class StreamJsonSession {
   /// Begin consuming the process's event stream.
   void start() {
     _sub = _proc.lines.listen(_onLine, onError: (Object _) {});
+    // Declaring our in-process MCP servers in the `initialize` handshake is what
+    // makes claude drive their JSON-RPC over `mcp_message` (T-170). Only sent
+    // when we actually host a server, so a plain session is unchanged.
+    if (_mcpServers.isNotEmpty) {
+      _proc.writeLine(jsonEncode({
+        'type': 'control_request',
+        'request_id': 'init-${_localSeq++}',
+        'request': {
+          'subtype': 'initialize',
+          'hooks': <String, dynamic>{},
+          'sdkMcpServers': [for (final s in _mcpServers) s.name],
+        },
+      }));
+    }
   }
 
   void _onLine(String line) {
@@ -270,10 +320,92 @@ class StreamJsonSession {
       _pendingCtl.add(pendingPrompt);
       return; // awaits resolvePrompt
     }
+    // An MCP JSON-RPC round-trip for one of our hosted servers (T-170).
+    if (request['subtype'] == 'mcp_message') {
+      unawaited(_handleMcpMessage(rid, request.cast<String, dynamic>()));
+      return;
+    }
     _proc.writeLine(jsonEncode({
       'type': 'control_response',
       'response': {'subtype': 'error', 'request_id': rid, 'error': 'Unsupported control request subtype: ${request['subtype']}'},
     }));
+  }
+
+  /// Answer an `mcp_message` control_request: dispatch its JSON-RPC to the named
+  /// hosted [McpServer] and reply with the result under `response.mcp_response`
+  /// (T-170). Every request — including notifications — is answered, or claude's
+  /// turn stalls waiting on us.
+  Future<void> _handleMcpMessage(String rid, Map<String, dynamic> request) async {
+    final serverName = request['server_name'] as String?;
+    final message = (request['message'] as Map?)?.cast<String, dynamic>();
+    final server = _mcpServerNamed(serverName);
+    final Map<String, dynamic> mcpResponse;
+    if (server == null || message == null) {
+      mcpResponse = {
+        'jsonrpc': '2.0',
+        'id': message?['id'],
+        'error': {'code': -32601, 'message': 'Unknown MCP server: $serverName'},
+      };
+    } else {
+      mcpResponse = await _dispatchMcp(server, message);
+    }
+    _proc.writeLine(jsonEncode({
+      'type': 'control_response',
+      'response': {
+        'subtype': 'success',
+        'request_id': rid,
+        'response': {'mcp_response': mcpResponse}
+      },
+    }));
+  }
+
+  McpServer? _mcpServerNamed(String? name) {
+    for (final s in _mcpServers) {
+      if (s.name == name) return s;
+    }
+    return null;
+  }
+
+  /// Map one MCP JSON-RPC method to its response object. The framing (envelope,
+  /// protocol version, capabilities) lives here so a CC drift is a one-file fix.
+  Future<Map<String, dynamic>> _dispatchMcp(McpServer server, Map<String, dynamic> msg) async {
+    final method = msg['method'] as String?;
+    final id = msg['id'];
+    switch (method) {
+      case 'initialize':
+        final params = (msg['params'] as Map?)?.cast<String, dynamic>();
+        return {
+          'jsonrpc': '2.0',
+          'id': id,
+          'result': {
+            'protocolVersion': params?['protocolVersion'] ?? '2025-11-25',
+            'capabilities': {
+              'tools': {'listChanged': false},
+            },
+            'serverInfo': {'name': server.name, 'version': server.version},
+          },
+        };
+      case 'notifications/initialized':
+        return {'jsonrpc': '2.0', 'id': id ?? 0, 'result': <String, dynamic>{}};
+      case 'tools/list':
+        return {
+          'jsonrpc': '2.0',
+          'id': id,
+          'result': {'tools': server.tools},
+        };
+      case 'tools/call':
+        final params = (msg['params'] as Map?)?.cast<String, dynamic>() ?? const {};
+        final toolName = params['name'] as String? ?? '';
+        final args = (params['arguments'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+        final result = await server.callTool(toolName, args);
+        return {'jsonrpc': '2.0', 'id': id, 'result': result};
+      default:
+        return {
+          'jsonrpc': '2.0',
+          'id': id,
+          'error': {'code': -32601, 'message': 'Method not found: $method'},
+        };
+    }
   }
 
   /// Answer a [ToolPrompt] over the control channel, by its

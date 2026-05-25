@@ -6,11 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _FakeProc implements StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
+  final List<String> writes = [];
   bool killed = false;
   @override
   Stream<String> get lines => _ctl.stream;
   @override
-  void writeLine(String line) {}
+  void writeLine(String line) => writes.add(line);
   @override
   Future<void> kill() async => killed = true;
 }
@@ -88,5 +89,37 @@ void main() {
     orch.dispose();
     await Future<void>.delayed(Duration.zero);
     expect(created.every((p) => p.killed), isTrue);
+  });
+
+  group('team broker wiring (T-170)', () {
+    SpawnSpec teamSpec(String id, String name, String role) => SpawnSpec(id: id, role: role, sessionId: '$id-uuid', cwd: '/repo', team: true, memberName: name);
+
+    test('team sessions register in the broker; solo sessions do not', () async {
+      await orch.spawn(spec('solo'));
+      expect(orch.broker.members, isEmpty);
+      await orch.spawn(teamSpec('primary', 'lead', 'lead'));
+      expect(orch.broker.members.map((m) => m.name), ['lead']);
+    });
+
+    test('a message between team members is delivered into the target session stdin', () async {
+      await orch.spawn(teamSpec('primary', 'lead', 'lead'));
+      await orch.spawn(teamSpec('teammate:tyre', 'tyre', 'teammate'));
+      orch.broker.sendMessage('primary', 'tyre', 'pick up T-9');
+      await Future<void>.delayed(Duration.zero);
+      final tyreProc = created[1];
+      expect(tyreProc.writes.any((w) => w.contains('[team] lead: pick up T-9')), isTrue);
+    });
+
+    test('a team session declares the clide-team MCP server in its init handshake', () async {
+      await orch.spawn(teamSpec('primary', 'lead', 'lead'));
+      expect(created.single.writes.any((w) => w.contains('"sdkMcpServers":["clide-team"]')), isTrue);
+    });
+
+    test('closing a team member removes it from the broker roster', () async {
+      await orch.spawn(teamSpec('primary', 'lead', 'lead'));
+      await orch.spawn(teamSpec('teammate:tyre', 'tyre', 'teammate'));
+      await orch.close('teammate:tyre');
+      expect(orch.broker.members.map((m) => m.name), ['lead']);
+    });
   });
 }

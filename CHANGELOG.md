@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Team coordination broker (T-170, D-77) — clide hosts an in-process MCP
+  server (`clide-team`) for managed sessions over the stream-json control
+  channel, giving agents tools to message each other, broadcast, see the
+  roster, read an inbox, and share a task list. Each agent's role and the
+  roster are injected into its system prompt.
 - Interrupt a running Claude turn (D-78) — Escape in the composer (when no
   typeahead is open) or a Stop button shown while busy cancels the current
   turn over the stream-json control channel. The escape hatch from a

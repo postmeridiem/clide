@@ -211,8 +211,50 @@ if it shifts we start from a researched menu, not a blank page.
 **Containment:** all protocol framing lives behind one module (per D-77), so swapping
 transports is a one-seam change. Re-capture fixtures per pinned version.
 
+## 6. Hosting an in-process MCP server over the control channel (T-170 — VERIFIED)
+Verified live against 2.1.150 (2026-05-25): clide can host an MCP server whose tools
+claude calls, **entirely over the stream-json control channel** — no subprocess, no
+`--mcp-config` file, no socket. This is the cleanest fit for the single-process
+guardrail and is what the team broker (T-170) is built on.
+
+**Registration — `initialize` handshake only (no `--mcp-config` needed).** List the
+server name(s) in the `initialize` control_request's `sdkMcpServers`:
+```json
+// → {"type":"control_request","request_id":"init-1","request":{
+//      "subtype":"initialize","hooks":{},"sdkMcpServers":["clide-team"]}}
+```
+A run with **no `--mcp-config` flag at all** but this handshake worked end-to-end — the
+flag is not required for SDK (in-process) servers. The server name surfaces tools to the
+model as `mcp__<server>__<tool>` (e.g. `mcp__clide-team__ping`).
+
+**Handshake claude then drives (inbound `mcp_message` control_requests).** For each,
+the message is a JSON-RPC object; reply with a `control_response` carrying the JSON-RPC
+result under **`response.response.mcp_response`**:
+```json
+// ← {"type":"control_request","request_id":"<rid>","request":{
+//      "subtype":"mcp_message","server_name":"clide-team",
+//      "message":{"method":"initialize","params":{"protocolVersion":"2025-11-25",…},"jsonrpc":"2.0","id":0}}}
+// → {"type":"control_response","response":{"subtype":"success","request_id":"<rid>",
+//      "response":{"mcp_response":{"jsonrpc":"2.0","id":0,"result":{
+//        "protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":false}},
+//        "serverInfo":{"name":"clide-team","version":"0.0.1"}}}}}}
+```
+Sequence observed: `initialize` → `notifications/initialized` (no `id`; still answer it)
+→ `tools/list` → (model calls a tool) → `tools/call`. The `tools/call` message:
+`{"method":"tools/call","params":{"name":"ping","arguments":{…},"_meta":{"claudecode/toolUseId":…,"progressToken":…}},"jsonrpc":"2.0","id":2}`;
+answer with `mcp_response.result = {"content":[{"type":"text","text":…}],"isError":false}`.
+
+**SDK MCP tool calls ARE permission-gated.** Before the `tools/call`, claude sends a
+normal `can_use_tool` for `mcp__clide-team__ping` (with `permission_suggestions` →
+`addRules`). So the broker's tools flow through the same allow/deny path as any tool —
+no special-casing needed; the existing `can_use_tool` handler covers them.
+
+Provenance: two live capture runs (`init-strings`, no `--mcp-config`; and `mcpconfig`)
+both completed the full round-trip returning `pong-from-clide`. The raw logs aren't
+committed (the `initialize` response embeds account email/org); the contract is instead
+pinned in the transport tests (`MCP server hosting (T-170)`).
+
 ## Not done / open
-- `hook_callback` and `mcp_message` round-trips not exercised live (shapes from the
-  binary only) — needed for the clide-hosted MCP broker (T-170).
+- `hook_callback` round-trip not exercised live (shape from the binary only).
 - Image/file paste intake over stream-json `content` blocks not tested here.
 - Remaining-usage budget % still not exposed (only `contextWindow` size, in `result`).
