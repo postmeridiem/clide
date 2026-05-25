@@ -19,12 +19,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Added
 
 - Native permission & AskUserQuestion prompts (T-166, T-175, T-176, T-179,
-  D-78) — when Claude needs tool approval or asks a question, the composer is
-  replaced by a prompt: Allow / Allow-and-don't-ask-again / Deny for
-  permissions (showing the command/input being permitted, with an optional
-  note), and a single-question or stepped-with-review option picker for
-  AskUserQuestion (with "Other" free-text and per-choice notes). Closes the
-  prompt gap the tmux model couldn't surface.
+  D-78) — the composer becomes a prompt: Allow / Allow-and-don't-ask-again /
+  Deny showing the command, or an AskUserQuestion option picker (single or
+  stepped, with "Other" free-text and per-choice notes). Closes the tmux
+  prompt gap.
 - Conversation message cards (T-173) — every turn in the Claude pane now
   renders through one card template with a copy button on hover and a
   collapse/expand caret for tool calls, results, and thinking.
