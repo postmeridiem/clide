@@ -119,6 +119,7 @@ You might also want, project-permitting:
 - [D-75: Claude rendered natively from transcripts; terminal retained as general tool only](decisions/architecture.md#d-75-claude-rendered-natively-from-transcripts-terminal-retained-as-general-tool-only) — _architecture_
 - [D-76: ClaudeConfig — Claude's config surface is clide's app settings (builtin-owned, watched, probe-cached per version)](decisions/architecture.md#d-76-claudeconfig--claudes-config-surface-is-clides-app-settings-builtin-owned-watched-probe-cached-per-version) — _architecture_
 - [D-77: Drive Claude via the stream-json control protocol; teams become a clide-owned coordination layer](decisions/architecture.md#d-77-drive-claude-via-the-stream-json-control-protocol-teams-become-a-clide-owned-coordination-layer) — _architecture_
+- [D-78: Claude permission/prompt transport is the stdio control channel](decisions/architecture.md#d-78-claude-permissionprompt-transport-is-the-stdio-control-channel) — _architecture_
 
 ## Open questions
 
