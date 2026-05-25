@@ -178,8 +178,9 @@ class PqlClient {
       );
     }
     final stderr = (r.stderr as String).trim();
-    // Exit 2 = zero matches — valid empty result, not an error.
-    if (r.exitCode != 0 && r.exitCode != 2) {
+    // pql 1.5+ returns exit 0 with an empty `[]` for zero matches, so any
+    // non-zero exit is a real error (older pql used exit 2 for empty).
+    if (r.exitCode != 0) {
       throw PqlException(
         'pql ${args.first} failed',
         exitCode: r.exitCode,
