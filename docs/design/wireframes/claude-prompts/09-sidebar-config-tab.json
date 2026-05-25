@@ -10,29 +10,34 @@
     "strip": {"type": "Line", "parent": "panel", "left": 40, "top": 62, "width": 340, "height": 1, "strokeColor": "#2a3038"},
     "scope": {"type": "Text", "parent": "panel", "left": 58, "top": 76, "text": "local + global  (layered, local wins)", "fontColor": "#5b6470", "fontSize": 10},
 
-    "h-skills": {"type": "Text", "parent": "panel", "left": 58, "top": 100, "text": "SKILLS  (14)", "fontColor": "#7a8290", "fontSize": 12},
-    "skills": {"type": "Text", "parent": "panel", "left": 58, "top": 120, "text": "pql · whats-next · git-commit · ui-design …", "fontColor": "#c8d0e0", "fontSize": 12},
+    "h-skills": {"type": "Text", "parent": "panel", "left": 58, "top": 100, "text": "▾  SKILLS", "fontColor": "#c8d0e0", "fontSize": 12},
+    "c-skills": {"type": "Text", "parent": "panel", "left": 340, "top": 100, "text": "14", "fontColor": "#5b6470", "fontSize": 11},
+    "sk1": {"type": "Text", "parent": "panel", "left": 78, "top": 122, "text": "›  pql", "fontColor": "#9ec3ef", "fontSize": 12},
+    "sk2": {"type": "Text", "parent": "panel", "left": 78, "top": 142, "text": "›  whats-next", "fontColor": "#9ec3ef", "fontSize": 12},
+    "sk3": {"type": "Text", "parent": "panel", "left": 78, "top": 162, "text": "›  git-commit", "fontColor": "#9ec3ef", "fontSize": 12},
+    "sk4": {"type": "Text", "parent": "panel", "left": 78, "top": 182, "text": "›  ui-design", "fontColor": "#9ec3ef", "fontSize": 12},
+    "sk5": {"type": "Text", "parent": "panel", "left": 78, "top": 202, "text": "›  frame0-wireframe", "fontColor": "#9ec3ef", "fontSize": 12},
+    "sk6": {"type": "Text", "parent": "panel", "left": 78, "top": 222, "text": "›  security-review", "fontColor": "#9ec3ef", "fontSize": 12},
+    "sk7": {"type": "Text", "parent": "panel", "left": 78, "top": 242, "text": "+ 8 more", "fontColor": "#5b6470", "fontSize": 11},
 
-    "h-agents": {"type": "Text", "parent": "panel", "left": 58, "top": 150, "text": "AGENTS  (5)", "fontColor": "#7a8290", "fontSize": 12},
-    "agents": {"type": "Text", "parent": "panel", "left": 58, "top": 170, "text": "claude · Explore · general-purpose · Plan …", "fontColor": "#c8d0e0", "fontSize": 12},
+    "h-agents": {"type": "Text", "parent": "panel", "left": 58, "top": 272, "text": "▸  AGENTS", "fontColor": "#c8d0e0", "fontSize": 12},
+    "c-agents": {"type": "Text", "parent": "panel", "left": 344, "top": 272, "text": "5", "fontColor": "#5b6470", "fontSize": 11},
+    "h-cmds": {"type": "Text", "parent": "panel", "left": 58, "top": 298, "text": "▸  COMMANDS", "fontColor": "#c8d0e0", "fontSize": 12},
+    "c-cmds": {"type": "Text", "parent": "panel", "left": 340, "top": 298, "text": "28", "fontColor": "#5b6470", "fontSize": 11},
+    "h-hooks": {"type": "Text", "parent": "panel", "left": 58, "top": 324, "text": "▸  HOOKS", "fontColor": "#c8d0e0", "fontSize": 12},
+    "c-hooks": {"type": "Text", "parent": "panel", "left": 344, "top": 324, "text": "3", "fontColor": "#5b6470", "fontSize": 11},
 
-    "h-cmds": {"type": "Text", "parent": "panel", "left": 58, "top": 200, "text": "COMMANDS  (28)", "fontColor": "#7a8290", "fontSize": 12},
-    "cmds": {"type": "Text", "parent": "panel", "left": 58, "top": 220, "text": "clear · compact · review · security-review …", "fontColor": "#c8d0e0", "fontSize": 12},
+    "div1": {"type": "Line", "parent": "panel", "left": 58, "top": 350, "width": 304, "height": 1, "strokeColor": "#2a3038"},
 
-    "h-perms": {"type": "Text", "parent": "panel", "left": 58, "top": 250, "text": "PERMISSIONS", "fontColor": "#7a8290", "fontSize": 12},
-    "perm-allow": {"type": "Text", "parent": "panel", "left": 58, "top": 270, "text": "allow: Bash(pql *), Bash(git *), Read", "fontColor": "#5cb87a", "fontSize": 12},
-    "perm-ask": {"type": "Text", "parent": "panel", "left": 58, "top": 290, "text": "ask: Write, Edit, Bash", "fontColor": "#e0a04a", "fontSize": 12},
-    "perm-deny": {"type": "Text", "parent": "panel", "left": 58, "top": 310, "text": "deny: —", "fontColor": "#9aa4b2", "fontSize": 12},
+    "h-perms": {"type": "Text", "parent": "panel", "left": 58, "top": 364, "text": "▾  PERMISSIONS", "fontColor": "#c8d0e0", "fontSize": 12},
+    "perm-allow": {"type": "Text", "parent": "panel", "left": 78, "top": 386, "text": "allow: Bash(pql *), Bash(git *), Read", "fontColor": "#5cb87a", "fontSize": 12},
+    "perm-ask": {"type": "Text", "parent": "panel", "left": 78, "top": 406, "text": "ask: Write, Edit, Bash", "fontColor": "#e0a04a", "fontSize": 12},
+    "perm-deny": {"type": "Text", "parent": "panel", "left": 78, "top": 426, "text": "deny: —", "fontColor": "#9aa4b2", "fontSize": 12},
 
-    "h-hooks": {"type": "Text", "parent": "panel", "left": 58, "top": 340, "text": "HOOKS", "fontColor": "#7a8290", "fontSize": 12},
-    "hooks": {"type": "Text", "parent": "panel", "left": 58, "top": 360, "text": "SessionStart · PreToolUse · Stop", "fontColor": "#c8d0e0", "fontSize": 12},
+    "h-mcp": {"type": "Text", "parent": "panel", "left": 58, "top": 452, "text": "▸  MCP SERVERS", "fontColor": "#c8d0e0", "fontSize": 12},
+    "c-mcp": {"type": "Text", "parent": "panel", "left": 340, "top": 452, "text": "5", "fontColor": "#5b6470", "fontSize": 11},
+    "h-settings": {"type": "Text", "parent": "panel", "left": 58, "top": 478, "text": "▸  SETTINGS", "fontColor": "#c8d0e0", "fontSize": 12},
 
-    "h-mcp": {"type": "Text", "parent": "panel", "left": 58, "top": 390, "text": "MCP SERVERS  (5)", "fontColor": "#7a8290", "fontSize": 12},
-    "mcp": {"type": "Text", "parent": "panel", "left": 58, "top": 410, "text": "Drive · Gmail · Calendar · Housekeeping …", "fontColor": "#c8d0e0", "fontSize": 12},
-
-    "h-settings": {"type": "Text", "parent": "panel", "left": 58, "top": 440, "text": "SETTINGS", "fontColor": "#7a8290", "fontSize": 12},
-    "s-model": {"type": "Text", "parent": "panel", "left": 58, "top": 460, "text": "model: opus  ·  output style: default", "fontColor": "#c8d0e0", "fontSize": 12},
-
-    "edit-hint": {"type": "Text", "parent": "panel", "left": 58, "top": 700, "text": "↳ source: ~/.claude  +  .claude  ·  watched", "fontColor": "#5b6470", "fontSize": 10}
+    "hint": {"type": "Text", "parent": "panel", "left": 58, "top": 706, "text": "click a skill / agent / command → opens its .md in the reader →", "fontColor": "#5b6470", "fontSize": 10}
   }
 }
