@@ -9,20 +9,30 @@
     "tab-c": {"type": "Text", "parent": "panel", "left": 210, "top": 40, "text": "Config", "fontColor": "#7a8290", "fontSize": 13},
     "strip": {"type": "Line", "parent": "panel", "left": 40, "top": 62, "width": 340, "height": 1, "strokeColor": "#2a3038"},
 
-    "h-today": {"type": "Text", "parent": "panel", "left": 58, "top": 82, "text": "TODAY", "fontColor": "#7a8290", "fontSize": 12},
-    "t1": {"type": "Text", "parent": "panel", "left": 58, "top": 106, "text": "142   messages", "fontColor": "#c8d0e0", "fontSize": 13},
-    "t2": {"type": "Text", "parent": "panel", "left": 58, "top": 130, "text": "12    sessions", "fontColor": "#c8d0e0", "fontSize": 13},
-    "t3": {"type": "Text", "parent": "panel", "left": 58, "top": 154, "text": "318   tool calls", "fontColor": "#c8d0e0", "fontSize": 13},
+    "h-today": {"type": "Text", "parent": "panel", "left": 58, "top": 78, "text": "TODAY", "fontColor": "#7a8290", "fontSize": 12},
+    "k1": {"type": "Text", "parent": "panel", "left": 58, "top": 100, "text": "messages", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v1": {"type": "Text", "parent": "panel", "left": 200, "top": 100, "text": "142", "fontColor": "#c8d0e0", "fontSize": 12},
+    "k2": {"type": "Text", "parent": "panel", "left": 58, "top": 120, "text": "sessions", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v2": {"type": "Text", "parent": "panel", "left": 200, "top": 120, "text": "12", "fontColor": "#c8d0e0", "fontSize": 12},
+    "k3": {"type": "Text", "parent": "panel", "left": 58, "top": 140, "text": "tool calls", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v3": {"type": "Text", "parent": "panel", "left": 200, "top": 140, "text": "318", "fontColor": "#c8d0e0", "fontSize": 12},
 
-    "div1": {"type": "Line", "parent": "panel", "left": 58, "top": 186, "width": 304, "height": 1, "strokeColor": "#2a3038"},
-    "h-life": {"type": "Text", "parent": "panel", "left": 58, "top": 200, "text": "LIFETIME", "fontColor": "#7a8290", "fontSize": 12},
-    "l1": {"type": "Text", "parent": "panel", "left": 58, "top": 224, "text": "4,120  messages", "fontColor": "#c8d0e0", "fontSize": 13},
-    "l2": {"type": "Text", "parent": "panel", "left": 58, "top": 248, "text": "286    sessions", "fontColor": "#c8d0e0", "fontSize": 13},
+    "div1": {"type": "Line", "parent": "panel", "left": 58, "top": 168, "width": 304, "height": 1, "strokeColor": "#2a3038"},
+    "h-life": {"type": "Text", "parent": "panel", "left": 58, "top": 182, "text": "LIFETIME", "fontColor": "#7a8290", "fontSize": 12},
+    "k4": {"type": "Text", "parent": "panel", "left": 58, "top": 204, "text": "messages", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v4": {"type": "Text", "parent": "panel", "left": 200, "top": 204, "text": "4,120", "fontColor": "#c8d0e0", "fontSize": 12},
+    "k5": {"type": "Text", "parent": "panel", "left": 58, "top": 224, "text": "sessions", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v5": {"type": "Text", "parent": "panel", "left": 200, "top": 224, "text": "286", "fontColor": "#c8d0e0", "fontSize": 12},
 
-    "div2": {"type": "Line", "parent": "panel", "left": 58, "top": 280, "width": 304, "height": 1, "strokeColor": "#2a3038"},
-    "h-run": {"type": "Text", "parent": "panel", "left": 58, "top": 294, "text": "RUNTIME · primary", "fontColor": "#7a8290", "fontSize": 12},
-    "r1": {"type": "Text", "parent": "panel", "left": 58, "top": 318, "text": "claude-opus-4-7 [1M]", "fontColor": "#d97757", "fontSize": 13},
-    "r2": {"type": "Text", "parent": "panel", "left": 58, "top": 342, "text": "ctx 54%  ·  accept-edits", "fontColor": "#c8d0e0", "fontSize": 13},
-    "r3": {"type": "Text", "parent": "panel", "left": 58, "top": 366, "text": "14 skills configured", "fontColor": "#9aa4b2", "fontSize": 12}
+    "div2": {"type": "Line", "parent": "panel", "left": 58, "top": 252, "width": 304, "height": 1, "strokeColor": "#2a3038"},
+    "h-run": {"type": "Text", "parent": "panel", "left": 58, "top": 266, "text": "RUNTIME · primary", "fontColor": "#7a8290", "fontSize": 12},
+    "k6": {"type": "Text", "parent": "panel", "left": 58, "top": 288, "text": "model", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v6": {"type": "Text", "parent": "panel", "left": 200, "top": 288, "text": "claude-opus-4-7 [1M]", "fontColor": "#d97757", "fontSize": 12},
+    "k7": {"type": "Text", "parent": "panel", "left": 58, "top": 308, "text": "context", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v7": {"type": "Text", "parent": "panel", "left": 200, "top": 308, "text": "54%", "fontColor": "#c8d0e0", "fontSize": 12},
+    "k8": {"type": "Text", "parent": "panel", "left": 58, "top": 328, "text": "mode", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v8": {"type": "Text", "parent": "panel", "left": 200, "top": 328, "text": "accept-edits", "fontColor": "#c8d0e0", "fontSize": 12},
+    "k9": {"type": "Text", "parent": "panel", "left": 58, "top": 348, "text": "skills", "fontColor": "#9aa4b2", "fontSize": 12},
+    "v9": {"type": "Text", "parent": "panel", "left": 200, "top": 348, "text": "14", "fontColor": "#c8d0e0", "fontSize": 12}
   }
 }
