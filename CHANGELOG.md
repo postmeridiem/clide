@@ -16,6 +16,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Changed
+
+- Claude meta sidebar is now tabbed — Activity / Team / Config (T-182).
+  Activity shows usage stats plus the primary session's live runtime; Team
+  holds the roster and auto-fronts when a team spawns; Config shows the
+  environment settings table. Activity and Config share one table geometry so
+  switching doesn't jump.
+
 ### Added
 
 - Team coordination broker (T-170, D-77) — clide hosts an in-process MCP

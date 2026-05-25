@@ -249,6 +249,9 @@ class StreamJsonSession {
   /// Session status (model / permission-mode / context tokens), on change.
   Stream<SessionStatus> get statusStream => _statusCtl.stream;
 
+  /// The latest known status — the current value [statusStream] last emitted.
+  SessionStatus get status => _status;
+
   /// Begin consuming the process's event stream.
   void start() {
     _sub = _proc.lines.listen(_onLine, onError: (Object _) {});
