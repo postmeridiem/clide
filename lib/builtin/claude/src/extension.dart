@@ -5,6 +5,7 @@ import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/session_index.dart';
@@ -32,6 +33,7 @@ class ClaudeExtension extends ClideExtension {
 
   TeamObserver? _observer;
   ClaudeConfig? _config;
+  ClaudeSessionOrchestrator? _orchestrator;
   final List<StreamSubscription<dynamic>> _subs = [];
 
   /// App-wide Claude environment (skills, commands, settings, permissions,
@@ -110,6 +112,11 @@ class ClaudeExtension extends ClideExtension {
       _subs.add(ctx.events.on<ProjectOpened>().listen((e) => cfg.setProjectDir(Directory(e.path))));
     }
 
+    // The clide-managed session set (T-169). Panes spawn/bind through it so a
+    // session outlives its pane and is shared across surfaces.
+    _orchestrator = ClaudeSessionOrchestrator();
+    activeSessionOrchestrator = _orchestrator;
+
     // Cold-start reap: kill any leftover secondary tmux sessions from
     // a previous run. D-41's "secondary numbering resets between
     // clide runs" only holds if the leftovers are gone before the new
@@ -151,6 +158,9 @@ class ClaudeExtension extends ClideExtension {
     }
     _subs.clear();
     _stopObserver();
+    if (identical(activeSessionOrchestrator, _orchestrator)) activeSessionOrchestrator = null;
+    _orchestrator?.dispose();
+    _orchestrator = null;
     if (identical(activeClaudeConfig, _config)) activeClaudeConfig = null;
     _config?.dispose();
     _config = null;

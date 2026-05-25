@@ -15,6 +15,7 @@ import 'conversation_view.dart';
 import 'prompt_card.dart';
 import 'session_index.dart';
 import 'session_naming.dart';
+import 'session_orchestrator.dart';
 import 'session_picker.dart';
 import 'slash_commands.dart';
 import 'stream_json_session.dart';
@@ -64,6 +65,9 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   bool _spawned = false;
 
+  /// This pane's stable key in the session orchestrator (T-169).
+  String get _orchId => widget.isPrimary ? 'primary' : 'secondary-${widget.secondaryIndex}';
+
   // The status line surfaced to the bottom status bar via ClidePane — the
   // live session fields (model/mode/context, T-150) plus the configured
   // skills count from ClaudeConfig (T-154). Null when there's nothing yet.
@@ -109,8 +113,12 @@ class _ClaudePaneState extends State<ClaudePane> {
     activeClaudeConfig?.removeListener(_onConfigChanged);
     _statusSub?.cancel();
     _statusSub = null;
-    // The controller's onDispose kills the session (process + streams).
-    _conversation?.dispose();
+    // The orchestrator owns the session, so disposing this pane does NOT kill
+    // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
+    // A secondary tab being *closed* is a real teardown, so close its session;
+    // the primary persists (its deterministic id resumes next launch), and the
+    // orchestrator disposes everything on extension teardown.
+    if (!widget.isPrimary) unawaited(activeSessionOrchestrator?.close(_orchId));
     _conversation = null;
     _session = null;
     super.dispose();
@@ -160,24 +168,32 @@ class _ClaudePaneState extends State<ClaudePane> {
     final home = Platform.environment['HOME'] ?? '';
     final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
     final resume = await File(transcriptFile).exists();
-    final sessionArgs = claudeLaunchArgs(_sessionId!, resume: resume);
 
-    final StreamJsonSession session;
+    // The orchestrator owns the session (T-169): spawn-or-bind by our pane key,
+    // so the session (and its accumulating conversation) outlives this pane.
+    final orch = activeSessionOrchestrator;
+    if (orch == null) {
+      setState(() => _error = 'Session orchestrator unavailable.');
+      return;
+    }
+    final ManagedSession managed;
     try {
-      final proc = await ClaudeStreamJsonProcess.start(sessionArgs: sessionArgs, cwd: repoRoot);
-      session = StreamJsonSession(proc)..start();
+      managed = await orch.spawn(SpawnSpec(
+        id: _orchId,
+        role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
+        sessionId: _sessionId!,
+        cwd: repoRoot,
+        resume: resume,
+      ));
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not start claude: $e');
       return;
     }
-    if (!mounted) {
-      await session.dispose();
-      return;
-    }
+    if (!mounted) return;
 
-    _session = session;
-    _conversation = ConversationController(stream: session.items, onDispose: session.dispose);
-    _statusSub = session.statusStream.listen((s) {
+    _session = managed.session;
+    _conversation = managed.conversation;
+    _statusSub = managed.session.statusStream.listen((s) {
       if (!mounted) return;
       setState(() => _status = s);
     });
@@ -229,11 +245,11 @@ class _ClaudePaneState extends State<ClaudePane> {
   }
 
   /// Tear the current session down and respawn bound to [sessionId]. The old
-  /// process is killed; its transcript stays on disk (history preserved).
+  /// process is killed via the orchestrator; its transcript stays on disk.
   Future<void> _respawnWithSession(String sessionId) async {
     _statusSub?.cancel();
     _statusSub = null;
-    _conversation?.dispose(); // onDispose kills the old session
+    await activeSessionOrchestrator?.close(_orchId); // kills the old session
     _conversation = null;
     _session = null;
     _sessionId = sessionId;

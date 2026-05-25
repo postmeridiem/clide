@@ -74,6 +74,11 @@ class ManagedSession {
   bool visible;
 }
 
+/// App-wide orchestrator, set by the Claude extension on activate (like
+/// `activeClaudeConfig`). Panes spawn/bind their session through it so the
+/// session set is shared across panes, the cockpit, and team tiles.
+ClaudeSessionOrchestrator? activeSessionOrchestrator;
+
 class ClaudeSessionOrchestrator extends ChangeNotifier {
   ClaudeSessionOrchestrator({ProcessFactory? processFactory}) : _factory = processFactory ?? _spawnClaude;
 
