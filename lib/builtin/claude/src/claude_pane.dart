@@ -267,37 +267,41 @@ class _ClaudePaneState extends State<ClaudePane> {
         child: ClideText(_error!, muted: true),
       );
     } else if (_conversation != null) {
-      body = Column(
-        children: [
-          Expanded(
-            child: ConversationView(
-              controller: _conversation!,
-              emptyState: ClaudeBanner(
-                role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
-                workspace: _repoRoot,
-                statusLine: _statusLine,
+      // Rebuild conversation + composer zone together on each prompt change so
+      // the view hides a prompted tool-use card the moment its prompt appears
+      // (D-78), and the composer zone swaps to the prompt UI.
+      body = StreamBuilder<ToolPrompt?>(
+        stream: _session?.pendingPromptStream,
+        initialData: _session?.pendingPrompt,
+        builder: (context, snap) {
+          final prompt = snap.data;
+          return Column(
+            children: [
+              Expanded(
+                child: ConversationView(
+                  controller: _conversation!,
+                  hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
+                  emptyState: ClaudeBanner(
+                    role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
+                    workspace: _repoRoot,
+                    statusLine: _statusLine,
+                  ),
+                ),
               ),
-            ),
-          ),
-          // The composer zone: an open prompt (permission / AskUserQuestion)
-          // takes this space and hides the text input until it's answered, so
-          // interaction stays out of the conversation stream (D-78).
-          StreamBuilder<ToolPrompt?>(
-            stream: _session?.pendingPromptStream,
-            initialData: _session?.pendingPrompt,
-            builder: (context, snap) {
-              final prompt = snap.data;
-              if (prompt != null && _session != null) {
-                return ToolPromptCard(prompt: prompt, onResolve: _session!.resolvePrompt);
-              }
-              return ClaudeComposer(
-                enabled: _session != null,
-                onSubmit: _send,
-                pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
-              );
-            },
-          ),
-        ],
+              // An open prompt takes the composer's space and hides the text
+              // input until it's answered, so interaction stays out of the
+              // conversation stream (D-78).
+              if (prompt != null && _session != null)
+                ToolPromptCard(prompt: prompt, onResolve: _session!.resolvePrompt)
+              else
+                ClaudeComposer(
+                  enabled: _session != null,
+                  onSubmit: _send,
+                  pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
+                ),
+            ],
+          );
+        },
       );
     } else {
       body = const Center(child: ClideText('starting…', muted: true));

@@ -173,6 +173,13 @@ class StreamJsonSession {
   final _queue = <ToolPrompt>[];
   final _pendingCtl = StreamController<ToolPrompt?>.broadcast();
 
+  /// tool_use_ids that surfaced as a prompt — the view hides their raw
+  /// tool-use card (it showed as a prompt) but keeps the result (D-78).
+  final _promptedToolUses = <String>{};
+
+  /// Read-only view of [_promptedToolUses] for the conversation view.
+  Set<String> get promptedToolUseIds => _promptedToolUses;
+
   /// The prompt currently awaiting a decision (queue head), or null.
   ToolPrompt? get pendingPrompt => _queue.isEmpty ? null : _queue.first;
 
@@ -228,6 +235,8 @@ class StreamJsonSession {
     if (request['subtype'] == 'can_use_tool') {
       final toolName = request['tool_name'] as String? ?? '';
       final input = (request['input'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final tuid = request['tool_use_id'] as String? ?? '';
+      if (tuid.isNotEmpty) _promptedToolUses.add(tuid);
       _queue.add(ToolPrompt(
         promptId: rid,
         toolName: toolName,

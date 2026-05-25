@@ -115,7 +115,7 @@ void main() {
     setUp(() async => f = await KernelFixture.create());
     tearDown(() => f.dispose());
 
-    Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items) async {
+    Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items, {Set<String> hiddenToolUseIds = const {}}) async {
       tester.view.physicalSize = const Size(900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -125,7 +125,7 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(f, ConversationView(controller: c)));
+      await tester.pumpWidget(harness(f, ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds)));
       for (final it in items) {
         stream.add(it);
       }
@@ -168,6 +168,32 @@ void main() {
       expect(find.text('Bash'), findsOneWidget);
       expect(find.text('result'), findsOneWidget);
       expect(find.text('error'), findsOneWidget);
+    });
+
+    testWidgets('AskUserQuestion tool-use and its result are hidden (it shows as a prompt)', (tester) async {
+      await pumpWith(tester, [
+        _asst('let me ask'),
+        AssistantToolUse(uuid: 'au', timestamp: _t, isSidechain: false, toolUseId: 'auq1', name: 'AskUserQuestion', input: const {'questions': []}),
+        ToolResultMessage(uuid: 'ar', timestamp: _t, isSidechain: false, toolUseId: 'auq1', content: 'answered', isError: false),
+        _asst('thanks'),
+      ]);
+      expect(find.text('AskUserQuestion'), findsNothing);
+      expect(find.text('let me ask'), findsOneWidget);
+      expect(find.text('thanks'), findsOneWidget);
+    });
+
+    testWidgets('a permission-prompted tool-use is hidden but its result is kept', (tester) async {
+      await pumpWith(
+        tester,
+        [
+          _tool('Write', {'file_path': '/tmp/x'}),
+          _result('done')
+        ],
+        hiddenToolUseIds: {'x1'}, // _tool + _result both use toolUseId 'x1'
+      );
+      expect(find.text('Write'), findsNothing); // payload hidden
+      expect(find.text('done'), findsOneWidget); // result kept
+      expect(find.text('result'), findsOneWidget);
     });
 
     testWidgets('a one-line tool result renders inline (no collapse caret)', (tester) async {

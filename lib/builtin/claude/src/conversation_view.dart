@@ -25,9 +25,15 @@ class ConversationView extends StatefulWidget {
     required this.controller,
     this.wrapInSelectionArea = true,
     this.emptyState,
+    this.hiddenToolUseIds = const <String>{},
   });
 
   final ConversationController controller;
+
+  /// tool_use_ids whose raw tool-use card should be hidden because the call
+  /// surfaced as a prompt (permission / AskUserQuestion) — D-78. The result is
+  /// still shown (it's the useful answer); only the request payload is hidden.
+  final Set<String> hiddenToolUseIds;
 
   /// Whether to wrap the list in its own [ClideSelectionArea]. The team
   /// grid sets this false and wraps all tiles in one shared area so
@@ -67,6 +73,28 @@ class _ConversationViewState extends State<ConversationView> {
     super.dispose();
   }
 
+  /// Hide tool-use payloads that surfaced as a prompt (D-78): AskUserQuestion
+  /// (its tool-use *and* result echo are noise — the prompt + the logged answer
+  /// cover it), and any permission-prompted tool-use (keep its result — that's
+  /// the useful answer).
+  List<ConversationItem> _visibleItems(List<ConversationItem> items) {
+    final hidden = widget.hiddenToolUseIds;
+    final auqIds = {
+      for (final it in items)
+        if (it is AssistantToolUse && it.name == 'AskUserQuestion') it.toolUseId,
+    };
+    bool drop(ConversationItem it) {
+      if (it is AssistantToolUse) return it.name == 'AskUserQuestion' || hidden.contains(it.toolUseId);
+      if (it is ToolResultMessage) return auqIds.contains(it.toolUseId); // AUQ result only; keep permission results
+      return false;
+    }
+
+    return [
+      for (final it in items)
+        if (!drop(it)) it,
+    ];
+  }
+
   void _onChanged() {
     if (!mounted) return;
     setState(() {});
@@ -81,7 +109,7 @@ class _ConversationViewState extends State<ConversationView> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final items = widget.controller.items;
+    final items = _visibleItems(widget.controller.items);
 
     if (items.isEmpty) {
       return ColoredBox(

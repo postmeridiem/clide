@@ -31,6 +31,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Collapsed-by-default tool cards (T-177) — multi-line tool calls and
   results start collapsed behind a one-line summary; one-line output stays
   inline so a caret never hides a single line.
+- Prompted tool calls no longer duplicate their payload in the log — a
+  permission/AskUserQuestion request shows as the prompt, not a raw
+  tool-use card; the result is still kept (AskUserQuestion's is replaced by
+  the logged answer).
 - Claude meta sidebar (T-141, T-157) — an always-pickable left-panel tab
   showing Claude activity (the latest day's messages/sessions/tool-calls
   plus lifetime totals, from `stats-cache.json`) and, when a tmux team is
