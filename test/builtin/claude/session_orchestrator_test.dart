@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
+import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeProc implements StreamJsonProcess {
@@ -120,6 +122,57 @@ void main() {
       await orch.spawn(teamSpec('teammate:tyre', 'tyre', 'teammate'));
       await orch.close('teammate:tyre');
       expect(orch.broker.members.map((m) => m.name), ['lead']);
+    });
+  });
+
+  group('resume hydration', () {
+    test('seeds the controller with prior items from the transcript', () async {
+      final tmp = await Directory.systemTemp.createTemp('clide-resume-');
+      final file = File('${tmp.path}/session.jsonl');
+      await file.writeAsString(
+        '{"type":"user","uuid":"u1","timestamp":"2026-05-26T00:00:00Z","isSidechain":false,"message":{"role":"user","content":"hello"}}\n'
+        '{"type":"assistant","uuid":"a1","timestamp":"2026-05-26T00:00:01Z","isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"hi back"}]}}\n',
+      );
+
+      final managed = await orch.spawn(SpawnSpec(
+        id: 'primary',
+        role: 'primary',
+        sessionId: 'primary-uuid',
+        cwd: '/repo',
+        resume: true,
+        transcriptPath: file.path,
+      ));
+      final items = managed.conversation.items;
+      expect(items, hasLength(2));
+      expect(items.first, isA<UserMessage>());
+      expect((items.first as UserMessage).text, 'hello');
+      expect(items.last, isA<AssistantTextMessage>());
+
+      await tmp.delete(recursive: true);
+    });
+
+    test('non-resume spawn does not read the transcript', () async {
+      final managed = await orch.spawn(SpawnSpec(
+        id: 'primary',
+        role: 'primary',
+        sessionId: 'primary-uuid',
+        cwd: '/repo',
+        // resume:false → transcriptPath ignored even if set
+        transcriptPath: '/does/not/exist.jsonl',
+      ));
+      expect(managed.conversation.items, isEmpty);
+    });
+
+    test('missing transcript file is tolerated (best-effort hydration)', () async {
+      final managed = await orch.spawn(SpawnSpec(
+        id: 'primary',
+        role: 'primary',
+        sessionId: 'primary-uuid',
+        cwd: '/repo',
+        resume: true,
+        transcriptPath: '/does/not/exist.jsonl',
+      ));
+      expect(managed.conversation.items, isEmpty);
     });
   });
 }

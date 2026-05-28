@@ -15,13 +15,18 @@ import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:flutter/foundation.dart';
 
 class ConversationController extends ChangeNotifier {
-  /// Listens to [stream] and accumulates items. [onDispose] is invoked
-  /// from [dispose] — wire it to the reader's `dispose` so cancelling
-  /// the view tears down the underlying tail.
+  /// Listens to [stream] and accumulates items. [seed] pre-populates the
+  /// item list synchronously before subscribing — used when resuming a
+  /// session (D-77), where `claude --resume` doesn't replay prior turns
+  /// over stream-json so the pane would otherwise start empty. [onDispose]
+  /// is invoked from [dispose] — wire it to the reader's `dispose` so
+  /// cancelling the view tears down the underlying tail.
   ConversationController({
     required Stream<ConversationItem> stream,
+    Iterable<ConversationItem>? seed,
     Future<void> Function()? onDispose,
   }) : _onDispose = onDispose {
+    if (seed != null) _items.addAll(seed);
     _sub = stream.listen(_onItem);
   }
 

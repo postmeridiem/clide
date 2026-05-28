@@ -184,6 +184,7 @@ class _ClaudePaneState extends State<ClaudePane> {
         sessionId: _sessionId!,
         cwd: repoRoot,
         resume: resume,
+        transcriptPath: resume ? transcriptFile : null,
       ));
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not start claude: $e');

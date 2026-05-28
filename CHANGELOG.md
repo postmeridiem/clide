@@ -16,6 +16,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- Resumed Claude session no longer starts with an empty pane — `claude
+  --resume` carries Claude's prior context but emits no past turns over
+  stream-json, so the orchestrator now seeds the conversation by reading
+  the tail (up to 256 KB) of the transcript JSONL on disk.
+
 ### Changed
 
 - Permission prompt cards render the tool input in the shape that fits the

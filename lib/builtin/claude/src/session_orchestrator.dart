@@ -12,12 +12,21 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/team_broker.dart';
+import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:flutter/foundation.dart';
+
+/// Max bytes of recent transcript to replay into the [ConversationController]
+/// when resuming a session — `claude --resume` carries Claude's context but
+/// emits no past turns over stream-json, so the pane would start empty
+/// without this hydration. Matches [TranscriptReader]'s initial-tail size.
+const _resumeTailBytes = 256 * 1024;
 
 /// Creates the subprocess for a session — production uses
 /// [ClaudeStreamJsonProcess.start]; tests inject a fake.
@@ -36,6 +45,7 @@ class SpawnSpec {
     required this.sessionId,
     required this.cwd,
     this.resume = false,
+    this.transcriptPath,
     this.env,
     this.visible = true,
     this.team = false,
@@ -49,6 +59,11 @@ class SpawnSpec {
 
   /// Resume an existing session (`--resume`) vs create one (`--session-id`).
   final bool resume;
+
+  /// Transcript JSONL to replay into the conversation when [resume] is true.
+  /// Optional — without it, a resumed session still works but its pane starts
+  /// empty until the user sends a new prompt.
+  final String? transcriptPath;
   final Map<String, String>? env;
   final bool visible;
 
@@ -142,7 +157,8 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       env: spec.env,
     );
     final session = StreamJsonSession(proc, mcpServers: mcpServers)..start();
-    final conversation = ConversationController(stream: session.items, onDispose: session.dispose);
+    final seed = spec.resume && spec.transcriptPath != null ? await _readTranscriptTail(spec.transcriptPath!) : null;
+    final conversation = ConversationController(stream: session.items, seed: seed, onDispose: session.dispose);
     final managed = ManagedSession(
       id: spec.id,
       role: spec.role,
@@ -176,6 +192,32 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
     broker.removeMember(id);
     m.conversation.dispose();
     notifyListeners();
+  }
+
+  /// Read up to [_resumeTailBytes] from the end of [path] and parse it into
+  /// items to seed the conversation. Best-effort: a missing/unreadable file
+  /// returns null and the pane resumes empty, same as before this fix.
+  Future<List<ConversationItem>?> _readTranscriptTail(String path) async {
+    try {
+      final f = File(path);
+      if (!await f.exists()) return null;
+      final length = await f.length();
+      final start = length > _resumeTailBytes ? length - _resumeTailBytes : 0;
+      final raf = await f.open();
+      try {
+        await raf.setPosition(start);
+        final bytes = await raf.read(length - start);
+        final text = utf8.decode(bytes, allowMalformed: true);
+        // Started mid-file → drop the partial first line so we never feed
+        // half a JSON record to the parser.
+        final chunk = start == 0 ? text : text.substring(text.indexOf('\n') + 1);
+        return parseTranscriptChunk(chunk).items;
+      } finally {
+        await raf.close();
+      }
+    } catch (_) {
+      return null;
+    }
   }
 
   /// The team-awareness preamble injected via `--append-system-prompt` (T-170).
