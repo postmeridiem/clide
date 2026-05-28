@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Permission prompt cards render the tool input in the shape that fits the
+  tool — Bash shows the command as a shell code block (with a footer for
+  `run_in_background` / `timeout`), Write shows the path plus the content
+  highlighted from its extension, Edit shows the path plus before/after
+  blocks. Unknown tools fall back to the indented-JSON dump.
 - Claude meta sidebar is now tabbed — Activity / Team / Config (T-182).
   Activity shows usage stats plus the primary session's live runtime; Team
   holds the roster and auto-fronts when a team spawns; Config shows the

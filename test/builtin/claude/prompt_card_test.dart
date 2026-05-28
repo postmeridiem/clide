@@ -101,6 +101,52 @@ void main() {
     expect(find.byType(ClideCodeBlock), findsOneWidget);
   });
 
+  testWidgets('permission card: Bash renders the command as a shell code block, not JSON', (tester) async {
+    const prompt = ToolPrompt(
+      promptId: 'req-b',
+      toolName: 'Bash',
+      displayName: 'Bash',
+      description: 'Read IDE lock files',
+      input: {'command': 'cat ~/.claude/ide/97632.lock', 'description': 'Read IDE lock files'},
+    );
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pump();
+
+    final block = tester.widget<ClideCodeBlock>(find.byType(ClideCodeBlock));
+    expect(block.language, 'bash');
+    expect(block.source, 'cat ~/.claude/ide/97632.lock');
+    // The raw `description` key shouldn't bleed into the body — it's already
+    // shown above as the prompt's description line.
+    expect(find.textContaining('"description"'), findsNothing);
+  });
+
+  testWidgets('permission card: Bash shows background/timeout footer when set', (tester) async {
+    const prompt = ToolPrompt(
+      promptId: 'req-b2',
+      toolName: 'Bash',
+      displayName: 'Bash',
+      description: 'long task',
+      input: {'command': 'sleep 30', 'run_in_background': true, 'timeout': 60000},
+    );
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pump();
+    expect(find.text('background · timeout 60000ms'), findsOneWidget);
+  });
+
+  testWidgets('permission card: unknown tool falls back to JSON', (tester) async {
+    const prompt = ToolPrompt(
+      promptId: 'req-x',
+      toolName: 'NovelTool',
+      displayName: 'NovelTool',
+      input: {'foo': 'bar'},
+    );
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pump();
+    final block = tester.widget<ClideCodeBlock>(find.byType(ClideCodeBlock));
+    expect(block.language, 'json');
+    expect(block.source, contains('"foo"'));
+  });
+
   testWidgets('permission card: Deny returns DenyTool with a message', (tester) async {
     ToolDecision? decision;
     await tester.pumpWidget(harness(
