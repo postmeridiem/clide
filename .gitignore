@@ -120,3 +120,4 @@ legacy/**/.coverage.*
 *.idmap.json
 .pql/*
 !.pql/changelog/
+!.pql/pql-plan.json
