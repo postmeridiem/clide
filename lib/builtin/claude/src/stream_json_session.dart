@@ -592,6 +592,22 @@ class StreamJsonSession {
     }));
   }
 
+  /// Set the session's permission mode (T-181, D-77). Sends a
+  /// `set_permission_mode` control_request; fire-and-forget, mirroring
+  /// [interrupt]. [mode] must be one of the claude-recognised strings:
+  /// `default`, `acceptEdits`, `plan`, `bypassPermissions`.
+  ///
+  /// The safe trio (default → acceptEdits → plan → default) is cycled by the
+  /// cockpit badge's plain click; bypassPermissions is reachable only via a
+  /// confirmed shift-click (T-181).
+  void setPermissionMode(String mode) {
+    _proc.writeLine(jsonEncode({
+      'type': 'control_request',
+      'request_id': 'set-perm-${_localSeq++}',
+      'request': {'subtype': 'set_permission_mode', 'mode': mode},
+    }));
+  }
+
   Future<void> dispose() async {
     await _sub?.cancel();
     await _proc.kill();

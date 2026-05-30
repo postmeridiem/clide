@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/claude_config.dart';
@@ -9,6 +10,7 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart' show EditableText, SizedBox, Semantics;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,11 +25,18 @@ class _FakeProc implements StreamJsonProcess {
   final List<String> writes = [];
   bool killed = false;
 
+  /// Optional callback fired on every [writeLine] — used by T-181 tests to
+  /// mirror writes into a shared list across sessions.
+  void Function(String)? onWrite;
+
   @override
   Stream<String> get lines => _ctl.stream;
 
   @override
-  void writeLine(String line) => writes.add(line);
+  void writeLine(String line) {
+    writes.add(line);
+    onWrite?.call(line);
+  }
 
   @override
   Future<void> kill() async => killed = true;
@@ -445,6 +454,173 @@ void main() {
 
       expect(orch.broker.tasks.first.owner, isNot(originalOwner));
 
+      orch.dispose();
+    });
+  });
+
+  // T-181: permission-mode badge -----------------------------------------------
+
+  group('T-181 permission-mode badge', () {
+    /// Build an orchestrator that captures all writes from the spawned session's
+    /// stdin. The factory captures the fake proc and mirrors its writeLine calls
+    /// into [writes] so tests can assert on control_requests sent.
+    (ClaudeSessionOrchestrator, List<String>) orchCapturing() {
+      final writes = <String>[];
+      final orch = ClaudeSessionOrchestrator(
+        processFactory: ({required sessionArgs, required cwd, env}) async {
+          final p = _FakeProc();
+          p.onWrite = writes.add;
+          return p;
+        },
+      );
+      return (orch, writes);
+    }
+
+    Future<(ClaudeSessionOrchestrator, List<String>)> spawnAndShow(
+      WidgetTester tester, {
+      String name = 'Scout',
+      String agentId = 'b1',
+    }) async {
+      final (orch, writes) = orchCapturing();
+      await orch.spawn(SpawnSpec(
+        id: 'teammate:$name',
+        role: 'teammate',
+        sessionId: '$name-uuid',
+        cwd: '/repo',
+        team: true,
+        memberName: name,
+      ));
+      await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
+      f.services.events.emit(TeamMemberJoined(
+        team: 't',
+        agentId: agentId,
+        name: name,
+        agentType: 'coder',
+        paneId: '%1',
+        color: 'blue',
+      ));
+      await tester.pump();
+      await tester.pump();
+      return (orch, writes);
+    }
+
+    testWidgets('badge renders with label D when permissionMode is null/default', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, _) = await spawnAndShow(tester);
+
+      // The badge Semantics label is 'Permission mode: D' for the default mode.
+      expect(find.bySemanticsLabel('Permission mode: D'), findsOneWidget);
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('badge label reflects live permissionMode from status (A for acceptEdits)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, _) = await spawnAndShow(tester);
+
+      // Push a live status update with acceptEdits.
+      f.services.messages.publish(
+        ClaudeConversation.publisher,
+        ClaudeConversation.memberStatusChannel,
+        ClaudeConversation.memberStatusData(
+          'b1',
+          const SessionStatus(permissionMode: 'acceptEdits'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('Permission mode: A'), findsOneWidget);
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('plain click cycles default → acceptEdits and writes set_permission_mode', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, writes) = await spawnAndShow(tester);
+
+      final preCount = writes.length;
+
+      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.pump();
+
+      // One new write for the set_permission_mode control_request.
+      expect(writes.length, preCount + 1);
+      final sent = jsonDecode(writes.last) as Map<String, dynamic>;
+      expect(sent['type'], 'control_request');
+      expect((sent['request'] as Map)['subtype'], 'set_permission_mode');
+      expect((sent['request'] as Map)['mode'], 'acceptEdits');
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('shift-click shows the bypass confirm inline', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, _) = await spawnAndShow(tester);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+      await tester.pump();
+
+      // The inline confirm prompt should be visible.
+      expect(find.text('Enable bypassPermissions? All tool calls will be auto-allowed.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Confirm bypass'), findsOneWidget);
+      expect(find.bySemanticsLabel('Cancel bypass'), findsOneWidget);
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('bypass confirm OK sends bypassPermissions and dismisses the prompt', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, writes) = await spawnAndShow(tester);
+
+      final preCount = writes.length;
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+      await tester.pump();
+
+      await tester.tap(find.bySemanticsLabel('Confirm bypass').first);
+      await tester.pump();
+
+      // Prompt is gone.
+      expect(find.text('Enable bypassPermissions? All tool calls will be auto-allowed.'), findsNothing);
+
+      // bypassPermissions was sent to the session.
+      expect(writes.length, preCount + 1);
+      final sent = jsonDecode(writes.last) as Map<String, dynamic>;
+      expect((sent['request'] as Map)['subtype'], 'set_permission_mode');
+      expect((sent['request'] as Map)['mode'], 'bypassPermissions');
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('bypass confirm Cancel dismisses without sending', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final (orch, writes) = await spawnAndShow(tester);
+
+      final preCount = writes.length;
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+      await tester.tap(find.bySemanticsLabel('Permission mode: D').first);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+      await tester.pump();
+
+      await tester.tap(find.bySemanticsLabel('Cancel bypass').first);
+      await tester.pump();
+
+      // Prompt dismissed, no extra write.
+      expect(find.text('Enable bypassPermissions? All tool calls will be auto-allowed.'), findsNothing);
+      expect(writes.length, preCount);
+
+      semantics.dispose();
       orch.dispose();
     });
   });

@@ -139,6 +139,28 @@ class ClaudeExtension extends ClideExtension {
             return IpcResponse.ok(id: '', data: {'id': id, 'status': 'injected'});
           },
         ),
+        // T-181: set permission mode for an agent session (D-6 CLI/UI parity).
+        // Usage: clide claude.agent.set-permission-mode <sessionId> <mode>
+        // <mode> must be one of: default, acceptEdits, plan, bypassPermissions.
+        // Note: bypassPermissions is accepted via CLI — the footgun guard is the
+        // UI's confirm dialog; the CLI caller is responsible for their own safety.
+        CommandContribution(
+          id: 'claude.agent.set-permission-mode',
+          command: 'claude.agent.set-permission-mode',
+          title: 'Claude: set permission mode for an agent session',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            final mode = args.length >= 2 ? args[1] : null;
+            if (mode == null) return IpcResponse.ok(id: '', data: const {'error': 'missing mode (default|acceptEdits|plan|bypassPermissions)'});
+            const valid = {'default', 'acceptEdits', 'plan', 'bypassPermissions'};
+            if (!valid.contains(mode)) {
+              return IpcResponse.ok(id: '', data: {'error': 'unknown mode "$mode"; use one of: ${valid.join(', ')}'});
+            }
+            _orchestrator?.byId(id)?.session.setPermissionMode(mode);
+            return IpcResponse.ok(id: '', data: {'id': id, 'mode': mode, 'status': 'sent'});
+          },
+        ),
         // Usage: clide claude.task.reassign <taskId> <toSessionId>
         CommandContribution(
           id: 'claude.task.reassign',

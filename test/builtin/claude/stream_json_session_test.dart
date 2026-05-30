@@ -491,6 +491,26 @@ void main() {
     expect(sent['request_id'], isNotNull);
   });
 
+  test('setPermissionMode writes a set_permission_mode control_request (T-181)', () async {
+    session.setPermissionMode('acceptEdits');
+    expect(proc.writes, hasLength(1));
+    final sent = jsonDecode(proc.writes.single) as Map<String, dynamic>;
+    expect(sent['type'], 'control_request');
+    expect(sent['request_id'], isNotNull);
+    final req = sent['request'] as Map;
+    expect(req['subtype'], 'set_permission_mode');
+    expect(req['mode'], 'acceptEdits');
+  });
+
+  test('setPermissionMode uses a unique request_id each call (T-181)', () async {
+    session.setPermissionMode('plan');
+    session.setPermissionMode('default');
+    expect(proc.writes, hasLength(2));
+    final id1 = (jsonDecode(proc.writes[0]) as Map)['request_id'] as String;
+    final id2 = (jsonDecode(proc.writes[1]) as Map)['request_id'] as String;
+    expect(id1, isNot(equals(id2)));
+  });
+
   test('busy goes true on send and false on a result event', () async {
     final busy = <bool>[];
     session.busyStream.listen(busy.add);

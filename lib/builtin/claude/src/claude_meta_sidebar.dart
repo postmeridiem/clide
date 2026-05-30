@@ -34,6 +34,7 @@ import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeC
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart';
 
 /// The shared label-column width + row pitch the Activity and Config tables both
@@ -313,6 +314,10 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
             final managed = _orchestrator?.byMemberName(name);
             if (managed != null) _orchestrator!.close(managed.id);
           },
+          onSetPermissionMode: (name, mode) {
+            final managed = _orchestrator?.byMemberName(name);
+            managed?.session.setPermissionMode(mode);
+          },
         ),
     ];
 
@@ -440,15 +445,15 @@ class _MetaRow {
 /// A single agent roster row: color dot + name + status sub-text + controls.
 ///
 /// Controls (trailing region):
+/// - permission-mode badge (T-181) — D/A/P cycles the safe trio; shift-click
+///   reaches bypassPermissions behind a confirm
 /// - eye / eye-slash — show / hide the session pane
 /// - speaker / speaker-slash — mute / unmute broker delivery
 /// - inject (chat icon) — expand the inline message input
 /// - close (×) — kill the session
 ///
-/// Seam for T-181: add a permission-mode badge between the status sub-text and
-/// the trailing controls — it needs no layout changes here.
 /// Seam for T-172: add a fork button to the _buildControls row.
-class _AgentRosterRow extends StatelessWidget {
+class _AgentRosterRow extends StatefulWidget {
   const _AgentRosterRow({
     super.key,
     required this.member,
@@ -459,6 +464,7 @@ class _AgentRosterRow extends StatelessWidget {
     required this.onToggleInject,
     required this.onInjectSubmit,
     required this.onClose,
+    required this.onSetPermissionMode,
   });
 
   final TeamMemberJoined member;
@@ -475,15 +481,28 @@ class _AgentRosterRow extends StatelessWidget {
   final void Function(String memberName, String text) onInjectSubmit;
   final void Function(String memberName) onClose;
 
+  /// Called when the badge cycles to a new [mode] string for this member.
+  /// Handles both safe-trio clicks and confirmed bypass. The parent sends
+  /// the mode to the session via [StreamJsonSession.setPermissionMode].
+  final void Function(String memberName, String mode) onSetPermissionMode;
+
+  @override
+  State<_AgentRosterRow> createState() => _AgentRosterRowState();
+}
+
+class _AgentRosterRowState extends State<_AgentRosterRow> {
+  /// Whether the bypass-confirm inline prompt is showing.
+  bool _confirmingBypass = false;
+
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final managed = orchestrator?.byMemberName(member.name);
-    final color = teamColor(member.color, fallback: tokens.globalForeground);
-    final st = status;
-    final model = st?.model ?? member.model;
+    final managed = widget.orchestrator?.byMemberName(widget.member.name);
+    final color = teamColor(widget.member.color, fallback: tokens.globalForeground);
+    final st = widget.status;
+    final model = st?.model ?? widget.member.model;
     final sub = [
-      member.agentType,
+      widget.member.agentType,
       if (model != null) shortModelLabel(model),
       if (st?.permissionMode != null) permissionModeLabel(st!.permissionMode!),
       if (st?.contextTokens != null) '${formatTokenCount(st!.contextTokens!)} ctx',
@@ -491,7 +510,8 @@ class _AgentRosterRow extends StatelessWidget {
 
     final isVisible = managed?.visible ?? true;
     final isMuted = managed?.muted ?? false;
-    final isInjecting = injectingAgentId == member.name;
+    final isInjecting = widget.injectingAgentId == widget.member.name;
+    final currentMode = st?.permissionMode ?? 'default';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -512,9 +532,19 @@ class _AgentRosterRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClideText(member.name, fontSize: clideFontSmall, color: tokens.globalForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ClideText(widget.member.name, fontSize: clideFontSmall, color: tokens.globalForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (sub.isNotEmpty) ClideText(sub, muted: true, fontSize: clideFontSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    // T-181 seam: add permission-mode badge here (no layout surgery needed).
+                    // T-181: permission-mode badge (inline below the status sub-text).
+                    if (managed != null)
+                      _PermissionModeBadge(
+                        mode: currentMode,
+                        tokens: tokens,
+                        onCycle: () {
+                          final next = _nextSafeMode(currentMode);
+                          widget.onSetPermissionMode(widget.member.name, next);
+                        },
+                        onBypass: () => setState(() => _confirmingBypass = true),
+                      ),
                   ],
                 ),
               ),
@@ -524,8 +554,72 @@ class _AgentRosterRow extends StatelessWidget {
               if (managed != null) _buildControls(context, tokens, managed, isVisible, isMuted, isInjecting),
             ],
           ),
+          // Bypass confirm: replaces inject field area when active.
+          if (_confirmingBypass) _buildBypassConfirm(tokens),
           // Inline inject-message field — visible only when toggled.
-          if (isInjecting) _buildInjectField(context, tokens),
+          if (isInjecting && !_confirmingBypass) _buildInjectField(context, tokens),
+        ],
+      ),
+    );
+  }
+
+  /// Safe-mode cycle: default → acceptEdits → plan → default (T-181).
+  static String _nextSafeMode(String current) {
+    const cycle = ['default', 'acceptEdits', 'plan'];
+    final idx = cycle.indexOf(current);
+    return cycle[(idx + 1) % cycle.length];
+  }
+
+  Widget _buildBypassConfirm(SurfaceTokens tokens) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: ClideText(
+              'Enable bypassPermissions? All tool calls will be auto-allowed.',
+              fontSize: clideFontSmall,
+              color: tokens.globalTextMuted,
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Confirm
+          Semantics(
+            button: true,
+            label: 'Confirm bypass',
+            excludeSemantics: true,
+            onTap: () {
+              setState(() => _confirmingBypass = false);
+              widget.onSetPermissionMode(widget.member.name, 'bypassPermissions');
+            },
+            child: ClideTappable(
+              tooltip: 'Confirm',
+              onTap: () {
+                setState(() => _confirmingBypass = false);
+                widget.onSetPermissionMode(widget.member.name, 'bypassPermissions');
+              },
+              builder: (ctx, hovered, _) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                child: ClideText('OK', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalFocus),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Cancel
+          Semantics(
+            button: true,
+            label: 'Cancel bypass',
+            excludeSemantics: true,
+            onTap: () => setState(() => _confirmingBypass = false),
+            child: ClideTappable(
+              tooltip: 'Cancel',
+              onTap: () => setState(() => _confirmingBypass = false),
+              builder: (ctx, hovered, _) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                child: ClideText('Cancel', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -547,7 +641,7 @@ class _AgentRosterRow extends StatelessWidget {
           painter: isVisible ? PhosphorIcons.eye : PhosphorIcons.eyeSlash,
           tooltip: isVisible ? 'Hide pane' : 'Show pane',
           color: tokens.globalTextMuted,
-          onTap: () => isVisible ? orchestrator!.hide(managed.id) : orchestrator!.show(managed.id),
+          onTap: () => isVisible ? widget.orchestrator!.hide(managed.id) : widget.orchestrator!.show(managed.id),
         ),
         // Mute / unmute
         _IconButton(
@@ -557,21 +651,21 @@ class _AgentRosterRow extends StatelessWidget {
           // The semantic tooltip still says mute/unmute so AT users are clear.
           tooltip: isMuted ? 'Unmute messages' : 'Mute messages',
           color: isMuted ? tokens.globalFocus : tokens.globalTextMuted,
-          onTap: () => isMuted ? orchestrator!.unmute(managed.id) : orchestrator!.mute(managed.id),
+          onTap: () => isMuted ? widget.orchestrator!.unmute(managed.id) : widget.orchestrator!.mute(managed.id),
         ),
         // Inject message
         _IconButton(
           painter: PhosphorIcons.chatCircle,
           tooltip: 'Inject message',
           color: isInjecting ? tokens.globalFocus : tokens.globalTextMuted,
-          onTap: () => onToggleInject(member.name),
+          onTap: () => widget.onToggleInject(widget.member.name),
         ),
         // Close session
         _IconButton(
           painter: PhosphorIcons.xMark,
           tooltip: 'Close session',
           color: tokens.globalTextMuted,
-          onTap: () => onClose(member.name),
+          onTap: () => widget.onClose(widget.member.name),
         ),
       ],
     );
@@ -584,10 +678,10 @@ class _AgentRosterRow extends StatelessWidget {
         children: [
           Expanded(
             child: _InjectTextField(
-              controller: injectController,
+              controller: widget.injectController,
               tokens: tokens,
               onSubmit: (text) {
-                if (text.trim().isNotEmpty) onInjectSubmit(member.name, text.trim());
+                if (text.trim().isNotEmpty) widget.onInjectSubmit(widget.member.name, text.trim());
               },
             ),
           ),
@@ -596,9 +690,98 @@ class _AgentRosterRow extends StatelessWidget {
             painter: PhosphorIcons.xMark,
             tooltip: 'Cancel',
             color: tokens.globalTextMuted,
-            onTap: () => onToggleInject(member.name),
+            onTap: () => widget.onToggleInject(widget.member.name),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Permission-mode badge (T-181)
+// ---------------------------------------------------------------------------
+
+/// Maps a permission-mode string to a single-letter badge label.
+String _permissionModeBadge(String mode) => switch (mode) {
+      'acceptEdits' => 'A',
+      'plan' => 'P',
+      'bypassPermissions' => 'B',
+      _ => 'D', // default
+    };
+
+/// Clickable permission-mode badge shown in each roster row (T-181).
+///
+/// - Plain click → cycles the safe trio: default → acceptEdits → plan → default.
+/// - Shift-click → shows the bypass confirm inline in the parent row.
+///
+/// The badge reflects the LIVE mode from [SessionStatus.permissionMode] (T-157).
+/// It is a custom painted label (no Material), consistent with the rendering
+/// stack rules (D-7, CLAUDE.md guardrails).
+class _PermissionModeBadge extends StatelessWidget {
+  const _PermissionModeBadge({
+    required this.mode,
+    required this.tokens,
+    required this.onCycle,
+    required this.onBypass,
+  });
+
+  final String mode;
+  final SurfaceTokens tokens;
+
+  /// Called on a plain click — the parent cycles to the next safe mode.
+  final VoidCallback onCycle;
+
+  /// Called on a shift-click — the parent shows the bypass confirm.
+  final VoidCallback onBypass;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _permissionModeBadge(mode);
+    final isBypass = mode == 'bypassPermissions';
+    final badgeColor = isBypass ? const Color(0xFFF06C6F) : tokens.globalFocus;
+
+    final tooltip = 'Permission mode: ${permissionModeLabel(mode)}. '
+        'Click to cycle default/acceptEdits/plan; Shift-click for bypassPermissions.';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Semantics(
+        button: true,
+        label: 'Permission mode: $label',
+        excludeSemantics: true,
+        onTap: () {
+          if (HardwareKeyboard.instance.isShiftPressed) {
+            onBypass();
+          } else {
+            onCycle();
+          }
+        },
+        child: ClideTappable(
+          tooltip: tooltip,
+          onTap: () {
+            if (HardwareKeyboard.instance.isShiftPressed) {
+              onBypass();
+            } else {
+              onCycle();
+            }
+          },
+          builder: (ctx, hovered, _) => Container(
+            width: 16,
+            height: 14,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: badgeColor.withAlpha(hovered ? 51 : 26),
+              borderRadius: BorderRadius.circular(2),
+              border: Border.all(color: badgeColor.withAlpha(hovered ? 180 : 100), width: 1),
+            ),
+            child: ClideText(
+              label,
+              fontSize: 9,
+              color: badgeColor,
+            ),
+          ),
+        ),
       ),
     );
   }

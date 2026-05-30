@@ -68,6 +68,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   clide-managed agents: show/hide, mute, close, and inject-a-message per
   roster row, plus a live shared task list with reassign. Each action has a
   matching `clide` command (D-6 parity). (T-171, D-77)
+- Per-agent permission-mode badge in the cockpit roster — click cycles the
+  safe trio default → acceptEdits → plan and sends `set_permission_mode` to
+  that session; Shift-click reaches `bypassPermissions` behind a confirm.
+  The badge reflects the live mode. (T-181, D-77)
 - Team coordination broker (T-170, D-77) — clide hosts an in-process MCP
   server (`clide-team`) for managed sessions over the stream-json control
   channel, giving agents tools to message each other, broadcast, see the
