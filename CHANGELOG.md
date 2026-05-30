@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude conversation card actions (copy + custom) are now keyboard-focusable
+  and always reachable — revealed on hover or focus, activatable by Tab +
+  Enter/Space, with Semantics labels for assistive tech (T-174).
 - Status bar no longer overflows when the focused-pane context line is long
   — the in-pane slot now takes a flexible share of the bar and marquee-scrolls
   within it instead of pushing the row past its width.

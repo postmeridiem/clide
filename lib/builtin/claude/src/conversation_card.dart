@@ -2,11 +2,16 @@
 ///
 /// One primitive with three [ConversationCardVariant]s (the stripe, bordered,
 /// and bare looks the view used to hand-roll), plus chrome wired in once for
-/// all message types: a hover-revealed copy button, an always-visible
+/// all message types: a hover/focus-revealed copy button, an always-visible
 /// collapse/expand caret for collapsible turns, and an extensible
 /// [MessageAction] list. Decoupled from `ConversationItem` — the view maps
 /// each item to (variant, accent, label, body, copyText, actions), so future
 /// typed cards (T-168) reuse this chrome with a different body.
+///
+/// T-174: action buttons are always in the widget tree (keyboard/AT reachable);
+/// they are revealed visually only while the card is hovered OR any action
+/// holds keyboard focus. The caret and each action use [ClideTappable] so Tab
+/// traversal + Enter/Space activation work without hovering.
 library;
 
 import 'dart:async';
@@ -72,6 +77,66 @@ class _ConversationCardState extends State<ConversationCard> {
   bool _hover = false;
   late bool _collapsed = widget.collapsible && widget.collapsedByDefault;
 
+  // Focus nodes for the action buttons (copy + custom), managed so that
+  // the Opacity covering the action bar lifts when any action is focused.
+  // The caret uses its own always-present node (never hidden by Opacity).
+  final FocusNode _caretFocus = FocusNode(debugLabel: 'card-caret');
+  List<FocusNode> _actionFocusNodes = [];
+  int _focusedActionCount = 0;
+
+  bool get _anyActionFocused => _focusedActionCount > 0;
+
+  /// Rebuilds the action-button focus-node list to match the current set of
+  /// actions (copyText present or not, plus widget.actions count).
+  void _syncActionFocusNodes() {
+    final needed = (widget.copyText != null ? 1 : 0) + widget.actions.length;
+    if (needed == _actionFocusNodes.length) return;
+
+    // Dispose the excess or add new ones.
+    if (needed < _actionFocusNodes.length) {
+      for (var i = needed; i < _actionFocusNodes.length; i++) {
+        _actionFocusNodes[i].removeListener(_onActionFocusChange);
+        _actionFocusNodes[i].dispose();
+      }
+      _actionFocusNodes = _actionFocusNodes.sublist(0, needed);
+    } else {
+      for (var i = _actionFocusNodes.length; i < needed; i++) {
+        final node = FocusNode(debugLabel: 'card-action-$i');
+        node.addListener(_onActionFocusChange);
+        _actionFocusNodes.add(node);
+      }
+    }
+  }
+
+  void _onActionFocusChange() {
+    final focused = _actionFocusNodes.where((n) => n.hasFocus).length;
+    if (focused != _focusedActionCount) {
+      setState(() => _focusedActionCount = focused);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _syncActionFocusNodes();
+  }
+
+  @override
+  void didUpdateWidget(ConversationCard old) {
+    super.didUpdateWidget(old);
+    _syncActionFocusNodes();
+  }
+
+  @override
+  void dispose() {
+    _caretFocus.dispose();
+    for (final n in _actionFocusNodes) {
+      n.removeListener(_onActionFocusChange);
+      n.dispose();
+    }
+    super.dispose();
+  }
+
   void _copy() {
     final text = widget.copyText;
     if (text != null) unawaited(ClideKernel.of(context).clipboard.writePlain(text));
@@ -134,6 +199,9 @@ class _ConversationCardState extends State<ConversationCard> {
 
   Widget _header(SurfaceTokens tokens) {
     final summary = widget.collapsedSummary;
+    // Action visibility: shown when hovered OR when any action button has
+    // keyboard focus. Always in the tree so Tab/AT can reach them.
+    final showActions = _hover || _anyActionFocused;
     return Row(
       children: [
         if (widget.collapsible) _caret(tokens),
@@ -147,51 +215,80 @@ class _ConversationCardState extends State<ConversationCard> {
           ),
         ] else
           const Spacer(),
-        // Hover-revealed actions. (Always-reachable keyboard a11y for these is
-        // a follow-up detail; the collapse caret above is always visible.)
-        if (_hover) ..._actions(tokens),
+        // Actions are always in the tree (keyboard/AT always reachable).
+        // Opacity reveals them on hover or keyboard focus; opacity-0 keeps
+        // them layout-present but visually hidden so they don't distract.
+        // alwaysIncludeSemantics keeps them in the semantics tree even at
+        // opacity 0 (RenderOpacity drops semantics at 0 by default) so AT can
+        // still discover and activate them without hovering.
+        Opacity(
+          opacity: showActions ? 1.0 : 0.0,
+          alwaysIncludeSemantics: true,
+          child: Row(children: _actions(tokens)),
+        ),
       ],
     );
   }
 
   Widget _caret(SurfaceTokens tokens) {
-    return _tap(
-      label: _collapsed ? 'Expand' : 'Collapse',
+    final label = _collapsed ? 'Expand' : 'Collapse';
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
       onTap: () => setState(() => _collapsed = !_collapsed),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 6),
-        child: ClideIcon(
-          _collapsed ? PhosphorIcons.caretRight : PhosphorIcons.caretDown,
-          size: 12,
-          color: tokens.globalTextMuted,
+      child: ClideTappable(
+        focusNode: _caretFocus,
+        tooltip: label,
+        onTap: () => setState(() => _collapsed = !_collapsed),
+        builder: (_, hovered, pressed) => Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: ClideIcon(
+            _collapsed ? PhosphorIcons.caretRight : PhosphorIcons.caretDown,
+            size: 12,
+            color: tokens.globalTextMuted,
+          ),
         ),
       ),
     );
   }
 
   List<Widget> _actions(SurfaceTokens tokens) {
-    Widget btn(String label, VoidCallback onTap) => _tap(
-          label: label,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: ClideText(label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-          ),
-        );
+    final items = <_ActionItem>[];
+    if (widget.copyText != null) items.add(_ActionItem('copy', _copy));
+    for (final a in widget.actions) {
+      items.add(_ActionItem(a.label, a.onInvoke));
+    }
+
     return [
-      if (widget.copyText != null) btn('copy', _copy),
-      for (final a in widget.actions) btn(a.label, a.onInvoke),
+      for (var i = 0; i < items.length; i++)
+        Semantics(
+          button: true,
+          label: items[i].label,
+          excludeSemantics: true,
+          onTap: items[i].onTap,
+          child: ClideTappable(
+            focusNode: _actionFocusNodes[i],
+            tooltip: items[i].label,
+            onTap: items[i].onTap,
+            builder: (_, hovered, pressed) => Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: ClideText(
+                items[i].label,
+                fontSize: clideFontMeta,
+                color: tokens.globalTextMuted,
+                fontFamily: clideMonoFamily,
+              ),
+            ),
+          ),
+        ),
     ];
   }
+}
 
-  Widget _tap({required String label, required VoidCallback onTap, required Widget child}) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        onTap: onTap,
-        child: MouseRegion(cursor: SystemMouseCursors.click, child: child),
-      ),
-    );
-  }
+/// Internal pairing of an action label and its callback.
+class _ActionItem {
+  _ActionItem(this.label, this.onTap);
+  final String label;
+  final VoidCallback onTap;
 }
