@@ -1140,10 +1140,16 @@ class StatusbarHost extends StatelessWidget {
           color: tokens.chromeBackground,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           alignment: Alignment.center,
+          // Left items with flex > 0 are wrapped in Flexible(loose) so they
+          // yield width when the bar is tight; their contained ClideMarquee
+          // then scrolls within the allotted bounds (T-160). Items with
+          // flex == 0 (default) stay at intrinsic width. Right-side items
+          // (priority >= 100) are always intrinsic-width.
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              for (final item in left) item.build(ctx),
+              for (final item in left)
+                if (item.flex > 0) Flexible(flex: item.flex, fit: FlexFit.loose, child: item.build(ctx)) else item.build(ctx),
               const Spacer(),
               for (final item in right) item.build(ctx),
             ],

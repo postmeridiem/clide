@@ -61,6 +61,7 @@ class StatusItemContribution extends ContributionPoint {
     required this.build,
     this.priority = 0,
     this.listenable,
+    this.flex = 0,
   });
 
   @override
@@ -68,6 +69,13 @@ class StatusItemContribution extends ContributionPoint {
   final WidgetBuilder build;
   final int priority;
   final Listenable? listenable;
+
+  /// When > 0, the status bar wraps this item in
+  /// `Flexible(flex: flex, fit: FlexFit.loose)` so it yields width when the
+  /// bar is tight and any contained [ClideMarquee] can scroll (T-160).
+  /// Defaults to 0 (intrinsic/non-flex). Only meaningful for left-side items
+  /// (priority < 100); right-side items are always intrinsic-width.
+  final int flex;
 }
 
 /// A button in the main toolbar.

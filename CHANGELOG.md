@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Status bar no longer overflows when the focused-pane context line is long
+  — the in-pane slot now takes a flexible share of the bar and marquee-scrolls
+  within it instead of pushing the row past its width.
 - Write/Edit permission cards no longer print the file path twice — the
   description line is suppressed when it just repeats `file_path`.
 - Resumed Claude session no longer starts with an empty pane — `claude

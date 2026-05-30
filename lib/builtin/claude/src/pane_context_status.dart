@@ -11,9 +11,6 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
-/// Max width the slot occupies in the status bar before marquee kicks in.
-const double _slotMaxWidth = 360;
-
 /// Fixed slot height — panes can render anything, but not blow up the bar.
 const double _slotHeight = 16;
 
@@ -28,14 +25,15 @@ class PaneContextStatusItem extends StatelessWidget {
       builder: (ctx, _) {
         final widget = focus.activeStatusWidget;
         if (widget == null) return const SizedBox.shrink();
+        // The parent StatusbarHost wraps this item in Flexible(loose) so the
+        // Row hands us a bounded maxWidth (T-160). ClideMarquee receives that
+        // constraint via LayoutBuilder and scrolls when content exceeds it —
+        // no ConstrainedBox(maxWidth) cap needed here.
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: SizedBox(
             height: _slotHeight,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _slotMaxWidth),
-              child: ClideMarquee(child: widget),
-            ),
+            child: ClideMarquee(child: widget),
           ),
         );
       },
