@@ -30,6 +30,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Claude session persistence now rides on `claude --resume` instead of tmux
+  (T-167, amends D-41). A restart resumes the primary session, `/clear`
+  starts a fresh one, and `/resume` reopens a picked session — all without
+  tmux.
 - Permission prompt cards render the tool input in the shape that fits the
   tool — Bash shows the command as a shell code block (with a footer for
   `run_in_background` / `timeout`), Write shows the path plus the content
@@ -40,6 +44,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   holds the roster and auto-fronts when a team spawns; Config shows the
   environment settings table. Activity and Config share one table geometry so
   switching doesn't jump.
+
+### Removed
+
+- tmux is no longer used for Claude sessions (T-167) — the tmux session
+  lifecycle and the tmux-polling team observer are gone, replaced by the
+  managed-session orchestrator. tmux is still used for the general-purpose
+  terminal pane.
 
 ### Added
 

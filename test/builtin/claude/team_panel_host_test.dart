@@ -1,8 +1,8 @@
 /// Widget tests for the teammate tile grid (T-140): tiles appear on
 /// TeamMemberJoined, disappear on TeamMemberLeft, and the lead shows
 /// alone when there's no team. Events are emitted directly into the
-/// fixture's event bus (the observer is exercised separately in
-/// team_observer_test.dart).
+/// fixture's event bus (team membership is orchestrator-driven since
+/// D-77 / T-167 — the tmux observer was retired).
 library;
 
 import 'package:clide/builtin/claude/src/conversation_view.dart';

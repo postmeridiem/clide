@@ -4,15 +4,12 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
-import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:clide/builtin/claude/src/session_storage.dart';
-import 'package:clide/builtin/claude/src/team_observer.dart';
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
-import 'package:clide/builtin/claude/src/tmux_session.dart' as tmux;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -31,7 +28,6 @@ class ClaudeExtension extends ClideExtension {
   ClideExtensionContext? _ctx;
   final GlobalKey<ClaudeSessionHostState> _hostKey = GlobalKey();
 
-  TeamObserver? _observer;
   ClaudeConfig? _config;
   ClaudeSessionOrchestrator? _orchestrator;
   final List<StreamSubscription<dynamic>> _subs = [];
@@ -63,7 +59,7 @@ class ClaudeExtension extends ClideExtension {
         CommandContribution(
           id: 'claude.kill-all-sessions',
           command: 'claude.kill-all-sessions',
-          title: 'Claude: kill all tmux sessions for this repo',
+          title: 'Claude: kill all sessions for this repo',
           run: _killAllSessions,
         ),
         CommandContribution(
@@ -84,9 +80,12 @@ class ClaudeExtension extends ClideExtension {
         ),
         // In-pane status slot (T-145): the active Claude pane publishes
         // its model · permission-mode · context line here.
+        // flex: 1 → StatusbarHost wraps this in Flexible(loose) so the slot
+        // yields width under pressure and ClideMarquee scrolls (T-160).
         StatusItemContribution(
           id: 'claude.status-context',
           priority: 50,
+          flex: 1,
           build: (_) => const PaneContextStatusItem(),
         ),
       ];
@@ -116,39 +115,6 @@ class ClaudeExtension extends ClideExtension {
     // session outlives its pane and is shared across surfaces.
     _orchestrator = ClaudeSessionOrchestrator();
     activeSessionOrchestrator = _orchestrator;
-
-    // Cold-start reap: kill any leftover secondary tmux sessions from
-    // a previous run. D-41's "secondary numbering resets between
-    // clide runs" only holds if the leftovers are gone before the new
-    // run starts. Doing this in activate (rather than the previous
-    // run's deactivate) guarantees cleanup even after an abrupt exit
-    // — Flutter's deactivate hook only fires on explicit extension
-    // teardown, not on app quit / kill -9 / OOM.
-    final primary = await _primarySessionName();
-    if (primary != null) await tmux.reapSecondaries(primary);
-
-    // Observe a tmux agent team for the open workspace (T-139/T-140). The
-    // observer emits TeamMemberJoined/Left, which TeamPanelHost renders as
-    // teammate tiles. Restart it as the project changes.
-    if (ctx.project.current != null) _restartObserver(ctx.project.current!.path);
-    _subs.add(ctx.events.on<ProjectOpened>().listen((e) => _restartObserver(e.path)));
-    _subs.add(ctx.events.on<ProjectClosed>().listen((_) => _stopObserver()));
-  }
-
-  void _restartObserver(String workspacePath) {
-    final ctx = _ctx;
-    if (ctx == null) return;
-    unawaited(_observer?.dispose());
-    _observer = TeamObserver(
-      workspacePath: workspacePath,
-      events: ctx.events,
-      messages: ctx.messages,
-    )..start();
-  }
-
-  void _stopObserver() {
-    unawaited(_observer?.dispose());
-    _observer = null;
   }
 
   @override
@@ -157,46 +123,30 @@ class ClaudeExtension extends ClideExtension {
       unawaited(s.cancel());
     }
     _subs.clear();
-    _stopObserver();
     if (identical(activeSessionOrchestrator, _orchestrator)) activeSessionOrchestrator = null;
     _orchestrator?.dispose();
     _orchestrator = null;
     if (identical(activeClaudeConfig, _config)) activeClaudeConfig = null;
     _config?.dispose();
     _config = null;
-    // Best-effort cleanup on explicit extension teardown. The cold-
-    // start reap in activate is the actual safety net.
-    final primary = await _primarySessionName();
-    if (primary != null) await tmux.reapSecondaries(primary);
   }
 
-  /// Hard-reset command: kill every clide-claude tmux session for this
-  /// repo, primary included. The user invokes this when they want to
-  /// start over — typically after a tmux/Claude wedge.
+  /// Hard-reset command: close every clide-managed Claude session for this
+  /// repo (primary + all secondaries + any team members). The user invokes
+  /// this when they want a hard reset — after a Claude wedge or to start
+  /// completely fresh. All sessions are torn down through the orchestrator
+  /// (D-77); the primary will re-spawn and resume on the next pane build.
   Future<IpcResponse> _killAllSessions(List<String> args) async {
-    final ctx = _ctx;
-    if (ctx == null) return IpcResponse.ok(id: '', data: const {});
+    final orch = _orchestrator;
+    if (orch == null) return IpcResponse.ok(id: '', data: const {});
 
-    // Close the UI panes first so they don't try to talk to a tmux
-    // server that's about to lose their sessions.
-    final resp = await ctx.ipc.request('pane.list');
-    if (resp.ok) {
-      final panes = resp.data['panes'];
-      if (panes is List) {
-        for (final p in panes) {
-          if (p is Map && p['kind'] == 'claude') {
-            final id = p['id'] as String?;
-            if (id != null) {
-              await ctx.ipc.request('pane.close', args: {'id': id});
-            }
-          }
-        }
-      }
+    // Close every tracked session through the orchestrator; this kills each
+    // process and releases its resources. Panes will see their session gone
+    // and surface an error / restart on next interaction.
+    final ids = orch.sessions.map((m) => m.id).toList();
+    for (final id in ids) {
+      await orch.close(id);
     }
-
-    // Then kill the server-side sessions, primary included.
-    final primary = await _primarySessionName();
-    if (primary != null) await tmux.killAllForRepo(primary);
 
     return IpcResponse.ok(id: '', data: const {'status': 'killed'});
   }
@@ -217,15 +167,5 @@ class ClaudeExtension extends ClideExtension {
       (c, dismiss) => SessionStorageDialog(dir: dir, sessions: sessions, onClose: dismiss),
     );
     return IpcResponse.ok(id: '', data: const {'status': 'shown'});
-  }
-
-  Future<String?> _primarySessionName() async {
-    final ctx = _ctx;
-    if (ctx == null) return null;
-    final resp = await ctx.ipc.request('files.root');
-    if (!resp.ok) return null;
-    final root = resp.data['path'] as String?;
-    if (root == null) return null;
-    return primarySessionName(root);
   }
 }

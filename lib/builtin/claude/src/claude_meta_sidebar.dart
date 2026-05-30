@@ -4,7 +4,7 @@
 /// - **Activity** — Claude usage stats (from `~/.claude/stats-cache.json`,
 ///   polled) plus the primary session's live runtime (model / mode / context /
 ///   skills).
-/// - **Team** — a roster of live members (from the TeamObserver's join/left
+/// - **Team** — a roster of live members (from orchestrator-emitted join/left
 ///   events + per-member status on the message bus). Auto-fronted when a team
 ///   spawns; mostly empty when solo.
 /// - **Config** — the Claude environment settings table (model / output style /

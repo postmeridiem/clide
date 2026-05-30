@@ -1,36 +1,35 @@
-/// Derive deterministic tmux session names for Claude panes (D-041).
+/// Claude session-id derivation for clide panes (D-77/T-146).
 ///
-/// The primary session name encodes the repo path in a human-readable
-/// form: `clide-claude-<path-slug>`. For example:
-///   ~/projects/clide     → clide-claude-projects-clide
-///   /var/mnt/data/myapp  → clide-claude-var-mnt-data-myapp
+/// Session continuity is via `--resume <session-id>` (D-77); tmux session
+/// names are no longer used. This module provides:
 ///
-/// Secondary sessions append `-N`.
-///
-/// Also derives the Claude `--session-id` for each pane (T-146): a pane's
-/// transcript is named `<session-id>.jsonl`, so binding each pane to a
-/// distinct UUID is how concurrent sessions in one workspace stay
-/// independent. The primary's id is deterministic from its (stable)
-/// session name so it resumes across restarts; secondaries get a fresh
-/// random id each spawn so a clean session is always one click away.
+/// - [primarySessionId] — a stable UUID derived from the repo path, so the
+///   primary pane resumes the same transcript across clide restarts.
+/// - [freshSessionId] — a fresh random UUID for secondary panes, which always
+///   start clean.
+/// - [claudeLaunchArgs] — selects `--resume` vs `--session-id` depending on
+///   whether the transcript already exists on disk (T-161).
 library;
 
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:math';
 
-/// Stable session name for the primary Claude pane of [repoRoot].
-String primarySessionName(String repoRoot) {
+// ---------------------------------------------------------------------------
+// Internal seed derivation (private — tmux slug names are no longer public)
+// ---------------------------------------------------------------------------
+
+// Slug cap kept for backward-compat: the same path still produces the same
+// deterministic UUID across upgrades because the seed string is unchanged.
+const _maxSlugLen = 80;
+
+/// Derive a stable, short seed from [repoRoot] to feed into the deterministic
+/// UUID. This is the old tmux-session-name slug, kept internal and unchanged
+/// so existing transcripts survive the tmux→--resume migration (the UUID is
+/// derived from this seed, so the UUID must not change).
+String _primarySessionSeed(String repoRoot) {
   return 'clide-claude-${_slugify(repoRoot)}';
 }
-
-/// Nth secondary session name. [n] starts at 1.
-String secondarySessionName(String repoRoot, int n) {
-  return '${primarySessionName(repoRoot)}-$n';
-}
-
-// tmux session names max out at 256 chars; keep ours well under.
-const _maxSlugLen = 80;
 
 String _slugify(String path) {
   final home = Platform.environment['HOME'] ?? '';
@@ -64,9 +63,9 @@ String _hash(String s) {
 // ---------------------------------------------------------------------------
 
 /// Stable session id for the primary pane of [repoRoot]: a UUID
-/// deterministically derived from the primary session name, so the same
-/// workspace re-binds the same `<uuid>.jsonl` across restarts (resume).
-String primarySessionId(String repoRoot) => _deterministicUuid(primarySessionName(repoRoot));
+/// deterministically derived from the repo path, so the same workspace
+/// re-binds the same `<uuid>.jsonl` across restarts (`--resume`, D-77).
+String primarySessionId(String repoRoot) => _deterministicUuid(_primarySessionSeed(repoRoot));
 
 /// The session-selection args for launching [sessionId]: `--resume` an
 /// existing session, or `--session-id` to create a new one. `--session-id`

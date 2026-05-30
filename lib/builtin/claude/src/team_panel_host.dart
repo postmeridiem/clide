@@ -1,12 +1,11 @@
 /// Faithful tiling for a Claude agent team (epic T-132, T-140).
 ///
-/// Wraps the lead Claude surface on the left; when the [TeamObserver]
+/// Wraps the lead Claude surface on the left; when the orchestrator
 /// emits [TeamMemberJoined], a resizable right pane appears holding a
 /// teammate tile per live member, arranged in a responsive grid that
 /// wraps 1→2→3 columns by count. Each tile renders the teammate's
-/// conversation from its per-agent MessageBus channel (published by the
-/// observer). Tiles vanish on [TeamMemberLeft]. With no team, only the
-/// lead is shown.
+/// conversation from its per-agent MessageBus channel. Tiles vanish on
+/// [TeamMemberLeft]. With no team, only the lead is shown.
 library;
 
 import 'dart:async';
