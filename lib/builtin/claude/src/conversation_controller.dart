@@ -47,16 +47,58 @@ class ConversationController extends ChangeNotifier {
   final Future<void> Function()? _onDispose;
   late final StreamSubscription<ConversationItem> _sub;
   final List<ConversationItem> _items = [];
+
+  /// Index from uuid → position in [_items] for the FIRST item with that
+  /// uuid. Used to upsert partial-message streaming updates in-place (T-168):
+  /// when a partial arrives, the session emits an item with the same uuid as
+  /// the previous partial so the controller replaces rather than appends it.
+  /// Only the first occurrence is indexed — full (non-partial) items that
+  /// share a uuid after a session resume are appended normally (uuid reuse
+  /// across turns is rare; correctness wins over perf there).
+  final Map<String, int> _uuidIndex = {};
+
   Timer? _notifyTimer;
   bool _disposed = false;
 
   /// Items in arrival (transcript) order.
   List<ConversationItem> get items => List.unmodifiable(_items);
 
+  /// Index from `tool_use_id` to the corresponding [AssistantToolUse] item,
+  /// built as items arrive. Used by the conversation view to render the
+  /// result card in the context of its tool_use (T-168).
+  Map<String, AssistantToolUse> get toolUseById => Map.unmodifiable(_toolUseById);
+  final Map<String, AssistantToolUse> _toolUseById = {};
+
   bool get isEmpty => _items.isEmpty;
 
   void _onItem(ConversationItem item) {
-    _items.add(item);
+    // Track AssistantToolUse items by toolUseId for result-card pairing (T-168).
+    if (item is AssistantToolUse) {
+      _toolUseById[item.toolUseId] = item;
+    }
+    // Upsert-by-uuid only for partial-message streaming items (T-168). Partial
+    // items are distinguished by a `partial-<message.id>` uuid prefix assigned
+    // by [StreamJsonSession]. Real transcript items always have distinct uuids
+    // (or at least should not be collapsed even when they collide, since the
+    // transcript records separate turns). This guard prevents test items with
+    // fixed uuids from accidentally replacing each other.
+    if (item.uuid.startsWith('partial-')) {
+      final existing = _uuidIndex[item.uuid];
+      if (existing != null && existing < _items.length) {
+        _items[existing] = item;
+        if (item is AssistantToolUse) _toolUseById[item.toolUseId] = item;
+        // Coalesce-notify path below handles notifications.
+      } else {
+        _uuidIndex[item.uuid] = _items.length;
+        _items.add(item);
+      }
+    } else {
+      // Normal (non-partial) item: always append. Index only if not already
+      // seen (so the first real occurrence wins in the upsert table — there
+      // should be no real collision, but be safe).
+      _uuidIndex.putIfAbsent(item.uuid, () => _items.length);
+      _items.add(item);
+    }
     // Coalesce notifications: the reader emits a burst (the initial tail
     // read), and a notify-per-item would thrash the view's rebuild +
     // auto-scroll. A zero-duration Timer fires only after the microtask

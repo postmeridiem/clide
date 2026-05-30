@@ -388,10 +388,17 @@ class TranscriptReader {
 }
 
 /// Live per-session status surfaced for the status strip / sidebar
-/// (T-145). All fields nullable — a chunk only carries what it saw, and
-/// the reader [merge]s deltas into a running status.
+/// (T-145, T-168). All fields nullable — a chunk only carries what it saw,
+/// and the reader [merge]s deltas into a running status.
 class SessionStatus {
-  const SessionStatus({this.model, this.permissionMode, this.contextTokens});
+  const SessionStatus({
+    this.model,
+    this.permissionMode,
+    this.contextTokens,
+    this.cost,
+    this.contextWindow,
+    this.rateLimitInfo,
+  });
 
   /// Assistant `message.model`, e.g. `claude-opus-4-7`.
   final String? model;
@@ -404,21 +411,42 @@ class SessionStatus {
   /// the transcript doesn't carry the model's context limit.
   final int? contextTokens;
 
-  bool get isEmpty => model == null && permissionMode == null && contextTokens == null;
+  /// Cumulative cost in USD from the `result` event's `total_cost_usd`
+  /// field (T-168). Null until the first result event arrives.
+  final double? cost;
+
+  /// The model's context-window size in tokens from the `result` event's
+  /// `modelUsage.<model>.contextWindow` (T-168). Null until first result.
+  final int? contextWindow;
+
+  /// Latest rate-limit info string from `rate_limit_event`, e.g.
+  /// `"rate limited — resets 14:32"` (T-168). Null when not rate-limited.
+  final String? rateLimitInfo;
+
+  bool get isEmpty => model == null && permissionMode == null && contextTokens == null && cost == null && contextWindow == null && rateLimitInfo == null;
 
   /// Overlay [other]'s non-null fields onto this one.
   SessionStatus merge(SessionStatus other) => SessionStatus(
         model: other.model ?? model,
         permissionMode: other.permissionMode ?? permissionMode,
         contextTokens: other.contextTokens ?? contextTokens,
+        cost: other.cost ?? cost,
+        contextWindow: other.contextWindow ?? contextWindow,
+        rateLimitInfo: other.rateLimitInfo ?? rateLimitInfo,
       );
 
   @override
   bool operator ==(Object other) =>
-      other is SessionStatus && other.model == model && other.permissionMode == permissionMode && other.contextTokens == contextTokens;
+      other is SessionStatus &&
+      other.model == model &&
+      other.permissionMode == permissionMode &&
+      other.contextTokens == contextTokens &&
+      other.cost == cost &&
+      other.contextWindow == contextWindow &&
+      other.rateLimitInfo == rateLimitInfo;
 
   @override
-  int get hashCode => Object.hash(model, permissionMode, contextTokens);
+  int get hashCode => Object.hash(model, permissionMode, contextTokens, cost, contextWindow, rateLimitInfo);
 }
 
 /// Result of [parseTranscriptChunk]: items, version-drift warnings, and
@@ -429,7 +457,17 @@ class _StatusAcc {
   String? model;
   String? permissionMode;
   int? contextTokens;
-  SessionStatus toStatus() => SessionStatus(model: model, permissionMode: permissionMode, contextTokens: contextTokens);
+  double? cost;
+  int? contextWindow;
+  String? rateLimitInfo;
+  SessionStatus toStatus() => SessionStatus(
+        model: model,
+        permissionMode: permissionMode,
+        contextTokens: contextTokens,
+        cost: cost,
+        contextWindow: contextWindow,
+        rateLimitInfo: rateLimitInfo,
+      );
 }
 
 // ---------------------------------------------------------------------------

@@ -8,15 +8,28 @@ library;
 
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 
-/// Build the status-bar line, e.g. `opus 4.7 · default · 21k ctx`.
-/// Empty string when there's nothing to show.
+/// Build the status-bar line, e.g. `opus 4.7 · default · 21k ctx · $0.12`.
+/// Includes rate-limit info when active. Empty string when there's nothing to show.
 String formatStatusLine(SessionStatus status) {
   final parts = [
     if (status.model != null) shortModelLabel(status.model!),
     if (status.permissionMode != null) permissionModeLabel(status.permissionMode!),
-    if (status.contextTokens != null) '${formatTokenCount(status.contextTokens!)} ctx',
+    if (status.contextTokens != null) _contextLabel(status),
+    if (status.cost != null) '\$${status.cost!.toStringAsFixed(2)}',
+    if (status.rateLimitInfo != null) status.rateLimitInfo!,
   ];
   return parts.join('  ·  ');
+}
+
+/// Context token count, optionally shown as a fraction when the window
+/// size is known: `21k / 1M ctx` vs `21k ctx`.
+String _contextLabel(SessionStatus status) {
+  final tokens = formatTokenCount(status.contextTokens!);
+  if (status.contextWindow != null) {
+    final window = formatTokenCount(status.contextWindow!);
+    return '$tokens / $window ctx';
+  }
+  return '$tokens ctx';
 }
 
 /// `claude-opus-4-7` → `opus 4.7`; unknown shapes pass through.

@@ -44,5 +44,41 @@ void main() {
       expect(formatStatusLine(const SessionStatus(model: 'claude-sonnet-4-6')), 'sonnet 4.6');
       expect(formatStatusLine(const SessionStatus()), '');
     });
+
+    test('includes cost when present (T-168)', () {
+      const s = SessionStatus(model: 'claude-opus-4-7', cost: 0.123);
+      expect(formatStatusLine(s), contains('\$0.12'));
+    });
+
+    test('shows ctx as fraction when contextWindow is known (T-168)', () {
+      const s = SessionStatus(contextTokens: 21000, contextWindow: 1000000);
+      expect(formatStatusLine(s), contains('21k / 1.0M ctx'));
+    });
+
+    test('shows plain ctx count when contextWindow is absent', () {
+      const s = SessionStatus(contextTokens: 21000);
+      expect(formatStatusLine(s), contains('21k ctx'));
+      expect(formatStatusLine(s), isNot(contains('/')));
+    });
+
+    test('includes rateLimitInfo when present (T-168)', () {
+      const s = SessionStatus(rateLimitInfo: 'rate limited — resets 14:32');
+      expect(formatStatusLine(s), 'rate limited — resets 14:32');
+    });
+
+    test('full status line with all fields (T-168)', () {
+      const s = SessionStatus(
+        model: 'claude-opus-4-7',
+        permissionMode: 'default',
+        contextTokens: 21000,
+        contextWindow: 1000000,
+        cost: 0.05,
+      );
+      final line = formatStatusLine(s);
+      expect(line, contains('opus 4.7'));
+      expect(line, contains('default'));
+      expect(line, contains('21k / 1.0M ctx'));
+      expect(line, contains('\$0.05'));
+    });
   });
 }

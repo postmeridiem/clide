@@ -30,6 +30,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Claude conversation tool cards are now typed — Edit/Write render a diff,
+  Bash shows the command and its output, Read/Grep show the file/query, and
+  each tool result pairs back to its call to render the diff or error in
+  place instead of an indented JSON dump (T-168).
+- Claude status line reflects live session state from stream-json events —
+  model, permission mode, context size, and turn cost come straight off the
+  init/result events rather than a separate config probe (T-168).
 - Claude session persistence now rides on `claude --resume` instead of tmux
   (T-167, amends D-41). A restart resumes the primary session, `/clear`
   starts a fresh one, and `/resume` reopens a picked session — all without

@@ -160,82 +160,9 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     );
   }
 
-  /// Render the tool input in the shape that best fits the tool. Bash gets a
-  /// shell code block, file-writing tools show the path + content with syntax
-  /// highlighting derived from the extension, anything else falls back to the
-  /// indented-JSON dump.
-  Widget _inputBody(SurfaceTokens tokens, ToolPrompt p) {
-    switch (p.toolName) {
-      case 'Bash':
-        return _bashBody(tokens, p.input);
-      case 'Write':
-        return _writeBody(tokens, p.input);
-      case 'Edit':
-      case 'MultiEdit':
-        return _editBody(tokens, p.input);
-      default:
-        return ClideCodeBlock(source: const JsonEncoder.withIndent('  ').convert(p.input), language: 'json');
-    }
-  }
-
-  Widget _bashBody(SurfaceTokens tokens, Map<String, dynamic> input) {
-    final cmd = (input['command'] as String? ?? '').trimRight();
-    final notes = <String>[
-      if (input['run_in_background'] == true) 'background',
-      if (input['timeout'] is num) 'timeout ${input['timeout']}ms',
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClideCodeBlock(source: cmd, language: 'bash'),
-        if (notes.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: ClideText(notes.join(' · '), fontSize: clideFontMeta, color: tokens.globalTextMuted),
-          ),
-      ],
-    );
-  }
-
-  Widget _writeBody(SurfaceTokens tokens, Map<String, dynamic> input) {
-    final path = input['file_path'] as String? ?? '';
-    final content = input['content'] as String? ?? '';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (path.isNotEmpty) _pathLine(tokens, path),
-        ClideCodeBlock(source: content, language: grammarForPath(path)),
-      ],
-    );
-  }
-
-  Widget _editBody(SurfaceTokens tokens, Map<String, dynamic> input) {
-    final path = input['file_path'] as String? ?? '';
-    final oldStr = input['old_string'] as String? ?? '';
-    final newStr = input['new_string'] as String? ?? '';
-    final lang = grammarForPath(path);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (path.isNotEmpty) _pathLine(tokens, path),
-        ClideText('— before', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-        const SizedBox(height: 4),
-        ClideCodeBlock(source: oldStr, language: lang),
-        const SizedBox(height: 8),
-        ClideText('+ after', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-        const SizedBox(height: 4),
-        ClideCodeBlock(source: newStr, language: lang),
-      ],
-    );
-  }
-
-  Widget _pathLine(SurfaceTokens tokens, String path) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: ClideText(path, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
-      );
+  /// Render the tool input in the shape that best fits the tool. Delegates to
+  /// the shared top-level helpers (also used by ConversationView — T-168).
+  Widget _inputBody(SurfaceTokens tokens, ToolPrompt p) => toolInputBody(tokens, p.toolName, p.input);
 
   // -- AskUserQuestion: single = bare, multi = stepper + review --------------
 
@@ -415,6 +342,115 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     widget.onResolve(widget.prompt.promptId, AllowTool({...widget.prompt.input, 'answers': answers}));
   }
 }
+
+// -- shared tool-input rendering (used by ToolPromptCard + ConversationView) --
+
+/// Render [input] for [toolName] in the most informative shape: Bash → shell
+/// code block; Write → path + content; Edit/MultiEdit → before/after diff;
+/// Read/Grep/LS → path/pattern; anything else → indented JSON.
+///
+/// Shared between [ToolPromptCard] (permission prompt body) and the
+/// [ConversationView] tool-use card bodies (T-168).
+Widget toolInputBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input) {
+  switch (toolName) {
+    case 'Bash':
+      return toolBashBody(tokens, input);
+    case 'Write':
+      return toolWriteBody(tokens, input);
+    case 'Edit':
+    case 'MultiEdit':
+      return toolEditBody(tokens, input);
+    case 'Read':
+    case 'Grep':
+    case 'LS':
+      return toolReadLikeBody(tokens, toolName, input);
+    default:
+      return ClideCodeBlock(source: const JsonEncoder.withIndent('  ').convert(input), language: 'json');
+  }
+}
+
+/// Bash tool body: the command as a shell code block, with optional background
+/// / timeout annotations.
+Widget toolBashBody(SurfaceTokens tokens, Map<String, dynamic> input) {
+  final cmd = (input['command'] as String? ?? '').trimRight();
+  final notes = <String>[
+    if (input['run_in_background'] == true) 'background',
+    if (input['timeout'] is num) 'timeout ${input['timeout']}ms',
+  ];
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      ClideCodeBlock(source: cmd, language: 'bash'),
+      if (notes.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: ClideText(notes.join(' · '), fontSize: clideFontMeta, color: tokens.globalTextMuted),
+        ),
+    ],
+  );
+}
+
+/// Write tool body: the file path + content with syntax highlighting.
+Widget toolWriteBody(SurfaceTokens tokens, Map<String, dynamic> input) {
+  final path = input['file_path'] as String? ?? '';
+  final content = input['content'] as String? ?? '';
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (path.isNotEmpty) toolPathLine(tokens, path),
+      ClideCodeBlock(source: content, language: grammarForPath(path)),
+    ],
+  );
+}
+
+/// Edit / MultiEdit tool body: before/after diff view.
+Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input) {
+  final path = input['file_path'] as String? ?? '';
+  final oldStr = input['old_string'] as String? ?? '';
+  final newStr = input['new_string'] as String? ?? '';
+  final lang = grammarForPath(path);
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (path.isNotEmpty) toolPathLine(tokens, path),
+      ClideText('— before', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+      const SizedBox(height: 4),
+      ClideCodeBlock(source: oldStr, language: lang),
+      const SizedBox(height: 8),
+      ClideText('+ after', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+      const SizedBox(height: 4),
+      ClideCodeBlock(source: newStr, language: lang),
+    ],
+  );
+}
+
+/// Read / Grep / LS body: show the file path or pattern as a one-liner label
+/// so the card stays compact. These tools produce the interesting output in the
+/// result card rather than their input.
+Widget toolReadLikeBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input) {
+  final path = input['file_path'] ?? input['path'] ?? input['pattern'] ?? '';
+  final extra = <String>[];
+  if (toolName == 'Grep') {
+    final pat = input['pattern'] as String?;
+    if (pat != null && pat.isNotEmpty) extra.add('"$pat"');
+  }
+  final label = [path.toString(), ...extra].where((s) => s.isNotEmpty).join('  ');
+  return ClideText(
+    label.isNotEmpty ? label : toolName,
+    fontSize: clideFontMeta,
+    fontFamily: clideMonoFamily,
+    color: tokens.globalForeground,
+  );
+}
+
+/// A muted file path line, shared across tool bodies.
+Widget toolPathLine(SurfaceTokens tokens, String path) => Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: ClideText(path, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+    );
 
 // -- shared note / free-text field -------------------------------------------
 

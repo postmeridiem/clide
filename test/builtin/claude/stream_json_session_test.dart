@@ -88,6 +88,35 @@ String initEvent() => jsonEncode({
       'permissionMode': 'default',
     });
 
+String resultEvent({double? cost, Map<String, dynamic>? modelUsage}) => jsonEncode({
+      'type': 'result',
+      'result': '',
+      'usage': <String, dynamic>{},
+      if (cost != null) 'total_cost_usd': cost,
+      if (modelUsage != null) 'modelUsage': modelUsage,
+    });
+
+String rateLimitEvent({String? status, String? resetsAt}) => jsonEncode({
+      'type': 'rate_limit_event',
+      'rate_limit_info': <String, dynamic>{
+        if (status != null) 'status': status,
+        if (resetsAt != null) 'resetsAt': resetsAt,
+      },
+    });
+
+String partialAssistantText(String messageId, String text) => jsonEncode({
+      'type': 'assistant',
+      'partial': true,
+      'uuid': 'partial-uuid',
+      'message': {
+        'id': messageId,
+        'role': 'assistant',
+        'content': [
+          {'type': 'text', 'text': text},
+        ],
+      },
+    });
+
 String canUseTool(String rid, {String tool = 'Write', Map<String, dynamic>? input}) => jsonEncode({
       'type': 'control_request',
       'request_id': rid,
@@ -149,6 +178,91 @@ void main() {
     proc.emit(initEvent()); // identical → no second emit
     await Future<void>.delayed(Duration.zero);
     expect(statuses, hasLength(1));
+  });
+
+  group('live cost/context from result events (T-168)', () {
+    test('result event with total_cost_usd populates cost field', () async {
+      proc.emit(resultEvent(cost: 0.042));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.cost, closeTo(0.042, 1e-9));
+    });
+
+    test('result event with modelUsage populates contextWindow', () async {
+      proc.emit(resultEvent(
+        cost: 0.01,
+        modelUsage: {
+          'claude-opus-4-7': {'contextWindow': 1000000, 'maxOutputTokens': 8192},
+        },
+      ));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.contextWindow, 1000000);
+    });
+
+    test('result event does not clear existing model/permissionMode fields', () async {
+      proc.emit(initEvent());
+      proc.emit(assistantText('hi'));
+      proc.emit(resultEvent(cost: 0.05));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'claude-opus-4-7');
+      expect(statuses.last.permissionMode, 'default');
+      expect(statuses.last.cost, closeTo(0.05, 1e-9));
+    });
+
+    test('result event without cost or modelUsage emits nothing', () async {
+      final before = statuses.length;
+      proc.emit(jsonEncode({'type': 'result', 'result': '', 'usage': <String, dynamic>{}}));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.length, before); // no change → no emit
+    });
+  });
+
+  group('rate_limit_event status (T-168)', () {
+    test('rate_limit_event with status populates rateLimitInfo', () async {
+      proc.emit(rateLimitEvent(status: 'rate_limited'));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.rateLimitInfo, contains('rate limited'));
+    });
+
+    test('rate_limit_event with an ISO resetsAt includes the time', () async {
+      // 2026-05-30T14:32:00Z → shows 14:32 (UTC, local may differ but contains digits)
+      proc.emit(rateLimitEvent(status: 'rate_limited', resetsAt: '2026-05-30T14:32:00Z'));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.rateLimitInfo, contains('rate limited'));
+      expect(statuses.last.rateLimitInfo, contains('resets'));
+    });
+  });
+
+  group('partial-message streaming (T-168)', () {
+    test('a partial assistant event uses a stable uuid (partial-<msgId>) for in-place updates', () async {
+      proc.emit(partialAssistantText('msg-1', 'hello so far'));
+      await Future<void>.delayed(Duration.zero);
+      // The item emitted uses the stable partial uuid so the controller can upsert it.
+      expect(items.whereType<AssistantTextMessage>(), hasLength(1));
+      expect(items.whereType<AssistantTextMessage>().first.uuid, 'partial-msg-1');
+      expect(items.whereType<AssistantTextMessage>().first.text, 'hello so far');
+    });
+
+    test('two partial events for the same message.id both carry the stable uuid', () async {
+      proc.emit(partialAssistantText('msg-2', 'hello'));
+      await Future<void>.delayed(Duration.zero);
+      proc.emit(partialAssistantText('msg-2', 'hello world'));
+      await Future<void>.delayed(Duration.zero);
+      // Both carry the same stable uuid so a ConversationController can upsert them.
+      final parts = items.whereType<AssistantTextMessage>().toList();
+      expect(parts.every((m) => m.uuid == 'partial-msg-2'), isTrue);
+    });
+
+    test('partial tracking is cleared after a result event', () async {
+      proc.emit(partialAssistantText('msg-3', 'streaming'));
+      await Future<void>.delayed(Duration.zero);
+      proc.emit(jsonEncode({'type': 'result', 'result': '', 'usage': <String, dynamic>{}}));
+      await Future<void>.delayed(Duration.zero);
+      // Clearing partial tracking is internal state — observable only via the
+      // session not crashing and accepting a new partial for the same id.
+      proc.emit(partialAssistantText('msg-3', 'new turn'));
+      await Future<void>.delayed(Duration.zero);
+      expect(items.whereType<AssistantTextMessage>(), isNotEmpty);
+    });
   });
 
   test('ignores blank and non-JSON lines', () async {

@@ -58,6 +58,9 @@ class ClaudeStreamJsonProcess implements StreamJsonProcess {
         // auto-denies anything needing approval (D-78).
         '--permission-prompt-tool',
         'stdio',
+        // Emit partial assistant messages as they stream in so the view
+        // can update in real time (T-168).
+        '--include-partial-messages',
         ...sessionArgs,
       ],
       workingDirectory: cwd,
@@ -204,6 +207,19 @@ class StreamJsonSession {
   SessionStatus _status = const SessionStatus();
   int _localSeq = 0;
 
+  /// Partial-message accumulation keyed by `message.id` (T-168).
+  ///
+  /// When `--include-partial-messages` is active, the claude process emits
+  /// incremental `assistant` events that share the same `message.id`. Emitting
+  /// each partial as a new [ConversationItem] would produce duplicates. Instead
+  /// we accumulate the latest content per message id here and emit only a
+  /// [_PartialUpdate] signal so the controller can upsert rather than append.
+  ///
+  /// A null value means the message has been finalised (a non-partial event
+  /// with the same id arrived) — subsequent partial events for that id are
+  /// ignored (shouldn't happen, but guard against it).
+  final _partialIds = <String>{};
+
   /// Prompts awaiting a [resolvePrompt] decision, in arrival order. The head
   /// is the one currently shown in the composer zone.
   final _queue = <ToolPrompt>[];
@@ -286,8 +302,55 @@ class StreamJsonSession {
       _onControlRequest(ev);
       return;
     }
-    // A `result` ends the turn — clear the busy/interruptible state.
-    if (ev['type'] == 'result') _setBusy(false);
+    // A `result` ends the turn — clear the busy/interruptible state and clear
+    // any partial-message tracking so the next turn is fresh.
+    if (ev['type'] == 'result') {
+      _setBusy(false);
+      _partialIds.clear();
+    }
+
+    // Partial-message streaming (T-168). UNVERIFIED WIRE SHAPE: this assumes
+    // `--include-partial-messages` emits incremental `assistant` events with
+    // `partial: true` sharing one `message.id`. That shape has NOT been
+    // confirmed against the live binary — the 2.1.150 spike only documents
+    // non-partial assistant events (one per content block, no `partial` flag),
+    // and the flag's help says it "only works with --print" (we run the
+    // interactive control protocol). If the real shape differs (e.g. a
+    // `stream_event` delta envelope), these lines fall through to the normal
+    // parse below and are ignored — streaming is inert but nothing breaks.
+    // T-184 validates this against a live capture and fixes or removes it.
+    // When matched, we override the uuid with `partial-<message.id>` so the
+    // controller upserts the item in place rather than appending each tick.
+    final isPartial = ev['partial'] == true;
+    if (isPartial && ev['type'] == 'assistant') {
+      final message = ev['message'];
+      final msgId = message is Map ? message['id'] as String? : null;
+      if (msgId != null) {
+        _partialIds.add(msgId);
+        // Use a stable uuid derived from the message id so the controller
+        // can upsert this item in place on every partial update.
+        final stableUuid = 'partial-$msgId';
+        final overridden = Map<String, dynamic>.from(ev);
+        overridden['uuid'] = stableUuid;
+        final parsed = parseTranscriptChunk(jsonEncode(overridden));
+        for (final item in parsed.items) {
+          _items.add(item);
+        }
+        _mergeStatus(parsed.status.merge(_statusFromEvent(ev)));
+        return;
+      }
+    }
+
+    // For a final (non-partial) assistant event whose message.id was seen as
+    // a partial, remove the partial-id from tracking and let the normal path
+    // emit the final item (it will append at a new position since its uuid
+    // differs from the `partial-<id>` placeholder).
+    if (!isPartial && ev['type'] == 'assistant') {
+      final message = ev['message'];
+      final msgId = message is Map ? message['id'] as String? : null;
+      if (msgId != null) _partialIds.remove(msgId);
+    }
+
     // Items + assistant model/tokens reuse the transcript parser (identical
     // message.content shapes).
     final parsed = parseTranscriptChunk(trimmed);
@@ -441,8 +504,53 @@ class StreamJsonSession {
   }
 
   SessionStatus _statusFromEvent(Map<String, dynamic> j) {
-    if (j['type'] == 'system' && j['subtype'] == 'init') {
-      return SessionStatus(model: j['model'] as String?, permissionMode: j['permissionMode'] as String?);
+    switch (j['type'] as String?) {
+      case 'system':
+        if (j['subtype'] == 'init') {
+          return SessionStatus(model: j['model'] as String?, permissionMode: j['permissionMode'] as String?);
+        }
+      case 'result':
+        // Extract cumulative cost and context-window size from the result event
+        // (T-168). `total_cost_usd` is the turn cost. `modelUsage.<model>.contextWindow`
+        // is the model's context limit in tokens (e.g. 1_000_000 for claude-opus-4-7[1m]).
+        final costRaw = j['total_cost_usd'];
+        final cost = costRaw is num ? costRaw.toDouble() : null;
+        int? contextWindow;
+        final modelUsage = j['modelUsage'];
+        if (modelUsage is Map) {
+          for (final entry in modelUsage.values) {
+            if (entry is Map) {
+              final cw = entry['contextWindow'];
+              if (cw is num) {
+                contextWindow = cw.toInt();
+                break; // first model entry wins
+              }
+            }
+          }
+        }
+        if (cost != null || contextWindow != null) {
+          return SessionStatus(cost: cost, contextWindow: contextWindow);
+        }
+      case 'rate_limit_event':
+        // Surface the rate-limit status as a compact string (T-168).
+        final info = j['rate_limit_info'];
+        if (info is Map) {
+          final status = info['status'] as String?;
+          final resetsAt = info['resetsAt'] as String?;
+          if (status != null) {
+            String label = 'rate limited';
+            if (resetsAt != null) {
+              // Show just the time portion if it's an ISO timestamp.
+              final t = DateTime.tryParse(resetsAt);
+              if (t != null) {
+                label = 'rate limited — resets ${t.toLocal().hour.toString().padLeft(2, '0')}:${t.toLocal().minute.toString().padLeft(2, '0')}';
+              } else {
+                label = 'rate limited — resets $resetsAt';
+              }
+            }
+            return SessionStatus(rateLimitInfo: label);
+          }
+        }
     }
     return const SessionStatus();
   }

@@ -357,4 +357,43 @@ void main() {
     await tester.pump();
     expect(decision, isA<DenyTool>());
   });
+
+  // -- shared tool-input rendering helpers (T-168) ----------------------------
+
+  group('permission card: Edit shows before/after diff via shared helper', () {
+    testWidgets('Edit card has two code blocks (before/after)', (tester) async {
+      const prompt = ToolPrompt(
+        promptId: 'req-e',
+        toolName: 'Edit',
+        displayName: 'Edit',
+        input: {
+          'file_path': '/tmp/foo.dart',
+          'old_string': 'void main() {}',
+          'new_string': 'void main() => run();',
+        },
+      );
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+      await tester.pump();
+      // Two code blocks: before + after.
+      expect(find.byType(ClideCodeBlock), findsNWidgets(2));
+      expect(find.text('— before'), findsOneWidget);
+      expect(find.text('+ after'), findsOneWidget);
+    });
+  });
+
+  group('permission card: Read/Grep show compact path via shared helper', () {
+    testWidgets('Read shows the file path label', (tester) async {
+      const prompt = ToolPrompt(
+        promptId: 'req-r',
+        toolName: 'Read',
+        displayName: 'Read',
+        input: {'file_path': '/docs/readme.md'},
+      );
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+      await tester.pump();
+      expect(find.text('/docs/readme.md'), findsOneWidget);
+      // No code blocks — just a text label for Read.
+      expect(find.byType(ClideCodeBlock), findsNothing);
+    });
+  });
 }

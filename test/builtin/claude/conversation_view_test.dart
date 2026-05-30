@@ -79,6 +79,35 @@ void main() {
       expect(disposed, isTrue);
       await ctrl.close();
     });
+
+    test('toolUseById indexes AssistantToolUse by toolUseId (T-168)', () async {
+      final ctrl = StreamController<ConversationItem>();
+      final c = ConversationController(stream: ctrl.stream);
+      addTearDown(c.dispose);
+
+      ctrl.add(_tool('Bash', {'command': 'ls'}));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(c.toolUseById['x1'], isNotNull);
+      expect(c.toolUseById['x1']!.name, 'Bash');
+      await ctrl.close();
+    });
+
+    test('partial-uuid items upsert in the controller (T-168)', () async {
+      final ctrl = StreamController<ConversationItem>();
+      final c = ConversationController(stream: ctrl.stream);
+      addTearDown(c.dispose);
+
+      // Two partials with the same `partial-` uuid — second replaces first.
+      ctrl.add(AssistantTextMessage(uuid: 'partial-m1', timestamp: _t, isSidechain: false, text: 'hello'));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      ctrl.add(AssistantTextMessage(uuid: 'partial-m1', timestamp: _t, isSidechain: false, text: 'hello world'));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(c.items.whereType<AssistantTextMessage>(), hasLength(1));
+      expect(c.items.whereType<AssistantTextMessage>().first.text, 'hello world');
+      await ctrl.close();
+    });
   });
 
   group('ConversationController.fromBus', () {
@@ -167,8 +196,9 @@ void main() {
       expect(find.text('claude'), findsOneWidget);
       expect(find.text('thinking'), findsOneWidget);
       expect(find.text('Bash'), findsOneWidget);
-      expect(find.text('result'), findsOneWidget);
-      expect(find.text('error'), findsOneWidget);
+      // Result labels now include the paired tool name (T-168).
+      expect(find.text('Bash · result'), findsOneWidget);
+      expect(find.text('Bash · error'), findsOneWidget);
     });
 
     testWidgets('AskUserQuestion tool-use and its result are hidden (it shows as a prompt)', (tester) async {
@@ -194,7 +224,8 @@ void main() {
       );
       expect(find.text('Write'), findsNothing); // payload hidden
       expect(find.text('done'), findsOneWidget); // result kept
-      expect(find.text('result'), findsOneWidget);
+      // Label now includes paired tool name (T-168).
+      expect(find.text('Write · result'), findsOneWidget);
     });
 
     testWidgets('a resolved permission tool-use is shown collapsed, not hidden', (tester) async {
@@ -218,6 +249,68 @@ void main() {
       ]);
       expect(find.text('context'), findsOneWidget);
       expect(find.text('you'), findsOneWidget); // the real one
+    });
+
+    testWidgets('tool-use body: Bash shows the command in the collapsed summary (T-168)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'ls -la'})
+      ]);
+      // Card starts collapsed — the command appears as the collapsed summary.
+      expect(find.text('ls -la'), findsOneWidget);
+      // Expand to verify the body is a bash code block.
+      await tester.tap(find.byType(ClideIcon));
+      await tester.pump();
+      final blocks = tester.widgetList<ClideCodeBlock>(find.byType(ClideCodeBlock)).toList();
+      expect(blocks.any((b) => b.language == 'bash' && b.source.contains('ls -la')), isTrue);
+    });
+
+    testWidgets('tool-use body: Read/Grep/LS shows a compact path label (T-168)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Read', {'file_path': '/foo/bar.dart'})
+      ]);
+      // The path label appears (collapsed summary or body).
+      expect(find.text('/foo/bar.dart'), findsOneWidget);
+    });
+
+    testWidgets('result label includes paired tool name (T-168)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Read', {'file_path': '/x'}),
+        _result('file content'),
+      ]);
+      expect(find.text('Read · result'), findsOneWidget);
+    });
+
+    testWidgets('error result label includes paired tool name (T-168)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'cat nonexistent'}),
+        _result('No such file', isError: true),
+      ]);
+      expect(find.text('Bash · error'), findsOneWidget);
+    });
+
+    testWidgets('result without a paired tool_use uses plain "result" label (T-168)', (tester) async {
+      // Orphan result (no matching tool_use in the controller).
+      await pumpWith(tester, [
+        ToolResultMessage(
+          uuid: 'r-orphan',
+          timestamp: _t,
+          isSidechain: false,
+          toolUseId: 'unknown-id',
+          content: 'ok',
+          isError: false,
+        ),
+      ]);
+      expect(find.text('result'), findsOneWidget);
+    });
+
+    testWidgets('error result defaults expanded so it is visible (T-168)', (tester) async {
+      // An error result should show its content without requiring an expand tap.
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'bad'}),
+        _result('permission denied', isError: true),
+      ]);
+      // Error content visible without expand.
+      expect(find.text('permission denied'), findsOneWidget);
     });
 
     testWidgets('a one-line tool result renders inline (no collapse caret)', (tester) async {

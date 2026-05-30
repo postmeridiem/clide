@@ -580,9 +580,29 @@ void main() {
       expect(m.contextTokens, 10);
     });
 
-    test('equality compares all fields', () {
+    test('merge overlays cost, contextWindow, and rateLimitInfo (T-168)', () {
+      const a = SessionStatus(model: 'm1', cost: 0.01);
+      const b = SessionStatus(contextWindow: 200000, rateLimitInfo: 'rate limited');
+      final m = a.merge(b);
+      expect(m.model, 'm1');
+      expect(m.cost, 0.01);
+      expect(m.contextWindow, 200000);
+      expect(m.rateLimitInfo, 'rate limited');
+    });
+
+    test('equality compares all fields including cost/contextWindow/rateLimitInfo (T-168)', () {
       expect(const SessionStatus(model: 'x'), const SessionStatus(model: 'x'));
       expect(const SessionStatus(model: 'x'), isNot(const SessionStatus(model: 'y')));
+      expect(const SessionStatus(cost: 0.1), const SessionStatus(cost: 0.1));
+      expect(const SessionStatus(cost: 0.1), isNot(const SessionStatus(cost: 0.2)));
+      expect(const SessionStatus(contextWindow: 1000000), const SessionStatus(contextWindow: 1000000));
+      expect(const SessionStatus(rateLimitInfo: 'x'), isNot(const SessionStatus()));
+    });
+
+    test('isEmpty returns false when any new field is set (T-168)', () {
+      expect(const SessionStatus(cost: 0.0).isEmpty, isFalse);
+      expect(const SessionStatus(contextWindow: 0).isEmpty, isFalse);
+      expect(const SessionStatus(rateLimitInfo: 'rate limited').isEmpty, isFalse);
     });
   });
 
