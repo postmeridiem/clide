@@ -125,4 +125,135 @@ void main() {
     final names = lead.tools.map((t) => t['name']).toSet();
     expect(names, {'send_message', 'broadcast', 'list_teammates', 'inbox', 'claim_task', 'task_status'});
   });
+
+  // T-171 additions -----------------------------------------------------------
+
+  group('changes stream (T-171)', () {
+    test('fires when a message is enqueued', () async {
+      final events = <void>[];
+      final sub = broker.changes.listen((_) => events.add(null));
+      await lead.callTool('send_message', {'to': 'tyre', 'text': 'ping'});
+      await sub.cancel();
+      expect(events, hasLength(1));
+    });
+
+    test('fires when a task is created via claim_task', () async {
+      final events = <void>[];
+      final sub = broker.changes.listen((_) => events.add(null));
+      await tyre.callTool('claim_task', {'title': 'new task'});
+      await sub.cancel();
+      expect(events, hasLength(1));
+    });
+
+    test('fires when a task status is updated', () async {
+      final created = decode(await tyre.callTool('claim_task', {'title': 'update me'}));
+      final id = (created['task'] as Map)['id'] as String;
+      final events = <void>[];
+      final sub = broker.changes.listen((_) => events.add(null));
+      await lead.callTool('task_status', {'id': id, 'status': 'done'});
+      await sub.cancel();
+      expect(events, hasLength(1));
+    });
+
+    test('fires when a member is removed', () async {
+      final events = <void>[];
+      final sub = broker.changes.listen((_) => events.add(null));
+      broker.removeMember('teammate:tyre');
+      await Future<void>.delayed(Duration.zero); // let the broadcast event deliver
+      await sub.cancel();
+      expect(events, hasLength(1));
+    });
+
+    test('stream is closed after dispose', () async {
+      var done = false;
+      broker.changes.listen(null, onDone: () => done = true);
+      broker.dispose();
+      await Future<void>.delayed(Duration.zero);
+      expect(done, isTrue);
+    });
+  });
+
+  group('tasks getter (T-171)', () {
+    test('returns all tasks in creation order', () async {
+      await lead.callTool('claim_task', {'title': 'alpha'});
+      await tyre.callTool('claim_task', {'title': 'beta'});
+      final titles = broker.tasks.map((t) => t.title).toList();
+      expect(titles, ['alpha', 'beta']);
+    });
+
+    test('returns an empty list when no tasks exist', () {
+      expect(broker.tasks, isEmpty);
+    });
+  });
+
+  group('reassignTask (T-171)', () {
+    test('reassigns to a known member by id', () async {
+      final created = decode(await tyre.callTool('claim_task', {'title': 'reassignable'}));
+      final id = (created['task'] as Map)['id'] as String;
+      final ok = broker.reassignTask(id, 'primary');
+      expect(ok, isTrue);
+      final t = broker.tasks.firstWhere((t) => t.id == id);
+      expect(t.owner, 'lead'); // display name from roster
+    });
+
+    test('returns false for an unknown task id', () {
+      expect(broker.reassignTask('task-999', 'primary'), isFalse);
+    });
+
+    test('sets status to claimed when task was open', () async {
+      decode(await lead.callTool('task_status', {'title': 'open task'}));
+      final id = broker.tasks.last.id;
+      expect(broker.tasks.last.status, 'open');
+      broker.reassignTask(id, 'teammate:tyre');
+      expect(broker.tasks.last.status, 'claimed');
+    });
+
+    test('fires the changes stream', () async {
+      final created = decode(await tyre.callTool('claim_task', {'title': 'fire-stream'}));
+      final id = (created['task'] as Map)['id'] as String;
+      final events = <void>[];
+      final sub = broker.changes.listen((_) => events.add(null));
+      broker.reassignTask(id, 'primary');
+      await Future<void>.delayed(Duration.zero); // let the broadcast event deliver
+      await sub.cancel();
+      expect(events, hasLength(1));
+    });
+  });
+
+  group('muted delivery gating (T-171)', () {
+    test('muted member does not receive stdin delivery', () async {
+      broker.mute('teammate:tyre');
+      await lead.callTool('send_message', {'to': 'tyre', 'text': 'quiet'});
+      expect(delivered, isEmpty);
+    });
+
+    test('muted member still receives the inbox message', () async {
+      broker.mute('teammate:tyre');
+      await lead.callTool('send_message', {'to': 'tyre', 'text': 'silent'});
+      final box = decode(await tyre.callTool('inbox', {}));
+      expect((box['messages'] as List).single['text'], 'silent');
+    });
+
+    test('unmuting re-enables delivery', () async {
+      broker.mute('teammate:tyre');
+      broker.unmute('teammate:tyre');
+      await lead.callTool('send_message', {'to': 'tyre', 'text': 'back'});
+      expect(delivered.single.$1, 'teammate:tyre');
+    });
+
+    test('isMuted reflects current state', () {
+      expect(broker.isMuted('teammate:tyre'), isFalse);
+      broker.mute('teammate:tyre');
+      expect(broker.isMuted('teammate:tyre'), isTrue);
+      broker.unmute('teammate:tyre');
+      expect(broker.isMuted('teammate:tyre'), isFalse);
+    });
+
+    test('broadcast is also gated for muted members', () async {
+      broker.mute('teammate:tyre');
+      await lead.callTool('broadcast', {'text': 'all-hands'});
+      // tyre is muted → not in delivered; if there are other members they appear
+      expect(delivered.map((d) => d.$1), isNot(contains('teammate:tyre')));
+    });
+  });
 }

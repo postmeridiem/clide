@@ -13,6 +13,7 @@
 /// the transport ([McpServer], [StreamJsonSession]) is Flutter-free too.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
@@ -71,6 +72,11 @@ typedef MessageDelivery = void Function(String toMemberId, String text);
 
 /// The single shared team state behind every member's `clide-team` MCP server.
 /// All tool operations are scoped to the calling member's id.
+///
+/// Observability (T-171): subscribe to [changes] to be notified whenever the
+/// task list or message state mutates. Flutter-free — the stream is a plain
+/// broadcast [StreamController]; consumers must not assume it fires on the
+/// Flutter event loop.
 class TeamBroker {
   TeamBroker({MessageDelivery? deliver}) : _deliver = deliver;
 
@@ -78,7 +84,26 @@ class TeamBroker {
   final _members = <String, TeamMemberRef>{};
   final _inboxes = <String, List<TeamMessage>>{};
   final _tasks = <String, TeamTask>{};
+  final _muted = <String>{}; // member ids whose delivery is gated
   int _taskSeq = 0;
+
+  // --- Observability ---------------------------------------------------------
+
+  final _changeCtl = StreamController<void>.broadcast();
+
+  /// Fires a void event whenever the task list or message state mutates.
+  /// Broadcast — multiple listeners are supported.  Flutter-free.
+  Stream<void> get changes => _changeCtl.stream;
+
+  void _notify() {
+    if (!_changeCtl.isClosed) _changeCtl.add(null);
+  }
+
+  // --- Public read surface ---------------------------------------------------
+
+  /// All tasks in creation order. Unmodifiable list; individual [TeamTask]
+  /// objects may be mutated but the list itself is stable.
+  List<TeamTask> get tasks => List.unmodifiable(_tasks.values);
 
   /// Register a member. Idempotent on [TeamMemberRef.id].
   void addMember(TeamMemberRef m) {
@@ -91,6 +116,7 @@ class TeamBroker {
     final name = _members[id]?.name;
     _members.remove(id);
     _inboxes.remove(id);
+    _muted.remove(id);
     if (name == null) return;
     for (final t in _tasks.values) {
       if (t.owner == name) {
@@ -98,6 +124,46 @@ class TeamBroker {
         if (t.status == 'claimed') t.status = 'open';
       }
     }
+    _notify();
+  }
+
+  // --- Mute / unmute --------------------------------------------------------
+
+  /// Whether delivery to [id] is currently muted. Muted members still
+  /// accumulate inbox messages but the [MessageDelivery] callback is
+  /// suppressed so the live session doesn't receive the text turn.
+  bool isMuted(String id) => _muted.contains(id);
+
+  /// Mute delivery to [id]. Messages still enqueue in the inbox; the agent
+  /// just won't receive them in its live stdin until [unmute] is called.
+  void mute(String id) {
+    _muted.add(id);
+  }
+
+  /// Re-enable delivery to [id].
+  void unmute(String id) {
+    _muted.remove(id);
+  }
+
+  // --- Task management (user-facing) ----------------------------------------
+
+  /// Reassign task [taskId] to the member identified by [toMemberId] (may be
+  /// a member id like `teammate:tyre`). Updates the owner display-name from
+  /// the member roster and fires [changes]. Returns false if [taskId] is
+  /// unknown.
+  bool reassignTask(String taskId, String toMemberId) {
+    final t = _tasks[taskId];
+    if (t == null) return false;
+    final name = _members[toMemberId]?.name ?? toMemberId;
+    t.owner = name;
+    if (t.status == 'open') t.status = 'claimed';
+    _notify();
+    return true;
+  }
+
+  /// Dispose — closes the [changes] stream controller.
+  void dispose() {
+    _changeCtl.close();
   }
 
   /// All members in registration order.
@@ -163,11 +229,13 @@ class TeamBroker {
       if (t == null) return {'ok': false, 'error': 'No task "$id".'};
       t.owner = owner;
       t.status = 'claimed';
+      _notify();
       return {'ok': true, 'task': t.toJson()};
     }
     if (title != null && title.trim().isNotEmpty) {
       final t = TeamTask(id: 'task-${++_taskSeq}', title: title.trim(), status: 'claimed', owner: owner);
       _tasks[t.id] = t;
+      _notify();
       return {'ok': true, 'task': t.toJson()};
     }
     return {'ok': false, 'error': 'Pass a task id to claim, or a title to create one.'};
@@ -179,6 +247,7 @@ class TeamBroker {
     if (title != null && title.trim().isNotEmpty && (id == null || id.isEmpty)) {
       final t = TeamTask(id: 'task-${++_taskSeq}', title: title.trim());
       _tasks[t.id] = t;
+      _notify();
       return {'ok': true, 'task': t.toJson()};
     }
     if (id != null && id.isNotEmpty && status != null && status.isNotEmpty) {
@@ -186,6 +255,7 @@ class TeamBroker {
       if (t == null) return {'ok': false, 'error': 'No task "$id".'};
       t.status = status;
       if (status == 'claimed' || status == 'done') t.owner = _nameOf(fromId);
+      _notify();
       return {'ok': true, 'task': t.toJson()};
     }
     return {
@@ -196,7 +266,12 @@ class TeamBroker {
   void _enqueue(String toId, TeamMessage msg, {bool broadcast = false}) {
     (_inboxes[toId] ??= <TeamMessage>[]).add(msg);
     final tag = broadcast ? '${msg.from} (broadcast)' : msg.from;
-    _deliver?.call(toId, '[team] $tag: ${msg.text}');
+    // Gate delivery: muted members still accumulate inbox messages but the
+    // live session callback is suppressed until unmuted (T-171).
+    if (!_muted.contains(toId)) {
+      _deliver?.call(toId, '[team] $tag: ${msg.text}');
+    }
+    _notify();
   }
 }
 

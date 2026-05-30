@@ -1,12 +1,14 @@
-/// Claude meta sidebar (T-141, T-157, T-182): a left-panel tab split into a
-/// sub-tab strip — Activity / Team / Config.
+/// Claude meta sidebar (T-141, T-157, T-171, T-182): a left-panel tab split
+/// into a sub-tab strip — Activity / Team / Config.
 ///
 /// - **Activity** — Claude usage stats (from `~/.claude/stats-cache.json`,
 ///   polled) plus the primary session's live runtime (model / mode / context /
 ///   skills).
-/// - **Team** — a roster of live members (from orchestrator-emitted join/left
-///   events + per-member status on the message bus). Auto-fronted when a team
-///   spawns; mostly empty when solo.
+/// - **Team** — the roster cockpit (T-171): live per-member status (T-157) plus
+///   per-row controls (show/hide, mute, close, inject-message) and a TASKS
+///   section that renders [TeamBroker.tasks] live, with per-task owner and a
+///   reassign control.  Auto-fronted when a team spawns (T-182); mostly empty
+///   when solo.
 /// - **Config** — the Claude environment settings table (model / output style /
 ///   permission mode / source) over [ClaudeConfig]. The expandable
 ///   skills/agents/commands/permissions/MCP browser is T-183.
@@ -26,6 +28,7 @@ import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_stats.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show formatTokenCount, permissionModeLabel, shortModelLabel;
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
+import 'package:clide/builtin/claude/src/team_broker.dart' show TeamBroker, TeamTask;
 import 'package:clide/builtin/claude/src/team_panel_host.dart' show teamColor;
 import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
@@ -81,6 +84,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   StreamSubscription<TeamMemberLeft>? _leftSub;
   StreamSubscription<Message>? _statusSub;
   StreamSubscription<SessionStatus>? _primarySub;
+  StreamSubscription<void>? _brokerChangeSub;
   Timer? _timer;
   late final Future<ClaudeStats> Function() _load;
   bool _subscribed = false;
@@ -90,6 +94,11 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   ClaudeSessionOrchestrator? _orchestrator;
   SessionStatus? _primaryStatus;
 
+  /// agentId currently in "inject message" mode (shows the text field).
+  String? _injectingAgentId;
+  final _injectCtl = TextEditingController();
+  List<TeamTask> _tasks = const [];
+
   @override
   void initState() {
     super.initState();
@@ -97,12 +106,23 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _config = widget.config ?? activeClaudeConfig;
     _orchestrator = widget.orchestrator ?? activeSessionOrchestrator;
     _config?.addListener(_onConfigChange);
-    _orchestrator?.addListener(_bindPrimary);
+    _orchestrator?.addListener(_onOrchestratorChange);
     _bindPrimary();
+    _subscribeBroker();
     unawaited(_refreshStats());
     if (widget.pollInterval > Duration.zero) {
       _timer = Timer.periodic(widget.pollInterval, (_) => unawaited(_refreshStats()));
     }
+  }
+
+  void _subscribeBroker() {
+    _brokerChangeSub?.cancel();
+    final broker = _orchestrator?.broker;
+    if (broker == null) return;
+    _tasks = List.of(broker.tasks);
+    _brokerChangeSub = broker.changes.listen((_) {
+      if (mounted) setState(() => _tasks = List.of(broker.tasks));
+    });
   }
 
   static Future<ClaudeStats> Function() _fileLoader() {
@@ -155,6 +175,14 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
 
   /// (Re)bind to the primary managed session's status as the orchestrator's set
   /// changes — the Activity runtime row reflects the live session.
+  /// The orchestrator notifies on any session change (spawn/close, and the
+  /// visible/muted toggles the cockpit controls drive). Re-bind the primary
+  /// status stream and rebuild so the roster rows reflect the new state.
+  void _onOrchestratorChange() {
+    _bindPrimary();
+    if (mounted) setState(() {});
+  }
+
   void _bindPrimary() {
     final session = _orchestrator?.byId('primary')?.session;
     _primarySub?.cancel();
@@ -186,8 +214,10 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _leftSub?.cancel();
     _statusSub?.cancel();
     _primarySub?.cancel();
+    _brokerChangeSub?.cancel();
+    _injectCtl.dispose();
     _config?.removeListener(_onConfigChange);
-    _orchestrator?.removeListener(_bindPrimary);
+    _orchestrator?.removeListener(_onOrchestratorChange);
     super.dispose();
   }
 
@@ -251,40 +281,71 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     if (_members.isEmpty) {
       return _placeholder('No team active.');
     }
+    final children = <Widget>[
+      for (final m in _members)
+        _AgentRosterRow(
+          key: ValueKey(m.agentId),
+          member: m,
+          status: _memberStatus[m.agentId],
+          orchestrator: _orchestrator,
+          injectingAgentId: _injectingAgentId,
+          injectController: _injectCtl,
+          onToggleInject: (name) => setState(() {
+            if (_injectingAgentId == name) {
+              _injectingAgentId = null;
+              _injectCtl.clear();
+            } else {
+              _injectingAgentId = name;
+              _injectCtl.clear();
+            }
+          }),
+          onInjectSubmit: (name, text) {
+            final managed = _orchestrator?.byMemberName(name);
+            if (managed != null) {
+              _orchestrator!.injectMessage(managed.id, text);
+            }
+            setState(() {
+              _injectingAgentId = null;
+              _injectCtl.clear();
+            });
+          },
+          onClose: (name) {
+            final managed = _orchestrator?.byMemberName(name);
+            if (managed != null) _orchestrator!.close(managed.id);
+          },
+        ),
+    ];
+
+    if (_tasks.isNotEmpty) {
+      children.add(const SizedBox(height: 12));
+      children.add(_taskSection(tokens));
+    }
+
+    // MESSAGES section: placeholder seam for T-180 to fill.
+    // T-180 will replace this Container with the live message feed.
+    children.add(const SizedBox(height: 12));
+    children.add(_messagesSectionPlaceholder(tokens));
+
     return ListView(
       padding: const EdgeInsets.all(12),
-      children: [for (final m in _members) _memberRow(tokens, m)],
+      children: children,
     );
   }
 
-  Widget _memberRow(SurfaceTokens tokens, TeamMemberJoined m) {
-    final color = teamColor(m.color, fallback: tokens.globalForeground);
-    final st = _memberStatus[m.agentId];
-    final model = st?.model ?? m.model;
-    final sub = [
-      m.agentType,
-      if (model != null) shortModelLabel(model),
-      if (st?.permissionMode != null) permissionModeLabel(st!.permissionMode!),
-      if (st?.contextTokens != null) '${formatTokenCount(st!.contextTokens!)} ctx',
-    ].join('  ·  ');
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClideText(m.name, fontSize: clideFontSmall, color: tokens.globalForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ClideText(sub, muted: true, fontSize: clideFontSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _taskSection(SurfaceTokens tokens) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClideText('TASKS', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+        const SizedBox(height: 4),
+        for (final t in _tasks) _TaskRow(task: t, members: _members, broker: _orchestrator?.broker),
+      ],
     );
+  }
+
+  /// Minimal seam for T-180 — the message feed and composer will land here.
+  Widget _messagesSectionPlaceholder(SurfaceTokens tokens) {
+    return ClideText('MESSAGES', fontSize: clideFontSmall, color: tokens.globalTextMuted);
   }
 
   // --- Config ---------------------------------------------------------------
@@ -363,6 +424,334 @@ class _MetaRow {
   final String label;
   final String value;
   final Color? valueColor;
+}
+
+// ---------------------------------------------------------------------------
+// Reusable roster-row widget (T-171)
+//
+// Extract point for future siblings:
+//   - T-181 adds a permission-mode badge to the trailing region.
+//   - T-172 adds a fork button next to the close/mute icons.
+// Extend _AgentRosterRow or compose it from a shared _RosterRowBase to avoid
+// forking the layout. The trailing region is the explicit seam: the control
+// icons column may grow with new additions.
+// ---------------------------------------------------------------------------
+
+/// A single agent roster row: color dot + name + status sub-text + controls.
+///
+/// Controls (trailing region):
+/// - eye / eye-slash — show / hide the session pane
+/// - speaker / speaker-slash — mute / unmute broker delivery
+/// - inject (chat icon) — expand the inline message input
+/// - close (×) — kill the session
+///
+/// Seam for T-181: add a permission-mode badge between the status sub-text and
+/// the trailing controls — it needs no layout changes here.
+/// Seam for T-172: add a fork button to the _buildControls row.
+class _AgentRosterRow extends StatelessWidget {
+  const _AgentRosterRow({
+    super.key,
+    required this.member,
+    required this.status,
+    required this.orchestrator,
+    required this.injectingAgentId,
+    required this.injectController,
+    required this.onToggleInject,
+    required this.onInjectSubmit,
+    required this.onClose,
+  });
+
+  final TeamMemberJoined member;
+  final SessionStatus? status;
+  final ClaudeSessionOrchestrator? orchestrator;
+
+  /// The member name currently in inject mode (null = none).
+  final String? injectingAgentId;
+
+  /// Shared text controller for the inject field (cleared on submit/cancel).
+  final TextEditingController injectController;
+
+  final void Function(String memberName) onToggleInject;
+  final void Function(String memberName, String text) onInjectSubmit;
+  final void Function(String memberName) onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final managed = orchestrator?.byMemberName(member.name);
+    final color = teamColor(member.color, fallback: tokens.globalForeground);
+    final st = status;
+    final model = st?.model ?? member.model;
+    final sub = [
+      member.agentType,
+      if (model != null) shortModelLabel(model),
+      if (st?.permissionMode != null) permissionModeLabel(st!.permissionMode!),
+      if (st?.contextTokens != null) '${formatTokenCount(st!.contextTokens!)} ctx',
+    ].join('  ·  ');
+
+    final isVisible = managed?.visible ?? true;
+    final isMuted = managed?.muted ?? false;
+    final isInjecting = injectingAgentId == member.name;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Color dot
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              ),
+              const SizedBox(width: 8),
+              // Name + status
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClideText(member.name, fontSize: clideFontSmall, color: tokens.globalForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (sub.isNotEmpty) ClideText(sub, muted: true, fontSize: clideFontSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    // T-181 seam: add permission-mode badge here (no layout surgery needed).
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              // Trailing controls (T-171).
+              // T-172 seam: append a fork icon button to this row.
+              if (managed != null) _buildControls(context, tokens, managed, isVisible, isMuted, isInjecting),
+            ],
+          ),
+          // Inline inject-message field — visible only when toggled.
+          if (isInjecting) _buildInjectField(context, tokens),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControls(
+    BuildContext context,
+    SurfaceTokens tokens,
+    ManagedSession managed,
+    bool isVisible,
+    bool isMuted,
+    bool isInjecting,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Show / hide
+        _IconButton(
+          painter: isVisible ? PhosphorIcons.eye : PhosphorIcons.eyeSlash,
+          tooltip: isVisible ? 'Hide pane' : 'Show pane',
+          color: tokens.globalTextMuted,
+          onTap: () => isVisible ? orchestrator!.hide(managed.id) : orchestrator!.show(managed.id),
+        ),
+        // Mute / unmute
+        _IconButton(
+          painter: isMuted ? PhosphorIcons.eyeSlash : PhosphorIcons.eye,
+          // NOTE: We use eye/eyeSlash as stand-ins until a dedicated speaker
+          // icon is added to PhosphorIcons (no speaker codepoint yet).
+          // The semantic tooltip still says mute/unmute so AT users are clear.
+          tooltip: isMuted ? 'Unmute messages' : 'Mute messages',
+          color: isMuted ? tokens.globalFocus : tokens.globalTextMuted,
+          onTap: () => isMuted ? orchestrator!.unmute(managed.id) : orchestrator!.mute(managed.id),
+        ),
+        // Inject message
+        _IconButton(
+          painter: PhosphorIcons.chatCircle,
+          tooltip: 'Inject message',
+          color: isInjecting ? tokens.globalFocus : tokens.globalTextMuted,
+          onTap: () => onToggleInject(member.name),
+        ),
+        // Close session
+        _IconButton(
+          painter: PhosphorIcons.xMark,
+          tooltip: 'Close session',
+          color: tokens.globalTextMuted,
+          onTap: () => onClose(member.name),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInjectField(BuildContext context, SurfaceTokens tokens) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: _InjectTextField(
+              controller: injectController,
+              tokens: tokens,
+              onSubmit: (text) {
+                if (text.trim().isNotEmpty) onInjectSubmit(member.name, text.trim());
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+          _IconButton(
+            painter: PhosphorIcons.xMark,
+            tooltip: 'Cancel',
+            color: tokens.globalTextMuted,
+            onTap: () => onToggleInject(member.name),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single icon-button used in the roster row controls.
+class _IconButton extends StatelessWidget {
+  const _IconButton({
+    required this.painter,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
+
+  final ClideIconPainter painter;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // Icon-only button: expose the tooltip text as the Semantics button label
+    // so AT (and widget tests) can find and activate it by name.
+    return Semantics(
+      button: true,
+      label: tooltip,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: ClideTappable(
+        tooltip: tooltip,
+        onTap: onTap,
+        builder: (ctx, hovered, _) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+          child: ClideIcon(painter, size: 12, color: hovered ? ClideTheme.of(ctx).surface.globalForeground : color),
+        ),
+      ),
+    );
+  }
+}
+
+/// Inline text input for injecting a message into a session (T-171).
+/// Submits on Enter; Cancel is handled by the parent via [_IconButton].
+class _InjectTextField extends StatelessWidget {
+  const _InjectTextField({
+    required this.controller,
+    required this.tokens,
+    required this.onSubmit,
+  });
+
+  final TextEditingController controller;
+  final SurfaceTokens tokens;
+  final void Function(String text) onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: tokens.panelBackground,
+        border: Border.all(color: tokens.panelBorder),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: EditableText(
+        controller: controller,
+        focusNode: FocusNode(debugLabel: 'inject-${controller.hashCode}')..requestFocus(),
+        style: TextStyle(
+          fontFamily: 'JetBrains Mono',
+          fontSize: clideFontSmall,
+          color: tokens.globalForeground,
+          height: 1.4,
+        ),
+        cursorColor: tokens.globalFocus,
+        backgroundCursorColor: tokens.globalTextMuted,
+        onSubmitted: onSubmit,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Task row (T-171)
+// ---------------------------------------------------------------------------
+
+/// One row in the TASKS section: status marker + title + owner + reassign.
+class _TaskRow extends StatelessWidget {
+  const _TaskRow({
+    required this.task,
+    required this.members,
+    required this.broker,
+  });
+
+  final TeamTask task;
+  final List<TeamMemberJoined> members;
+  final TeamBroker? broker;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final marker = switch (task.status) {
+      'done' => '✓',
+      'claimed' => '◈',
+      _ => '○',
+    };
+    final markerColor = switch (task.status) {
+      'done' => tokens.globalTextMuted,
+      'claimed' => tokens.globalFocus,
+      _ => tokens.globalForeground,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          ClideText(marker, fontSize: clideFontSmall, color: markerColor),
+          const SizedBox(width: 6),
+          Expanded(
+            child: ClideText(
+              task.title,
+              fontSize: clideFontSmall,
+              color: task.status == 'done' ? tokens.globalTextMuted : tokens.globalForeground,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (task.owner != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: ClideText(task.owner!, fontSize: clideFontSmall, color: tokens.globalFocus),
+            ),
+          // Reassign: cycle to the next roster member.
+          if (broker != null && broker!.members.length > 1)
+            _IconButton(
+              painter: PhosphorIcons.arrowClockwise,
+              tooltip: 'Reassign task',
+              color: tokens.globalTextMuted,
+              onTap: () => _reassign(context),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _reassign(BuildContext context) {
+    final b = broker;
+    if (b == null || members.isEmpty) return;
+    final brokerMembers = b.members;
+    if (brokerMembers.isEmpty) return;
+    // Cycle to the next member after the current owner.
+    final currentIndex = brokerMembers.indexWhere((m) => m.name == task.owner);
+    final nextIndex = (currentIndex + 1) % brokerMembers.length;
+    b.reassignTask(task.id, brokerMembers[nextIndex].id);
+  }
 }
 
 /// The Activity / Team / Config sub-tab strip — same interaction as the pql

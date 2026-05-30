@@ -87,7 +87,9 @@ class ManagedSession {
     required this.sessionId,
     required this.session,
     required this.conversation,
+    this.memberName,
     this.visible = true,
+    this.muted = false,
   });
 
   final String id;
@@ -96,9 +98,18 @@ class ManagedSession {
   final StreamJsonSession session;
   final ConversationController conversation;
 
+  /// Team-member display name (from [SpawnSpec.memberName]); used to resolve a
+  /// roster row back to its session. Null for non-team sessions.
+  final String? memberName;
+
   /// Whether a pane is currently showing this session. A view toggle only —
   /// the process stays alive when hidden.
   bool visible;
+
+  /// Whether message delivery from the broker to this session is suppressed.
+  /// The session process still runs; teammates' messages accumulate in its
+  /// inbox but are not injected into stdin until unmuted (T-171).
+  bool muted;
 }
 
 /// App-wide orchestrator, set by the Claude extension on activate (like
@@ -165,12 +176,31 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       sessionId: spec.sessionId,
       session: session,
       conversation: conversation,
+      memberName: spec.memberName,
       visible: spec.visible,
     );
     _sessions[spec.id] = managed;
     notifyListeners();
     return managed;
   }
+
+  // --- member name → session bridge (T-171) ----------------------------------
+
+  /// Resolve a roster row to its [ManagedSession] by team-member name. Team
+  /// sessions are keyed `teammate:<name>`, so that direct hit covers the common
+  /// case; the fallback scans [ManagedSession.memberName] for sessions whose id
+  /// scheme differs. The sidebar passes the member's display name (which the
+  /// orchestrator also stored at spawn), so the link is deterministic.
+  ManagedSession? byMemberName(String name) {
+    final direct = _sessions['teammate:$name'];
+    if (direct != null) return direct;
+    for (final m in _sessions.values) {
+      if (m.memberName == name) return m;
+    }
+    return null;
+  }
+
+  // --- Show / hide ----------------------------------------------------------
 
   /// Show / hide a session as a pane — a visibility toggle only; the process
   /// keeps running while hidden.
@@ -192,6 +222,37 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
     broker.removeMember(id);
     m.conversation.dispose();
     notifyListeners();
+  }
+
+  // --- Mute / unmute (T-171) ------------------------------------------------
+
+  /// Mute an agent: suppresses broker delivery into the session's stdin while
+  /// the process continues running.  Syncs the [ManagedSession.muted] flag and
+  /// gates delivery in the broker.
+  void mute(String id) {
+    final m = _sessions[id];
+    if (m == null || m.muted) return;
+    m.muted = true;
+    broker.mute(id);
+    notifyListeners();
+  }
+
+  /// Unmute an agent: re-enables broker delivery into the session's stdin.
+  void unmute(String id) {
+    final m = _sessions[id];
+    if (m == null || !m.muted) return;
+    m.muted = false;
+    broker.unmute(id);
+    notifyListeners();
+  }
+
+  // --- Inject message (T-171) -----------------------------------------------
+
+  /// Inject [text] directly into [id]'s session stdin as a user-role turn.
+  /// Thin wrapper over [StreamJsonSession.send] so callers (sidebar, tests)
+  /// don't depend on the session type.  No-op if the session is unknown.
+  void injectMessage(String id, String text) {
+    _sessions[id]?.session.send(text);
   }
 
   /// Read up to [_resumeTailBytes] from the end of [path] and parse it into

@@ -64,6 +64,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Claude team cockpit — the meta sidebar's Team tab gains live controls for
+  clide-managed agents: show/hide, mute, close, and inject-a-message per
+  roster row, plus a live shared task list with reassign. Each action has a
+  matching `clide` command (D-6 parity). (T-171, D-77)
 - Team coordination broker (T-170, D-77) — clide hosts an in-process MCP
   server (`clide-team`) for managed sessions over the stream-json control
   channel, giving agents tools to message each other, broadcast, see the

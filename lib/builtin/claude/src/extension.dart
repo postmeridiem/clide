@@ -68,6 +68,102 @@ class ClaudeExtension extends ClideExtension {
           title: 'Claude: session storage (disk usage + cleanup)',
           run: _manageStorage,
         ),
+        // T-171: agent roster controls (D-6 CLI/UI parity).
+        // Usage: clide claude.agent.show <sessionId>
+        CommandContribution(
+          id: 'claude.agent.show',
+          command: 'claude.agent.show',
+          title: 'Claude: show an agent session pane',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            _orchestrator?.show(id);
+            return IpcResponse.ok(id: '', data: {'id': id, 'status': 'shown'});
+          },
+        ),
+        CommandContribution(
+          id: 'claude.agent.hide',
+          command: 'claude.agent.hide',
+          title: 'Claude: hide an agent session pane',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            _orchestrator?.hide(id);
+            return IpcResponse.ok(id: '', data: {'id': id, 'status': 'hidden'});
+          },
+        ),
+        CommandContribution(
+          id: 'claude.agent.close',
+          command: 'claude.agent.close',
+          title: 'Claude: close (kill) an agent session',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            await _orchestrator?.close(id);
+            return IpcResponse.ok(id: '', data: {'id': id, 'status': 'closed'});
+          },
+        ),
+        CommandContribution(
+          id: 'claude.agent.mute',
+          command: 'claude.agent.mute',
+          title: 'Claude: mute broker delivery to an agent session',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            _orchestrator?.mute(id);
+            return IpcResponse.ok(id: '', data: {'id': id, 'status': 'muted'});
+          },
+        ),
+        CommandContribution(
+          id: 'claude.agent.unmute',
+          command: 'claude.agent.unmute',
+          title: 'Claude: unmute broker delivery to an agent session',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            _orchestrator?.unmute(id);
+            return IpcResponse.ok(id: '', data: {'id': id, 'status': 'unmuted'});
+          },
+        ),
+        // Usage: clide claude.agent.inject-message <sessionId> <text...>
+        CommandContribution(
+          id: 'claude.agent.inject-message',
+          command: 'claude.agent.inject-message',
+          title: 'Claude: inject a text turn into an agent session',
+          run: (args) async {
+            final id = args.firstOrNull;
+            if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+            final text = args.skip(1).join(' ');
+            if (text.isEmpty) return IpcResponse.ok(id: '', data: const {'error': 'missing message text'});
+            _orchestrator?.injectMessage(id, text);
+            return IpcResponse.ok(id: '', data: {'id': id, 'status': 'injected'});
+          },
+        ),
+        // Usage: clide claude.task.reassign <taskId> <toSessionId>
+        CommandContribution(
+          id: 'claude.task.reassign',
+          command: 'claude.task.reassign',
+          title: 'Claude: reassign a shared task to an agent',
+          run: (args) async {
+            if (args.length < 2) return IpcResponse.ok(id: '', data: const {'error': 'usage: <taskId> <sessionId>'});
+            final taskId = args[0];
+            final toId = args[1];
+            final ok = _orchestrator?.broker.reassignTask(taskId, toId) ?? false;
+            return IpcResponse.ok(id: '', data: {'taskId': taskId, 'toId': toId, 'ok': ok});
+          },
+        ),
+        // claude.agent.spawn: spawning a new agent session programmatically.
+        // Full implementation deferred — requires the caller to supply
+        // SpawnSpec fields (sessionId, cwd, role, team flag, etc.) which are
+        // non-trivial to serialize over a flat CLI arg list.  The UI affordance
+        // (TeamPanelHost spawn) is the primary surface for now; this stub
+        // satisfies D-6 parity and will be fleshed out in T-172.
+        CommandContribution(
+          id: 'claude.agent.spawn',
+          command: 'claude.agent.spawn',
+          title: 'Claude: spawn a new agent session (stub — T-172)',
+          run: (_) async => IpcResponse.ok(id: '', data: const {'status': 'not-implemented', 'ticket': 'T-172'}),
+        ),
         // Always-pickable left-panel tab: Claude activity (from
         // stats-cache.json) + the team roster when a team is running (T-141).
         TabContribution(
