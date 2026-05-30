@@ -74,6 +74,14 @@ String primarySessionId(String repoRoot) => _deterministicUuid(_primarySessionSe
 /// (T-161). Appended after the stream-json flags by [ClaudeStreamJsonProcess].
 List<String> claudeLaunchArgs(String sessionId, {required bool resume}) => resume ? ['--resume', sessionId] : ['--session-id', sessionId];
 
+/// The session-selection args for forking a session (T-172, D-77).
+///
+/// `--resume <sourceSessionId> --fork-session` resumes [sourceSessionId] but
+/// creates a NEW claude session id so the branch diverges without touching the
+/// original. No `--session-id` is passed — the fork gets its own id from the
+/// `init` event.
+List<String> forkSessionArgs(String sourceSessionId) => ['--resume', sourceSessionId, '--fork-session'];
+
 /// A fresh random session id for a secondary pane — secondaries are
 /// always clean sessions, never resumed.
 String freshSessionId() {

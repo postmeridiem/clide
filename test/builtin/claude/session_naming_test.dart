@@ -52,4 +52,29 @@ void main() {
       expect(resumed.last, id);
     });
   });
+
+  group('forkSessionArgs (T-172)', () {
+    const sourceId = 'aaaa1111-1111-4111-8111-111111111111';
+
+    test('fork args lead with --resume then the source id', () {
+      final args = forkSessionArgs(sourceId);
+      expect(args[0], '--resume');
+      expect(args[1], sourceId);
+    });
+
+    test('fork args include --fork-session to diverge without touching the original', () {
+      final args = forkSessionArgs(sourceId);
+      expect(args, contains('--fork-session'));
+    });
+
+    test('fork args contain exactly three elements', () {
+      // [--resume, <sourceId>, --fork-session] — no --session-id so claude
+      // assigns its own new session id (the branch).
+      expect(forkSessionArgs(sourceId), hasLength(3));
+    });
+
+    test('fork args do not contain --session-id', () {
+      expect(forkSessionArgs(sourceId), isNot(contains('--session-id')));
+    });
+  });
 }

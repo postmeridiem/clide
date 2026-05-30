@@ -31,6 +31,8 @@ class ClaudePane extends StatefulWidget {
     super.key,
     this.isPrimary = true,
     this.secondaryIndex,
+    this.forkSourceId,
+    this.onFork,
     this.showChrome = true,
     this.active = true,
     this.contributionId = 'claude.primary',
@@ -39,6 +41,16 @@ class ClaudePane extends StatefulWidget {
   final bool isPrimary;
   final bool showChrome;
   final int? secondaryIndex;
+
+  /// When non-null, spawn this pane as a fork of the given claude session id
+  /// using `--resume <forkSourceId> --fork-session` (T-172). Takes precedence
+  /// over the normal fresh/resume logic for secondary panes.
+  final String? forkSourceId;
+
+  /// Called when the user issues `/fork` to branch this session into a new
+  /// pane. The argument is the current pane's claude session id, which the
+  /// host (ClaudeSessionHost) uses to open a fork tab (T-172).
+  final void Function(String sourceClaudeSessionId)? onFork;
 
   /// Whether this pane is the visible/focused sub-tab. Only the active
   /// pane publishes its status to the status-bar context slot (T-145).
@@ -159,16 +171,6 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
     _repoRoot = repoRoot;
 
-    // Bind this pane to a specific session id (T-146). Primary: deterministic
-    // → resumes across restarts. Secondary: fresh → a clean session.
-    _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : freshSessionId();
-
-    // A transcript already on disk means the session existed before, so resume
-    // it; `claude --session-id <id>` refuses an existing id (T-161/D-77).
-    final home = Platform.environment['HOME'] ?? '';
-    final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
-    final resume = await File(transcriptFile).exists();
-
     // The orchestrator owns the session (T-169): spawn-or-bind by our pane key,
     // so the session (and its accumulating conversation) outlives this pane.
     final orch = activeSessionOrchestrator;
@@ -176,21 +178,55 @@ class _ClaudePaneState extends State<ClaudePane> {
       setState(() => _error = 'Session orchestrator unavailable.');
       return;
     }
+
     final ManagedSession managed;
-    try {
-      managed = await orch.spawn(SpawnSpec(
-        id: _orchId,
-        role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
-        sessionId: _sessionId!,
-        cwd: repoRoot,
-        resume: resume,
-        transcriptPath: resume ? transcriptFile : null,
-      ));
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Could not start claude: $e');
-      return;
+    final forkSource = widget.forkSourceId;
+    if (forkSource != null) {
+      // Fork pane: branch source session into a new clide-managed session.
+      // The clide-internal id is a fresh UUID; the real claude session id is
+      // assigned by `--fork-session` and arrives in the init event (T-172).
+      _sessionId ??= freshSessionId();
+      try {
+        managed = await orch.spawn(SpawnSpec(
+          id: _orchId,
+          role: 'fork ${widget.secondaryIndex}',
+          sessionId: _sessionId!,
+          cwd: repoRoot,
+          forkSourceSessionId: forkSource,
+        ));
+      } catch (e) {
+        if (mounted) setState(() => _error = 'Could not start fork: $e');
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _statusLine = 'fork of $forkSource');
+    } else {
+      // Bind this pane to a specific session id (T-146). Primary: deterministic
+      // → resumes across restarts. Secondary: fresh → a clean session.
+      _sessionId ??= widget.isPrimary ? primarySessionId(repoRoot) : freshSessionId();
+
+      // A transcript already on disk means the session existed before, so resume
+      // it; `claude --session-id <id>` refuses an existing id (T-161/D-77).
+      final home = Platform.environment['HOME'] ?? '';
+      final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
+      final resume = await File(transcriptFile).exists();
+
+      try {
+        managed = await orch.spawn(SpawnSpec(
+          id: _orchId,
+          role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
+          sessionId: _sessionId!,
+          cwd: repoRoot,
+          resume: resume,
+          transcriptPath: resume ? transcriptFile : null,
+        ));
+      } catch (e) {
+        if (mounted) setState(() => _error = 'Could not start claude: $e');
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _statusLine = resume ? 'resumed · $_sessionId' : 'new session · $_sessionId');
     }
-    if (!mounted) return;
 
     _session = managed.session;
     _conversation = managed.conversation;
@@ -198,13 +234,13 @@ class _ClaudePaneState extends State<ClaudePane> {
       if (!mounted) return;
       setState(() => _status = s);
     });
-    setState(() => _statusLine = resume ? 'resumed · $_sessionId' : 'new session · $_sessionId');
   }
 
   // Send composed text to Claude over the stream-json channel. Commands clide
   // owns (T-156) are handled here, never forwarded — /clear and /resume fork
   // the session to a new id, so clide drives them: /clear starts fresh,
-  // /resume picks a past session and re-binds to it.
+  // /resume picks a past session and re-binds to it. /fork branches the
+  // conversation into a new pane (T-172).
   void _send(String text) {
     switch (clideOwnedCommand(text)) {
       case 'clear':
@@ -213,8 +249,22 @@ class _ClaudePaneState extends State<ClaudePane> {
       case 'resume':
         unawaited(_resumeFlow());
         return;
+      case 'fork':
+        _forkSession();
+        return;
     }
     _session?.send(text);
+  }
+
+  /// clide-owned `/fork` (T-172): branch this conversation into a new pane.
+  ///
+  /// Delegates to the [onFork] callback supplied by [ClaudeSessionHost] with
+  /// the current pane's claude session id. If the session hasn't started yet
+  /// or no callback was supplied, the command is silently ignored.
+  void _forkSession() {
+    final sourceId = _sessionId;
+    if (sourceId == null) return;
+    widget.onFork?.call(sourceId);
   }
 
   /// clide-owned `/clear` (T-156): respawn on a brand-new, empty session.

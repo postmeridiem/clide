@@ -203,6 +203,27 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     if (mounted) setState(() {});
   }
 
+  /// Fork the team session identified by [memberName] (T-172, roster button).
+  ///
+  /// Resolves the managed session, then spawns a new fork session via the
+  /// orchestrator. The fork appears in the roster (it's a team session, visible
+  /// by default) and is independent from the source — the original is unaffected.
+  void _forkMember(String memberName) {
+    final orch = _orchestrator;
+    if (orch == null) return;
+    final managed = orch.byMemberName(memberName);
+    if (managed == null) return;
+    final forkId = 'fork:$memberName-${DateTime.now().millisecondsSinceEpoch}';
+    unawaited(orch.spawn(SpawnSpec(
+      id: forkId,
+      role: 'fork of $memberName',
+      // sessionId is a placeholder; real claude session id arrives via init.
+      sessionId: forkId,
+      cwd: managed.cwd,
+      forkSourceSessionId: managed.sessionId,
+    )));
+  }
+
   Future<void> _refreshStats() async {
     final stats = await _load();
     if (mounted) setState(() => _stats = stats);
@@ -318,6 +339,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
             final managed = _orchestrator?.byMemberName(name);
             managed?.session.setPermissionMode(mode);
           },
+          onFork: (name) => _forkMember(name),
         ),
     ];
 
@@ -450,9 +472,8 @@ class _MetaRow {
 /// - eye / eye-slash — show / hide the session pane
 /// - speaker / speaker-slash — mute / unmute broker delivery
 /// - inject (chat icon) — expand the inline message input
+/// - fork (git-branch icon) — open a new pane branching from this session (T-172)
 /// - close (×) — kill the session
-///
-/// Seam for T-172: add a fork button to the _buildControls row.
 class _AgentRosterRow extends StatefulWidget {
   const _AgentRosterRow({
     super.key,
@@ -465,6 +486,7 @@ class _AgentRosterRow extends StatefulWidget {
     required this.onInjectSubmit,
     required this.onClose,
     required this.onSetPermissionMode,
+    required this.onFork,
   });
 
   final TeamMemberJoined member;
@@ -485,6 +507,10 @@ class _AgentRosterRow extends StatefulWidget {
   /// Handles both safe-trio clicks and confirmed bypass. The parent sends
   /// the mode to the session via [StreamJsonSession.setPermissionMode].
   final void Function(String memberName, String mode) onSetPermissionMode;
+
+  /// Called when the fork button is tapped (T-172). The session id of the
+  /// member's managed session is passed so the host can open a fork pane.
+  final void Function(String memberName) onFork;
 
   @override
   State<_AgentRosterRow> createState() => _AgentRosterRowState();
@@ -659,6 +685,13 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
           tooltip: 'Inject message',
           color: isInjecting ? tokens.globalFocus : tokens.globalTextMuted,
           onTap: () => widget.onToggleInject(widget.member.name),
+        ),
+        // Fork session (T-172): branch into a new pane without touching the original.
+        _IconButton(
+          painter: PhosphorIcons.gitBranch,
+          tooltip: 'Fork session',
+          color: tokens.globalTextMuted,
+          onTap: () => widget.onFork(widget.member.name),
         ),
         // Close session
         _IconButton(

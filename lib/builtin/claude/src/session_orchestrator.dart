@@ -50,6 +50,7 @@ class SpawnSpec {
     this.visible = true,
     this.team = false,
     this.memberName,
+    this.forkSourceSessionId,
   });
 
   final String id;
@@ -75,6 +76,15 @@ class SpawnSpec {
   /// Name teammates address this session by (`send_message(to: …)`); defaults
   /// to [role] when omitted. Only meaningful when [team] is true.
   final String? memberName;
+
+  /// When non-null, spawn a forked branch of this claude session id (T-172).
+  /// Uses `--resume <forkSourceSessionId> --fork-session` so the branch
+  /// diverges into a NEW claude session without touching the original.
+  /// Takes precedence over [resume]/[sessionId] for arg selection.
+  final String? forkSourceSessionId;
+
+  /// Whether this spec spawns a forked session.
+  bool get isFork => forkSourceSessionId != null;
 }
 
 /// One clide-managed session: the process wrapper plus the conversation it
@@ -85,16 +95,27 @@ class ManagedSession {
     required this.id,
     required this.role,
     required this.sessionId,
+    required this.cwd,
     required this.session,
     required this.conversation,
     this.memberName,
     this.visible = true,
     this.muted = false,
+    this.forkSourceSessionId,
   });
 
   final String id;
   final String role;
+
+  /// The clide-internal session id. For fork sessions this is the placeholder
+  /// UUID passed via [SpawnSpec.sessionId]; the real claude-assigned session id
+  /// arrives in the `init` event and is not yet captured here (T-172 follow-up).
   final String sessionId;
+
+  /// The working directory this session was spawned in. Retained so forks and
+  /// the UI can reference the source context (T-172).
+  final String cwd;
+
   final StreamJsonSession session;
   final ConversationController conversation;
 
@@ -110,6 +131,13 @@ class ManagedSession {
   /// The session process still runs; teammates' messages accumulate in its
   /// inbox but are not injected into stdin until unmuted (T-171).
   bool muted;
+
+  /// The source claude session id this was forked from (T-172), or null for
+  /// non-fork sessions. For display / provenance only.
+  final String? forkSourceSessionId;
+
+  /// Whether this is a forked session.
+  bool get isFork => forkSourceSessionId != null;
 }
 
 /// App-wide orchestrator, set by the Claude extension on activate (like
@@ -154,7 +182,10 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
     // injected into their system prompt (T-170). Register the member before
     // spawning so a peer that messages it immediately resolves.
     final mcpServers = <McpServer>[];
-    var sessionArgs = claudeLaunchArgs(spec.sessionId, resume: spec.resume);
+    // Fork sessions use --resume <source> --fork-session so the branch gets its
+    // own claude session id from the init event (T-172). All other sessions use
+    // the normal --resume / --session-id selection.
+    var sessionArgs = spec.isFork ? forkSessionArgs(spec.forkSourceSessionId!) : claudeLaunchArgs(spec.sessionId, resume: spec.resume);
     if (spec.team) {
       final name = spec.memberName ?? spec.role;
       broker.addMember(TeamMemberRef(id: spec.id, name: name, role: spec.role));
@@ -174,10 +205,12 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       id: spec.id,
       role: spec.role,
       sessionId: spec.sessionId,
+      cwd: spec.cwd,
       session: session,
       conversation: conversation,
       memberName: spec.memberName,
       visible: spec.visible,
+      forkSourceSessionId: spec.forkSourceSessionId,
     );
     _sessions[spec.id] = managed;
     notifyListeners();

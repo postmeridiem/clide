@@ -175,4 +175,95 @@ void main() {
       expect(managed.conversation.items, isEmpty);
     });
   });
+
+  // T-172: fork-into-a-pane --------------------------------------------------
+
+  group('fork session (T-172)', () {
+    List<String>? capturedArgs;
+
+    setUp(() {
+      capturedArgs = null;
+      orch = ClaudeSessionOrchestrator(
+        processFactory: ({required sessionArgs, required cwd, env}) async {
+          capturedArgs = sessionArgs;
+          return _FakeProc();
+        },
+      );
+    });
+
+    SpawnSpec forkSpec(String id, String sourceSessionId) => SpawnSpec(
+          id: id,
+          role: 'fork',
+          sessionId: '$id-placeholder',
+          cwd: '/repo',
+          forkSourceSessionId: sourceSessionId,
+        );
+
+    test('fork spawn passes --resume <source> --fork-session instead of --session-id', () async {
+      const sourceId = 'bbbb2222-2222-4222-8222-222222222222';
+      await orch.spawn(forkSpec('fork-1', sourceId));
+      expect(capturedArgs, isNotNull);
+      expect(capturedArgs![0], '--resume');
+      expect(capturedArgs![1], sourceId);
+      expect(capturedArgs!, contains('--fork-session'));
+      expect(capturedArgs!, isNot(contains('--session-id')));
+    });
+
+    test('fork SpawnSpec.isFork is true when forkSourceSessionId is set', () {
+      const sourceId = 'cccc3333-3333-4333-8333-333333333333';
+      final s = forkSpec('fork-1', sourceId);
+      expect(s.isFork, isTrue);
+    });
+
+    test('non-fork SpawnSpec.isFork is false', () {
+      final s = spec('primary');
+      expect(s.isFork, isFalse);
+    });
+
+    test('fork registers in the orchestrator under its own id', () async {
+      const sourceId = 'dddd4444-4444-4444-8444-444444444444';
+      final managed = await orch.spawn(forkSpec('fork-1', sourceId));
+      expect(orch.byId('fork-1'), same(managed));
+      expect(managed.isFork, isTrue);
+      expect(managed.forkSourceSessionId, sourceId);
+    });
+
+    test('fork is independent from the source — source session is unaffected', () async {
+      // Spawn the source session first.
+      final source = await orch.spawn(spec('primary'));
+      expect(orch.sessions, hasLength(1));
+
+      // Fork it.
+      await orch.spawn(forkSpec('fork-1', source.sessionId));
+      // Both sessions exist; source is unchanged.
+      expect(orch.sessions, hasLength(2));
+      expect(orch.byId('primary'), same(source));
+    });
+
+    test('fork session appears in sessions list and is visible by default', () async {
+      const sourceId = 'eeee5555-5555-4555-8555-555555555555';
+      final managed = await orch.spawn(forkSpec('fork-1', sourceId));
+      expect(orch.sessions.contains(managed), isTrue);
+      expect(managed.visible, isTrue);
+      expect(orch.visibleSessions.contains(managed), isTrue);
+    });
+
+    test('fork notifies listeners when spawned', () async {
+      const sourceId = 'ffff6666-6666-4666-8666-666666666666';
+      var notified = false;
+      orch.addListener(() => notified = true);
+      await orch.spawn(forkSpec('fork-1', sourceId));
+      expect(notified, isTrue);
+    });
+
+    test('ManagedSession.cwd reflects the spec cwd', () async {
+      final managed = await orch.spawn(SpawnSpec(
+        id: 'primary',
+        role: 'primary',
+        sessionId: 'primary-uuid',
+        cwd: '/my/project',
+      ));
+      expect(managed.cwd, '/my/project');
+    });
+  });
 }

@@ -624,4 +624,82 @@ void main() {
       orch.dispose();
     });
   });
+
+  // T-172: fork button in the roster -------------------------------------------
+
+  group('T-172 fork session button', () {
+    Future<ClaudeSessionOrchestrator> orchWithMember(WidgetTester tester, {String name = 'Forker', String agentId = 'f1'}) async {
+      final orch = _fakeOrchestrator();
+      await orch.spawn(SpawnSpec(
+        id: 'teammate:$name',
+        role: 'teammate',
+        sessionId: '$name-uuid',
+        cwd: '/repo',
+        team: true,
+        memberName: name,
+      ));
+
+      await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
+
+      f.services.events.emit(TeamMemberJoined(
+        team: 't',
+        agentId: agentId,
+        name: name,
+        agentType: 'coder',
+        paneId: '%1',
+        color: 'teal',
+      ));
+      await tester.pump();
+      await tester.pump();
+      return orch;
+    }
+
+    testWidgets('fork button appears in the roster controls', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final orch = await orchWithMember(tester);
+
+      // The fork button is an _IconButton with tooltip 'Fork session'.
+      expect(find.bySemanticsLabel('Fork session'), findsOneWidget);
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('tapping fork button spawns a new fork session in the orchestrator', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final orch = await orchWithMember(tester);
+
+      expect(orch.sessions, hasLength(1)); // just the source
+
+      await tester.tap(find.bySemanticsLabel('Fork session').first);
+      await tester.pump();
+      await tester.pump();
+
+      // A second (fork) session is now registered.
+      expect(orch.sessions, hasLength(2));
+      final forkSession = orch.sessions.last;
+      expect(forkSession.isFork, isTrue);
+      expect(forkSession.forkSourceSessionId, 'Forker-uuid');
+
+      semantics.dispose();
+      orch.dispose();
+    });
+
+    testWidgets('fork leaves the source session untouched', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final orch = await orchWithMember(tester);
+      final source = orch.byId('teammate:Forker')!;
+
+      await tester.tap(find.bySemanticsLabel('Fork session').first);
+      await tester.pump();
+      await tester.pump();
+
+      // Source session is still present and unchanged.
+      expect(orch.byId('teammate:Forker'), same(source));
+      expect(source.visible, isTrue);
+
+      semantics.dispose();
+      orch.dispose();
+    });
+  });
 }

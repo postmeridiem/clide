@@ -30,7 +30,8 @@ bool isKnownSlashCommand(String text, Iterable<String> known) {
 /// Slash commands clide handles itself instead of forwarding to Claude:
 /// Claude Code's own handling forks the session to a new id that clide's
 /// transcript reader can't follow, so clide owns the semantics (T-156).
-const Set<String> kClideOwnedCommands = {'clear', 'resume'};
+/// `/fork` branches the current session into a new pane (T-172).
+const Set<String> kClideOwnedCommands = {'clear', 'resume', 'fork'};
 
 /// The clide-owned command in [text] (a single-line leading-slash token in
 /// [kClideOwnedCommands]), or null.

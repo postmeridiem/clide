@@ -55,6 +55,20 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
     ));
   }
 
+  /// Open a new pane as a fork of [sourceClaudeSessionId] (T-172).
+  ///
+  /// The fork pane is a secondary tab seeded with `--resume <source>
+  /// --fork-session` so the branch diverges into its own claude session
+  /// without touching the original.
+  void addFork(String sourceClaudeSessionId) {
+    final index = _nextSecondary++;
+    _controller.add(MultitabEntry<_Session>(
+      id: 'secondary-$index',
+      title: 'fork $index',
+      payload: _Session(isPrimary: false, secondaryIndex: index, forkSourceId: sourceClaudeSessionId),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultitabPane<_Session>(
@@ -66,6 +80,8 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
         return ClaudePane(
           isPrimary: s.isPrimary,
           secondaryIndex: s.secondaryIndex,
+          forkSourceId: s.forkSourceId,
+          onFork: addFork,
           // The MultitabPane already provides the tab strip header;
           // suppressing the ClaudePane's own chrome avoids a double row.
           showChrome: false,
@@ -78,7 +94,11 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
 }
 
 class _Session {
-  const _Session({required this.isPrimary, this.secondaryIndex});
+  const _Session({required this.isPrimary, this.secondaryIndex, this.forkSourceId});
   final bool isPrimary;
   final int? secondaryIndex;
+
+  /// When non-null, spawn this pane as a fork of the given claude session id
+  /// (T-172). Forwarded to [ClaudePane.forkSourceId].
+  final String? forkSourceId;
 }

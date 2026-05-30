@@ -174,17 +174,39 @@ class ClaudeExtension extends ClideExtension {
             return IpcResponse.ok(id: '', data: {'taskId': taskId, 'toId': toId, 'ok': ok});
           },
         ),
-        // claude.agent.spawn: spawning a new agent session programmatically.
-        // Full implementation deferred — requires the caller to supply
-        // SpawnSpec fields (sessionId, cwd, role, team flag, etc.) which are
-        // non-trivial to serialize over a flat CLI arg list.  The UI affordance
-        // (TeamPanelHost spawn) is the primary surface for now; this stub
-        // satisfies D-6 parity and will be fleshed out in T-172.
+        // claude.agent.fork: branch a managed session into a new fork session
+        // (T-172, D-6 CLI/UI parity for the roster fork button).
+        // Usage: clide claude.agent.fork <sourceSessionId> [<cwd>]
+        // <sourceSessionId>: the clide-internal id of the session to fork.
+        // <cwd>: optional working directory; defaults to the source session's cwd.
         CommandContribution(
-          id: 'claude.agent.spawn',
-          command: 'claude.agent.spawn',
-          title: 'Claude: spawn a new agent session (stub — T-172)',
-          run: (_) async => IpcResponse.ok(id: '', data: const {'status': 'not-implemented', 'ticket': 'T-172'}),
+          id: 'claude.agent.fork',
+          command: 'claude.agent.fork',
+          title: 'Claude: fork a managed session into a new branch session',
+          run: (args) async {
+            final sourceId = args.firstOrNull;
+            if (sourceId == null) {
+              return IpcResponse.ok(id: '', data: const {'error': 'usage: claude.agent.fork <sourceSessionId> [<cwd>]'});
+            }
+            final orch = _orchestrator;
+            if (orch == null) {
+              return IpcResponse.ok(id: '', data: const {'error': 'orchestrator unavailable'});
+            }
+            final source = orch.byId(sourceId);
+            if (source == null) {
+              return IpcResponse.ok(id: '', data: {'error': 'unknown session "$sourceId"'});
+            }
+            final cwd = args.length >= 2 ? args[1] : source.cwd;
+            final forkId = 'fork:$sourceId-${DateTime.now().millisecondsSinceEpoch}';
+            await orch.spawn(SpawnSpec(
+              id: forkId,
+              role: 'fork of $sourceId',
+              sessionId: forkId,
+              cwd: cwd,
+              forkSourceSessionId: source.sessionId,
+            ));
+            return IpcResponse.ok(id: '', data: {'forkId': forkId, 'sourceId': sourceId, 'status': 'spawned'});
+          },
         ),
         // Always-pickable left-panel tab: Claude activity (from
         // stats-cache.json) + the team roster when a team is running (T-141).
