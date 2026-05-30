@@ -18,6 +18,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Write/Edit permission cards no longer print the file path twice — the
+  description line is suppressed when it just repeats `file_path`.
 - Resumed Claude session no longer starts with an empty pane — `claude
   --resume` carries Claude's prior context but emits no past turns over
   stream-json, so the orchestrator now seeds the conversation by reading

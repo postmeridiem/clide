@@ -133,6 +133,39 @@ void main() {
     expect(find.text('background · timeout 60000ms'), findsOneWidget);
   });
 
+  testWidgets('permission card: Write suppresses the description line when it duplicates file_path', (tester) async {
+    const prompt = ToolPrompt(
+      promptId: 'req-w',
+      toolName: 'Write',
+      displayName: 'Write',
+      // Claude often sends the path itself as the description for Write —
+      // the body already shows it via _pathLine, so the line above should
+      // be suppressed to avoid printing the same path twice.
+      description: '/tmp/clide-ux-test.txt',
+      input: {'file_path': '/tmp/clide-ux-test.txt', 'content': 'hello'},
+    );
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pump();
+
+    // The path should appear exactly once (in _pathLine, inside the body).
+    expect(find.text('/tmp/clide-ux-test.txt'), findsOneWidget);
+  });
+
+  testWidgets('permission card: Write keeps the description line when it adds info', (tester) async {
+    const prompt = ToolPrompt(
+      promptId: 'req-w2',
+      toolName: 'Write',
+      displayName: 'Write',
+      description: 'banana.txt',
+      input: {'file_path': '/tmp/banana.txt', 'content': 'banana'},
+    );
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pump();
+
+    expect(find.text('banana.txt'), findsOneWidget);
+    expect(find.text('/tmp/banana.txt'), findsOneWidget);
+  });
+
   testWidgets('permission card: unknown tool falls back to JSON', (tester) async {
     const prompt = ToolPrompt(
       promptId: 'req-x',
