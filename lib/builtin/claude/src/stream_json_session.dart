@@ -207,18 +207,28 @@ class StreamJsonSession {
   SessionStatus _status = const SessionStatus();
   int _localSeq = 0;
 
-  /// Partial-message accumulation keyed by `message.id` (T-168).
+  /// Token-by-token streaming state (T-168, wire shape verified by T-184).
   ///
-  /// When `--include-partial-messages` is active, the claude process emits
-  /// incremental `assistant` events that share the same `message.id`. Emitting
-  /// each partial as a new [ConversationItem] would produce duplicates. Instead
-  /// we accumulate the latest content per message id here and emit only a
-  /// [_PartialUpdate] signal so the controller can upsert rather than append.
-  ///
-  /// A null value means the message has been finalised (a non-partial event
-  /// with the same id arrived) — subsequent partial events for that id are
-  /// ignored (shouldn't happen, but guard against it).
-  final _partialIds = <String>{};
+  /// With `--include-partial-messages`, claude emits the in-progress reply as
+  /// `stream_event` envelopes wrapping Anthropic streaming deltas
+  /// (`message_start` → `content_block_delta{text_delta}` → …), interleaved
+  /// with the final per-block `assistant` events. We accumulate the streaming
+  /// text per message id and emit a placeholder item with a stable
+  /// `partial-<message.id>` uuid so the controller upserts it in place as it
+  /// grows. The final text `assistant` event then reuses that same uuid to
+  /// finalise the placeholder; tool_use / thinking blocks keep their own uuids
+  /// and append in order. See docs/spikes (§ stream_event) for the captured
+  /// shape.
+  final _streamText = <String, String>{};
+
+  /// Message ids whose streamed text placeholder has already been finalised by
+  /// a real (single-text-block) `assistant` event — so a rare second text
+  /// block for the same message appends normally instead of overwriting it.
+  final _streamFinalized = <String>{};
+
+  /// The message id currently streaming (`content_block_delta` events carry no
+  /// message id, so we track the one announced by the last `message_start`).
+  String? _streamingMsgId;
 
   /// Prompts awaiting a [resolvePrompt] decision, in arrival order. The head
   /// is the one currently shown in the composer zone.
@@ -290,7 +300,7 @@ class StreamJsonSession {
   void _onLine(String line) {
     final trimmed = line.trim();
     if (trimmed.isEmpty || !trimmed.startsWith('{')) return;
-    final Map<String, dynamic> ev;
+    Map<String, dynamic> ev;
     try {
       ev = (jsonDecode(trimmed) as Map).cast<String, dynamic>();
     } catch (_) {
@@ -302,64 +312,93 @@ class StreamJsonSession {
       _onControlRequest(ev);
       return;
     }
-    // A `result` ends the turn — clear the busy/interruptible state and clear
-    // any partial-message tracking so the next turn is fresh.
+    // A `result` ends the turn — clear the busy/interruptible state and reset
+    // streaming state so the next turn is fresh.
     if (ev['type'] == 'result') {
       _setBusy(false);
-      _partialIds.clear();
+      _streamText.clear();
+      _streamFinalized.clear();
+      _streamingMsgId = null;
     }
 
-    // Partial-message streaming (T-168). UNVERIFIED WIRE SHAPE: this assumes
-    // `--include-partial-messages` emits incremental `assistant` events with
-    // `partial: true` sharing one `message.id`. That shape has NOT been
-    // confirmed against the live binary — the 2.1.150 spike only documents
-    // non-partial assistant events (one per content block, no `partial` flag),
-    // and the flag's help says it "only works with --print" (we run the
-    // interactive control protocol). If the real shape differs (e.g. a
-    // `stream_event` delta envelope), these lines fall through to the normal
-    // parse below and are ignored — streaming is inert but nothing breaks.
-    // T-184 validates this against a live capture and fixes or removes it.
-    // When matched, we override the uuid with `partial-<message.id>` so the
-    // controller upserts the item in place rather than appending each tick.
-    final isPartial = ev['partial'] == true;
-    if (isPartial && ev['type'] == 'assistant') {
+    // Token-by-token streaming: `stream_event` envelopes carry the in-progress
+    // reply as Anthropic streaming deltas (T-168, shape confirmed by T-184).
+    if (ev['type'] == 'stream_event') {
+      _onStreamEvent(ev);
+      return;
+    }
+
+    // Finalise a streamed reply: when the real text `assistant` event for a
+    // message we streamed arrives, reuse the placeholder's `partial-<id>` uuid
+    // so the controller replaces the placeholder in place rather than appending
+    // a duplicate. Only a single-text-block event finalises (tool_use/thinking
+    // blocks are separate events that keep their own uuids and append in order);
+    // a second text block for the same id also appends normally.
+    if (ev['type'] == 'assistant') {
       final message = ev['message'];
       final msgId = message is Map ? message['id'] as String? : null;
-      if (msgId != null) {
-        _partialIds.add(msgId);
-        // Use a stable uuid derived from the message id so the controller
-        // can upsert this item in place on every partial update.
-        final stableUuid = 'partial-$msgId';
-        final overridden = Map<String, dynamic>.from(ev);
-        overridden['uuid'] = stableUuid;
-        final parsed = parseTranscriptChunk(jsonEncode(overridden));
-        for (final item in parsed.items) {
-          _items.add(item);
-        }
-        _mergeStatus(parsed.status.merge(_statusFromEvent(ev)));
-        return;
+      final content = message is Map ? message['content'] : null;
+      final isSingleText = content is List && content.length == 1 && content.single is Map && (content.single as Map)['type'] == 'text';
+      if (msgId != null && _streamText.containsKey(msgId) && !_streamFinalized.contains(msgId) && isSingleText) {
+        ev = {...ev, 'uuid': 'partial-$msgId'};
+        _streamFinalized.add(msgId);
       }
     }
 
-    // For a final (non-partial) assistant event whose message.id was seen as
-    // a partial, remove the partial-id from tracking and let the normal path
-    // emit the final item (it will append at a new position since its uuid
-    // differs from the `partial-<id>` placeholder).
-    if (!isPartial && ev['type'] == 'assistant') {
-      final message = ev['message'];
-      final msgId = message is Map ? message['id'] as String? : null;
-      if (msgId != null) _partialIds.remove(msgId);
-    }
-
     // Items + assistant model/tokens reuse the transcript parser (identical
-    // message.content shapes).
-    final parsed = parseTranscriptChunk(trimmed);
+    // message.content shapes). Parse the possibly-rewritten event.
+    final parsed = parseTranscriptChunk(jsonEncode(ev));
     for (final item in parsed.items) {
       _items.add(item);
     }
     // The `init` event carries permission mode (no `permission-mode` record
     // exists in stream-json); fold it in alongside the parsed deltas.
     _mergeStatus(parsed.status.merge(_statusFromEvent(ev)));
+  }
+
+  /// Handle a `stream_event` (a wrapped Anthropic streaming delta). We render
+  /// only assistant *text* token-by-token: `message_start` announces the id,
+  /// `content_block_delta{text_delta}` grows it. Each tick emits a placeholder
+  /// item with a stable `partial-<id>` uuid so the controller upserts in place;
+  /// the final `assistant` event finalises it (see [_onLine]). Thinking and
+  /// tool_use blocks are left to render from their final `assistant` events.
+  void _onStreamEvent(Map<String, dynamic> ev) {
+    final event = ev['event'];
+    if (event is! Map) return;
+    switch (event['type']) {
+      case 'message_start':
+        final msg = event['message'];
+        final id = msg is Map ? msg['id'] as String? : null;
+        if (id != null) {
+          _streamingMsgId = id;
+          _streamText[id] = '';
+          _streamFinalized.remove(id);
+        }
+      case 'content_block_delta':
+        final delta = event['delta'];
+        final msgId = _streamingMsgId;
+        if (delta is Map && delta['type'] == 'text_delta' && msgId != null) {
+          final text = (_streamText[msgId] ?? '') + (delta['text'] as String? ?? '');
+          _streamText[msgId] = text;
+          final synthetic = {
+            'type': 'assistant',
+            'message': {
+              'id': msgId,
+              'role': 'assistant',
+              'content': [
+                {'type': 'text', 'text': text},
+              ],
+            },
+            'uuid': 'partial-$msgId',
+          };
+          final parsed = parseTranscriptChunk(jsonEncode(synthetic));
+          for (final item in parsed.items) {
+            _items.add(item);
+          }
+        }
+      case 'message_stop':
+        _streamingMsgId = null;
+    }
   }
 
   /// Handle an inbound `control_request`. `can_use_tool` becomes a [ToolPrompt]

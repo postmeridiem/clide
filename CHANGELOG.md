@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Claude replies now stream token-by-token. The `--include-partial-messages`
+  output arrives as `stream_event` deltas (not `assistant`+`partial:true` as
+  first assumed), so the previous handler never fired; the session now reads the
+  real shape, growing a placeholder in place and finalizing it from the matching
+  `assistant` event. (T-184)
 - Claude conversation card actions (copy + custom) are now keyboard-focusable
   and always reachable — revealed on hover or focus, activatable by Tab +
   Enter/Space, with Semantics labels for assistive tech (T-174).

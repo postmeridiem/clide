@@ -104,10 +104,36 @@ String rateLimitEvent({String? status, String? resetsAt}) => jsonEncode({
       },
     });
 
-String partialAssistantText(String messageId, String text) => jsonEncode({
+// Real `--include-partial-messages` wire shape (captured from claude 2.1.150,
+// interactive stream-json mode — T-184): partials arrive as `stream_event`
+// envelopes wrapping Anthropic streaming deltas, NOT `assistant`+`partial:true`.
+String streamMessageStart(String messageId) => jsonEncode({
+      'type': 'stream_event',
+      'event': {
+        'type': 'message_start',
+        'message': {'id': messageId, 'role': 'assistant', 'content': <dynamic>[]},
+      },
+    });
+
+String streamTextDelta(String text, {int index = 0}) => jsonEncode({
+      'type': 'stream_event',
+      'event': {
+        'type': 'content_block_delta',
+        'index': index,
+        'delta': {'type': 'text_delta', 'text': text},
+      },
+    });
+
+String streamMessageStop() => jsonEncode({
+      'type': 'stream_event',
+      'event': {'type': 'message_stop'},
+    });
+
+// The final per-block `assistant` event carrying a message id (so the session
+// can pair it with a streamed placeholder).
+String assistantTextWithId(String messageId, String text, {String uuid = 'final-uuid'}) => jsonEncode({
       'type': 'assistant',
-      'partial': true,
-      'uuid': 'partial-uuid',
+      'uuid': uuid,
       'message': {
         'id': messageId,
         'role': 'assistant',
@@ -232,36 +258,55 @@ void main() {
     });
   });
 
-  group('partial-message streaming (T-168)', () {
-    test('a partial assistant event uses a stable uuid (partial-<msgId>) for in-place updates', () async {
-      proc.emit(partialAssistantText('msg-1', 'hello so far'));
+  group('token streaming via stream_event (T-168, shape verified by T-184)', () {
+    test('content_block_delta text streams under a stable partial-<msgId> uuid, accumulating', () async {
+      proc.emit(streamMessageStart('msg-1'));
+      proc.emit(streamTextDelta('one '));
+      proc.emit(streamTextDelta('two three'));
       await Future<void>.delayed(Duration.zero);
-      // The item emitted uses the stable partial uuid so the controller can upsert it.
-      expect(items.whereType<AssistantTextMessage>(), hasLength(1));
-      expect(items.whereType<AssistantTextMessage>().first.uuid, 'partial-msg-1');
-      expect(items.whereType<AssistantTextMessage>().first.text, 'hello so far');
-    });
-
-    test('two partial events for the same message.id both carry the stable uuid', () async {
-      proc.emit(partialAssistantText('msg-2', 'hello'));
-      await Future<void>.delayed(Duration.zero);
-      proc.emit(partialAssistantText('msg-2', 'hello world'));
-      await Future<void>.delayed(Duration.zero);
-      // Both carry the same stable uuid so a ConversationController can upsert them.
       final parts = items.whereType<AssistantTextMessage>().toList();
-      expect(parts.every((m) => m.uuid == 'partial-msg-2'), isTrue);
+      // Each delta emits an upserting placeholder; all share the stable uuid and
+      // the latest carries the accumulated text.
+      expect(parts, isNotEmpty);
+      expect(parts.every((m) => m.uuid == 'partial-msg-1'), isTrue);
+      expect(parts.last.text, 'one two three');
     });
 
-    test('partial tracking is cleared after a result event', () async {
-      proc.emit(partialAssistantText('msg-3', 'streaming'));
+    test('the final assistant text event finalises the placeholder in place (same uuid)', () async {
+      proc.emit(streamMessageStart('msg-2'));
+      proc.emit(streamTextDelta('hel'));
+      proc.emit(assistantTextWithId('msg-2', 'hello there'));
       await Future<void>.delayed(Duration.zero);
+      final parts = items.whereType<AssistantTextMessage>().toList();
+      // The final, complete text reuses the placeholder uuid so the controller
+      // replaces rather than appends — no duplicate.
+      expect(parts.last.uuid, 'partial-msg-2');
+      expect(parts.last.text, 'hello there');
+    });
+
+    test('a tool_use block keeps its own uuid and appends after the streamed text', () async {
+      proc.emit(streamMessageStart('msg-3'));
+      proc.emit(streamTextDelta('working'));
+      proc.emit(assistantTextWithId('msg-3', 'working on it')); // finalises partial-msg-3
+      proc.emit(assistantToolUse()); // separate block, own uuid
+      await Future<void>.delayed(Duration.zero);
+      final tool = items.whereType<AssistantToolUse>().single;
+      expect(tool.uuid, isNot('partial-msg-3'));
+      expect(items.last, isA<AssistantToolUse>());
+    });
+
+    test('streaming state resets after a result so the next turn streams cleanly', () async {
+      proc.emit(streamMessageStart('msg-4'));
+      proc.emit(streamTextDelta('first'));
+      proc.emit(streamMessageStop());
       proc.emit(jsonEncode({'type': 'result', 'result': '', 'usage': <String, dynamic>{}}));
       await Future<void>.delayed(Duration.zero);
-      // Clearing partial tracking is internal state — observable only via the
-      // session not crashing and accepting a new partial for the same id.
-      proc.emit(partialAssistantText('msg-3', 'new turn'));
+      // A new turn reusing the same id still streams (no leftover finalised flag).
+      proc.emit(streamMessageStart('msg-4'));
+      proc.emit(streamTextDelta('second'));
       await Future<void>.delayed(Duration.zero);
-      expect(items.whereType<AssistantTextMessage>(), isNotEmpty);
+      final parts = items.whereType<AssistantTextMessage>().toList();
+      expect(parts.last.text, 'second');
     });
   });
 

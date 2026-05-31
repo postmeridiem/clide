@@ -68,6 +68,19 @@ One JSON object per line. Types seen:
   `1000000`) **and `maxOutputTokens`** — i.e. the context-window *size* IS exposed
   here (relevant to the T-158 budget gap; the remaining-budget % still is not).
 - `rate_limit_event` — `{rate_limit_info:{status,resetsAt,rateLimitType,…}}`.
+- `stream_event` — **only with `--include-partial-messages`** (T-184). Wraps the
+  raw Anthropic streaming deltas as they arrive: `{type:"stream_event", event:{…}}`
+  where `event.type` is `message_start` (carries `message.id`) → `content_block_start`
+  → `content_block_delta` (`delta:{type:"text_delta",text}` / `thinking_delta` /
+  `input_json_delta`, with `index`) → `content_block_stop` → `message_delta` →
+  `message_stop`. The full per-block `assistant` event still arrives interleaved.
+  **Verified against 2.1.150 in BOTH `--print` and the interactive `--input-format
+  stream-json` transport** — the flag's `--help` claim that it "only works with
+  --print" is wrong; it streams in interactive mode too. `content_block_delta`
+  events do NOT carry a message id, so track the id from the preceding
+  `message_start`. (This is the real shape; the earlier guess of
+  `assistant`+`partial:true` was wrong — `StreamJsonSession` streams text from
+  `stream_event` and finalises via the matching `assistant` event.)
 
 The existing `parseTranscriptChunk` (transcript_reader.dart) parses the
 `assistant`/`user` events as-is (same `message.content` shapes; missing
