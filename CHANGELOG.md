@@ -79,6 +79,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   sender chips), in a compact cockpit widget that pops out to a full pane. The
   user is a first-class participant: post with `@name` routing (or broadcast),
   with an interrupt tickbox that cancels the target's turn before delivery. (T-180, D-77)
+- Config sidebar tab — a pinned settings table plus expandable, never-truncated
+  sections for skills / agents / commands / hooks / permissions (colour-coded by
+  kind) / MCP servers; file-backed entries open their `.md` in the reader. ClaudeConfig
+  now also surfaces agents, hooks, MCP servers, and file paths. (T-183, D-76)
 - Team coordination broker (T-170, D-77) — clide hosts an in-process MCP
   server (`clide-team`) for managed sessions over the stream-json control
   channel, giving agents tools to message each other, broadcast, see the

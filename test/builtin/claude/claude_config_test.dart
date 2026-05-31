@@ -294,4 +294,91 @@ void main() {
     expect(versionCalls, 1, reason: 'refresh is disk-only');
     c.dispose();
   });
+
+  // T-183: path fields, agents, hooks, MCP servers ------------------------------
+
+  Future<void> writeAgent(Directory scope, String fileName) async {
+    final d = Directory('${scope.path}/agents')..createSync(recursive: true);
+    await File('${d.path}/$fileName').writeAsString('# agent');
+  }
+
+  test('skill and command entries carry their absolute file path (T-183)', () async {
+    await writeSkill(globalDir, 'my-skill', name: 'my-skill');
+    await writeCommand(globalDir, 'deploy.md');
+    final c = build();
+    await c.load();
+
+    final skill = c.skills.first;
+    expect(skill.path, isNotNull);
+    expect(skill.path, endsWith('my-skill/SKILL.md'));
+
+    final cmd = c.commands.first;
+    expect(cmd.path, isNotNull);
+    expect(cmd.path, endsWith('deploy.md'));
+    c.dispose();
+  });
+
+  test('agents scanned from <scope>/agents/*.md (T-183)', () async {
+    await writeAgent(globalDir, 'planner.md');
+    await writeAgent(localDir, 'coder.md');
+    final c = build();
+    await c.load();
+
+    expect(c.agents.map((a) => a.name), containsAll(['planner', 'coder']));
+    final planner = c.agents.firstWhere((a) => a.name == 'planner');
+    expect(planner.scope, ConfigScope.global);
+    expect(planner.path, isNotNull);
+    expect(planner.path, endsWith('planner.md'));
+    c.dispose();
+  });
+
+  test('agents deduplicated local-over-global same as skills (T-183)', () async {
+    await writeAgent(globalDir, 'shared.md');
+    await writeAgent(localDir, 'shared.md');
+    final c = build();
+    await c.load();
+    expect(c.agents.where((a) => a.name == 'shared'), hasLength(1));
+    final shared = c.agents.firstWhere((a) => a.name == 'shared');
+    expect(shared.scope, ConfigScope.local, reason: 'local wins on collision');
+    c.dispose();
+  });
+
+  test('hooks parsed from settings.json hooks key (T-183)', () async {
+    await writeSettings(globalDir, {
+      'hooks': {
+        'PreToolUse': [
+          {
+            'hooks': [
+              {'command': 'echo pre-tool'},
+            ],
+          },
+        ],
+      },
+    });
+    final c = build();
+    await c.load();
+    expect(c.hooks, hasLength(1));
+    expect(c.hooks.first.event, 'PreToolUse');
+    expect(c.hooks.first.commands, ['echo pre-tool']);
+    c.dispose();
+  });
+
+  test('mcpServers parsed from settings.json mcpServers key (T-183)', () async {
+    await writeSettings(globalDir, {
+      'mcpServers': {'brave': {}, 'clide': {}},
+    });
+    final c = build();
+    await c.load();
+    expect(c.mcpServers.map((s) => s.name), containsAll(['brave', 'clide']));
+    c.dispose();
+  });
+
+  test('empty settings produce empty hooks and mcpServers (T-183)', () async {
+    final c = build();
+    await c.load();
+    expect(c.agents, isEmpty);
+    expect(c.hooks, isEmpty);
+    expect(c.mcpServers, isEmpty);
+    c.dispose();
+  });
 }

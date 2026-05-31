@@ -96,6 +96,9 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   ClaudeSessionOrchestrator? _orchestrator;
   SessionStatus? _primaryStatus;
 
+  // T-183: Config accordion expansion state — each section starts collapsed.
+  final Set<_ConfigSection> _expanded = {};
+
   /// agentId currently in "inject message" mode (shows the text field).
   String? _injectingAgentId;
   final _injectCtl = TextEditingController();
@@ -383,7 +386,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     ClideKernel.of(context).panels.activateTab(Slots.workspace, 'claude.team-chat');
   }
 
-  // --- Config ---------------------------------------------------------------
+  // --- Config (T-183) -------------------------------------------------------
 
   Widget _configBody(SurfaceTokens tokens) {
     final config = _config;
@@ -394,14 +397,233 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     final model = config.probe?.model ?? settings['model']?.toString() ?? '—';
     final outputStyle = settings['outputStyle']?.toString() ?? 'default';
     final mode = config.probe?.permissionMode ?? settings['permissionMode']?.toString() ?? 'default';
-    return _metaTable(tokens, [
-      _MetaSection('SETTINGS', [
-        _MetaRow('model', model, valueColor: tokens.globalFocus),
-        _MetaRow('output style', outputStyle),
-        _MetaRow('permission mode', permissionModeLabel(mode)),
-        _MetaRow('source', '~/.claude + .claude'),
-      ]),
-    ]);
+
+    final children = <Widget>[
+      // Pinned SETTINGS table — not collapsible.
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: ClideText('SETTINGS', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+      ),
+      _configRow(tokens, 'model', model, valueColor: tokens.globalFocus),
+      _configRow(tokens, 'output style', outputStyle),
+      _configRow(tokens, 'permission mode', permissionModeLabel(mode)),
+      _configRow(tokens, 'source', '~/.claude + .claude'),
+
+      // ---- Accordion sections ----
+      _configAccordion(tokens, config, _ConfigSection.skills),
+      _configAccordion(tokens, config, _ConfigSection.agents),
+      _configAccordion(tokens, config, _ConfigSection.commands),
+      _configAccordion(tokens, config, _ConfigSection.hooks),
+      _configAccordion(tokens, config, _ConfigSection.permissions),
+      _configAccordion(tokens, config, _ConfigSection.mcpServers),
+
+      // Footer hint.
+      Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: ClideText(
+          'expand a list to see all · click a skill/agent/command → opens its .md',
+          muted: true,
+          fontSize: clideFontSmall,
+        ),
+      ),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: children,
+    );
+  }
+
+  /// One key→value row in the pinned SETTINGS table.
+  Widget _configRow(SurfaceTokens tokens, String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: _rowPitch),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: _labelColumnWidth,
+            child: ClideText(label, muted: true, fontSize: clideFontSmall),
+          ),
+          Expanded(
+            child: ClideText(value, fontSize: clideFontSmall, color: valueColor ?? tokens.globalForeground),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _configSectionLabel(_ConfigSection section) => switch (section) {
+        _ConfigSection.skills => 'SKILLS',
+        _ConfigSection.agents => 'AGENTS',
+        _ConfigSection.commands => 'COMMANDS',
+        _ConfigSection.hooks => 'HOOKS',
+        _ConfigSection.permissions => 'PERMISSIONS',
+        _ConfigSection.mcpServers => 'MCP SERVERS',
+      };
+
+  int _configSectionCount(ClaudeConfig config, _ConfigSection section) => switch (section) {
+        _ConfigSection.skills => config.skills.length,
+        _ConfigSection.agents => config.agents.length,
+        _ConfigSection.commands => config.commands.length,
+        _ConfigSection.hooks => config.hooks.length,
+        _ConfigSection.permissions => config.permissions.allow.length + config.permissions.deny.length + config.permissions.ask.length,
+        _ConfigSection.mcpServers => config.mcpServers.length,
+      };
+
+  Widget _configAccordion(SurfaceTokens tokens, ClaudeConfig config, _ConfigSection section) {
+    final expanded = _expanded.contains(section);
+    final children = expanded ? _configSectionChildren(tokens, config, section) : const <Widget>[];
+    return ClideAccordion(
+      label: _configSectionLabel(section),
+      count: _configSectionCount(config, section),
+      expanded: expanded,
+      onToggle: () => setState(() {
+        if (expanded) {
+          _expanded.remove(section);
+        } else {
+          _expanded.add(section);
+        }
+      }),
+      children: children,
+    );
+  }
+
+  List<Widget> _configSectionChildren(SurfaceTokens tokens, ClaudeConfig config, _ConfigSection section) {
+    switch (section) {
+      case _ConfigSection.skills:
+        return [
+          for (final skill in config.skills) _configFileRow(tokens, skill.name, skill.path),
+        ];
+      case _ConfigSection.agents:
+        return [
+          for (final agent in config.agents) _configFileRow(tokens, agent.name, agent.path),
+        ];
+      case _ConfigSection.commands:
+        return [
+          for (final cmd in config.commands) _configFileRow(tokens, cmd.name, cmd.path),
+        ];
+      case _ConfigSection.hooks:
+        return [
+          for (final hook in config.hooks)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClideText(hook.event, fontSize: clideFontSmall, color: tokens.sidebarSectionHeader),
+                  for (final cmd in hook.commands)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, top: 1),
+                      child: ClideText(cmd, fontSize: clideFontSmall, muted: true),
+                    ),
+                ],
+              ),
+            ),
+        ];
+      case _ConfigSection.permissions:
+        return _permissionRows(tokens, config.permissions);
+      case _ConfigSection.mcpServers:
+        return [
+          for (final srv in config.mcpServers)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+              child: ClideText(srv.name, fontSize: clideFontSmall, color: tokens.globalForeground),
+            ),
+        ];
+    }
+  }
+
+  /// A tappable row for file-backed items (skills, agents, commands).
+  /// Fires `editor.open` with the path when tapped (D-6, T-183).
+  Widget _configFileRow(SurfaceTokens tokens, String name, String? path) {
+    final row = Padding(
+      padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+      child: ClideText(
+        name,
+        fontSize: clideFontSmall,
+        color: path != null ? tokens.globalFocus : tokens.globalForeground,
+      ),
+    );
+    if (path == null) return row;
+    return Semantics(
+      button: true,
+      label: name,
+      excludeSemantics: true,
+      onTap: () => unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path})),
+      child: ClideTappable(
+        tooltip: path,
+        onTap: () => unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path})),
+        builder: (ctx, hovered, _) => Padding(
+          padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+          child: ClideText(
+            name,
+            fontSize: clideFontSmall,
+            color: hovered ? tokens.globalForeground : tokens.globalFocus,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Renders grouped allow/ask/deny permission rows, colour-coded by kind.
+  List<Widget> _permissionRows(SurfaceTokens tokens, ClaudePermissions perms) {
+    const kindAllow = 'allow';
+    const kindAsk = 'ask';
+    const kindDeny = 'deny';
+
+    // allow → statusSuccess, ask → statusWarning, deny → statusError
+    Color kindColor(_ConfigPermKind k) => switch (k) {
+          _ConfigPermKind.allow => tokens.statusSuccess,
+          _ConfigPermKind.ask => tokens.statusWarning,
+          _ConfigPermKind.deny => tokens.statusError,
+        };
+
+    String kindLabel(_ConfigPermKind k) => switch (k) {
+          _ConfigPermKind.allow => kindAllow,
+          _ConfigPermKind.ask => kindAsk,
+          _ConfigPermKind.deny => kindDeny,
+        };
+
+    final groups = [
+      (_ConfigPermKind.allow, perms.allow),
+      (_ConfigPermKind.ask, perms.ask),
+      (_ConfigPermKind.deny, perms.deny),
+    ];
+
+    final rows = <Widget>[];
+    for (final (kind, rules) in groups) {
+      if (rules.isEmpty) continue;
+      final color = kindColor(kind);
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(left: 16, top: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 36,
+                child: ClideText(kindLabel(kind), fontSize: clideFontSmall, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final rule in rules)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 1),
+                        child: ClideText(rule, fontSize: clideFontSmall, color: tokens.globalForeground),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return rows;
   }
 
   // --- Shared rendering -----------------------------------------------------
@@ -447,6 +669,12 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     );
   }
 }
+
+// T-183: accordion sections for the Config tab.
+enum _ConfigSection { skills, agents, commands, hooks, permissions, mcpServers }
+
+/// Permission kind for colour-coding in the Config tab (T-183).
+enum _ConfigPermKind { allow, ask, deny }
 
 class _MetaSection {
   const _MetaSection(this.header, this.rows);

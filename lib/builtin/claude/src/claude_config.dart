@@ -34,17 +34,50 @@ enum ConfigScope { global, local }
 
 @immutable
 class ClaudeSkill {
-  const ClaudeSkill({required this.name, this.description, required this.scope});
+  const ClaudeSkill({required this.name, this.description, required this.scope, this.path});
   final String name;
   final String? description;
   final ConfigScope scope;
+
+  /// Absolute path to the SKILL.md file, or null if the skill isn't file-backed
+  /// (e.g. sourced from the probe cache only).
+  final String? path;
 }
 
 @immutable
 class ClaudeCommand {
-  const ClaudeCommand({required this.name, required this.scope});
+  const ClaudeCommand({required this.name, required this.scope, this.path});
   final String name;
   final ConfigScope scope;
+
+  /// Absolute path to the command's .md file, used for click-to-open (T-183).
+  final String? path;
+}
+
+/// A Claude agent — a sub-agent definition from `<scope>/agents/*.md`.
+@immutable
+class ClaudeAgent {
+  const ClaudeAgent({required this.name, required this.scope, this.path});
+  final String name;
+  final ConfigScope scope;
+
+  /// Absolute path to the agent's .md file, used for click-to-open (T-183).
+  final String? path;
+}
+
+/// One hook entry — a named group of commands from `settings['hooks']`.
+@immutable
+class ClaudeHook {
+  const ClaudeHook({required this.event, required this.commands});
+  final String event;
+  final List<String> commands;
+}
+
+/// A named MCP server entry from `settings['mcpServers']`.
+@immutable
+class ClaudeMcpServer {
+  const ClaudeMcpServer({required this.name});
+  final String name;
 }
 
 @immutable
@@ -172,6 +205,9 @@ class ClaudeConfig extends ChangeNotifier {
   bool _probing = false;
   List<ClaudeSkill> _skills = const [];
   List<ClaudeCommand> _commands = const [];
+  List<ClaudeAgent> _agents = const [];
+  List<ClaudeHook> _hooks = const [];
+  List<ClaudeMcpServer> _mcpServers = const [];
   Map<String, Object?> _settings = const {};
   ClaudePermissions _permissions = const ClaudePermissions();
   String? _error;
@@ -199,6 +235,16 @@ class ClaudeConfig extends ChangeNotifier {
 
   List<ClaudeSkill> get skills => _skills;
   List<ClaudeCommand> get commands => _commands;
+
+  /// Agent definitions scanned from `<scope>/agents/*.md` (T-183, D-76).
+  List<ClaudeAgent> get agents => _agents;
+
+  /// Hook entries parsed from `settings['hooks']` (T-183).
+  List<ClaudeHook> get hooks => _hooks;
+
+  /// MCP server names from `settings['mcpServers']` (T-183).
+  List<ClaudeMcpServer> get mcpServers => _mcpServers;
+
   Map<String, Object?> get settings => Map.unmodifiable(_settings);
   ClaudePermissions get permissions => _permissions;
 
@@ -326,12 +372,14 @@ class ClaudeConfig extends ChangeNotifier {
   Future<void> _loadDiskConfig() async {
     final skills = <ClaudeSkill>[];
     final commands = <ClaudeCommand>[];
+    final agents = <ClaudeAgent>[];
     final settings = <String, Object?>{};
     final allow = <String>[], deny = <String>[], ask = <String>[];
 
     for (final (scope, dir) in _scopeDirs()) {
       skills.addAll(await _loadSkills(dir, scope));
       commands.addAll(await _loadCommands(dir, scope));
+      agents.addAll(await _loadAgents(dir, scope));
       final s = await _loadSettings(dir);
       settings.addAll(s); // local overrides global per top-level key
       final p = _permissionsOf(s);
@@ -342,8 +390,11 @@ class ClaudeConfig extends ChangeNotifier {
 
     _skills = _dedupeByName(skills, (s) => s.name);
     _commands = _dedupeByName(commands, (c) => c.name);
+    _agents = _dedupeByName(agents, (a) => a.name);
     _settings = settings;
     _permissions = ClaudePermissions(allow: _uniq(allow), deny: _uniq(deny), ask: _uniq(ask));
+    _hooks = _parseHooks(settings['hooks']);
+    _mcpServers = _parseMcpServers(settings['mcpServers']);
   }
 
   /// Global first so that local entries, added later, win on collisions.
@@ -368,6 +419,7 @@ class ClaudeConfig extends ChangeNotifier {
         name: fm.name ?? _basename(entry.path),
         description: fm.description,
         scope: scope,
+        path: manifest.path,
       ));
     }
     return out;
@@ -380,7 +432,28 @@ class ClaudeConfig extends ChangeNotifier {
     await for (final entry in dir.list()) {
       if (entry is! File || !entry.path.endsWith('.md')) continue;
       final base = _basename(entry.path);
-      out.add(ClaudeCommand(name: base.substring(0, base.length - 3), scope: scope));
+      out.add(ClaudeCommand(
+        name: base.substring(0, base.length - 3),
+        scope: scope,
+        path: entry.path,
+      ));
+    }
+    return out;
+  }
+
+  /// Scans `<scopeDir>/agents/*.md` for agent definitions (T-183, D-76).
+  Future<List<ClaudeAgent>> _loadAgents(Directory scopeDir, ConfigScope scope) async {
+    final dir = Directory('${scopeDir.path}/agents');
+    if (!await dir.exists()) return const [];
+    final out = <ClaudeAgent>[];
+    await for (final entry in dir.list()) {
+      if (entry is! File || !entry.path.endsWith('.md')) continue;
+      final base = _basename(entry.path);
+      out.add(ClaudeAgent(
+        name: base.substring(0, base.length - 3),
+        scope: scope,
+        path: entry.path,
+      ));
     }
     return out;
   }
@@ -461,6 +534,48 @@ class ClaudeConfig extends ChangeNotifier {
       // Unparseable frontmatter — caller falls back to the dir name.
     }
     return (name: null, description: null);
+  }
+
+  /// Parse `settings['hooks']` into typed [ClaudeHook] entries.
+  ///
+  /// Claude's hooks are a `Map<String, List<{hooks: [{command: String}]}>>`
+  /// keyed on event name (e.g. `"PreToolUse"`). We flatten each event's
+  /// command list into a single [ClaudeHook].
+  static List<ClaudeHook> _parseHooks(Object? raw) {
+    if (raw is! Map) return const [];
+    final out = <ClaudeHook>[];
+    for (final entry in raw.entries) {
+      final event = '${entry.key}';
+      final cmds = <String>[];
+      // Each value is a list of hook groups; each group has a `hooks` list.
+      if (entry.value is List) {
+        for (final group in entry.value as List) {
+          if (group is Map) {
+            final hooksList = group['hooks'];
+            if (hooksList is List) {
+              for (final h in hooksList) {
+                if (h is Map) {
+                  final cmd = h['command'];
+                  if (cmd is String && cmd.isNotEmpty) cmds.add(cmd);
+                }
+              }
+            }
+          }
+        }
+      }
+      if (cmds.isNotEmpty) out.add(ClaudeHook(event: event, commands: cmds));
+    }
+    return out;
+  }
+
+  /// Parse `settings['mcpServers']` into [ClaudeMcpServer] entries.
+  ///
+  /// Claude's `mcpServers` is a `Map<String, {...config}>` keyed on server name.
+  static List<ClaudeMcpServer> _parseMcpServers(Object? raw) {
+    if (raw is! Map) return const [];
+    return [
+      for (final key in raw.keys) ClaudeMcpServer(name: '$key'),
+    ];
   }
 
   static List<T> _dedupeByName<T>(List<T> all, String Function(T) nameOf) {

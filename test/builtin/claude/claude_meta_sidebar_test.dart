@@ -9,6 +9,7 @@ import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/clide.dart' show IpcResponse;
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart' show EditableText, SizedBox, Semantics;
@@ -703,6 +704,384 @@ void main() {
 
       semantics.dispose();
       orch.dispose();
+    });
+  });
+
+  // T-183: Config tab accordion browser ----------------------------------------
+
+  group('T-183 Config accordion browser', () {
+    /// Build a fully-loaded [ClaudeConfig] via [tester.runAsync] so real I/O
+    /// and async work run outside FakeAsync. Returns a config whose load() has
+    /// completed; caller must call dispose() (via addTearDown).
+    Future<ClaudeConfig> loadedConfig(
+      WidgetTester tester,
+      Directory root, {
+      List<({String name, String dir})> skills = const [],
+      List<String> commands = const [],
+      List<String> agents = const [],
+      Map<String, Object?> settings = const {},
+    }) async {
+      final result = await tester.runAsync(() async {
+        final globalDir = Directory('${root.path}/global')..createSync(recursive: true);
+        final cacheDir = Directory('${root.path}/cache')..createSync(recursive: true);
+
+        for (final s in skills) {
+          final d = Directory('${globalDir.path}/skills/${s.dir}')..createSync(recursive: true);
+          await File('${d.path}/SKILL.md').writeAsString('---\nname: ${s.name}\n---\nbody');
+        }
+        for (final cmd in commands) {
+          final d = Directory('${globalDir.path}/commands')..createSync(recursive: true);
+          await File('${d.path}/$cmd.md').writeAsString('# $cmd');
+        }
+        for (final agent in agents) {
+          final d = Directory('${globalDir.path}/agents')..createSync(recursive: true);
+          await File('${d.path}/$agent.md').writeAsString('# $agent');
+        }
+        if (settings.isNotEmpty) {
+          await File('${globalDir.path}/settings.json').writeAsString(jsonEncode(settings));
+        }
+
+        final c = ClaudeConfig(
+          globalDir: globalDir,
+          cacheDir: cacheDir,
+          versionRunner: () async => '2.1.0 (Claude Code)\n',
+          initProbe: () async => null,
+          watch: (_) => const Stream<void>.empty(),
+          debounce: Duration.zero,
+        );
+        await c.load();
+        return c;
+      });
+      // tester.runAsync returns T? — the result is non-null here because the
+      // body always returns successfully.
+      return result!;
+    }
+
+    testWidgets('pinned SETTINGS table renders with model / output style / permission mode / source', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_settings');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir);
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(f, sidebar(config: config, initialTab: SidebarTab.config)));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('SETTINGS'), findsOneWidget);
+      expect(find.text('model'), findsOneWidget);
+      expect(find.text('output style'), findsOneWidget);
+      expect(find.text('permission mode'), findsOneWidget);
+      expect(find.text('source'), findsOneWidget);
+      expect(find.text('~/.claude + .claude'), findsOneWidget);
+    });
+
+    testWidgets('accordion sections appear for each kind with correct counts', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_counts');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(
+        tester,
+        dir,
+        skills: [
+          (name: 'git-commit', dir: 'git-commit'),
+          (name: 'pql', dir: 'pql'),
+        ],
+        commands: ['deploy', 'test'],
+        agents: ['planner'],
+        settings: {
+          'mcpServers': {'brave': {}, 'clide': {}},
+          'permissions': {
+            'allow': ['Bash(git *)'],
+            'deny': ['Bash(rm -rf *)'],
+          },
+        },
+      );
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      // Section headers with counts are rendered by ClideAccordion as "$label · $count".
+      expect(find.text('SKILLS · 2'), findsOneWidget);
+      expect(find.text('AGENTS · 1'), findsOneWidget);
+      expect(find.text('COMMANDS · 2'), findsOneWidget);
+      expect(find.text('PERMISSIONS · 2'), findsOneWidget);
+      expect(find.text('MCP SERVERS · 2'), findsOneWidget);
+    });
+
+    testWidgets('expanding SKILLS section shows all skill names (no ellipsis)', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_skills');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(
+        tester,
+        dir,
+        skills: [
+          (name: 'git-commit', dir: 'git-commit'),
+          (name: 'pql', dir: 'pql'),
+          (name: 'deep-research', dir: 'deep-research'),
+        ],
+      );
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      // Skills are hidden until expanded.
+      expect(find.text('git-commit'), findsNothing);
+
+      // Tap the SKILLS accordion header.
+      await tester.tap(find.text('SKILLS · 3'));
+      await tester.pump();
+
+      // All three skills render — no truncation.
+      expect(find.text('git-commit'), findsOneWidget);
+      expect(find.text('pql'), findsOneWidget);
+      expect(find.text('deep-research'), findsOneWidget);
+    });
+
+    testWidgets('expanding AGENTS section shows all agent names', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_agents');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir, agents: ['planner', 'coder']);
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('AGENTS · 2'));
+      await tester.pump();
+
+      expect(find.text('planner'), findsOneWidget);
+      expect(find.text('coder'), findsOneWidget);
+    });
+
+    testWidgets('expanding COMMANDS section shows all command names', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_cmds');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir, commands: ['deploy', 'test', 'lint']);
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('COMMANDS · 3'));
+      await tester.pump();
+
+      expect(find.text('deploy'), findsOneWidget);
+      expect(find.text('test'), findsOneWidget);
+      expect(find.text('lint'), findsOneWidget);
+    });
+
+    testWidgets('expanding PERMISSIONS shows rules grouped by allow / ask / deny', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_perms');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(
+        tester,
+        dir,
+        settings: {
+          'permissions': {
+            'allow': ['Bash(git *)'],
+            'ask': ['Write'],
+            'deny': ['Bash(rm -rf *)'],
+          },
+        },
+      );
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('PERMISSIONS · 3'));
+      await tester.pump();
+
+      // Group labels and rules should all appear.
+      expect(find.text('allow'), findsOneWidget);
+      expect(find.text('ask'), findsOneWidget);
+      expect(find.text('deny'), findsOneWidget);
+      expect(find.text('Bash(git *)'), findsOneWidget);
+      expect(find.text('Write'), findsOneWidget);
+      expect(find.text('Bash(rm -rf *)'), findsOneWidget);
+    });
+
+    testWidgets('expanding MCP SERVERS shows all server names', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_mcp');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(
+        tester,
+        dir,
+        settings: {
+          'mcpServers': {'brave': {}, 'clide': {}, 'github': {}},
+        },
+      );
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('MCP SERVERS · 3'));
+      await tester.pump();
+
+      expect(find.text('brave'), findsOneWidget);
+      expect(find.text('clide'), findsOneWidget);
+      expect(find.text('github'), findsOneWidget);
+    });
+
+    testWidgets('tapping a file-backed skill fires editor.open with its path', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_click');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir, skills: [(name: 'my-skill', dir: 'my-skill')]);
+      addTearDown(config.dispose);
+
+      // Capture editor.open calls through the fake IPC.
+      final opened = <String>[];
+      f.ipc.stub('editor.open', (args) async {
+        opened.add(args['path'] as String? ?? '');
+        return IpcResponse.ok(id: '', data: const {});
+      });
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      // Expand SKILLS, then tap the skill row.
+      await tester.tap(find.text('SKILLS · 1'));
+      await tester.pump();
+
+      // The skill name is the tappable label.
+      await tester.tap(find.text('my-skill'));
+      await tester.pump();
+
+      expect(opened, hasLength(1));
+      expect(opened.first, endsWith('my-skill/SKILL.md'));
+    });
+
+    testWidgets('tapping a file-backed command fires editor.open with its path', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_cmd_click');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir, commands: ['deploy']);
+      addTearDown(config.dispose);
+
+      final opened = <String>[];
+      f.ipc.stub('editor.open', (args) async {
+        opened.add(args['path'] as String? ?? '');
+        return IpcResponse.ok(id: '', data: const {});
+      });
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('COMMANDS · 1'));
+      await tester.pump();
+
+      await tester.tap(find.text('deploy'));
+      await tester.pump();
+
+      expect(opened, hasLength(1));
+      expect(opened.first, endsWith('deploy.md'));
+    });
+
+    testWidgets('tapping a file-backed agent fires editor.open with its path', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_agent_click');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir, agents: ['planner']);
+      addTearDown(config.dispose);
+
+      final opened = <String>[];
+      f.ipc.stub('editor.open', (args) async {
+        opened.add(args['path'] as String? ?? '');
+        return IpcResponse.ok(id: '', data: const {});
+      });
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('AGENTS · 1'));
+      await tester.pump();
+
+      await tester.tap(find.text('planner'));
+      await tester.pump();
+
+      expect(opened, hasLength(1));
+      expect(opened.first, endsWith('planner.md'));
+    });
+
+    testWidgets('accordion collapses when toggled a second time', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_collapse');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir, skills: [(name: 'git-commit', dir: 'git-commit')]);
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      // Expand.
+      await tester.tap(find.text('SKILLS · 1'));
+      await tester.pump();
+      expect(find.text('git-commit'), findsOneWidget);
+
+      // Collapse.
+      await tester.tap(find.text('SKILLS · 1'));
+      await tester.pump();
+      expect(find.text('git-commit'), findsNothing);
+    });
+
+    testWidgets('Config tab with empty sections shows zero counts on all headers', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('t183_empty');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final config = await loadedConfig(tester, dir);
+      addTearDown(config.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('SKILLS · 0'), findsOneWidget);
+      expect(find.text('AGENTS · 0'), findsOneWidget);
+      expect(find.text('COMMANDS · 0'), findsOneWidget);
+      expect(find.text('HOOKS · 0'), findsOneWidget);
+      expect(find.text('PERMISSIONS · 0'), findsOneWidget);
+      expect(find.text('MCP SERVERS · 0'), findsOneWidget);
     });
   });
 }
