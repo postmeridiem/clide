@@ -47,6 +47,28 @@ void main() {
     expect(act['path'], 'doc.md');
   });
 
+  test('editor.open with a 1-based line jumps the initial selection (T-52)', () async {
+    await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\nthree\n');
+    final r = await call('editor.open', {'path': 'multi.txt', 'line': 3});
+    expect(r.ok, isTrue);
+    final sel = r.data['selection'] as Map;
+    // Line 3 starts after 'one\n' + 'two\n' = 8 characters.
+    expect(sel['start'], 8);
+    expect(sel['end'], 8);
+  });
+
+  test('editor.open without a line opens at the top', () async {
+    await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\n');
+    final r = await call('editor.open', {'path': 'multi.txt'});
+    expect((r.data['selection'] as Map)['start'], 0);
+  });
+
+  test('editor.open with an out-of-range line clamps to the content end', () async {
+    await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\n'); // 8 chars
+    final r = await call('editor.open', {'path': 'multi.txt', 'line': 999});
+    expect((r.data['selection'] as Map)['start'], 8);
+  });
+
   test('editor.insert without id targets the active buffer', () async {
     await call('editor.open', {'path': 'doc.md'});
     final r = await call('editor.insert', {'text': 'X '});

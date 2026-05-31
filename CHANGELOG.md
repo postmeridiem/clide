@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Workspace content-search engine with `search.grep` / `search.cancel` commands:
+  a pure-Dart, isolate-parallel grep (literal or regex, case + include/exclude
+  glob filters) that streams matches and honours the `ignore_files:` chain. The
+  engine is in-process — no ripgrep dependency (D-79). (T-52)
+- `editor.open` accepts an optional 1-based `line` to position the initial
+  selection on open (backs find-in-files click-to-line). (T-52)
 - Quick-open file finder (Ctrl/Cmd+P): a fuzzy file picker overlay over the
   whole workspace, separate from the command palette. Empty query lists recent
   files; Enter opens `.md` in the markdown reader and other files in the editor.

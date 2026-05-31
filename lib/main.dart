@@ -37,6 +37,7 @@ import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/panel_commands.dart';
 import 'package:clide/src/daemon/panel_resizer_kernel.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
+import 'package:clide/src/daemon/search_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
@@ -166,6 +167,14 @@ Future<void> main() async {
     registerPaneCommands(dispatcher, paneRegistry);
     final filesService = FilesService(root: workRoot, events: eventSink);
     registerFilesCommands(dispatcher, filesService);
+    // Search reuses the files service's resolved ignore set so the
+    // grep honours the same ignore_files: layering (D-4 / D-79).
+    final searchService = SearchService(
+      root: workRoot,
+      ignore: filesService.ignore,
+      events: eventSink,
+    );
+    registerSearchCommands(dispatcher, searchService);
     final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
     registerEditorCommands(dispatcher, editorRegistry);
     final gitClient = GitClient(toolchain: tc, workDir: workRoot);

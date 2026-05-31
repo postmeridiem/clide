@@ -11,6 +11,7 @@ library;
 
 import 'dart:io' show FileSystemException;
 
+import '../editor/buffer.dart' show Selection;
 import '../editor/registry.dart';
 import '../ipc/envelope.dart';
 import '../ipc/errno_mapping.dart';
@@ -66,6 +67,14 @@ Future<IpcResponse> _open(IpcRequest req, EditorRegistry r) async {
   }
   try {
     final buf = await r.open(path);
+    // Optional 1-based line: jump the initial selection to that line's
+    // start (used by find-in-files click-to-line, T-52). Out-of-range
+    // lines clamp via setSelection. A non-numeric/<1 line is ignored.
+    final rawLine = req.args['line'];
+    final line = rawLine is num ? rawLine.toInt() : int.tryParse('$rawLine');
+    if (line != null && line >= 1) {
+      r.setSelection(buf.id, Selection.collapsed(_offsetForLine(buf.content, line)));
+    }
     return IpcResponse.ok(id: req.id, data: buf.toJson());
   } on FileSystemException catch (e) {
     final errno = e.osError?.errorCode;
@@ -93,6 +102,19 @@ Future<IpcResponse> _open(IpcRequest req, EditorRegistry r) async {
       ),
     );
   }
+}
+
+/// Byte offset of the start of the 1-based [line] in [content]. Lines
+/// past the end clamp to the content length.
+int _offsetForLine(String content, int line) {
+  if (line <= 1) return 0;
+  var remaining = line - 1;
+  var i = 0;
+  while (i < content.length && remaining > 0) {
+    if (content.codeUnitAt(i) == 0x0A) remaining--;
+    i++;
+  }
+  return i;
 }
 
 Future<IpcResponse> _active(IpcRequest req, EditorRegistry r) async {
