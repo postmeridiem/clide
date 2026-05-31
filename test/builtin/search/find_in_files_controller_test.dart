@@ -173,4 +173,44 @@ void main() {
     await c.run('foo');
     expect(sent!['exclude'], ['build/**', '*.g.dart']);
   });
+
+  test('setReplacement updates the field and notifies', () {
+    final c = make();
+    var n = 0;
+    c.addListener(() => n++);
+    c.setReplacement('baz');
+    expect(c.replacement, 'baz');
+    expect(n, 1);
+    c.setReplacement('baz'); // no change
+    expect(n, 1);
+  });
+
+  test('isWorkingTreeClean reflects git.status clean flag', () async {
+    f.ipc.stub('git.status', (_) async => _ok(const {'clean': true}));
+    expect(await make().isWorkingTreeClean(), isTrue);
+    f.ipc.stub('git.status', (_) async => _ok(const {'clean': false}));
+    expect(await make().isWorkingTreeClean(), isFalse);
+  });
+
+  test('applyReplace sends apply, returns the summary, and refreshes', () async {
+    Map<String, Object?>? sent;
+    var grepCalls = 0;
+    f.ipc.stub('search.replace', (args) async {
+      sent = args;
+      return _ok(const {'apply': true, 'filesChanged': 3, 'totalCount': 7});
+    });
+    f.ipc.stub('search.grep', (_) async {
+      grepCalls++;
+      return _ok({'searchId': 's1'});
+    });
+    final c = make();
+    c.setReplacement('baz');
+    await c.run('foo'); // grepCalls == 1
+    final res = await c.applyReplace();
+    expect(sent!['apply'], isTrue);
+    expect(sent!['replacement'], 'baz');
+    expect(res.files, 3);
+    expect(res.count, 7);
+    expect(grepCalls, 2); // applyReplace re-runs the search
+  });
 }

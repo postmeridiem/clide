@@ -13,6 +13,10 @@ import '../../helpers/widget_harness.dart';
 
 IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data);
 
+/// SearchPanelView wrapped in a DialogHost so the replace confirm /
+/// not-clean dialogs render and can be driven.
+Widget _withDialogs(KernelFixture f) => DialogHost(router: f.services.dialog, child: const SearchPanelView());
+
 void main() {
   late KernelFixture f;
 
@@ -114,5 +118,61 @@ void main() {
     await tester.tap(find.text('.*')); // regex toggle
     await pumpAsync(tester);
     expect(grepCalls, greaterThan(before));
+  });
+
+  // Drive a search so there are matches + set a replacement string.
+  Future<void> seedReplace(WidgetTester tester) async {
+    await tester.enterText(find.byType(EditableText).first, 'foo');
+    await tester.pump(const Duration(milliseconds: 250));
+    await pumpAsync(tester);
+    emitMatches();
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText).at(1), 'bar'); // replace field
+    await pumpAsync(tester);
+  }
+
+  testWidgets('replace preview renders the rewritten line', (tester) async {
+    await tester.pumpWidget(harness(f, _withDialogs(f)));
+    await seedReplace(tester);
+    // The emitted match line is 'final foo = 1;' → preview shows the after
+    // (rendered as a RichText span, so match on the plain text).
+    expect(
+      find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText() == 'final bar = 1;'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Replace all on a dirty tree shows a guard dialog, no apply', (tester) async {
+    var applyCalled = false;
+    f.ipc.stub('git.status', (_) async => _ok(const {'clean': false}));
+    f.ipc.stub('search.replace', (_) async {
+      applyCalled = true;
+      return _ok(const {'apply': true, 'filesChanged': 0, 'totalCount': 0});
+    });
+    await tester.pumpWidget(harness(f, _withDialogs(f)));
+    await seedReplace(tester);
+    await tester.tap(find.text('Replace all'));
+    await pumpAsync(tester);
+    expect(find.text('Working tree not clean'), findsOneWidget);
+    expect(applyCalled, isFalse);
+  });
+
+  testWidgets('Replace all on a clean tree confirms then applies', (tester) async {
+    Map<String, Object?>? applyArgs;
+    f.ipc.stub('git.status', (_) async => _ok(const {'clean': true}));
+    f.ipc.stub('search.replace', (args) async {
+      applyArgs = args;
+      return _ok(const {'apply': true, 'filesChanged': 1, 'totalCount': 1});
+    });
+    await tester.pumpWidget(harness(f, _withDialogs(f)));
+    await seedReplace(tester);
+    await tester.tap(find.text('Replace all'));
+    await pumpAsync(tester);
+    // Confirm dialog up; confirm it.
+    await tester.tap(find.text('Confirm'));
+    await pumpAsync(tester);
+    expect(applyArgs, isNotNull);
+    expect(applyArgs!['apply'], isTrue);
+    expect(applyArgs!['replacement'], 'bar');
   });
 }

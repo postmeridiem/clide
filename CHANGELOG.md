@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Search-and-replace across the workspace: enter a replacement in the search
+  panel to preview each rewritten line, then Replace all (regex capture groups
+  supported). Guarded by a clean-git-tree gate — git is the undo — and a
+  confirmation. New `search.replace` command (preview + apply). (T-53)
 - Find-in-files sidebar panel (Ctrl/Cmd+Shift+F): search the workspace with
   regex and case toggles plus include/exclude globs; results stream in grouped
   by file and clicking a match opens the editor at that line. (T-52)

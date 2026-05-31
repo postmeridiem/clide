@@ -27,6 +27,7 @@ class FindInFilesController extends ChangeNotifier {
   bool ignoreCase = false;
   String includeGlobs = '';
   String excludeGlobs = '';
+  String replacement = '';
 
   // -- Result state ---------------------------------------------------------
   String? _activeSearchId;
@@ -66,6 +67,42 @@ class FindInFilesController extends ChangeNotifier {
 
   set include(String v) => includeGlobs = v;
   set exclude(String v) => excludeGlobs = v;
+
+  void setReplacement(String v) {
+    if (replacement == v) return;
+    replacement = v;
+    notifyListeners();
+  }
+
+  /// True when the git working tree has no changes — the safety gate for
+  /// applying a destructive multi-file replace (the user's chosen model:
+  /// git is the lossless undo layer).
+  Future<bool> isWorkingTreeClean() async {
+    final r = await ipc.request('git.status');
+    return r.ok && r.data['clean'] == true;
+  }
+
+  /// Apply the current replacement across all matches, then refresh the
+  /// results. Returns the number of files changed and matches replaced.
+  /// Callers must gate on [isWorkingTreeClean] + user confirmation first.
+  Future<({int files, int count})> applyReplace() async {
+    final r = await ipc.request('search.replace', args: {
+      'pattern': pattern,
+      'regex': regex,
+      'ignoreCase': ignoreCase,
+      'include': _split(includeGlobs),
+      'exclude': _split(excludeGlobs),
+      'replacement': replacement,
+      'apply': true,
+    });
+    final files = (r.data['filesChanged'] as num?)?.toInt() ?? 0;
+    final count = (r.data['totalCount'] as num?)?.toInt() ?? 0;
+    await run(pattern); // refresh the match list against the new content
+    return (files: files, count: count);
+  }
+
+  /// The query the panel is currently running (for preview rendering).
+  SearchQuery get query => SearchQuery(pattern: pattern, regex: regex, ignoreCase: ignoreCase);
 
   /// Start a search with the current query/options. Cancels any
   /// in-flight search first and clears prior results.

@@ -11,12 +11,14 @@ import 'dart:async';
 import 'dart:io';
 
 import '../files/ignore.dart';
+import '../files/path_safety.dart';
 import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
 import '../search/grep_engine.dart';
 import '../search/match.dart';
+import '../search/replace_engine.dart';
 import 'dispatcher.dart';
 
 /// Owns in-flight searches and streams their results onto the event
@@ -53,6 +55,50 @@ class SearchService {
   /// Cancel an in-flight search (no-op if already finished).
   void cancel(String id) {
     _active.remove(id)?.cancel();
+  }
+
+  /// Compute (preview) or perform (apply) a search-and-replace.
+  ///
+  /// Preview returns per-file before/after edits without touching disk.
+  /// Apply writes each changed file's new content through the workspace
+  /// path-safety guard. The clean-git-tree safety gate is enforced by
+  /// the caller (the UI checks `git.status` before requesting apply).
+  Future<Map<String, Object?>> replace(SearchQuery query, String replacement, {required bool apply}) async {
+    final files = await computeReplacements(
+      root: root,
+      ignore: ignore,
+      query: query,
+      replacement: replacement,
+    );
+    if (!apply) {
+      return {
+        'apply': false,
+        'files': [for (final f in files) f.toJson()],
+        'fileCount': files.length,
+        'totalCount': files.fold<int>(0, (s, f) => s + f.count),
+      };
+    }
+    final rootPath = root.absolute.path;
+    var changed = 0;
+    var total = 0;
+    for (final f in files) {
+      final newContent = rewriteFileContent(rootPath, f.path, query, replacement);
+      if (newContent == null) continue;
+      final String abs;
+      try {
+        abs = resolveUnderRootFollowingSymlinks(root, f.path);
+      } on PathOutsideRoot {
+        continue;
+      }
+      try {
+        File(abs).writeAsStringSync(newContent);
+        changed++;
+        total += f.count;
+      } catch (_) {
+        // skip unwritable files; the rest still apply
+      }
+    }
+    return {'apply': true, 'filesChanged': changed, 'totalCount': total};
   }
 
   Future<void> _run(String id, SearchQuery query, CancelToken cancel) async {
@@ -101,6 +147,19 @@ const CommandSchema _grepSchema = CommandSchema(
   },
 );
 
+const CommandSchema _replaceSchema = CommandSchema(
+  positional: ['pattern', 'replacement'],
+  args: {
+    'pattern': ArgSpec(required: true),
+    'replacement': ArgSpec(),
+    'regex': ArgSpec(type: ArgType.boolean),
+    'ignoreCase': ArgSpec(type: ArgType.boolean),
+    'include': ArgSpec(type: ArgType.stringList),
+    'exclude': ArgSpec(type: ArgType.stringList),
+    'apply': ArgSpec(type: ArgType.boolean),
+  },
+);
+
 void registerSearchCommands(DaemonDispatcher d, SearchService search) {
   d.register('search.grep', (req) async {
     final query = SearchQuery.fromJson(req.args);
@@ -117,6 +176,35 @@ void registerSearchCommands(DaemonDispatcher d, SearchService search) {
     final id = search.start(query);
     return IpcResponse.ok(id: req.id, data: {'searchId': id});
   }, schema: _grepSchema);
+
+  d.register('search.replace', (req) async {
+    final query = SearchQuery.fromJson(req.args);
+    final replacement = (req.args['replacement'] as String?) ?? '';
+    final apply = req.args['apply'] == true;
+    if (query.pattern.isEmpty) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(
+          code: IpcExitCode.userError,
+          kind: IpcErrorKind.userError,
+          message: 'search.replace requires a non-empty pattern',
+        ),
+      );
+    }
+    try {
+      final result = await search.replace(query, replacement, apply: apply);
+      return IpcResponse.ok(id: req.id, data: result);
+    } on FormatException catch (e) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(
+          code: IpcExitCode.userError,
+          kind: IpcErrorKind.userError,
+          message: 'invalid regex: ${e.message}',
+        ),
+      );
+    }
+  }, schema: _replaceSchema);
 
   d.register('search.cancel', (req) async {
     final id = req.args['searchId'] as String?;

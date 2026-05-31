@@ -82,4 +82,34 @@ void main() {
     expect(r.ok, isTrue);
     expect(r.data['cancelled'], 'search-0');
   });
+
+  test('search.replace preview reports edits without touching disk', () async {
+    final r = await call('search.replace', const {'pattern': 'answer', 'replacement': 'result'});
+    expect(r.ok, isTrue);
+    expect(r.data['apply'], isFalse);
+    expect(r.data['fileCount'], 1);
+    expect(r.data['totalCount'], 1);
+    // File is untouched.
+    expect(File('${dir.path}/a.dart').readAsStringSync(), 'final answer = 42;\n');
+  });
+
+  test('search.replace apply rewrites the matching files', () async {
+    final r = await call('search.replace', const {'pattern': 'answer', 'replacement': 'result', 'apply': true});
+    expect(r.ok, isTrue);
+    expect(r.data['apply'], isTrue);
+    expect(r.data['filesChanged'], 1);
+    expect(File('${dir.path}/a.dart').readAsStringSync(), 'final result = 42;\n');
+  });
+
+  test('search.replace with an empty pattern is a userError', () async {
+    final r = await call('search.replace', const {'pattern': '', 'replacement': 'x'});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, IpcErrorKind.userError);
+  });
+
+  test('search.replace with an invalid regex is a userError', () async {
+    final r = await call('search.replace', const {'pattern': '(bad', 'regex': true, 'replacement': 'x'});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, IpcErrorKind.userError);
+  });
 }
