@@ -119,6 +119,12 @@ class _RootShellState extends State<_RootShell> {
                 return null;
               },
             ),
+            QuickOpenIntent: CallbackAction<QuickOpenIntent>(
+              onInvoke: (_) {
+                widget.services.quickOpen.open();
+                return null;
+              },
+            ),
             FocusNextPanelIntent: CallbackAction<FocusNextPanelIntent>(
               onInvoke: (_) {
                 widget.services.focus.focusNextSlot();
@@ -150,6 +156,7 @@ class _RootShellState extends State<_RootShell> {
                           children: [
                             const Positioned.fill(child: RootLayout()),
                             const ClidePalette(),
+                            const QuickOpenOverlay(),
                             const Positioned.fill(child: _WelcomeOverlay()),
                           ],
                         ),

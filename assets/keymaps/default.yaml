@@ -53,6 +53,29 @@ bindings:
     keys: escape
     when: palette.open
 
+  # -- Quick open (fuzzy file finder) -----------------------------------
+  # ctrl+p / meta+p are free while the palette is closed; the palette
+  # only claims ctrl+p for selectPrevious `when: palette.open`, so this
+  # is conflict-free. Arrow/enter/escape inside the overlay are handled
+  # locally by the widget.
+  - intent: quickOpen.open
+    keys: [ctrl+p, meta+p]
+    when: "!palette.open"
+  # Nav stays on arrows/ctrl+n (not ctrl+p — that's the open chord and
+  # would collide while the overlay is up).
+  - intent: quickOpen.selectNext
+    keys: [down, ctrl+n]
+    when: quickOpen.open
+  - intent: quickOpen.selectPrevious
+    keys: up
+    when: quickOpen.open
+  - intent: quickOpen.accept
+    keys: enter
+    when: quickOpen.open
+  - intent: dismiss
+    keys: escape
+    when: quickOpen.open
+
   # -- Text scale -------------------------------------------------------
   # On most layouts `+` is `shift+equal`; we bind both so users who
   # think of it as Ctrl+Plus and users who hit Ctrl+= both work.

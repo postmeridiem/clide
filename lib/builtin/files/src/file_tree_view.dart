@@ -211,20 +211,9 @@ class _FileRow extends StatelessWidget {
   }
 
   void _openFile(BuildContext context, String path) {
-    final kernel = ClideKernel.of(context);
-    if (path.toLowerCase().endsWith('.md')) {
-      // Route .md files to the markdown reader panel via the kernel MessageBus.
-      kernel.messages.publish('builtin.markdown', 'selection', {'path': path});
-    } else {
-      // editor.open is a daemon-side IPC handler (lib/src/daemon/
-      // editor_commands.dart), not a kernel command. Fire the request
-      // and let the editor extension's controller pick up the
-      // editor.active-changed / editor.opened event — no need to await
-      // or handle the response here.
-      unawaited(
-        kernel.ipc.request('editor.open', args: {'path': path}),
-      );
-    }
+    // Shared routing (T-187): .md → markdown reader, else editor.open;
+    // records the open in RecentFilesService for quick-open (T-51).
+    openWorkspaceFile(ClideKernel.of(context), path);
   }
 }
 
@@ -285,14 +274,7 @@ class _FilteredFileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     return ClideTappable(
-      onTap: () {
-        final kernel = ClideKernel.of(context);
-        if (entry.path.toLowerCase().endsWith('.md')) {
-          kernel.messages.publish('builtin.markdown', 'selection', {'path': entry.path});
-        } else {
-          unawaited(kernel.ipc.request('editor.open', args: {'path': entry.path}));
-        }
-      },
+      onTap: () => openWorkspaceFile(ClideKernel.of(context), entry.path),
       builder: (context, hovered, _) => Container(
         color: hovered ? tokens.sidebarItemHover : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),

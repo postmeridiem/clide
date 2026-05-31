@@ -54,6 +54,29 @@ class PaletteAcceptIntent extends Intent {
   const PaletteAcceptIntent();
 }
 
+// -- Quick open -------------------------------------------------------------
+
+/// Open the quick-open file finder (fuzzy file picker), distinct from
+/// the command palette.
+class QuickOpenIntent extends Intent {
+  const QuickOpenIntent();
+}
+
+/// Highlight the next quick-open result.
+class QuickOpenSelectNextIntent extends Intent {
+  const QuickOpenSelectNextIntent();
+}
+
+/// Highlight the previous quick-open result.
+class QuickOpenSelectPreviousIntent extends Intent {
+  const QuickOpenSelectPreviousIntent();
+}
+
+/// Open the highlighted quick-open result.
+class QuickOpenAcceptIntent extends Intent {
+  const QuickOpenAcceptIntent();
+}
+
 // -- Text scale -------------------------------------------------------------
 
 class TextScaleIncreaseIntent extends Intent {
@@ -95,6 +118,10 @@ final Map<String, Intent Function()> builtinIntents = {
   'palette.selectNext': () => const PaletteSelectNextIntent(),
   'palette.selectPrevious': () => const PaletteSelectPreviousIntent(),
   'palette.accept': () => const PaletteAcceptIntent(),
+  'quickOpen.open': () => const QuickOpenIntent(),
+  'quickOpen.selectNext': () => const QuickOpenSelectNextIntent(),
+  'quickOpen.selectPrevious': () => const QuickOpenSelectPreviousIntent(),
+  'quickOpen.accept': () => const QuickOpenAcceptIntent(),
   'text.scaleIncrease': () => const TextScaleIncreaseIntent(),
   'text.scaleDecrease': () => const TextScaleDecreaseIntent(),
   'text.scaleReset': () => const TextScaleResetIntent(),

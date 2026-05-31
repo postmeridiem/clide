@@ -23,6 +23,8 @@ import 'package:clide/kernel/src/os.dart';
 import 'package:clide/kernel/src/panels/arrangement.dart';
 import 'package:clide/kernel/src/panels/registry.dart';
 import 'package:clide/kernel/src/project.dart';
+import 'package:clide/kernel/src/quick_open.dart';
+import 'package:clide/kernel/src/recent_files.dart';
 import 'package:clide/kernel/src/scheduler.dart';
 import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
@@ -49,6 +51,8 @@ class KernelServices {
     required this.arrangement,
     required this.commands,
     required this.palette,
+    required this.quickOpen,
+    required this.recentFiles,
     required this.keybindings,
     required this.clipboard,
     required this.files,
@@ -79,6 +83,8 @@ class KernelServices {
   final LayoutArrangement arrangement;
   final CommandRegistry commands;
   final PaletteController palette;
+  final QuickOpenController quickOpen;
+  final RecentFilesService recentFiles;
   final KeybindingResolver keybindings;
   final ClideClipboard clipboard;
   final FileServices files;
@@ -140,6 +146,8 @@ class KernelServices {
     final keymap = KeymapService(settings: settings, appDir: appDir);
     await keymap.load();
     final palette = PaletteController(commands);
+    final recentFiles = RecentFilesService();
+    final quickOpen = QuickOpenController(recentPaths: () => recentFiles.paths);
     final clipboard = ClideClipboard();
     final files = FileServices(events);
     final notify = Notifications();
@@ -219,6 +227,8 @@ class KernelServices {
       arrangement: arrangement,
       commands: commands,
       palette: palette,
+      quickOpen: quickOpen,
+      recentFiles: recentFiles,
       keybindings: keybindings,
       clipboard: clipboard,
       files: files,
@@ -248,6 +258,8 @@ class KernelServices {
     arrangement.dispose();
     commands.dispose();
     palette.dispose();
+    quickOpen.dispose();
+    recentFiles.dispose();
     i18n.dispose();
     notify.dispose();
     dialog.dispose();

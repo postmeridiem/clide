@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Quick-open file finder (Ctrl/Cmd+P): a fuzzy file picker overlay over the
+  whole workspace, separate from the command palette. Empty query lists recent
+  files; Enter opens `.md` in the markdown reader and other files in the editor.
+  (T-51)
 - Workspace ignore now follows the `ignore_files:` list in `.pql/config.yaml`
   (ordered, later-wins, per D-4) instead of a hardcoded `.gitignore` +
   `.clideignore` pair — the single ignore knob clide owns. (T-52)
