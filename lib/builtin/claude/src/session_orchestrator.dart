@@ -19,6 +19,7 @@ import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/team_broker.dart';
+import 'package:clide/builtin/claude/src/team_chat_model.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:flutter/foundation.dart';
 
@@ -146,7 +147,12 @@ class ManagedSession {
 ClaudeSessionOrchestrator? activeSessionOrchestrator;
 
 class ClaudeSessionOrchestrator extends ChangeNotifier {
-  ClaudeSessionOrchestrator({ProcessFactory? processFactory}) : _factory = processFactory ?? _spawnClaude;
+  ClaudeSessionOrchestrator({ProcessFactory? processFactory}) : _factory = processFactory ?? _spawnClaude {
+    _chatModel = TeamChatModel(
+      broker: broker,
+      sessionResolver: (name) => byMemberName(name)?.session,
+    );
+  }
 
   final ProcessFactory _factory;
   final _sessions = <String, ManagedSession>{};
@@ -155,6 +161,13 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   /// routes through this; a `send_message` is delivered into the target
   /// session's next turn (T-170).
   late final TeamBroker broker = TeamBroker(deliver: _deliverToSession);
+
+  /// The shared chat timeline and user-post logic (T-180). Both the compact
+  /// sidebar widget and the full workspace pane read from this model.
+  late final TeamChatModel _chatModel;
+
+  /// Exposes the shared chat model to widgets and panes.
+  TeamChatModel get chatModel => _chatModel;
 
   void _deliverToSession(String toId, String text) => _sessions[toId]?.session.send(text);
 
@@ -328,6 +341,8 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       m.conversation.dispose();
     }
     _sessions.clear();
+    _chatModel.dispose();
+    broker.dispose();
     super.dispose();
   }
 }

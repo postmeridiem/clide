@@ -9,6 +9,7 @@ import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:clide/builtin/claude/src/session_storage.dart';
+import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -172,6 +173,56 @@ class ClaudeExtension extends ClideExtension {
             final toId = args[1];
             final ok = _orchestrator?.broker.reassignTask(taskId, toId) ?? false;
             return IpcResponse.ok(id: '', data: {'taskId': taskId, 'toId': toId, 'ok': ok});
+          },
+        ),
+        // T-180: full team chat pane opened as a workspace tab.
+        // Shares the TeamChatModel with the sidebar widget.
+        TabContribution(
+          id: 'claude.team-chat',
+          slot: Slots.workspace,
+          title: 'Team Chat',
+          titleKey: 'tab.title',
+          i18nNamespace: id,
+          priority: 85,
+          build: (_) {
+            final orch = _orchestrator;
+            if (orch == null) return const SizedBox.shrink();
+            return TeamChatPane(model: orch.chatModel, broker: orch.broker);
+          },
+        ),
+        // CLI parity: open the team chat pane from the shell.
+        // Usage: clide claude.team-chat.open
+        CommandContribution(
+          id: 'claude.team-chat.open',
+          command: 'claude.team-chat.open',
+          title: 'Claude: open the team chat pane',
+          run: (args) async {
+            _ctx?.panels.activateTab(Slots.workspace, 'claude.team-chat');
+            return IpcResponse.ok(id: '', data: const {'status': 'opened'});
+          },
+        ),
+        // Usage: clide claude.team-chat.post [@name] <text...>
+        // Posts a message into the broker channel as the user.
+        // Leading @name tag selects the recipient; omit for broadcast.
+        CommandContribution(
+          id: 'claude.team-chat.post',
+          command: 'claude.team-chat.post',
+          title: 'Claude: post a message into the team channel as the user',
+          run: (args) async {
+            if (args.isEmpty) return IpcResponse.ok(id: '', data: const {'error': 'usage: [@name] <text>'});
+            final raw = args.join(' ');
+            String? recipient;
+            String body = raw;
+            if (raw.startsWith('@')) {
+              final ws = raw.indexOf(RegExp(r'\s'));
+              if (ws > 0) {
+                final tag = raw.substring(1, ws);
+                recipient = (tag == 'team' || tag.isEmpty) ? null : tag;
+                body = raw.substring(ws).trim();
+              }
+            }
+            _orchestrator?.chatModel.postAsUser(body, toName: recipient);
+            return IpcResponse.ok(id: '', data: {'status': 'posted', if (recipient != null) 'to': recipient});
           },
         ),
         // claude.agent.fork: branch a managed session into a new fork session

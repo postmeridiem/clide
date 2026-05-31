@@ -52,14 +52,22 @@ void main() {
   test('broadcast reaches every other member but not the sender', () async {
     broker.addMember(const TeamMemberRef(id: 'teammate:qatux', name: 'qatux', role: 'teammate'));
     final r = decode(await lead.callTool('broadcast', {'text': 'standup'}));
-    expect((r['recipients'] as List).toSet(), {'tyre', 'qatux'});
-    expect(delivered.map((d) => d.$1).toSet(), {'teammate:tyre', 'teammate:qatux'});
+    // 'user' is also in the recipients (T-180 virtual member), but has no
+    // stdin delivery (handled by the chat model, not the MessageDelivery callback).
+    final recipients = (r['recipients'] as List).toSet();
+    expect(recipients, containsAll({'tyre', 'qatux'}));
+    // Only real sessions get stdin delivery; 'user' is skipped in _enqueue.
+    expect(delivered.map((d) => d.$1).toSet(), containsAll({'teammate:tyre', 'teammate:qatux'}));
+    expect(delivered.map((d) => d.$1), isNot(contains('user')));
   });
 
   test('list_teammates returns the other members with roles', () async {
     final r = decode(await lead.callTool('list_teammates', {}));
     final mates = r['teammates'] as List;
-    expect(mates.single, {'name': 'tyre', 'role': 'teammate'});
+    // Now includes the virtual 'user' member (T-180) in addition to 'tyre'.
+    expect(mates.map((m) => m['name']).toSet(), contains('tyre'));
+    final tyreMate = mates.firstWhere((m) => m['name'] == 'tyre') as Map;
+    expect(tyreMate['role'], 'teammate');
   });
 
   test('a claimed task is visible to every member as shared state', () async {
@@ -118,7 +126,8 @@ void main() {
 
   test('removing an unknown member is a no-op', () {
     broker.removeMember('teammate:ghost');
-    expect(broker.members.map((m) => m.name).toSet(), {'lead', 'tyre'});
+    // 'user' is always present (T-180 virtual member).
+    expect(broker.members.map((m) => m.name).toSet(), {'lead', 'tyre', 'user'});
   });
 
   test('the MCP tool surface lists all six team tools', () {

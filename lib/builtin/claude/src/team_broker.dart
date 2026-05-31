@@ -35,14 +35,26 @@ class TeamMemberRef {
 
 /// A message left for a member, in arrival order.
 class TeamMessage {
-  const TeamMessage({required this.from, required this.text, required this.at, this.broadcast = false});
+  const TeamMessage({
+    required this.from,
+    required this.text,
+    required this.at,
+    this.to,
+    this.broadcast = false,
+  });
   final String from;
+
+  /// Recipient name: a single member's display name (direct message), `null`
+  /// for a broadcast (every member), or the special value `'user'` when the
+  /// broker surfaces the message to the chat model rather than a session.
+  final String? to;
   final String text;
   final DateTime at;
   final bool broadcast;
 
   Map<String, dynamic> toJson() => {
         'from': from,
+        if (to != null) 'to': to,
         'text': text,
         'at': at.toIso8601String(),
         if (broadcast) 'broadcast': true,
@@ -78,7 +90,12 @@ typedef MessageDelivery = void Function(String toMemberId, String text);
 /// broadcast [StreamController]; consumers must not assume it fires on the
 /// Flutter event loop.
 class TeamBroker {
-  TeamBroker({MessageDelivery? deliver}) : _deliver = deliver;
+  TeamBroker({MessageDelivery? deliver}) : _deliver = deliver {
+    // The user is always a virtual team participant — agents can address them
+    // by name; messages routed to `user` surface in the chat model only (no
+    // stdin delivery). Registered at construction so the roster is consistent.
+    addMember(const TeamMemberRef(id: 'user', name: 'user', role: 'user'));
+  }
 
   final MessageDelivery? _deliver;
   final _members = <String, TeamMemberRef>{};
@@ -90,10 +107,16 @@ class TeamBroker {
   // --- Observability ---------------------------------------------------------
 
   final _changeCtl = StreamController<void>.broadcast();
+  final _messageCtl = StreamController<TeamMessage>.broadcast();
 
   /// Fires a void event whenever the task list or message state mutates.
   /// Broadcast — multiple listeners are supported.  Flutter-free.
   Stream<void> get changes => _changeCtl.stream;
+
+  /// Every inter-agent message (send_message / broadcast) in arrival order.
+  /// Also includes messages directed `to: 'user'` so the chat model can surface
+  /// them. Broadcast — multiple listeners are supported. Flutter-free.
+  Stream<TeamMessage> get messages => _messageCtl.stream;
 
   void _notify() {
     if (!_changeCtl.isClosed) _changeCtl.add(null);
@@ -161,9 +184,10 @@ class TeamBroker {
     return true;
   }
 
-  /// Dispose — closes the [changes] stream controller.
+  /// Dispose — closes the [changes] and [messages] stream controllers.
   void dispose() {
     _changeCtl.close();
+    _messageCtl.close();
   }
 
   /// All members in registration order.
@@ -181,13 +205,34 @@ class TeamBroker {
 
   // --- Tool operations (scoped to the caller [fromId]) ---------------------
 
+  /// Post [text] from the human user into the channel. When [to] is null or
+  /// omitted the message is broadcast; otherwise it is delivered only to the
+  /// named member. The `user` member is the caller's virtual id — it is
+  /// excluded from the recipient list in the same way senders are excluded
+  /// from their own broadcasts.
+  void sendAsUser(String text, {String? to}) {
+    if (to == null || to.isEmpty || to == 'team') {
+      // Broadcast: deliver to every non-user member.
+      // emitToStream=false: the chat model already recorded the local entry.
+      for (final m in _members.values) {
+        if (m.id == 'user') continue;
+        _enqueue(m.id, TeamMessage(from: 'user', to: null, text: text, at: DateTime.now(), broadcast: true), broadcast: true, emitToStream: false);
+      }
+    } else {
+      // Directed: deliver to the named member.
+      final target = _byName(to);
+      if (target == null || target.id == 'user') return;
+      _enqueue(target.id, TeamMessage(from: 'user', to: target.name, text: text, at: DateTime.now()), emitToStream: false);
+    }
+  }
+
   /// Deliver [text] to the single member named [toName].
   Map<String, dynamic> sendMessage(String fromId, String toName, String text) {
     final target = _byName(toName);
     if (target == null) {
       return {'ok': false, 'error': 'No teammate named "$toName". Use list_teammates to see who is on the team.'};
     }
-    _enqueue(target.id, TeamMessage(from: _nameOf(fromId), text: text, at: DateTime.now()));
+    _enqueue(target.id, TeamMessage(from: _nameOf(fromId), to: target.name, text: text, at: DateTime.now()));
     return {'ok': true, 'to': target.name};
   }
 
@@ -197,7 +242,7 @@ class TeamBroker {
     final recipients = <String>[];
     for (final m in _members.values) {
       if (m.id == fromId) continue;
-      _enqueue(m.id, TeamMessage(from: fromName, text: text, at: DateTime.now(), broadcast: true), broadcast: true);
+      _enqueue(m.id, TeamMessage(from: fromName, to: null, text: text, at: DateTime.now(), broadcast: true), broadcast: true);
       recipients.add(m.name);
     }
     return {'ok': true, 'recipients': recipients};
@@ -263,8 +308,20 @@ class TeamBroker {
     };
   }
 
-  void _enqueue(String toId, TeamMessage msg, {bool broadcast = false}) {
+  void _enqueue(String toId, TeamMessage msg, {bool broadcast = false, bool emitToStream = true}) {
     (_inboxes[toId] ??= <TeamMessage>[]).add(msg);
+    // Emit every message to the chat model stream before (possibly) delivering
+    // to the session stdin. The `user` member is a virtual participant — it has
+    // no session stdin, so delivery is skipped for it.
+    //
+    // [emitToStream] is false for user-originated messages that [TeamChatModel]
+    // already recorded locally — avoids double-adding them to the timeline.
+    if (emitToStream && !_messageCtl.isClosed) _messageCtl.add(msg);
+    if (toId == 'user') {
+      // User member: surfaced in the chat model only, no stdin delivery.
+      _notify();
+      return;
+    }
     final tag = broadcast ? '${msg.from} (broadcast)' : msg.from;
     // Gate delivery: muted members still accumulate inbox messages but the
     // live session callback is suppressed until unmuted (T-171).

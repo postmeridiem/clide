@@ -29,6 +29,7 @@ import 'package:clide/builtin/claude/src/claude_stats.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show formatTokenCount, permissionModeLabel, shortModelLabel;
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/team_broker.dart' show TeamBroker, TeamTask;
+import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatSidebar;
 import 'package:clide/builtin/claude/src/team_panel_host.dart' show teamColor;
 import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
@@ -348,10 +349,17 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
       children.add(_taskSection(tokens));
     }
 
-    // MESSAGES section: placeholder seam for T-180 to fill.
-    // T-180 will replace this Container with the live message feed.
-    children.add(const SizedBox(height: 12));
-    children.add(_messagesSectionPlaceholder(tokens));
+    // MESSAGES section (T-180): live broker chat feed + quick-post composer.
+    final chatModel = _orchestrator?.chatModel;
+    final broker = _orchestrator?.broker;
+    if (chatModel != null && broker != null) {
+      children.add(const SizedBox(height: 12));
+      children.add(TeamChatSidebar(
+        model: chatModel,
+        broker: broker,
+        onPopOut: _openChatPane,
+      ));
+    }
 
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -370,9 +378,9 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     );
   }
 
-  /// Minimal seam for T-180 — the message feed and composer will land here.
-  Widget _messagesSectionPlaceholder(SurfaceTokens tokens) {
-    return ClideText('MESSAGES', fontSize: clideFontSmall, color: tokens.globalTextMuted);
+  /// Open the full team chat pane in the workspace (T-180).
+  void _openChatPane() {
+    ClideKernel.of(context).panels.activateTab(Slots.workspace, 'claude.team-chat');
   }
 
   // --- Config ---------------------------------------------------------------

@@ -98,9 +98,12 @@ void main() {
 
     test('team sessions register in the broker; solo sessions do not', () async {
       await orch.spawn(spec('solo'));
-      expect(orch.broker.members, isEmpty);
+      // The 'user' virtual member is always registered in the broker (T-180).
+      final agentNames = orch.broker.members.where((m) => m.id != 'user').map((m) => m.name);
+      expect(agentNames, isEmpty);
       await orch.spawn(teamSpec('primary', 'lead', 'lead'));
-      expect(orch.broker.members.map((m) => m.name), ['lead']);
+      final agentNamesAfter = orch.broker.members.where((m) => m.id != 'user').map((m) => m.name);
+      expect(agentNamesAfter, ['lead']);
     });
 
     test('a message between team members is delivered into the target session stdin', () async {
@@ -121,7 +124,9 @@ void main() {
       await orch.spawn(teamSpec('primary', 'lead', 'lead'));
       await orch.spawn(teamSpec('teammate:tyre', 'tyre', 'teammate'));
       await orch.close('teammate:tyre');
-      expect(orch.broker.members.map((m) => m.name), ['lead']);
+      // 'user' is always in the broker (T-180); only agent members checked here.
+      final agentNames = orch.broker.members.where((m) => m.id != 'user').map((m) => m.name);
+      expect(agentNames, ['lead']);
     });
   });
 

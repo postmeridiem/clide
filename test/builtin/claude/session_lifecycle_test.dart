@@ -261,7 +261,9 @@ void main() {
         memberName: 'tyre',
       ));
       expect(orch.sessions, hasLength(2));
-      expect(orch.broker.members, hasLength(2));
+      // Broker has 2 agent members + 1 virtual 'user' member (T-180).
+      final agentMembers = orch.broker.members.where((m) => m.id != 'user');
+      expect(agentMembers, hasLength(2));
 
       final ids = orch.sessions.map((m) => m.id).toList();
       for (final id in ids) {
@@ -269,7 +271,9 @@ void main() {
       }
 
       expect(orch.sessions, isEmpty);
-      expect(orch.broker.members, isEmpty);
+      // Only the virtual 'user' member remains after closing all sessions.
+      final agentMembersAfter = orch.broker.members.where((m) => m.id != 'user');
+      expect(agentMembersAfter, isEmpty);
     });
   });
 }

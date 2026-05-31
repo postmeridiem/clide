@@ -75,6 +75,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - Fork a Claude conversation into a new pane — `/fork` (or a roster Fork
   button / `clide.agent.fork`) branches a session via `--resume … --fork-session`,
   opening an independent continuation that leaves the original untouched. (T-172, D-77)
+- Team chat inbox — broker traffic renders as a chat timeline (colour-coded
+  sender chips), in a compact cockpit widget that pops out to a full pane. The
+  user is a first-class participant: post with `@name` routing (or broadcast),
+  with an interrupt tickbox that cancels the target's turn before delivery. (T-180, D-77)
 - Team coordination broker (T-170, D-77) — clide hosts an in-process MCP
   server (`clide-team`) for managed sessions over the stream-json control
   channel, giving agents tools to message each other, broadcast, see the

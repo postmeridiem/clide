@@ -304,21 +304,23 @@ void main() {
       final semantics = tester.ensureSemantics();
       final orch = await orchWithMember(tester);
 
-      // Before tap: no inject field visible.
-      expect(find.byType(EditableText), findsNothing);
+      // Before tap: only the chat-composer field is visible (T-180).
+      // find by focusNode debugLabel to count only the inject field (not the chat composer).
+      final injectFinder = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel?.startsWith('inject-') == true);
+      expect(injectFinder, findsNothing);
 
       final injectTap = find.bySemanticsLabel('Inject message').first;
       await tester.tap(injectTap);
       await tester.pump();
 
       // After tap: inject field appears.
-      expect(find.byType(EditableText), findsOneWidget);
+      expect(injectFinder, findsOneWidget);
 
       // Tapping the cancel (×) icon dismisses it.
       final cancelTap = find.bySemanticsLabel('Cancel').first;
       await tester.tap(cancelTap);
       await tester.pump();
-      expect(find.byType(EditableText), findsNothing);
+      expect(injectFinder, findsNothing);
 
       semantics.dispose();
       orch.dispose();
@@ -353,15 +355,16 @@ void main() {
       // Open inject field.
       await tester.tap(find.bySemanticsLabel('Inject message').first);
       await tester.pump();
-      expect(find.byType(EditableText), findsOneWidget);
+      final injectFinder = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel?.startsWith('inject-') == true);
+      expect(injectFinder, findsOneWidget);
 
       // Type and submit.
-      await tester.enterText(find.byType(EditableText).first, 'hello agent');
+      await tester.enterText(injectFinder, 'hello agent');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
 
-      // Field dismissed after submit.
-      expect(find.byType(EditableText), findsNothing);
+      // Inject field dismissed after submit (chat composer remains).
+      expect(injectFinder, findsNothing);
 
       semantics.dispose();
       orch.dispose();
