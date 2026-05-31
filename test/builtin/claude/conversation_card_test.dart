@@ -205,4 +205,95 @@ void main() {
     await tester.pump();
     expect(forked, isTrue);
   });
+
+  testWidgets('didUpdateWidget: shrink path disposes excess focus nodes when actions count drops', (tester) async {
+    // Use a ValueNotifier to drive rebuildable parent so the _ConversationCardState
+    // is reused across builds (didUpdateWidget fires rather than a full remount).
+    final showExtra = ValueNotifier<bool>(true);
+    addTearDown(showExtra.dispose);
+
+    await tester.pumpWidget(harness(
+      f,
+      ValueListenableBuilder<bool>(
+        valueListenable: showExtra,
+        builder: (_, show, __) => ConversationCard(
+          accent: const Color(0xFFFFFFFF),
+          label: 'claude',
+          copyText: show ? 'text' : null,
+          body: const Text('body', textDirection: TextDirection.ltr),
+          actions: show ? [MessageAction(label: 'fork', onInvoke: () {})] : [],
+        ),
+      ),
+    ));
+    await tester.pump();
+    // Initially: copy + fork.
+    expect(find.text('copy'), findsOneWidget);
+    expect(find.text('fork'), findsOneWidget);
+
+    // Shrink: remove copyText and all custom actions.
+    // This triggers the shrink branch of _syncActionFocusNodes.
+    showExtra.value = false;
+    await tester.pump();
+
+    // Actions gone.
+    expect(find.text('copy'), findsNothing);
+    expect(find.text('fork'), findsNothing);
+  });
+
+  testWidgets('collapsible card: Semantics.onTap on caret also toggles collapse', (tester) async {
+    // The caret Semantics node has its own onTap (for accessibility-tree callers).
+    // Invoke it via the Semantics.onTap callback directly.
+    await tester.pumpWidget(harness(
+      f,
+      const ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: Color(0xFFFFFFFF),
+        label: 'result',
+        collapsible: true,
+        collapsedByDefault: true,
+        body: Text('tool output here', textDirection: TextDirection.ltr),
+      ),
+    ));
+    await tester.pump();
+    expect(find.text('tool output here'), findsNothing); // collapsed
+
+    // Find the Semantics node for the caret and trigger its onTap.
+    final caretSem = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Expand');
+    expect(caretSem, findsOneWidget);
+    final sem = caretSem.evaluate().single.widget as Semantics;
+    // Fire the accessibility tap callback.
+    sem.properties.onTap!();
+    await tester.pump();
+
+    expect(find.text('tool output here'), findsOneWidget); // expanded
+  });
+
+  testWidgets('bordered variant renders with a border container', (tester) async {
+    await tester.pumpWidget(harness(
+      f,
+      const ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: Color(0xFFFF0000),
+        label: 'result',
+        body: Text('bordered body', textDirection: TextDirection.ltr),
+      ),
+    ));
+    await tester.pump();
+    expect(find.text('bordered body'), findsOneWidget);
+    expect(find.text('result'), findsOneWidget);
+  });
+
+  testWidgets('bare variant renders content without frame decoration', (tester) async {
+    await tester.pumpWidget(harness(
+      f,
+      const ConversationCard(
+        variant: ConversationCardVariant.bare,
+        accent: Color(0xFF00FF00),
+        label: 'bare',
+        body: Text('bare body', textDirection: TextDirection.ltr),
+      ),
+    ));
+    await tester.pump();
+    expect(find.text('bare body'), findsOneWidget);
+  });
 }

@@ -381,4 +381,32 @@ void main() {
     expect(c.mcpServers, isEmpty);
     c.dispose();
   });
+
+  // ---------------------------------------------------------------------------
+  // ClaudePermissions
+  // ---------------------------------------------------------------------------
+
+  test('ClaudePermissions.isEmpty is true when all lists are empty', () {
+    const p = ClaudePermissions();
+    expect(p.isEmpty, isTrue);
+  });
+
+  test('ClaudePermissions.isEmpty is false when any list is non-empty', () {
+    const p = ClaudePermissions(allow: ['Bash']);
+    expect(p.isEmpty, isFalse);
+  });
+
+  // ---------------------------------------------------------------------------
+  // error getter (_guard catch path)
+  // ---------------------------------------------------------------------------
+
+  test('error is set when versionRunner throws and exposed via error getter', () async {
+    final c = build(versionRunner: () async => throw Exception('claude not found'));
+    await c.load();
+    expect(c.version, isNull);
+    expect(c.ready, isFalse);
+    expect(c.error, isNotNull);
+    expect(c.error, contains('claude not found'));
+    c.dispose();
+  });
 }

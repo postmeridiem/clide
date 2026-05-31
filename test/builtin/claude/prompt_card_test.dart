@@ -395,5 +395,81 @@ void main() {
       // No code blocks — just a text label for Read.
       expect(find.byType(ClideCodeBlock), findsNothing);
     });
+
+    testWidgets('Grep shows pattern quoted alongside any path', (tester) async {
+      // Grep with both path and pattern: the label shows file_path + quoted pattern.
+      const prompt = ToolPrompt(
+        promptId: 'req-grep',
+        toolName: 'Grep',
+        displayName: 'Grep',
+        input: {'pattern': 'TODO', 'path': '/src'},
+      );
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+      await tester.pump();
+      // The combined label contains both the path and the quoted pattern.
+      expect(find.textContaining('"TODO"'), findsOneWidget);
+    });
+  });
+
+  group('permission card: didUpdateWidget resets state for a new prompt id', () {
+    testWidgets('swapping the prompt id reinitialises the card', (tester) async {
+      // To trigger didUpdateWidget: use a ValueNotifier-driven parent so the
+      // _ToolPromptCardState is reused (didUpdateWidget fires, not remount).
+      ToolDecision? decision;
+      final notifier = ValueNotifier<ToolPrompt>(questionPrompt());
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(harness(
+        f,
+        ValueListenableBuilder<ToolPrompt>(
+          valueListenable: notifier,
+          builder: (_, p, __) => ToolPromptCard(prompt: p, onResolve: (_, d) => decision = d),
+        ),
+      ));
+      await tester.pump();
+      expect(find.text('Do you prefer cats or dogs?'), findsOneWidget);
+
+      // Pick an option so the card state is non-initial.
+      await tester.tap(find.textContaining('Dogs'));
+      await tester.pump();
+
+      // Swap to a new prompt (different promptId) — didUpdateWidget fires.
+      notifier.value = const ToolPrompt(
+        promptId: 'req-new',
+        toolName: 'AskUserQuestion',
+        displayName: 'AskUserQuestion',
+        input: {
+          'questions': [
+            {
+              'question': 'New question?',
+              'header': 'New',
+              'multiSelect': false,
+              'options': [
+                {'label': 'Alpha', 'description': ''},
+                {'label': 'Beta', 'description': ''},
+              ],
+            },
+          ],
+        },
+      );
+      await tester.pump();
+
+      // New question visible, old selection gone.
+      expect(find.text('New question?'), findsOneWidget);
+      expect(find.text('Do you prefer cats or dogs?'), findsNothing);
+
+      // Submit is still gated (selection reset).
+      await tester.tap(find.text('Submit'));
+      await tester.pump();
+      expect(decision, isNull);
+
+      // Pick an option on the new card.
+      await tester.tap(find.textContaining('Alpha'));
+      await tester.pump();
+      await tester.tap(find.text('Submit'));
+      await tester.pump();
+      expect(decision, isA<AllowTool>());
+      expect((decision as AllowTool).updatedInput['answers']['New question?'], 'Alpha');
+    });
   });
 }

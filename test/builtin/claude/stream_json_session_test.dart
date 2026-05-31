@@ -588,6 +588,20 @@ void main() {
     expect(proc.killed, isTrue);
   });
 
+  test('promptedToolUseIds contains the tool_use_id after a can_use_tool arrives', () async {
+    proc.emit(canUseTool('p1'));
+    await Future<void>.delayed(Duration.zero);
+    // promptedToolUseIds exposes the set of prompted tool use ids.
+    expect(session.promptedToolUseIds, contains('toolu_1'));
+  });
+
+  test('rate_limit_event with a non-ISO resetsAt shows the raw string', () async {
+    proc.emit(rateLimitEvent(status: 'rate_limited', resetsAt: 'soon'));
+    await Future<void>.delayed(Duration.zero);
+    // Non-ISO resetsAt → DateTime.tryParse returns null → raw string is used.
+    expect(statuses.last.rateLimitInfo, 'rate limited — resets soon');
+  });
+
   group('MCP server hosting (T-170)', () {
     late _FakeProc mproc;
     late StreamJsonSession msession;
@@ -653,6 +667,21 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       final r = mcpResponseOf(mproc.writes.last);
       expect(r['error'], isNotNull);
+    });
+
+    test('answers notifications/initialized with an empty result', () async {
+      mproc.emit(mcpMessage('m5', {'method': 'notifications/initialized', 'jsonrpc': '2.0', 'id': 4}));
+      await Future<void>.delayed(Duration.zero);
+      final r = mcpResponseOf(mproc.writes.last);
+      expect(r['result'], isA<Map>());
+    });
+
+    test('answers unknown MCP method with a JSON-RPC error -32601', () async {
+      mproc.emit(mcpMessage('m6', {'method': 'resources/list', 'jsonrpc': '2.0', 'id': 5}));
+      await Future<void>.delayed(Duration.zero);
+      final r = mcpResponseOf(mproc.writes.last);
+      expect((r['error'] as Map)['code'], -32601);
+      expect((r['error'] as Map)['message'], contains('resources/list'));
     });
   });
 }
