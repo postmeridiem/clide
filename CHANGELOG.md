@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The composer slash typeahead now lists clide-owned commands — `/resume` and
+  `/fork` (and `/clear`) surface even though the CLI probe doesn't advertise
+  them, unioned onto whatever command source the composer uses. (T-162)
 - Clicking a decision opens it in the decision reader again — the decisions
   extension no longer tears down and re-contributes its panel tab on every
   selection; it activates a static tab and reveals the panel like the ticket

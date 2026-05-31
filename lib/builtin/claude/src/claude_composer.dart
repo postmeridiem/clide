@@ -116,7 +116,14 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     if (!_focus.hasFocus) _closeTypeahead();
   }
 
-  Iterable<String> _commands() => (widget.slashCommandsResolver ?? () => activeClaudeConfig?.slashCommands ?? const <String>[])();
+  Iterable<String> _commands() {
+    // Always union the clide-owned commands (/clear, /resume, /fork) onto the
+    // command source — whether that's a caller-supplied resolver or the default
+    // ClaudeConfig probe — since the CLI probe never advertises them (T-162).
+    // The Set literal de-dupes (e.g. 'clear' present in both).
+    final base = widget.slashCommandsResolver?.call() ?? activeClaudeConfig?.slashCommands ?? const <String>[];
+    return {...base, ...kClideOwnedCommands};
+  }
 
   /// Recompute the active slash query + suggestions from the current text and
   /// caret, opening/updating/closing the typeahead overlay accordingly.

@@ -5,6 +5,7 @@ library;
 
 import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/clipboard_paste.dart';
+import 'package:clide/builtin/claude/src/slash_commands.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -291,6 +292,46 @@ void main() {
         ClaudeComposer(onSubmit: (_) {}, onInterrupt: () {}),
       ));
       expect(find.text('Stop  ⎋'), findsNothing);
+    });
+
+    // T-162: clide-owned commands surface in typeahead even when absent from the
+    // CLI probe (slashCommandsResolver).
+    testWidgets('clide-owned /resume surfaces even when absent from the probe list', (tester) async {
+      // The probe list (CLI-sourced) only has 'model' — no 'resume' or 'fork'.
+      await pumpWithCommands(tester, ['model']);
+      await tester.enterText(find.byType(EditableText), '/res');
+      await tester.pump();
+
+      // /resume must appear (sourced from kClideOwnedCommands).
+      expect(find.text('/resume'), findsOneWidget);
+      // /model must not appear (doesn't match '/res').
+      expect(find.text('/model'), findsNothing);
+    });
+
+    testWidgets('clide-owned /clear surfaces without duplicate when also in probe', (tester) async {
+      // 'clear' is in both the probe list AND kClideOwnedCommands.
+      await pumpWithCommands(tester, ['clear', 'model']);
+      await tester.enterText(find.byType(EditableText), '/cl');
+      await tester.pump();
+
+      // /clear must appear exactly once (filterSlashCommands de-dupes via seen set).
+      expect(find.text('/clear'), findsOneWidget);
+    });
+
+    testWidgets('clide-owned commands are reachable via the default resolver', (tester) async {
+      // No slashCommandsResolver → default path; kClideOwnedCommands must be included.
+      final submitted = <String>[];
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: submitted.add),
+      ));
+      await tester.enterText(find.byType(EditableText), '/fo');
+      await tester.pump();
+
+      // /fork is a kClideOwnedCommands member; it must appear without a probe.
+      expect(find.text('/fork'), findsOneWidget);
+      // Sanity: kClideOwnedCommands is the source (not a coincidence).
+      expect(kClideOwnedCommands, contains('fork'));
     });
   });
 }
