@@ -73,3 +73,54 @@ Future<List<FileEntry>> listDir({
   });
   return entries;
 }
+
+/// Result of [walkFiles]: the flat file list plus whether the walk
+/// stopped early at [WalkResult.cap].
+class WalkResult {
+  const WalkResult({required this.files, required this.truncated});
+
+  /// Every non-ignored file under the root, repo-relative, sorted by path.
+  final List<FileEntry> files;
+
+  /// True when the [maxFiles] cap was reached and the walk stopped early.
+  final bool truncated;
+}
+
+/// Recursively walk [root], returning every non-ignored *file*
+/// (directories are descended into but not emitted), pruned by
+/// [ignore]. Reuses [listDir] per directory, so ignore filtering,
+/// symlink-escape safety (`followLinks: false`), and per-directory
+/// sorting are inherited.
+///
+/// Capped at [maxFiles] to bound work on pathological trees; when the
+/// cap is hit the walk stops early and [WalkResult.truncated] is set so
+/// callers can surface "results truncated". The returned list is sorted
+/// by repo-relative path for a deterministic contract.
+Future<WalkResult> walkFiles({
+  required Directory root,
+  required IgnoreSet ignore,
+  int maxFiles = 50000,
+}) async {
+  final out = <FileEntry>[];
+  // DFS over repo-relative directory paths; '' is the root itself.
+  final stack = <String>[''];
+  var truncated = false;
+  while (stack.isNotEmpty) {
+    final dir = stack.removeLast();
+    final entries = await listDir(root: root, dir: dir, ignore: ignore);
+    for (final e in entries) {
+      if (e.isDirectory) {
+        stack.add(e.path);
+      } else {
+        out.add(e);
+        if (out.length >= maxFiles) {
+          truncated = true;
+          break;
+        }
+      }
+    }
+    if (truncated) break;
+  }
+  out.sort((a, b) => a.path.compareTo(b.path));
+  return WalkResult(files: out, truncated: truncated);
+}

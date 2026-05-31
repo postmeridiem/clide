@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Workspace ignore now follows the `ignore_files:` list in `.pql/config.yaml`
+  (ordered, later-wins, per D-4) instead of a hardcoded `.gitignore` +
+  `.clideignore` pair — the single ignore knob clide owns. (T-52)
+- `files.walk` command — a recursive, ignore-pruned, capped flat file listing
+  of the workspace, backing quick-open and search. (T-51, T-52)
 - Sidebar readers (markdown + decision) gain a chrome action bar: back/forward
   history, a single-slot pin (one click sets/replaces; one click to return),
   and an edit pencil that opens the current doc in the editor. (T-189, T-190, T-191)

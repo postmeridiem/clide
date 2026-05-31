@@ -7,6 +7,7 @@ import 'dart:io';
 import '../files/ignore.dart';
 import '../files/listing.dart';
 import '../files/path_safety.dart';
+import '../files/pql_config.dart';
 import '../files/watcher.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
@@ -130,6 +131,17 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     );
   });
 
+  d.register('files.walk', (req) async {
+    final result = await walkFiles(root: files.root, ignore: files.ignore);
+    return IpcResponse.ok(
+      id: req.id,
+      data: {
+        'files': [for (final e in result.files) e.path],
+        'truncated': result.truncated,
+      },
+    );
+  });
+
   d.register('files.watch', (req) async {
     await files.startWatching();
     return IpcResponse.ok(
@@ -153,15 +165,14 @@ Directory _resolveWorkspaceRoot(Directory start) {
   return start.absolute;
 }
 
-/// Build the default IgnoreSet: clide's always-hide list + any
-/// `.gitignore` + `.clideignore` at the workspace root.
-///
-/// D-004 compliance note: this covers the single-file-at-root case.
-/// Full layering across arbitrary paths from `.pql/config.yaml`'s
-/// `ignore_files:` is future work — see Q-024 (to be recorded).
+/// Build the default IgnoreSet: clide's always-hide list layered under
+/// the `ignore_files:` chain from `.pql/config.yaml` (per D-4), in
+/// order, later files winning. clide owns that config key (D-3) and
+/// [readIgnoreFiles] resolves it (defaulting to `.gitignore` —
+/// plus `.clideignore` when present — when the config is absent).
 IgnoreSet _defaultIgnore(Directory root) {
   final contents = <String>[];
-  for (final name in ['.gitignore', '.clideignore']) {
+  for (final name in readIgnoreFiles(root)) {
     final f = File('${root.path}/$name');
     if (f.existsSync()) contents.add(f.readAsStringSync());
   }

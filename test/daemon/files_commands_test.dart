@@ -73,6 +73,17 @@ void main() {
     expect(names, ['main.dart']);
   });
 
+  test('files.walk returns a flat, recursive file list (no dirs, no ignored)', () async {
+    final r = await call('files.walk', const {});
+    expect(r.ok, isTrue);
+    final paths = (r.data['files'] as List).cast<String>();
+    expect(paths, containsAll(['README.md', 'pubspec.yaml', 'lib/main.dart']));
+    // Directories themselves are never emitted, and .dart_tool is pruned.
+    expect(paths, isNot(contains('lib')));
+    expect(paths.any((p) => p.startsWith('.dart_tool')), isFalse);
+    expect(r.data['truncated'], isFalse);
+  });
+
   test('files.watch acks subscription', () async {
     final r = await call('files.watch', const {});
     expect(r.ok, isTrue);
