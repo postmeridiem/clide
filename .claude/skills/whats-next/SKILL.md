@@ -68,12 +68,18 @@ Don't walk blockers per ticket — pql does it. Compose the `list` filters
 structure/blocker-state only and would otherwise include `done` leaves):
 
 ```bash
-pql ticket list --under <epic-id> --leaf --unblocked --status backlog,ready --pretty
+pql ticket list --under <epic-id> --leaf --unblocked --status backlog --pretty
 ```
+
+`--status` takes a SINGLE value (not a comma list — `backlog,ready` matches
+nothing and silently returns `[]`). The repo is almost all `backlog`; if a
+team uses `ready`, run it a second time with `--status ready`.
 
 That returns exactly the actionable, unblocked leaves under the epic — the
 multi-result complement to `pql plan whatsnext` (which now also skips blocked
-tickets, for the single best pick).
+tickets, for the single best pick). Note `--unblocked` only means no *ticket*
+blocker is open; a ticket "blocked on upstream" in prose (e.g. T-158) still
+shows — read the description before batching.
 
 ### 1d. Rank and group
 
