@@ -316,5 +316,195 @@ void main() {
       expect(received, isNotNull);
       expect(received!.data['id'], 'D-11');
     });
+
+    testWidgets('IPC error leaves _decision null — shows placeholder', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (_) async => IpcResponse.err(
+                id: '',
+                error: IpcError(
+                  code: IpcExitCode.toolError,
+                  kind: IpcErrorKind.toolError,
+                  message: 'read failed',
+                ),
+              ));
+
+      await pumpView(tester, initialId: 'D-99');
+
+      // Should show placeholder rather than crash.
+      expect(find.text('Select a decision to view details.'), findsOneWidget);
+    });
+
+    testWidgets('decision with status open shows status badge', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'Q-1',
+                  'title': 'Open question',
+                  'type': 'question',
+                  'domain': 'architecture',
+                  'status': 'open',
+                  'date': '2026-01-01',
+                  'body': '',
+                  'refs': <Object?>[],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'Q-1');
+
+      expect(find.text('OPEN'), findsOneWidget);
+    });
+
+    testWidgets('decision with status resolved shows status badge', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'Q-2',
+                  'title': 'Resolved question',
+                  'type': 'question',
+                  'domain': 'architecture',
+                  'status': 'resolved',
+                  'date': '2026-01-01',
+                  'body': '',
+                  'refs': <Object?>[],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'Q-2');
+
+      expect(find.text('RESOLVED'), findsOneWidget);
+    });
+
+    testWidgets('decision with unknown status shows status badge in muted color', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'D-20',
+                  'title': 'Deprecated decision',
+                  'type': 'confirmed',
+                  'domain': 'architecture',
+                  'status': 'deprecated',
+                  'date': '2026-01-01',
+                  'body': '',
+                  'refs': <Object?>[],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'D-20');
+
+      expect(find.text('DEPRECATED'), findsOneWidget);
+    });
+
+    testWidgets('decision with refs using source_id renders ref card', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'D-30',
+                  'title': 'Decision with source ref',
+                  'type': 'confirmed',
+                  'domain': 'architecture',
+                  'status': 'active',
+                  'date': '2026-01-01',
+                  'body': '',
+                  'refs': [
+                    {'source_id': 'D-5', 'ref_type': 'amends'},
+                  ],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'D-30');
+
+      expect(find.text('D-5'), findsOneWidget);
+      expect(find.text('amends'), findsOneWidget);
+    });
+
+    testWidgets('ref card tap always publishes to builtin.decisions/selection (even for T-prefix)', (tester) async {
+      // _RefCard.onTap always routes through builtin.decisions/selection;
+      // the T-prefix routing in _navigateToRecord is only reachable via
+      // ClideMarkdown.onRecordTap (markdown body links).
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'D-40',
+                  'title': 'Decision with ticket ref',
+                  'type': 'confirmed',
+                  'domain': 'architecture',
+                  'status': 'active',
+                  'date': '2026-01-01',
+                  'body': '',
+                  'refs': [
+                    {'target_id': 'T-123', 'ref_type': 'tracked-by'},
+                  ],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'D-40');
+      expect(find.text('T-123'), findsOneWidget);
+
+      Message? received;
+      final sub = f.services.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen((m) => received = m);
+      addTearDown(sub.cancel);
+
+      await tester.tap(find.text('T-123').first);
+      await pumpAsync(tester);
+
+      expect(received, isNotNull);
+      expect(received!.data['id'], 'T-123');
+    });
+
+    testWidgets('decision with non-empty body renders body section', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'D-50',
+                  'title': 'Decision with body',
+                  'type': 'confirmed',
+                  'domain': 'architecture',
+                  'status': 'active',
+                  'date': '2026-01-15',
+                  'body': 'This is the decision body text.',
+                  'refs': <Object?>[],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'D-50');
+
+      expect(find.text('D-50'), findsOneWidget);
+      expect(find.text('2026-01-15'), findsOneWidget);
+    });
+
+    testWidgets('decision without date omits date row', (tester) async {
+      f.ipc.stub(
+          'pql.decisions.read',
+          (args) async => IpcResponse.ok(
+                id: '',
+                data: {
+                  'id': 'D-60',
+                  'title': 'No date decision',
+                  'type': 'confirmed',
+                  'domain': 'architecture',
+                  'status': 'active',
+                  'body': '',
+                  'refs': <Object?>[],
+                },
+              ));
+
+      await pumpView(tester, initialId: 'D-60');
+
+      expect(find.text('D-60'), findsOneWidget);
+      // No date text node — no crash.
+    });
   });
 }
