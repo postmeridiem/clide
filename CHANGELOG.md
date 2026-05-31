@@ -16,6 +16,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- Sidebar readers (markdown + decision) gain a chrome action bar: back/forward
+  history, a single-slot pin (one click sets/replaces; one click to return),
+  and an edit pencil that opens the current doc in the editor. (T-189, T-190, T-191)
+
 ### Fixed
 
 - The composer slash typeahead now lists clide-owned commands — `/resume` and

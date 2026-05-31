@@ -1,15 +1,19 @@
-/// Widget tests for MarkdownViewer (T-187).
+/// Widget tests for MarkdownViewer (T-187, T-189, T-190, T-191).
 ///
 /// Covers:
 ///  - .md wiki-link via onRecordTap publishes ('builtin.markdown','selection')
 ///  - T- link routes to tickets publisher
 ///  - D- link routes to decisions publisher
 ///  - dead editor.buffer_activated fallback is gone (no _editorSub)
+///  - T-189: back/forward navigation (history stack)
+///  - T-190: pin set/replace/jump
+///  - T-191: edit pencil fires editor.open
 library;
 
 import 'package:clide/builtin/markdown/src/markdown_viewer.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -23,6 +27,33 @@ void _stubRead(KernelFixture f, String path, String content) {
     if ((args['path'] as String?) == path) return _ok({'content': content});
     return IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'not found'));
   });
+}
+
+/// Stub files.read with a map of path → content.
+void _stubReadMap(KernelFixture f, Map<String, String> paths) {
+  f.ipc.stub('files.read', (args) async {
+    final path = args['path'] as String? ?? '';
+    if (paths.containsKey(path)) return _ok({'content': paths[path]!});
+    return IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'not found'));
+  });
+}
+
+/// Helper: pump the MarkdownViewer widget.
+Future<void> pumpView(WidgetTester tester, KernelFixture f) async {
+  tester.view.physicalSize = const Size(800, 600);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+  await tester.pumpWidget(harness(f, const MarkdownViewer()));
+  await pumpAsync(tester);
+}
+
+/// Trigger a file load via the 'load' channel (mirrors the extension bridge).
+Future<void> loadFile(WidgetTester tester, KernelFixture f, String path) async {
+  f.services.messages.publish('builtin.markdown', 'load', {'path': path});
+  await pumpAsync(tester);
 }
 
 void main() {
@@ -140,6 +171,305 @@ void main() {
       }
 
       semantics.dispose();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-189: back/forward navigation
+  // -------------------------------------------------------------------------
+
+  group('MarkdownViewer — back/forward (T-189)', () {
+    testWidgets('back button disabled on initial load', (tester) async {
+      _stubRead(f, 'a.md', '# A');
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+
+      // Back should be disabled — the button is in a disabled state (no back entry).
+      // We verify via the action-bar semantics label.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Back' && w.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('back enabled after loading two files', (tester) async {
+      _stubReadMap(f, {'a.md': '# A', 'b.md': '# B'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+      await loadFile(tester, f, 'b.md');
+
+      // Back should be enabled.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('back navigates to previous file', (tester) async {
+      _stubReadMap(f, {'a.md': 'File A content', 'b.md': 'File B content'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+      await loadFile(tester, f, 'b.md');
+
+      // Currently showing B.
+      expect(find.text('b.md'), findsOneWidget);
+
+      // Tap Back.
+      final backButton = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backButton.first);
+      await pumpAsync(tester);
+
+      // Should now show a.md in the title.
+      expect(find.text('a.md'), findsOneWidget);
+    });
+
+    testWidgets('forward disabled at end of history', (tester) async {
+      _stubReadMap(f, {'a.md': '# A', 'b.md': '# B'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+      await loadFile(tester, f, 'b.md');
+
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('forward enabled after going back', (tester) async {
+      _stubReadMap(f, {'a.md': 'A', 'b.md': 'B'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+      await loadFile(tester, f, 'b.md');
+
+      // Go back.
+      final backButton = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backButton.first);
+      await pumpAsync(tester);
+
+      // Forward should now be enabled.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('forward navigates to next file after back', (tester) async {
+      _stubReadMap(f, {'a.md': 'A text', 'b.md': 'B text'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+      await loadFile(tester, f, 'b.md');
+
+      // Go back to a.md.
+      final backButton = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backButton.first);
+      await pumpAsync(tester);
+      expect(find.text('a.md'), findsOneWidget);
+
+      // Go forward to b.md.
+      final fwdButton = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(fwdButton.first);
+      await pumpAsync(tester);
+      expect(find.text('b.md'), findsOneWidget);
+    });
+
+    testWidgets('loading new file truncates forward history', (tester) async {
+      _stubReadMap(f, {'a.md': 'A', 'b.md': 'B', 'c.md': 'C'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+      await loadFile(tester, f, 'b.md');
+
+      // Go back to a.md.
+      final backButton = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backButton.first);
+      await pumpAsync(tester);
+
+      // Load c.md — truncates forward history (b.md).
+      await loadFile(tester, f, 'c.md');
+
+      // Forward should now be disabled (b.md was truncated).
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-190: pin
+  // -------------------------------------------------------------------------
+
+  group('MarkdownViewer — pin (T-190)', () {
+    testWidgets('pin button present when file is loaded', (tester) async {
+      _stubRead(f, 'a.md', '# A');
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && (w.properties.label == 'Pin current' || w.properties.label == 'Replace pin')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('pin jump affordance not visible before pin is set', (tester) async {
+      _stubRead(f, 'a.md', '# A');
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('pin current shows jump-to-pin affordance', (tester) async {
+      _stubReadMap(f, {'a.md': 'A', 'b.md': 'B'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+
+      // Tap Pin current.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Pin current',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Jump-to-pin affordance should now be visible.
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('jump to pin loads the pinned file', (tester) async {
+      _stubReadMap(f, {'a.md': 'File A', 'b.md': 'File B'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+
+      // Pin a.md.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Pin current',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Navigate to b.md.
+      await loadFile(tester, f, 'b.md');
+      expect(find.text('b.md'), findsOneWidget);
+
+      // Jump to pin.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Jump to pin',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Should be back at a.md.
+      expect(find.text('a.md'), findsOneWidget);
+    });
+
+    testWidgets('pin replaces previous pin', (tester) async {
+      _stubReadMap(f, {'a.md': 'A', 'b.md': 'B', 'c.md': 'C'});
+      await pumpView(tester, f);
+      await loadFile(tester, f, 'a.md');
+
+      // Pin a.md.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Pin current',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Navigate to b.md.
+      await loadFile(tester, f, 'b.md');
+
+      // Replace pin with b.md.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Replace pin',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Navigate to c.md.
+      await loadFile(tester, f, 'c.md');
+
+      // Jump to pin should go to b.md now (replaced), not a.md.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Jump to pin',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      expect(find.text('b.md'), findsOneWidget);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-191: edit pencil
+  // -------------------------------------------------------------------------
+
+  group('MarkdownViewer — edit pencil (T-191)', () {
+    testWidgets('edit pencil not visible before a file is loaded', (tester) async {
+      await pumpView(tester, f);
+      // No file loaded — placeholder shown, no chrome.
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('edit pencil fires editor.open with current path', (tester) async {
+      const path = 'docs/readme.md';
+      _stubRead(f, path, '# Readme');
+
+      final editorOpenArgs = <Map<String, Object?>>[];
+      f.ipc.stub('editor.open', (args) async {
+        editorOpenArgs.add(args);
+        return IpcResponse.ok(id: '', data: {});
+      });
+
+      await pumpView(tester, f);
+      await loadFile(tester, f, path);
+
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Edit in editor',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      expect(editorOpenArgs, hasLength(1));
+      expect(editorOpenArgs.first['path'], path);
     });
   });
 }

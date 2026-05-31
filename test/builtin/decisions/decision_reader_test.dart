@@ -1,4 +1,5 @@
 /// T-188: Decision reader — static-tab fix.
+/// T-189, T-190, T-191: back/forward, pin, edit pencil in DecisionDetailView.
 ///
 /// Verifies that clicking a decision opens it in the static `decisions.detail`
 /// context-panel tab (no per-click uncontribute/contribute churn), that a
@@ -61,7 +62,7 @@ void _select(KernelFixture f, String id) {
 // IPC stub: pql.decisions.read
 // ---------------------------------------------------------------------------
 
-IpcResponse _decisionResponse(String id) => IpcResponse.ok(
+IpcResponse _decisionResponse(String id, {String? filePath}) => IpcResponse.ok(
       id: '',
       data: {
         'id': id,
@@ -72,6 +73,7 @@ IpcResponse _decisionResponse(String id) => IpcResponse.ok(
         'date': '2026-01-01',
         'body': 'Body of $id.',
         'refs': <Object?>[],
+        'file_path': filePath ?? 'governance/decisions/architecture.md',
       },
     );
 
@@ -224,8 +226,10 @@ void main() {
 
     testWidgets('loads and renders initialId on first mount', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      expect(find.text('D-1'), findsOneWidget);
-      expect(find.text('Decision D-1'), findsOneWidget);
+      // The id appears in the pane-chrome title AND in the body card, so
+      // findsWidgets (≥1) is the right matcher.
+      expect(find.text('D-1'), findsWidgets);
+      expect(find.text('Decision D-1'), findsWidgets);
     });
 
     testWidgets('selection message loads a decision into the view', (tester) async {
@@ -238,30 +242,31 @@ void main() {
       // Give the broadcast stream a microtask to deliver.
       await pumpAsync(tester);
 
-      expect(find.text('D-7'), findsOneWidget);
-      expect(find.text('Decision D-7'), findsOneWidget);
+      // Id appears in both pane header and body card.
+      expect(find.text('D-7'), findsWidgets);
+      expect(find.text('Decision D-7'), findsWidgets);
     });
 
     testWidgets('second selection switches the displayed decision', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      expect(find.text('Decision D-1'), findsOneWidget);
+      expect(find.text('Decision D-1'), findsWidgets);
 
       f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
       await pumpAsync(tester);
 
-      expect(find.text('Decision D-2'), findsOneWidget);
+      expect(find.text('Decision D-2'), findsWidgets);
       expect(find.text('Decision D-1'), findsNothing);
     });
 
     testWidgets('clicking the same decision twice leaves view stable', (tester) async {
       await pumpView(tester, initialId: 'D-5');
-      expect(find.text('Decision D-5'), findsOneWidget);
+      expect(find.text('Decision D-5'), findsWidgets);
 
       f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-5'});
       await pumpAsync(tester);
 
-      // Still shows D-5, no crash, no duplicate.
-      expect(find.text('Decision D-5'), findsOneWidget);
+      // Still shows D-5, no crash.
+      expect(find.text('Decision D-5'), findsWidgets);
     });
 
     testWidgets('rapid sequential selections resolve to the last one', (tester) async {
@@ -274,7 +279,8 @@ void main() {
 
       // The last resolved data should be for D-5 (stub is synchronous so
       // each load completes before the next, but all 5 fire in order).
-      expect(find.text('Decision D-5'), findsOneWidget);
+      // Title appears in pane header subtitle + body card.
+      expect(find.text('Decision D-5'), findsWidgets);
     });
 
     testWidgets('cross-reference tap publishes a new selection', (tester) async {
@@ -295,6 +301,7 @@ void main() {
               'refs': [
                 {'target_id': 'D-11', 'ref_type': 'implements'},
               ],
+              'file_path': 'governance/decisions/architecture.md',
             },
           );
         }
@@ -302,7 +309,8 @@ void main() {
       });
 
       await pumpView(tester, initialId: 'D-10');
-      expect(find.text('D-10'), findsOneWidget);
+      // D-10 appears in pane title + body card; D-11 appears only in the ref card.
+      expect(find.text('D-10'), findsWidgets);
       expect(find.text('D-11'), findsOneWidget);
 
       // Tap the ref card — it should publish selection for D-11.
@@ -349,6 +357,7 @@ void main() {
                   'date': '2026-01-01',
                   'body': '',
                   'refs': <Object?>[],
+                  'file_path': 'governance/questions/architecture.md',
                 },
               ));
 
@@ -371,6 +380,7 @@ void main() {
                   'date': '2026-01-01',
                   'body': '',
                   'refs': <Object?>[],
+                  'file_path': 'governance/questions/architecture.md',
                 },
               ));
 
@@ -393,6 +403,7 @@ void main() {
                   'date': '2026-01-01',
                   'body': '',
                   'refs': <Object?>[],
+                  'file_path': 'governance/decisions/architecture.md',
                 },
               ));
 
@@ -417,6 +428,7 @@ void main() {
                   'refs': [
                     {'source_id': 'D-5', 'ref_type': 'amends'},
                   ],
+                  'file_path': 'governance/decisions/architecture.md',
                 },
               ));
 
@@ -445,6 +457,7 @@ void main() {
                   'refs': [
                     {'target_id': 'T-123', 'ref_type': 'tracked-by'},
                   ],
+                  'file_path': 'governance/decisions/architecture.md',
                 },
               ));
 
@@ -476,12 +489,14 @@ void main() {
                   'date': '2026-01-15',
                   'body': 'This is the decision body text.',
                   'refs': <Object?>[],
+                  'file_path': 'governance/decisions/architecture.md',
                 },
               ));
 
       await pumpView(tester, initialId: 'D-50');
 
-      expect(find.text('D-50'), findsOneWidget);
+      // D-50 appears in pane title + body card.
+      expect(find.text('D-50'), findsWidgets);
       expect(find.text('2026-01-15'), findsOneWidget);
     });
 
@@ -498,13 +513,369 @@ void main() {
                   'status': 'active',
                   'body': '',
                   'refs': <Object?>[],
+                  'file_path': 'governance/decisions/architecture.md',
                 },
               ));
 
       await pumpView(tester, initialId: 'D-60');
 
-      expect(find.text('D-60'), findsOneWidget);
+      // D-60 appears in pane title + body card.
+      expect(find.text('D-60'), findsWidgets);
       // No date text node — no crash.
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-189: back/forward navigation
+  // -------------------------------------------------------------------------
+
+  group('DecisionDetailView — back/forward (T-189)', () {
+    late KernelFixture f;
+
+    setUp(() async {
+      f = await KernelFixture.create();
+      f.ipc.stub('pql.decisions.read', (args) async {
+        final id = args['id'] as String? ?? 'unknown';
+        return _decisionResponse(id);
+      });
+    });
+    tearDown(() => f.dispose());
+
+    Future<void> pumpView(WidgetTester tester, {String? initialId}) async {
+      tester.view.physicalSize = const Size(600, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(harness(f, DecisionDetailView(initialId: initialId)));
+      await pumpAsync(tester);
+    }
+
+    testWidgets('back disabled on initial load', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Back' && w.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('back enabled after two selections', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('back navigates to previous decision', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+      // Title appears in pane header subtitle + body card.
+      expect(find.text('Decision D-2'), findsWidgets);
+
+      final backBtn = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backBtn.first);
+      await pumpAsync(tester);
+
+      expect(find.text('Decision D-1'), findsWidgets);
+    });
+
+    testWidgets('back/forward does NOT re-publish selection bus event', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+
+      final selections = <Message>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen(selections.add);
+      addTearDown(sub.cancel);
+
+      // Go back — should NOT publish a selection message.
+      final backBtn = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backBtn.first);
+      await pumpAsync(tester);
+
+      expect(selections, isEmpty, reason: 'back/forward must not churn the selection bus');
+    });
+
+    testWidgets('forward disabled at end of history', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('forward navigates after back', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+
+      // Go back to D-1.
+      final backBtn = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backBtn.first);
+      await pumpAsync(tester);
+      expect(find.text('Decision D-1'), findsWidgets);
+
+      // Go forward to D-2.
+      final fwdBtn = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(fwdBtn.first);
+      await pumpAsync(tester);
+      expect(find.text('Decision D-2'), findsWidgets);
+    });
+
+    testWidgets('new selection truncates forward history', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+
+      // Go back to D-1.
+      final backBtn = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
+      );
+      await tester.tap(backBtn.first);
+      await pumpAsync(tester);
+
+      // Load D-3 — truncates D-2 forward history.
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-3'});
+      await pumpAsync(tester);
+
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-190: pin
+  // -------------------------------------------------------------------------
+
+  group('DecisionDetailView — pin (T-190)', () {
+    late KernelFixture f;
+
+    setUp(() async {
+      f = await KernelFixture.create();
+      f.ipc.stub('pql.decisions.read', (args) async {
+        final id = args['id'] as String? ?? 'unknown';
+        return _decisionResponse(id);
+      });
+    });
+    tearDown(() => f.dispose());
+
+    Future<void> pumpView(WidgetTester tester, {String? initialId}) async {
+      tester.view.physicalSize = const Size(600, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(harness(f, DecisionDetailView(initialId: initialId)));
+      await pumpAsync(tester);
+    }
+
+    testWidgets('pin jump affordance not visible before pin set', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('pin current shows jump-to-pin affordance', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Pin current',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('jump to pin loads the pinned decision', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+
+      // Pin D-1.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Pin current',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Navigate to D-2.
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+      // Title appears in pane header subtitle + body card.
+      expect(find.text('Decision D-2'), findsWidgets);
+
+      // Jump to pin.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Jump to pin',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      expect(find.text('Decision D-1'), findsWidgets);
+    });
+
+    testWidgets('pin replaces previous pin', (tester) async {
+      await pumpView(tester, initialId: 'D-1');
+
+      // Pin D-1.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Pin current',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Navigate to D-2.
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      await pumpAsync(tester);
+
+      // Replace pin with D-2.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Replace pin',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Navigate to D-3.
+      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-3'});
+      await pumpAsync(tester);
+
+      // Jump to pin — should go to D-2 (replaced), not D-1.
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Jump to pin',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      // Title appears in pane header subtitle + body card.
+      expect(find.text('Decision D-2'), findsWidgets);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T-191: edit pencil
+  // -------------------------------------------------------------------------
+
+  group('DecisionDetailView — edit pencil (T-191)', () {
+    late KernelFixture f;
+
+    setUp(() async {
+      f = await KernelFixture.create();
+    });
+    tearDown(() => f.dispose());
+
+    Future<void> pumpView(WidgetTester tester, {String? initialId}) async {
+      tester.view.physicalSize = const Size(600, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(harness(f, DecisionDetailView(initialId: initialId)));
+      await pumpAsync(tester);
+    }
+
+    testWidgets('edit pencil not visible when no decision loaded', (tester) async {
+      await pumpView(tester);
+      // Placeholder state — no chrome.
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('edit pencil fires editor.open with file_path from decision', (tester) async {
+      const filePath = 'governance/decisions/architecture.md';
+      f.ipc.stub('pql.decisions.read', (args) async {
+        return _decisionResponse('D-1', filePath: filePath);
+      });
+
+      final editorOpenArgs = <Map<String, Object?>>[];
+      f.ipc.stub('editor.open', (args) async {
+        editorOpenArgs.add(args);
+        return IpcResponse.ok(id: '', data: {});
+      });
+
+      await pumpView(tester, initialId: 'D-1');
+
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find
+          .byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Edit in editor',
+          )
+          .first);
+      await pumpAsync(tester);
+
+      expect(editorOpenArgs, hasLength(1));
+      expect(editorOpenArgs.first['path'], filePath);
+    });
+
+    testWidgets('edit pencil hidden when file_path is absent from response', (tester) async {
+      f.ipc.stub('pql.decisions.read', (args) async {
+        return IpcResponse.ok(
+          id: '',
+          data: {
+            'id': 'D-70',
+            'title': 'No file path',
+            'type': 'confirmed',
+            'domain': 'architecture',
+            'status': 'active',
+            'date': '2026-01-01',
+            'body': '',
+            'refs': <Object?>[],
+            // No file_path key.
+          },
+        );
+      });
+
+      await pumpView(tester, initialId: 'D-70');
+
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
+        findsNothing,
+      );
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clide/builtin/shared/reader_chrome.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -11,7 +12,7 @@ class MarkdownViewer extends StatefulWidget {
   State<MarkdownViewer> createState() => _MarkdownViewerState();
 }
 
-class _MarkdownViewerState extends State<MarkdownViewer> {
+class _MarkdownViewerState extends State<MarkdownViewer> with ReaderHistoryMixin<String, MarkdownViewer> {
   String? _path;
   String? _content;
   String? _error;
@@ -34,7 +35,26 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     super.dispose();
   }
 
+  /// Load [path] and push it onto the history stack (external navigation).
   Future<void> _loadFile(String path) async {
+    final kernel = ClideKernel.of(context);
+    final resp = await kernel.ipc.request('files.read', args: {'path': path});
+    if (!mounted) return;
+    if (resp.ok) {
+      kernel.messages.publish('builtin.markdown', 'focus', {'path': path});
+      setState(() {
+        _path = path;
+        _content = resp.data['content'] as String? ?? '';
+        _error = null;
+      });
+      historyPush(path);
+    } else {
+      setState(() => _error = resp.error?.message);
+    }
+  }
+
+  /// Load [path] WITHOUT pushing onto the history stack (back/forward nav).
+  Future<void> _loadFileInPlace(String path) async {
     final kernel = ClideKernel.of(context);
     final resp = await kernel.ipc.request('files.read', args: {'path': path});
     if (!mounted) return;
@@ -48,6 +68,35 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     } else {
       setState(() => _error = resp.error?.message);
     }
+  }
+
+  void _onBack() {
+    final entry = historyBack();
+    if (entry != null) _loadFileInPlace(entry);
+  }
+
+  void _onForward() {
+    final entry = historyForward();
+    if (entry != null) _loadFileInPlace(entry);
+  }
+
+  void _onPin() {
+    pinCurrent();
+  }
+
+  void _onJumpToPin() {
+    final entry = jumpToPin();
+    if (entry != null) {
+      // Navigate directly without re-pushing (pin jump is a quick-return).
+      _loadFileInPlace(entry);
+    }
+  }
+
+  void _onEdit() {
+    final p = _path;
+    if (p == null) return;
+    final kernel = ClideKernel.of(context);
+    unawaited(kernel.ipc.request('editor.open', args: {'path': p}));
   }
 
   void _navigateToRecord(BuildContext context, String id) {
@@ -76,6 +125,18 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     return ClidePaneChrome(
       title: _path ?? 'viewer',
       subtitle: '${_content!.split('\n').length} lines',
+      trailing: [
+        ReaderActionBar(
+          canGoBack: canGoBack,
+          canGoForward: canGoForward,
+          hasPinned: hasPinned,
+          onBack: canGoBack ? _onBack : null,
+          onForward: canGoForward ? _onForward : null,
+          onPin: _path != null ? _onPin : null,
+          onJumpToPin: hasPinned ? _onJumpToPin : null,
+          onEdit: _path != null ? _onEdit : null,
+        ),
+      ],
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: ClideMarkdown(_content!, onRecordTap: (id) => _navigateToRecord(context, id)),
