@@ -128,7 +128,6 @@ You might also want, project-permitting:
 - [Q-3: Event persistence + audit/undo](questions/architecture.md#q-3-event-persistence--auditundo) — _architecture_
 - [Q-4: `.canvas` schema compatibility with Obsidian](questions/architecture.md#q-4-canvas-schema-compatibility-with-obsidian) — _architecture_
 - [Q-5: IPC wire-format stability + `schema_version:`](questions/architecture.md#q-5-ipc-wire-format-stability--schema-version) — _architecture_
-- [Q-6: Window chrome — native frame vs frameless custom](questions/architecture.md#q-6-window-chrome--native-frame-vs-frameless-custom) — _architecture_
 - [Q-7: macOS app bundle signing / notarisation](questions/architecture.md#q-7-macos-app-bundle-signing--notarisation) — _architecture_
 - [Q-8: Extension API shape — widgets, subcommands, both?](questions/extensions.md#q-8-extension-api-shape--widgets-subcommands-both) — _extensions_
 - [Q-9: Lua runtime vendoring](questions/extensions.md#q-9-lua-runtime-vendoring) — _extensions_
@@ -141,10 +140,7 @@ You might also want, project-permitting:
 - [Q-16: `tree-sitter-dart` grammar maintenance](questions/process.md#q-16-tree-sitter-dart-grammar-maintenance) — _process_
 - [Q-17: Icon set growth](questions/process.md#q-17-icon-set-growth) — _process_
 - [Q-18: Theme hot-reload in release builds](questions/process.md#q-18-theme-hot-reload-in-release-builds) — _process_
-- [Q-19: (withdrawn)](questions/process.md#q-19-withdrawn) — _process_
 - [Q-20: Kernel DB service — namespaced SQL access?](questions/process.md#q-20-kernel-db-service--namespaced-sql-access) — _process_
-- [Q-21: Pql absorbs planning vs keeps separate](questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate) — _architecture_
-- [Q-22: Ticket persistence strategy](questions/architecture.md#q-22-ticket-persistence-strategy) — _architecture_
 - [Q-23: SSH-remote development — run clide against a remote workspace](questions/architecture.md#q-23-ssh-remote-development--run-clide-against-a-remote-workspace) — _architecture_
 - [Q-25: Body text face — mono everywhere vs Josefin Sans UI + mono code](questions/architecture.md#q-25-body-text-face--mono-everywhere-vs-josefin-sans-ui--mono-code) — _architecture_
 - [Q-26: Small screen layout (< 1000px)](questions/architecture.md#q-26-small-screen-layout--1000px) — _architecture_
@@ -155,6 +151,13 @@ You might also want, project-permitting:
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
 - [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
 - [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
+
+## Resolved questions
+
+- [Q-6: Window chrome — native frame vs frameless custom](questions/architecture.md#q-6-window-chrome--native-frame-vs-frameless-custom) — _architecture_
+- [Q-19: (withdrawn)](questions/process.md#q-19-withdrawn) — _process_
+- [Q-21: Pql absorbs planning vs keeps separate](questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate) — _architecture_
+- [Q-22: Ticket persistence strategy](questions/architecture.md#q-22-ticket-persistence-strategy) — _architecture_
 
 ## Rejected
 
