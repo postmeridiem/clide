@@ -90,4 +90,77 @@ void main() {
     // Empty query → recents listed.
     expect(find.text('app.dart'), findsOneWidget);
   });
+
+  testWidgets('a non-matching query shows the no-match hint', (tester) async {
+    await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+    f.services.quickOpen.open();
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText), 'zzzzz-nope');
+    await pumpAsync(tester);
+    expect(find.text('No matching files'), findsOneWidget);
+  });
+
+  testWidgets('truncated walk surfaces the limited-results hint', (tester) async {
+    f.ipc.stub(
+        'files.walk',
+        (_) async => IpcResponse.ok(id: '1', data: const {
+              'files': ['lib/main.dart'],
+              'truncated': true,
+            }));
+    await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+    f.services.quickOpen.open();
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText), 'main');
+    await pumpAsync(tester);
+    expect(find.text('Results limited — large workspace'), findsOneWidget);
+  });
+
+  testWidgets('keymap intents drive nav, accept and dismiss', (tester) async {
+    String? opened;
+    f.ipc.stub('editor.open', (args) async {
+      opened = args['path'] as String?;
+      return IpcResponse.ok(id: '1', data: {'path': args['path']});
+    });
+    await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+    f.services.quickOpen.open();
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText), 'lib');
+    await pumpAsync(tester);
+
+    final ctx = tester.element(find.byType(EditableText));
+    Actions.invoke(ctx, const QuickOpenSelectNextIntent());
+    await pumpAsync(tester);
+    Actions.invoke(ctx, const QuickOpenSelectPreviousIntent());
+    await pumpAsync(tester);
+    // Accept opens the highlighted result in the editor.
+    Actions.invoke(ctx, const QuickOpenAcceptIntent());
+    await pumpAsync(tester);
+    expect(opened, isNotNull);
+    expect(f.services.quickOpen.isOpen, isFalse);
+  });
+
+  testWidgets('dismiss intent closes the overlay', (tester) async {
+    await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+    f.services.quickOpen.open();
+    await pumpAsync(tester);
+    final ctx = tester.element(find.byType(EditableText));
+    Actions.invoke(ctx, const DismissIntent());
+    await pumpAsync(tester);
+    expect(f.services.quickOpen.isOpen, isFalse);
+  });
+
+  testWidgets('files.walk failure leaves the list empty (no crash)', (tester) async {
+    f.ipc.stub(
+        'files.walk',
+        (_) async => IpcResponse.err(
+              id: '1',
+              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+            ));
+    await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+    f.services.quickOpen.open();
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText), 'main');
+    await pumpAsync(tester);
+    expect(find.text('No matching files'), findsOneWidget);
+  });
 }

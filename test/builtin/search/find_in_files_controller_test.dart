@@ -148,4 +148,29 @@ void main() {
     c.cancel();
     expect(c.running, isFalse);
   });
+
+  test('a failed search.grep surfaces the error', () async {
+    f.ipc.stub(
+        'search.grep',
+        (_) async => IpcResponse.err(
+              id: '',
+              error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'nope'),
+            ));
+    final c = make();
+    await c.run('foo');
+    expect(c.error, 'nope');
+    expect(c.running, isFalse);
+  });
+
+  test('exclude setter feeds the next search', () async {
+    Map<String, Object?>? sent;
+    f.ipc.stub('search.grep', (args) async {
+      sent = args;
+      return _ok({'searchId': 's1'});
+    });
+    final c = make();
+    c.exclude = 'build/** , *.g.dart';
+    await c.run('foo');
+    expect(sent!['exclude'], ['build/**', '*.g.dart']);
+  });
 }

@@ -69,4 +69,50 @@ void main() {
     expect(opened!['path'], 'lib/a.dart');
     expect(opened!['line'], 12);
   });
+
+  testWidgets('no results shows the No results status', (tester) async {
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await tester.enterText(find.byType(EditableText).first, 'foo');
+    await tester.pump(const Duration(milliseconds: 250));
+    await pumpAsync(tester);
+    f.services.events.emit(DaemonEvent(
+      subsystem: 'search',
+      kind: 'search.done',
+      data: const {'searchId': 's1', 'cancelled': false},
+      ts: DateTime.now().toUtc(),
+    ));
+    await pumpAsync(tester);
+    expect(find.text('No results'), findsOneWidget);
+  });
+
+  testWidgets('a search error is shown in the panel', (tester) async {
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await tester.enterText(find.byType(EditableText).first, '(bad');
+    await tester.pump(const Duration(milliseconds: 250));
+    await pumpAsync(tester);
+    f.services.events.emit(DaemonEvent(
+      subsystem: 'search',
+      kind: 'search.error',
+      data: const {'searchId': 's1', 'message': 'invalid regex: boom'},
+      ts: DateTime.now().toUtc(),
+    ));
+    await pumpAsync(tester);
+    expect(find.textContaining('invalid regex'), findsOneWidget);
+  });
+
+  testWidgets('toggling regex re-runs the search', (tester) async {
+    var grepCalls = 0;
+    f.ipc.stub('search.grep', (_) async {
+      grepCalls++;
+      return _ok({'searchId': 's1'});
+    });
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await tester.enterText(find.byType(EditableText).first, 'foo');
+    await tester.pump(const Duration(milliseconds: 250));
+    await pumpAsync(tester);
+    final before = grepCalls;
+    await tester.tap(find.text('.*')); // regex toggle
+    await pumpAsync(tester);
+    expect(grepCalls, greaterThan(before));
+  });
 }

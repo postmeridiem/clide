@@ -144,6 +144,24 @@ void main() {
 
   // Spawns real worker isolates — runs in the --concurrency=1 serial
   // pass to avoid competing with the parallel flutter pool (T-193).
+  test('? and ** glob metacharacters match as expected', () async {
+    File('${root.path}/a1.dart').writeAsStringSync('main\n');
+    // '?' matches a single char: a?.dart → a1.dart (and a.dart).
+    final q = await run(const SearchQuery(pattern: 'main', include: ['a?.dart']));
+    expect(q.any((m) => m.path == 'a1.dart'), isTrue);
+    expect(q.any((m) => m.path == 'sub/c.txt'), isFalse);
+    // '**' spans directories.
+    final r = await run(const SearchQuery(pattern: 'main', include: ['sub/**']));
+    expect(r.any((m) => m.path == 'sub/c.txt'), isTrue);
+  });
+
+  test('regex capture groups are available on the match line', () async {
+    // The engine surfaces spans; group expansion is the replacer's job
+    // (T-53), but the regex itself must match with groups.
+    final r = await run(const SearchQuery(pattern: r'final (\w+)', regex: true));
+    expect(r.any((m) => m.path == 'a.dart'), isTrue);
+  });
+
   test('runs across isolates without error (smoke)', tags: ['serial'], () async {
     final out = <SearchMatch>[];
     await for (final batch in grepWorkspace(
