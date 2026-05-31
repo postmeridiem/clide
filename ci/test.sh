@@ -24,8 +24,11 @@ flutter analyze
 echo "==> dart format (whole tree)"
 dart format --set-exit-if-changed .
 
-echo "==> dart test (pty — unreliable under the flutter test runner)"
-dart test --tags pty test/pty/session_test.dart test/panes/registry_test.dart
+echo "==> dart test (pty — unreliable under the flutter test runner; serial)"
+# --concurrency=1: these spawn real PTYs and compete for fds when run in
+# parallel, which flaked them (registry/session). Serialize — the proper fix
+# for resource-bound tests, vs. the old per-test `retry:` band-aid. (T-193)
+dart test --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart
 
 if [[ "$coverage" == 1 ]]; then
   echo "==> flutter test --coverage (gate; unit + widget + golden + a11y)"

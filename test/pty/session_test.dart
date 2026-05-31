@@ -26,7 +26,7 @@ void main() {
   if (!Platform.isLinux && !Platform.isMacOS) return;
 
   group('NativePty', () {
-    test('spawns shell -c echo and reads output', tags: ['pty'], retry: 2, () async {
+    test('spawns shell -c echo and reads output', tags: ['pty'], () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: ['-c', 'echo hello-pty'],
@@ -44,7 +44,7 @@ void main() {
       expect(got, contains('hello-pty'));
     });
 
-    test('write sends keystrokes to child', tags: ['pty'], retry: 2, () async {
+    test('write sends keystrokes to child', tags: ['pty'], () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -79,7 +79,7 @@ void main() {
       expect(result, contains('write-test-ok'));
     });
 
-    test('close kills child and closes output', tags: ['pty'], retry: 2, () async {
+    test('close kills child and closes output', tags: ['pty'], () async {
       final s = NativePty.start(
         executable: '/bin/sh',
         arguments: [],
@@ -103,7 +103,7 @@ void main() {
       expect(s.isClosed, isTrue);
     });
 
-    test('bare command name resolves via the PATH env var', tags: ['pty'], retry: 2, () async {
+    test('bare command name resolves via the PATH env var', tags: ['pty'], () async {
       // 'sh' is a bare command; without resolution, execve would fail.
       final s = NativePty.start(
         executable: 'sh',

@@ -43,7 +43,7 @@ void main() {
       expect(evt.data['id'], pane.id);
     });
 
-    test('output events base64-encode the child bytes', tags: ['pty'], retry: 2, () async {
+    test('output events base64-encode the child bytes', tags: ['pty'], () async {
       // Subscribe to the sink stream BEFORE spawn so we don't miss
       // any pane.output events that arrive between spawn and listen.
       final buf = StringBuffer();
