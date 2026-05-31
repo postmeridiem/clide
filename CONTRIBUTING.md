@@ -29,9 +29,10 @@ dependency for the governance + ticket workflow described below.
 ```
 make run           # launch the desktop app
 make verify        # no-tests sweep — analyze + format + decisions + changelog gate
-make test          # fast suite — analyze + format + unit + widget + golden
+make test          # fast dev loop — analyze + format + unit + widget + golden, NO coverage, parallel (~20s)
+make test-coverage # same suite WITH coverage (writes coverage/lcov.info; used by the gate)
 make test-a11y     # WCAG-AA contrast + keyboard traversal contracts
-make push-check    # the pre-push gate; what CI runs
+make push-check    # the pre-push gate; what CI runs (runs test-coverage, not the no-coverage test)
 make build-linux   # release artefact for the host platform
 ```
 

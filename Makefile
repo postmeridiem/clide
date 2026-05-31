@@ -110,8 +110,12 @@ t: gen-build-info ## Run one test path with tee'd output. Usage: make t T=test/p
 	flutter test $(T) 2>&1 | tee test/.test-output/last.log
 
 .PHONY: test
-test: gen-build-info ## Fast: analyze + format + unit + widget + golden (<60s).
+test: gen-build-info ## Fast dev loop: analyze + format + unit + widget + golden, NO coverage, parallel (~20s).
 	ci/test.sh
+
+.PHONY: test-coverage
+test-coverage: gen-build-info ## Same suite WITH coverage → coverage/lcov.info (for the gate / CI). Slower.
+	ci/test.sh --coverage
 
 .PHONY: test-core
 test-core: gen-build-info ## Core subsystem tests (IPC, PTY, git, pane registry).
@@ -133,7 +137,7 @@ test-e2e: ## End-to-end Playwright smoke.
 test-all: test-core test test-a11y test-integration test-e2e ## Everything, sequentially.
 
 .PHONY: coverage-gate
-coverage-gate: ## Coverage gate — fails if total line % < pubspec.yaml `coverage_floor:` (D-66). Assumes `make test` ran first.
+coverage-gate: ## Coverage gate — fails if total line % < pubspec.yaml `coverage_floor:` (D-66). Assumes `make test-coverage` ran first.
 	ci/coverage_gate.sh
 
 .PHONY: changelog-gate
@@ -302,7 +306,7 @@ decisions-validate: ## Parser dry-run over governance/{decisions,questions,rejec
 	pql decisions validate
 
 .PHONY: push-check
-push-check: decisions-validate test-core test test-a11y coverage-gate changelog-gate ## Pre-push gate (fast — <2 min target).
+push-check: decisions-validate test-core test-coverage coverage-gate changelog-gate ## Pre-push gate (fast — <2 min target). test-coverage already runs the a11y suite (test/a11y), so no separate test-a11y pass.
 
 .PHONY: push-check-full
 push-check-full: push-check test-integration smoke-bundle ## Pre-release gate (push-check + integration + smoke; slower).
