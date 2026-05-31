@@ -17,14 +17,16 @@ cd clide
 make hooks && flutter pub get
 ```
 
-`make hooks` installs the repo's git hooks (pre-commit + post-merge).
-Flutter must be on the stable channel and on `$PATH`.
+`make hooks` points `core.hooksPath` at [`.githooks/`](.githooks). The
+load-bearing one is **pre-push** (runs `make push-check`); the rest
+(pre-commit, post-checkout/merge/rewrite) are housekeeping. Flutter must
+be on the stable channel and on `$PATH`.
 
 If you haven't used [pql](https://github.com/postmeridiem/pql) before,
 install it and run `pql init` once in the repo root. pql is a hard
 dependency for the governance + ticket workflow described below.
 
-## The five commands you'll actually use
+## The commands you'll actually use
 
 ```
 make run           # launch the desktop app
@@ -50,8 +52,9 @@ commit. Pre-push includes:
 
 - `flutter analyze` (zero warnings)
 - `dart format --set-exit-if-changed`
-- the fast unit/widget/golden suites
-- accessibility contract tests
+- the core (`dart test`) suite
+- the unit/widget/golden/a11y suites, instrumented for coverage
+  (`make test-coverage` — the a11y suite runs here, not as a separate pass)
 - a coverage floor read from `coverage_floor:` in `pubspec.yaml`
   (currently 95 %; ratchets up only — see
   [D-66](governance/decisions/testing.md#d-66))
