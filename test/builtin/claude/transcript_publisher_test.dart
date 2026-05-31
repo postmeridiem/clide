@@ -44,7 +44,9 @@ void main() {
     setUp(() async => base = await Directory.systemTemp.createTemp('transcript_publisher_test_'));
     tearDown(() async => base.delete(recursive: true));
 
-    test('republishes reader items onto the bus (lead channel + item key)', () async {
+    // Serialized: this MessageBus republish assertion is timing-sensitive and
+    // flaked in the parallel flutter pool; runs in the --concurrency=1 pass (T-193).
+    test('republishes reader items onto the bus (lead channel + item key)', tags: ['serial'], () async {
       final dir = Directory('${base.path}/${workspace.replaceAll('/', '-')}');
       await dir.create(recursive: true);
       File('${dir.path}/session-abc.jsonl').writeAsStringSync(

@@ -10,3 +10,10 @@ tags:
   # under `dart test`. (Tag was historically named `forkpty`, before
   # T-96 replaced forkpty with posix_spawn.) See `test/pty/session_test.dart`.
   pty:
+  # Concurrency-vulnerable tests that flake in the parallel flutter pool
+  # (e.g. MessageBus delivery races). The parallel run excludes them
+  # (`--exclude-tags "pty || serial"`); ci/test.sh runs a separate
+  # `--tags serial --concurrency=1` pass and merges its coverage. Prefer a
+  # deterministic await first — only tag `serial` when isolation is the real
+  # fix. (T-193)
+  serial:

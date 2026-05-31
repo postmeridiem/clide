@@ -30,10 +30,22 @@ echo "==> dart test (pty — unreliable under the flutter test runner; serial)"
 # for resource-bound tests, vs. the old per-test `retry:` band-aid. (T-193)
 dart test --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart
 
+# The parallel pool excludes both pty (runs under dart test, above) and
+# serial-tagged tests (concurrency-vulnerable — run in their own --concurrency=1
+# pass below). See dart_test.yaml + T-193.
 if [[ "$coverage" == 1 ]]; then
-  echo "==> flutter test --coverage (gate; unit + widget + golden + a11y)"
-  flutter test --coverage --exclude-tags pty --timeout 60s
+  echo "==> flutter test --coverage (parallel pool; excludes pty + serial)"
+  flutter test --coverage --exclude-tags "pty || serial" --timeout 60s
+  cp coverage/lcov.info coverage/lcov.parallel.info
+  echo "==> flutter test --coverage (serial-tagged; --concurrency=1)"
+  flutter test --coverage --tags serial --concurrency=1 --timeout 60s
+  echo "==> merge coverage (parallel + serial passes → coverage/lcov.info)"
+  python3 ci/merge_lcov.py coverage/lcov.parallel.info coverage/lcov.info > coverage/lcov.merged.info
+  mv coverage/lcov.merged.info coverage/lcov.info
+  rm -f coverage/lcov.parallel.info
 else
-  echo "==> flutter test (dev; no coverage, parallel)"
-  flutter test --exclude-tags pty --concurrency=12 --timeout 60s
+  echo "==> flutter test (dev; parallel pool, excludes pty + serial)"
+  flutter test --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
+  echo "==> flutter test (dev; serial-tagged, --concurrency=1)"
+  flutter test --tags serial --concurrency=1 --timeout 60s
 fi
