@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Clicking a markdown file opens it in the right-side markdown reader again —
+  the files panel, the Claude Config tab, and wiki `.md` links now publish to
+  the reader instead of the editor. (T-187)
 - A forked Claude session now reports its real session id (captured from the
   branch's `init` event) instead of the placeholder it was spawned with, so a
   fork can itself be resumed/forked. (T-185)

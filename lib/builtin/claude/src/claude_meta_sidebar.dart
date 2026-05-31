@@ -535,7 +535,8 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   }
 
   /// A tappable row for file-backed items (skills, agents, commands).
-  /// Fires `editor.open` with the path when tapped (D-6, T-183).
+  /// All config items are .md files — opens in the markdown reader panel
+  /// via the kernel MessageBus (D-6, T-183).
   Widget _configFileRow(SurfaceTokens tokens, String name, String? path) {
     final row = Padding(
       padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
@@ -546,14 +547,15 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
       ),
     );
     if (path == null) return row;
+    void openMarkdown() => ClideKernel.of(context).messages.publish('builtin.markdown', 'selection', {'path': path});
     return Semantics(
       button: true,
       label: name,
       excludeSemantics: true,
-      onTap: () => unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path})),
+      onTap: openMarkdown,
       child: ClideTappable(
         tooltip: path,
-        onTap: () => unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path})),
+        onTap: openMarkdown,
         builder: (ctx, hovered, _) => Padding(
           padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
           child: ClideText(

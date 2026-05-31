@@ -9,7 +9,6 @@ import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
-import 'package:clide/clide.dart' show IpcResponse;
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart' show EditableText, SizedBox, Semantics;
@@ -949,18 +948,16 @@ void main() {
       expect(find.text('github'), findsOneWidget);
     });
 
-    testWidgets('tapping a file-backed skill fires editor.open with its path', (tester) async {
+    testWidgets('tapping a file-backed skill publishes to builtin.markdown selection (T-187)', (tester) async {
       final dir = Directory.systemTemp.createTempSync('t183_click');
       addTearDown(() => dir.deleteSync(recursive: true));
       final config = await loadedConfig(tester, dir, skills: [(name: 'my-skill', dir: 'my-skill')]);
       addTearDown(config.dispose);
 
-      // Capture editor.open calls through the fake IPC.
-      final opened = <String>[];
-      f.ipc.stub('editor.open', (args) async {
-        opened.add(args['path'] as String? ?? '');
-        return IpcResponse.ok(id: '', data: const {});
-      });
+      // Capture markdown selection messages from the kernel MessageBus.
+      final published = <Message>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
+      addTearDown(sub.cancel);
 
       await tester.pumpWidget(harness(
         f,
@@ -976,22 +973,21 @@ void main() {
       // The skill name is the tappable label.
       await tester.tap(find.text('my-skill'));
       await tester.pump();
+      await pumpAsync(tester);
 
-      expect(opened, hasLength(1));
-      expect(opened.first, endsWith('my-skill/SKILL.md'));
+      expect(published, hasLength(1));
+      expect(published.first.data['path'] as String?, endsWith('my-skill/SKILL.md'));
     });
 
-    testWidgets('tapping a file-backed command fires editor.open with its path', (tester) async {
+    testWidgets('tapping a file-backed command publishes to builtin.markdown selection (T-187)', (tester) async {
       final dir = Directory.systemTemp.createTempSync('t183_cmd_click');
       addTearDown(() => dir.deleteSync(recursive: true));
       final config = await loadedConfig(tester, dir, commands: ['deploy']);
       addTearDown(config.dispose);
 
-      final opened = <String>[];
-      f.ipc.stub('editor.open', (args) async {
-        opened.add(args['path'] as String? ?? '');
-        return IpcResponse.ok(id: '', data: const {});
-      });
+      final published = <Message>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
+      addTearDown(sub.cancel);
 
       await tester.pumpWidget(harness(
         f,
@@ -1005,22 +1001,21 @@ void main() {
 
       await tester.tap(find.text('deploy'));
       await tester.pump();
+      await pumpAsync(tester);
 
-      expect(opened, hasLength(1));
-      expect(opened.first, endsWith('deploy.md'));
+      expect(published, hasLength(1));
+      expect(published.first.data['path'] as String?, endsWith('deploy.md'));
     });
 
-    testWidgets('tapping a file-backed agent fires editor.open with its path', (tester) async {
+    testWidgets('tapping a file-backed agent publishes to builtin.markdown selection (T-187)', (tester) async {
       final dir = Directory.systemTemp.createTempSync('t183_agent_click');
       addTearDown(() => dir.deleteSync(recursive: true));
       final config = await loadedConfig(tester, dir, agents: ['planner']);
       addTearDown(config.dispose);
 
-      final opened = <String>[];
-      f.ipc.stub('editor.open', (args) async {
-        opened.add(args['path'] as String? ?? '');
-        return IpcResponse.ok(id: '', data: const {});
-      });
+      final published = <Message>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
+      addTearDown(sub.cancel);
 
       await tester.pumpWidget(harness(
         f,
@@ -1034,9 +1029,10 @@ void main() {
 
       await tester.tap(find.text('planner'));
       await tester.pump();
+      await pumpAsync(tester);
 
-      expect(opened, hasLength(1));
-      expect(opened.first, endsWith('planner.md'));
+      expect(published, hasLength(1));
+      expect(published.first.data['path'] as String?, endsWith('planner.md'));
     });
 
     testWidgets('accordion collapses when toggled a second time', (tester) async {

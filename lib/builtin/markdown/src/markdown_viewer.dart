@@ -16,7 +16,6 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
   String? _content;
   String? _error;
   StreamSubscription<Message>? _selectionSub;
-  StreamSubscription<DaemonEvent>? _editorSub;
 
   @override
   void didChangeDependencies() {
@@ -27,20 +26,11 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
       final path = msg.data['path'] as String?;
       if (path != null) _loadFile(path);
     });
-    _editorSub = kernel.events.on<DaemonEvent>().listen((e) {
-      if (e.kind == 'editor.buffer_activated') {
-        final path = e.data['path'] as String?;
-        if (path != null && path.endsWith('.md')) {
-          _loadFile(path);
-        }
-      }
-    });
   }
 
   @override
   void dispose() {
     _selectionSub?.cancel();
-    _editorSub?.cancel();
     super.dispose();
   }
 
@@ -62,7 +52,10 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
 
   void _navigateToRecord(BuildContext context, String id) {
     final kernel = ClideKernel.of(context);
-    if (id.startsWith('T-')) {
+    if (id.toLowerCase().endsWith('.md')) {
+      // Wiki-link to another .md file — open it in the reader.
+      kernel.messages.publish('builtin.markdown', 'selection', {'path': id});
+    } else if (id.startsWith('T-')) {
       kernel.messages.publish('builtin.tickets', 'selection', {'id': id});
     } else {
       kernel.messages.publish('builtin.decisions', 'selection', {'id': id});
