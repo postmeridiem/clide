@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Clicking a decision opens it in the decision reader again — the decisions
+  extension no longer tears down and re-contributes its panel tab on every
+  selection; it activates a static tab and reveals the panel like the ticket
+  panel. (T-188)
 - Clicking a markdown file opens it in the right-side markdown reader again —
   the files panel, the Claude Config tab, and wiki `.md` links now publish to
   the reader instead of the editor. (T-187)

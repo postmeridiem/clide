@@ -21,16 +21,7 @@ class DecisionsExtension extends ClideExtension {
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
     _sub = ctx.messages.subscribe(publisher: id, channel: 'selection').listen((msg) {
-      final selectedId = msg.data['id'] as String?;
-      if (selectedId == null) return;
-      ctx.panels.uncontribute('decisions.detail');
-      ctx.panels.contribute(TabContribution(
-        id: 'decisions.detail',
-        slot: Slots.contextPanel,
-        title: 'Decision',
-        icon: PhosphorIcons.lightbulb,
-        build: (_) => DecisionDetailView(initialId: selectedId),
-      ));
+      if (msg.data['id'] is! String) return;
       ctx.arrangement.setVisible(Slots.contextPanel, true);
       ctx.arrangement.setCollapsed(Slots.contextPanel, false);
       ctx.panels.activateTab(Slots.contextPanel, 'decisions.detail');
