@@ -18,10 +18,12 @@ void main() {
 
   setUp(() async {
     f = await KernelFixture.create();
-    f.ipc.stub('files.walk', (_) async => IpcResponse.ok(id: '1', data: const {
-          'files': ['lib/main.dart', 'lib/app.dart', 'README.md'],
-          'truncated': false,
-        }));
+    f.ipc.stub(
+        'files.walk',
+        (_) async => IpcResponse.ok(id: '1', data: const {
+              'files': ['lib/main.dart', 'lib/app.dart', 'README.md'],
+              'truncated': false,
+            }));
     f.ipc.stub('editor.open', (args) async => IpcResponse.ok(id: '1', data: {'path': args['path']}));
   });
   tearDown(() => f.dispose());
@@ -63,9 +65,7 @@ void main() {
 
   testWidgets('tapping an md result publishes to the markdown reader bus', (tester) async {
     final published = <Message>[];
-    final sub = f.services.messages
-        .subscribe(publisher: 'builtin.markdown', channel: 'selection')
-        .listen(published.add);
+    final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
     addTearDown(sub.cancel);
 
     await tester.pumpWidget(harness(f, const QuickOpenOverlay()));

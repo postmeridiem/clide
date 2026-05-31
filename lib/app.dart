@@ -125,6 +125,14 @@ class _RootShellState extends State<_RootShell> {
                 return null;
               },
             ),
+            FindInFilesIntent: CallbackAction<FindInFilesIntent>(
+              onInvoke: (_) {
+                widget.services.arrangement.setVisible(Slots.sidebar, true);
+                widget.services.arrangement.setCollapsed(Slots.sidebar, false);
+                widget.services.panels.activateTab(Slots.sidebar, 'search.findInFiles');
+                return null;
+              },
+            ),
             FocusNextPanelIntent: CallbackAction<FocusNextPanelIntent>(
               onInvoke: (_) {
                 widget.services.focus.focusNextSlot();

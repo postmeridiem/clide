@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Find-in-files sidebar panel (Ctrl/Cmd+Shift+F): search the workspace with
+  regex and case toggles plus include/exclude globs; results stream in grouped
+  by file and clicking a match opens the editor at that line. (T-52)
 - Workspace content-search engine with `search.grep` / `search.cancel` commands:
   a pure-Dart, isolate-parallel grep (literal or regex, case + include/exclude
   glob filters) that streams matches and honours the `ignore_files:` chain. The

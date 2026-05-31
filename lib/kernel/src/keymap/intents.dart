@@ -77,6 +77,13 @@ class QuickOpenAcceptIntent extends Intent {
   const QuickOpenAcceptIntent();
 }
 
+// -- Find in files ----------------------------------------------------------
+
+/// Reveal the find-in-files search panel in the sidebar.
+class FindInFilesIntent extends Intent {
+  const FindInFilesIntent();
+}
+
 // -- Text scale -------------------------------------------------------------
 
 class TextScaleIncreaseIntent extends Intent {
@@ -122,6 +129,7 @@ final Map<String, Intent Function()> builtinIntents = {
   'quickOpen.selectNext': () => const QuickOpenSelectNextIntent(),
   'quickOpen.selectPrevious': () => const QuickOpenSelectPreviousIntent(),
   'quickOpen.accept': () => const QuickOpenAcceptIntent(),
+  'findInFiles.open': () => const FindInFilesIntent(),
   'text.scaleIncrease': () => const TextScaleIncreaseIntent(),
   'text.scaleDecrease': () => const TextScaleDecreaseIntent(),
   'text.scaleReset': () => const TextScaleResetIntent(),

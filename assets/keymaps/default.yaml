@@ -76,6 +76,10 @@ bindings:
     keys: escape
     when: quickOpen.open
 
+  # -- Find in files ----------------------------------------------------
+  - intent: findInFiles.open
+    keys: [ctrl+shift+f, meta+shift+f]
+
   # -- Text scale -------------------------------------------------------
   # On most layouts `+` is `shift+equal`; we bind both so users who
   # think of it as Ctrl+Plus and users who hit Ctrl+= both work.

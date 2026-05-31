@@ -12,6 +12,7 @@ import 'package:clide/builtin/editor/editor.dart';
 import 'package:clide/builtin/extensions_ui/extensions_ui.dart';
 import 'package:clide/builtin/files/files.dart';
 import 'package:clide/builtin/git/git.dart';
+import 'package:clide/builtin/search/search.dart';
 import 'package:clide/builtin/grammars_core/grammars_core.dart';
 import 'package:clide/builtin/graph/graph.dart';
 import 'package:clide/builtin/ipc_status/ipc_status.dart';
@@ -246,6 +247,7 @@ Future<void> main() async {
     ..register(TicketsExtension())
     ..register(DecisionsExtension())
     ..register(FilesExtension())
+    ..register(SearchExtension())
     ..register(GitExtension())
     ..register(PqlExtension())
     ..register(ProblemsExtension())

@@ -35,6 +35,10 @@ void main() {
       expect(parseIntentId('quickOpen.accept'), isA<QuickOpenAcceptIntent>());
     });
 
+    test('returns the findInFiles.open intent', () {
+      expect(parseIntentId('findInFiles.open'), isA<FindInFilesIntent>());
+    });
+
     test('returns the text.scale* intents', () {
       expect(parseIntentId('text.scaleIncrease'), isA<TextScaleIncreaseIntent>());
       expect(parseIntentId('text.scaleDecrease'), isA<TextScaleDecreaseIntent>());
