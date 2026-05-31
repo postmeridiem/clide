@@ -50,24 +50,30 @@ user which area to advance.
 
 ### 1b. Build the work landscape
 
-For each candidate epic or initiative, expand its children:
+For each candidate epic or initiative, read its full descendant subtree
+(nested, with the direct parent in `ancestors`) — one call, no client-side
+flattening (pql ≥ 1.6.0):
 
 ```bash
-pql ticket show <id> --with-children --pretty
+pql ticket show <id> --tree --pretty        # add --depth N to cap levels
 ```
 
-Collect every leaf ticket (story/task/bug) underneath. Deduplicate.
+This replaces the old `--with-children` + hand-rolled status summaries.
 
-### 1c. Filter to unblocked tickets
+### 1c. Filter to unblocked, actionable leaves
 
-For each leaf with status `ready` or `backlog`, check blockers:
+Don't walk blockers per ticket — pql does it. Compose the `list` filters
+(pql ≥ 1.6.0): `--leaf` (no children), `--unblocked` (every blocker is
+`done`/`cancelled`), and `--status` (since `--leaf`/`--unblocked` are
+structure/blocker-state only and would otherwise include `done` leaves):
 
 ```bash
-pql ticket show <id> --with-blockers --pretty
+pql ticket list --under <epic-id> --leaf --unblocked --status backlog,ready --pretty
 ```
 
-A ticket is **unblocked** if every blocker is `done` or `cancelled`.
-Drop the rest.
+That returns exactly the actionable, unblocked leaves under the epic — the
+multi-result complement to `pql plan whatsnext` (which now also skips blocked
+tickets, for the single best pick).
 
 ### 1d. Rank and group
 
@@ -166,11 +172,17 @@ Run all agents in parallel (single message, multiple Agent tool calls).
 
 For each ticket that came back GAPS, surface ambiguities to the user
 via AskUserQuestion. After the user resolves, append the resolution to
-the ticket via pql:
+the ticket with `pql ticket append` (pql ≥ 1.6.0) — it appends
+blank-line-separated WITHOUT round-tripping the existing description, so
+there's no JSON-splicing or read-modify-write:
 
 ```bash
-pql ticket refine write T-NN '{"description":"<existing body>\n\n---\nRefinement: <resolution>"}'
+pql ticket append T-NN "Refinement (<date>): <resolution>"
+# longer notes: pql ticket append T-NN --file note.md   (or --stdin)
 ```
+
+(Use `append`, not `refine write` — the latter replaces the whole
+description from a JSON patch and forces you to re-send the existing body.)
 
 If a gap really requires a new D-record (architectural choice, not just
 detail), flag it. Ask whether to write the D-record now (`pql decisions
