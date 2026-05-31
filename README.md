@@ -19,10 +19,14 @@ canvas, claude, claude_control, decisions, diff, editor, extensions_ui, files, g
 
 ## Building
 
-Requires Flutter (stable channel) on the host. One-time setup:
+Requires Flutter (stable channel) and [pql](https://github.com/postmeridiem/pql)
+on the host. pql is a hard dependency — the pre-push gate runs `pql decisions
+validate` and the governance + ticket workflow is built on it (see its repo for
+install). One-time setup:
 
 ```
 make hooks && flutter pub get
+pql init                 # once, in the repo root — wires up the pql skill + perms
 ```
 
 Then:
