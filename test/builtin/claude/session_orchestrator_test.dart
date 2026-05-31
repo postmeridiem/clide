@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
@@ -12,6 +13,7 @@ class _FakeProc implements StreamJsonProcess {
   bool killed = false;
   @override
   Stream<String> get lines => _ctl.stream;
+  void emit(String line) => _ctl.add(line);
   @override
   void writeLine(String line) => writes.add(line);
   @override
@@ -39,6 +41,26 @@ void main() {
     expect(orch.sessions, hasLength(2));
     expect(created, hasLength(2));
     expect(orch.byId('teammate:tyre')!.role, 'teammate:tyre');
+  });
+
+  test('folds the real claude session id from the init event into the session (T-185)', () async {
+    final m = await orch.spawn(SpawnSpec(
+      id: 'fork-x',
+      role: 'teammate',
+      sessionId: 'placeholder-uuid',
+      cwd: '/repo',
+      forkSourceSessionId: 'source-uuid',
+    ));
+    expect(m.sessionId, 'placeholder-uuid'); // starts as the placeholder
+    created.last.emit(jsonEncode({
+      'type': 'system',
+      'subtype': 'init',
+      'session_id': 'real-fork-id',
+      'model': 'claude-opus-4-8',
+      'permissionMode': 'default',
+    }));
+    await Future<void>.delayed(Duration.zero);
+    expect(m.sessionId, 'real-fork-id'); // updated to the branch's real id
   });
 
   test('spawn is idempotent on id — no second process', () async {

@@ -206,6 +206,21 @@ void main() {
     expect(statuses, hasLength(1));
   });
 
+  test('captures the claude session id from the first event carrying it (T-185)', () async {
+    final ids = <String>[];
+    session.sessionIdResolved.listen(ids.add);
+    proc.emit(jsonEncode({
+      'type': 'system',
+      'subtype': 'init',
+      'session_id': 'sess-abc',
+      'model': 'claude-opus-4-7',
+      'permissionMode': 'default',
+    }));
+    await Future<void>.delayed(Duration.zero);
+    expect(session.claudeSessionId, 'sess-abc');
+    expect(ids, ['sess-abc']);
+  });
+
   group('live cost/context from result events (T-168)', () {
     test('result event with total_cost_usd populates cost field', () async {
       proc.emit(resultEvent(cost: 0.042));

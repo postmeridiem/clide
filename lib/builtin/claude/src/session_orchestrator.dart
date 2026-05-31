@@ -108,10 +108,11 @@ class ManagedSession {
   final String id;
   final String role;
 
-  /// The clide-internal session id. For fork sessions this is the placeholder
-  /// UUID passed via [SpawnSpec.sessionId]; the real claude-assigned session id
-  /// arrives in the `init` event and is not yet captured here (T-172 follow-up).
-  final String sessionId;
+  /// The claude session id. Starts as [SpawnSpec.sessionId] (the `--session-id`
+  /// we passed, or a placeholder for a `--fork-session` branch) and is updated
+  /// to the real claude-assigned id once the session's `init` event resolves it
+  /// (T-185) — so a fork exposes the branch's actual id, not the placeholder.
+  String sessionId;
 
   /// The working directory this session was spawned in. Retained so forks and
   /// the UI can reference the source context (T-172).
@@ -226,6 +227,15 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       forkSourceSessionId: spec.forkSourceSessionId,
     );
     _sessions[spec.id] = managed;
+    // Fold the real claude-assigned session id back in once the init event
+    // resolves it (T-185) — matters for forks, whose sessionId starts as a
+    // placeholder. Idempotent for normal sessions (same id we passed).
+    session.sessionIdResolved.listen((id) {
+      if (managed.sessionId != id) {
+        managed.sessionId = id;
+        notifyListeners();
+      }
+    });
     notifyListeners();
     return managed;
   }

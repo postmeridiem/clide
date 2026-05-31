@@ -203,8 +203,10 @@ class StreamJsonSession {
   final List<McpServer> _mcpServers;
   final _items = StreamController<ConversationItem>.broadcast();
   final _statusCtl = StreamController<SessionStatus>.broadcast();
+  final _sessionIdCtl = StreamController<String>.broadcast();
   StreamSubscription<String>? _sub;
   SessionStatus _status = const SessionStatus();
+  String? _claudeSessionId;
   int _localSeq = 0;
 
   /// Token-by-token streaming state (T-168, wire shape verified by T-184).
@@ -272,6 +274,16 @@ class StreamJsonSession {
   /// of the user's own messages).
   Stream<ConversationItem> get items => _items.stream;
 
+  /// The claude-assigned session id, resolved from the first event that carries
+  /// `session_id` (the `init` event). For a session started with `--session-id`
+  /// this equals the id we passed; for a `--fork-session` branch (T-185) it is
+  /// the NEW id claude minted, which the orchestrator folds back into the
+  /// [ManagedSession]. Null until the init event arrives.
+  String? get claudeSessionId => _claudeSessionId;
+
+  /// Fires once with the resolved [claudeSessionId] when the init event lands.
+  Stream<String> get sessionIdResolved => _sessionIdCtl.stream;
+
   /// Session status (model / permission-mode / context tokens), on change.
   Stream<SessionStatus> get statusStream => _statusCtl.stream;
 
@@ -305,6 +317,16 @@ class StreamJsonSession {
       ev = (jsonDecode(trimmed) as Map).cast<String, dynamic>();
     } catch (_) {
       return;
+    }
+    // Capture the claude-assigned session id from the first event that carries
+    // it (the init event). For a --fork-session branch this is the NEW id, which
+    // the orchestrator folds back into the ManagedSession (T-185).
+    if (_claudeSessionId == null) {
+      final sid = ev['session_id'];
+      if (sid is String && sid.isNotEmpty) {
+        _claudeSessionId = sid;
+        _sessionIdCtl.add(sid);
+      }
     }
     // Control-channel requests (permission asks, AskUserQuestion) must be
     // routed out of the normal event stream and answered (D-78).
@@ -652,6 +674,7 @@ class StreamJsonSession {
     await _proc.kill();
     await _items.close();
     await _statusCtl.close();
+    await _sessionIdCtl.close();
     await _pendingCtl.close();
     await _busyCtl.close();
   }

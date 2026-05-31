@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- A forked Claude session now reports its real session id (captured from the
+  branch's `init` event) instead of the placeholder it was spawned with, so a
+  fork can itself be resumed/forked. (T-185)
 - Claude replies now stream token-by-token. The `--include-partial-messages`
   output arrives as `stream_event` deltas (not `assistant`+`partial:true` as
   first assumed), so the previous handler never fired; the session now reads the
