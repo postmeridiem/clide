@@ -24,6 +24,7 @@ import 'package:clide/builtin/settings_ui/settings_ui.dart';
 import 'package:clide/builtin/terminal/terminal.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/builtin/view/view.dart';
+import 'package:clide/builtin/vim/vim.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
@@ -265,6 +266,7 @@ Future<void> main() async {
     ..register(ClaudeExtension())
     ..register(TerminalExtension())
     ..register(EditorExtension())
+    ..register(VimExtension())
     ..register(DiffExtension())
     // Format engines + stubs
     ..register(GrammarsCoreExtension())

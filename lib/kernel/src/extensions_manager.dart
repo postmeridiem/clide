@@ -290,6 +290,8 @@ class _ExtensionContext implements ClideExtensionContext {
   @override
   CommandRegistry get commands => manager.commands;
   @override
+  KeymapService get keymap => manager.keymap;
+  @override
   PaletteController get palette => manager.palette;
   @override
   ReaderNavRegistry get readerNav => manager.readerNav;

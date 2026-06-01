@@ -10,6 +10,7 @@ import 'package:clide/kernel/src/files.dart';
 import 'package:clide/kernel/src/focus.dart';
 import 'package:clide/kernel/src/i18n/i18n.dart';
 import 'package:clide/kernel/src/ipc/client.dart';
+import 'package:clide/kernel/src/keymap/keymap_service.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/net.dart';
 import 'package:clide/kernel/src/notify.dart';
@@ -63,6 +64,7 @@ abstract class ClideExtensionContext {
   PanelRegistry get panels;
   LayoutArrangement get arrangement;
   CommandRegistry get commands;
+  KeymapService get keymap;
   PaletteController get palette;
   ReaderNavRegistry get readerNav;
   ClideClipboard get clipboard;
