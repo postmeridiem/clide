@@ -1,0 +1,169 @@
+# clide Vim keymap preset (T-65).
+#
+# Modal editing built on the keymap sequence layer (D-82). The Vim mode
+# service (builtin.vim) publishes vim.normal / vim.insert / vim.visual
+# scope flags; bindings here are guarded on them. Motions/edits resolve to
+# `command:editor.vim.<action>`, which the editor applies to the buffer
+# (read-only in command mode so keys never type); mode changes resolve to
+# `command:vim.mode.<mode>`.
+#
+# Notation (D-82): `+` joins a chord, a space sequences (`d d`), a YAML
+# list alternates (`[d, x]`). Repeat counts (`5j`) are captured by the
+# matcher — no binding needed.
+#
+# Scope: the muscle-memory set, not bit-exact Vim. cw/$/^ are
+# approximations; see vim_edit_ops.dart.
+
+name: vim
+
+bindings:
+  # ---- App shortcuts (shared with the default preset) -----------------
+  # Modified chords bubble past the editor to the global handler, so these
+  # keep working with the editor focused and under every mode.
+  - intent: palette.open
+    keys: [ctrl+shift+p, meta+shift+p]
+  - intent: palette.selectNext
+    keys: [down, ctrl+n]
+    when: palette.open
+  - intent: palette.selectPrevious
+    keys: [up, ctrl+p]
+    when: palette.open
+  - intent: palette.accept
+    keys: enter
+    when: palette.open
+  - intent: dismiss
+    keys: escape
+    when: palette.open
+  - intent: quickOpen.open
+    keys: [ctrl+p, meta+p]
+    when: "!palette.open"
+  - intent: quickOpen.selectNext
+    keys: [down, ctrl+n]
+    when: quickOpen.open
+  - intent: quickOpen.selectPrevious
+    keys: up
+    when: quickOpen.open
+  - intent: quickOpen.accept
+    keys: enter
+    when: quickOpen.open
+  - intent: dismiss
+    keys: escape
+    when: quickOpen.open
+  - intent: findInFiles.open
+    keys: [ctrl+shift+f, meta+shift+f]
+  - intent: focus.nextPanel
+    keys: f6
+  - intent: focus.previousPanel
+    keys: shift+f6
+  - intent: text.scaleIncrease
+    keys: [ctrl+equal, ctrl+shift+equal, meta+equal, meta+shift+equal]
+  - intent: text.scaleDecrease
+    keys: [ctrl+minus, meta+minus]
+  - intent: text.scaleReset
+    keys: [ctrl+0, meta+0]
+
+  # ---- Mode transitions ------------------------------------------------
+  - intent: command:vim.mode.visual
+    keys: v
+    when: vim.normal
+  - intent: command:vim.mode.normal
+    keys: escape
+    when: "vim.insert || vim.visual"
+
+  # ---- Insert entry (normal → insert), positioned by the editor --------
+  - intent: command:editor.vim.insert
+    keys: i
+    when: vim.normal
+  - intent: command:editor.vim.append
+    keys: a
+    when: vim.normal
+  - intent: command:editor.vim.insertLineStart
+    keys: shift+i # I
+    when: vim.normal
+  - intent: command:editor.vim.appendLineEnd
+    keys: shift+a # A
+    when: vim.normal
+  - intent: command:editor.vim.openBelow
+    keys: o
+    when: vim.normal
+  - intent: command:editor.vim.openAbove
+    keys: shift+o # O
+    when: vim.normal
+
+  # ---- Motions (normal + visual) ---------------------------------------
+  - intent: command:editor.vim.left
+    keys: h
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.down
+    keys: j
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.up
+    keys: k
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.right
+    keys: l
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.wordForward
+    keys: w
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.wordBackward
+    keys: b
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.wordEnd
+    keys: e
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.lineStart
+    keys: "0"
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.lineEnd
+    keys: shift+4 # $
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.firstNonBlank
+    keys: shift+6 # ^
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.docStart
+    keys: "g g" # gg
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.vim.docEnd
+    keys: shift+g # G
+    when: "vim.normal || vim.visual"
+
+  # ---- Normal-mode edits ----------------------------------------------
+  - intent: command:editor.vim.deleteChar
+    keys: x
+    when: vim.normal
+  - intent: command:editor.vim.deleteLine
+    keys: "d d"
+    when: vim.normal
+  - intent: command:editor.vim.deleteWord
+    keys: "d w"
+    when: vim.normal
+  - intent: command:editor.vim.deleteToEnd
+    keys: shift+d # D
+    when: vim.normal
+  - intent: command:editor.vim.changeLine
+    keys: "c c"
+    when: vim.normal
+  - intent: command:editor.vim.changeWord
+    keys: "c w"
+    when: vim.normal
+  - intent: command:editor.vim.yankLine
+    keys: "y y"
+    when: vim.normal
+  - intent: command:editor.vim.paste
+    keys: p
+    when: vim.normal
+  - intent: command:editor.vim.pasteBefore
+    keys: shift+p # P
+    when: vim.normal
+
+  # ---- Visual-mode operators ------------------------------------------
+  - intent: command:editor.vim.visualDelete
+    keys: [d, x]
+    when: vim.visual
+  - intent: command:editor.vim.visualYank
+    keys: y
+    when: vim.visual
+  - intent: command:editor.vim.visualChange
+    keys: c
+    when: vim.visual

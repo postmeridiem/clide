@@ -201,10 +201,13 @@ class _EditorViewState extends State<EditorView> {
       return KeyEventResult.ignored;
     }
 
-    // Normal / visual mode. Modified chords are app shortcuts (palette,
-    // find, …) — let them bubble to the global handler. Bare keys drive
-    // the Vim matcher and never reach text input.
-    if (chord.modifiers.isNotEmpty) return KeyEventResult.ignored;
+    // Normal / visual mode. Ctrl/Alt/Meta chords are app shortcuts
+    // (palette, find, …) — let them bubble to the global handler. Bare
+    // keys and Shift chords (Vim's capitals: G, D, A, P, $) drive the
+    // matcher and never reach text input.
+    if (chord.modifiers.any((m) => m != KeyModifier.shift)) {
+      return KeyEventResult.ignored;
+    }
 
     final r = _matcher!.feed(chord);
     switch (r.outcome) {

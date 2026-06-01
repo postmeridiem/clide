@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Vim keymap preset: a modal editor (normal/insert/visual) with hjkl/w/b/e
+  motions, dd/dw/x/D/yy/p/cc/cw edits, counts (`5j`), visual-range d/y/c, and
+  a status-bar mode indicator. Switch presets from the palette (`Keymap: Vim`
+  / `Keymap: Default`). Built on a new keymap key-sequence layer (D-82). (T-65)
 - Search-and-replace across the workspace: enter a replacement in the search
   panel to preview each rewritten line, then Replace all (regex capture groups
   supported). Guarded by a clean-git-tree gate — git is the undo — and a
