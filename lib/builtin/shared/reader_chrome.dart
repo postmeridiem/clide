@@ -14,13 +14,12 @@ import 'package:flutter/widgets.dart';
 // Action bar widget
 // ---------------------------------------------------------------------------
 
-/// A row of reader-chrome action buttons. Layout (T-196 UX): a pin/unpin
-/// **toggle on the left**, then the **navigator** on the right — back,
-/// forward, jump-to-pin (only while pinned) — and the edit pencil last.
-/// The left toggles pinned state; the right navigates.
-///
-/// Designed to plug into [ClidePaneChrome.trailing]. All callbacks are
-/// optional — pass null to hide/disable the corresponding button.
+/// The reader's **navigator** — back, forward, jump-to-pin (only while
+/// pinned), and the edit pencil. Plugs into [ClidePaneChrome.trailing].
+/// The pin/unpin toggle is deliberately NOT here: it's a mode control,
+/// not navigation, so it lives in the pane's leading slot as a
+/// standalone [ReaderPinButton] (T-198). All callbacks are optional —
+/// pass null to hide/disable the corresponding button.
 class ReaderActionBar extends StatelessWidget {
   const ReaderActionBar({
     super.key,
@@ -29,7 +28,6 @@ class ReaderActionBar extends StatelessWidget {
     required this.hasPinned,
     required this.onBack,
     required this.onForward,
-    required this.onPin,
     required this.onJumpToPin,
     required this.onEdit,
   });
@@ -39,10 +37,6 @@ class ReaderActionBar extends StatelessWidget {
   final bool hasPinned;
   final VoidCallback? onBack;
   final VoidCallback? onForward;
-
-  /// Called when the pin toggle is tapped — pins the current entry when
-  /// nothing is pinned, else clears the pin.
-  final VoidCallback? onPin;
 
   /// Called when the jump-to-pin button (in the navigator) is tapped.
   final VoidCallback? onJumpToPin;
@@ -56,17 +50,6 @@ class ReaderActionBar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Left — toggle the pinned state.
-        _ActionButton(
-          painter: PhosphorIcons.pushPin,
-          tooltip: hasPinned ? 'Unpin' : 'Pin',
-          enabled: onPin != null,
-          active: hasPinned,
-          onTap: onPin,
-          tokens: tokens,
-        ),
-        const SizedBox(width: 8),
-        // Right — the navigator.
         _ActionButton(
           painter: PhosphorIcons.caretLeft,
           tooltip: 'Back',
@@ -103,6 +86,29 @@ class ReaderActionBar extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The pin/unpin toggle — a single button that sits in the pane's
+/// leading slot (before the title), separate from the navigator so the
+/// two kinds of control don't read as one group (T-198). [pinned]
+/// drives the accent + the Pin/Unpin label; [onTap] toggles.
+class ReaderPinButton extends StatelessWidget {
+  const ReaderPinButton({super.key, required this.pinned, required this.onTap});
+
+  final bool pinned;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ActionButton(
+      painter: PhosphorIcons.pushPin,
+      tooltip: pinned ? 'Unpin' : 'Pin',
+      enabled: onTap != null,
+      active: pinned,
+      onTap: onTap,
+      tokens: ClideTheme.of(context).surface,
     );
   }
 }

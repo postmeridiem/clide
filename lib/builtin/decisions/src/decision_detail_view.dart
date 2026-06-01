@@ -110,6 +110,10 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
     return ClidePaneChrome(
       title: id,
       subtitle: title,
+      leading: ReaderPinButton(
+        pinned: _nav?.hasPinned ?? false,
+        onTap: _decision != null ? _onPin : null,
+      ),
       trailing: [
         ReaderActionBar(
           canGoBack: _nav?.canGoBack ?? false,
@@ -117,7 +121,6 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
           hasPinned: _nav?.hasPinned ?? false,
           onBack: (_nav?.canGoBack ?? false) ? _onBack : null,
           onForward: (_nav?.canGoForward ?? false) ? _onForward : null,
-          onPin: _decision != null ? _onPin : null,
           onJumpToPin: (_nav?.hasPinned ?? false) ? _onJumpToPin : null,
           onEdit: filePath != null ? _onEdit : null,
         ),

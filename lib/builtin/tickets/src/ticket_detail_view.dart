@@ -73,6 +73,10 @@ class _TicketDetailViewState extends State<TicketDetailView> {
         return ClidePaneChrome(
           title: d.id,
           subtitle: d.title,
+          leading: ReaderPinButton(
+            pinned: _nav?.hasPinned ?? false,
+            onTap: _onPin,
+          ),
           trailing: [
             ReaderActionBar(
               canGoBack: _nav?.canGoBack ?? false,
@@ -80,7 +84,6 @@ class _TicketDetailViewState extends State<TicketDetailView> {
               hasPinned: _nav?.hasPinned ?? false,
               onBack: (_nav?.canGoBack ?? false) ? _onBack : null,
               onForward: (_nav?.canGoForward ?? false) ? _onForward : null,
-              onPin: _onPin,
               onJumpToPin: (_nav?.hasPinned ?? false) ? _onJumpToPin : null,
               onEdit: null, // tickets are pql records, not files
             ),

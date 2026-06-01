@@ -103,6 +103,10 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
     return ClidePaneChrome(
       title: _path ?? 'viewer',
       subtitle: '${_content!.split('\n').length} lines',
+      leading: ReaderPinButton(
+        pinned: _nav?.hasPinned ?? false,
+        onTap: _path != null ? _onPin : null,
+      ),
       trailing: [
         ReaderActionBar(
           canGoBack: _nav?.canGoBack ?? false,
@@ -110,7 +114,6 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
           hasPinned: _nav?.hasPinned ?? false,
           onBack: (_nav?.canGoBack ?? false) ? _onBack : null,
           onForward: (_nav?.canGoForward ?? false) ? _onForward : null,
-          onPin: _path != null ? _onPin : null,
           onJumpToPin: (_nav?.hasPinned ?? false) ? _onJumpToPin : null,
           onEdit: _path != null ? _onEdit : null,
         ),
