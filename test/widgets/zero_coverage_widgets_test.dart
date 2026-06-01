@@ -349,6 +349,28 @@ void main() {
       await tester.tap(find.bySemanticsLabel('B'));
       expect(selected, 'b');
     });
+
+    testWidgets('scrolls instead of overflowing when items exceed the width', (tester) async {
+      await tester.pumpWidget(harness(
+        f,
+        SizedBox(
+          width: 120,
+          height: 30,
+          child: ClideIconRail(
+            items: [
+              for (var i = 0; i < 10; i++) ClideIconRailItem(id: '$i', icon: PhosphorIcons.folder, tooltip: 'Tab $i'),
+            ],
+            activeId: '0',
+            onSelect: (_) {},
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      // No RenderFlex overflow (would surface as a thrown FlutterError),
+      // and the rail is horizontally scrollable.
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SingleChildScrollView), findsWidgets);
+    });
   });
 
   group('ClideSpine', () {

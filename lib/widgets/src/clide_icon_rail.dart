@@ -29,19 +29,31 @@ class ClideIconRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (final item in items)
-            _RailButton(
-              item: item,
-              active: item.id == activeId,
-              onTap: () => onSelect(item.id),
+    // Center the icons when they fit; scroll horizontally when there are
+    // more tabs than the rail is wide. The ConstrainedBox minWidth keeps
+    // them centered while there's room but doesn't cap growth, so the
+    // ScrollView takes over instead of the Row overflowing.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minWidth = constraints.maxWidth.isFinite ? constraints.maxWidth : 0.0;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: minWidth),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (final item in items)
+                  _RailButton(
+                    item: item,
+                    active: item.id == activeId,
+                    onTap: () => onSelect(item.id),
+                  ),
+              ],
             ),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }
