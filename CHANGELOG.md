@@ -54,6 +54,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The default keymap is no longer silently disabled at startup: `default.yaml`
+  bound Tab/Shift+Tab to undefined `focus.next`/`focus.previous` intents, which
+  made the loader drop the entire preset (palette, quick-open, find-in-files,
+  zoom). Those are now real focus-traversal intents, and a test parses every
+  shipped preset so a typo fails CI instead. (T-204)
 - Opening the editor split no longer floods exceptions: the resize handle's
   slider semantics now carry increased/decreased values, and the Claude pane
   keeps a stable identity across the reparent so its text-selection region

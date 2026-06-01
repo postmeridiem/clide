@@ -119,6 +119,12 @@ class InvokeCommandIntent extends Intent {
 final Map<String, Intent Function()> builtinIntents = {
   'activate': () => const ActivateIntent(),
   'dismiss': () => const DismissIntent(),
+  // Widget-level focus traversal (Tab / Shift+Tab). These are
+  // Flutter-provided, like activate/dismiss — bound by id so the
+  // default preset integrates with the framework's focus system. They
+  // are distinct from the panel-to-panel cycling below (F6).
+  'focus.next': () => const NextFocusIntent(),
+  'focus.previous': () => const PreviousFocusIntent(),
   'focus.nextPanel': () => const FocusNextPanelIntent(),
   'focus.previousPanel': () => const FocusPreviousPanelIntent(),
   'palette.open': () => const PaletteOpenIntent(),

@@ -13,3 +13,29 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 Reopened fix (2026-06-01): the original fix called panels.activateTab(Slots.workspace, ''editor.active''), but _WorkspaceSlot renders its editor split off arrangement.editorOpen, NOT the active tab — so the editor never appeared. Real fix: EditorExtension.activate now calls arrangement.openEditor() on editor.opened / active-changed(non-null) and closeEditor() on active-changed(null). Test asserts arrangement.editorOpen.', NULL, '2026-06-01 16:36:38', '2026-06-01 16:36:38', '2026-06-01 16:36:38', NULL, '62283198922795b643960d5beab56dba', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-203', 'status', 'backlog', 'done', NULL, '2026-06-01 16:48:56', '2026-06-01 16:48:56', '2026-06-01 16:48:56', NULL, '2cd8d1f09a2cd432491f4ee1fecbadc0', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-202', 'status', 'backlog', 'done', NULL, '2026-06-01 16:48:56', '2026-06-01 16:48:56', '2026-06-01 16:48:56', NULL, '2e730a377952b4ec2dd11561a97fcd00', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-65', 'description', 'Ship a Vim-compatible keybinding preset with modal editing support (normal/insert/visual modes). Maps Vim motions and commands to clide editor and navigation actions. Users select it in settings.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place; modal Vim presets are more involved than the VS Code preset (T-64) because modes need to be expressed as scope flags (`vim.normal`, `vim.insert`, `vim.visual`) that the when-clause grammar can branch on. Implementation work:
+
+1. Author `assets/keymaps/vim.yaml` using the typed Intents + `command:<id>` bindings.
+2. Add a small mode-tracking service that publishes `vim.<mode>` scope flags via `KeymapService.setScopeFlag`.
+3. Bind `Esc` to mode-reset → normal; `i` (when `vim.normal`) → enter insert; etc.
+
+**Acceptance:**
+1. `assets/keymaps/vim.yaml` ships covering the documented Vim default keybindings for editor / navigation / panes.
+2. `KeymapService.setPreset("vim")` + the mode-tracking service together produce correct mode transitions.
+3. A regression test exercises a representative motion (`j` → cursor down) and a mode change (`i` → insert).', 'Ship a Vim-compatible keybinding preset with modal editing support (normal/insert/visual modes). Maps Vim motions and commands to clide editor and navigation actions. Users select it in settings.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place; modal Vim presets are more involved than the VS Code preset (T-64) because modes need to be expressed as scope flags (`vim.normal`, `vim.insert`, `vim.visual`) that the when-clause grammar can branch on. Implementation work:
+
+1. Author `assets/keymaps/vim.yaml` using the typed Intents + `command:<id>` bindings.
+2. Add a small mode-tracking service that publishes `vim.<mode>` scope flags via `KeymapService.setScopeFlag`.
+3. Bind `Esc` to mode-reset → normal; `i` (when `vim.normal`) → enter insert; etc.
+
+**Acceptance:**
+1. `assets/keymaps/vim.yaml` ships covering the documented Vim default keybindings for editor / navigation / panes.
+2. `KeymapService.setPreset("vim")` + the mode-tracking service together produce correct mode transitions.
+3. A regression test exercises a representative motion (`j` → cursor down) and a mode change (`i` → insert).
+
+Refinement (2026-06-01): scoped Vim-first for a Vim-power-user demo this weekend. ''Author a YAML file'' was wrong — T-117 shipped single-chord resolution + scope flags + when-clauses only. Decomposed into children: T-204 (fix dead default preset — live bug), T-205 (key-sequence + count resolution), T-206 (modal editor motion/edit intents), T-207 (Vim mode service + status indicator). T-65 itself becomes assets/keymaps/vim.yaml + regression tests once children land. T-64/T-66 deferred (single-chord, easy; T-205 hands JetBrains shift+shift later). Foundation is shared, not Vim-only.', NULL, '2026-06-01 18:49:02', '2026-06-01 18:49:02', '2026-06-01 18:49:02', NULL, '3f379507780d78aa9f76b28f4a5c3179', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-204', 'status', 'backlog', 'in_progress', NULL, '2026-06-01 18:49:17', '2026-06-01 18:49:17', '2026-06-01 18:49:17', NULL, 'b3a889c39a03676489bf19b8d3343cf9', 1) ON CONFLICT(hash) DO NOTHING;
