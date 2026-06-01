@@ -136,4 +136,45 @@ void main() {
       );
     });
   });
+
+  group('resolveUnderRoots (extra read roots, D-80)', () {
+    late Directory extra;
+    setUp(() => extra = Directory.systemTemp.createTempSync('clide_extra_root_'));
+    tearDown(() => extra.existsSync() ? extra.deleteSync(recursive: true) : null);
+
+    test('a relative path still resolves under the primary root', () {
+      expect(resolveUnderRoots(root, [extra], 'file.txt'), '${root.absolute.path}/file.txt');
+    });
+
+    test('an absolute path under the primary root is accepted', () {
+      final abs = '${root.absolute.path}/.claude/x.md';
+      expect(resolveUnderRoots(root, [extra], abs), abs);
+    });
+
+    test('an absolute path under an extra read root is accepted', () {
+      final abs = '${extra.absolute.path}/skills/peon/SKILL.md';
+      expect(resolveUnderRoots(root, [extra], abs), abs);
+    });
+
+    test('an absolute path outside every root is rejected', () {
+      expect(() => resolveUnderRoots(root, [extra], '/etc/passwd'), throwsA(isA<PathOutsideRoot>()));
+    });
+
+    test('following symlinks: a real file under an extra root resolves', () {
+      File('${extra.path}/SKILL.md').writeAsStringSync('# skill');
+      final out = resolveUnderRootsFollowingSymlinks(root, [extra], '${extra.absolute.path}/SKILL.md');
+      expect(out, endsWith('/SKILL.md'));
+    });
+
+    test('following symlinks: a symlink under an extra root pointing outside is rejected', () {
+      final outside = Directory.systemTemp.createTempSync('clide_extra_leak_');
+      addTearDown(() => outside.existsSync() ? outside.deleteSync(recursive: true) : null);
+      File('${outside.path}/secret.txt').writeAsStringSync('payload');
+      Link('${extra.path}/leak').createSync('${outside.path}/secret.txt');
+      expect(
+        () => resolveUnderRootsFollowingSymlinks(root, [extra], '${extra.absolute.path}/leak'),
+        throwsA(isA<PathOutsideRoot>()),
+      );
+    });
+  });
 }

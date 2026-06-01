@@ -121,6 +121,7 @@ You might also want, project-permitting:
 - [D-77: Drive Claude via the stream-json control protocol; teams become a clide-owned coordination layer](decisions/architecture.md#d-77-drive-claude-via-the-stream-json-control-protocol-teams-become-a-clide-owned-coordination-layer) — _architecture_
 - [D-78: Claude permission/prompt transport is the stdio control channel](decisions/architecture.md#d-78-claude-permissionprompt-transport-is-the-stdio-control-channel) — _architecture_
 - [D-79: Workspace content search is a pure-Dart in-process engine, outside pql](decisions/architecture.md#d-79-workspace-content-search-is-a-pure-dart-in-process-engine-outside-pql) — _architecture_
+- [D-80: `files.read` allows trusted Claude config roots beyond the workspace](decisions/architecture.md#d-80-filesread-allows-trusted-claude-config-roots-beyond-the-workspace) — _architecture_
 
 ## Open questions
 

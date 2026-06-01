@@ -166,7 +166,17 @@ Future<void> main() async {
     final eventSink = _BusEventSink(events);
     final paneRegistry = PaneRegistry(events: eventSink);
     registerPaneCommands(dispatcher, paneRegistry);
-    final filesService = FilesService(root: workRoot, events: eventSink);
+    // Trusted read-only roots beyond the workspace: the global Claude
+    // config dir (~/.claude), so the reader can open user-scope skill /
+    // agent / command markdown the Config tab surfaces (D-80, T-195).
+    // The repo-local .claude is already under workRoot.
+    final extraReadRoots = <Directory>[];
+    final claudeHome = Platform.environment['HOME'];
+    if (claudeHome != null) {
+      final globalClaude = Directory('$claudeHome/.claude');
+      if (globalClaude.existsSync()) extraReadRoots.add(globalClaude);
+    }
+    final filesService = FilesService(root: workRoot, events: eventSink, extraReadRoots: extraReadRoots);
     registerFilesCommands(dispatcher, filesService);
     // Search reuses the files service's resolved ignore set so the
     // grep honours the same ignore_files: layering (D-4 / D-79).

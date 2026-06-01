@@ -357,3 +357,14 @@ Core, rendering, IPC, kernel, panel manager.
 - **Raised by:** 2026-05-31 — during /whats-next refinement of the search/nav batch (T-51/T-52/T-53). Refinement surfaced that `pql search` structurally can't satisfy find-in-files; the user probed tree-sitter (ruled out — it's a parser, not a grepper) and the performance ceiling, then chose the fastest *reasonable* Dart option (isolate pool + literal fast-path + streaming) over a ripgrep dependency.
 
 ---
+
+### D-80: `files.read` allows trusted Claude config roots beyond the workspace
+- **Date:** 2026-06-01
+- **Status:** accepted
+- **Decision:** `files.read` accepts an **allow-list of read roots**: the workspace root (as before) **plus** the resolved Claude config directories — the global `~/.claude` and the repo-local `<repo>/.claude` (the latter already lives under the workspace). A path is readable when it is contained by **any** allowed root; everything else is still rejected with `path outside workspace`. This widens **reads only** — writes (`search.replace`, future `files.write`) stay confined to the workspace root.
+- **Rationale:** Per [D-76](#d-76-claudeconfig--claudes-config-surface-is-clides-app-settings-builtin-owned-watched-probe-cached-per-version) Claude's config surface (skills/agents/commands under `~/.claude` + the repo `.claude`) is clide-managed and surfaced in the Config tab. Opening a surfaced skill's `SKILL.md` in the markdown reader is a legitimate, expected action, but `~/.claude` is global and outside the repo — the original [T-102] confinement rejected it (`path outside workspace`). Extending the allow-list to exactly the config roots the app already reads is the user's chosen model ("the `.claude` dir is in the workspace") and is simpler than a separate trusted-read verb.
+- **Security boundary:** This is a *bounded* widening, not a hole. Only the explicitly-listed config roots are added; arbitrary off-repo paths and `..` traversal are still rejected, and the symlink re-check ([resolveUnderRootsFollowingSymlinks]) re-verifies the real path is contained by one of the allowed roots (so a symlink under a config root pointing to `/etc/shadow` is still refused). The roots are the user's own trusted Claude config (same trust level as pql's data per D-3), and writes are unaffected.
+- **Cross-reference:** amends the read side of [D-4](#d-4-ignore-file-strategy)/T-102's "repo-is-the-workspace" confinement; builds on [T-194](#) (absolute-under-root reads). Implemented by T-195 — `FilesService.extraReadRoots`, wired in `main.dart` to `~/.claude` when present.
+- **Raised by:** 2026-06-01 — after T-194 fixed repo-scope skill reads, the user hit `path outside workspace` opening a *user-scope* skill (`~/.claude/skills/peon-ping-toggle/SKILL.md`) and said the `.claude` dir should be in the workspace. Chose extending the read allow-list over a separate trusted-read verb.
+
+---

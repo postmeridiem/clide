@@ -107,6 +107,26 @@ void main() {
     expect(r.data['content'], 'hi');
   });
 
+  test('files.read reads an absolute path under an extra read root (D-80)', () async {
+    final extra = await Directory.systemTemp.createTemp('clide-extra-claude-');
+    addTearDown(() async => extra.existsSync() ? extra.deleteSync(recursive: true) : null);
+    File('${extra.path}/SKILL.md').writeAsStringSync('# peon');
+    final svc = FilesService(root: sandbox, events: RecordingEventSink(), ignore: IgnoreSet.builtin(), extraReadRoots: [extra]);
+    final d = DaemonDispatcher();
+    registerFilesCommands(d, svc);
+    addTearDown(svc.shutdown);
+
+    final r = await d.dispatch(IpcRequest(id: '1', cmd: 'files.read', args: {'path': '${extra.absolute.path}/SKILL.md'}));
+    expect(r.ok, isTrue);
+    expect(r.data['content'], '# peon');
+  });
+
+  test('files.read still rejects an absolute path outside all roots', () async {
+    final r = await call('files.read', const {'path': '/etc/passwd'});
+    expect(r.ok, isFalse);
+    expect(r.error!.message, contains('outside workspace'));
+  });
+
   test('files.read without a path returns toolError', () async {
     final r = await call('files.read', const {});
     expect(r.ok, isFalse);

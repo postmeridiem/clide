@@ -26,6 +26,7 @@ class FilesService {
     required this.root,
     required this.events,
     IgnoreSet? ignore,
+    this.extraReadRoots = const [],
   }) : ignore = ignore ?? _defaultIgnore(root);
 
   /// Build from the current working directory, walking up to the git
@@ -38,6 +39,10 @@ class FilesService {
   final Directory root;
   final IgnoreSet ignore;
   final DaemonEventSink events;
+
+  /// Trusted read-only roots outside the workspace that `files.read`
+  /// also accepts (the Claude config dirs, D-80). Writes ignore these.
+  final List<Directory> extraReadRoots;
 
   FileWatcher? _watcher;
 
@@ -81,8 +86,9 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     final String absPath;
     try {
       // Follow symlinks + re-check containment so a `config -> /etc/shadow`
-      // symlink under the workspace can't be read (T-102).
-      absPath = resolveUnderRootFollowingSymlinks(files.root, path);
+      // symlink can't be read (T-102). Accepts the workspace root plus
+      // the trusted extra read roots (Claude config dirs, D-80).
+      absPath = resolveUnderRootsFollowingSymlinks(files.root, files.extraReadRoots, path);
     } on PathOutsideRoot {
       return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'));
     }

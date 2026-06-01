@@ -70,6 +70,50 @@ String resolveUnderRootFollowingSymlinks(Directory root, String relative) {
   return realPath;
 }
 
+/// Like [resolveUnderRoot], but an **absolute** [path] is also accepted
+/// when it falls under any of [extraReadRoots] — trusted read-only roots
+/// such as the Claude config dirs (`~/.claude`, `<repo>/.claude`) that
+/// clide surfaces but which may live outside the workspace (D-80).
+/// Relative paths always resolve under the primary [root]. Throws
+/// [PathOutsideRoot] when the path is contained by none of the roots.
+///
+/// This widens *reads* only; writes stay confined to the workspace via
+/// the single-root variant.
+String resolveUnderRoots(Directory root, List<Directory> extraReadRoots, String path) {
+  if (!path.startsWith(Platform.pathSeparator)) {
+    return resolveUnderRoot(root, path); // relative → workspace-relative
+  }
+  final norm = _normalize(path);
+  for (final r in [root, ...extraReadRoots]) {
+    final rp = _normalize(r.absolute.path);
+    if (norm == rp || norm.startsWith('$rp${Platform.pathSeparator}')) return norm;
+  }
+  throw PathOutsideRoot(path, norm, _normalize(root.absolute.path));
+}
+
+/// Symlink-following multi-root resolver — the [resolveUnderRoots]
+/// analogue of [resolveUnderRootFollowingSymlinks]. Re-verifies the real
+/// (symlink-resolved) path is contained by one of the allowed roots.
+String resolveUnderRootsFollowingSymlinks(Directory root, List<Directory> extraReadRoots, String path) {
+  final pathResolved = resolveUnderRoots(root, extraReadRoots, path);
+  if (FileSystemEntity.typeSync(pathResolved, followLinks: false) == FileSystemEntityType.notFound) {
+    return pathResolved;
+  }
+  final realPath = File(pathResolved).resolveSymbolicLinksSync();
+  for (final r in [root, ...extraReadRoots]) {
+    final String realRoot;
+    try {
+      realRoot = Directory(r.absolute.path).resolveSymbolicLinksSync();
+    } catch (_) {
+      continue; // a non-existent allowed root can't contain anything
+    }
+    if (realPath == realRoot || realPath.startsWith('$realRoot${Platform.pathSeparator}')) {
+      return realPath;
+    }
+  }
+  throw PathOutsideRoot(path, realPath, _normalize(root.absolute.path));
+}
+
 String _normalize(String path) {
   // Use Uri to collapse `..` and `.` segments without hitting the
   // filesystem (Directory(...).resolveSymbolicLinksSync would also

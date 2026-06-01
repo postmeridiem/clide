@@ -46,6 +46,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The markdown reader can now open user-scope Claude config files (skills /
+  agents / commands under `~/.claude`), not just repo-local ones. `files.read`
+  gained a read allow-list covering the workspace plus the trusted Claude config
+  roots; writes stay repo-confined and off-root paths are still rejected. (T-195,
+  D-80)
 - The markdown reader opens files given an absolute path again (e.g. a skill's
   `SKILL.md` from the Claude Config tab). `resolveUnderRoot` no longer doubles an
   absolute path onto the workspace root; absolute-under-root resolves, while
