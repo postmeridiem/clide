@@ -54,6 +54,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Opening the editor split no longer floods exceptions: the resize handle's
+  slider semantics now carry increased/decreased values, and the Claude pane
+  keeps a stable identity across the reparent so its text-selection region
+  isn't torn down mid-update. (T-203)
+- A `rate_limit_event` whose `resetsAt` is a numeric epoch no longer crashes the
+  Claude session — it was cast as a string. (T-202)
 - Filter/search inputs show their hint as visible placeholder text, and the
   search-glass icon is now optional — so the Search tab's Find fields (search,
   replace, include/exclude globs) are distinguishable instead of four identical

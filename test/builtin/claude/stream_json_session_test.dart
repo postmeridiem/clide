@@ -271,6 +271,18 @@ void main() {
       expect(statuses.last.rateLimitInfo, contains('rate limited'));
       expect(statuses.last.rateLimitInfo, contains('resets'));
     });
+
+    test('rate_limit_event with a numeric (epoch) resetsAt does not crash', () async {
+      // Claude sends resetsAt as a unix-epoch number, not a string — the
+      // old `as String?` cast threw 'int is not a subtype of String?'.
+      proc.emit(jsonEncode({
+        'type': 'rate_limit_event',
+        'rate_limit_info': {'status': 'rate_limited', 'resetsAt': 1780000000},
+      }));
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.rateLimitInfo, contains('rate limited'));
+      expect(statuses.last.rateLimitInfo, contains('resets'));
+    });
   });
 
   group('token streaming via stream_event (T-168, shape verified by T-184)', () {

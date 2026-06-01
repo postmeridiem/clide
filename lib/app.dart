@@ -923,6 +923,15 @@ class _SidebarSlot extends StatelessWidget {
   }
 }
 
+// Stable identity for the workspace's primary pane (Claude). Opening the
+// editor reparents it from a direct child into a Column/Expanded; without a
+// stable key Flutter disposes + rebuilds the subtree, and the Claude
+// conversation's SelectableRegion then runs a pending selection update
+// against now-inactive elements ("selectable not in this registrar" /
+// "renderObject of inactive element"). The GlobalKey makes Flutter MOVE the
+// element instead, preserving the selection subtree.
+final GlobalKey _kWorkspacePrimary = GlobalKey(debugLabel: 'workspace.primary');
+
 class _WorkspaceSlot extends StatelessWidget {
   const _WorkspaceSlot({required this.tabs, required this.active});
 
@@ -944,9 +953,10 @@ class _WorkspaceSlot extends StatelessWidget {
 
         final claude = tabs.where((t) => t.id == _claudeTabId).firstOrNull;
         final primary = claude ?? active;
+        final primaryPane = KeyedSubtree(key: _kWorkspacePrimary, child: primary.build(ctx));
 
         if (!editorOpen || editorTab == null) {
-          return Container(color: tokens.panelBackground, child: primary.build(ctx));
+          return Container(color: tokens.panelBackground, child: primaryPane);
         }
 
         final ratio = kernel.arrangement.editorRatio;
@@ -960,7 +970,7 @@ class _WorkspaceSlot extends StatelessWidget {
                 children: [
                   SizedBox(height: editorHeight, child: editorTab.build(ctx)),
                   _EditorDragHandle(arrangement: kernel.arrangement, totalHeight: totalHeight),
-                  Expanded(child: primary.build(ctx)),
+                  Expanded(child: primaryPane),
                 ],
               );
             },
@@ -998,11 +1008,17 @@ class _EditorDragHandleState extends State<_EditorDragHandle> {
     final tokens = ClideTheme.of(context).surface;
     final lineColor = (_hovered || _focused) ? tokens.panelActiveBorder : tokens.panelBorder;
 
+    final ratio = widget.arrangement.editorRatio;
+    String pct(double r) => '${(r.clamp(0.15, 0.70) * 100).round()}%';
     return Semantics(
       container: true,
       slider: true,
       label: 'Editor split',
-      value: '${(widget.arrangement.editorRatio * 100).round()}%',
+      value: pct(ratio),
+      // increase/decrease actions require matching increased/decreased
+      // values, or Flutter asserts on every semantics flush.
+      increasedValue: pct(ratio + _stepFine),
+      decreasedValue: pct(ratio - _stepFine),
       onIncrease: () => _bump(_stepFine),
       onDecrease: () => _bump(-_stepFine),
       child: FocusableActionDetector(

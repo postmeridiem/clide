@@ -597,17 +597,24 @@ class StreamJsonSession {
         final info = j['rate_limit_info'];
         if (info is Map) {
           final status = info['status'] as String?;
-          final resetsAt = info['resetsAt'] as String?;
+          // `resetsAt` may arrive as a unix-epoch number (seconds) or an
+          // ISO string depending on the claude build — accept both.
+          final resetsRaw = info['resetsAt'];
+          DateTime? resetsTime;
+          String? resetsText;
+          if (resetsRaw is num) {
+            resetsTime = DateTime.fromMillisecondsSinceEpoch((resetsRaw * 1000).round(), isUtc: true);
+          } else if (resetsRaw is String) {
+            resetsTime = DateTime.tryParse(resetsRaw);
+            resetsText = resetsRaw;
+          }
           if (status != null) {
             String label = 'rate limited';
-            if (resetsAt != null) {
-              // Show just the time portion if it's an ISO timestamp.
-              final t = DateTime.tryParse(resetsAt);
-              if (t != null) {
-                label = 'rate limited — resets ${t.toLocal().hour.toString().padLeft(2, '0')}:${t.toLocal().minute.toString().padLeft(2, '0')}';
-              } else {
-                label = 'rate limited — resets $resetsAt';
-              }
+            if (resetsTime != null) {
+              final t = resetsTime.toLocal();
+              label = 'rate limited — resets ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+            } else if (resetsText != null) {
+              label = 'rate limited — resets $resetsText';
             }
             return SessionStatus(rateLimitInfo: label);
           }
