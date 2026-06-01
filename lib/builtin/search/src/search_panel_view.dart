@@ -137,7 +137,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Expanded(child: ClideFilterBox(hint: 'Replace', debounce: Duration.zero, onChanged: c.setReplacement)),
+                      Expanded(child: ClideFilterBox(hint: 'Replace', icon: null, debounce: Duration.zero, onChanged: c.setReplacement)),
                       const SizedBox(width: 6),
                       _ReplaceAllButton(
                         enabled: c.replacement.isNotEmpty && c.matchCount > 0,
@@ -147,9 +147,9 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  ClideFilterBox(hint: 'files to include (e.g. *.dart)', debounce: Duration.zero, onChanged: (v) => c.include = v),
+                  ClideFilterBox(hint: 'files to include (e.g. *.dart)', icon: null, debounce: Duration.zero, onChanged: (v) => c.include = v),
                   const SizedBox(height: 4),
-                  ClideFilterBox(hint: 'files to exclude', debounce: Duration.zero, onChanged: (v) => c.exclude = v),
+                  ClideFilterBox(hint: 'files to exclude', icon: null, debounce: Duration.zero, onChanged: (v) => c.exclude = v),
                 ],
               ),
             ),

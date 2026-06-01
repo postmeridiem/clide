@@ -13,12 +13,17 @@ class ClideFilterBox extends StatefulWidget {
     this.hint = 'Filter…',
     this.debounce = const Duration(milliseconds: 200),
     this.onSubmitted,
+    this.icon = PhosphorIcons.magnifyingGlass,
   });
 
   final ValueChanged<String> onChanged;
   final String hint;
   final Duration debounce;
   final ValueChanged<String>? onSubmitted;
+
+  /// Leading glyph. Defaults to the search glass; pass null for inputs
+  /// that aren't searches (e.g. a replace or glob field).
+  final ClideIconPainter? icon;
 
   @override
   State<ClideFilterBox> createState() => _ClideFilterBoxState();
@@ -68,18 +73,36 @@ class _ClideFilterBoxState extends State<ClideFilterBox> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: Row(
             children: [
-              ClideIcon(PhosphorIcons.magnifyingGlass, size: 13, color: tokens.globalTextMuted),
-              const SizedBox(width: 6),
+              if (widget.icon != null) ...[
+                ClideIcon(widget.icon!, size: 13, color: tokens.globalTextMuted),
+                const SizedBox(width: 6),
+              ],
               Expanded(
-                child: EditableText(
-                  controller: _controller,
-                  focusNode: _focus,
-                  style: TextStyle(fontSize: clideFontCaption, color: tokens.globalForeground),
-                  cursorColor: tokens.globalFocus,
-                  backgroundCursorColor: tokens.globalTextMuted,
-                  maxLines: 1,
-                  onChanged: _onChanged,
-                  onSubmitted: widget.onSubmitted != null ? (v) => widget.onSubmitted!(v) : null,
+                child: Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [
+                    // Placeholder shown while empty — the hint was only a
+                    // semantics label before, so empty boxes looked blank.
+                    if (!hasText)
+                      IgnorePointer(
+                        child: Text(
+                          widget.hint,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: clideFontCaption, color: tokens.globalTextMuted),
+                        ),
+                      ),
+                    EditableText(
+                      controller: _controller,
+                      focusNode: _focus,
+                      style: TextStyle(fontSize: clideFontCaption, color: tokens.globalForeground),
+                      cursorColor: tokens.globalFocus,
+                      backgroundCursorColor: tokens.globalTextMuted,
+                      maxLines: 1,
+                      onChanged: _onChanged,
+                      onSubmitted: widget.onSubmitted != null ? (v) => widget.onSubmitted!(v) : null,
+                    ),
+                  ],
                 ),
               ),
               if (hasText)

@@ -7,6 +7,7 @@ import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/widgets/src/clide_column_hat.dart';
 import 'package:clide/widgets/src/clide_filter_box.dart';
+import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_icon_rail.dart';
 import 'package:clide/widgets/src/clide_palette.dart';
 import 'package:clide/widgets/src/clide_resize_border.dart';
@@ -290,6 +291,20 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
       expect(submitted, 'submit-me');
+    });
+
+    testWidgets('renders the hint as a placeholder (shown empty, hidden once typed); icon optional', (tester) async {
+      await tester.pumpWidget(harness(
+        f,
+        ClideFilterBox(onChanged: (_) {}, hint: 'Replace', icon: null),
+      ));
+      // Placeholder visible while empty; no leading search glyph (icon: null).
+      expect(find.text('Replace'), findsOneWidget);
+      expect(find.byType(ClideIcon), findsNothing);
+      // Typing hides the placeholder.
+      await tester.enterText(find.byType(EditableText), 'x');
+      await tester.pump();
+      expect(find.text('Replace'), findsNothing);
     });
   });
 

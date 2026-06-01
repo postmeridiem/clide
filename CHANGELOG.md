@@ -54,6 +54,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Filter/search inputs show their hint as visible placeholder text, and the
+  search-glass icon is now optional — so the Search tab's Find fields (search,
+  replace, include/exclude globs) are distinguishable instead of four identical
+  empty boxes. (T-201)
 - The sidebar icon rail no longer overflows when there are more tabs than fit:
   it centers the icons when they fit and scrolls horizontally otherwise. (T-200)
 - The editor pane now opens over the Claude pane when a file is opened — the
