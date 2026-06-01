@@ -1,15 +1,14 @@
-/// T-197: EditorExtension reveals its workspace tab when a buffer opens.
+/// T-197: EditorExtension opens the workspace editor split when a buffer
+/// opens and collapses it when the last one closes.
 ///
-/// `editor.open` opens the buffer daemon-side and emits `editor.opened`,
-/// but nothing else brings the editor tab to front over the Claude
-/// pane. The extension's activate() listens for the editor lifecycle
-/// events and activates the workspace tab.
+/// The workspace renders its editor split off `arrangement.editorOpen`
+/// (not the active tab), so the extension must flip that flag — otherwise
+/// `editor.open` opens the buffer daemon-side but nothing appears over
+/// the Claude pane.
 library;
 
 import 'package:clide/builtin/editor/src/extension.dart';
-import 'package:clide/extension/extension.dart' show TabContribution;
 import 'package:clide/kernel/kernel.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -19,15 +18,6 @@ void main() {
 
   setUp(() async {
     f = await KernelFixture.create();
-    f.services.panels.registerSlot(const SlotDefinition(id: Slots.workspace, position: SlotPosition.center));
-    // A pre-existing workspace tab so 'editor.active' is NOT the default
-    // active tab — the reveal must switch to it explicitly.
-    f.services.panels.contribute(TabContribution(
-      id: 'claude.primary',
-      slot: Slots.workspace,
-      title: 'Claude',
-      build: (_) => const SizedBox(),
-    ));
     f.services.extensions.register(EditorExtension());
     await f.services.extensions.activate('builtin.editor');
   });
@@ -37,39 +27,43 @@ void main() {
     f.services.events.emit(DaemonEvent(subsystem: 'editor', kind: kind, data: {'id': id}, ts: DateTime.now().toUtc()));
   }
 
-  test('contributes editor.active but leaves Claude active by default', () {
+  test('contributes the editor.active workspace tab', () {
     expect(f.services.panels.tabsFor(Slots.workspace).any((t) => t.id == 'editor.active'), isTrue);
-    expect(f.services.panels.activeTabIn(Slots.workspace), 'claude.primary');
   });
 
-  test('editor.opened reveals (activates) the editor tab', () async {
+  test('editor.opened opens the editor split', () async {
+    expect(f.services.arrangement.editorOpen, isFalse);
     emitEditor('editor.opened', id: 'b_1');
     await Future<void>.delayed(Duration.zero);
-    expect(f.services.panels.activeTabIn(Slots.workspace), 'editor.active');
+    expect(f.services.arrangement.editorOpen, isTrue);
   });
 
-  test('editor.active-changed also reveals the editor tab', () async {
+  test('editor.active-changed with a buffer keeps the split open', () async {
     emitEditor('editor.active-changed', id: 'b_2');
     await Future<void>.delayed(Duration.zero);
-    expect(f.services.panels.activeTabIn(Slots.workspace), 'editor.active');
+    expect(f.services.arrangement.editorOpen, isTrue);
   });
 
-  test('a non-editor event leaves the active tab unchanged', () async {
+  test('editor.active-changed with a null id collapses the split', () async {
+    emitEditor('editor.opened', id: 'b_1');
+    await Future<void>.delayed(Duration.zero);
+    expect(f.services.arrangement.editorOpen, isTrue);
+
+    emitEditor('editor.active-changed', id: null);
+    await Future<void>.delayed(Duration.zero);
+    expect(f.services.arrangement.editorOpen, isFalse);
+  });
+
+  test('a non-editor event does not open the split', () async {
     f.services.events.emit(DaemonEvent(subsystem: 'git', kind: 'changed', data: const {}, ts: DateTime.now().toUtc()));
     await Future<void>.delayed(Duration.zero);
-    expect(f.services.panels.activeTabIn(Slots.workspace), 'claude.primary');
+    expect(f.services.arrangement.editorOpen, isFalse);
   });
 
-  test('an unrelated editor event kind does not reveal', () async {
-    emitEditor('editor.saved', id: 'b_1');
-    await Future<void>.delayed(Duration.zero);
-    expect(f.services.panels.activeTabIn(Slots.workspace), 'claude.primary');
-  });
-
-  test('after deactivate, editor events no longer reveal', () async {
+  test('after deactivate, editor events no longer open the split', () async {
     await f.services.extensions.deactivate('builtin.editor');
     emitEditor('editor.opened', id: 'b_9');
     await Future<void>.delayed(Duration.zero);
-    expect(f.services.panels.activeTabIn(Slots.workspace), isNot('editor.active'));
+    expect(f.services.arrangement.editorOpen, isFalse);
   });
 }

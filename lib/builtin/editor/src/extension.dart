@@ -19,17 +19,29 @@ class EditorExtension extends ClideExtension {
 
   StreamSubscription<DaemonEvent>? _sub;
 
-  /// Reveal the editor tab when a buffer opens or becomes active.
-  /// `editor.open` opens the buffer daemon-side and emits the event,
-  /// but nothing else brings the workspace tab to front — without this
-  /// the editor never appears over the Claude pane (T-197). The view's
-  /// `hydrate()` pulls the active buffer once it mounts.
+  /// Reveal the editor split when a buffer opens, hide it when the last
+  /// one closes. `editor.open` opens the buffer daemon-side and emits the
+  /// event, but the workspace renders its editor split off
+  /// `arrangement.editorOpen` (not the active tab) — so without flipping
+  /// that flag the editor never appears over the Claude pane (T-197). The
+  /// view's `hydrate()` pulls the active buffer once it mounts.
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
     _sub = ctx.events.on<DaemonEvent>().listen((e) {
       if (e.subsystem != 'editor') return;
-      if (e.kind != 'editor.opened' && e.kind != 'editor.active-changed') return;
-      ctx.panels.activateTab(Slots.workspace, 'editor.active');
+      switch (e.kind) {
+        case 'editor.opened':
+          ctx.arrangement.openEditor();
+          ctx.panels.activateTab(Slots.workspace, 'editor.active');
+        case 'editor.active-changed':
+          // A null id means the last buffer closed — collapse the split.
+          if (e.data['id'] == null) {
+            ctx.arrangement.closeEditor();
+          } else {
+            ctx.arrangement.openEditor();
+            ctx.panels.activateTab(Slots.workspace, 'editor.active');
+          }
+      }
     });
   }
 
