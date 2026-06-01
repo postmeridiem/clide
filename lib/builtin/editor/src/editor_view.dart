@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import 'editor_controller.dart';
 import 'syntax_text_controller.dart';
+import 'vim_edit_ops.dart';
 
 /// Tier-2 editor pane. Shows one tab per open buffer via the shared
 /// [MultitabPane] (the same strip the Claude pane uses); the body
@@ -36,6 +37,13 @@ class _EditorViewState extends State<EditorView> {
   late final FocusNode _focus;
   String? _lastRemoteContent;
 
+  /// Vim sequence matcher (built once the kernel is available) + the
+  /// yank register. Active only while a `vim.*` scope flag is set; under
+  /// non-Vim presets the editor types normally (T-206).
+  SequenceMatcher? _matcher;
+  VimRegister _register = VimRegister.empty;
+  KeymapService? _keymap;
+
   /// Guards the controller→tabstrip reconcile so the tabstrip's own
   /// change notifications (from us mutating it) don't bounce back as
   /// daemon calls.
@@ -56,6 +64,13 @@ class _EditorViewState extends State<EditorView> {
     if (_controller != null) return;
     final kernel = ClideKernel.of(context);
     _controller = EditorController(ipc: kernel.ipc, events: kernel.events)..addListener(_onControllerChanged);
+    _keymap = kernel.keymap;
+    _matcher = SequenceMatcher(
+      keymap: () => kernel.keymap.keymap ?? Keymap(const []),
+      context: () => kernel.keymap.scope,
+    );
+    // Rebuild when the Vim mode flips so the editor toggles read-only.
+    kernel.keymap.addListener(_onModeChanged);
     unawaited(_controller!.hydrate());
   }
 
@@ -68,7 +83,20 @@ class _EditorViewState extends State<EditorView> {
     _tabs.dispose();
     _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
+    _keymap?.removeListener(_onModeChanged);
     super.dispose();
+  }
+
+  void _onModeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// True while a `vim.*` command mode (normal/visual) is active — the
+  /// editor is read-only then, so printable keys delivered over the
+  /// TextInput channel can't type while motions drive the buffer (T-206).
+  bool get _vimCommandMode {
+    final scope = _keymap?.scope ?? const <String, bool>{};
+    return scope['vim.normal'] == true || scope['vim.visual'] == true;
   }
 
   void _onControllerChanged() {
@@ -145,13 +173,70 @@ class _EditorViewState extends State<EditorView> {
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    final isCmd = HardwareKeyboard.instance.isMetaPressed || HardwareKeyboard.instance.isControlPressed;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
+    final hw = HardwareKeyboard.instance;
+
+    // Save works in every mode.
+    final isCmd = hw.isMetaPressed || hw.isControlPressed;
     if (isCmd && event.logicalKey == LogicalKeyboardKey.keyS) {
       unawaited(_controller?.save());
       return KeyEventResult.handled;
     }
-    return KeyEventResult.ignored;
+
+    final kernel = ClideKernel.of(context);
+    final scope = kernel.keymap.scope;
+    final inNormal = scope['vim.normal'] == true;
+    final inVisual = scope['vim.visual'] == true;
+    final chord = KeyChord.fromKeyEvent(event, hw);
+    if (chord == null) return KeyEventResult.ignored;
+
+    if (!inNormal && !inVisual) {
+      // Insert mode (or non-Vim preset): type normally, but still let a
+      // mode-change chord like Esc flip back to normal.
+      final intent = kernel.keymap.keymap?.resolve(chord, scope);
+      if (intent is InvokeCommandIntent && intent.commandId.startsWith('vim.mode.')) {
+        unawaited(kernel.commands.execute(intent.commandId));
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    // Normal / visual mode. Modified chords are app shortcuts (palette,
+    // find, …) — let them bubble to the global handler. Bare keys drive
+    // the Vim matcher and never reach text input.
+    if (chord.modifiers.isNotEmpty) return KeyEventResult.ignored;
+
+    final r = _matcher!.feed(chord);
+    switch (r.outcome) {
+      case SeqOutcome.pending:
+      case SeqOutcome.unmatched:
+        // Swallow: a partial sequence, or a key Vim ignores in this mode.
+        return KeyEventResult.handled;
+      case SeqOutcome.fired:
+        _dispatchVim(r.intent!, r.count, kernel, visual: inVisual);
+        return KeyEventResult.handled;
+    }
+  }
+
+  void _dispatchVim(Intent intent, int count, KernelServices kernel, {required bool visual}) {
+    if (intent is! InvokeCommandIntent) return;
+    final id = intent.commandId;
+    if (!id.startsWith('editor.vim.')) {
+      // Mode change (vim.mode.*) or any other command.
+      unawaited(kernel.commands.execute(id));
+      return;
+    }
+    final result = applyVim(id, _text.value, register: _register, visual: visual, count: count);
+    if (result.register != null) _register = result.register!;
+    _text.value = result.value; // _onTextChanged persists content + caret
+    if (result.enterInsert) {
+      unawaited(kernel.commands.execute('vim.mode.insert'));
+    } else if (visual) {
+      // A visual range op (d/y/c) returns to normal mode; motions that
+      // merely extend the selection stay in visual.
+      const rangeOps = {VimAction.visualDelete, VimAction.visualYank, VimAction.visualChange};
+      if (rangeOps.contains(id)) unawaited(kernel.commands.execute('vim.mode.normal'));
+    }
   }
 
   @override
@@ -182,6 +267,7 @@ class _EditorViewState extends State<EditorView> {
             child: _TextBody(
               controller: _text,
               focus: _focus,
+              readOnly: _vimCommandMode,
               background: tokens.panelBackground,
               foreground: tokens.globalForeground,
               accent: tokens.globalFocus,
@@ -197,6 +283,7 @@ class _TextBody extends StatelessWidget {
   const _TextBody({
     required this.controller,
     required this.focus,
+    required this.readOnly,
     required this.background,
     required this.foreground,
     required this.accent,
@@ -204,6 +291,7 @@ class _TextBody extends StatelessWidget {
 
   final TextEditingController controller;
   final FocusNode focus;
+  final bool readOnly;
   final Color background;
   final Color foreground;
   final Color accent;
@@ -221,6 +309,7 @@ class _TextBody extends StatelessWidget {
           child: EditableText(
             controller: controller,
             focusNode: focus,
+            readOnly: readOnly,
             style: TextStyle(
               color: foreground,
               fontSize: clideFontMono,
