@@ -115,6 +115,15 @@ void main() {
     expect(loads.last, 'D-1');
   });
 
+  test('togglePin pins the current entry, then clears it', () {
+    nav.open('D-1');
+    expect(nav.hasPinned, isFalse);
+    nav.togglePin();
+    expect(nav.hasPinned, isTrue);
+    nav.togglePin();
+    expect(nav.hasPinned, isFalse);
+  });
+
   test('pin replaces the previous pin', () {
     nav.open('D-1');
     nav.pin();

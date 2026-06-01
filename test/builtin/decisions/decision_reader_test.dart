@@ -725,7 +725,7 @@ void main() {
 
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin current',
+            (w) => w is Semantics && w.properties.label == 'Pin',
           )
           .first);
       await pumpAsync(tester);
@@ -742,7 +742,7 @@ void main() {
       // Pin D-1.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin current',
+            (w) => w is Semantics && w.properties.label == 'Pin',
           )
           .first);
       await pumpAsync(tester);
@@ -763,41 +763,32 @@ void main() {
       expect(find.text('Decision D-1'), findsWidgets);
     });
 
-    testWidgets('pin replaces previous pin', (tester) async {
+    testWidgets('pin toggles off on a second tap (unpin)', (tester) async {
       await pumpView(tester, initialId: 'D-1');
 
-      // Pin D-1.
+      // Pin D-1 → the jump-to-pin button appears in the navigator.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin current',
+            (w) => w is Semantics && w.properties.label == 'Pin',
           )
           .first);
       await pumpAsync(tester);
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsOneWidget,
+      );
 
-      // Navigate to D-2.
-      await open(tester, 'D-2');
-
-      // Replace pin with D-2.
+      // Tapping the toggle again (now 'Unpin') clears the pin.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Replace pin',
+            (w) => w is Semantics && w.properties.label == 'Unpin',
           )
           .first);
       await pumpAsync(tester);
-
-      // Navigate to D-3.
-      await open(tester, 'D-3');
-
-      // Jump to pin — should go to D-2 (replaced), not D-1.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Jump to pin',
-          )
-          .first);
-      await pumpAsync(tester);
-
-      // Title appears in pane header subtitle + body card.
-      expect(find.text('Decision D-2'), findsWidgets);
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsNothing,
+      );
     });
   });
 

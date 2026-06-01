@@ -67,7 +67,7 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
 
   void _onBack() => _nav?.back();
   void _onForward() => _nav?.forward();
-  void _onPin() => _nav?.pin();
+  void _onPin() => _nav?.togglePin();
   void _onJumpToPin() => _nav?.jumpToPin();
 
   void _onEdit() {

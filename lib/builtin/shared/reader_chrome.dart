@@ -14,9 +14,12 @@ import 'package:flutter/widgets.dart';
 // Action bar widget
 // ---------------------------------------------------------------------------
 
-/// A row of reader-chrome action buttons: back, forward, pin (set/jump), edit.
+/// A row of reader-chrome action buttons. Layout (T-196 UX): a pin/unpin
+/// **toggle on the left**, then the **navigator** on the right — back,
+/// forward, jump-to-pin (only while pinned) — and the edit pencil last.
+/// The left toggles pinned state; the right navigates.
 ///
-/// Designed to plug into [ClidePaneChrome.trailing].  All callbacks are
+/// Designed to plug into [ClidePaneChrome.trailing]. All callbacks are
 /// optional — pass null to hide/disable the corresponding button.
 class ReaderActionBar extends StatelessWidget {
   const ReaderActionBar({
@@ -37,13 +40,14 @@ class ReaderActionBar extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onForward;
 
-  /// Called when the pin button is tapped (set / replace current pin).
+  /// Called when the pin toggle is tapped — pins the current entry when
+  /// nothing is pinned, else clears the pin.
   final VoidCallback? onPin;
 
-  /// Called when the jump-to-pin affordance is tapped.
+  /// Called when the jump-to-pin button (in the navigator) is tapped.
   final VoidCallback? onJumpToPin;
 
-  /// Called when the edit pencil is tapped.  Pass null to hide the button.
+  /// Called when the edit pencil is tapped. Pass null to hide the button.
   final VoidCallback? onEdit;
 
   @override
@@ -52,6 +56,17 @@ class ReaderActionBar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Left — toggle the pinned state.
+        _ActionButton(
+          painter: PhosphorIcons.pushPin,
+          tooltip: hasPinned ? 'Unpin' : 'Pin',
+          enabled: onPin != null,
+          active: hasPinned,
+          onTap: onPin,
+          tokens: tokens,
+        ),
+        const SizedBox(width: 8),
+        // Right — the navigator.
         _ActionButton(
           painter: PhosphorIcons.caretLeft,
           tooltip: 'Back',
@@ -67,15 +82,18 @@ class ReaderActionBar extends StatelessWidget {
           onTap: canGoForward ? onForward : null,
           tokens: tokens,
         ),
-        const SizedBox(width: 4),
-        _PinButton(
-          hasPinned: hasPinned,
-          onPin: onPin,
-          onJumpToPin: onJumpToPin,
-          tokens: tokens,
-        ),
-        if (onEdit != null) ...[
+        if (hasPinned) ...[
           const SizedBox(width: 2),
+          _ActionButton(
+            painter: PhosphorIcons.arrowUUpLeft,
+            tooltip: 'Jump to pin',
+            enabled: true,
+            onTap: onJumpToPin,
+            tokens: tokens,
+          ),
+        ],
+        if (onEdit != null) ...[
+          const SizedBox(width: 4),
           _ActionButton(
             painter: PhosphorIcons.pencilSimple,
             tooltip: 'Edit in editor',
@@ -90,7 +108,7 @@ class ReaderActionBar extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Private button widgets
+// Private button widget
 // ---------------------------------------------------------------------------
 
 class _ActionButton extends StatelessWidget {
@@ -100,20 +118,34 @@ class _ActionButton extends StatelessWidget {
     required this.enabled,
     required this.onTap,
     required this.tokens,
+    this.active = false,
   });
 
   final ClideIconPainter painter;
   final String tooltip;
   final bool enabled;
+
+  /// Renders the glyph in the focus/accent colour to signal an on state
+  /// (used by the pin toggle when something is pinned).
+  final bool active;
   final VoidCallback? onTap;
   final SurfaceTokens tokens;
 
   @override
   Widget build(BuildContext context) {
+    final Color color;
+    if (!enabled) {
+      color = tokens.globalTextMuted;
+    } else if (active) {
+      color = tokens.globalFocus;
+    } else {
+      color = tokens.panelHeaderForeground;
+    }
     return Semantics(
       button: true,
       label: tooltip,
       enabled: enabled,
+      toggled: active,
       onTap: onTap,
       excludeSemantics: true,
       child: ClideTappable(
@@ -127,96 +159,9 @@ class _ActionButton extends StatelessWidget {
             color: hovered && enabled ? tokens.sidebarItemHover : null,
             borderRadius: BorderRadius.circular(3),
           ),
-          child: ClideIcon(
-            painter,
-            size: 11,
-            color: enabled ? tokens.panelHeaderForeground : tokens.globalTextMuted,
-          ),
+          child: ClideIcon(painter, size: 11, color: color),
         ),
       ),
-    );
-  }
-}
-
-/// Pin button: when [hasPinned] is true it shows the pin "filled" and the
-/// button activates jump-to-pin; a long-press (or secondary tap) sets a new
-/// pin.  When [hasPinned] is false the single tap sets the pin.
-///
-/// For simplicity (and to keep the widget API flat): a single tap ALWAYS sets
-/// the pin (replacing the previous one), while the adjacent jump-to-pin uses a
-/// separate Tappable rendered as a small indicator badge.
-class _PinButton extends StatelessWidget {
-  const _PinButton({
-    required this.hasPinned,
-    required this.onPin,
-    required this.onJumpToPin,
-    required this.tokens,
-  });
-
-  final bool hasPinned;
-  final VoidCallback? onPin;
-  final VoidCallback? onJumpToPin;
-  final SurfaceTokens tokens;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // The pin-set button (always shown, sets/replaces the pin).
-        Semantics(
-          button: true,
-          label: hasPinned ? 'Replace pin' : 'Pin current',
-          onTap: onPin,
-          excludeSemantics: true,
-          child: ClideTappable(
-            onTap: onPin,
-            tooltip: hasPinned ? 'Replace pin' : 'Pin current',
-            builder: (ctx, hovered, _) => Container(
-              width: 20,
-              height: 20,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: hovered ? tokens.sidebarItemHover : null,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: ClideIcon(
-                PhosphorIcons.link,
-                size: 11,
-                color: hasPinned ? tokens.globalFocus : tokens.panelHeaderForeground,
-              ),
-            ),
-          ),
-        ),
-        // Jump-to-pin affordance — only visible when a pin is set.
-        if (hasPinned) ...[
-          const SizedBox(width: 1),
-          Semantics(
-            button: true,
-            label: 'Jump to pin',
-            onTap: onJumpToPin,
-            excludeSemantics: true,
-            child: ClideTappable(
-              onTap: onJumpToPin,
-              tooltip: 'Jump to pin',
-              builder: (ctx, hovered, _) => Container(
-                width: 16,
-                height: 16,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: hovered ? tokens.sidebarItemHover : tokens.panelBorder,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: ClideText(
-                  '↩',
-                  fontSize: 9,
-                  color: tokens.globalFocus,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

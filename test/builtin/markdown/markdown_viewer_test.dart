@@ -326,7 +326,7 @@ void main() {
       await loadFile(tester, f, 'a.md');
 
       expect(
-        find.byWidgetPredicate((w) => w is Semantics && (w.properties.label == 'Pin current' || w.properties.label == 'Replace pin')),
+        find.byWidgetPredicate((w) => w is Semantics && (w.properties.label == 'Pin' || w.properties.label == 'Unpin')),
         findsOneWidget,
       );
     });
@@ -350,7 +350,7 @@ void main() {
       // Tap Pin current.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin current',
+            (w) => w is Semantics && w.properties.label == 'Pin',
           )
           .first);
       await pumpAsync(tester);
@@ -370,7 +370,7 @@ void main() {
       // Pin a.md.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin current',
+            (w) => w is Semantics && w.properties.label == 'Pin',
           )
           .first);
       await pumpAsync(tester);
@@ -391,42 +391,34 @@ void main() {
       expect(find.text('a.md'), findsOneWidget);
     });
 
-    testWidgets('pin replaces previous pin', (tester) async {
-      _stubReadMap(f, {'a.md': 'A', 'b.md': 'B', 'c.md': 'C'});
+    testWidgets('pin toggles off on a second tap (unpin)', (tester) async {
+      _stubReadMap(f, {'a.md': 'A', 'b.md': 'B'});
       await pumpView(tester, f);
       await loadFile(tester, f, 'a.md');
 
-      // Pin a.md.
+      // Pin a.md → jump-to-pin appears.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin current',
+            (w) => w is Semantics && w.properties.label == 'Pin',
           )
           .first);
       await pumpAsync(tester);
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsOneWidget,
+      );
 
-      // Navigate to b.md.
-      await loadFile(tester, f, 'b.md');
-
-      // Replace pin with b.md.
+      // Tap the toggle again (now 'Unpin') → pin cleared.
       await tester.tap(find
           .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Replace pin',
+            (w) => w is Semantics && w.properties.label == 'Unpin',
           )
           .first);
       await pumpAsync(tester);
-
-      // Navigate to c.md.
-      await loadFile(tester, f, 'c.md');
-
-      // Jump to pin should go to b.md now (replaced), not a.md.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Jump to pin',
-          )
-          .first);
-      await pumpAsync(tester);
-
-      expect(find.text('b.md'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
+        findsNothing,
+      );
     });
   });
 

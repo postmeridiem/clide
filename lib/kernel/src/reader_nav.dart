@@ -87,6 +87,17 @@ class ReaderNav extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Toggle the pinned state: pin the current entry when nothing is
+  /// pinned, otherwise clear the pin. (The reader's left-hand pin button.)
+  void togglePin() {
+    if (_pinnedIndex != null) {
+      _pinnedIndex = null;
+      notifyListeners();
+    } else {
+      pin();
+    }
+  }
+
   /// Jump to the pinned entry and re-emit it. No-op when nothing is pinned.
   void jumpToPin() {
     final p = _pinnedIndex;

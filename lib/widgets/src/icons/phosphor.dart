@@ -63,6 +63,8 @@ abstract class PhosphorIcons {
   static const treeStructure = PhosphorIconPainter(0xe67c);
   static const image = PhosphorIconPainter(0xe2ca);
   static const link = PhosphorIconPainter(0xe2e2);
+  static const pushPin = PhosphorIconPainter(0xe3e2);
+  static const arrowUUpLeft = PhosphorIconPainter(0xe08a);
   static const chatCircle = PhosphorIconPainter(0xe168);
   static const robot = PhosphorIconPainter(0xe762);
   static const ticket = PhosphorIconPainter(0xe490);
