@@ -50,8 +50,11 @@ class PqlController extends ChangeNotifier {
     }
   }
 
-  void toggleSearchMode() {
-    _searchMode = _searchMode == SearchMode.search ? SearchMode.dsl : SearchMode.search;
+  void toggleSearchMode() => setSearchMode(_searchMode == SearchMode.search ? SearchMode.dsl : SearchMode.search);
+
+  void setSearchMode(SearchMode mode) {
+    if (_searchMode == mode) return;
+    _searchMode = mode;
     _results = const [];
     _error = null;
     notifyListeners();

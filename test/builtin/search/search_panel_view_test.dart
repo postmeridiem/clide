@@ -175,4 +175,104 @@ void main() {
     expect(applyArgs!['apply'], isTrue);
     expect(applyArgs!['replacement'], 'bar');
   });
+
+  // -- Merged pql modes (T-201) ----------------------------------------------
+
+  testWidgets('Vault mode runs a ranked pql search and lists results', (tester) async {
+    Map<String, Object?>? grepArgs;
+    f.ipc.stub('pql.search', (args) async {
+      grepArgs = args;
+      return _ok({
+        'results': [
+          {'path': 'docs/vault-hit.md', 'score': 0.9},
+        ],
+      });
+    });
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await pumpAsync(tester);
+
+    await tester.tap(find.text('Vault'));
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText).first, 'concept');
+    await tester.pump(const Duration(milliseconds: 350)); // ranked-search debounce
+    await pumpAsync(tester);
+
+    expect(grepArgs?['terms'], 'concept');
+    expect(find.text('docs/vault-hit.md'), findsOneWidget);
+  });
+
+  testWidgets('Query mode runs a PQL DSL query on submit', (tester) async {
+    Map<String, Object?>? queryArgs;
+    f.ipc.stub('pql.query', (args) async {
+      queryArgs = args;
+      return _ok({
+        'results': [
+          {'name': 'T-1', 'status': 'backlog'},
+        ],
+      });
+    });
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await pumpAsync(tester);
+
+    await tester.tap(find.text('Query'));
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText).first, "type = 'ticket'");
+    await tester.testTextInput.receiveAction(TextInputAction.done); // onSubmitted
+    await pumpAsync(tester);
+
+    expect(queryArgs?['query'], "type = 'ticket'");
+    expect(find.text('T-1'), findsOneWidget);
+  });
+
+  testWidgets('Markdown mode lists markdown files on switch', (tester) async {
+    f.ipc.stub(
+        'pql.files',
+        (_) async => _ok({
+              'files': [
+                {'path': 'docs/initial-plan.md'},
+              ],
+            }));
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await pumpAsync(tester);
+
+    await tester.tap(find.text('Markdown'));
+    await pumpAsync(tester);
+
+    expect(find.text('docs/initial-plan.md'), findsOneWidget);
+  });
+
+  testWidgets('Vault mode surfaces a pql search error', (tester) async {
+    f.ipc.stub(
+        'pql.search',
+        (_) async => IpcResponse.err(
+              id: '',
+              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'pql down'),
+            ));
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await pumpAsync(tester);
+    await tester.tap(find.text('Vault'));
+    await pumpAsync(tester);
+    await tester.enterText(find.byType(EditableText).first, 'x');
+    await tester.pump(const Duration(milliseconds: 350));
+    await pumpAsync(tester);
+    expect(find.textContaining('pql down'), findsOneWidget);
+  });
+
+  testWidgets('Markdown mode shows the empty state and filters by glob', (tester) async {
+    Map<String, Object?>? filesArgs;
+    f.ipc.stub('pql.files', (args) async {
+      filesArgs = args;
+      return _ok(const {'files': []});
+    });
+    await tester.pumpWidget(harness(f, const SearchPanelView()));
+    await pumpAsync(tester);
+    await tester.tap(find.text('Markdown'));
+    await pumpAsync(tester);
+    expect(find.text('No markdown files found.'), findsOneWidget);
+
+    await tester.enterText(find.byType(EditableText).first, 'plan');
+    await tester.pump(const Duration(milliseconds: 250));
+    await pumpAsync(tester);
+    expect(filesArgs?['glob'], contains('plan'));
+  });
 }

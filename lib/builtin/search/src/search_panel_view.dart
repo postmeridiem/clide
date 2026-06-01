@@ -1,14 +1,21 @@
-/// The find-in-files sidebar panel (T-52, per D-79). A search input
-/// with regex/case toggles + include/exclude glob fields, and a results
-/// list grouped by file. Clicking a match opens the editor at its line.
+/// The unified Search sidebar tab (T-52 / T-201). A mode switch selects
+/// among: Find (content grep, per D-79), Vault (pql ranked search),
+/// Query (PQL DSL), and Markdown (the synced markdown-file listing).
+/// The find modes own a [FindInFilesController]; the pql modes a
+/// [PqlController] rendered by [PqlSearchBody].
 library;
 
+import 'package:clide/builtin/pql/src/pql_controller.dart';
+import 'package:clide/builtin/pql/src/pql_search_body.dart';
 import 'package:clide/builtin/search/src/find_in_files_controller.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/src/search/match.dart';
 import 'package:clide/src/search/replace_engine.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
+
+/// The Search tab's top-level mode.
+enum SearchTabMode { find, vault, query, markdown }
 
 class SearchPanelView extends StatefulWidget {
   const SearchPanelView({super.key});
@@ -19,6 +26,8 @@ class SearchPanelView extends StatefulWidget {
 
 class _SearchPanelViewState extends State<SearchPanelView> {
   FindInFilesController? _controller;
+  PqlController? _pql;
+  SearchTabMode _mode = SearchTabMode.find;
 
   @override
   void didChangeDependencies() {
@@ -26,11 +35,13 @@ class _SearchPanelViewState extends State<SearchPanelView> {
     if (_controller != null) return;
     final kernel = ClideKernel.of(context);
     _controller = FindInFilesController(ipc: kernel.ipc, events: kernel.events);
+    _pql = PqlController(ipc: kernel.ipc);
   }
 
   @override
   void dispose() {
     _controller?.dispose();
+    _pql?.dispose();
     super.dispose();
   }
 
@@ -56,6 +67,30 @@ class _SearchPanelViewState extends State<SearchPanelView> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ModeSwitcher(mode: _mode, tokens: tokens, onSelect: (m) => setState(() => _mode = m)),
+        Expanded(child: _body()),
+      ],
+    );
+  }
+
+  Widget _body() {
+    switch (_mode) {
+      case SearchTabMode.find:
+        return _findBody();
+      case SearchTabMode.vault:
+        return PqlSearchBody(controller: _pql!, mode: PqlPaneMode.vault);
+      case SearchTabMode.query:
+        return PqlSearchBody(controller: _pql!, mode: PqlPaneMode.query);
+      case SearchTabMode.markdown:
+        return PqlSearchBody(controller: _pql!, mode: PqlPaneMode.markdown);
+    }
+  }
+
+  Widget _findBody() {
     final tokens = ClideTheme.of(context).surface;
     final c = _controller!;
     return ListenableBuilder(
@@ -142,6 +177,49 @@ class _SearchPanelViewState extends State<SearchPanelView> {
           ],
         );
       },
+    );
+  }
+}
+
+class _ModeSwitcher extends StatelessWidget {
+  const _ModeSwitcher({required this.mode, required this.tokens, required this.onSelect});
+
+  final SearchTabMode mode;
+  final SurfaceTokens tokens;
+  final ValueChanged<SearchTabMode> onSelect;
+
+  static const _labels = {
+    SearchTabMode.find: 'Find',
+    SearchTabMode.vault: 'Vault',
+    SearchTabMode.query: 'Query',
+    SearchTabMode.markdown: 'Markdown',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tokens.panelBorder))),
+      child: Row(
+        children: [
+          for (final m in SearchTabMode.values) ...[
+            Semantics(
+              button: true,
+              selected: m == mode,
+              label: _labels[m]!,
+              child: ClideTappable(
+                onTap: () => onSelect(m),
+                builder: (ctx, hovered, _) => ClideText(
+                  _labels[m]!,
+                  fontSize: clideFontCaption,
+                  color: m == mode ? tokens.globalForeground : (hovered ? tokens.sidebarForeground : tokens.globalTextMuted),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+        ],
+      ),
     );
   }
 }

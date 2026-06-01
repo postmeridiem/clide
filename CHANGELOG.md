@@ -45,6 +45,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   (back, forward, jump-to-pin) and edit pencil. The ticket reader also joins the
   shared retained nav. (T-189, T-190, T-191, T-198, T-199)
 
+### Changed
+
+- The pql search panel merged into the Search tab, which now has modes: Find
+  (content grep), Vault (pql ranked search), Query (PQL DSL), and Markdown (the
+  synced file listing). The standalone pql sidebar tab is gone; Backlinks stays
+  in the context panel. (T-201)
+
 ### Fixed
 
 - The sidebar icon rail no longer overflows when there are more tabs than fit:

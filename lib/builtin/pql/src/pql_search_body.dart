@@ -1,70 +1,99 @@
-/// Sidebar panel for pql — ranked search, DSL query, and markdown file listing.
+/// The pql search/query/markdown body, embedded inside the unified
+/// Search tab for the Vault / Query / Markdown modes (T-201). Drives a
+/// parent-owned [PqlController]; the parent picks the [PqlPaneMode].
+///
+/// Vault = ranked text search, Query = PQL DSL, Markdown = the synced
+/// markdown-file listing (highlights the open doc, live-refreshes on
+/// `.md` changes).
 library;
 
 import 'dart:async';
 
+import 'package:clide/builtin/pql/src/pql_controller.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
-import 'pql_controller.dart';
+/// Which pql sub-surface the Search tab is showing.
+enum PqlPaneMode { vault, query, markdown }
 
-class PqlPanelView extends StatefulWidget {
-  const PqlPanelView({super.key});
+class PqlSearchBody extends StatefulWidget {
+  const PqlSearchBody({super.key, required this.controller, required this.mode});
+
+  final PqlController controller;
+  final PqlPaneMode mode;
 
   @override
-  State<PqlPanelView> createState() => _PqlPanelViewState();
+  State<PqlSearchBody> createState() => _PqlSearchBodyState();
 }
 
-class _PqlPanelViewState extends State<PqlPanelView> {
-  PqlController? _controller;
+class _PqlSearchBodyState extends State<PqlSearchBody> {
   String? _focusedPath;
   final _focusedKey = GlobalKey();
   StreamSubscription<Message>? _focusSub;
   StreamSubscription<DaemonEvent>? _fileSub;
 
   @override
+  void initState() {
+    super.initState();
+    _applyMode();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_controller != null) return;
+    if (_focusSub != null) return;
     final kernel = ClideKernel.of(context);
-    _controller = PqlController(ipc: kernel.ipc);
     _focusSub = kernel.messages.subscribe(publisher: 'builtin.markdown', channel: 'focus').listen((msg) {
       final path = msg.data['path'] as String?;
       if (path == null || path == _focusedPath) return;
-      setState(() {
-        _focusedPath = path;
-        if (_controller!.view != PqlView.markdown) {
-          _controller!.switchView(PqlView.markdown);
-        }
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final ctx = _focusedKey.currentContext;
-        if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
-      });
+      setState(() => _focusedPath = path);
+      if (widget.controller.view == PqlView.markdown) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final ctx = _focusedKey.currentContext;
+          if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.3);
+        });
+      }
     });
     _fileSub = kernel.events
         .on<DaemonEvent>()
         .where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && (e.data['path'] as String? ?? '').endsWith('.md'))
         .listen((_) {
-      if (_controller?.view == PqlView.markdown) {
-        unawaited(_controller!.loadMarkdownFiles());
-      }
+      if (widget.controller.view == PqlView.markdown) unawaited(widget.controller.loadMarkdownFiles());
     });
+  }
+
+  @override
+  void didUpdateWidget(PqlSearchBody old) {
+    super.didUpdateWidget(old);
+    if (old.mode != widget.mode) _applyMode();
+  }
+
+  /// Map the flat pane mode onto the controller's (view, searchMode).
+  void _applyMode() {
+    final c = widget.controller;
+    switch (widget.mode) {
+      case PqlPaneMode.vault:
+        c.setSearchMode(SearchMode.search);
+        c.switchView(PqlView.query);
+      case PqlPaneMode.query:
+        c.setSearchMode(SearchMode.dsl);
+        c.switchView(PqlView.query);
+      case PqlPaneMode.markdown:
+        c.switchView(PqlView.markdown);
+    }
   }
 
   @override
   void dispose() {
     _focusSub?.cancel();
     _fileSub?.cancel();
-    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = _controller;
-    if (c == null) return const SizedBox.shrink();
+    final c = widget.controller;
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
@@ -72,22 +101,20 @@ class _PqlPanelViewState extends State<PqlPanelView> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _ViewTabs(controller: c),
-            if (c.view == PqlView.query) ...[
-              _SearchInput(controller: c),
-            ],
-            if (c.view == PqlView.markdown)
+            if (widget.mode == PqlPaneMode.markdown)
               ClideFilterBox(
                 hint: 'Filter markdown…',
                 onChanged: (v) => unawaited(c.loadMarkdownFiles(glob: v.isEmpty ? null : '**/*$v*.md')),
-              ),
+              )
+            else
+              _PqlSearchInput(controller: c, dsl: widget.mode == PqlPaneMode.query),
             if (c.error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption, maxLines: 3),
               ),
             if (c.loading && c.results.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
-            if (!c.loading && c.results.isEmpty && c.error == null && c.view == PqlView.markdown)
+            if (!c.loading && c.results.isEmpty && c.error == null && widget.mode == PqlPaneMode.markdown)
               const Padding(padding: EdgeInsets.all(12), child: ClideText('No markdown files found.', muted: true)),
             Expanded(
               child: SingleChildScrollView(
@@ -96,16 +123,16 @@ class _PqlPanelViewState extends State<PqlPanelView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (c.view == PqlView.markdown)
+                    if (widget.mode == PqlPaneMode.markdown)
                       for (final f in c.results)
                         _FileRow(
                           entry: f,
                           focused: (f['path'] as String?) == _focusedPath,
                           focusKey: (f['path'] as String?) == _focusedPath ? _focusedKey : null,
                         ),
-                    if (c.view == PqlView.query && c.searchMode == SearchMode.search)
+                    if (widget.mode == PqlPaneMode.vault)
                       for (final r in c.results) _SearchResultRow(entry: r),
-                    if (c.view == PqlView.query && c.searchMode == SearchMode.dsl)
+                    if (widget.mode == PqlPaneMode.query)
                       for (final r in c.results) _QueryResultRow(entry: r),
                   ],
                 ),
@@ -118,92 +145,18 @@ class _PqlPanelViewState extends State<PqlPanelView> {
   }
 }
 
-class _ViewTabs extends StatelessWidget {
-  const _ViewTabs({required this.controller});
+class _PqlSearchInput extends StatelessWidget {
+  const _PqlSearchInput({required this.controller, required this.dsl});
   final PqlController controller;
+  final bool dsl;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: tokens.panelBorder)),
-      ),
-      child: Row(
-        children: [
-          for (final v in PqlView.values)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => controller.switchView(v),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: ClideText(
-                    _tabLabel(v),
-                    fontSize: clideFontCaption,
-                    color: controller.view == v ? tokens.globalForeground : tokens.globalTextMuted,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  static String _tabLabel(PqlView v) => switch (v) {
-        PqlView.query => 'Search',
-        PqlView.markdown => 'Markdown',
-      };
-}
-
-class _SearchInput extends StatelessWidget {
-  const _SearchInput({required this.controller});
-  final PqlController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    final isDsl = controller.searchMode == SearchMode.dsl;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClideFilterBox(
-          hint: isDsl ? 'PQL query…' : 'Search vault…',
-          debounce: isDsl ? Duration.zero : const Duration(milliseconds: 300),
-          onChanged: isDsl ? (_) {} : (v) => unawaited(controller.search(v)),
-          onSubmitted: isDsl ? (v) => unawaited(controller.runQuery(v)) : (v) => unawaited(controller.search(v)),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: controller.toggleSearchMode,
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isDsl ? tokens.globalFocus.withAlpha(0x30) : null,
-                      borderRadius: BorderRadius.circular(3),
-                      border: Border.all(color: isDsl ? tokens.globalFocus : tokens.panelBorder),
-                    ),
-                    child: ClideText('DSL', fontSize: clideFontBadge, color: isDsl ? tokens.globalFocus : tokens.globalTextMuted, fontFamily: clideMonoFamily),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              ClideText(
-                isDsl ? 'SQL-like query mode' : 'ranked text search',
-                fontSize: clideFontBadge,
-                muted: true,
-              ),
-            ],
-          ),
-        ),
-      ],
+    return ClideFilterBox(
+      hint: dsl ? 'PQL query…' : 'Search vault…',
+      debounce: dsl ? Duration.zero : const Duration(milliseconds: 300),
+      onChanged: dsl ? (_) {} : (v) => unawaited(controller.search(v)),
+      onSubmitted: dsl ? (v) => unawaited(controller.runQuery(v)) : (v) => unawaited(controller.search(v)),
     );
   }
 }
