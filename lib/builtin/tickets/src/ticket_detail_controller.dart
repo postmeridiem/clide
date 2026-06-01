@@ -21,13 +21,14 @@ class TicketDetail {
 }
 
 class TicketDetailController extends ChangeNotifier {
-  TicketDetailController({required this.ipc, required this.messages, required this.panels}) {
-    _sub = messages.subscribe(publisher: 'builtin.tickets', channel: 'selection').listen(_onSelection);
+  TicketDetailController({required this.ipc, required this.messages}) {
+    // Load on 'load' — the single channel the retained ReaderNav emits
+    // (T-199). The extension reveals the tab; the nav owns history.
+    _sub = messages.subscribe(publisher: 'builtin.tickets', channel: 'load').listen(_onLoad);
   }
 
   final DaemonClient ipc;
   final MessageBus messages;
-  final PanelRegistry panels;
   StreamSubscription<Message>? _sub;
 
   TicketDetail? _detail;
@@ -36,12 +37,9 @@ class TicketDetailController extends ChangeNotifier {
   bool _loading = false;
   bool get loading => _loading;
 
-  void _onSelection(Message msg) {
+  void _onLoad(Message msg) {
     final id = msg.data['id'] as String?;
-    if (id != null) {
-      panels.activateTab(Slots.contextPanel, 'tickets.detail');
-      unawaited(load(id));
-    }
+    if (id != null) unawaited(load(id));
   }
 
   Future<void> load(String id) async {

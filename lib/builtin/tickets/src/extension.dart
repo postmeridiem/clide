@@ -20,17 +20,14 @@ class TicketsExtension extends ClideExtension {
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
+    // Ensure the retained nav exists so it records selections + emits
+    // loads whether or not the detail view is mounted (T-199/D-81).
+    ctx.readerNav.navFor(id, dataKey: 'id');
+    // Reveal the static detail tab on selection — no per-click
+    // uncontribute/contribute churn (the T-188 anti-pattern). The nav
+    // owns load + history.
     _sub = ctx.messages.subscribe(publisher: id, channel: 'selection').listen((msg) {
-      final selectedId = msg.data['id'] as String?;
-      if (selectedId == null) return;
-      ctx.panels.uncontribute('tickets.detail');
-      ctx.panels.contribute(TabContribution(
-        id: 'tickets.detail',
-        slot: Slots.contextPanel,
-        title: 'Ticket',
-        icon: PhosphorIcons.ticket,
-        build: (_) => TicketDetailView(initialId: selectedId),
-      ));
+      if (msg.data['id'] is! String) return;
       ctx.arrangement.setVisible(Slots.contextPanel, true);
       ctx.arrangement.setCollapsed(Slots.contextPanel, false);
       ctx.panels.activateTab(Slots.contextPanel, 'tickets.detail');

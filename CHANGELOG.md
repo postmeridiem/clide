@@ -40,9 +40,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `.clideignore` pair — the single ignore knob clide owns. (T-52)
 - `files.walk` command — a recursive, ignore-pruned, capped flat file listing
   of the workspace, backing quick-open and search. (T-51, T-52)
-- Sidebar readers (markdown + decision) gain a chrome action bar: a pin/unpin
-  toggle on the left, then a navigator (back, forward, jump-to-pin) and an edit
-  pencil on the right. (T-189, T-190, T-191, T-198)
+- Sidebar readers (markdown, decision, and ticket) gain a chrome action bar: a
+  pin/unpin toggle on the left, then a navigator (back, forward, jump-to-pin) and
+  an edit pencil on the right (no pencil for tickets — they're not files). The
+  ticket reader joins the shared retained nav and drops its per-click tab churn.
+  (T-189, T-190, T-191, T-198, T-199)
 
 ### Fixed
 

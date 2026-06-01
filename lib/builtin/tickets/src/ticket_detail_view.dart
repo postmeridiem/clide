@@ -1,3 +1,4 @@
+import 'package:clide/builtin/shared/reader_chrome.dart';
 import 'package:clide/builtin/tickets/src/ticket_colors.dart';
 import 'package:clide/builtin/tickets/src/ticket_detail_controller.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -14,23 +15,36 @@ class TicketDetailView extends StatefulWidget {
 
 class _TicketDetailViewState extends State<TicketDetailView> {
   TicketDetailController? _controller;
+  ReaderNav? _nav;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_controller != null) return;
     final kernel = ClideKernel.of(context);
-    _controller = TicketDetailController(ipc: kernel.ipc, messages: kernel.messages, panels: kernel.panels);
-    if (widget.initialId != null) {
-      _controller!.load(widget.initialId!);
-    }
+    _controller = TicketDetailController(ipc: kernel.ipc, messages: kernel.messages);
+    _nav = kernel.readerNav.navFor('builtin.tickets', dataKey: 'id')..addListener(_onNavChanged);
+    // Grab the entry the retained nav already holds (a selection that
+    // revealed this tab before we mounted), else the initialId.
+    final current = _nav!.current ?? widget.initialId;
+    if (current != null) _controller!.load(current);
+  }
+
+  void _onNavChanged() {
+    if (mounted) setState(() {}); // refresh action-bar button state
   }
 
   @override
   void dispose() {
+    _nav?.removeListener(_onNavChanged);
     _controller?.dispose();
     super.dispose();
   }
+
+  void _onBack() => _nav?.back();
+  void _onForward() => _nav?.forward();
+  void _onPin() => _nav?.togglePin();
+  void _onJumpToPin() => _nav?.jumpToPin();
 
   void _navigateToRecord(BuildContext context, String id) {
     final kernel = ClideKernel.of(context);
@@ -56,37 +70,53 @@ class _TicketDetailViewState extends State<TicketDetailView> {
         final isDark = ClideTheme.of(ctx).dark;
         final typeColors = TicketTypeColors.forTheme(dark: isDark);
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _TicketHeader(detail: d, tokens: tokens, typeColors: typeColors),
-              const SizedBox(height: 12),
-              _StatusControls(detail: d, tokens: tokens, controller: c),
-              if (d.description != null && d.description!.isNotEmpty) ...[
+        return ClidePaneChrome(
+          title: d.id,
+          subtitle: d.title,
+          trailing: [
+            ReaderActionBar(
+              canGoBack: _nav?.canGoBack ?? false,
+              canGoForward: _nav?.canGoForward ?? false,
+              hasPinned: _nav?.hasPinned ?? false,
+              onBack: (_nav?.canGoBack ?? false) ? _onBack : null,
+              onForward: (_nav?.canGoForward ?? false) ? _onForward : null,
+              onPin: _onPin,
+              onJumpToPin: (_nav?.hasPinned ?? false) ? _onJumpToPin : null,
+              onEdit: null, // tickets are pql records, not files
+            ),
+          ],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _TicketHeader(detail: d, tokens: tokens, typeColors: typeColors),
                 const SizedBox(height: 12),
-                ClideMarkdown(d.description!, onRecordTap: (id) => _navigateToRecord(ctx, id)),
+                _StatusControls(detail: d, tokens: tokens, controller: c),
+                if (d.description != null && d.description!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  ClideMarkdown(d.description!, onRecordTap: (id) => _navigateToRecord(ctx, id)),
+                ],
+                if (d.parents.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _SectionLabel(label: 'PARENT TREE', tokens: tokens),
+                  const SizedBox(height: 6),
+                  for (var i = 0; i < d.parents.length; i++)
+                    _CompactCard(
+                      data: d.parents[i],
+                      tokens: tokens,
+                      typeColors: typeColors,
+                      indent: i,
+                    ),
+                ],
+                if (d.decisions.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _SectionLabel(label: 'REFERENCED DECISIONS', tokens: tokens),
+                  const SizedBox(height: 6),
+                  for (final dec in d.decisions) _DecisionRefCard(data: dec, tokens: tokens),
+                ],
               ],
-              if (d.parents.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _SectionLabel(label: 'PARENT TREE', tokens: tokens),
-                const SizedBox(height: 6),
-                for (var i = 0; i < d.parents.length; i++)
-                  _CompactCard(
-                    data: d.parents[i],
-                    tokens: tokens,
-                    typeColors: typeColors,
-                    indent: i,
-                  ),
-              ],
-              if (d.decisions.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _SectionLabel(label: 'REFERENCED DECISIONS', tokens: tokens),
-                const SizedBox(height: 6),
-                for (final dec in d.decisions) _DecisionRefCard(data: dec, tokens: tokens),
-              ],
-            ],
+            ),
           ),
         );
       },
