@@ -18,22 +18,52 @@ import 'intents.dart';
 import 'key_chord.dart';
 import 'when_clause.dart';
 
-/// One row in a layer: a chord, an optional when-clause, and the
-/// intent to fire when the chord matches and the when-clause is true.
+/// One row in a layer: an ordered chord [sequence] (length 1 for the
+/// common single-chord binding), an optional when-clause, and the intent
+/// to fire when the sequence matches and the when-clause is true.
 @immutable
 class KeymapBinding {
   const KeymapBinding({
-    required this.chord,
+    required this.sequence,
     required this.intent,
     this.when,
   });
 
-  final KeyChord chord;
+  /// Convenience constructor for a single-chord binding.
+  KeymapBinding.chord(KeyChord chord, {required this.intent, this.when}) : sequence = [chord];
+
+  final List<KeyChord> sequence;
   final Intent intent;
   final WhenExpr? when;
 
+  /// The first (often only) chord. Kept for single-chord call sites and
+  /// debug/hint surfaces.
+  KeyChord get chord => sequence.first;
+
+  /// Whether this binding requires more than one chord (D-82).
+  bool get isSequence => sequence.length > 1;
+
   @override
-  String toString() => 'Binding($chord → ${intent.runtimeType}${when == null ? '' : ' when $when'})';
+  String toString() {
+    final keys = sequence.map((c) => c.canonical).join(' ');
+    return 'Binding($keys → ${intent.runtimeType}${when == null ? '' : ' when $when'})';
+  }
+}
+
+/// Result of matching a pending chord buffer against a [Keymap] (D-82).
+/// [exact] is the highest-precedence binding whose full sequence equals
+/// the buffer (and whose when-clause passes); [isPrefix] is true when
+/// some binding's sequence strictly extends the buffer, so more input
+/// could still complete a longer match.
+@immutable
+class SequenceMatch {
+  const SequenceMatch({this.exact, required this.isPrefix});
+
+  final Intent? exact;
+  final bool isPrefix;
+
+  /// No binding matches the buffer exactly and none extends it.
+  bool get none => exact == null && !isPrefix;
 }
 
 /// One source of bindings. Layers are merged in order — later layers
@@ -96,8 +126,10 @@ class KeymapLayer {
         throw FormatException('binding missing `keys:` (string or list of strings) — $entry');
       }
       final when = WhenExpr.tryParse(entry['when'] as String?);
+      // A YAML list alternates (any element fires); each element may
+      // itself be a space-separated sequence (D-82).
       for (final spec in keySpecs) {
-        out.add(KeymapBinding(chord: KeyChord.parse(spec), intent: intent, when: when));
+        out.add(KeymapBinding(sequence: KeyChord.parseSequence(spec), intent: intent, when: when));
       }
     }
     return KeymapLayer(name: name, bindings: out);
@@ -120,12 +152,46 @@ class Keymap {
   /// clause (if any) evaluates true. Returns null if no match.
   Intent? resolve(KeyChord chord, Map<String, bool> context) {
     // Effective list is highest-precedence-first; first match wins.
+    // Single-chord fast path — multi-chord bindings only fire through
+    // [match] / a SequenceMatcher (D-82).
     for (final b in _effective) {
-      if (b.chord != chord) continue;
+      if (b.isSequence || b.chord != chord) continue;
       if (b.when != null && !b.when!.evaluate(context)) continue;
       return b.intent;
     }
     return null;
+  }
+
+  /// Match a pending chord [buffer] against every binding (single or
+  /// sequence), respecting when-clauses and precedence. See [SequenceMatch].
+  SequenceMatch match(List<KeyChord> buffer, Map<String, bool> context) {
+    if (buffer.isEmpty) return const SequenceMatch(isPrefix: false);
+    Intent? exact;
+    var isPrefix = false;
+    for (final b in _effective) {
+      if (b.when != null && !b.when!.evaluate(context)) continue;
+      final seq = b.sequence;
+      if (seq.length == buffer.length) {
+        if (exact == null && _seqEquals(seq, buffer)) exact = b.intent;
+      } else if (seq.length > buffer.length && _isPrefixOf(buffer, seq)) {
+        isPrefix = true;
+      }
+    }
+    return SequenceMatch(exact: exact, isPrefix: isPrefix);
+  }
+
+  static bool _seqEquals(List<KeyChord> a, List<KeyChord> b) {
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  static bool _isPrefixOf(List<KeyChord> prefix, List<KeyChord> full) {
+    for (var i = 0; i < prefix.length; i++) {
+      if (prefix[i] != full[i]) return false;
+    }
+    return true;
   }
 
   /// All resolved bindings in effective-precedence order. Exposed for

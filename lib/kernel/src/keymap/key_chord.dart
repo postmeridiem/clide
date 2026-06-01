@@ -83,6 +83,27 @@ class KeyChord {
     return KeyChord(modifiers: mods, key: key);
   }
 
+  /// Parse a sequence spec — one or more chords separated by whitespace,
+  /// e.g. `d d`, `g g`, `ctrl+k ctrl+s`. A single chord yields a
+  /// one-element list. Whitespace means "then" (D-82); the space *key*
+  /// is always spelled `space`, so a literal space never collides.
+  /// Throws [FormatException] on empty input or an unknown chord.
+  static List<KeyChord> parseSequence(String spec) {
+    final parts = spec.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    if (parts.isEmpty) throw FormatException('empty key sequence: "$spec"');
+    return [for (final p in parts) KeyChord.parse(p)];
+  }
+
+  /// The digit 0–9 if this is a bare digit key with no modifiers, else
+  /// null. Used to capture Vim repeat-count prefixes (`5j`).
+  int? get digit {
+    if (modifiers.isNotEmpty) return null;
+    for (var d = 0; d <= 9; d++) {
+      if (key == _digitKeys[d]) return d;
+    }
+    return null;
+  }
+
   /// Canonical YAML form: `ctrl+shift+p`.
   String get canonical {
     final modPart = modifiers.map((m) => m.yaml).join('+');
@@ -200,6 +221,19 @@ const Map<String, LogicalKeyboardKey> _byName = {
   'bracketRight': LogicalKeyboardKey.bracketRight, ']': LogicalKeyboardKey.bracketRight,
   'backquote': LogicalKeyboardKey.backquote, '`': LogicalKeyboardKey.backquote,
 };
+
+const List<LogicalKeyboardKey> _digitKeys = [
+  LogicalKeyboardKey.digit0,
+  LogicalKeyboardKey.digit1,
+  LogicalKeyboardKey.digit2,
+  LogicalKeyboardKey.digit3,
+  LogicalKeyboardKey.digit4,
+  LogicalKeyboardKey.digit5,
+  LogicalKeyboardKey.digit6,
+  LogicalKeyboardKey.digit7,
+  LogicalKeyboardKey.digit8,
+  LogicalKeyboardKey.digit9,
+];
 
 LogicalKeyboardKey? _keyByName(String name) => _byName[name.toLowerCase()];
 

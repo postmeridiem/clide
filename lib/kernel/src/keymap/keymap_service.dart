@@ -128,7 +128,7 @@ class KeymapService extends ChangeNotifier {
   /// settings overlay.
   void registerCommandBinding(String chordSpec, String commandId, {String? when}) {
     _contributions.add(KeymapBinding(
-      chord: KeyChord.parse(chordSpec),
+      sequence: KeyChord.parseSequence(chordSpec),
       intent: InvokeCommandIntent(commandId),
       when: WhenExpr.tryParse(when),
     ));
