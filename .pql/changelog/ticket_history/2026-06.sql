@@ -1,0 +1,1 @@
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-194', 'status', 'backlog', 'done', NULL, '2026-06-01 06:49:47', '2026-06-01 06:49:47', '2026-06-01 06:49:47', NULL, '09bfe6f27513d7d16f7139543961b4f8', 1) ON CONFLICT(hash) DO NOTHING;

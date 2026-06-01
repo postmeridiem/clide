@@ -26,7 +26,12 @@ class PathOutsideRoot implements Exception {
 /// without touching disk (T-102).
 String resolveUnderRoot(Directory root, String relative) {
   final rootPath = _normalize(root.absolute.path);
-  final joined = _normalize('$rootPath${Platform.pathSeparator}$relative');
+  // An absolute input is normalized as-is rather than joined onto the
+  // root — otherwise a path already under the root gets doubled
+  // (`/repo` + `/repo/x` → `/repo/repo/x`) and resolves to nothing.
+  // Containment is still enforced below, so an absolute path *outside*
+  // the root is rejected exactly as a `..` traversal is.
+  final joined = relative.startsWith(Platform.pathSeparator) ? _normalize(relative) : _normalize('$rootPath${Platform.pathSeparator}$relative');
 
   // Containment check: joined must equal rootPath, or start with
   // rootPath + separator. Equality covers `relative == ''` (the

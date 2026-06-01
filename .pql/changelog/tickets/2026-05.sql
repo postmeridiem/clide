@@ -3060,3 +3060,20 @@ Safety (user decision) — REQUIRE A CLEAN GIT WORKING TREE before apply: refuse
 Ignore — same full ignore_files: layering as T-52 (D-4).
 
 Files: lib/src/daemon/files_commands.dart (files.write); new replacement-preview controller/view under lib/builtin/search/; reuse path_safety + diff render primitives; DialogRouter confirm; IPC schema + CLI parity verbs.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-04-23 20:32:06', '2026-05-31 19:28:39', NULL, 'fb6ccea7b9f4b2a2f403f7ade153cfeb', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-53', 'story', NULL, 'search and replace across files', 'Companion to find-in-files. Preview all replacements before applying. Support regex capture groups in replacement. Respects ignore patterns from pql config.
+
+Refinement (2026-05-31):
+
+Depends on T-52 — consumes its match model (path, line, start/end offset per match, capture groups) as the replacement input. Sequence after T-52 (T-52 blocks T-53).
+
+Write path — no files.write IPC exists today (only files.root/read/ls/watch; the sole write path is EditorRegistry.save on an open buffer). Add a `files.write` verb gated by resolveUnderRootFollowingSymlinks (lib/src/files/path_safety.dart). Do NOT route through the editor (would pollute the open-buffer list with dozens of temp buffers).
+
+Regex capture groups — Dart replaceAllMapped / $1; the T-52 engine must surface match groups.
+
+Preview — the existing diff view (lib/builtin/diff) is git-only (hardwired to git.diff). Build a ReplacementPreviewController/view that reuses the diff RENDER primitives (DiffLine / _HunkView styling) fed a computed in-memory before/after set. Do NOT generalize/entangle the git DiffController.
+
+Safety (user decision) — REQUIRE A CLEAN GIT WORKING TREE before apply: refuse with "commit or stash your changes first" if there are unstaged changes, making git the lossless undo layer. Preview shown first; final confirmation via the existing DialogRouter (as used by git discard-confirm).
+
+Ignore — same full ignore_files: layering as T-52 (D-4).
+
+Files: lib/src/daemon/files_commands.dart (files.write); new replacement-preview controller/view under lib/builtin/search/; reuse path_safety + diff render primitives; DialogRouter confirm; IPC schema + CLI parity verbs.', 'done', 'medium', NULL, NULL, NULL, '2026-04-23 20:32:06', '2026-05-31 19:41:13', NULL, 'd3de16341cfef833829cc83c5ff76995', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

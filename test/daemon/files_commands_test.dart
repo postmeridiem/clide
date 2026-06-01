@@ -97,6 +97,16 @@ void main() {
     expect(r.data['path'], 'README.md');
   });
 
+  test('files.read accepts an absolute path under the workspace root', () async {
+    // Regression: the markdown reader publishes absolute skill paths
+    // (e.g. .claude/skills/.../SKILL.md). An absolute path under root
+    // must resolve, not double onto the root and 404.
+    final abs = '${sandbox.absolute.path}/README.md';
+    final r = await call('files.read', {'path': abs});
+    expect(r.ok, isTrue);
+    expect(r.data['content'], 'hi');
+  });
+
   test('files.read without a path returns toolError', () async {
     final r = await call('files.read', const {});
     expect(r.ok, isFalse);

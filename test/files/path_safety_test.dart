@@ -59,6 +59,18 @@ void main() {
       }
     });
 
+    test('accepts an absolute path already under the root (no doubling)', () {
+      // Regression: an absolute path under the root used to be joined
+      // onto root (`/repo` + `/repo/x` → `/repo/repo/x`) and resolve to
+      // nothing. It must normalize as-is.
+      final abs = '${root.absolute.path}/.claude/skills/x/SKILL.md';
+      expect(resolveUnderRoot(root, abs), abs);
+    });
+
+    test('rejects an absolute path outside the root', () {
+      expect(() => resolveUnderRoot(root, '/etc/passwd'), throwsA(isA<PathOutsideRoot>()));
+    });
+
     test('PathOutsideRoot.toString embeds requested + resolved + root', () {
       final e = PathOutsideRoot('r', '/abs', '/root');
       expect(e.toString(), allOf(contains('r'), contains('/abs'), contains('/root')));

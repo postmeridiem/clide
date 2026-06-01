@@ -46,6 +46,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The markdown reader opens files given an absolute path again (e.g. a skill's
+  `SKILL.md` from the Claude Config tab). `resolveUnderRoot` no longer doubles an
+  absolute path onto the workspace root; absolute-under-root resolves, while
+  paths outside the root are still rejected. (T-194)
 - The composer slash typeahead now lists clide-owned commands — `/resume` and
   `/fork` (and `/clear`) surface even though the CLI probe doesn't advertise
   them, unioned onto whatever command source the composer uses. (T-162)
