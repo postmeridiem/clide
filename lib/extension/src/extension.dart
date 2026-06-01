@@ -2,6 +2,7 @@ import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
+import 'package:clide/kernel/src/reader_nav.dart';
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
@@ -63,6 +64,7 @@ abstract class ClideExtensionContext {
   LayoutArrangement get arrangement;
   CommandRegistry get commands;
   PaletteController get palette;
+  ReaderNavRegistry get readerNav;
   ClideClipboard get clipboard;
   FileServices get files;
   Notifications get notify;

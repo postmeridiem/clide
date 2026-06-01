@@ -1,117 +1,14 @@
 /// Shared action-bar chrome for sidebar reader widgets (T-189, T-190, T-191).
 ///
-/// Provides:
-///  - [ReaderHistory] — back/forward history stack with browser semantics.
-///  - [ReaderActionBar] — the visible action bar widget: back, forward, pin,
-///    edit pencil.  Plugs into a [ClidePaneChrome] via its `trailing:` slot.
-///
-/// Usage: mix [ReaderHistoryMixin] into a [State] to get back/forward/pin state
-/// management, then put a [ReaderActionBar] in [ClidePaneChrome.trailing].
+/// Provides [ReaderActionBar] — the visible action bar: back, forward, pin,
+/// edit pencil. Plugs into a [ClidePaneChrome] via its `trailing:` slot. The
+/// retained back/forward history that drives it is the kernel `ReaderNav`
+/// (one per right-pane reader); this file is just the buttons.
 library;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
-
-// ---------------------------------------------------------------------------
-// History model
-// ---------------------------------------------------------------------------
-
-/// Back/forward history stack.  [T] is the entry type (String path for
-/// markdown, String id for decisions).
-///
-/// Standard browser semantics:
-///  - [push] appends at [_index+1] and truncates any forward entries.
-///  - [back]/[forward] adjust the index without re-pushing.
-///  - [canGoBack]/[canGoForward] drive the enabled state of the buttons.
-class ReaderHistory<T> {
-  final List<T> _stack = [];
-  int _index = -1;
-
-  bool get canGoBack => _index > 0;
-  bool get canGoForward => _index < _stack.length - 1;
-
-  T? get current => _index >= 0 && _index < _stack.length ? _stack[_index] : null;
-
-  /// Push a new entry, truncating any forward history.
-  void push(T entry) {
-    if (_index >= 0 && _stack[_index] == entry) {
-      // Same entry as current — don't push a duplicate.
-      return;
-    }
-    // Truncate forward history.
-    if (_index < _stack.length - 1) {
-      _stack.removeRange(_index + 1, _stack.length);
-    }
-    _stack.add(entry);
-    _index = _stack.length - 1;
-  }
-
-  /// Move back one step. Returns the entry now current, or null.
-  T? back() {
-    if (!canGoBack) return null;
-    _index--;
-    return _stack[_index];
-  }
-
-  /// Move forward one step. Returns the entry now current, or null.
-  T? forward() {
-    if (!canGoForward) return null;
-    _index++;
-    return _stack[_index];
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Mixin
-// ---------------------------------------------------------------------------
-
-/// Mix into a [State] that owns a [ReaderHistory] and an optional pin.
-///
-/// The concrete state must call [historyPush] whenever it loads a new
-/// entry (NOT when navigating back/forward — those call [historyBack] /
-/// [historyForward] and then load the returned entry without re-pushing).
-mixin ReaderHistoryMixin<T, W extends StatefulWidget> on State<W> {
-  final ReaderHistory<T> _history = ReaderHistory<T>();
-  T? _pinned;
-
-  bool get canGoBack => _history.canGoBack;
-  bool get canGoForward => _history.canGoForward;
-  bool get hasPinned => _pinned != null;
-  T? get pinnedEntry => _pinned;
-
-  /// Record that the reader is now showing [entry].  Must be called AFTER
-  /// setState has been applied so the action-bar buttons rebuild.
-  void historyPush(T entry) {
-    setState(() => _history.push(entry));
-  }
-
-  /// Navigate back. Returns the entry to load, or null if already at start.
-  T? historyBack() {
-    final entry = _history.back();
-    if (entry != null) setState(() {});
-    return entry;
-  }
-
-  /// Navigate forward. Returns the entry to load, or null if at end.
-  T? historyForward() {
-    final entry = _history.forward();
-    if (entry != null) setState(() {});
-    return entry;
-  }
-
-  /// Set or replace the pin with the current entry.
-  void pinCurrent() {
-    final cur = _history.current;
-    if (cur == null) return;
-    setState(() => _pinned = cur);
-  }
-
-  /// Returns the pinned entry, or null if none set.
-  T? jumpToPin() {
-    return _pinned;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Action bar widget

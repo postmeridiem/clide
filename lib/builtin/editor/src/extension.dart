@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clide/builtin/editor/src/editor_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -14,6 +16,25 @@ class EditorExtension extends ClideExtension {
   String get version => '0.1.0';
   @override
   List<String> get dependsOn => const [];
+
+  StreamSubscription<DaemonEvent>? _sub;
+
+  /// Reveal the editor tab when a buffer opens or becomes active.
+  /// `editor.open` opens the buffer daemon-side and emits the event,
+  /// but nothing else brings the workspace tab to front — without this
+  /// the editor never appears over the Claude pane (T-197). The view's
+  /// `hydrate()` pulls the active buffer once it mounts.
+  @override
+  Future<void> activate(ClideExtensionContext ctx) async {
+    _sub = ctx.events.on<DaemonEvent>().listen((e) {
+      if (e.subsystem != 'editor') return;
+      if (e.kind != 'editor.opened' && e.kind != 'editor.active-changed') return;
+      ctx.panels.activateTab(Slots.workspace, 'editor.active');
+    });
+  }
+
+  @override
+  Future<void> deactivate() async => _sub?.cancel();
 
   @override
   List<ContributionPoint> get contributions => [

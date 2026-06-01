@@ -46,6 +46,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The editor pane now opens over the Claude pane when a file is opened — the
+  reader's edit pencil, a file-tree click, or a decision's edit all reveal the
+  editor tab now (it was contributed but never activated). (T-197)
+- Clicking a decision opens it on the first click. The right-pane readers
+  (markdown + decisions) now share a retained back/forward nav history that
+  survives the tab switch, so the selection that reveals a reader is no longer
+  lost before the widget subscribes; back/forward re-emit through that history.
+  (T-196)
 - The markdown reader can now open user-scope Claude config files (skills /
   agents / commands under `~/.claude`), not just repo-local ones. `files.read`
   gained a read allow-list covering the workspace plus the trusted Claude config

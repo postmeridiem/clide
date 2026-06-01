@@ -50,9 +50,10 @@ Future<void> pumpView(WidgetTester tester, KernelFixture f) async {
   await pumpAsync(tester);
 }
 
-/// Trigger a file load via the 'load' channel (mirrors the extension bridge).
+/// Open a file through the retained nav (the history source); its 'load'
+/// emit makes the mounted viewer display it (T-196).
 Future<void> loadFile(WidgetTester tester, KernelFixture f, String path) async {
-  f.services.messages.publish('builtin.markdown', 'load', {'path': path});
+  f.services.readerNav.navFor('builtin.markdown', dataKey: 'path').open(path);
   await pumpAsync(tester);
 }
 

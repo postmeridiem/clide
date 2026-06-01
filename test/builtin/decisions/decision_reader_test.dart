@@ -89,7 +89,13 @@ void main() {
       f = await KernelFixture.create();
       await _bootExtension(f);
     });
-    tearDown(() => f.dispose());
+    tearDown(() async {
+      // Deactivate before dispose so any post-frame forward scheduled by
+      // these (non-pumping) tests is neutralised — otherwise it fires in
+      // a later testWidgets against a torn-down bus.
+      await f.services.extensions.deactivate('builtin.decisions');
+      await f.dispose();
+    });
 
     test('activate contributes decisions.detail as a static tab', () {
       final tabs = f.services.panels.tabsFor(Slots.contextPanel);
@@ -237,8 +243,9 @@ void main() {
       // Starts empty.
       expect(find.text('Select a decision to view details.'), findsOneWidget);
 
-      // Publish a selection.
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-7'});
+      // The view loads on 'load' (forwarded by the extension post-frame
+      // after it reveals the tab; T-196).
+      f.services.messages.publish('builtin.decisions', 'load', {'id': 'D-7'});
       // Give the broadcast stream a microtask to deliver.
       await pumpAsync(tester);
 
@@ -251,7 +258,7 @@ void main() {
       await pumpView(tester, initialId: 'D-1');
       expect(find.text('Decision D-1'), findsWidgets);
 
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
+      f.services.messages.publish('builtin.decisions', 'load', {'id': 'D-2'});
       await pumpAsync(tester);
 
       expect(find.text('Decision D-2'), findsWidgets);
@@ -262,7 +269,7 @@ void main() {
       await pumpView(tester, initialId: 'D-5');
       expect(find.text('Decision D-5'), findsWidgets);
 
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-5'});
+      f.services.messages.publish('builtin.decisions', 'load', {'id': 'D-5'});
       await pumpAsync(tester);
 
       // Still shows D-5, no crash.
@@ -273,7 +280,7 @@ void main() {
       await pumpView(tester);
 
       for (var i = 1; i <= 5; i++) {
-        f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-$i'});
+        f.services.messages.publish('builtin.decisions', 'load', {'id': 'D-$i'});
       }
       await pumpAsync(tester);
 
@@ -541,6 +548,13 @@ void main() {
     });
     tearDown(() => f.dispose());
 
+    // Drive the retained nav (the history source); its 'load' emit makes
+    // the mounted view display the entry (T-196).
+    Future<void> open(WidgetTester tester, String id) async {
+      f.services.readerNav.navFor('builtin.decisions', dataKey: 'id').open(id);
+      await pumpAsync(tester);
+    }
+
     Future<void> pumpView(WidgetTester tester, {String? initialId}) async {
       tester.view.physicalSize = const Size(600, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -548,8 +562,9 @@ void main() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
-      await tester.pumpWidget(harness(f, DecisionDetailView(initialId: initialId)));
+      await tester.pumpWidget(harness(f, const DecisionDetailView()));
       await pumpAsync(tester);
+      if (initialId != null) await open(tester, initialId);
     }
 
     testWidgets('back disabled on initial load', (tester) async {
@@ -565,8 +580,7 @@ void main() {
 
     testWidgets('back enabled after two selections', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
 
       expect(
         find.byWidgetPredicate(
@@ -578,8 +592,7 @@ void main() {
 
     testWidgets('back navigates to previous decision', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
       // Title appears in pane header subtitle + body card.
       expect(find.text('Decision D-2'), findsWidgets);
 
@@ -594,14 +607,13 @@ void main() {
 
     testWidgets('back/forward does NOT re-publish selection bus event', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
 
       final selections = <Message>[];
       final sub = f.services.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen(selections.add);
       addTearDown(sub.cancel);
 
-      // Go back — should NOT publish a selection message.
+      // Go back — re-emits on 'load', NOT 'selection'.
       final backBtn = find.byWidgetPredicate(
         (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
       );
@@ -613,8 +625,7 @@ void main() {
 
     testWidgets('forward disabled at end of history', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
 
       expect(
         find.byWidgetPredicate(
@@ -626,8 +637,7 @@ void main() {
 
     testWidgets('forward navigates after back', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
 
       // Go back to D-1.
       final backBtn = find.byWidgetPredicate(
@@ -648,8 +658,7 @@ void main() {
 
     testWidgets('new selection truncates forward history', (tester) async {
       await pumpView(tester, initialId: 'D-1');
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
 
       // Go back to D-1.
       final backBtn = find.byWidgetPredicate(
@@ -658,9 +667,8 @@ void main() {
       await tester.tap(backBtn.first);
       await pumpAsync(tester);
 
-      // Load D-3 — truncates D-2 forward history.
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-3'});
-      await pumpAsync(tester);
+      // Open D-3 — truncates D-2 forward history.
+      await open(tester, 'D-3');
 
       expect(
         find.byWidgetPredicate(
@@ -687,6 +695,11 @@ void main() {
     });
     tearDown(() => f.dispose());
 
+    Future<void> open(WidgetTester tester, String id) async {
+      f.services.readerNav.navFor('builtin.decisions', dataKey: 'id').open(id);
+      await pumpAsync(tester);
+    }
+
     Future<void> pumpView(WidgetTester tester, {String? initialId}) async {
       tester.view.physicalSize = const Size(600, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -694,8 +707,9 @@ void main() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
-      await tester.pumpWidget(harness(f, DecisionDetailView(initialId: initialId)));
+      await tester.pumpWidget(harness(f, const DecisionDetailView()));
       await pumpAsync(tester);
+      if (initialId != null) await open(tester, initialId);
     }
 
     testWidgets('pin jump affordance not visible before pin set', (tester) async {
@@ -734,8 +748,7 @@ void main() {
       await pumpAsync(tester);
 
       // Navigate to D-2.
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
       // Title appears in pane header subtitle + body card.
       expect(find.text('Decision D-2'), findsWidgets);
 
@@ -762,8 +775,7 @@ void main() {
       await pumpAsync(tester);
 
       // Navigate to D-2.
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-2'});
-      await pumpAsync(tester);
+      await open(tester, 'D-2');
 
       // Replace pin with D-2.
       await tester.tap(find
@@ -774,8 +786,7 @@ void main() {
       await pumpAsync(tester);
 
       // Navigate to D-3.
-      f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-3'});
-      await pumpAsync(tester);
+      await open(tester, 'D-3');
 
       // Jump to pin — should go to D-2 (replaced), not D-1.
       await tester.tap(find

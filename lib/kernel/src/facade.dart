@@ -24,6 +24,7 @@ import 'package:clide/kernel/src/panels/arrangement.dart';
 import 'package:clide/kernel/src/panels/registry.dart';
 import 'package:clide/kernel/src/project.dart';
 import 'package:clide/kernel/src/quick_open.dart';
+import 'package:clide/kernel/src/reader_nav.dart';
 import 'package:clide/kernel/src/recent_files.dart';
 import 'package:clide/kernel/src/scheduler.dart';
 import 'package:clide/kernel/src/secrets.dart';
@@ -53,6 +54,7 @@ class KernelServices {
     required this.palette,
     required this.quickOpen,
     required this.recentFiles,
+    required this.readerNav,
     required this.keybindings,
     required this.clipboard,
     required this.files,
@@ -85,6 +87,7 @@ class KernelServices {
   final PaletteController palette;
   final QuickOpenController quickOpen;
   final RecentFilesService recentFiles;
+  final ReaderNavRegistry readerNav;
   final KeybindingResolver keybindings;
   final ClideClipboard clipboard;
   final FileServices files;
@@ -148,6 +151,7 @@ class KernelServices {
     final palette = PaletteController(commands);
     final recentFiles = RecentFilesService();
     final quickOpen = QuickOpenController(recentPaths: () => recentFiles.paths);
+    final readerNav = ReaderNavRegistry(messages);
     final clipboard = ClideClipboard();
     final files = FileServices(events);
     final notify = Notifications();
@@ -196,6 +200,7 @@ class KernelServices {
       arrangement: arrangement,
       commands: commands,
       palette: palette,
+      readerNav: readerNav,
       keybindings: keybindings,
       keymap: keymap,
       clipboard: clipboard,
@@ -229,6 +234,7 @@ class KernelServices {
       palette: palette,
       quickOpen: quickOpen,
       recentFiles: recentFiles,
+      readerNav: readerNav,
       keybindings: keybindings,
       clipboard: clipboard,
       files: files,
@@ -260,6 +266,7 @@ class KernelServices {
     palette.dispose();
     quickOpen.dispose();
     recentFiles.dispose();
+    readerNav.dispose();
     i18n.dispose();
     notify.dispose();
     dialog.dispose();

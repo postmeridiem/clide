@@ -14,32 +14,43 @@ class DecisionDetailView extends StatefulWidget {
   State<DecisionDetailView> createState() => _DecisionDetailViewState();
 }
 
-class _DecisionDetailViewState extends State<DecisionDetailView> with ReaderHistoryMixin<String, DecisionDetailView> {
+class _DecisionDetailViewState extends State<DecisionDetailView> {
   Map<String, Object?>? _decision;
   bool _loading = false;
   StreamSubscription<Message>? _sub;
+  ReaderNav? _nav;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_sub != null) return;
     final kernel = ClideKernel.of(context);
-    _sub = kernel.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen((msg) {
+    // The back/forward history is the retained right-pane nav (T-196):
+    // it records selections (even before this view mounts) and re-emits
+    // them on the single 'load' channel this view loads from.
+    _nav = kernel.readerNav.navFor('builtin.decisions', dataKey: 'id')..addListener(_onNavChanged);
+    _sub = kernel.messages.subscribe(publisher: 'builtin.decisions', channel: 'load').listen((msg) {
       final id = msg.data['id'] as String?;
       if (id != null) unawaited(_load(id));
     });
-    if (widget.initialId != null) {
-      unawaited(_load(widget.initialId!));
-    }
+    // Grab the latest entry the nav already holds — the selection that
+    // revealed this tab arrived before we could subscribe to 'load'.
+    final current = _nav!.current ?? widget.initialId;
+    if (current != null) unawaited(_load(current));
+  }
+
+  void _onNavChanged() {
+    if (mounted) setState(() {}); // refresh action-bar button state (pin, etc.)
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _nav?.removeListener(_onNavChanged);
     super.dispose();
   }
 
-  /// Load [id] and push it onto the history stack (external navigation).
+  /// Fetch + display [id]. History lives in [ReaderNav]; this never pushes.
   Future<void> _load(String id) async {
     setState(() => _loading = true);
     final kernel = ClideKernel.of(context);
@@ -52,42 +63,12 @@ class _DecisionDetailViewState extends State<DecisionDetailView> with ReaderHist
       _loading = false;
       _decision = resp.ok ? resp.data : null;
     });
-    if (resp.ok) historyPush(id);
   }
 
-  /// Load [id] WITHOUT pushing onto the history stack (back/forward nav).
-  Future<void> _loadInPlace(String id) async {
-    setState(() => _loading = true);
-    final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('pql.decisions.read', args: {'id': id});
-    if (!mounted) return;
-    if (resp.ok) {
-      kernel.messages.publish('builtin.decisions', 'focus', {'id': id});
-    }
-    setState(() {
-      _loading = false;
-      _decision = resp.ok ? resp.data : null;
-    });
-  }
-
-  void _onBack() {
-    final entry = historyBack();
-    if (entry != null) _loadInPlace(entry);
-  }
-
-  void _onForward() {
-    final entry = historyForward();
-    if (entry != null) _loadInPlace(entry);
-  }
-
-  void _onPin() {
-    pinCurrent();
-  }
-
-  void _onJumpToPin() {
-    final entry = jumpToPin();
-    if (entry != null) _loadInPlace(entry);
-  }
+  void _onBack() => _nav?.back();
+  void _onForward() => _nav?.forward();
+  void _onPin() => _nav?.pin();
+  void _onJumpToPin() => _nav?.jumpToPin();
 
   void _onEdit() {
     final filePath = _decision?['file_path'] as String?;
@@ -131,13 +112,13 @@ class _DecisionDetailViewState extends State<DecisionDetailView> with ReaderHist
       subtitle: title,
       trailing: [
         ReaderActionBar(
-          canGoBack: canGoBack,
-          canGoForward: canGoForward,
-          hasPinned: hasPinned,
-          onBack: canGoBack ? _onBack : null,
-          onForward: canGoForward ? _onForward : null,
+          canGoBack: _nav?.canGoBack ?? false,
+          canGoForward: _nav?.canGoForward ?? false,
+          hasPinned: _nav?.hasPinned ?? false,
+          onBack: (_nav?.canGoBack ?? false) ? _onBack : null,
+          onForward: (_nav?.canGoForward ?? false) ? _onForward : null,
           onPin: _decision != null ? _onPin : null,
-          onJumpToPin: hasPinned ? _onJumpToPin : null,
+          onJumpToPin: (_nav?.hasPinned ?? false) ? _onJumpToPin : null,
           onEdit: filePath != null ? _onEdit : null,
         ),
       ],

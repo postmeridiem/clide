@@ -4,7 +4,6 @@ import 'package:clide/builtin/markdown/src/markdown_viewer.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
-import 'package:flutter/widgets.dart';
 
 class MarkdownExtension extends ClideExtension {
   @override
@@ -31,13 +30,13 @@ class MarkdownExtension extends ClideExtension {
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
+    // Ensure the retained nav exists so it records selections + emits
+    // loads whether or not the viewer is mounted (T-196). This handler
+    // only reveals the tab; the nav owns load + history.
+    ctx.readerNav.navFor(id, dataKey: 'path');
     _sub = ctx.messages.subscribe(publisher: id, channel: 'selection').listen((msg) {
-      final path = msg.data['path'] as String?;
-      if (path == null) return;
+      if (msg.data['path'] is! String) return;
       ctx.panels.activateTab(Slots.contextPanel, 'markdown.viewer');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ctx.messages.publish(id, 'load', {'path': path});
-      });
     });
   }
 

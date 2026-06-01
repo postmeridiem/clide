@@ -12,30 +12,43 @@ class MarkdownViewer extends StatefulWidget {
   State<MarkdownViewer> createState() => _MarkdownViewerState();
 }
 
-class _MarkdownViewerState extends State<MarkdownViewer> with ReaderHistoryMixin<String, MarkdownViewer> {
+class _MarkdownViewerState extends State<MarkdownViewer> {
   String? _path;
   String? _content;
   String? _error;
   StreamSubscription<Message>? _selectionSub;
+  ReaderNav? _nav;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_selectionSub != null) return;
     final kernel = ClideKernel.of(context);
+    // Back/forward history is the retained right-pane nav (T-196); it
+    // records selections and re-emits them on the 'load' channel.
+    _nav = kernel.readerNav.navFor('builtin.markdown', dataKey: 'path')..addListener(_onNavChanged);
     _selectionSub = kernel.messages.subscribe(publisher: 'builtin.markdown', channel: 'load').listen((msg) {
       final path = msg.data['path'] as String?;
       if (path != null) _loadFile(path);
     });
+    // Grab the latest entry the nav already holds (a selection that
+    // revealed this tab before we subscribed).
+    final current = _nav!.current;
+    if (current != null) _loadFile(current);
+  }
+
+  void _onNavChanged() {
+    if (mounted) setState(() {}); // refresh action-bar button state
   }
 
   @override
   void dispose() {
     _selectionSub?.cancel();
+    _nav?.removeListener(_onNavChanged);
     super.dispose();
   }
 
-  /// Load [path] and push it onto the history stack (external navigation).
+  /// Fetch + display [path]. History lives in [ReaderNav]; never pushes.
   Future<void> _loadFile(String path) async {
     final kernel = ClideKernel.of(context);
     final resp = await kernel.ipc.request('files.read', args: {'path': path});
@@ -47,50 +60,15 @@ class _MarkdownViewerState extends State<MarkdownViewer> with ReaderHistoryMixin
         _content = resp.data['content'] as String? ?? '';
         _error = null;
       });
-      historyPush(path);
     } else {
       setState(() => _error = resp.error?.message);
     }
   }
 
-  /// Load [path] WITHOUT pushing onto the history stack (back/forward nav).
-  Future<void> _loadFileInPlace(String path) async {
-    final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('files.read', args: {'path': path});
-    if (!mounted) return;
-    if (resp.ok) {
-      kernel.messages.publish('builtin.markdown', 'focus', {'path': path});
-      setState(() {
-        _path = path;
-        _content = resp.data['content'] as String? ?? '';
-        _error = null;
-      });
-    } else {
-      setState(() => _error = resp.error?.message);
-    }
-  }
-
-  void _onBack() {
-    final entry = historyBack();
-    if (entry != null) _loadFileInPlace(entry);
-  }
-
-  void _onForward() {
-    final entry = historyForward();
-    if (entry != null) _loadFileInPlace(entry);
-  }
-
-  void _onPin() {
-    pinCurrent();
-  }
-
-  void _onJumpToPin() {
-    final entry = jumpToPin();
-    if (entry != null) {
-      // Navigate directly without re-pushing (pin jump is a quick-return).
-      _loadFileInPlace(entry);
-    }
-  }
+  void _onBack() => _nav?.back();
+  void _onForward() => _nav?.forward();
+  void _onPin() => _nav?.pin();
+  void _onJumpToPin() => _nav?.jumpToPin();
 
   void _onEdit() {
     final p = _path;
@@ -127,13 +105,13 @@ class _MarkdownViewerState extends State<MarkdownViewer> with ReaderHistoryMixin
       subtitle: '${_content!.split('\n').length} lines',
       trailing: [
         ReaderActionBar(
-          canGoBack: canGoBack,
-          canGoForward: canGoForward,
-          hasPinned: hasPinned,
-          onBack: canGoBack ? _onBack : null,
-          onForward: canGoForward ? _onForward : null,
+          canGoBack: _nav?.canGoBack ?? false,
+          canGoForward: _nav?.canGoForward ?? false,
+          hasPinned: _nav?.hasPinned ?? false,
+          onBack: (_nav?.canGoBack ?? false) ? _onBack : null,
+          onForward: (_nav?.canGoForward ?? false) ? _onForward : null,
           onPin: _path != null ? _onPin : null,
-          onJumpToPin: hasPinned ? _onJumpToPin : null,
+          onJumpToPin: (_nav?.hasPinned ?? false) ? _onJumpToPin : null,
           onEdit: _path != null ? _onEdit : null,
         ),
       ],

@@ -41,6 +41,7 @@ export 'src/os.dart';
 export 'src/panels/arrangement.dart';
 export 'src/project.dart';
 export 'src/quick_open.dart';
+export 'src/reader_nav.dart';
 export 'src/recent_files.dart';
 export 'src/scheduler.dart';
 export 'src/text_zoom.dart';

@@ -5,6 +5,7 @@ import 'package:clide/extension/src/extension.dart';
 import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/keybindings.dart';
 import 'package:clide/kernel/src/commands/palette.dart';
+import 'package:clide/kernel/src/reader_nav.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
@@ -40,6 +41,7 @@ class ExtensionManager extends ChangeNotifier {
     required this.arrangement,
     required this.commands,
     required this.palette,
+    required this.readerNav,
     required this.keybindings,
     required this.keymap,
     required this.clipboard,
@@ -65,6 +67,7 @@ class ExtensionManager extends ChangeNotifier {
   final LayoutArrangement arrangement;
   final CommandRegistry commands;
   final PaletteController palette;
+  final ReaderNavRegistry readerNav;
   final KeybindingResolver keybindings;
   final KeymapService keymap;
   final ClideClipboard clipboard;
@@ -288,6 +291,8 @@ class _ExtensionContext implements ClideExtensionContext {
   CommandRegistry get commands => manager.commands;
   @override
   PaletteController get palette => manager.palette;
+  @override
+  ReaderNavRegistry get readerNav => manager.readerNav;
   @override
   ClideClipboard get clipboard => manager.clipboard;
   @override

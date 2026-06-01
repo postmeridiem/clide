@@ -20,6 +20,10 @@ class DecisionsExtension extends ClideExtension {
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
+    // Ensure the retained nav exists so it records selections + emits
+    // loads whether or not the reader is mounted (T-196). This handler
+    // only reveals the tab; the nav owns load + history.
+    ctx.readerNav.navFor(id, dataKey: 'id');
     _sub = ctx.messages.subscribe(publisher: id, channel: 'selection').listen((msg) {
       if (msg.data['id'] is! String) return;
       ctx.arrangement.setVisible(Slots.contextPanel, true);
