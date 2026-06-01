@@ -227,8 +227,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                           },
                         ),
                       ),
-                    if (controller.truncated)
-                      _Hint('Results limited — large workspace', tokens),
+                    if (controller.truncated) _Hint('Results limited — large workspace', tokens),
                   ],
                 ),
               ),
