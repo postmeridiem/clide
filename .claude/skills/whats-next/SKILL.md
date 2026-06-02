@@ -217,6 +217,19 @@ Batch transition (comma-separated IDs):
 pql ticket status T-1,T-2,T-3 in_progress
 ```
 
+**Then persist it.** Ticket mutations (status here, and any `ticket new` in
+Step 2) land only in the gitignored `.pql/pql.db`. The post-checkout/post-merge
+hooks rebuild that DB from the committed changelog on every branch switch — so
+un-exported changes vanish silently the next time anyone switches branches. After
+creating or transitioning tickets, always:
+
+```bash
+pql plan export                      # regenerates .pql/changelog/*.sql
+git add .pql/changelog && git commit # durable; survives rebuild
+```
+
+See the [pql skill](../pql/SKILL.md#versioning-planning-state--data-loss-footgun-read-this).
+
 ### 3b. Branch? Default no.
 
 Solo-dev flow on this repo — work lands directly on `main` (see recent
@@ -250,6 +263,10 @@ End with a tight summary:
 ## Anti-patterns
 
 - Don't skip Step 0 — stale `pql.db` makes the rest of the skill lie.
+- Don't leave ticket changes un-exported — `pql.db` is gitignored and the
+  post-checkout/post-merge hooks rebuild it from the committed changelog, so a
+  branch switch silently drops un-exported tickets. Always `pql plan export` +
+  commit `.pql/changelog/` after mutating tickets (Step 3a).
 - Don't activate a batch the user hasn't confirmed.
 - Don't spawn refinement agents for tickets that have no description — use
   `pql ticket refine` instead; it's cheaper and writes back through the
