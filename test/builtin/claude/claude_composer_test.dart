@@ -336,6 +336,42 @@ void main() {
     });
   });
 
+  group('ClaudeComposer mode cycle (T-226)', () {
+    late KernelFixture f;
+    setUp(() async => f = await KernelFixture.create());
+    tearDown(() => f.dispose());
+
+    testWidgets('Ctrl+M fires onCycleMode and is consumed', (tester) async {
+      var cycles = 0;
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => cycles++),
+      ));
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+
+      expect(cycles, 1);
+      // The chord didn't type an 'm' into the field.
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, isEmpty);
+    });
+
+    testWidgets('plain m types normally (no modifier, no cycle)', (tester) async {
+      var cycles = 0;
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => cycles++),
+      ));
+      await tester.enterText(find.byType(EditableText), 'm');
+      await tester.pump();
+      expect(cycles, 0);
+    });
+  });
+
   group('ClaudeComposer external focus node (T-227)', () {
     late KernelFixture f;
     setUp(() async => f = await KernelFixture.create());

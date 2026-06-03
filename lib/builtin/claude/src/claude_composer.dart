@@ -48,6 +48,7 @@ class ClaudeComposer extends StatefulWidget {
     this.slashCommandsResolver,
     this.onInterrupt,
     this.busy = false,
+    this.onCycleMode,
     this.initialValue,
     this.onDraftChanged,
     this.history = const [],
@@ -74,6 +75,11 @@ class ClaudeComposer extends StatefulWidget {
   /// Interrupt the running turn — fired by the Stop button and by Escape
   /// (when the typeahead is closed). The escape hatch for a runaway turn.
   final VoidCallback? onInterrupt;
+
+  /// Cycle the session's permission mode — fired by Ctrl/Cmd+M while the
+  /// composer is focused (T-226). Intercepted here (not a global keymap
+  /// binding) so it targets this pane's session. Null disables the chord.
+  final VoidCallback? onCycleMode;
 
   /// Whether a turn is in flight; shows the Stop affordance.
   final bool busy;
@@ -229,6 +235,14 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+    // Ctrl/Cmd+M: cycle the session's permission mode (T-226). Intercepted
+    // here so it targets this pane. (Shift+Tab — the CLI chord — is off the
+    // table: it's a real a11y focus-traversal binding.)
+    final mod = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    if (mod && e.logicalKey == LogicalKeyboardKey.keyM && widget.onCycleMode != null) {
+      widget.onCycleMode!();
+      return KeyEventResult.handled;
+    }
     // Escape: dismiss the typeahead if open, otherwise interrupt the running
     // turn — the escape hatch from a runaway (D-78).
     if (e.logicalKey == LogicalKeyboardKey.escape) {

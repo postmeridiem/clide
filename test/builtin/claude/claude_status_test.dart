@@ -81,4 +81,40 @@ void main() {
       expect(line, contains('\$0.05'));
     });
   });
+
+  group('nextSafePermissionMode (T-226)', () {
+    test('cycles the safe trio and wraps', () {
+      expect(nextSafePermissionMode('default'), 'acceptEdits');
+      expect(nextSafePermissionMode('acceptEdits'), 'plan');
+      expect(nextSafePermissionMode('plan'), 'default');
+    });
+
+    test('bypassPermissions / unknown restarts at default (never cycles into bypass)', () {
+      expect(nextSafePermissionMode('bypassPermissions'), 'default');
+      expect(nextSafePermissionMode('whatever'), 'default');
+      expect(kSafePermissionCycle, isNot(contains('bypassPermissions')));
+    });
+  });
+
+  group('statusSegmentsAroundMode (T-226)', () {
+    test('splits model (leading) from ctx/cost/rate (trailing), mode excluded', () {
+      const s = SessionStatus(
+        model: 'claude-opus-4-7',
+        permissionMode: 'plan',
+        contextTokens: 21000,
+        cost: 0.05,
+      );
+      final seg = statusSegmentsAroundMode(s);
+      expect(seg.leading, 'opus 4.7');
+      expect(seg.trailing, contains('21k ctx'));
+      expect(seg.trailing, contains('\$0.05'));
+      expect(seg.trailing, isNot(contains('plan'))); // mode is its own badge
+    });
+
+    test('nulls when nothing to show on a side', () {
+      final seg = statusSegmentsAroundMode(const SessionStatus(permissionMode: 'default'));
+      expect(seg.leading, isNull);
+      expect(seg.trailing, isNull);
+    });
+  });
 }

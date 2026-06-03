@@ -100,18 +100,31 @@ class _ClaudePaneState extends State<ClaudePane> {
   // skills count from ClaudeConfig (T-154). Null when there's nothing yet.
   Widget? _statusWidget(SurfaceTokens tokens) {
     final skills = formatSkillsLabel(activeClaudeConfig?.skills.length ?? 0);
-    final parts = [
-      if (!_status.isEmpty) formatStatusLine(_status),
-      if (skills != null) skills,
-    ];
-    if (parts.isEmpty) return null;
-    return ClideText(
-      parts.join('  ·  '),
-      fontSize: clideFontSmall,
-      fontFamily: clideMonoFamily,
-      color: tokens.statusBarForeground,
-      maxLines: 1,
-    );
+    if (_status.isEmpty && skills == null) return null;
+
+    final seg = statusSegmentsAroundMode(_status);
+    final mode = _status.permissionMode;
+
+    Widget text(String t) => ClideText(t, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusBarForeground, maxLines: 1);
+
+    final children = <Widget>[];
+    void add(Widget w) {
+      if (children.isNotEmpty) {
+        children.add(ClideText('  ·  ', fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.globalTextMuted, maxLines: 1));
+      }
+      children.add(w);
+    }
+
+    if (seg.leading != null) add(text(seg.leading!));
+    // The permission-mode segment is an interactive badge — click or
+    // Enter/Space (when focused) cycles it (T-226).
+    if (mode != null) {
+      add(_ModeBadge(label: permissionModeLabel(mode), tokens: tokens, onCycle: _session != null ? _cycleMode : null));
+    }
+    if (seg.trailing != null) add(text(seg.trailing!));
+    if (skills != null) add(text(skills));
+
+    return Row(mainAxisSize: MainAxisSize.min, children: children);
   }
 
   // Rebuild when the Claude environment changes (e.g. skills load or a
@@ -282,6 +295,16 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (list.isEmpty || list.last != text) list.add(text);
   }
 
+  /// Cycle this pane's session through the safe permission-mode trio
+  /// (default → acceptEdits → plan → default), sent over the stream-json
+  /// control channel (T-226). bypassPermissions is not reachable here — it
+  /// stays behind the explicit confirmed path in the cockpit roster (T-181).
+  void _cycleMode() {
+    final s = _session;
+    if (s == null) return;
+    s.setPermissionMode(nextSafePermissionMode(_status.permissionMode ?? 'default'));
+  }
+
   /// Focus the composer when the user taps empty conversation area (T-227).
   /// No-op while a prompt occupies the interaction zone (D-78) — a
   /// background tap must never pull focus from (or resurrect) the composer
@@ -428,6 +451,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     enabled: _session != null,
                     busy: busySnap.data ?? false,
                     onInterrupt: _session?.interrupt,
+                    onCycleMode: _cycleMode,
                     onSubmit: _send,
                     pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
                     initialValue: _sessionId == null ? null : _drafts[_sessionId],
@@ -459,6 +483,39 @@ class _ClaudePaneState extends State<ClaudePane> {
       active: widget.active,
       statusWidget: _statusWidget(tokens),
       child: content,
+    );
+  }
+}
+
+/// Interactive permission-mode badge in the status line (T-226). Click, or
+/// focus + Enter/Space, cycles the safe trio (ClideTappable handles the
+/// ActivateIntent). A null [onCycle] (no live session) renders it inert.
+class _ModeBadge extends StatelessWidget {
+  const _ModeBadge({required this.label, required this.tokens, required this.onCycle});
+
+  final String label;
+  final SurfaceTokens tokens;
+  final VoidCallback? onCycle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: onCycle != null,
+      label: 'permission mode: $label. Activate to cycle.',
+      excludeSemantics: true,
+      child: ClideTappable(
+        onTap: onCycle,
+        tooltip: 'Permission mode — click or Ctrl/Cmd+M to cycle (default · accept-edits · plan)',
+        builder: (context, hovered, _) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.listItemHoverBackground : null,
+            border: Border.all(color: hovered && onCycle != null ? tokens.globalFocus : tokens.globalBorder),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusBarForeground, maxLines: 1),
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/claude_config.dart';
+import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
@@ -160,6 +161,20 @@ class ClaudeExtension extends ClideExtension {
             }
             _orchestrator?.byId(id)?.session.setPermissionMode(mode);
             return IpcResponse.ok(id: '', data: {'id': id, 'mode': mode, 'status': 'sent'});
+          },
+        ),
+        // T-226: cycle the primary session's permission mode through the safe
+        // trio. Palette-discoverable counterpart to the composer's Ctrl/Cmd+M.
+        CommandContribution(
+          id: 'claude.mode.cycle',
+          command: 'claude.mode.cycle',
+          title: 'Claude: Cycle permission mode',
+          run: (_) async {
+            final managed = _orchestrator?.byId('primary');
+            if (managed == null) return IpcResponse.ok(id: '', data: const {'error': 'no primary session'});
+            final next = nextSafePermissionMode(managed.session.status.permissionMode ?? 'default');
+            managed.session.setPermissionMode(next);
+            return IpcResponse.ok(id: '', data: {'mode': next, 'status': 'sent'});
           },
         ),
         // Usage: clide claude.task.reassign <taskId> <toSessionId>

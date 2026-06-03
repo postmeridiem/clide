@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Cycle Claude's permission mode from the primary pane: Ctrl/Cmd+M while the
+  composer is focused, a clickable mode badge in the status line, or the
+  "Claude: Cycle permission mode" palette command — steps default → accept-edits
+  → plan (bypass stays behind the cockpit's confirm). (T-226)
 - `clide pane list` now reflects the live GUI tabs the user sees (Claude, Files,
   Editor, viewers) alongside PTY panes — each with a stable id, slot, title, and
   active/visible state — by snapshotting the kernel panel layout at request time.

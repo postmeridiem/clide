@@ -40,6 +40,34 @@ String shortModelLabel(String model) {
   return s;
 }
 
+/// The safe permission-mode cycle: default → acceptEdits → plan → default
+/// (T-226/T-181). `bypassPermissions` is intentionally excluded — it's
+/// reachable only via an explicit confirmed path (the footgun guard).
+const List<String> kSafePermissionCycle = ['default', 'acceptEdits', 'plan'];
+
+/// The next mode in [kSafePermissionCycle] after [current] (wraps). An
+/// unknown or `bypassPermissions` current restarts the cycle at `default`.
+String nextSafePermissionMode(String current) {
+  final i = kSafePermissionCycle.indexOf(current);
+  return kSafePermissionCycle[(i + 1) % kSafePermissionCycle.length];
+}
+
+/// Status-line segments split around the permission-mode badge so the UI can
+/// render the mode as an interactive control between them (T-226). [leading]
+/// is the model; [trailing] joins context / cost / rate-limit. Either may be
+/// null when there's nothing to show.
+({String? leading, String? trailing}) statusSegmentsAroundMode(SessionStatus s) {
+  final trailing = [
+    if (s.contextTokens != null) _contextLabel(s),
+    if (s.cost != null) '\$${s.cost!.toStringAsFixed(2)}',
+    if (s.rateLimitInfo != null) s.rateLimitInfo!,
+  ].join('  ·  ');
+  return (
+    leading: s.model != null ? shortModelLabel(s.model!) : null,
+    trailing: trailing.isEmpty ? null : trailing,
+  );
+}
+
 /// Friendly label for Claude's permission modes.
 String permissionModeLabel(String mode) {
   switch (mode) {
