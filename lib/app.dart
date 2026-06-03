@@ -265,14 +265,11 @@ class RootLayout extends StatelessWidget {
                       SizedBox(width: sidebarSize, child: _BottomRail(slot: Slots.sidebar))
                     else if (sidebarVisible && sidebarCollapsed)
                       const SizedBox(width: ClideSpine.width),
-                    const Expanded(child: StatusbarHost(side: StatusbarSide.left)),
+                    const Expanded(child: StatusbarHost()),
                     if (contextVisible && !contextCollapsed)
                       SizedBox(width: contextSize, child: _BottomRail(slot: Slots.contextPanel))
                     else if (contextVisible && contextCollapsed)
                       const SizedBox(width: ClideSpine.width),
-                    // Global right-aligned status (tool status, theme switcher)
-                    // hugs the window's right edge, past the context rail (T-237).
-                    const StatusbarHost(side: StatusbarSide.right),
                   ],
                 ),
               ),
@@ -1157,17 +1154,8 @@ class _BottomRail extends StatelessWidget {
   }
 }
 
-/// Which group of status items a [StatusbarHost] renders. Left items
-/// (priority < 100) fill the workspace region; the global right group
-/// (priority >= 100 — tool status, theme switcher) is rendered separately as
-/// the bottom bar's trailing element so it hugs the window's right edge, past
-/// the context rail, instead of floating at the workspace column's edge (T-237).
-enum StatusbarSide { left, right }
-
 class StatusbarHost extends StatelessWidget {
-  const StatusbarHost({super.key, this.side = StatusbarSide.left});
-
-  final StatusbarSide side;
+  const StatusbarHost({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -1177,20 +1165,25 @@ class StatusbarHost extends StatelessWidget {
       listenable: kernel.panels,
       builder: (ctx, _) {
         final items = kernel.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
-        final group = side == StatusbarSide.left ? items.where((i) => i.priority < 100).toList() : items.where((i) => i.priority >= 100).toList();
+        final left = items.where((i) => i.priority < 100).toList();
+        final right = items.where((i) => i.priority >= 100).toList();
         return Container(
           color: tokens.chromeBackground,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          // Left fills its Expanded region (items start-aligned); right is
-          // intrinsic-width so, as the trailing bottom-bar element, it hugs
-          // the window's right edge. Left items with flex > 0 wrap in
-          // Flexible(loose) so they yield width when tight (T-160).
+          // NB: no `alignment` here — setting it loosens the child's
+          // constraints, collapsing the Spacer and leaving the right group
+          // (tool status, theme switcher) floating mid-bar instead of hugging
+          // the right edge of the center (workspace) block (T-237). The right
+          // group sits at the workspace column's right edge, NOT the window's.
+          // Left items with flex > 0 wrap in Flexible(loose) so they yield
+          // width when tight (T-160).
           child: Row(
-            mainAxisSize: side == StatusbarSide.left ? MainAxisSize.max : MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              for (final item in group)
+              for (final item in left)
                 if (item.flex > 0) Flexible(flex: item.flex, fit: FlexFit.loose, child: item.build(ctx)) else item.build(ctx),
+              const Spacer(),
+              for (final item in right) item.build(ctx),
             ],
           ),
         );
