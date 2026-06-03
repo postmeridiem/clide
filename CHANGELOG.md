@@ -58,6 +58,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- File watcher no longer emits change events for files inside ignored
+  directories (`.dart_tool/`, `build/`, etc.): it now checks ancestor dirs,
+  not just the leaf. Most visible on macOS, where FSEvents delivers the nested
+  creates that inotify usually drops.
 - The Claude sidebar's Activity / Team / Config sub-tabs are now keyboard-
   activatable: they were pointer-only (raw `GestureDetector`), so Tab traversal
   skipped them and Enter/Space did nothing. They now use `ClideTappable`

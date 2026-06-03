@@ -86,12 +86,25 @@ class FileWatcher {
     final rel = _toRelative(e.path);
     if (rel == null) return;
     final isDir = e.isDirectory;
-    if (ignore.isIgnored(rel, isDirectory: isDir)) return;
+    if (_ignored(rel, isDir)) return;
     _controller.add(FileChange(
       kind: FileChangeKind.fromEvent(e),
       path: rel,
       isDirectory: isDir,
     ));
+  }
+
+  /// True if `rel` is ignored, or sits inside an ignored directory.
+  /// A `foo/` rule hides the directory *and everything under it*, but a
+  /// recursive watch still delivers events for those descendants — notably
+  /// macOS FSEvents, which reports nested creates that inotify often drops.
+  /// So check each ancestor segment as a directory, not just the leaf.
+  bool _ignored(String rel, bool isDir) {
+    if (ignore.isIgnored(rel, isDirectory: isDir)) return true;
+    for (var slash = rel.indexOf('/'); slash != -1; slash = rel.indexOf('/', slash + 1)) {
+      if (ignore.isIgnored(rel.substring(0, slash), isDirectory: true)) return true;
+    }
+    return false;
   }
 
   String? _toRelative(String abs) {
