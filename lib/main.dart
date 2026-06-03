@@ -425,6 +425,8 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
     'lib/kernel/src/theme/themes/midnight-hc.yaml',
     'lib/kernel/src/theme/themes/paper-hc.yaml',
     'lib/kernel/src/theme/themes/terminal-hc.yaml',
+    'lib/kernel/src/theme/themes/catppuccin-mocha.yaml',
+    'lib/kernel/src/theme/themes/catppuccin-mocha-hc.yaml',
   ];
   final out = <ThemeDefinition>[];
   for (final p in paths) {

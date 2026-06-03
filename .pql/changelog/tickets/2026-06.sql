@@ -303,3 +303,58 @@ Acceptance:
 3. Selecting a theme applies it live (ThemeController.select) and closes the popout.
 4. Esc / outside-click dismisses without changing the theme; the control is keyboard-operable.
 5. theme.pick (palette/command) still works unchanged.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-03 13:49:44', '2026-06-03 13:49:44', NULL, '301e958c679661deb77d1e3ca5d45d72', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-230', 'story', 'T-132', 'Cluster meta messages into a collapsible activity card', 'The Claude pane renders every transcript item as its own row, so a heavy agent turn becomes a wall of tool-call/result rows (Bash <cmd> / Bash · result {…} / ''completed with no output'') that buries the messages that matter (user + Claude prose). Wireframe: docs/design/wireframes/claude/meta-activity-card.png.
+
+Fold runs of consecutive ''meta'' items into one live, collapsible activity card:
+- The card shows the MOST RECENT meta line as a live ticker and updates in place as new ones stream in — a running ''what''s happening now''. A step count (''14 steps'') sits on the right.
+- Collapsed by default; click the chevron to expand the full list of folded steps, click to re-collapse.
+- ''Sticky'' items never fold — they render first-class. A sticky item SEALS the current card and a new cluster begins after it. A cluster = one unbroken run of foldable items between two sticky items.
+
+Taxonomy over the sealed ConversationItem set (transcript_reader.dart): UserMessage, AssistantTextMessage, AssistantThinkingMessage, AssistantToolUse, ToolResultMessage.
+- Always sticky: UserMessage, AssistantTextMessage. Permission/AskUserQuestion prompts already live in the interaction zone (D-78) and are inherently sticky / cluster-breaking — no change, but note they break the run too.
+- Foldable: AssistantToolUse + its paired ToolResultMessage (pairing already exists via toolUseById, T-168).
+
+Refinement decisions (2026-06-03, user):
+1. WHAT FOLDS is a 3-level setting (conservative → aggressive); DEFAULT = level 1. Build the foldable predicate so all three are switchable:
+   - L1 (default): fold tool calls + results only; diffs (Edit/Write results) AND AssistantThinkingMessage stay first-class/sticky.
+   - L2: also fold thinking; diffs stay sticky.
+   - L3: fold everything except UserMessage + AssistantTextMessage (incl. diffs + thinking).
+2. ERRORS: a failed/error ToolResultMessage SURFACES — treated as sticky, stays visible and breaks the cluster (see wireframe state B). Start here; the user noted some non-fatal errors are themselves clutter, so expect to tune which errors surface vs. fold.
+3. DEFAULT/RUN STATE: always collapsed, showing the last line + step count, with the ticker updating live. NO setting. (Rejected auto-expanding the in-flight cluster: it scrolls the last useful sticky message out of view during long runs and only collapses when done — worst timing. Collapsed-with-live-ticker keeps the last sticky message anchored while preserving the motion/dynamism.)
+
+Implementation home: a ''collapse adjacent foldable items'' grouping pass over ConversationController.items, consumed by ConversationView; the card is a new conversation_card variant. Keep it accessible (keyboard expand/collapse + semantics: announce step count and collapsed/expanded state). 
+
+Acceptance:
+1. Consecutive foldable items collapse into one card; the collapsed card shows the latest line + a live-updating step count.
+2. A sticky message (user / Claude prose / surfaced error / interaction-zone prompt) seals the card and starts a new cluster after it.
+3. Expanding shows every folded step (tool call + result pairs) in order; collapsing returns to the one-line view.
+4. The foldable level is a setting (default L1: diffs + thinking stay first-class); switching levels re-groups the transcript.
+5. Failed tool results surface as their own (sticky) row and break the cluster.
+6. Keyboard + screen-reader accessible (expand/collapse, step count announced).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-03 11:15:39', '2026-06-03 14:27:26', NULL, '3eb3d504dad69cc0c06e57bce8f10456', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-82', 'task', NULL, 'add Catppuccin theme to bundled themes', 'User request: ship a Catppuccin theme alongside the four bundled themes (clide, midnight, paper, terminal — D-44).
+
+**Acceptance:**
+- New theme YAML at `lib/kernel/src/theme/themes/catppuccin.yaml` (or split for the four Catppuccin flavours: latte / frappe / macchiato / mocha — pick one or all four; recommend Mocha as the dark default and Latte for the light variant).
+- Tokens populated for every key in `SurfaceTokens` (lib/kernel/src/theme/tokens.dart) — chrome, panels, tabs, list items, status colours, syntax tokens (D-45).
+- WCAG-AA contrast gate (D-22) passes against the theme.
+- Listed in `assets/licenses.yaml` with the upstream license (MIT) and attribution.
+- Theme picker (`builtin.theme-picker`) shows it in the live-switch menu.
+
+**Source palettes:** https://github.com/catppuccin/catppuccin#-palette — official hex values, don`t paraphrase.
+
+**Why now:** test user request; also a good exercise for any future user-contributed theme since Catppuccin is the most common one to ask for.', 'in_progress', 'low', NULL, NULL, NULL, '2026-05-06 08:30:15', '2026-06-03 14:27:26', NULL, '4cb876eb35abc00ee93eb0bced3315da', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-234', 'story', NULL, 'Theme-switcher popout in the status bar', 'Add a theme switcher to the far-right corner of the bottom status bar (the empty area to the right of the ''application ok'' / ipc-status item — see the user''s screenshot). Today switching themes is only reachable via the theme.pick command / palette (ThemePickerExtension opens a modal picker_view); there''s no always-visible affordance.
+
+Add a compact status-bar control that opens a POPOUT (popover anchored to the control, not the full-screen modal) for quick theme switching:
+- A small right-aligned status item — a palette/swatch icon (or the current theme name). Contribute via StatusItemContribution at Slots.statusbar with priority > 100 so it sits in the right group, to the right of the ipc/toolchain ''application ok'' item (priority 100).
+- Click (or focus + Enter/Space) opens a popover listing ThemeController.available, the current (ThemeController.currentName) marked.
+- Selecting an entry applies it immediately via ThemeController.select(name) and closes the popout.
+- Esc / click-away dismisses with no change. Keyboard navigable (arrow + Enter), matching the palette/quick-open overlay pattern.
+- Natural home: ThemePickerExtension (lib/builtin/theme_picker). Reuse the theme list + select logic from picker_view rather than duplicating; the modal theme.pick command stays as-is for parity (D-6).
+
+Acceptance:
+1. A theme control sits in the far-right of the status bar.
+2. Clicking/activating it opens a popover of all available themes with the current one marked.
+3. Selecting a theme applies it live (ThemeController.select) and closes the popout.
+4. Esc / outside-click dismisses without changing the theme; the control is keyboard-operable.
+5. theme.pick (palette/command) still works unchanged.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-03 13:49:44', '2026-06-03 14:27:26', NULL, '9a5ac18d9e54e009f912b9c54584d796', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

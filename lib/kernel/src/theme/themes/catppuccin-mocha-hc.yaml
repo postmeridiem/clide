@@ -1,0 +1,40 @@
+# catppuccin-mocha-hc — high-contrast sibling of `catppuccin-mocha`
+#
+# Same Catppuccin Mocha silhouette; muted text, status chips, syntax
+# tokens, and the focus border bumped to clear the strict contrast gate
+# (D-22 + D-69, `extendedPairs`). The faithful palette lives in
+# catppuccin-mocha.yaml and is never retuned. License: MIT.
+
+name: catppuccin-mocha-hc
+display_name: Catppuccin Mocha (high contrast)
+dark: true
+
+palette:
+  background: "#1e1e2e"   # Base
+  panel: "#181825"        # Mantle
+  surface: "#313244"      # Surface0
+  muted: "#bac2de"        # Subtext1 (brightened for AA)
+  foreground: "#eff1f5"   # near-white
+  secondary: "#cdd6f4"    # Text
+  primary: "#a6c8ff"      # brightened Blue
+  accent: "#d4bbfb"       # brightened Mauve
+  success: "#b9ecb4"      # brightened Green
+  warning: "#f9e2af"      # Yellow
+  error: "#ffa3bd"        # brightened Red
+  info: "#9fe1ee"         # brightened Sky
+  onAccent: "#11111b"     # Crust
+  surfaceHi: "#45475a"    # Surface1
+  border: "#313244"       # Surface0
+  borderHi: "#9399b2"     # Overlay2 (visible focus border)
+  textDim: "#bac2de"      # Subtext1
+  textMute: "#9399b2"     # Overlay2
+  accentSoft: "#21cba6f7" # Mauve, low alpha
+
+syntax:
+  keyword: "#cba6f7"   # Mauve
+  type: "#f9e2af"      # Yellow
+  string: "#a6e3a1"    # Green
+  number: "#fab387"    # Peach
+  comment: "#a6adc8"   # Subtext0 (brightened for AA on the panel)
+  method: "#89b4fa"    # Blue
+  punct: "#9399b2"     # Overlay2

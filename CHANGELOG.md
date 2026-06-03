@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Catppuccin Mocha theme, plus a high-contrast `catppuccin-mocha-hc` sibling,
+  added to the bundled themes — switchable from the theme picker. Faithful to
+  the official palette (D-69). (T-82)
 - `clide ui open <reader> <id|path>` opens a doc in a GUI reader from the CLI —
   `tickets`/`decisions` by id, `markdown` by path — so an agent can surface what
   it's looking at on your screen. The drive-half complement to `clide status`. (T-231)

@@ -81,6 +81,17 @@ dependencies:
       Fill weights bundled.
     weights_bundled: [Regular, Bold, Fill]
 
+  - name: Catppuccin (palette)
+    kind: theme-palette
+    version: "mocha"
+    homepage: https://github.com/catppuccin/catppuccin
+    license: MIT
+    purpose: >-
+      Source palette for the bundled catppuccin-mocha theme and its
+      high-contrast sibling catppuccin-mocha-hc. Official hex values,
+      mapped to clide's SurfaceTokens (Mauve accent, Blue primary); the
+      faithful palette is not retuned (D-69).
+
   - name: yaml
     kind: dart-package
     version: "3.1.3"
