@@ -121,3 +121,13 @@ legacy/**/.coverage.*
 .pql/*
 !.pql/changelog/
 !.pql/pql-plan.json
+
+# -- Local build / env artefacts (root-anchored; never tracked) ---------
+/.coverage
+/.venv/
+/dist/
+/logs/
+/firebase-debug.log
+# stray Python trees at the root (the real Dart suite is test/, singular)
+/clide/
+/tests/
