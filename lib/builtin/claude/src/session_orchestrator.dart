@@ -15,6 +15,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/builtin/claude/src/agent_bootstrap.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
@@ -200,17 +201,31 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
     // own claude session id from the init event (T-172). All other sessions use
     // the normal --resume / --session-id selection.
     var sessionArgs = spec.isFork ? forkSessionArgs(spec.forkSourceSessionId!) : claudeLaunchArgs(spec.sessionId, resume: spec.resume);
+
+    // Epic B (D-83): every clide-hosted session is told it is inside clide
+    // (T-216), gets `clide …` pre-approved (T-217), and is handed
+    // CLIDE_SOCK/CLIDE_WORKSPACE + `clide` on PATH (T-215). The clide context
+    // note and the team preamble merge into ONE --append-system-prompt (claude
+    // honours a single one).
+    final preambles = <String>[clideContextNote(spec.cwd)];
     if (spec.team) {
       final name = spec.memberName ?? spec.role;
       broker.addMember(TeamMemberRef(id: spec.id, name: name, role: spec.role));
       mcpServers.add(TeamMcpServer(broker: broker, memberId: spec.id));
-      sessionArgs = ['--append-system-prompt', _teamSystemPrompt(name, spec.role), ...sessionArgs];
+      preambles.add(_teamSystemPrompt(name, spec.role));
     }
+    final bootstrap = agentBootstrap(spec.cwd, base: spec.env);
+    sessionArgs = [
+      '--append-system-prompt',
+      preambles.join('\n\n'),
+      ...bootstrap.extraArgs,
+      ...sessionArgs,
+    ];
 
     final proc = await _factory(
       sessionArgs: sessionArgs,
       cwd: spec.cwd,
-      env: spec.env,
+      env: bootstrap.envDelta,
     );
     final session = StreamJsonSession(proc, mcpServers: mcpServers)..start();
     final seed = spec.resume && spec.transcriptPath != null ? await _readTranscriptTail(spec.transcriptPath!) : null;

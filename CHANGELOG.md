@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- clide-hosted Claude sessions are now bootstrapped to drive the IDE: each
+  spawned session gets `CLIDE_SOCK`/`CLIDE_WORKSPACE` in its env and `clide` on
+  its PATH, a system-prompt note telling it it is inside clide and how to use
+  `clide …`, and a `Bash(clide:*)` allow rule so those calls aren't prompted.
+  Applies to primary, secondary, fork, and teammate sessions. (T-214, D-83)
 - The `clide` CLI now ships on PATH: `make build` and `make install` compile
   the C client by default, and `make install` places it at `~/.local/bin/clide`
   on Linux and macOS (the GUI launches via its desktop entry). Previously no

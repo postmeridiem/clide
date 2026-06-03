@@ -230,8 +230,12 @@ void main() {
       const sourceId = 'bbbb2222-2222-4222-8222-222222222222';
       await orch.spawn(forkSpec('fork-1', sourceId));
       expect(capturedArgs, isNotNull);
-      expect(capturedArgs![0], '--resume');
-      expect(capturedArgs![1], sourceId);
+      // The Epic B bootstrap (T-215..T-217) prepends --append-system-prompt
+      // + --allowedTools, so --resume <source> is no longer at index 0 — but
+      // they stay adjacent and --fork-session is present, no --session-id.
+      final resumeAt = capturedArgs!.indexOf('--resume');
+      expect(resumeAt, greaterThanOrEqualTo(0));
+      expect(capturedArgs![resumeAt + 1], sourceId);
       expect(capturedArgs!, contains('--fork-session'));
       expect(capturedArgs!, isNot(contains('--session-id')));
     });
