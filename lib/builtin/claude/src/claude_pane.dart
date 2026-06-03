@@ -84,6 +84,10 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// when the message is sent.
   final Map<String, TextEditingValue> _drafts = {};
 
+  /// Per-session submitted-prompt history (oldest-first) for Up/Down recall
+  /// in the composer (T-163). Keyed by claude session id.
+  final Map<String, List<String>> _history = {};
+
   /// This pane's stable key in the session orchestrator (T-169).
   String get _orchId => widget.isPrimary ? 'primary' : 'secondary-${widget.secondaryIndex}';
 
@@ -249,6 +253,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   // /resume picks a past session and re-binds to it. /fork branches the
   // conversation into a new pane (T-172).
   void _send(String text) {
+    _appendHistory(text);
     switch (clideOwnedCommand(text)) {
       case 'clear':
         unawaited(_clearSession());
@@ -261,6 +266,15 @@ class _ClaudePaneState extends State<ClaudePane> {
         return;
     }
     _session?.send(text);
+  }
+
+  /// Record a submitted prompt in the active session's history (T-163),
+  /// de-duping immediate repeats. Empty/whitespace prompts are skipped.
+  void _appendHistory(String text) {
+    final id = _sessionId;
+    if (id == null || text.trim().isEmpty) return;
+    final list = _history.putIfAbsent(id, () => <String>[]);
+    if (list.isEmpty || list.last != text) list.add(text);
   }
 
   /// Persist (or clear) the composer draft for the active session (T-228).
@@ -396,6 +410,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
                     initialValue: _sessionId == null ? null : _drafts[_sessionId],
                     onDraftChanged: _onDraftChanged,
+                    history: _sessionId == null ? const [] : (_history[_sessionId] ?? const []),
                   ),
                 ),
             ],

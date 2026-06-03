@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Claude composer prompt history (Claude-CLI-style): Up recalls previously-sent
+  prompts once the caret reaches the first line, Down steps back to newer ones
+  and restores your in-progress draft past the newest. Per session. (T-163)
 - clide-hosted Claude sessions are now bootstrapped to drive the IDE: each
   spawned session gets `CLIDE_SOCK`/`CLIDE_WORKSPACE` in its env and `clide` on
   its PATH, a system-prompt note telling it it is inside clide and how to use

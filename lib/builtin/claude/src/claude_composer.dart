@@ -50,6 +50,7 @@ class ClaudeComposer extends StatefulWidget {
     this.busy = false,
     this.initialValue,
     this.onDraftChanged,
+    this.history = const [],
   });
 
   /// Called with the composed message (typed text plus attachment `@path`
@@ -86,6 +87,11 @@ class ClaudeComposer extends StatefulWidget {
   /// the draft. Fires with an empty value on submit/clear (T-228).
   final ValueChanged<TextEditingValue>? onDraftChanged;
 
+  /// Previously-submitted prompts for this session, oldest-first. Up/Down
+  /// walk this when the caret is on the first/last line (T-163). Owned by
+  /// the pane (per session); the composer only reads it.
+  final List<String> history;
+
   @override
   State<ClaudeComposer> createState() => _ClaudeComposerState();
 }
@@ -101,6 +107,15 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
   SlashQuery? _query;
   List<String> _suggestions = const [];
   int _selected = 0;
+
+  // Prompt-history navigation (T-163). _historyIndex is null when editing
+  // the live draft; otherwise it indexes [widget.history]. _stash holds the
+  // draft we were typing before stepping into history, restored on stepping
+  // back past the newest entry. _applyingHistory suppresses the draft report
+  // so previewing history entries doesn't overwrite the persisted draft.
+  int? _historyIndex;
+  TextEditingValue? _stash;
+  bool _applyingHistory = false;
 
   @override
   void initState() {
@@ -127,7 +142,13 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   void _onTextChanged() {
     setState(() {});
-    widget.onDraftChanged?.call(_controller.value);
+    if (!_applyingHistory) {
+      // A real edit (user typed) while previewing history commits to it —
+      // leave navigation and treat the text as the new draft.
+      _historyIndex = null;
+      _stash = null;
+      widget.onDraftChanged?.call(_controller.value);
+    }
     _syncTypeahead();
   }
 
@@ -208,7 +229,23 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
       }
       return KeyEventResult.ignored;
     }
-    if (_overlay == null) return KeyEventResult.ignored;
+    if (_overlay == null) {
+      // Typeahead closed → Up/Down recall prompt history, but only once the
+      // caret reaches the first/last line so multi-line editing still works
+      // line-by-line first (T-163, Claude-CLI-style).
+      switch (e.logicalKey) {
+        case LogicalKeyboardKey.arrowUp:
+          if (_caretOnFirstLine() && _historyPrev()) return KeyEventResult.handled;
+          return KeyEventResult.ignored;
+        case LogicalKeyboardKey.arrowDown:
+          if (_historyIndex != null && _caretOnLastLine()) {
+            _historyNext();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+      }
+      return KeyEventResult.ignored;
+    }
     switch (e.logicalKey) {
       case LogicalKeyboardKey.arrowDown:
         _moveSelection(1);
@@ -223,6 +260,62 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
         return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  // -- Prompt history (T-163) -------------------------------------------------
+
+  bool _caretOnFirstLine() {
+    final sel = _controller.selection;
+    if (!sel.isCollapsed || sel.baseOffset < 0) return false;
+    return !_controller.text.substring(0, sel.baseOffset).contains('\n');
+  }
+
+  bool _caretOnLastLine() {
+    final sel = _controller.selection;
+    if (!sel.isCollapsed || sel.baseOffset < 0) return false;
+    return !_controller.text.substring(sel.baseOffset).contains('\n');
+  }
+
+  /// Step to the previous (older) history entry, stashing the live draft on
+  /// first entry. Returns false only when there's no history to walk.
+  bool _historyPrev() {
+    final h = widget.history;
+    if (h.isEmpty) return false;
+    if (_historyIndex == null) {
+      _stash = _controller.value;
+      _historyIndex = h.length - 1;
+    } else if (_historyIndex! > 0) {
+      _historyIndex = _historyIndex! - 1;
+    }
+    // else: already at the oldest — consume the key, stay put.
+    _applyHistory(h[_historyIndex!]);
+    return true;
+  }
+
+  /// Step to the next (newer) entry; stepping past the newest restores the
+  /// stashed draft and leaves history navigation.
+  void _historyNext() {
+    final h = widget.history;
+    final idx = _historyIndex;
+    if (idx == null) return;
+    if (idx < h.length - 1) {
+      _historyIndex = idx + 1;
+      _applyHistory(h[_historyIndex!]);
+    } else {
+      _historyIndex = null;
+      _applyValue(_stash ?? const TextEditingValue());
+      _stash = null;
+    }
+  }
+
+  void _applyHistory(String text) => _applyValue(TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length)));
+
+  /// Set the controller without it being treated as a user edit (so the
+  /// preview doesn't overwrite the persisted draft or exit navigation).
+  void _applyValue(TextEditingValue v) {
+    _applyingHistory = true;
+    _controller.value = v;
+    _applyingHistory = false;
   }
 
   Widget _buildTypeahead(BuildContext ctx) {

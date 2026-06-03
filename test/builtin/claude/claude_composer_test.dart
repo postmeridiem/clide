@@ -336,6 +336,91 @@ void main() {
     });
   });
 
+  group('ClaudeComposer prompt history (T-163)', () {
+    late KernelFixture f;
+    setUp(() async => f = await KernelFixture.create());
+    tearDown(() => f.dispose());
+
+    String text(WidgetTester tester) => tester.widget<EditableText>(find.byType(EditableText)).controller.text;
+
+    Future<void> pumpWithHistory(
+      WidgetTester tester, {
+      required List<String> history,
+      ValueChanged<TextEditingValue>? onDraftChanged,
+    }) async {
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, history: history, onDraftChanged: onDraftChanged),
+      ));
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+    }
+
+    testWidgets('Up walks back through history, Down walks forward', (tester) async {
+      await pumpWithHistory(tester, history: ['first', 'second', 'third']);
+      await tester.enterText(find.byType(EditableText), 'wip');
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(text(tester), 'third'); // newest first
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(text(tester), 'second');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(text(tester), 'third');
+    });
+
+    testWidgets('Down past the newest entry restores the in-progress draft', (tester) async {
+      await pumpWithHistory(tester, history: ['old']);
+      await tester.enterText(find.byType(EditableText), 'my draft');
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp); // → 'old'
+      await tester.pump();
+      expect(text(tester), 'old');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // past newest → restore
+      await tester.pump();
+      expect(text(tester), 'my draft');
+    });
+
+    testWidgets('Up does nothing when there is no history', (tester) async {
+      await pumpWithHistory(tester, history: const []);
+      await tester.enterText(find.byType(EditableText), 'solo');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(text(tester), 'solo');
+    });
+
+    testWidgets('Up off the first line does not recall (multiline edits first)', (tester) async {
+      await pumpWithHistory(tester, history: ['recalled']);
+      // Caret ends up on the last line of a two-line draft.
+      await tester.enterText(find.byType(EditableText), 'line one\nline two');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump();
+      expect(text(tester), 'line one\nline two'); // unchanged — no recall
+    });
+
+    testWidgets('previewing history does not overwrite the persisted draft', (tester) async {
+      final drafts = <TextEditingValue>[];
+      await pumpWithHistory(tester, history: ['past'], onDraftChanged: drafts.add);
+      await tester.enterText(find.byType(EditableText), 'keep me');
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp); // preview 'past'
+      await tester.pump();
+
+      // The last *persisted* draft is still the user's text, not the preview.
+      expect(drafts.last.text, 'keep me');
+    });
+  });
+
   group('ClaudeComposer draft persistence (T-228)', () {
     late KernelFixture f;
     setUp(() async => f = await KernelFixture.create());
