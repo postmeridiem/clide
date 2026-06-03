@@ -336,6 +336,39 @@ void main() {
     });
   });
 
+  group('ClaudeComposer external focus node (T-227)', () {
+    late KernelFixture f;
+    setUp(() async => f = await KernelFixture.create());
+    tearDown(() => f.dispose());
+
+    testWidgets('uses a supplied focus node and focuses the input on request', (tester) async {
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, focusNode: node)));
+
+      expect(tester.widget<EditableText>(find.byType(EditableText)).focusNode, same(node));
+
+      node.requestFocus(); // what the pane does on a background tap
+      await tester.pump();
+      expect(node.hasFocus, isTrue);
+    });
+
+    testWidgets('key handling still works through the supplied node', (tester) async {
+      final submitted = <String>[];
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: submitted.add, focusNode: node),
+      ));
+      await tester.enterText(find.byType(EditableText), 'via external node');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(submitted, ['via external node']);
+    });
+  });
+
   group('ClaudeComposer prompt history (T-163)', () {
     late KernelFixture f;
     setUp(() async => f = await KernelFixture.create());

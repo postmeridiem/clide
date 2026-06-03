@@ -51,6 +51,7 @@ class ClaudeComposer extends StatefulWidget {
     this.initialValue,
     this.onDraftChanged,
     this.history = const [],
+    this.focusNode,
   });
 
   /// Called with the composed message (typed text plus attachment `@path`
@@ -92,13 +93,19 @@ class ClaudeComposer extends StatefulWidget {
   /// the pane (per session); the composer only reads it.
   final List<String> history;
 
+  /// Optional externally-owned focus node, so the pane can focus the
+  /// composer (e.g. on a background tap, T-227). When provided the owner
+  /// disposes it; otherwise the composer creates and disposes its own.
+  final FocusNode? focusNode;
+
   @override
   State<ClaudeComposer> createState() => _ClaudeComposerState();
 }
 
 class _ClaudeComposerState extends State<ClaudeComposer> {
   final TextEditingController _controller = TextEditingController();
-  late final FocusNode _focus = FocusNode(onKeyEvent: _onKey);
+  late final bool _ownsFocus = widget.focusNode == null;
+  late final FocusNode _focus = widget.focusNode ?? FocusNode();
   final List<ComposerAttachment> _attachments = [];
 
   // Slash typeahead state (T-152).
@@ -126,6 +133,8 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     if (seed != null && seed.text.isNotEmpty) {
       _controller.value = seed;
     }
+    // Drive key handling whether the node is ours or the pane's (T-227).
+    _focus.onKeyEvent = _onKey;
     _controller.addListener(_onTextChanged);
     _focus.addListener(_onFocusChanged);
   }
@@ -136,7 +145,11 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     _controller.removeListener(_onTextChanged);
     _focus.removeListener(_onFocusChanged);
     _controller.dispose();
-    _focus.dispose();
+    if (_ownsFocus) {
+      _focus.dispose();
+    } else {
+      _focus.onKeyEvent = null; // detach our handler from the pane-owned node
+    }
     super.dispose();
   }
 

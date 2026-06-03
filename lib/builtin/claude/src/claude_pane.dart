@@ -88,6 +88,10 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// in the composer (T-163). Keyed by claude session id.
   final Map<String, List<String>> _history = {};
 
+  /// Focus node for the composer, owned here so a tap on empty pane area can
+  /// focus the input (T-227). Survives composer remounts (prompt swaps).
+  final FocusNode _composerFocus = FocusNode(debugLabel: 'claude-composer');
+
   /// This pane's stable key in the session orchestrator (T-169).
   String get _orchId => widget.isPrimary ? 'primary' : 'secondary-${widget.secondaryIndex}';
 
@@ -144,6 +148,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (!widget.isPrimary) unawaited(activeSessionOrchestrator?.close(_orchId));
     _conversation = null;
     _session = null;
+    _composerFocus.dispose();
     super.dispose();
   }
 
@@ -277,6 +282,15 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (list.isEmpty || list.last != text) list.add(text);
   }
 
+  /// Focus the composer when the user taps empty conversation area (T-227).
+  /// No-op while a prompt occupies the interaction zone (D-78) — a
+  /// background tap must never pull focus from (or resurrect) the composer
+  /// over an open prompt.
+  void _focusComposerOnTap() {
+    if (_session?.pendingPrompt != null) return;
+    _composerFocus.requestFocus();
+  }
+
   /// Persist (or clear) the composer draft for the active session (T-228).
   /// The composer reports an empty value on submit/clear, which drops the
   /// entry so a sent message doesn't reappear.
@@ -379,14 +393,22 @@ class _ClaudePaneState extends State<ClaudePane> {
           return Column(
             children: [
               Expanded(
-                child: ConversationView(
-                  controller: _conversation!,
-                  hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
-                  toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
-                  emptyState: ClaudeBanner(
-                    role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
-                    workspace: _repoRoot,
-                    statusLine: _statusLine,
+                // A tap on empty conversation area focuses the composer
+                // (T-227). Translucent so message links, copy buttons, and
+                // the SelectableRegion's selection drags win their own
+                // gestures; only an unclaimed tap reaches us.
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _focusComposerOnTap,
+                  child: ConversationView(
+                    controller: _conversation!,
+                    hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
+                    toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
+                    emptyState: ClaudeBanner(
+                      role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
+                      workspace: _repoRoot,
+                      statusLine: _statusLine,
+                    ),
                   ),
                 ),
               ),
@@ -411,6 +433,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     initialValue: _sessionId == null ? null : _drafts[_sessionId],
                     onDraftChanged: _onDraftChanged,
                     history: _sessionId == null ? const [] : (_history[_sessionId] ?? const []),
+                    focusNode: _composerFocus,
                   ),
                 ),
             ],

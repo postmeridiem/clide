@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Click empty Claude-pane area to focus the composer: a tap on conversation
+  dead space lands the cursor in the input. Message controls and transcript
+  text-selection are unaffected, and it stays inert while a prompt occupies the
+  interaction zone. (T-227)
 - Claude composer prompt history (Claude-CLI-style): Up recalls previously-sent
   prompts once the caret reaches the first line, Down steps back to newer ones
   and restores your in-progress draft past the newest. Per session. (T-163)
