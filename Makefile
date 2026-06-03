@@ -166,7 +166,7 @@ ui-smoke: ## Build + serve + run Playwright smoke + stop.
 	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test smoke.spec.ts'
 
 .PHONY: build
-build: gen-build-info ## flutter build for the current OS.
+build: gen-build-info clide-cli ## flutter build for the current OS (incl. the C CLI client).
 	flutter build $(FLUTTER_OS)
 
 .PHONY: build-linux
@@ -192,12 +192,12 @@ endif
 ICON_SIZES := 16 32 48 128 192 256 512
 
 .PHONY: install
-install: build ## Build + install clide to ~/.local (INSTALL_PREFIX, INSTALL_DIR).
+install: build clide-cli ## Build + install clide to ~/.local (INSTALL_PREFIX, INSTALL_DIR).
 ifeq ($(FLUTTER_OS),linux)
 	@mkdir -p $(INSTALL_PREFIX) $(INSTALL_DIR)
 	rm -rf $(INSTALL_PREFIX)/clide
 	cp -a $(BUNDLE_DIR) $(INSTALL_PREFIX)/clide
-	ln -sf $(INSTALL_PREFIX)/clide/clide $(INSTALL_DIR)/clide
+	install -m 755 $(CLIDE_CLI_BIN) $(INSTALL_DIR)/clide
 	@for size in $(ICON_SIZES); do \
 	  dir=$(HOME)/.local/share/icons/hicolor/$${size}x$${size}/apps; \
 	  mkdir -p $$dir; \
@@ -208,14 +208,17 @@ ifeq ($(FLUTTER_OS),linux)
 	  > $(HOME)/.local/share/applications/net.schweitz.clide.desktop
 	@gtk-update-icon-cache -f -t $(HOME)/.local/share/icons/hicolor 2>/dev/null || true
 	@update-desktop-database $(HOME)/.local/share/applications 2>/dev/null || true
-	@echo "installed: $(INSTALL_DIR)/clide -> $(INSTALL_PREFIX)/clide/clide"
+	@echo "cli:       $(INSTALL_DIR)/clide (C client)"
+	@echo "gui:       $(INSTALL_PREFIX)/clide/clide"
 	@echo "desktop:   ~/.local/share/applications/net.schweitz.clide.desktop"
 	@echo "version:   $(VERSION)"
 else ifeq ($(FLUTTER_OS),macos)
-	@mkdir -p $(HOME)/Applications
+	@mkdir -p $(HOME)/Applications $(INSTALL_DIR)
 	rm -rf $(HOME)/Applications/clide.app
 	cp -a $(BUNDLE_DIR) $(HOME)/Applications/clide.app
-	@echo "installed: ~/Applications/clide.app"
+	install -m 755 $(CLIDE_CLI_BIN) $(INSTALL_DIR)/clide
+	@echo "gui:       ~/Applications/clide.app"
+	@echo "cli:       $(INSTALL_DIR)/clide (C client)"
 	@echo "version:   $(VERSION)"
 else
 	@echo "install not yet supported on $(FLUTTER_OS)"
@@ -236,6 +239,7 @@ ifeq ($(FLUTTER_OS),linux)
 	@update-desktop-database $(HOME)/.local/share/applications 2>/dev/null || true
 	@echo "uninstalled"
 else ifeq ($(FLUTTER_OS),macos)
+	rm -f $(INSTALL_DIR)/clide
 	rm -rf $(HOME)/Applications/clide.app
 	@echo "uninstalled"
 endif

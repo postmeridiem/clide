@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- The `clide` CLI now ships on PATH: `make build` and `make install` compile
+  the C client by default, and `make install` places it at `~/.local/bin/clide`
+  on Linux and macOS (the GUI launches via its desktop entry). Previously no
+  build produced the client and `install` symlinked the GUI runner. (T-209)
 - Vim keymap preset: a modal editor (normal/insert/visual) with hjkl/w/b/e
   motions, dd/dw/x/D/yy/p/cc/cw edits, counts (`5j`), visual-range d/y/c, and
   a status-bar mode indicator. Switch presets from the palette (`Keymap: Vim`
