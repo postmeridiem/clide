@@ -33,7 +33,7 @@ class KernelFixture {
       preloadNamespaces: preloadNamespaces ?? catalogs.keys.toList(),
       defaultLocale: defaultLocale,
       initialLocale: initialLocale,
-      daemonClientFactory: (log, events, _) {
+      daemonClientFactory: (log, events, _, __) {
         fake = FakeDaemonClient(log: log, events: events);
         return fake!;
       },

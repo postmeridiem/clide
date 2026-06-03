@@ -16,12 +16,19 @@ import '../ipc/errno_mapping.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/pane.dart';
 import '../panes/registry.dart';
+import '../panes/view_pane.dart';
 import '../pty/errors.dart';
 import 'dispatcher.dart';
 
-void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry) {
+/// Snapshots the non-PTY panes the user sees in the GUI (kernel tabs) at
+/// request time — see [ViewPane]. Null in headless contexts (tests, the
+/// CLI-only path) where there is no live UI; then `pane.list` reports only
+/// PTY panes, exactly as before (T-219, D-6 parity / D-83).
+typedef ViewPaneSource = List<ViewPane> Function();
+
+void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSource? viewPanes}) {
   d.register('pane.spawn', (req) => _spawn(req, registry));
-  d.register('pane.list', (req) => _list(req, registry));
+  d.register('pane.list', (req) => _list(req, registry, viewPanes));
   d.register('pane.close', (req) => _close(req, registry));
   d.register('pane.write', (req) => _write(req, registry));
   d.register('pane.resize', (req) => _resize(req, registry));
@@ -118,11 +125,15 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
   }
 }
 
-Future<IpcResponse> _list(IpcRequest req, PaneRegistry registry) async {
+Future<IpcResponse> _list(IpcRequest req, PaneRegistry registry, ViewPaneSource? viewPanes) async {
   return IpcResponse.ok(
     id: req.id,
     data: {
-      'panes': [for (final p in registry.panes) p.toJson()]
+      'panes': [
+        for (final p in registry.panes) p.toJson(),
+        if (viewPanes != null)
+          for (final v in viewPanes()) v.toJson(),
+      ]
     },
   );
 }

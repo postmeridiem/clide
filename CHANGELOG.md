@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- `clide pane list` now reflects the live GUI tabs the user sees (Claude, Files,
+  Editor, viewers) alongside PTY panes — each with a stable id, slot, title, and
+  active/visible state — by snapshotting the kernel panel layout at request time.
+  Restores the D-6 "agent sees what the user sees" half of parity. (T-219, D-83)
 - Click empty Claude-pane area to focus the composer: a tap on conversation
   dead space lands the cursor in the input. Message controls and transcript
   text-selection are unaffected, and it stays inert while a prompt occupies the

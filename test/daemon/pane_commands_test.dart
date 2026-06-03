@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/panes/registry.dart';
+import 'package:clide/src/panes/view_pane.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -191,6 +192,55 @@ void main() {
       final unknown = await call('pane.focus', const {'id': 'p_404'});
       expect(unknown.ok, isFalse);
       expect(unknown.error!.kind, 'not_found');
+    });
+  });
+
+  // T-219 / D-83: `pane list` reflects the GUI tabs the user sees, merged
+  // with the PTY panes, via an injected view-pane source.
+  group('pane.list view-pane merge (T-219)', () {
+    late DaemonDispatcher dispatcher;
+    late PaneRegistry registry;
+
+    setUp(() {
+      registry = PaneRegistry(events: RecordingEventSink());
+      dispatcher = DaemonDispatcher();
+      registerPaneCommands(
+        dispatcher,
+        registry,
+        viewPanes: () => const [
+          ViewPane(id: 'claude', slot: 'workspace', title: 'Claude', active: true, visible: true),
+          ViewPane(id: 'files', slot: 'sidebar', title: 'Files', active: false, visible: true),
+        ],
+      );
+    });
+
+    tearDown(() => registry.shutdown());
+
+    Future<IpcResponse> call(String cmd, Map<String, Object?> args) => dispatcher.dispatch(IpcRequest(id: '1', cmd: cmd, args: args));
+
+    test('lists the live UI tabs with stable ids, slot, title, focus state', () async {
+      final r = await call('pane.list', const {});
+      final panes = (r.data['panes'] as List).cast<Map>();
+      expect(panes, hasLength(2));
+      final claude = panes.firstWhere((p) => p['id'] == 'claude');
+      expect(claude['source'], 'ui');
+      expect(claude['kind'], 'view');
+      expect(claude['slot'], 'workspace');
+      expect(claude['title'], 'Claude');
+      expect(claude['active'], isTrue);
+      expect(panes.firstWhere((p) => p['id'] == 'files')['active'], isFalse);
+    });
+
+    test('merges PTY panes and UI tabs in one list', () async {
+      await call('pane.spawn', {
+        'argv': const ['/bin/cat']
+      });
+      final r = await call('pane.list', const {});
+      final panes = (r.data['panes'] as List).cast<Map>();
+      // one PTY pane (source absent) + two UI tabs (source: ui).
+      expect(panes, hasLength(3));
+      expect(panes.where((p) => p['source'] == 'ui'), hasLength(2));
+      expect(panes.where((p) => p['id'].toString().startsWith('p_')), hasLength(1));
     });
   });
 }

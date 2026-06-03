@@ -87,6 +87,7 @@ Future<void> main() async {
   DaemonClient? ipcClient;
   DaemonBus? daemonBus;
   LayoutArrangement? kernelArrangement;
+  PanelRegistry? kernelPanels;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -162,11 +163,19 @@ Future<void> main() async {
     Toolchain tc,
     Directory workRoot,
     LayoutArrangement arrangement,
+    PanelRegistry panels,
   ) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
     final paneRegistry = PaneRegistry(events: eventSink);
-    registerPaneCommands(dispatcher, paneRegistry);
+    // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
+    // visible to `pane list` by snapshotting the kernel PanelRegistry +
+    // LayoutArrangement at request time — no mirrored state to drift.
+    registerPaneCommands(
+      dispatcher,
+      paneRegistry,
+      viewPanes: () => snapshotViewPanes(panels, arrangement),
+    );
     // Trusted read-only roots beyond the workspace: the global Claude
     // config dir (~/.claude), so the reader can open user-scope skill /
     // agent / command markdown the Config tab surfaces (D-80, T-195).
@@ -207,11 +216,12 @@ Future<void> main() async {
     toolchain: toolchain,
     daemonClientFactory: kIsWeb
         ? null
-        : (log, events, arrangement) {
+        : (log, events, arrangement, panels) {
             daemonBus = events;
             kernelArrangement = arrangement;
+            kernelPanels = panels;
             final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
-            final dispatcher = buildDispatcher(events, toolchain, workRoot, arrangement);
+            final dispatcher = buildDispatcher(events, toolchain, workRoot, arrangement, panels);
             // Build the client at the workspace's socket path. The
             // server is started below (swapIpcServer) which the
             // client will then auto-connect to via its reconnect
@@ -238,8 +248,9 @@ Future<void> main() async {
         : (path) async {
             final bus = daemonBus;
             final arrangement = kernelArrangement;
-            if (bus == null || arrangement == null) return;
-            final dispatcher = buildDispatcher(bus, toolchain, Directory(path), arrangement);
+            final panels = kernelPanels;
+            if (bus == null || arrangement == null || panels == null) return;
+            final dispatcher = buildDispatcher(bus, toolchain, Directory(path), arrangement, panels);
             await swapIpcServer(dispatcher, Directory(path));
           },
   );

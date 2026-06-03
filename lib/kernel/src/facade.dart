@@ -115,7 +115,7 @@ class KernelServices {
     Locale? initialLocale,
     List<Locale> availableLocales = const [Locale('en', 'US')],
     String? socketPath,
-    DaemonClient Function(Logger, DaemonBus, LayoutArrangement)? daemonClientFactory,
+    DaemonClient Function(Logger, DaemonBus, LayoutArrangement, PanelRegistry)? daemonClientFactory,
     DaemonClient? isolateClient,
     bool autoStartDaemonClient = true,
     Toolchain? toolchain,
@@ -176,7 +176,7 @@ class KernelServices {
     );
     final ipc = isolateClient ??
         (daemonClientFactory != null
-            ? daemonClientFactory(log, events, arrangement)
+            ? daemonClientFactory(log, events, arrangement, panels)
             : DaemonClient(
                 // Legacy socket-client fallback — kept until T-127
                 // replaces it with the in-process socket loopback.

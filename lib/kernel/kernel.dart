@@ -52,6 +52,7 @@ export 'src/panels/drag_resize.dart';
 export 'src/panels/layout_preset.dart';
 export 'src/panels/registry.dart';
 export 'src/panels/slot_id.dart';
+export 'src/panels/view_pane_snapshot.dart';
 export 'src/theme/contrast.dart';
 export 'src/theme/controller.dart';
 export 'src/theme/loader.dart';
