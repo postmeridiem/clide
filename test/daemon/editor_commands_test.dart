@@ -47,6 +47,26 @@ void main() {
     expect(act['path'], 'doc.md');
   });
 
+  test('CLI positional path binds to editor.open (T-232)', () async {
+    // The C client sends the argv shape {positional:[...]}; the registered
+    // schema's normalize must map positional[0] -> path so the handler opens
+    // it (rather than returning "path is required").
+    final r = await call('editor.open', {
+      'positional': ['doc.md'],
+    });
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['path'], 'doc.md');
+  });
+
+  test('CLI --line flag coerces to a number and binds (T-232)', () async {
+    final r = await call('editor.open', {
+      'positional': ['doc.md'],
+      'flags': {'line': '1'},
+    });
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['path'], 'doc.md');
+  });
+
   test('editor.open with a 1-based line jumps the initial selection (T-52)', () async {
     await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\nthree\n');
     final r = await call('editor.open', {'path': 'multi.txt', 'line': 3});

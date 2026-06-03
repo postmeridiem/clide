@@ -97,6 +97,15 @@ void main() {
     expect(r.data['path'], 'README.md');
   });
 
+  test('CLI positional path binds to files.read (T-232)', () async {
+    // argv shape {positional:[...]} → schema normalize → args['path'].
+    final r = await call('files.read', const {
+      'positional': ['README.md'],
+    });
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['content'], 'hi');
+  });
+
   test('files.read accepts an absolute path under the workspace root', () async {
     // Regression: the markdown reader publishes absolute skill paths
     // (e.g. .claude/skills/.../SKILL.md). An absolute path under root

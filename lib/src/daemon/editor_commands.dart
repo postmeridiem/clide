@@ -13,6 +13,7 @@ import 'dart:io' show FileSystemException;
 
 import '../editor/buffer.dart' show Selection;
 import '../editor/registry.dart';
+import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/errno_mapping.dart';
 import '../ipc/schema_v1.dart';
@@ -20,18 +21,25 @@ import 'dispatcher.dart';
 
 export '../editor/buffer.dart' show Selection;
 
+// Positional schemas so the CLI binds `clide editor <verb> <args…>` to the
+// named keys the handlers read (T-232, via the D-74 normalize hook). Args are
+// declared non-required — the handlers keep their own presence checks — so the
+// only effect is positional→named mapping plus numeric coercion of `line`.
+const _idArg = CommandSchema(positional: ['id'], args: {'id': ArgSpec()});
+
 void registerEditorCommands(DaemonDispatcher d, EditorRegistry registry) {
-  d.register('editor.open', (req) => _open(req, registry));
+  d.register('editor.open', (req) => _open(req, registry),
+      schema: const CommandSchema(positional: ['path', 'line'], args: {'path': ArgSpec(), 'line': ArgSpec(type: ArgType.number)}));
   d.register('editor.active', (req) => _active(req, registry));
-  d.register('editor.activate', (req) => _activate(req, registry));
+  d.register('editor.activate', (req) => _activate(req, registry), schema: _idArg);
   d.register('editor.list', (req) => _list(req, registry));
-  d.register('editor.read', (req) => _read(req, registry));
+  d.register('editor.read', (req) => _read(req, registry), schema: _idArg);
   d.register('editor.insert', (req) => _insert(req, registry));
   d.register('editor.replace-selection', (req) => _replace(req, registry));
   d.register('editor.set-selection', (req) => _setSelection(req, registry));
   d.register('editor.set-content', (req) => _setContent(req, registry));
-  d.register('editor.save', (req) => _save(req, registry));
-  d.register('editor.close', (req) => _close(req, registry));
+  d.register('editor.save', (req) => _save(req, registry), schema: _idArg);
+  d.register('editor.close', (req) => _close(req, registry), schema: _idArg);
 }
 
 IpcResponse _userErr(String id, String msg, {String? hint}) => IpcResponse.err(

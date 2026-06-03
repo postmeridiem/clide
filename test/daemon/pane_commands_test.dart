@@ -193,6 +193,35 @@ void main() {
       expect(unknown.ok, isFalse);
       expect(unknown.error!.kind, 'not_found');
     });
+
+    // T-232: the CLI argv shape ({positional, flags}) must reach the handlers
+    // via the registered schemas' normalize, incl. numeric coercion.
+    test('CLI positional id binds to pane.focus (T-232)', () async {
+      final spawn = await call('pane.spawn', {
+        'argv': const ['/bin/cat'],
+      });
+      final id = spawn.data['id']! as String;
+      final r = await call('pane.focus', {
+        'positional': [id],
+      });
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(r.data['id'], id);
+    });
+
+    test('CLI positional id/cols/rows coerce + bind to pane.resize (T-232)', () async {
+      final spawn = await call('pane.spawn', {
+        'argv': const ['/bin/cat'],
+      });
+      final id = spawn.data['id']! as String;
+      // cols/rows arrive as strings from argv; the schema coerces them to num
+      // so the handler (which reads them as num) doesn't see "required".
+      final r = await call('pane.resize', {
+        'positional': [id, '100', '40'],
+      });
+      expect(r.ok, isTrue, reason: r.error?.message);
+      expect(r.data['cols'], 100);
+      expect(r.data['rows'], 40);
+    });
   });
 
   // T-219 / D-83: `pane list` reflects the GUI tabs the user sees, merged

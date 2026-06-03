@@ -9,10 +9,16 @@ import '../files/listing.dart';
 import '../files/path_safety.dart';
 import '../files/pql_config.dart';
 import '../files/watcher.dart';
+import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import '../panes/event_sink.dart';
 import 'dispatcher.dart';
+
+/// Positional schema binding `clide files <verb> <path>` to args['path']
+/// (T-232, via D-74 normalize). Non-required — the handlers keep their own
+/// path checks — so the only effect is the positional→named mapping.
+const _pathArg = CommandSchema(positional: ['path'], args: {'path': ArgSpec()});
 
 /// Cap on `files.read` response size. UI doesn't render multi-MB
 /// blobs usefully and a single uncapped call can OOM. Range/stream
@@ -112,7 +118,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     }
     final content = file.readAsStringSync();
     return IpcResponse.ok(id: req.id, data: {'path': path, 'content': content});
-  });
+  }, schema: _pathArg);
 
   d.register('files.ls', (req) async {
     final dir = (req.args['path'] as String?) ?? '';
@@ -135,7 +141,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
         'entries': [for (final e in entries) e.toJson()],
       },
     );
-  });
+  }, schema: _pathArg);
 
   d.register('files.walk', (req) async {
     final result = await walkFiles(root: files.root, ignore: files.ignore);

@@ -11,6 +11,7 @@ library;
 
 import 'dart:convert';
 
+import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/errno_mapping.dart';
 import '../ipc/schema_v1.dart';
@@ -27,12 +28,19 @@ import 'dispatcher.dart';
 typedef ViewPaneSource = List<ViewPane> Function();
 
 void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSource? viewPanes}) {
+  // Positional schemas bind `clide pane <verb> <args…>` to the named keys the
+  // handlers read (T-232, via D-74 normalize). Non-required — handlers keep
+  // their presence checks — so the effect is positional→named mapping plus
+  // numeric coercion of cols/rows.
+  const idArg = CommandSchema(positional: ['id'], args: {'id': ArgSpec()});
   d.register('pane.spawn', (req) => _spawn(req, registry));
   d.register('pane.list', (req) => _list(req, registry, viewPanes));
-  d.register('pane.close', (req) => _close(req, registry));
-  d.register('pane.write', (req) => _write(req, registry));
-  d.register('pane.resize', (req) => _resize(req, registry));
-  d.register('pane.focus', (req) => _focus(req, registry));
+  d.register('pane.close', (req) => _close(req, registry), schema: idArg);
+  d.register('pane.write', (req) => _write(req, registry), schema: const CommandSchema(positional: ['id', 'text'], args: {'id': ArgSpec(), 'text': ArgSpec()}));
+  d.register('pane.resize', (req) => _resize(req, registry),
+      schema: const CommandSchema(
+          positional: ['id', 'cols', 'rows'], args: {'id': ArgSpec(), 'cols': ArgSpec(type: ArgType.number), 'rows': ArgSpec(type: ArgType.number)}));
+  d.register('pane.focus', (req) => _focus(req, registry), schema: idArg);
   d.register('pane.tail', (req) => _tail(req, registry));
 }
 

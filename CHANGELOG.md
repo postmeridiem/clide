@@ -88,6 +88,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- CLI commands that take arguments now work: `clide editor open <path>`,
+  `clide files read <path>`, `clide pane focus <id>` / `resize <id> <c> <r>`,
+  etc. now bind positional/flag argv to the handler's named args (they
+  previously returned "X is required" from the CLI). (T-232)
 - The Claude composer no longer loses a half-typed message when the UI changes
   under it — e.g. a permission prompt taking the composer's place. The draft
   (text and caret) is kept per session and restored when the composer returns.
