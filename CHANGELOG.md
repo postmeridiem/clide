@@ -58,6 +58,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The Claude sidebar's Activity / Team / Config sub-tabs are now keyboard-
+  activatable: they were pointer-only (raw `GestureDetector`), so Tab traversal
+  skipped them and Enter/Space did nothing. They now use `ClideTappable`
+  (focusable, Enter/Space → activate) and carry button + selected semantics.
+  (T-182)
 - The default keymap is no longer silently disabled at startup: `default.yaml`
   bound Tab/Shift+Tab to undefined `focus.next`/`focus.previous` intents, which
   made the loader drop the entire preset (palette, quick-open, find-in-files,

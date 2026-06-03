@@ -11,7 +11,7 @@ import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
-import 'package:flutter/widgets.dart' show EditableText, SizedBox, Semantics;
+import 'package:flutter/widgets.dart' show ActivateIntent, Actions, EditableText, SizedBox, Semantics;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -104,6 +104,20 @@ void main() {
     await tester.tap(find.text('Activity'));
     await tester.pump();
     expect(find.text('TODAY'), findsOneWidget);
+  });
+
+  testWidgets('a sub-tab is keyboard-activatable, not pointer-only (T-182)', (tester) async {
+    await tester.pumpWidget(harness(f, sidebar(stats: stats)));
+    await tester.pumpAndSettle();
+
+    // The tab wraps its label in a ClideTappable, so the keymap's Enter/Space
+    // → ActivateIntent reaches it. Dispatch ActivateIntent through the real
+    // Actions path (what KeymapService does) — no pointer tap — and the body
+    // switches. Mirrors test/widgets/src/clide_tappable_test.dart.
+    Actions.invoke(tester.element(find.text('Team')), const ActivateIntent());
+    await tester.pump();
+    expect(find.text('No team active.'), findsOneWidget);
+    expect(find.text('TODAY'), findsNothing);
   });
 
   testWidgets('Config tab renders the settings table over ClaudeConfig', (tester) async {

@@ -1229,11 +1229,15 @@ class _TabStrip extends StatelessWidget {
           for (final t in SidebarTab.values)
             Padding(
               padding: const EdgeInsets.only(right: 16),
-              child: GestureDetector(
+              child: Semantics(
+                button: true,
+                selected: t == current,
+                label: _label(t),
+                excludeSemantics: true,
                 onTap: () => onPick(t),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: Container(
+                child: ClideTappable(
+                  onTap: () => onPick(t),
+                  builder: (ctx, hovered, _) => Container(
                     padding: const EdgeInsets.only(bottom: 3),
                     decoration: BoxDecoration(
                       border: Border(
@@ -1246,7 +1250,7 @@ class _TabStrip extends StatelessWidget {
                     child: ClideText(
                       _label(t),
                       fontSize: clideFontSmall,
-                      color: t == current ? tokens.globalForeground : tokens.globalTextMuted,
+                      color: t == current || hovered ? tokens.globalForeground : tokens.globalTextMuted,
                     ),
                   ),
                 ),
