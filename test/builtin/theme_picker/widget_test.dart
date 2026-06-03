@@ -1,6 +1,8 @@
+import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -110,6 +112,45 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Cancel'));
       await tester.pumpAndSettle();
       expect(dismissed, isNull);
+    });
+
+    testWidgets('status switcher shows the active theme and opens a popover (T-234)', (tester) async {
+      await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
+      await tester.pump();
+      // Controller starts on the first bundled theme.
+      expect(f.services.theme.currentName, 'summer-night');
+      expect(find.text('summer-night'), findsOneWidget);
+
+      // Open the popover; it lists every theme (the other one appears).
+      await tester.tap(find.bySemanticsLabel('Theme: summer-night'));
+      await tester.pumpAndSettle();
+      expect(find.text('forest'), findsOneWidget);
+    });
+
+    testWidgets('selecting in the popover applies live and closes (T-234)', (tester) async {
+      await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Theme: summer-night'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('forest'));
+      await tester.pumpAndSettle();
+      expect(f.services.theme.currentName, 'forest'); // applied live
+      // Popover closed: the only 'forest' left is the trigger label.
+      expect(find.bySemanticsLabel('forest'), findsNothing);
+    });
+
+    testWidgets('Esc dismisses the popover without changing the theme (T-234)', (tester) async {
+      await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Theme: summer-night'));
+      await tester.pumpAndSettle();
+      expect(find.text('forest'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.text('forest'), findsNothing); // popover gone
+      expect(f.services.theme.currentName, 'summer-night'); // unchanged
     });
 
     test('_pick before activate returns a not-activated error', () async {

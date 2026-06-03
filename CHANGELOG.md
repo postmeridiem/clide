@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Theme switcher in the status bar: a far-right control showing the current
+  theme that opens a popover to switch live — click or keyboard (arrows/Enter,
+  Esc to dismiss). The `theme.pick` palette command is unchanged. (T-234)
 - Catppuccin Mocha theme, plus a high-contrast `catppuccin-mocha-hc` sibling,
   added to the bundled themes — switchable from the theme picker. Faithful to
   the official palette (D-69). (T-82)

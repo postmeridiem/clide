@@ -1,5 +1,6 @@
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/theme_picker/src/picker_view.dart';
+import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/extension/extension.dart';
 
 class ThemePickerExtension extends ClideExtension {
@@ -25,6 +26,14 @@ class ThemePickerExtension extends ClideExtension {
           title: 'Theme: Pick…',
           defaultBinding: 'ctrl+k',
           run: _pick,
+        ),
+        // Always-visible switcher in the far-right status bar (T-234).
+        // priority >= 100 places it in the right group; registered after
+        // ipc-status so it sits to its right.
+        StatusItemContribution(
+          id: 'theme-picker.switcher',
+          priority: 110,
+          build: (_) => const ThemeSwitcherStatusItem(),
         ),
       ];
 
