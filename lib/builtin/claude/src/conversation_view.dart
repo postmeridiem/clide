@@ -11,6 +11,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
@@ -28,9 +29,14 @@ class ConversationView extends StatefulWidget {
     this.emptyState,
     this.hiddenToolUseIds = const <String>{},
     this.toolUseOutcomes = const <String, bool>{},
+    this.foldLevel = FoldLevel.tools,
   });
 
   final ConversationController controller;
+
+  /// How aggressively consecutive meta items (tool calls/results, thinking)
+  /// fold into collapsible activity cards (T-230). Default L1 ([FoldLevel.tools]).
+  final FoldLevel foldLevel;
 
   /// tool_use_ids that surfaced as a prompt (permission / AskUserQuestion) —
   /// D-78. While pending (not in [toolUseOutcomes]) the raw tool-use card is
@@ -131,18 +137,32 @@ class _ConversationViewState extends State<ConversationView> {
       );
     }
 
+    // Fold runs of meta items into collapsible activity cards (T-230); sticky
+    // items (user/prose/surfaced errors) render first-class as before.
+    final groups = groupConversation(items, widget.foldLevel);
     final list = ClideScrollbar(
       controller: _scroll,
       child: ListView.builder(
         controller: _scroll,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        itemCount: items.length,
-        itemBuilder: (context, i) => _ConversationTurn(
-          item: items[i],
-          tokens: tokens,
-          toolUseOutcomes: widget.toolUseOutcomes,
-          toolUseById: widget.controller.toolUseById,
-        ),
+        itemCount: groups.length,
+        itemBuilder: (context, i) {
+          final g = groups[i];
+          return switch (g) {
+            StickyItem(:final item) => _ConversationTurn(
+                item: item,
+                tokens: tokens,
+                toolUseOutcomes: widget.toolUseOutcomes,
+                toolUseById: widget.controller.toolUseById,
+              ),
+            FoldedCluster(:final items) => _ActivityCard(
+                items: items,
+                tokens: tokens,
+                toolUseOutcomes: widget.toolUseOutcomes,
+                toolUseById: widget.controller.toolUseById,
+              ),
+          };
+        },
       ),
     );
     return ColoredBox(
@@ -317,5 +337,120 @@ class _ConversationTurn extends StatelessWidget {
   String _firstLine(String content) {
     final line = content.split('\n').first.trim();
     return line.length > 80 ? '${line.substring(0, 80)}…' : line;
+  }
+}
+
+/// A folded run of meta items rendered as one collapsible activity card
+/// (T-230). Collapsed (default): a one-line live ticker of the latest step +
+/// a step count — re-grouped on every rebuild, so the ticker updates in place
+/// as the run grows. Expanded: every folded step in order. Keyboard + screen
+/// reader accessible: [ClideTappable] activates on Enter/Space, and the
+/// Semantics announces the step count + expanded/collapsed state.
+class _ActivityCard extends StatefulWidget {
+  const _ActivityCard({
+    required this.items,
+    required this.tokens,
+    required this.toolUseOutcomes,
+    required this.toolUseById,
+  });
+
+  final List<ConversationItem> items;
+  final SurfaceTokens tokens;
+  final Map<String, bool> toolUseOutcomes;
+  final Map<String, AssistantToolUse> toolUseById;
+
+  @override
+  State<_ActivityCard> createState() => _ActivityCardState();
+}
+
+class _ActivityCardState extends State<_ActivityCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = widget.tokens;
+    final count = widget.items.length;
+    final stepLabel = count == 1 ? '1 step' : '$count steps';
+
+    final header = ClideTappable(
+      onTap: () => setState(() => _expanded = !_expanded),
+      builder: (context, hovered, focused) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
+          border: Border.all(color: tokens.panelBorder),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            ClideIcon(_expanded ? const ChevronDownIcon() : const ChevronRightIcon(), size: 12, color: tokens.globalTextMuted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClideText(
+                _expanded ? 'Activity' : _summarizeActivity(widget.items.last),
+                fontSize: clideFontCaption,
+                fontFamily: clideMonoFamily,
+                color: tokens.globalTextMuted,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            ClideText(stepLabel, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+          ],
+        ),
+      ),
+    );
+
+    return Semantics(
+      button: true,
+      expanded: _expanded,
+      label: 'Activity, $stepLabel, ${_expanded ? 'expanded' : 'collapsed'}',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            if (_expanded)
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final item in widget.items)
+                      _ConversationTurn(
+                        item: item,
+                        tokens: tokens,
+                        toolUseOutcomes: widget.toolUseOutcomes,
+                        toolUseById: widget.toolUseById,
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One-line summary of a folded item for the collapsed ticker.
+String _summarizeActivity(ConversationItem item) {
+  switch (item) {
+    case AssistantToolUse(:final name, :final input):
+      final raw = input['command'] ?? input['file_path'] ?? input['path'] ?? input['pattern'] ?? input['url'];
+      final detail = raw is String ? raw.split('\n').first.trim() : '';
+      final clipped = detail.length > 72 ? '${detail.substring(0, 72)}…' : detail;
+      return clipped.isEmpty ? name : '$name  $clipped';
+    case ToolResultMessage(:final isError):
+      return isError ? '↳ result · error' : '↳ result';
+    case AssistantThinkingMessage():
+      return 'thinking…';
+    case UserMessage(:final text):
+      return text;
+    case AssistantTextMessage(:final text):
+      return text;
   }
 }

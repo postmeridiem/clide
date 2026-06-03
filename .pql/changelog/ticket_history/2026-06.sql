@@ -118,3 +118,61 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-230', 'status', 'ready', 'in_progress', NULL, '2026-06-03 14:27:26', '2026-06-03 14:27:26', '2026-06-03 14:27:26', NULL, 'ec0e54053e51dea1fecb48eebc69e387', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-82', 'status', 'in_progress', 'done', NULL, '2026-06-03 14:56:07', '2026-06-03 14:56:07', '2026-06-03 14:56:07', NULL, '9b160e380defb6a1ac78f200585745c8', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-234', 'status', 'in_progress', 'done', NULL, '2026-06-03 15:04:07', '2026-06-03 15:04:07', '2026-06-03 15:04:07', NULL, 'a498a47a4c52685fb7a33cbf004b47f9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-230', 'description', 'The Claude pane renders every transcript item as its own row, so a heavy agent turn becomes a wall of tool-call/result rows (Bash <cmd> / Bash · result {…} / ''completed with no output'') that buries the messages that matter (user + Claude prose). Wireframe: docs/design/wireframes/claude/meta-activity-card.png.
+
+Fold runs of consecutive ''meta'' items into one live, collapsible activity card:
+- The card shows the MOST RECENT meta line as a live ticker and updates in place as new ones stream in — a running ''what''s happening now''. A step count (''14 steps'') sits on the right.
+- Collapsed by default; click the chevron to expand the full list of folded steps, click to re-collapse.
+- ''Sticky'' items never fold — they render first-class. A sticky item SEALS the current card and a new cluster begins after it. A cluster = one unbroken run of foldable items between two sticky items.
+
+Taxonomy over the sealed ConversationItem set (transcript_reader.dart): UserMessage, AssistantTextMessage, AssistantThinkingMessage, AssistantToolUse, ToolResultMessage.
+- Always sticky: UserMessage, AssistantTextMessage. Permission/AskUserQuestion prompts already live in the interaction zone (D-78) and are inherently sticky / cluster-breaking — no change, but note they break the run too.
+- Foldable: AssistantToolUse + its paired ToolResultMessage (pairing already exists via toolUseById, T-168).
+
+Refinement decisions (2026-06-03, user):
+1. WHAT FOLDS is a 3-level setting (conservative → aggressive); DEFAULT = level 1. Build the foldable predicate so all three are switchable:
+   - L1 (default): fold tool calls + results only; diffs (Edit/Write results) AND AssistantThinkingMessage stay first-class/sticky.
+   - L2: also fold thinking; diffs stay sticky.
+   - L3: fold everything except UserMessage + AssistantTextMessage (incl. diffs + thinking).
+2. ERRORS: a failed/error ToolResultMessage SURFACES — treated as sticky, stays visible and breaks the cluster (see wireframe state B). Start here; the user noted some non-fatal errors are themselves clutter, so expect to tune which errors surface vs. fold.
+3. DEFAULT/RUN STATE: always collapsed, showing the last line + step count, with the ticker updating live. NO setting. (Rejected auto-expanding the in-flight cluster: it scrolls the last useful sticky message out of view during long runs and only collapses when done — worst timing. Collapsed-with-live-ticker keeps the last sticky message anchored while preserving the motion/dynamism.)
+
+Implementation home: a ''collapse adjacent foldable items'' grouping pass over ConversationController.items, consumed by ConversationView; the card is a new conversation_card variant. Keep it accessible (keyboard expand/collapse + semantics: announce step count and collapsed/expanded state). 
+
+Acceptance:
+1. Consecutive foldable items collapse into one card; the collapsed card shows the latest line + a live-updating step count.
+2. A sticky message (user / Claude prose / surfaced error / interaction-zone prompt) seals the card and starts a new cluster after it.
+3. Expanding shows every folded step (tool call + result pairs) in order; collapsing returns to the one-line view.
+4. The foldable level is a setting (default L1: diffs + thinking stay first-class); switching levels re-groups the transcript.
+5. Failed tool results surface as their own (sticky) row and break the cluster.
+6. Keyboard + screen-reader accessible (expand/collapse, step count announced).', 'The Claude pane renders every transcript item as its own row, so a heavy agent turn becomes a wall of tool-call/result rows (Bash <cmd> / Bash · result {…} / ''completed with no output'') that buries the messages that matter (user + Claude prose). Wireframe: docs/design/wireframes/claude/meta-activity-card.png.
+
+Fold runs of consecutive ''meta'' items into one live, collapsible activity card:
+- The card shows the MOST RECENT meta line as a live ticker and updates in place as new ones stream in — a running ''what''s happening now''. A step count (''14 steps'') sits on the right.
+- Collapsed by default; click the chevron to expand the full list of folded steps, click to re-collapse.
+- ''Sticky'' items never fold — they render first-class. A sticky item SEALS the current card and a new cluster begins after it. A cluster = one unbroken run of foldable items between two sticky items.
+
+Taxonomy over the sealed ConversationItem set (transcript_reader.dart): UserMessage, AssistantTextMessage, AssistantThinkingMessage, AssistantToolUse, ToolResultMessage.
+- Always sticky: UserMessage, AssistantTextMessage. Permission/AskUserQuestion prompts already live in the interaction zone (D-78) and are inherently sticky / cluster-breaking — no change, but note they break the run too.
+- Foldable: AssistantToolUse + its paired ToolResultMessage (pairing already exists via toolUseById, T-168).
+
+Refinement decisions (2026-06-03, user):
+1. WHAT FOLDS is a 3-level setting (conservative → aggressive); DEFAULT = level 1. Build the foldable predicate so all three are switchable:
+   - L1 (default): fold tool calls + results only; diffs (Edit/Write results) AND AssistantThinkingMessage stay first-class/sticky.
+   - L2: also fold thinking; diffs stay sticky.
+   - L3: fold everything except UserMessage + AssistantTextMessage (incl. diffs + thinking).
+2. ERRORS: a failed/error ToolResultMessage SURFACES — treated as sticky, stays visible and breaks the cluster (see wireframe state B). Start here; the user noted some non-fatal errors are themselves clutter, so expect to tune which errors surface vs. fold.
+3. DEFAULT/RUN STATE: always collapsed, showing the last line + step count, with the ticker updating live. NO setting. (Rejected auto-expanding the in-flight cluster: it scrolls the last useful sticky message out of view during long runs and only collapses when done — worst timing. Collapsed-with-live-ticker keeps the last sticky message anchored while preserving the motion/dynamism.)
+
+Implementation home: a ''collapse adjacent foldable items'' grouping pass over ConversationController.items, consumed by ConversationView; the card is a new conversation_card variant. Keep it accessible (keyboard expand/collapse + semantics: announce step count and collapsed/expanded state). 
+
+Acceptance:
+1. Consecutive foldable items collapse into one card; the collapsed card shows the latest line + a live-updating step count.
+2. A sticky message (user / Claude prose / surfaced error / interaction-zone prompt) seals the card and starts a new cluster after it.
+3. Expanding shows every folded step (tool call + result pairs) in order; collapsing returns to the one-line view.
+4. The foldable level is a setting (default L1: diffs + thinking stay first-class); switching levels re-groups the transcript.
+5. Failed tool results surface as their own (sticky) row and break the cluster.
+6. Keyboard + screen-reader accessible (expand/collapse, step count announced).
+
+Implemented (2026-06-03): pure grouping in activity_cluster.dart (groupConversation + FoldLevel none/tools/thinking/everything + RenderGroup StickyItem/FoldedCluster), fully unit-tested. Activity card + grouping wired into conversation_view.dart (collapsed live ticker of the latest step + step count; click/Enter expands to the folded steps in order; Semantics announces count + expanded/collapsed). Default level = L1 (tools): tool calls+results fold; user/Claude prose, FAILED results (sticky, surfaced), diffs (Edit/Write), and thinking stay first-class. Added FoldLevel.none (no folding) used by the existing item-level renderer tests. DEFERRED (acceptance 4''s persistence): the fold level is a switchable ConversationView parameter (proven by tests; none/L1/L2/L3 re-group) but is NOT yet wired to a persisted user setting + a UI control — the live pane uses the L1 default. Follow-up: read it from settings (ctx.settings) + a control to change it. Did NOT match the wireframe pixel-for-pixel; functional shape per the refinement decisions.', NULL, '2026-06-03 15:17:10', '2026-06-03 15:17:10', '2026-06-03 15:17:10', NULL, 'be73ea1e861930fc12fd9d6050cc6841', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-230', 'status', 'in_progress', 'done', NULL, '2026-06-03 15:17:33', '2026-06-03 15:17:33', '2026-06-03 15:17:33', NULL, '069a613ac7439a5d19da505712da8341', 1) ON CONFLICT(hash) DO NOTHING;

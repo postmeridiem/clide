@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Claude pane folds runs of tool calls/results into a collapsible "activity
+  card" so prose isn't buried: collapsed by default with a live one-line ticker
+  + step count, click/Enter to expand. Claude prose, user messages, and failed
+  results stay first-class; diffs and thinking stay visible at the default
+  level. (T-230)
 - Theme switcher in the status bar: a far-right control showing the current
   theme that opens a popover to switch live — click or keyboard (arrows/Enter,
   Esc to dismiss). The `theme.pick` palette command is unchanged. (T-234)

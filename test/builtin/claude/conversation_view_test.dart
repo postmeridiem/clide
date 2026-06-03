@@ -6,6 +6,7 @@ library;
 
 import 'dart:async';
 
+import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/claude_banner.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
@@ -145,7 +146,7 @@ void main() {
     tearDown(() => f.dispose());
 
     Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items,
-        {Set<String> hiddenToolUseIds = const {}, Map<String, bool> toolUseOutcomes = const {}}) async {
+        {Set<String> hiddenToolUseIds = const {}, Map<String, bool> toolUseOutcomes = const {}, FoldLevel foldLevel = FoldLevel.none}) async {
       tester.view.physicalSize = const Size(900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -155,7 +156,8 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(f, ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds, toolUseOutcomes: toolUseOutcomes)));
+      await tester
+          .pumpWidget(harness(f, ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds, toolUseOutcomes: toolUseOutcomes, foldLevel: foldLevel)));
       for (final it in items) {
         stream.add(it);
       }
@@ -166,6 +168,36 @@ void main() {
     testWidgets('empty controller shows the waiting hint', (tester) async {
       await pumpWith(tester, const []);
       expect(find.text('Waiting for Claude…'), findsOneWidget);
+    });
+
+    testWidgets('meta items fold into a collapsed activity card; tap expands (T-230)', (tester) async {
+      await pumpWith(
+          tester,
+          [
+            _tool('Bash', const {'command': 'echo hi'}),
+            _result('hi'),
+          ],
+          foldLevel: FoldLevel.tools);
+      // Collapsed by default: one card with a step count, not the raw rows.
+      expect(find.text('2 steps'), findsOneWidget);
+      expect(find.bySemanticsLabel('Activity, 2 steps, collapsed'), findsOneWidget);
+      // Activating it expands to reveal the folded steps.
+      await tester.tap(find.bySemanticsLabel('Activity, 2 steps, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Activity, 2 steps, expanded'), findsOneWidget);
+    });
+
+    testWidgets('a failed result surfaces first-class, not folded (T-230)', (tester) async {
+      await pumpWith(
+          tester,
+          [
+            _tool('Bash', const {'command': 'boom'}),
+            _result('error output', isError: true),
+          ],
+          foldLevel: FoldLevel.tools);
+      // The tool call folds (1 step); the error result is sticky → no 2-step card.
+      expect(find.text('1 step'), findsOneWidget);
+      expect(find.textContaining('error output'), findsWidgets);
     });
 
     testWidgets('empty controller shows the provided emptyState instead', (tester) async {
