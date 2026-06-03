@@ -50,8 +50,10 @@ void main() {
     // Synthetic git workspace — the C client walks up looking for
     // `.git`, hashes whatever it lands on, and connects to the
     // matching socket. Match it by handing the same root to the
-    // server.
-    workspaceRoot = Directory.systemTemp.createTempSync('clide-ws-');
+    // server. Canonicalise: the client resolves its CWD via the OS
+    // (getcwd), so on macOS it hashes /private/tmp/… while a raw
+    // createTemp path is /tmp/… — the two hashes must agree.
+    workspaceRoot = Directory(Directory.systemTemp.createTempSync('clide-ws-').resolveSymbolicLinksSync());
     Directory('${workspaceRoot.path}/.git').createSync();
     dispatcher = DaemonDispatcher();
     registerArgvUnwrap(dispatcher);

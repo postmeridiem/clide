@@ -231,7 +231,9 @@ void main() {
       Directory.current = nested;
       final svc = FilesService.atCwd(events: RecordingEventSink());
       // No .git anywhere on the walk → root falls back to CWD.
-      expect(svc.root.absolute.path, nested.absolute.path);
+      // Compare canonical paths: on macOS the CWD resolves through the
+      // /tmp → /private/tmp symlink, so the raw createTemp path differs.
+      expect(svc.root.resolveSymbolicLinksSync(), nested.resolveSymbolicLinksSync());
       await svc.shutdown();
     } finally {
       Directory.current = saved;
