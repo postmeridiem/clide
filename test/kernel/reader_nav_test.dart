@@ -143,4 +143,14 @@ void main() {
     final c = reg.navFor('builtin.decisions', dataKey: 'id');
     expect(identical(a, c), isFalse);
   });
+
+  test('currentByReader maps each reader to its viewed doc; omits empty (T-221)', () {
+    final reg = ReaderNavRegistry(bus);
+    addTearDown(reg.dispose);
+    final md = reg.navFor('builtin.markdown', dataKey: 'path');
+    reg.navFor('builtin.decisions', dataKey: 'id'); // created but nothing viewed
+    expect(reg.currentByReader, isEmpty);
+    md.open('docs/initial-plan.md');
+    expect(reg.currentByReader, {'builtin.markdown': 'docs/initial-plan.md'});
+  });
 }

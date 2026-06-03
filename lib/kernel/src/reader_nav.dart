@@ -127,6 +127,15 @@ class ReaderNavRegistry {
   final MessageBus _messages;
   final Map<String, ReaderNav> _navs = {};
 
+  /// The currently-viewed doc for every reader that has one, keyed by
+  /// publisher id (e.g. `builtin.markdown`, `builtin.decisions`). Used by
+  /// `clide status` to surface what the user is reading (T-221, D-6 parity) —
+  /// viewer files aren't editor buffers, so they don't live in EditorRegistry.
+  Map<String, String> get currentByReader => {
+        for (final e in _navs.entries)
+          if (e.value.current != null) e.key: e.value.current!,
+      };
+
   /// The retained [ReaderNav] for [publisherId], created on first use.
   /// [dataKey] is the bus-payload key for this reader's entry.
   ReaderNav navFor(String publisherId, {required String dataKey}) {

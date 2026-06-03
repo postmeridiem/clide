@@ -36,6 +36,7 @@ import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
+import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/panel_commands.dart';
 import 'package:clide/src/daemon/panel_resizer_kernel.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
@@ -88,6 +89,9 @@ Future<void> main() async {
   DaemonBus? daemonBus;
   LayoutArrangement? kernelArrangement;
   PanelRegistry? kernelPanels;
+  // Captured after boot so `clide status` can report the read-only reader's
+  // viewed doc (D-81), which isn't an editor buffer (T-221).
+  ReaderNavRegistry? kernelReaderNav;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -203,6 +207,61 @@ Future<void> main() async {
     final pql = PqlClient(workDir: workRoot, toolchain: tc);
     registerPqlCommands(dispatcher, pql);
     registerPanelCommands(dispatcher, ArrangementPanelResizer(arrangement));
+    // `clide status` — one-shot orientation snapshot (T-221): active pane,
+    // focused file + selection, git summary, layout. Assembled here where the
+    // live kernel + subsystem state is in scope; the reader's viewed doc is
+    // read from the post-boot-captured ReaderNavRegistry (D-81).
+    registerStatusCommand(dispatcher, () async {
+      Map<String, Object?>? gitJson;
+      try {
+        final git = await gitClient.status();
+        gitJson = {
+          'branch': git.branch,
+          if (git.upstream != null) 'upstream': git.upstream,
+          'ahead': git.ahead,
+          'behind': git.behind,
+          'clean': git.isClean,
+          'hasConflicts': git.hasConflicts,
+          'counts': {
+            'staged': git.staged.length,
+            'unstaged': git.unstaged.length,
+            'untracked': git.untracked.length,
+            'conflicted': git.conflicted.length,
+          },
+        };
+      } catch (_) {
+        gitJson = null; // never sink the snapshot on a git hiccup
+      }
+      final editorActive = editorRegistry.active;
+      return {
+        'workspace': workRoot.path,
+        'git': gitJson,
+        'editor': editorActive == null
+            ? null
+            : {
+                'id': editorActive.id,
+                'path': editorActive.path,
+                'selection': editorActive.selection.toJson(),
+                'dirty': editorActive.dirty,
+              },
+        'readers': kernelReaderNav?.currentByReader ?? const <String, String>{},
+        'focusedFile': editorActive?.path,
+        'panes': [for (final v in snapshotViewPanes(panels, arrangement)) v.toJson()],
+        'layout': {
+          'focusMode': arrangement.focusModeSlot?.value,
+          'slots': [
+            for (final id in arrangement.slotsInOrder)
+              {
+                'id': id.value,
+                'position': arrangement.positionOf(id)?.name,
+                'visible': arrangement.isVisible(id),
+                'collapsed': arrangement.isCollapsed(id),
+                if (arrangement.sizeOf(id) != null) 'size': arrangement.sizeOf(id),
+              },
+          ],
+        },
+      };
+    });
     registerArgvUnwrap(dispatcher);
     return dispatcher;
   }
@@ -254,6 +313,10 @@ Future<void> main() async {
             await swapIpcServer(dispatcher, Directory(path));
           },
   );
+  // Expose the reader nav to the `clide status` snapshot (T-221). Boot
+  // creates it before the daemonClientFactory runs, but the status closure
+  // only reads it at request time (post-boot), so capturing it here is safe.
+  kernelReaderNav = services.readerNav;
 
   // Register every built-in. Tier 0 activates only the four that do
   // real work; the rest compile in as stubs so the extensions-ui can

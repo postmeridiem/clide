@@ -22,6 +22,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   composer is focused, a clickable mode badge in the status line, or the
   "Claude: Cycle permission mode" palette command — steps default → accept-edits
   → plan (bypass stays behind the cockpit's confirm). (T-226)
+- `clide status` — a one-shot orientation snapshot for agents: workspace, git
+  summary, active editor buffer + selection, viewed reader docs, the live panes
+  the user sees, and the layout. Previously an unknown command (exit 3). (T-221)
 - `clide pane list` now reflects the live GUI tabs the user sees (Claude, Files,
   Editor, viewers) alongside PTY panes — each with a stable id, slot, title, and
   active/visible state — by snapshotting the kernel panel layout at request time.
