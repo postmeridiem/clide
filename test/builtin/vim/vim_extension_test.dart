@@ -22,6 +22,12 @@ void main() {
 
   bool flag(String name) => f.services.keymap.scope[name] ?? false;
 
+  test('identifies itself', () {
+    expect(ext.id, 'builtin.vim');
+    expect(ext.title, 'Vim');
+    expect(ext.version, '0.1.0');
+  });
+
   test('inert under the default preset', () async {
     await f.services.extensions.activate('builtin.vim');
     expect(ext.modeService!.enabled, isFalse);

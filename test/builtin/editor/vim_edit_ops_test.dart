@@ -149,6 +149,43 @@ void main() {
       expect(r.enterInsert, isTrue);
       expect(r.register?.linewise, isTrue);
     });
+
+    test('cw deletes to the next word and enters insert', () {
+      final r = applyVim(VimAction.changeWord, _tev('hello world', 0));
+      expect(r.value.text, 'world');
+      expect(r.enterInsert, isTrue);
+      expect(r.register?.text, 'hello ');
+    });
+
+    test('x at the line end is a no-op', () {
+      final r = applyVim(VimAction.deleteChar, _tev('ab\ncd', 2)); // caret on the newline
+      expect(r.value.text, 'ab\ncd');
+      expect(r.register, isNull);
+    });
+
+    test('D at the line end is a no-op', () {
+      final r = applyVim(VimAction.deleteToEnd, _tev('ab', 2));
+      expect(r.value.text, 'ab');
+    });
+
+    test('p with an empty register does nothing', () {
+      final r = applyVim(VimAction.paste, _tev('ab', 0));
+      expect(r.value.text, 'ab');
+    });
+  });
+
+  group('word-motion edges', () {
+    test('w / b cross punctuation and underscores as their own class', () {
+      // foo_bar is one word (underscore is a word char); the dot is punct.
+      const t = 'foo_bar.baz';
+      expect(applyVim(VimAction.wordForward, _tev(t, 0)).value.selection.extentOffset, 7); // the '.'
+      expect(applyVim(VimAction.wordBackward, _tev(t, 8)).value.selection.extentOffset, 7);
+    });
+
+    test('e on the last word clamps to the final char', () {
+      final r = applyVim(VimAction.wordEnd, _tev('hi', 1));
+      expect(r.value.selection.extentOffset, 1);
+    });
   });
 
   group('insert entry', () {

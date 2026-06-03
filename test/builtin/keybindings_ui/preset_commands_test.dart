@@ -17,6 +17,20 @@ void main() {
   });
   tearDown(() => f.dispose());
 
+  test('identifies itself', () {
+    final ext = KeybindingsUiExtension();
+    expect(ext.id, 'builtin.keybindings-ui');
+    expect(ext.title, 'Keybindings UI');
+    expect(ext.version, '0.1.0');
+  });
+
+  test('deactivate drops the keymap reference', () async {
+    await f.services.extensions.deactivate('builtin.keybindings-ui');
+    // Re-activating is clean (no retained state).
+    await f.services.extensions.activate('builtin.keybindings-ui');
+    expect(f.services.commands.get('keymap.preset.vim'), isNotNull);
+  });
+
   test('contributes a switch command per shipped preset', () {
     expect(f.services.commands.get('keymap.preset.vim'), isNotNull);
     expect(f.services.commands.get('keymap.preset.default'), isNotNull);

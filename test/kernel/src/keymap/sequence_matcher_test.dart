@@ -171,5 +171,13 @@ void main() {
     test('flush with nothing buffered is a no-op', () {
       expect(matcher.flush().outcome, SeqOutcome.pending);
     });
+
+    test('flush of a lone prefix key (no exact) passes it through', () {
+      // `g` is a pure prefix of `g g` with no single-`g` binding.
+      expect(feed('g').outcome, SeqOutcome.pending);
+      final r = matcher.flush();
+      expect(r.outcome, SeqOutcome.unmatched);
+      expect(r.passKey, KeyChord.parse('g'));
+    });
   });
 }
