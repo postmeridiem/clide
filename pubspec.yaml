@@ -62,7 +62,7 @@ dev_dependencies:
   integration_test:
     sdk: flutter
 
-  test: 1.30.0
+  test: 1.31.0
   mocktail: 1.0.4
   alchemist: 0.12.1
 
