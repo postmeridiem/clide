@@ -1,0 +1,64 @@
+{
+  "name": "Claude meta activity card",
+  "shapes": {
+    "bg": {
+      "type": "Rectangle",
+      "left": 40, "top": 20, "width": 900, "height": 700,
+      "fillColor": "#14171c", "strokeColor": "#333340", "corners": [10, 10, 10, 10]
+    },
+    "title": {
+      "type": "Text", "parent": "bg",
+      "left": 60, "top": 34,
+      "text": "Claude pane — meta-message activity card (folds tool-call/result spam; sticky messages break the run)",
+      "fontColor": "#c8d0e0", "fontSize": 14
+    },
+
+    "labelA": {
+      "type": "Text", "parent": "bg",
+      "left": 60, "top": 70, "text": "A · COLLAPSED  (default)", "fontColor": "#6a7280", "fontSize": 12
+    },
+    "proseA_bar": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 94, "width": 3, "height": 46, "fillColor": "#d08447", "strokeColor": "#d08447" },
+    "proseA_role": { "type": "Text", "parent": "bg", "left": 74, "top": 92, "text": "claude", "fontColor": "#d08447", "fontSize": 11 },
+    "proseA_text": { "type": "Text", "parent": "bg", "left": 74, "top": 110, "text": "Let me persist the plan state (T-220 closed), then start T-221.", "fontColor": "#c8d0e0", "fontSize": 13 },
+
+    "cardA": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 150, "width": 820, "height": 40, "fillColor": "#1a1e24", "strokeColor": "#3a4150", "corners": [6, 6, 6, 6] },
+    "cardA_chev": { "type": "Text", "parent": "cardA", "left": 74, "top": 161, "text": "▸", "fontColor": "#6a7280", "fontSize": 14 },
+    "cardA_dot": { "type": "Ellipse", "parent": "cardA", "left": 96, "top": 165, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#c8d8f0" },
+    "cardA_ticker": { "type": "Text", "parent": "cardA", "left": 116, "top": 162, "text": "Bash   git commit -F /tmp/clide-t220-msg.txt", "fontColor": "#aeb6c2", "fontSize": 12 },
+    "cardA_badge": { "type": "Rectangle", "parent": "cardA", "left": 790, "top": 159, "width": 76, "height": 22, "fillColor": "#2a3040", "strokeColor": "#3a4150", "corners": [11, 11, 11, 11] },
+    "cardA_badge_t": { "type": "Text", "parent": "cardA_badge", "left": 802, "top": 162, "text": "14 steps", "fontColor": "#c8d0e0", "fontSize": 11 },
+
+    "userA_bar": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 208, "width": 3, "height": 40, "fillColor": "#00a3d2", "strokeColor": "#00a3d2" },
+    "userA_role": { "type": "Text", "parent": "bg", "left": 74, "top": 206, "text": "you", "fontColor": "#00a3d2", "fontSize": 11 },
+    "userA_text": { "type": "Text", "parent": "bg", "left": 74, "top": 224, "text": "file a ticket for the meta-message clustering", "fontColor": "#c8d0e0", "fontSize": 13 },
+    "noteA": { "type": "Text", "parent": "bg", "left": 60, "top": 260, "text": "↑ a sticky message (you / claude prose) seals the card and a new cluster starts below it", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "labelB": { "type": "Text", "parent": "bg", "left": 60, "top": 300, "text": "B · EXPANDED  (click ▾)", "fontColor": "#6a7280", "fontSize": 12 },
+    "proseB_bar": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 324, "width": 3, "height": 46, "fillColor": "#d08447", "strokeColor": "#d08447" },
+    "proseB_role": { "type": "Text", "parent": "bg", "left": 74, "top": 322, "text": "claude", "fontColor": "#d08447", "fontSize": 11 },
+    "proseB_text": { "type": "Text", "parent": "bg", "left": 74, "top": 340, "text": "Let me persist the plan state (T-220 closed), then start T-221.", "fontColor": "#c8d0e0", "fontSize": 13 },
+
+    "cardB": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 382, "width": 820, "height": 150, "fillColor": "#1a1e24", "strokeColor": "#3a4150", "corners": [6, 6, 6, 6] },
+    "cardB_chev": { "type": "Text", "parent": "cardB", "left": 74, "top": 392, "text": "▾", "fontColor": "#6a7280", "fontSize": 14 },
+    "cardB_hdr": { "type": "Text", "parent": "cardB", "left": 96, "top": 393, "text": "activity · 14 steps", "fontColor": "#c8d0e0", "fontSize": 12 },
+    "cardB_badge_t": { "type": "Text", "parent": "cardB", "left": 812, "top": 393, "text": "▴ collapse", "fontColor": "#6a7280", "fontSize": 11 },
+    "cardB_div": { "type": "Rectangle", "parent": "cardB", "left": 74, "top": 420, "width": 792, "height": 1, "fillColor": "#333340", "strokeColor": "#333340" },
+    "r1": { "type": "Text", "parent": "cardB", "left": 90, "top": 432, "text": "▸ Bash    pql ticket append T-220 \"Resolved (2026-06-03)…\"", "fontColor": "#aeb6c2", "fontSize": 12 },
+    "r2": { "type": "Text", "parent": "cardB", "left": 90, "top": 458, "text": "      Bash · result   {\"id\":\"T-220\",\"type\":\"task\"…}", "fontColor": "#6a7280", "fontSize": 12 },
+    "r3": { "type": "Text", "parent": "cardB", "left": 90, "top": 484, "text": "▸ Bash    pql ticket status T-220 done", "fontColor": "#aeb6c2", "fontSize": 12 },
+    "r4": { "type": "Text", "parent": "cardB", "left": 90, "top": 510, "text": "      Bash · result   {\"id\":\"T-220\"…}", "fontColor": "#6a7280", "fontSize": 12 },
+
+    "errBar": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 548, "width": 3, "height": 38, "fillColor": "#f06c6f", "strokeColor": "#f06c6f" },
+    "errRole": { "type": "Text", "parent": "bg", "left": 74, "top": 546, "text": "error", "fontColor": "#f06c6f", "fontSize": 11 },
+    "errText": { "type": "Text", "parent": "bg", "left": 74, "top": 564, "text": "Bash · error   git commit → rows_written:0   (surfaced — breaks the cluster)", "fontColor": "#f06c6f", "fontSize": 12 },
+
+    "cardB2": { "type": "Rectangle", "parent": "bg", "left": 60, "top": 596, "width": 820, "height": 40, "fillColor": "#1a1e24", "strokeColor": "#3a4150", "corners": [6, 6, 6, 6] },
+    "cardB2_chev": { "type": "Text", "parent": "cardB2", "left": 74, "top": 607, "text": "▸", "fontColor": "#6a7280", "fontSize": 14 },
+    "cardB2_dot": { "type": "Ellipse", "parent": "cardB2", "left": 96, "top": 611, "width": 8, "height": 8, "fillColor": "#c8d8f0", "strokeColor": "#c8d8f0" },
+    "cardB2_ticker": { "type": "Text", "parent": "cardB2", "left": 116, "top": 608, "text": "Bash   rm -f /tmp/clide-t220-msg.txt", "fontColor": "#aeb6c2", "fontSize": 12 },
+    "cardB2_badge": { "type": "Rectangle", "parent": "cardB2", "left": 798, "top": 605, "width": 68, "height": 22, "fillColor": "#2a3040", "strokeColor": "#3a4150", "corners": [11, 11, 11, 11] },
+    "cardB2_badge_t": { "type": "Text", "parent": "cardB2_badge", "left": 810, "top": 608, "text": "2 steps", "fontColor": "#c8d0e0", "fontSize": 11 },
+
+    "noteB": { "type": "Text", "parent": "bg", "left": 60, "top": 648, "text": "↑ a failed result surfaces as its own row and starts a fresh card", "fontColor": "#6a7280", "fontSize": 11 }
+  }
+}
