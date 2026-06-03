@@ -5,6 +5,7 @@
 /// (D-6 parity — both reach the same ThemeController).
 library;
 
+import 'package:clide/builtin/theme_picker/src/theme_families.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -60,11 +61,7 @@ class _ThemeSwitcherStatusItemState extends State<ThemeSwitcherStatusItem> {
               bottom: screen.height - anchor.dy + 4,
               child: _ThemePopover(
                 controller: _controller,
-                onPick: (name) {
-                  _controller.select(name);
-                  _close();
-                },
-                onDismiss: _close,
+                onClose: _close,
               ),
             ),
           ],
@@ -103,14 +100,11 @@ class _ThemeSwitcherStatusItemState extends State<ThemeSwitcherStatusItem> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // A swatch dot in the theme's accent — the "what theme" cue.
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(color: tokens.buttonBackground, shape: BoxShape.circle),
-                  ),
+                  ClideIcon(PhosphorIcons.palette, size: 13, color: tokens.statusBarForeground),
                   const SizedBox(width: 6),
-                  ClideText(label, fontSize: clideFontCaption, color: tokens.statusBarForeground),
+                  // The status bar is all-lowercase; the proper-case name stays
+                  // in the Semantics label for screen readers.
+                  ClideText(label.toLowerCase(), fontSize: clideFontCaption, color: tokens.statusBarForeground),
                 ],
               ),
             ),
@@ -121,14 +115,15 @@ class _ThemeSwitcherStatusItemState extends State<ThemeSwitcherStatusItem> {
   }
 }
 
-/// The popover body: a keyboard-navigable list of themes. Autofocuses so
-/// arrows/Enter/Esc work immediately; the current theme starts highlighted.
+/// The popover body: a "High contrast" toggle then the base themes (the `-hc`
+/// siblings collapse into the toggle, T-237). Keyboard-navigable as one list —
+/// index 0 is the toggle, 1..N the themes; arrows move, Enter activates, Esc
+/// dismisses. Autofocuses on open.
 class _ThemePopover extends StatefulWidget {
-  const _ThemePopover({required this.controller, required this.onPick, required this.onDismiss});
+  const _ThemePopover({required this.controller, required this.onClose});
 
   final ThemeController controller;
-  final void Function(String name) onPick;
-  final VoidCallback onDismiss;
+  final VoidCallback onClose;
 
   @override
   State<_ThemePopover> createState() => _ThemePopoverState();
@@ -136,14 +131,18 @@ class _ThemePopover extends StatefulWidget {
 
 class _ThemePopoverState extends State<_ThemePopover> {
   final _focus = FocusNode(debugLabel: 'ThemeSwitcher.popover');
-  late int _index;
+  late bool _hc;
+  int _index = 0;
+
+  List<ThemeDefinition> get _themes => baseThemes(widget.controller.available);
 
   @override
   void initState() {
     super.initState();
-    final themes = widget.controller.available;
-    _index = themes.indexWhere((t) => t.name == widget.controller.currentName);
-    if (_index < 0) _index = 0;
+    _hc = isHcName(widget.controller.currentName);
+    final currentBase = baseThemeName(widget.controller.currentName);
+    final at = _themes.indexWhere((t) => t.name == currentBase);
+    _index = at < 0 ? 0 : at + 1; // +1: row 0 is the toggle
     WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
   }
 
@@ -153,22 +152,38 @@ class _ThemePopoverState extends State<_ThemePopover> {
     super.dispose();
   }
 
+  void _toggleHc() {
+    setState(() => _hc = !_hc);
+    // Re-apply the current base with the new variant, live; keep the popover open.
+    final base = baseThemeName(widget.controller.currentName);
+    widget.controller.select(resolveThemeName(widget.controller.available, base, highContrast: _hc));
+  }
+
+  void _pick(ThemeDefinition base) {
+    widget.controller.select(resolveThemeName(widget.controller.available, base.name, highContrast: _hc));
+    widget.onClose();
+  }
+
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
-    final themes = widget.controller.available;
+    final count = _themes.length + 1; // +1 toggle
     switch (event.logicalKey) {
       case LogicalKeyboardKey.arrowDown:
-        setState(() => _index = (_index + 1) % themes.length);
+        setState(() => _index = (_index + 1) % count);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowUp:
-        setState(() => _index = (_index - 1 + themes.length) % themes.length);
+        setState(() => _index = (_index - 1 + count) % count);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.enter:
       case LogicalKeyboardKey.numpadEnter:
-        widget.onPick(themes[_index].name);
+        if (_index == 0) {
+          _toggleHc();
+        } else {
+          _pick(_themes[_index - 1]);
+        }
         return KeyEventResult.handled;
       case LogicalKeyboardKey.escape:
-        widget.onDismiss();
+        widget.onClose();
         return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -177,8 +192,8 @@ class _ThemePopoverState extends State<_ThemePopover> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final themes = widget.controller.available;
-    final currentName = widget.controller.currentName;
+    final themes = _themes;
+    final currentBase = baseThemeName(widget.controller.currentName);
     return Focus(
       focusNode: _focus,
       onKeyEvent: _onKey,
@@ -187,28 +202,82 @@ class _ThemePopoverState extends State<_ThemePopover> {
         label: 'Theme switcher',
         explicitChildNodes: true,
         child: ClideSurface(
-          width: 240,
+          width: 280,
           color: tokens.modalSurfaceBackground,
           border: tokens.modalSurfaceBorder,
           padding: const EdgeInsets.all(4),
           borderRadius: BorderRadius.circular(4),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
+            constraints: const BoxConstraints(maxHeight: 360),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _HighContrastToggle(
+                    checked: _hc,
+                    highlighted: _index == 0,
+                    onEnter: () => setState(() => _index = 0),
+                    onTap: _toggleHc,
+                  ),
+                  ClideDivider(),
                   for (var i = 0; i < themes.length; i++)
                     _PopoverRow(
                       displayName: themes[i].displayName,
-                      selected: themes[i].name == currentName,
-                      highlighted: i == _index,
-                      onEnter: () => setState(() => _index = i),
-                      onTap: () => widget.onPick(themes[i].name),
+                      selected: themes[i].name == currentBase,
+                      highlighted: _index == i + 1,
+                      onEnter: () => setState(() => _index = i + 1),
+                      onTap: () => _pick(themes[i]),
                     ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The "High contrast" checkbox row at the top of the popover.
+class _HighContrastToggle extends StatelessWidget {
+  const _HighContrastToggle({required this.checked, required this.highlighted, required this.onEnter, required this.onTap});
+
+  final bool checked;
+  final bool highlighted;
+  final VoidCallback onEnter;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Semantics(
+      checked: checked,
+      label: 'High contrast',
+      excludeSemantics: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => onEnter(),
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            color: highlighted ? tokens.listItemHoverBackground : tokens.listItemBackground,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 13,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: checked ? tokens.buttonBackground : null,
+                    border: Border.all(color: checked ? tokens.buttonBackground : tokens.modalSurfaceBorder),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: checked ? ClideIcon(const CheckIcon(), size: 9, color: tokens.buttonForeground) : null,
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: ClideText('High contrast', color: tokens.listItemForeground, fontSize: clideFontCaption)),
+              ],
             ),
           ),
         ),
@@ -259,7 +328,7 @@ class _PopoverRow extends StatelessWidget {
                   )
                 else
                   const SizedBox(width: 17),
-                Expanded(child: ClideText(displayName, color: fg, fontSize: clideFontCaption)),
+                Expanded(child: ClideText(displayName, color: fg, fontSize: clideFontCaption, maxLines: 1, overflow: TextOverflow.ellipsis)),
               ],
             ),
           ),
