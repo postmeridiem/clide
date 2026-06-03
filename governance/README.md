@@ -124,6 +124,7 @@ You might also want, project-permitting:
 - [D-80: `files.read` allows trusted Claude config roots beyond the workspace](decisions/architecture.md#d-80-filesread-allows-trusted-claude-config-roots-beyond-the-workspace) — _architecture_
 - [D-81: Right-pane reader load is driven by a retained `ReaderNav`, not per-view state or bus retention](decisions/architecture.md#d-81-right-pane-reader-load-is-driven-by-a-retained-readernav-not-per-view-state-or-bus-retention) — _architecture_
 - [D-82: Keymap sequences are space-separated; matching is a reusable matcher consumed at the interception point](decisions/architecture.md#d-82-keymap-sequences-are-space-separated-matching-is-a-reusable-matcher-consumed-at-the-interception-point) — _architecture_
+- [D-83: Dogfood agent model — hosted stream-json session primary, external CLI driver secondary](decisions/architecture.md#d-83-dogfood-agent-model--hosted-stream-json-session-primary-external-cli-driver-secondary) — _architecture_
 
 ## Open questions
 
