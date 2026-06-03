@@ -265,11 +265,14 @@ class RootLayout extends StatelessWidget {
                       SizedBox(width: sidebarSize, child: _BottomRail(slot: Slots.sidebar))
                     else if (sidebarVisible && sidebarCollapsed)
                       const SizedBox(width: ClideSpine.width),
-                    Expanded(child: const StatusbarHost()),
+                    const Expanded(child: StatusbarHost(side: StatusbarSide.left)),
                     if (contextVisible && !contextCollapsed)
                       SizedBox(width: contextSize, child: _BottomRail(slot: Slots.contextPanel))
                     else if (contextVisible && contextCollapsed)
                       const SizedBox(width: ClideSpine.width),
+                    // Global right-aligned status (tool status, theme switcher)
+                    // hugs the window's right edge, past the context rail (T-237).
+                    const StatusbarHost(side: StatusbarSide.right),
                   ],
                 ),
               ),
@@ -1154,8 +1157,17 @@ class _BottomRail extends StatelessWidget {
   }
 }
 
+/// Which group of status items a [StatusbarHost] renders. Left items
+/// (priority < 100) fill the workspace region; the global right group
+/// (priority >= 100 — tool status, theme switcher) is rendered separately as
+/// the bottom bar's trailing element so it hugs the window's right edge, past
+/// the context rail, instead of floating at the workspace column's edge (T-237).
+enum StatusbarSide { left, right }
+
 class StatusbarHost extends StatelessWidget {
-  const StatusbarHost({super.key});
+  const StatusbarHost({super.key, this.side = StatusbarSide.left});
+
+  final StatusbarSide side;
 
   @override
   Widget build(BuildContext context) {
@@ -1165,24 +1177,20 @@ class StatusbarHost extends StatelessWidget {
       listenable: kernel.panels,
       builder: (ctx, _) {
         final items = kernel.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
-        final left = items.where((i) => i.priority < 100).toList();
-        final right = items.where((i) => i.priority >= 100).toList();
+        final group = side == StatusbarSide.left ? items.where((i) => i.priority < 100).toList() : items.where((i) => i.priority >= 100).toList();
         return Container(
           color: tokens.chromeBackground,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          alignment: Alignment.center,
-          // Left items with flex > 0 are wrapped in Flexible(loose) so they
-          // yield width when the bar is tight; their contained ClideMarquee
-          // then scrolls within the allotted bounds (T-160). Items with
-          // flex == 0 (default) stay at intrinsic width. Right-side items
-          // (priority >= 100) are always intrinsic-width.
+          // Left fills its Expanded region (items start-aligned); right is
+          // intrinsic-width so, as the trailing bottom-bar element, it hugs
+          // the window's right edge. Left items with flex > 0 wrap in
+          // Flexible(loose) so they yield width when tight (T-160).
           child: Row(
+            mainAxisSize: side == StatusbarSide.left ? MainAxisSize.max : MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              for (final item in left)
+              for (final item in group)
                 if (item.flex > 0) Flexible(flex: item.flex, fit: FlexFit.loose, child: item.build(ctx)) else item.build(ctx),
-              const Spacer(),
-              for (final item in right) item.build(ctx),
             ],
           ),
         );
