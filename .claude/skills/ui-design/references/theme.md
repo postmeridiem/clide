@@ -62,6 +62,36 @@ types, priority levels) should NOT add tokens to `SurfaceTokens`. Instead:
 This keeps the core token surface lean and lets each extension own its
 palette. The pattern scales to any extension needing domain colors.
 
+## Named themes are user contracts — never retune their palette (D-69)
+
+A bundled theme that ships under a recognisable name (`clide`, `midnight`,
+`paper`, `terminal`, `catppuccin-*`, …) is a **user contract**. Its palette —
+including syntax tokens, status colours, and `borderHi` — **MUST NOT be
+retuned to pass a contrast gate**. Users pick Catppuccin because it looks like
+Catppuccin; quietly darkening a swatch to clear WCAG changes what they signed
+up for. Don't "fix" the artist's vision.
+
+When a theme fails the contrast gate ([D-22](../../../governance/decisions/accessibility.md)),
+the fix is **a sibling `-hc` (high-contrast) theme**, not an edit to the
+faithful one (D-69):
+
+- Keep `foo.yaml` pixel-faithful to the source palette.
+- Add `foo-hc.yaml` — same silhouette, but muted text / status chips / syntax
+  tokens / focus border bumped to clear the strict (`extendedPairs`) gate. Only
+  `-hc`/`-cb` variants are held to the extended set; base themes pass the
+  baseline (`canonicalPairs`) only.
+- Register both in `main.dart` `_loadBundledThemes` **and** the bundled list in
+  `test/a11y/contrast_test.dart`.
+
+Mechanics: `canonicalPairs` (baseline, every theme) vs `extendedPairs`
+(strict, `-hc`/`-cb` only) live in `lib/kernel/src/theme/contrast.dart`. If a
+faithful palette is so soft it can't clear even the *baseline* chrome pairs,
+that's a design call — surface it, don't silently retune. (Catppuccin Latte
+hit exactly this on two chrome pairs.)
+
+This is the same split VS Code ships: `Default Dark+` plus a separate
+`Default High Contrast`.
+
 ## Where to look in the codebase
 
 - Full token list: `lib/kernel/src/theme/tokens.dart`
