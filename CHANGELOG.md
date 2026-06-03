@@ -67,6 +67,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The Claude composer no longer loses a half-typed message when the UI changes
+  under it — e.g. a permission prompt taking the composer's place. The draft
+  (text and caret) is kept per session and restored when the composer returns.
+  (T-228)
 - File watcher no longer emits change events for files inside ignored
   directories (`.dart_tool/`, `build/`, etc.): it now checks ancestor dirs,
   not just the leaf. Most visible on macOS, where FSEvents delivers the nested

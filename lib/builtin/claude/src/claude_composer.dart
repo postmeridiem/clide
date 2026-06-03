@@ -48,6 +48,8 @@ class ClaudeComposer extends StatefulWidget {
     this.slashCommandsResolver,
     this.onInterrupt,
     this.busy = false,
+    this.initialValue,
+    this.onDraftChanged,
   });
 
   /// Called with the composed message (typed text plus attachment `@path`
@@ -74,6 +76,16 @@ class ClaudeComposer extends StatefulWidget {
   /// Whether a turn is in flight; shows the Stop affordance.
   final bool busy;
 
+  /// Seed value (text + selection) the composer mounts with — the
+  /// persisted per-session draft (T-228). The composer restores this on
+  /// init so an in-progress message survives the composer being torn down
+  /// and rebuilt (e.g. a permission prompt taking its place, D-78).
+  final TextEditingValue? initialValue;
+
+  /// Reports every change to the composer's value so the owner can persist
+  /// the draft. Fires with an empty value on submit/clear (T-228).
+  final ValueChanged<TextEditingValue>? onDraftChanged;
+
   @override
   State<ClaudeComposer> createState() => _ClaudeComposerState();
 }
@@ -93,6 +105,12 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
   @override
   void initState() {
     super.initState();
+    // Restore the persisted draft (text + caret) before wiring listeners,
+    // so seeding doesn't echo back through onDraftChanged (T-228).
+    final seed = widget.initialValue;
+    if (seed != null && seed.text.isNotEmpty) {
+      _controller.value = seed;
+    }
     _controller.addListener(_onTextChanged);
     _focus.addListener(_onFocusChanged);
   }
@@ -109,6 +127,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   void _onTextChanged() {
     setState(() {});
+    widget.onDraftChanged?.call(_controller.value);
     _syncTypeahead();
   }
 

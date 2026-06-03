@@ -6,6 +6,7 @@ library;
 import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/clipboard_paste.dart';
 import 'package:clide/builtin/claude/src/slash_commands.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -334,4 +335,106 @@ void main() {
       expect(kClideOwnedCommands, contains('fork'));
     });
   });
+
+  group('ClaudeComposer draft persistence (T-228)', () {
+    late KernelFixture f;
+    setUp(() async => f = await KernelFixture.create());
+    tearDown(() => f.dispose());
+
+    testWidgets('seeds the field from initialValue on mount', (tester) async {
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(
+          onSubmit: (_) {},
+          initialValue: const TextEditingValue(
+            text: 'half-typed',
+            selection: TextSelection.collapsed(offset: 4),
+          ),
+        ),
+      ));
+      final controller = tester.widget<EditableText>(find.byType(EditableText)).controller;
+      expect(controller.text, 'half-typed');
+      expect(controller.selection.baseOffset, 4); // caret restored too
+    });
+
+    testWidgets('reports draft changes (text + caret) via onDraftChanged', (tester) async {
+      final drafts = <TextEditingValue>[];
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, onDraftChanged: drafts.add),
+      ));
+      await tester.enterText(find.byType(EditableText), 'draft text');
+      await tester.pump();
+
+      expect(drafts.last.text, 'draft text');
+    });
+
+    testWidgets('reports an empty draft when submitting clears the field', (tester) async {
+      final drafts = <TextEditingValue>[];
+      await tester.pumpWidget(harness(
+        f,
+        ClaudeComposer(onSubmit: (_) {}, onDraftChanged: drafts.add),
+      ));
+      await tester.enterText(find.byType(EditableText), 'send me');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      // The last reported value is empty — owners drop the draft so a sent
+      // message doesn't come back.
+      expect(drafts.last.text, isEmpty);
+    });
+
+    testWidgets('round-trips a draft across an interaction-zone swap', (tester) async {
+      // Mirrors the pane's pattern: a host holds the draft and shows either
+      // the prompt (composer gone) or the composer seeded from that draft.
+      final showPrompt = ValueNotifier(false);
+      addTearDown(showPrompt.dispose);
+      await tester.pumpWidget(harness(f, _DraftSwapHost(showPrompt: showPrompt)));
+
+      await tester.enterText(find.byType(EditableText), 'survived the prompt');
+      await tester.pump();
+
+      // Prompt arrives — the composer is torn down.
+      showPrompt.value = true;
+      await tester.pump();
+      expect(find.byType(EditableText), findsNothing);
+
+      // Prompt resolved — composer remounts and restores the draft.
+      showPrompt.value = false;
+      await tester.pump();
+      expect(
+        tester.widget<EditableText>(find.byType(EditableText)).controller.text,
+        'survived the prompt',
+      );
+    });
+  });
+}
+
+/// Mimics the pane's draft handling (T-228): holds a per-host draft and
+/// renders either a prompt placeholder (composer torn down) or the
+/// composer seeded from that draft.
+class _DraftSwapHost extends StatefulWidget {
+  const _DraftSwapHost({required this.showPrompt});
+  final ValueListenable<bool> showPrompt;
+  @override
+  State<_DraftSwapHost> createState() => _DraftSwapHostState();
+}
+
+class _DraftSwapHostState extends State<_DraftSwapHost> {
+  TextEditingValue? _draft;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: widget.showPrompt,
+      builder: (context, prompt, _) => prompt
+          ? const SizedBox.shrink()
+          : ClaudeComposer(
+              onSubmit: (_) {},
+              initialValue: _draft,
+              onDraftChanged: (v) => _draft = v,
+            ),
+    );
+  }
 }

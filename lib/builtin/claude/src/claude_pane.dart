@@ -77,6 +77,13 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   bool _spawned = false;
 
+  /// Per-session composer draft (text + caret), held here so an unsent
+  /// message survives the composer being torn down and rebuilt — e.g. a
+  /// permission prompt taking the composer's place (D-78) or a session
+  /// switch within this pane (T-228). Keyed by claude session id; cleared
+  /// when the message is sent.
+  final Map<String, TextEditingValue> _drafts = {};
+
   /// This pane's stable key in the session orchestrator (T-169).
   String get _orchId => widget.isPrimary ? 'primary' : 'secondary-${widget.secondaryIndex}';
 
@@ -256,6 +263,19 @@ class _ClaudePaneState extends State<ClaudePane> {
     _session?.send(text);
   }
 
+  /// Persist (or clear) the composer draft for the active session (T-228).
+  /// The composer reports an empty value on submit/clear, which drops the
+  /// entry so a sent message doesn't reappear.
+  void _onDraftChanged(TextEditingValue value) {
+    final id = _sessionId;
+    if (id == null) return;
+    if (value.text.isEmpty) {
+      _drafts.remove(id);
+    } else {
+      _drafts[id] = value;
+    }
+  }
+
   /// clide-owned `/fork` (T-172): branch this conversation into a new pane.
   ///
   /// Delegates to the [onFork] callback supplied by [ClaudeSessionHost] with
@@ -366,11 +386,16 @@ class _ClaudePaneState extends State<ClaudePane> {
                   stream: _session?.busyStream,
                   initialData: _session?.busy ?? false,
                   builder: (context, busySnap) => ClaudeComposer(
+                    // Key by session so switching sessions in this pane
+                    // remounts the composer with that session's own draft.
+                    key: ValueKey('composer-${_sessionId ?? 'pending'}'),
                     enabled: _session != null,
                     busy: busySnap.data ?? false,
                     onInterrupt: _session?.interrupt,
                     onSubmit: _send,
                     pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
+                    initialValue: _sessionId == null ? null : _drafts[_sessionId],
+                    onDraftChanged: _onDraftChanged,
                   ),
                 ),
             ],
