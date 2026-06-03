@@ -37,6 +37,7 @@ import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
+import 'package:clide/src/daemon/ui_command.dart';
 import 'package:clide/src/daemon/panel_commands.dart';
 import 'package:clide/src/daemon/panel_resizer_kernel.dart';
 import 'package:clide/src/daemon/pql_commands.dart';
@@ -92,6 +93,9 @@ Future<void> main() async {
   // Captured after boot so `clide status` can report the read-only reader's
   // viewed doc (D-81), which isn't an editor buffer (T-221).
   ReaderNavRegistry? kernelReaderNav;
+  // The kernel MessageBus, captured post-boot so `ui.open` can drive the GUI
+  // readers (publish a 'selection') from the CLI — the drive-half of D-6 (T-231).
+  MessageBus? kernelMessages;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -207,6 +211,10 @@ Future<void> main() async {
     final pql = PqlClient(workDir: workRoot, toolchain: tc);
     registerPqlCommands(dispatcher, pql);
     registerPanelCommands(dispatcher, ArrangementPanelResizer(arrangement));
+    // `clide ui open <reader> <id|path>` — drive the GUI readers from the CLI
+    // (T-231, drive-half of D-6). Publishes a 'selection' to the kernel
+    // MessageBus, captured post-boot; null in headless contexts.
+    registerUiCommands(dispatcher, () => kernelMessages?.publish);
     // `clide status` — one-shot orientation snapshot (T-221): active pane,
     // focused file + selection, git summary, layout. Assembled here where the
     // live kernel + subsystem state is in scope; the reader's viewed doc is
@@ -317,6 +325,7 @@ Future<void> main() async {
   // creates it before the daemonClientFactory runs, but the status closure
   // only reads it at request time (post-boot), so capturing it here is safe.
   kernelReaderNav = services.readerNav;
+  kernelMessages = services.messages;
 
   // Register every built-in. Tier 0 activates only the four that do
   // real work; the rest compile in as stubs so the extensions-ui can

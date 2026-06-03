@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- `clide ui open <reader> <id|path>` opens a doc in a GUI reader from the CLI —
+  `tickets`/`decisions` by id, `markdown` by path — so an agent can surface what
+  it's looking at on your screen. The drive-half complement to `clide status`. (T-231)
 - Cycle Claude's permission mode from the primary pane: Ctrl/Cmd+M while the
   composer is focused, a clickable mode badge in the status line, or the
   "Claude: Cycle permission mode" palette command — steps default → accept-edits
