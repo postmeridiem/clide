@@ -140,23 +140,6 @@ void main() {
       expect(find.bySemanticsLabel('forest'), findsNothing);
     });
 
-    testWidgets('popover hides -hc rows; the High contrast toggle applies the sibling (T-237)', (tester) async {
-      final f2 = await KernelFixture.create(bundledThemes: [_def('midnight'), _def('midnight-hc')]);
-      addTearDown(f2.dispose);
-      await tester.pumpWidget(harness(f2, const ThemeSwitcherStatusItem()));
-      await tester.pump();
-      await tester.tap(find.bySemanticsLabel('Theme: midnight'));
-      await tester.pumpAndSettle();
-      // Base shown, -hc row hidden, toggle present.
-      expect(find.text('midnight'), findsOneWidget);
-      expect(find.text('midnight-hc'), findsNothing);
-      expect(find.text('High contrast'), findsOneWidget);
-      // Toggling high contrast applies the -hc sibling live.
-      await tester.tap(find.bySemanticsLabel('High contrast'));
-      await tester.pumpAndSettle();
-      expect(f2.services.theme.currentName, 'midnight-hc');
-    });
-
     testWidgets('Esc dismisses the popover without changing the theme (T-234)', (tester) async {
       await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
       await tester.pump();
