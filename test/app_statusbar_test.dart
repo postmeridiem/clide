@@ -1,9 +1,10 @@
 /// Regression test for the bottom status bar's right-group alignment (T-239):
 /// within the center (workspace) bar, left items are start-aligned and the
 /// right group (tool status / theme switcher) hugs the right edge — even with
-/// a flex left item present, and at any bar width. Uses the REAL StatusbarHost
-/// with real StatusItemContributions, in a tight SizedBox (not the shared
-/// harness, which hands unbounded width — see pane_context_status_test).
+/// a flex left item present, and at ANY bar width incl. ultrawide (where the
+/// old Spacer-vs-flex layout drifted noticeably). Uses the REAL StatusbarHost
+/// with real StatusItemContributions; the surface is sized per case via
+/// tester.view so a wide SizedBox isn't clamped to the default 800px surface.
 library;
 
 import 'package:clide/app.dart';
@@ -21,7 +22,7 @@ Widget _bar(KernelFixture f, double width) => Directionality(
         child: ClideTheme(
           controller: f.services.theme,
           child: MediaQuery(
-            data: const MediaQueryData(),
+            data: MediaQueryData(size: Size(width, 200)),
             child: Align(
               alignment: Alignment.topLeft,
               child: SizedBox(width: width, height: 26, child: const StatusbarHost()),
@@ -34,11 +35,24 @@ Widget _bar(KernelFixture f, double width) => Directionality(
 void main() {
   late KernelFixture f;
   setUp(() async => f = await KernelFixture.create());
-  tearDown(() => f.dispose());
+  tearDown(() async {
+    await f.dispose();
+  });
 
-  testWidgets('right group hugs the bar right edge; a flex left item does not push it (T-239)', (tester) async {
+  Future<void> pumpAt(WidgetTester tester, double width) async {
+    tester.view.physicalSize = Size(width, 200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(_bar(f, width));
+    await tester.pump();
+  }
+
+  testWidgets('right group hugs the bar right edge at normal AND ultrawide widths (T-239)', (tester) async {
     // Mirrors the real surface: a left flex:1 item (like the Claude status
-    // marquee, priority 50) + right-group items (priority >= 100).
+    // marquee, priority 50) + a right-group item (priority >= 100).
     f.services.panels.contribute(StatusItemContribution(
       id: 'test.left.flex',
       priority: 50,
@@ -51,28 +65,24 @@ void main() {
       build: (_) => const Text('RIGHT', softWrap: false),
     ));
 
-    const width = 600.0;
-    await tester.pumpWidget(_bar(f, width));
-    await tester.pump();
-
-    expect(tester.takeException(), isNull);
-    // StatusbarHost pads 8px each side → the right item's right edge sits at
-    // width - 8. If the right group floated mid-bar this would be well short.
-    expect(tester.getTopRight(find.text('RIGHT')).dx, closeTo(width - 8, 1.0));
-    // And the left item starts at the left (8px pad).
-    expect(tester.getTopLeft(find.text('LEFT')).dx, closeTo(8, 1.0));
+    // 600 = normal, 3440 = ultrawide (where the float actually surfaced).
+    for (final width in [600.0, 3440.0]) {
+      await pumpAt(tester, width);
+      expect(tester.takeException(), isNull, reason: 'width=$width');
+      // StatusbarHost pads 8px each side → right item's right edge ≈ width - 8.
+      expect(tester.getTopRight(find.text('RIGHT')).dx, closeTo(width - 8, 1.0), reason: 'right group not at edge at width=$width');
+      expect(tester.getTopLeft(find.text('LEFT')).dx, closeTo(8, 1.0), reason: 'left not at start at width=$width');
+    }
   });
 
-  testWidgets('right group still hugs the edge with no left items', (tester) async {
+  testWidgets('right group hugs the edge with no left items (ultrawide)', (tester) async {
     f.services.panels.contribute(StatusItemContribution(
       id: 'test.right.only',
       priority: 110,
       build: (_) => const Text('R2', softWrap: false),
     ));
-    const width = 500.0;
-    await tester.pumpWidget(_bar(f, width));
-    await tester.pump();
+    await pumpAt(tester, 3440.0);
     expect(tester.takeException(), isNull);
-    expect(tester.getTopRight(find.text('R2')).dx, closeTo(width - 8, 1.0));
+    expect(tester.getTopRight(find.text('R2')).dx, closeTo(3440 - 8, 1.0));
   });
 }
