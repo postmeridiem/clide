@@ -75,4 +75,57 @@ void main() {
     expect(r.ok, isFalse);
     expect(r.error?.kind, IpcErrorKind.toolError);
   });
+
+  // -- ui.toast (T-50 drive-half) -------------------------------------------
+
+  Future<IpcResponse> toast(List<String> positional, {Map<String, Object?>? flags}) => d.dispatch(
+        IpcRequest(id: '1', cmd: 'ui.toast', args: {'positional': positional, if (flags != null) 'flags': flags}),
+      );
+
+  test('ui toast publishes a toast message (default info severity)', () async {
+    wire();
+    final r = await toast(['Build', 'finished']); // unquoted multi-word joins
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['shown'], isTrue);
+    expect(published.single.publisher, 'cli');
+    expect(published.single.channel, 'toast');
+    expect(published.single.data, {'message': 'Build finished', 'severity': 'info'});
+  });
+
+  test('ui toast honours --severity and --duration', () async {
+    wire();
+    final r = await toast(['Pushed'], flags: {'severity': 'success', 'duration': '2000'});
+    expect(r.ok, isTrue);
+    expect(published.single.data, {'message': 'Pushed', 'severity': 'success', 'durationMs': 2000});
+  });
+
+  test('ui toast rejects an unknown severity', () async {
+    wire();
+    final r = await toast(['x'], flags: {'severity': 'bogus'});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(published, isEmpty);
+  });
+
+  test('ui toast rejects a non-integer duration', () async {
+    wire();
+    final r = await toast(['x'], flags: {'duration': 'soon'});
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+  });
+
+  test('ui toast with no message → userError', () async {
+    wire();
+    final r = await toast([]);
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(published, isEmpty);
+  });
+
+  test('ui toast with no live UI → toolError', () async {
+    wire(liveUi: false);
+    final r = await toast(['hi']);
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
 }

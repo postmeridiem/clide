@@ -33,8 +33,13 @@ const Map<String, ({String publisher, String dataKey})> _readers = {
   'markdown': (publisher: 'builtin.markdown', dataKey: 'path'),
 };
 
+/// Severities the toast verb accepts — mirrors `ToastSeverity` (kept as a
+/// literal so this file stays Flutter-free for `dart test`).
+const Set<String> _toastSeverities = {'success', 'warning', 'error', 'info'};
+
 void registerUiCommands(DaemonDispatcher d, MessagePublisher? Function() publisher) {
   d.register('ui.open', (req) async => _open(req, publisher));
+  d.register('ui.toast', (req) async => _toast(req, publisher));
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
@@ -69,4 +74,48 @@ Future<IpcResponse> _open(IpcRequest req, MessagePublisher? Function() publisher
   }
   publish(target.publisher, 'selection', {target.dataKey: ref});
   return IpcResponse.ok(id: req.id, data: {'reader': reader, 'ref': ref, 'opened': true});
+}
+
+/// `clide ui toast "message" [--severity success|warning|error|info]
+/// [--duration MS]` — raise a toast in the live GUI from the CLI. The
+/// drive-half complement for operation feedback (T-50): an agent (or script)
+/// can surface "done / failed" to the user's screen. Publishes a message on
+/// the `toast` channel that the kernel ToastService consumes — the same path
+/// a UI emitter uses, so no GUI coupling here.
+Future<IpcResponse> _toast(IpcRequest req, MessagePublisher? Function() publisherSource) async {
+  final positional = (req.args['positional'] as List?)?.whereType<String>().toList() ?? const <String>[];
+  final flags = req.args['flags'] as Map?;
+  // Message: a named arg, else all positionals joined (so an unquoted
+  // multi-word message still works).
+  final message = (req.args['message'] as String?) ?? (positional.isNotEmpty ? positional.join(' ') : null);
+  if (message == null || message.trim().isEmpty) {
+    return _userErr(req.id, 'a message is required (e.g. `ui toast "Build finished"`)');
+  }
+  final severity = (flags?['severity'] as String?) ?? 'info';
+  if (!_toastSeverities.contains(severity)) {
+    return _userErr(req.id, 'unknown severity: $severity', hint: 'one of: ${_toastSeverities.join(', ')}');
+  }
+  int? durationMs;
+  final durRaw = flags?['duration'];
+  if (durRaw != null) {
+    durationMs = int.tryParse('$durRaw');
+    if (durationMs == null) {
+      return _userErr(req.id, 'duration must be an integer number of milliseconds');
+    }
+  }
+
+  final publish = publisherSource();
+  if (publish == null) {
+    return IpcResponse.err(
+      id: req.id,
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'no live UI to drive (clide is not running a GUI)'),
+    );
+  }
+  // Channel literal must match ToastService's `toastChannel`.
+  publish('cli', 'toast', {
+    'message': message,
+    'severity': severity,
+    if (durationMs != null) 'durationMs': durationMs,
+  });
+  return IpcResponse.ok(id: req.id, data: {'message': message, 'severity': severity, 'shown': true});
 }

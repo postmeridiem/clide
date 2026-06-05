@@ -23,6 +23,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   dismissable, with success/warning/error/info severities. Components raise
   them by publishing to the kernel MessageBus — git push/pull show the first
   ones. (T-50)
+- `clide ui toast "message" [--severity …] [--duration MS]` raises a toast in
+  the live GUI from the CLI — so an agent or script can surface "done/failed"
+  on your screen. The drive-half complement to the toast system. (T-245)
 - Claude pane folds runs of tool calls/results into a collapsible "activity
   card" so prose isn't buried: collapsed by default with a live one-line ticker
   + step count, click/Enter to expand. Claude prose, user messages, and failed
