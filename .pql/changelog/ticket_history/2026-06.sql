@@ -248,3 +248,16 @@ REFINED 2026-06-05. Build (bottom-right, system + proof emitter):
 - Proof emitter: git push success/failure raises a toast (wire in the git command path). Broad wiring (extension activated, update available, generic errors) = follow-up tickets.
 - Tests: ToastService queue + auto-dismiss (fakeAsync timers) + severity mapping; ClideToast render per severity; a11y contract; overlay mount.', NULL, '2026-06-05 15:17:36', '2026-06-05 15:17:36', '2026-06-05 15:17:36', NULL, '800e0d1a19a42a0080643bde37283fd0', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-50', 'status', 'ready', 'in_progress', NULL, '2026-06-05 15:17:36', '2026-06-05 15:17:36', '2026-06-05 15:17:36', NULL, 'ca87b010b519f2afaf004d0f448b0063', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'status', 'backlog', 'ready', NULL, '2026-06-05 15:21:04', '2026-06-05 15:21:04', '2026-06-05 15:21:04', NULL, 'a1236549768cc8ce72e0a7fe3d092883', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-244', 'description', NULL, 'When a Claude Code session hits context compaction, the Claude pane gives no signal that anything is happening: the conversation surface shows no in-pane indicator and the status bar shows no progress. From the user''s side the pane just appears to stall until compaction finishes and the next response streams in.
+
+Expected: compaction is a visible, first-class state.
+- In-pane: a clear "Compacting context…" affordance on the conversation surface (e.g. a transient status card / banner in the live-status line from T-168) so it''s obvious the session is busy, not wedged.
+- Status bar: a progress indicator in the focus-driven Claude slot (T-150) reflecting the active compaction, consistent with the long-running-operation pattern in T-59.
+
+Implementation notes:
+- Source the state from the stream-json event stream (T-164/T-165), not transcript tailing — identify the compaction signal (system/compact_boundary or equivalent event) and thread it through the conversation controller into both the in-pane live-status line and the status-bar slot.
+- Clear the indicator when compaction completes and normal streaming resumes.
+
+Acceptance: triggering /compact (or an auto-compaction) shows an in-pane "compacting" indicator and a status-bar progress affordance for the duration, both of which clear when it finishes; covered by a unit test against a canned event fixture containing the compaction event.', NULL, '2026-06-05 15:24:35', '2026-06-05 15:24:35', '2026-06-05 15:24:35', NULL, '35417512fd3c04ba9fd74dce0d573d16', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-50', 'status', 'in_progress', 'done', NULL, '2026-06-05 21:12:23', '2026-06-05 21:12:23', '2026-06-05 21:12:23', NULL, '3104824ca77d25cde2da8ccfc2f56196', 1) ON CONFLICT(hash) DO NOTHING;
