@@ -1167,22 +1167,28 @@ class StatusbarHost extends StatelessWidget {
         final items = kernel.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
         final left = items.where((i) => i.priority < 100).toList();
         final right = items.where((i) => i.priority >= 100).toList();
+        // Two explicit columns within the center (workspace) bar: the LEFT
+        // group lives in an Expanded so it absorbs all free space and is
+        // start-aligned, and the RIGHT group (tool status, theme switcher)
+        // trails it at intrinsic width — so it hugs the workspace block's
+        // right edge by construction, no Spacer to fight a flex item (T-239).
+        // Left items with flex > 0 wrap in Flexible(loose) so they yield width
+        // when tight (T-160).
         return Container(
           color: tokens.chromeBackground,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          // NB: no `alignment` here — setting it loosens the child's
-          // constraints, collapsing the Spacer and leaving the right group
-          // (tool status, theme switcher) floating mid-bar instead of hugging
-          // the right edge of the center (workspace) block (T-237). The right
-          // group sits at the workspace column's right edge, NOT the window's.
-          // Left items with flex > 0 wrap in Flexible(loose) so they yield
-          // width when tight (T-160).
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              for (final item in left)
-                if (item.flex > 0) Flexible(flex: item.flex, fit: FlexFit.loose, child: item.build(ctx)) else item.build(ctx),
-              const Spacer(),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    for (final item in left)
+                      if (item.flex > 0) Flexible(flex: item.flex, fit: FlexFit.loose, child: item.build(ctx)) else item.build(ctx),
+                  ],
+                ),
+              ),
               for (final item in right) item.build(ctx),
             ],
           ),
