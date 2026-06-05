@@ -61,6 +61,57 @@ void main() {
     });
   });
 
+  group('Team events', () {
+    test('TeamMemberJoined includes only the set optional fields in payload', () {
+      const minimal = TeamMemberJoined(
+        team: 'alpha',
+        agentId: 'bob@alpha',
+        name: 'bob',
+        agentType: 'reviewer',
+        paneId: '%3',
+      );
+      expect(minimal.subsystem, 'team');
+      expect(minimal.kind, 'member-joined');
+      expect(minimal.payload(), {
+        'team': 'alpha',
+        'agentId': 'bob@alpha',
+        'name': 'bob',
+        'agentType': 'reviewer',
+        'paneId': '%3',
+      });
+
+      const full = TeamMemberJoined(
+        team: 'alpha',
+        agentId: 'bob@alpha',
+        name: 'bob',
+        agentType: 'reviewer',
+        paneId: '%3',
+        model: 'opus',
+        color: '#ff0000',
+        cwd: '/tmp/work',
+        transcriptPath: '/tmp/t.jsonl',
+      );
+      expect(full.payload(), {
+        'team': 'alpha',
+        'agentId': 'bob@alpha',
+        'name': 'bob',
+        'agentType': 'reviewer',
+        'paneId': '%3',
+        'model': 'opus',
+        'color': '#ff0000',
+        'cwd': '/tmp/work',
+        'transcriptPath': '/tmp/t.jsonl',
+      });
+    });
+
+    test('TeamMemberLeft', () {
+      const e = TeamMemberLeft(team: 'alpha', agentId: 'bob@alpha', paneId: '%3');
+      expect(e.subsystem, 'team');
+      expect(e.kind, 'member-left');
+      expect(e.payload(), {'team': 'alpha', 'agentId': 'bob@alpha', 'paneId': '%3'});
+    });
+  });
+
   group('ClideEventEnvelope', () {
     test('toJson builds a v1 envelope around the event', () {
       final ts = DateTime.utc(2026, 5, 11, 9, 30);

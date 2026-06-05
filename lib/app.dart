@@ -583,7 +583,12 @@ class _RecentProjectRow extends StatelessWidget {
                   if (project.branch != null)
                     Row(
                       children: [
-                        ClideText(project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        // Elide a long path instead of overflowing the row
+                        // (matches the welcome recents row; T-160 discipline).
+                        Flexible(
+                          child: ClideText(project.relativePath,
+                              muted: true, fontSize: 12, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
                         ClideText('  ·  ', muted: true, fontSize: 12),
                         ClideIcon(PhosphorIcons.gitBranch, size: 10, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
@@ -591,7 +596,7 @@ class _RecentProjectRow extends StatelessWidget {
                       ],
                     )
                   else
-                    ClideText(project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                    ClideText(project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

@@ -129,34 +129,101 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets(
-      'sticky-startup toggle renders + flips when tapped (T-115)',
-      (tester) async {
-        // Seed a recent directly so we don't need a real git repo.
-        await f.services.settings.set<String>(
-          'app.recentProjects',
-          '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]',
+    // T-122 ROOT CAUSE + FIX (2026-06-05): the strand was NOT in the recents
+    // widgets — it was the seeding. SettingsStore.set does real file I/O
+    // (writeAsString); awaiting settings.set + project.loadRecents INSIDE a
+    // testWidgets body runs that I/O in fake-async, where the completion
+    // callback is trapped and the await never returns (a +0 strand only
+    // SIGKILL clears). Seeding inside tester.runAsync() runs it on the real
+    // event loop, so the recents render fine. The bounded-vs-unbounded width
+    // was a red herring — but a tight tree is still used here (the shared
+    // harness()'s unbounded width breaks WelcomeView's Positioned status line
+    // + Flexible rows independently).
+    Widget tightWelcome() => Directionality(
+          textDirection: TextDirection.ltr,
+          child: ClideKernel(
+            services: f.services,
+            child: ClideTheme(
+              controller: f.services.theme,
+              child: const MediaQuery(
+                data: MediaQueryData(size: Size(1200, 900)),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(width: 1200, height: 900, child: WelcomeView()),
+                ),
+              ),
+            ),
+          ),
         );
+
+    Future<void> seedRecents(WidgetTester tester, String json) async {
+      // runAsync: real event loop, so SettingsStore's file I/O completes.
+      await tester.runAsync(() async {
+        await f.services.settings.set<String>('app.recentProjects', json);
         await f.services.project.loadRecents();
-        tester.view.physicalSize = const Size(1200, 900);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        await tester.pumpWidget(harness(f, const WelcomeView()));
-        await tester.pump();
-        expect(find.text('clide-fixture'), findsOneWidget);
-        final toggle = find.byKey(const ValueKey('welcome.sticky./tmp/clide-fixture'));
-        expect(toggle, findsOneWidget);
-        await tester.tap(toggle, warnIfMissed: false);
-        await tester.pump();
-        expect(f.services.project.recents.first.startupSticky, isTrue);
-      },
-      // T-122: pumpWidget(WelcomeView) with a non-empty recents list
-      // strands the test until the 10-min Flutter timeout, even after
-      // ruling out ClideTooltip and find/tap shape. Cause not yet
-      // localized — skip until reproduced in isolation.
-      skip: true,
-    );
+      });
+    }
+
+    testWidgets('recent rows render with branch + sticky variants (T-122)', (tester) async {
+      await seedRecents(
+        tester,
+        '[{"path":"/tmp/alpha","name":"alpha","branch":"main","lastOpened":"2026-05-18T00:00:00.000Z","startupSticky":true},'
+        '{"path":"/tmp/beta","name":"beta","lastOpened":"2026-05-18T00:00:00.000Z"}]',
+      );
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(tightWelcome());
+      await tester.pump();
+
+      expect(find.text('alpha'), findsOneWidget);
+      expect(find.text('beta'), findsOneWidget);
+      expect(find.text('main'), findsOneWidget); // branch chip on the row that has one
+      expect(find.byKey(const ValueKey('welcome.sticky./tmp/alpha')), findsOneWidget);
+      expect(find.byKey(const ValueKey('welcome.sticky./tmp/beta')), findsOneWidget);
+    });
+
+    testWidgets('sticky-startup toggle flips when tapped (T-115/T-122)', (tester) async {
+      await seedRecents(
+        tester,
+        '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]',
+      );
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(tightWelcome());
+      await tester.pump();
+      expect(find.text('clide-fixture'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('welcome.sticky./tmp/clide-fixture')), warnIfMissed: false);
+      await tester.pump();
+      expect(f.services.project.recents.first.startupSticky, isTrue);
+    });
+
+    testWidgets('tapping a recent row kicks off _openRecent without throwing (T-122)', (tester) async {
+      await seedRecents(
+        tester,
+        '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]',
+      );
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(tightWelcome());
+      await tester.pump();
+      // /tmp/clide-fixture is not a git repo → project.open returns false,
+      // no tab activation, no throw. Just exercises the _openRecent path.
+      await tester.runAsync(() async {
+        await tester.tap(find.text('clide-fixture'), warnIfMissed: false);
+      });
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('Open folder opens the fallback dialog when the picker throws MissingPluginException', (tester) async {
       // Pre-register a mock that throws — emulating a platform without

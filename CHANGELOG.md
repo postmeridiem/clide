@@ -99,6 +99,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Recent-project rows (welcome screen and the project switcher) now ellipsize a
+  long path instead of overflowing the row — a long repo path no longer spills
+  past the edge. (T-122)
 - CLI commands that take arguments now work: `clide editor open <path>`,
   `clide files read <path>`, `clide pane focus <id>` / `resize <id> <c> <r>`,
   etc. now bind positional/flag argv to the handler's named args (they
