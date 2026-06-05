@@ -169,6 +169,26 @@ Container(
 - Eyeballing alignment without working back from a target margin in
   pixels. The math matters; see "uniform inner spacing".
 
+## Ultrawide — clide is an IDE, assume wide screens (T-239)
+
+The default `flutter_test` surface is 800px, but clide runs on 3440/5120
+ultrawide constantly. Two consequences:
+
+- **Right-align with `Expanded`, not a `Spacer` that fights a flex sibling.**
+  A `Row[ left…, Flexible(flex:1), Spacer(), right… ]` splits the free space
+  between the loose flex item and the `Spacer` 50/50 — so the right group is
+  pushed only *half* the free space. The drift is **proportional to width**:
+  invisible at 800–1200px, ~1500px adrift at 3440px. To pin a right group to
+  the edge regardless of width, put the left group in `Expanded(Row[...])`
+  (it absorbs *all* free space; flex items flex within it) and let the right
+  group trail at intrinsic width. See `StatusbarHost` in `lib/app.dart`.
+- **Test layout at ultrawide, not just the default surface.** Width-sensitive
+  bugs hide at 800px. Drive the surface with `tester.view.physicalSize` —
+  a wide `SizedBox` under the default 800px surface is CLAMPED to 800, so it
+  doesn't actually test wide. Pattern in `test/app_statusbar_test.dart`
+  (`pumpAt`): set `view.physicalSize`, assert key positions at a normal AND an
+  ultrawide width. Audit tracked in T-241.
+
 ## Testing alignment
 
 When iterating on a control's spacing:
