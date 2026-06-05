@@ -14,6 +14,7 @@ export 'src/clide_filter_box.dart';
 export 'src/clide_markdown.dart';
 export 'src/clide_marquee.dart';
 export 'src/clide_svg_view.dart';
+export 'src/clide_toast.dart';
 export 'src/clide_icon.dart';
 export 'src/clide_icon_rail.dart';
 export 'src/clide_palette.dart';

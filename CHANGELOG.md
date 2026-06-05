@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Toast notifications for operation feedback: non-modal cards slide in
+  bottom-right, auto-dismiss (errors linger), stack, and are manually
+  dismissable, with success/warning/error/info severities. Components raise
+  them by publishing to the kernel MessageBus — git push/pull show the first
+  ones. (T-50)
 - Claude pane folds runs of tool calls/results into a collapsible "activity
   card" so prose isn't buried: collapsed by default with a live one-line ticker
   + step count, click/Enter to expand. Claude prose, user messages, and failed

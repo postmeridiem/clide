@@ -46,6 +46,7 @@ export 'src/reader_nav.dart';
 export 'src/recent_files.dart';
 export 'src/scheduler.dart';
 export 'src/text_zoom.dart';
+export 'src/toast.dart';
 export 'src/secrets.dart';
 export 'src/tray.dart';
 export 'src/panels/drag_resize.dart';

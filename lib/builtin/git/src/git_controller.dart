@@ -12,12 +12,22 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/foundation.dart';
 
 class GitController extends ChangeNotifier {
-  GitController({required this.ipc, required this.events}) {
+  GitController({required this.ipc, required this.events, this.messages}) {
     _eventSub = events.on<DaemonEvent>().listen(_onEvent);
   }
 
   final DaemonClient ipc;
   final DaemonBus events;
+
+  /// Optional — the kernel MessageBus, used to publish operation-feedback
+  /// toasts (push/pull) without depending on the toast service. Null in
+  /// headless/unit contexts that don't wire it.
+  final MessageBus? messages;
+
+  void _toast(String message, ToastSeverity severity) {
+    final m = messages;
+    if (m != null) publishToast(m, 'builtin.git', message, severity: severity);
+  }
 
   StreamSubscription<DaemonEvent>? _eventSub;
 
@@ -112,8 +122,11 @@ class GitController extends ChangeNotifier {
 
   Future<bool> pull() async {
     final r = await ipc.request('git.pull');
-    if (!r.ok) {
+    if (r.ok) {
+      _toast('Pulled${_upstream != null ? ' from $_upstream' : ''}', ToastSeverity.success);
+    } else {
       _error = r.error?.message;
+      _toast('Pull failed: ${r.error?.message ?? 'unknown error'}', ToastSeverity.error);
       notifyListeners();
     }
     return r.ok;
@@ -121,8 +134,11 @@ class GitController extends ChangeNotifier {
 
   Future<bool> push() async {
     final r = await ipc.request('git.push');
-    if (!r.ok) {
+    if (r.ok) {
+      _toast('Pushed${_upstream != null ? ' to $_upstream' : ''}', ToastSeverity.success);
+    } else {
       _error = r.error?.message;
+      _toast('Push failed: ${r.error?.message ?? 'unknown error'}', ToastSeverity.error);
       notifyListeners();
     }
     return r.ok;

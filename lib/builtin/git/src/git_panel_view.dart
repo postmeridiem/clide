@@ -35,7 +35,7 @@ class _GitPanelViewState extends State<GitPanelView> {
     super.didChangeDependencies();
     if (_controller != null) return;
     final kernel = ClideKernel.of(context);
-    _controller = GitController(ipc: kernel.ipc, events: kernel.events);
+    _controller = GitController(ipc: kernel.ipc, events: kernel.events, messages: kernel.messages);
     unawaited(_controller!.load());
   }
 

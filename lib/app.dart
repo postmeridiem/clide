@@ -166,6 +166,7 @@ class _RootShellState extends State<_RootShell> {
                             const ClidePalette(),
                             const QuickOpenOverlay(),
                             const Positioned.fill(child: _WelcomeOverlay()),
+                            const ToastOverlay(),
                           ],
                         ),
                       ),
