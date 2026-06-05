@@ -15,6 +15,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Reporter: failures-only keeps the gate output to failing tests + a final
+# pass/fail count, instead of one line per test (the `expanded` reporter the
+# runner picks when stdout isn't a TTY — which buries real failures in
+# thousands of pass lines). Override with TEST_REPORTER=expanded when
+# debugging a specific run. (T-242)
+REPORTER="${TEST_REPORTER:-failures-only}"
+
 coverage=0
 [[ "${1:-}" == "--coverage" ]] && coverage=1
 
@@ -28,24 +35,24 @@ echo "==> dart test (pty — unreliable under the flutter test runner; serial)"
 # --concurrency=1: these spawn real PTYs and compete for fds when run in
 # parallel, which flaked them (registry/session). Serialize — the proper fix
 # for resource-bound tests, vs. the old per-test `retry:` band-aid. (T-193)
-dart test --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart
+dart test -r "$REPORTER" --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart
 
 # The parallel pool excludes both pty (runs under dart test, above) and
 # serial-tagged tests (concurrency-vulnerable — run in their own --concurrency=1
 # pass below). See dart_test.yaml + T-193.
 if [[ "$coverage" == 1 ]]; then
   echo "==> flutter test --coverage (parallel pool; excludes pty + serial)"
-  flutter test --coverage --exclude-tags "pty || serial" --timeout 60s
+  flutter test -r "$REPORTER" --coverage --exclude-tags "pty || serial" --timeout 60s
   cp coverage/lcov.info coverage/lcov.parallel.info
   echo "==> flutter test --coverage (serial-tagged; --concurrency=1)"
-  flutter test --coverage --tags serial --concurrency=1 --timeout 60s
+  flutter test -r "$REPORTER" --coverage --tags serial --concurrency=1 --timeout 60s
   echo "==> merge coverage (parallel + serial passes → coverage/lcov.info)"
   python3 ci/merge_lcov.py coverage/lcov.parallel.info coverage/lcov.info > coverage/lcov.merged.info
   mv coverage/lcov.merged.info coverage/lcov.info
   rm -f coverage/lcov.parallel.info
 else
   echo "==> flutter test (dev; parallel pool, excludes pty + serial)"
-  flutter test --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
+  flutter test -r "$REPORTER" --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
   echo "==> flutter test (dev; serial-tagged, --concurrency=1)"
-  flutter test --tags serial --concurrency=1 --timeout 60s
+  flutter test -r "$REPORTER" --tags serial --concurrency=1 --timeout 60s
 fi

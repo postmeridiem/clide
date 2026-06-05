@@ -5,4 +5,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> a11y suite"
-flutter test test/a11y/
+# failures-only: failing tests + a final count, not one line per test.
+# Override with TEST_REPORTER=expanded when debugging. (T-242)
+flutter test -r "${TEST_REPORTER:-failures-only}" test/a11y/
