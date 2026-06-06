@@ -128,6 +128,7 @@ You might also want, project-permitting:
 - [D-84: Diff view placement — editor-mode inline above Claude, spawned from the git sidebar](decisions/architecture.md#d-84-diff-view-placement--editor-mode-inline-above-claude-spawned-from-the-git-sidebar) — _architecture_
 - [D-85: Event bus delivery — bounded ring-buffer back-pressure; in-memory cursor retention, bus-owned if persisted](decisions/architecture.md#d-85-event-bus-delivery--bounded-ring-buffer-back-pressure-in-memory-cursor-retention-bus-owned-if-persisted) — _architecture_
 - [D-86: MCP tool surface — full clide namespace generated from the co-registered command registry](decisions/architecture.md#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry) — _architecture_
+- [D-87: Output/log dock — bottom, toggled, read-only (logs + problems)](decisions/architecture.md#d-87-outputlog-dock--bottom-toggled-read-only-logs--problems) — _architecture_
 
 ## Open questions
 
@@ -151,7 +152,6 @@ You might also want, project-permitting:
 - [Q-25: Body text face — mono everywhere vs Josefin Sans UI + mono code](questions/architecture.md#q-25-body-text-face--mono-everywhere-vs-josefin-sans-ui--mono-code) — _architecture_
 - [Q-26: Small screen layout (< 1000px)](questions/architecture.md#q-26-small-screen-layout--1000px) — _architecture_
 - [Q-27: Two-editor split](questions/architecture.md#q-27-two-editor-split) — _architecture_
-- [Q-28: Terminal strip scope — shell only or logs/errors/tests](questions/architecture.md#q-28-terminal-strip-scope--shell-only-or-logserrorstests) — _architecture_
 - [Q-29: Branch picker location](questions/architecture.md#q-29-branch-picker-location) — _architecture_
 - [Q-30: Focus behavior when editor is dirty and viewer is peeked](questions/architecture.md#q-30-focus-behavior-when-editor-is-dirty-and-viewer-is-peeked) — _architecture_
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
@@ -164,6 +164,7 @@ You might also want, project-permitting:
 - [Q-19: (withdrawn)](questions/process.md#q-19-withdrawn) — _process_
 - [Q-21: Pql absorbs planning vs keeps separate](questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate) — _architecture_
 - [Q-22: Ticket persistence strategy](questions/architecture.md#q-22-ticket-persistence-strategy) — _architecture_
+- [Q-28: Terminal strip scope — shell only or logs/errors/tests](questions/architecture.md#q-28-terminal-strip-scope--shell-only-or-logserrorstests) — _architecture_
 - [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
 - [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
 

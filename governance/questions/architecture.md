@@ -90,7 +90,8 @@ ticket persistence.
 - **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 2.
 
 ### Q-28: Terminal strip scope — shell only or logs/errors/tests
-- **Status:** Open
+- **Status:** Resolved → [D-87](../decisions/architecture.md#d-87-outputlog-dock--bottom-toggled-read-only-logs--problems)
+- **Resolved (2026-06-06):** Split by interaction. A bottom **output dock** hosts **read-only** output — logs + problems — toggled from a merged health/log status-bar widget (D-87). The **terminal is NOT in the strip**: it's an interactive surface, kept first-class in the editor pane (D-49). So "both, later" became "logs/problems yes, terminal no."
 - **Question:** Is the app strip (bottom bar) purely a terminal shell + status, or does it also host tabs for logs, errors, and test output? Probably both, later.
 - **Context:** The interaction model spec defines the app strip as 14px with terminal shell + daemon indicator + branch; expanding on focus. If it grows to host logs/errors/tests, it becomes a mini-panel with its own tab model.
 - **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 3.

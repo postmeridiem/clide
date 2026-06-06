@@ -4,6 +4,9 @@
 # -- clean-house skill run history / skip ledger (machine-local) --------
 /governance/decisions/.clean-house-state.md
 
+# -- frame0 wireframe local↔Frame0 id mapping (machine-local) -----------
+**/*.idmap.json
+
 # -- Flutter / Dart (single package at repo root) -----------------------
 /.dart_tool/
 /.packages

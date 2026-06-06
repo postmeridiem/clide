@@ -1,0 +1,243 @@
+{
+  "name": "T-54 Output Log Dock",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 40, "top": 8,
+      "text": "T-54 — Output / Log dock  ·  click the status bar to toggle (open state shown)",
+      "fontColor": "#c8d0e0", "fontSize": 16
+    },
+
+    "win": {
+      "type": "Rectangle",
+      "left": 40, "top": 40, "width": 1280, "height": 800,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "chrome": {
+      "type": "Rectangle", "parent": "win",
+      "left": 40, "top": 40, "width": 1280, "height": 24,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [8, 8, 0, 0]
+    },
+    "chrome-label": {
+      "type": "Text", "parent": "chrome",
+      "left": 54, "top": 45, "text": "clide  ·  postmeridiem/clide", "fontColor": "#6a7280", "fontSize": 12
+    },
+
+    "sidebar": {
+      "type": "Rectangle", "parent": "win",
+      "left": 40, "top": 64, "width": 200, "height": 500,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "sidebar-label": {
+      "type": "Text", "parent": "sidebar",
+      "left": 54, "top": 76, "text": "tickets · files · git · pql", "fontColor": "#6a7280", "fontSize": 12
+    },
+
+    "workspace": {
+      "type": "Rectangle", "parent": "win",
+      "left": 240, "top": 64, "width": 740, "height": 500,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "ws-label": {
+      "type": "Text", "parent": "workspace",
+      "left": 256, "top": 76, "text": "Claude (home) — editor · diff · terminal lift above it (D-49 editor-mode)", "fontColor": "#6a7280", "fontSize": 12
+    },
+    "ws-msg": {
+      "type": "Rectangle", "parent": "workspace",
+      "left": 256, "top": 110, "width": 560, "height": 70,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "ws-prompt": {
+      "type": "Rectangle", "parent": "workspace",
+      "left": 256, "top": 500, "width": 708, "height": 44,
+      "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [8, 8, 8, 8]
+    },
+    "ws-prompt-label": {
+      "type": "Text", "parent": "ws-prompt",
+      "left": 270, "top": 514, "text": "Ask Claude…", "fontColor": "#6a7280", "fontSize": 13
+    },
+
+    "context": {
+      "type": "Rectangle", "parent": "win",
+      "left": 980, "top": 64, "width": 340, "height": 500,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "context-label": {
+      "type": "Text", "parent": "context",
+      "left": 994, "top": 76, "text": "context / reader", "fontColor": "#6a7280", "fontSize": 12
+    },
+
+    "dock": {
+      "type": "Rectangle", "parent": "win",
+      "left": 40, "top": 564, "width": 1280, "height": 250,
+      "fillColor": "#21262f", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "dock-accent": {
+      "type": "Rectangle", "parent": "dock",
+      "left": 40, "top": 564, "width": 1280, "height": 2,
+      "fillColor": "#c8d8f0", "strokeColor": "#c8d8f0", "corners": [0, 0, 0, 0]
+    },
+    "dock-header": {
+      "type": "Rectangle", "parent": "dock",
+      "left": 40, "top": 566, "width": 1280, "height": 32,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "tab-output": {
+      "type": "Rectangle", "parent": "dock-header",
+      "left": 52, "top": 570, "width": 78, "height": 24,
+      "fillColor": "#1a1e24", "strokeColor": "#c8d8f0", "corners": [4, 4, 4, 4]
+    },
+    "tab-output-label": {
+      "type": "Text", "parent": "tab-output",
+      "left": 66, "top": 575, "text": "Output", "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "tab-problems": {
+      "type": "Text", "parent": "dock-header",
+      "left": 148, "top": 575, "text": "Problems  2", "fontColor": "#6a7280", "fontSize": 13
+    },
+
+    "filter-box": {
+      "type": "Rectangle", "parent": "dock-header",
+      "left": 820, "top": 570, "width": 150, "height": 24,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "filter-label": {
+      "type": "Text", "parent": "filter-box",
+      "left": 830, "top": 575, "text": "Filter…", "fontColor": "#6a7280", "fontSize": 12
+    },
+    "source-dd": {
+      "type": "Rectangle", "parent": "dock-header",
+      "left": 980, "top": 570, "width": 122, "height": 24,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "source-label": {
+      "type": "Text", "parent": "source-dd",
+      "left": 990, "top": 575, "text": "Source: all  ▾", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "level-dd": {
+      "type": "Rectangle", "parent": "dock-header",
+      "left": 1112, "top": 570, "width": 116, "height": 24,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "level-label": {
+      "type": "Text", "parent": "level-dd",
+      "left": 1122, "top": 575, "text": "Level: info  ▾", "fontColor": "#c8d0e0", "fontSize": 12
+    },
+    "clear-btn": {
+      "type": "Rectangle", "parent": "dock-header",
+      "left": 1238, "top": 570, "width": 70, "height": 24,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "clear-label": {
+      "type": "Text", "parent": "clear-btn",
+      "left": 1250, "top": 575, "text": "Clear", "fontColor": "#6a7280", "fontSize": 12
+    },
+
+    "err-row-bg": {
+      "type": "Rectangle", "parent": "dock",
+      "left": 42, "top": 690, "width": 1276, "height": 46,
+      "fillColor": "#2a1f22", "strokeColor": "#2a1f22", "corners": [0, 0, 0, 0]
+    },
+
+    "l1-t": { "type": "Text", "parent": "dock", "left": 56, "top": 612, "text": "10:42:03.114", "fontColor": "#6a7280", "fontSize": 12 },
+    "l1-lv": { "type": "Text", "parent": "dock", "left": 158, "top": 612, "text": "INFO", "fontColor": "#7f8a9c", "fontSize": 12 },
+    "l1-src": { "type": "Text", "parent": "dock", "left": 222, "top": 612, "text": "ipc", "fontColor": "#6a7280", "fontSize": 12 },
+    "l1-msg": { "type": "Text", "parent": "dock", "left": 320, "top": 612, "text": "IPC server listening at $XDG_RUNTIME_DIR/clide/8f3a…sock", "fontColor": "#c8d0e0", "fontSize": 12 },
+
+    "l2-t": { "type": "Text", "parent": "dock", "left": 56, "top": 638, "text": "10:42:03.140", "fontColor": "#6a7280", "fontSize": 12 },
+    "l2-lv": { "type": "Text", "parent": "dock", "left": 158, "top": 638, "text": "INFO", "fontColor": "#7f8a9c", "fontSize": 12 },
+    "l2-src": { "type": "Text", "parent": "dock", "left": 222, "top": 638, "text": "mcp", "fontColor": "#6a7280", "fontSize": 12 },
+    "l2-msg": { "type": "Text", "parent": "dock", "left": 320, "top": 638, "text": "MCP/SSE listening at http://127.0.0.1:54310", "fontColor": "#c8d0e0", "fontSize": 12 },
+
+    "l3-t": { "type": "Text", "parent": "dock", "left": 56, "top": 664, "text": "10:42:04.880", "fontColor": "#6a7280", "fontSize": 12 },
+    "l3-lv": { "type": "Text", "parent": "dock", "left": 158, "top": 664, "text": "DEBUG", "fontColor": "#5a6270", "fontSize": 12 },
+    "l3-src": { "type": "Text", "parent": "dock", "left": 222, "top": 664, "text": "pane", "fontColor": "#6a7280", "fontSize": 12 },
+    "l3-msg": { "type": "Text", "parent": "dock", "left": 320, "top": 664, "text": "spawned pane p1  (tmux clide:main)", "fontColor": "#9aa3b2", "fontSize": 12 },
+
+    "l4-t": { "type": "Text", "parent": "dock", "left": 56, "top": 696, "text": "10:42:06.330", "fontColor": "#6a7280", "fontSize": 12 },
+    "l4-lv": { "type": "Text", "parent": "dock", "left": 158, "top": 696, "text": "ERROR", "fontColor": "#f06c6f", "fontSize": 12 },
+    "l4-src": { "type": "Text", "parent": "dock", "left": 222, "top": 696, "text": "extensions", "fontColor": "#6a7280", "fontSize": 12 },
+    "l4-msg": { "type": "Text", "parent": "dock", "left": 320, "top": 696, "text": "builtin.foo failed to activate: MissingDep('lua')", "fontColor": "#f0a6a8", "fontSize": 12 },
+    "l4-stack": { "type": "Text", "parent": "dock", "left": 320, "top": 716, "text": "  at LuaExtension.activate (lua_host.dart:88) ›  expand for full trace", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "l5-t": { "type": "Text", "parent": "dock", "left": 56, "top": 744, "text": "10:42:07.002", "fontColor": "#6a7280", "fontSize": 12 },
+    "l5-lv": { "type": "Text", "parent": "dock", "left": 158, "top": 744, "text": "WARN", "fontColor": "#d08447", "fontSize": 12 },
+    "l5-src": { "type": "Text", "parent": "dock", "left": 222, "top": 744, "text": "pql", "fontColor": "#6a7280", "fontSize": 12 },
+    "l5-msg": { "type": "Text", "parent": "dock", "left": 320, "top": 744, "text": "decisions sync: 1 broken ref in architecture.md", "fontColor": "#e0b48c", "fontSize": 12 },
+
+    "l6-t": { "type": "Text", "parent": "dock", "left": 56, "top": 770, "text": "10:42:07.115", "fontColor": "#6a7280", "fontSize": 12 },
+    "l6-lv": { "type": "Text", "parent": "dock", "left": 158, "top": 770, "text": "INFO", "fontColor": "#7f8a9c", "fontSize": 12 },
+    "l6-src": { "type": "Text", "parent": "dock", "left": 222, "top": 770, "text": "git", "fontColor": "#6a7280", "fontSize": 12 },
+    "l6-msg": { "type": "Text", "parent": "dock", "left": 320, "top": 770, "text": "status: 3 changed, 0 staged", "fontColor": "#c8d0e0", "fontSize": 12 },
+
+    "follow-pill": {
+      "type": "Rectangle", "parent": "dock",
+      "left": 1180, "top": 776, "width": 124, "height": 24,
+      "fillColor": "#1a1e24", "strokeColor": "#00ab9a", "corners": [12, 12, 12, 12]
+    },
+    "follow-label": {
+      "type": "Text", "parent": "follow-pill",
+      "left": 1196, "top": 781, "text": "●  Following", "fontColor": "#00ab9a", "fontSize": 12
+    },
+
+    "statusbar": {
+      "type": "Rectangle", "parent": "win",
+      "left": 40, "top": 814, "width": 1280, "height": 26,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [0, 0, 8, 8]
+    },
+    "sb-branch": { "type": "Text", "parent": "statusbar", "left": 56, "top": 820, "text": "⎇ main", "fontColor": "#6a7280", "fontSize": 12 },
+    "sb-toggle": {
+      "type": "Rectangle", "parent": "statusbar",
+      "left": 1120, "top": 816, "width": 184, "height": 22,
+      "fillColor": "#1a1e24", "strokeColor": "#c8d8f0", "corners": [4, 4, 4, 4]
+    },
+    "sb-toggle-label": {
+      "type": "Text", "parent": "sb-toggle",
+      "left": 1132, "top": 820, "text": "▼ Output    ⚠ 1    ✕ 1", "fontColor": "#c8d8f0", "fontSize": 12
+    },
+
+    "closed-title": {
+      "type": "Text",
+      "left": 40, "top": 872, "text": "Collapsed + log clean — same widget now reads as the health indicator (green ✓), chevron flips to ▲:", "fontColor": "#6a7280", "fontSize": 13
+    },
+    "closed-bar": {
+      "type": "Rectangle",
+      "left": 40, "top": 898, "width": 1280, "height": 26,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "closed-branch": { "type": "Text", "parent": "closed-bar", "left": 56, "top": 904, "text": "⎇ main", "fontColor": "#6a7280", "fontSize": 12 },
+    "closed-toggle": {
+      "type": "Rectangle", "parent": "closed-bar",
+      "left": 1120, "top": 900, "width": 184, "height": 22,
+      "fillColor": "#1a1e24", "strokeColor": "#00ab9a", "corners": [4, 4, 4, 4]
+    },
+    "closed-toggle-label": {
+      "type": "Text", "parent": "closed-toggle",
+      "left": 1132, "top": 904, "text": "▲ Output    ✓ clean", "fontColor": "#00ab9a", "fontSize": 12
+    },
+
+    "ann-dock": {
+      "type": "Text",
+      "left": 1360, "top": 580,
+      "text": "BOTTOM DOCK — read-only output\nOutput (logs) + Problems (diagnostics).\nResizable height; remembers last size.\nResolves Q-28: dock = logs/problems only.\nTerminal is NOT here — it's a first-class\nwork surface in the editor pane (D-49),\ntmux-backed so it never stops on swap.",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "ann-toggle": {
+      "type": "Text",
+      "left": 1360, "top": 760,
+      "text": "HEALTH + LOG — ONE WIDGET\nReplaces the old app-status indicator, so\nthe bar doesn't gain a segment. Green ✓\nwhen the log is clean; ⚠/✕ counts when not.\nClick (or ⌘J) toggles the dock; ▲/▼ = state.",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "ann-follow": {
+      "type": "Text",
+      "left": 1360, "top": 690,
+      "text": "AUTO-SCROLL\nFollows the tail; scrolling up pauses\nfollow and shows 'Jump to latest ↓'.",
+      "fontColor": "#c8d0e0", "fontSize": 13
+    }
+  },
+  "connectors": {
+    "c-dock": { "tailId": "ann-dock", "headId": "dock-header", "strokeColor": "#c8d8f0" },
+    "c-toggle": { "tailId": "ann-toggle", "headId": "sb-toggle", "strokeColor": "#c8d8f0" },
+    "c-follow": { "tailId": "ann-follow", "headId": "follow-pill", "strokeColor": "#c8d8f0" }
+  }
+}
