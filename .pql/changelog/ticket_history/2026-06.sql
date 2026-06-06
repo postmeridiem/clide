@@ -468,3 +468,22 @@ Refinement (2026-06-06): blockers resolved. Q-2 + Q-3 closed by D-85 (event bus 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-225', 'description', 'Gap 6 from self-analysis.md. The MCP SSE server (T-130, D-68) is live but mcp__ide__* tools are not exposed to an external agent out of the box, and getDiagnostics/executeCode were noted as stubs. The CLI path is the priority (Epics A-C); MCP follows. Decide + wire the minimal reachable MCP surface, or explicitly defer with a note. Relates to open question Q-32 (minimum MCP tool surface).', 'Gap 6 from self-analysis.md. The MCP SSE server (T-130, D-68) is live but mcp__ide__* tools are not exposed to an external agent out of the box, and getDiagnostics/executeCode were noted as stubs. The CLI path is the priority (Epics A-C); MCP follows. Decide + wire the minimal reachable MCP surface, or explicitly defer with a note. Relates to open question Q-32 (minimum MCP tool surface).
 
 Refinement (2026-06-06): tool-surface question resolved. Q-32 closed by D-86 — expose the full mcp__clide__* namespace, but GENERATE tools/list from the co-registered command registry (D-74) that already feeds the CLI + palette, so there is no hand-maintained second surface; add a per-command MCP opt-out for poor-fit verbs (long-lived streams, UI-side-effecting). Transport stays SSE-only per D-73 (Q-33 re-confirmed, not reopened). Remaining stubs to make real: getDiagnostics + executeCode. Scope is now: registry->MCP tool-definition adapter (arg-schema -> JSON-Schema), served over the existing SSE transport.', NULL, '2026-06-06 10:25:02', '2026-06-06 10:25:02', '2026-06-06 10:25:02', NULL, '00d54d4febb98792806e520c9921c790', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-257', 'description', NULL, '**Symptom:** In the editor with the Vim preset active, pressing `Esc` to leave insert/visual mode and return to normal mode closes the current file/pane instead of switching modes.
+
+**Repro:**
+1. Select the Vim keybinding preset (T-65).
+2. Open a file in the editor pane; enter insert mode (`i`).
+3. Press `Esc`.
+
+**Expected:** Editor returns to Vim normal mode (`-- NORMAL --`), file/pane stays open. This is T-207''s contract: `Esc -> normal from any mode`.
+
+**Actual:** The file/pane closes.
+
+**Root-cause hypothesis:** `assets/keymaps/default.yaml:26-27` binds `escape -> intent: dismiss` with NO `when:` clause, so it matches globally. The Vim mode-reset binding (`assets/keymaps/vim.yaml:69-71`, `escape -> command:vim.mode.normal`, gated `when: vim.insert || vim.visual`) is being out-resolved or shadowed by the unconditional `dismiss`, which falls through to closing the active pane/file when no overlay is open. Either the Vim preset still inherits an unconditional dismiss-on-escape, or the when-clause resolver lets the unguarded binding win over the more-specific scoped one for the same chord.
+
+**Likely fix direction:**
+- Ensure the keymap resolver prefers the more-specific `when`-scoped binding over an unconditional one for the same chord, and/or gate the global `dismiss`-on-escape so it does not fire when `editor.focused && (vim.insert || vim.visual)`.
+- Sanity-check that `dismiss` should close a pane/file at all here — closing the active file on a bare Esc is surprising even outside Vim.
+
+**Related:** epic T-65 (Vim preset), T-207 (Vim mode service owns Esc -> normal), T-205 / T-117 (key-sequence resolution + when-clauses).
+**Files:** `assets/keymaps/default.yaml`, `assets/keymaps/vim.yaml`, `lib/builtin/editor/src/editor_view.dart`, `lib/kernel/src/keymap/`.', NULL, '2026-06-06 14:01:03', '2026-06-06 14:01:03', '2026-06-06 14:01:03', NULL, '6cd03ce2694808401bc66fb0c9267284', 1) ON CONFLICT(hash) DO NOTHING;
