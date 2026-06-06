@@ -15,7 +15,7 @@ Q&D record system itself, kanban, commit conventions, changelog.
 - **Date:** 2026-04-21
 - **Decision:** Ticketing is kanban + waterfall. Tickets flow backlog → ready → in_progress → review → done → cancelled. No sprints, no velocity, no story points. Settled-reach's Scrum layer (sprints, sprint reviews, sprint close as a sync event) is stripped.
 - **Rationale:** Clide has a solo-or-small-team cadence. Sprint ceremonies add overhead without adding signal at this scale. Kanban matches how the work actually happens.
-- **Cost:** No natural "sprint close" event to sync shared state. See [Q-22](questions-process.md#q-22-ticket-persistence-strategy).
+- **Cost:** No natural "sprint close" event to sync shared state. See [Q-22](../questions/architecture.md#q-22-ticket-persistence-strategy).
 - **Raised by:** 2026-04-21 planning.
 
 ### D-36: `.claude/` is committed project surface, managed through the IDE
@@ -42,16 +42,16 @@ Q&D record system itself, kanban, commit conventions, changelog.
 ### D-39: Planning tooling lives in pql, not clide
 - **Date:** 2026-04-21
 - **Decision:** Planning subcommands (`decisions`, `ticket`, `plan`) land in pql's repo long-term. Clide consumes them via shell-out, matching [D-3](architecture.md)'s wrap-don't-duplicate rule for pql. Clide does not grow Dart subcommands for planning.
-- **Rationale:** A terminal user or a user in VS Code / JetBrains still needs Q&D access. Binding planning tooling to clide-the-Flutter-app would cut them off from their own work — see [R-9](rejected.md#r-9-port-planning-tooling-into-clide). pql is already the CLI, already universal, already wrapped by clide.
-- **Cost:** Planning features don't ship until pql catches up. Mitigated by [D-40](#d-40-superseded-python-stopgap-under-toolsscriptsplan). Gated by [Q-21](questions-process.md#q-21-pql-absorbs-planning-vs-keeps-separate).
+- **Rationale:** A terminal user or a user in VS Code / JetBrains still needs Q&D access. Binding planning tooling to clide-the-Flutter-app would cut them off from their own work — see [R-9](../rejected/process.md#r-9-port-planning-tooling-into-clide). pql is already the CLI, already universal, already wrapped by clide.
+- **Cost:** Planning features don't ship until pql catches up. Mitigated by [D-40](#d-40-superseded-python-stopgap-under-toolsscriptsplan). Gated by [Q-21](../questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate).
 - **Raised by:** 2026-04-21 planning.
 
 ### D-40: [SUPERSEDED] Python stopgap under `tools/scripts/plan`
 - **Date:** 2026-04-21
 - **Decision:** A time-limited Python port of settled-reach's `decisions_sync.py` + `ticket` + `decision` scripts lives at `tools/scripts/plan` with support modules under `tools/scripts/planning/`. Writes to `.pql/pql.db` (gitignored). Ticket IDs are `T-NNN` (TEXT PK, reshape from settled-reach's integers). Same schema, same markdown, same verb shape as the eventual `pql` subcommands.
-- **Sunset:** Delete the stopgap when pql ships `pql decisions sync | validate | list | show | claim | coverage` + `pql ticket new | list | show | status | assign | block | board` with feature parity, and reads the same `.pql/pql.db` file the stopgap wrote. Removal commit shape: [R-11](rejected.md#r-11-permanent-stopgap).
+- **Sunset:** Delete the stopgap when pql ships `pql decisions sync | validate | list | show | claim | coverage` + `pql ticket new | list | show | status | assign | block | board` with feature parity, and reads the same `.pql/pql.db` file the stopgap wrote. Removal commit shape: [R-11](../rejected/process.md#r-11-permanent-stopgap).
 - **Rationale:** Planning tooling must work day one. Pql's Go implementation won't land for at least a cycle or two. Without a stopgap, the convention lives on paper; with one, tickets + decisions are queryable from today. Same schema means migration is call-site find-replace (`tools/scripts/plan ` → `pql `), no data migration.
-- **Cost:** Python dep on contributors' machines (already present on most Linux dists). One time-limited tool to maintain. See [R-10](rejected.md#r-10-python-script-stopgap-at-toolingdb) for why `tools/scripts/plan` and not `tooling/db/`.
+- **Cost:** Python dep on contributors' machines (already present on most Linux dists). One time-limited tool to maintain. See [R-10](../rejected/process.md#r-10-python-script-stopgap-under-toolingdb) for why `tools/scripts/plan` and not `tooling/db/`.
 - **Raised by:** 2026-04-21 planning.
 - **Amendment (2026-04-22):** Sunset condition met. pql 1.0.0 ships full feature parity. Stopgap deleted per [R-11](../rejected/process.md#r-11-permanent-stopgap).
 

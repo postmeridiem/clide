@@ -10,7 +10,7 @@
 
 ### Q-14: i18n plurals / gender / date-format tooling
 - **Status:** Open
-- **Question:** fframe's pattern covers straight key→string lookup with variable interpolation. Plurals, gendered forms, and ICU-style date formatting aren't in scope there. Do we add them to the i18n facade, defer to a runtime library (violates [D-31](tooling.md#d-31-prefer-zero-deps-exact-pin)), or require catalogues to provide pre-formatted strings per count/gender?
+- **Question:** fframe's pattern covers straight key→string lookup with variable interpolation. Plurals, gendered forms, and ICU-style date formatting aren't in scope there. Do we add them to the i18n facade, defer to a runtime library (violates [D-31](../decisions/tooling.md#d-31-prefer-zero-deps-exact-pin)), or require catalogues to provide pre-formatted strings per count/gender?
 - **Context:** Probably becomes painful at Tier 3 (git panel, problem counts) and Tier 4 (pql results).
 - **Source:** 2026-04-21 planning.
 

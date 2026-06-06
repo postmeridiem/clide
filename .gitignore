@@ -1,6 +1,9 @@
 # -- macOS sandbox (machine-specific paths; template is committed) ------
 /macos/Runner/DebugProfile.entitlements
 
+# -- clean-house skill run history / skip ledger (machine-local) --------
+/governance/decisions/.clean-house-state.md
+
 # -- Flutter / Dart (single package at repo root) -----------------------
 /.dart_tool/
 /.packages

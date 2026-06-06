@@ -60,5 +60,5 @@ Extension contract, Lua runtime, grain, contribution points.
 ---
 
 *See also the existing `builtin.grammars_core` stub for tree-sitter
-questions ([Q-15](questions-process.md#q-15-editor-tab-full-lsp-vs-tree-sitter-only),
-[Q-16](questions-process.md#q-16-tree-sitter-dart-grammar-maintenance)).*
+questions ([Q-15](../questions/process.md#q-15-editor-tab--full-lsp-vs-tree-sitter-only-highlight),
+[Q-16](../questions/process.md#q-16-tree-sitter-dart-grammar-maintenance)).*

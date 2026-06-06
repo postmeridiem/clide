@@ -12,13 +12,13 @@ Extension API shape, Lua runtime vendoring, manifest schema version.
 
 ### Q-9: Lua runtime vendoring
 - **Status:** Open
-- **Question:** Does the Lua supporter tool ([D-19](extensions.md#d-19-lua-runtime-as-ptyc-peer-supporter-tool)) bundle liblua source (build with the binary) or link system liblua (smaller binary, fragile ABI)?
+- **Question:** Does the Lua supporter tool ([D-19](../decisions/extensions.md#d-19-lua-runtime-as-ptyc-peer-supporter-tool)) bundle liblua source (build with the binary) or link system liblua (smaller binary, fragile ABI)?
 - **Context:** `ptyc` has no deps; Lua is different — it's a whole VM. Bundling is the straightforward choice but locks a Lua version per clide release.
 - **Source:** 2026-04-21 planning.
 
 ### Q-10: Extension manifest `schema_version:`
 - **Status:** Open
-- **Question:** What's the manifest schema-version scheme and bump policy? Coupled with [Q-5](questions-architecture.md#q-5-ipc-wire-format-stability) (IPC wire format) — both want a versioning story.
+- **Question:** What's the manifest schema-version scheme and bump policy? Coupled with [Q-5](architecture.md#q-5-ipc-wire-format-stability--schema-version) (IPC wire format) — both want a versioning story.
 - **Context:** Today's manifests have no `schema_version:`. Adding one is cheap; the hard part is deciding when we bump.
 - **Source:** 2026-04-21 planning.
 

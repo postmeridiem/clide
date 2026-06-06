@@ -14,7 +14,7 @@ A11y + i18n are Tier-0 contracts, not Tier-6 polish.
 ### D-21: i18n is a Tier-0 contract (fframe pattern + locale-fallback chain)
 - **Date:** 2026-04-21
 - **Decision:** All user-facing strings resolve through a namespaced i18n catalogue loader ported from fframe's text-driven pattern, extended with a locale-fallback chain fframe lacks. JSON per locale; `I18n.of(context).t('namespace.key', {vars})`. Missing keys resolve down the chain (e.g. `en_GB` → `en` → default), never fail silently; missing at the base locale logs a dev-mode error.
-- **Rationale:** Flutter's `intl` + ARB codegen is inflexible for plugin-contributed catalogs (see [R-4](rejected.md#r-4-flutter-intl-and-arb-codegen)) — we need per-extension catalogs that merge without a codegen step. fframe's shape fits; its silent-fallback behaviour does not, so we add the chain.
+- **Rationale:** Flutter's `intl` + ARB codegen is inflexible for plugin-contributed catalogs (see [R-4](../rejected/accessibility.md#r-4-flutter-intl--arb-codegen-for-i18n)) — we need per-extension catalogs that merge without a codegen step. fframe's shape fits; its silent-fallback behaviour does not, so we add the chain.
 - **Cost:** JSON has no comments and no trailing commas; translation tooling has to accept that. Separate `i18n` facade on every feature.
 - **Raised by:** 2026-04-21 planning.
 

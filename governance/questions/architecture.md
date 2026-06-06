@@ -41,7 +41,7 @@ ticket persistence.
 - **Source:** CLAUDE.md "Open questions" footer.
 
 ### Q-6: Window chrome — native frame vs frameless custom
-- **Status:** Resolved → [D-57](architecture.md#d-57-frameless-custom-chrome-with-per-column-24px-hats)
+- **Status:** Resolved → [D-57](../decisions/architecture.md#d-57-frameless-custom-chrome-with-per-column-24px-hats)
 - **Question:** Does clide ship with the OS-native window frame (title bar, min/max/close from the WM) or a frameless custom chrome that gives us pixel control at the cost of reimplementing window controls per-platform?
 - **Context:** Surfaced during Tier-0 plumbing discussion; resolved 2026-04-23 — frameless with per-column 24px hats.
 - **Source:** 2026-04-21 planning.
@@ -86,7 +86,7 @@ ticket persistence.
 ### Q-27: Two-editor split
 - **Status:** Open
 - **Question:** Should clide support two files open in the editor simultaneously (horizontal split in the middle column)? The spec says resist until proven needed — feels like tabs creeping back.
-- **Context:** [D-48](architecture.md#d-48-chrome-budget-no-tabs-no-breadcrumbs-keyboard-first) deletes buffer tabs. A two-editor split would be the only way to compare files side-by-side without using the viewer ↔ editor swap. The diff view may cover most of this need.
+- **Context:** [D-48](../decisions/architecture.md#d-48-chrome-budget--no-tabs-no-breadcrumbs-keyboard-first) deletes buffer tabs. A two-editor split would be the only way to compare files side-by-side without using the viewer ↔ editor swap. The diff view may cover most of this need.
 - **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 2.
 
 ### Q-28: Terminal strip scope — shell only or logs/errors/tests
@@ -104,7 +104,7 @@ ticket persistence.
 ### Q-30: Focus behavior when editor is dirty and viewer is peeked
 - **Status:** Open
 - **Question:** When the editor has unsaved changes and the user peeks a viewer, where does focus land? The spec says prompt-bar-rule wins: focus stays in Claude.
-- **Context:** This intersects [D-47](architecture.md#d-47-interaction-model-claude-is-home-layout) (Claude is home) and [D-49](architecture.md#d-49-editor-mode-inline-above-claude-viewer-swap) (editor mode). If focus always snaps to Claude, the user must explicitly re-focus the editor to continue typing.
+- **Context:** This intersects [D-47](../decisions/architecture.md#d-47-interaction-model--claude-is-home-layout) (Claude is home) and [D-49](../decisions/architecture.md#d-49-editor-mode--inline-above-claude-viewer-swap) (editor mode). If focus always snaps to Claude, the user must explicitly re-focus the editor to continue typing.
 - **Source:** 2026-04-22 interaction model spec (Wireframe — Flows v3), open question 5.
 
 ### Q-31: XWayland fallback for frameless — proper Wayland protocol needed

@@ -10,7 +10,7 @@
 
 ### Q-12: Screen-reader automation (axe-core via Playwright)
 - **Status:** Open
-- **Question:** [D-22](accessibility.md#d-22-wcag-aa-contrast-gate-on-bundled-themes) gates contrast at build time. Do we also run axe-core against the WASM build in Playwright for runtime a11y issues (missing labels, invalid roles, orphan focusables)?
+- **Question:** [D-22](../decisions/accessibility.md#d-22-wcag-aa-contrast-gate-on-bundled-themes) gates contrast at build time. Do we also run axe-core against the WASM build in Playwright for runtime a11y issues (missing labels, invalid roles, orphan focusables)?
 - **Context:** axe-core is JS; runs in the browser against the rendered tree. Extra CI time; extra signal.
 - **Source:** 2026-04-21 planning.
 
