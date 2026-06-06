@@ -403,3 +403,60 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-233', 'status', 'in_progress', 'done', NULL, '2026-06-06 08:50:12', '2026-06-06 08:50:12', '2026-06-06 08:50:12', NULL, 'ec94ca747fc852db6bf514b4d5079085', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-233', 'status', 'done', 'in_progress', NULL, '2026-06-06 09:04:03', '2026-06-06 09:04:03', '2026-06-06 09:04:03', NULL, '9dd345ff2fad6f79a7a1ba7f872dc761', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-233', 'status', 'in_progress', 'done', NULL, '2026-06-06 09:20:02', '2026-06-06 09:20:02', '2026-06-06 09:20:02', NULL, 'bf55d4f34a22b9d6e69563bc3e9fd95a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-253', 'description', NULL, 'The Claude conversation panel detects URLs and colorizes them, but they are not interactive. Make detected links clickable (a plain click, or control/cmd-click) so they are handed off to the OS URL opener.
+
+## Behaviour
+- Click (or ctrl/cmd-click) on a colorized link opens it via the OS default handler.
+- Hover affordance (cursor change / underline) so it reads as clickable.
+- Keep the existing colorization.
+
+## Notes
+- Honour user/Claude parity (D-6) where relevant.
+- Use the platform URL launcher; avoid pulling in an opinionated package if a thin native/url_launcher shim already exists in the tree.
+- Guard against non-http schemes / malformed URLs.', NULL, '2026-06-06 09:33:01', '2026-06-06 09:33:01', '2026-06-06 09:33:01', NULL, '5c3a0892cc5e3fe4c5005573ed1611df', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'description', NULL, 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.', NULL, '2026-06-06 09:33:04', '2026-06-06 09:33:04', '2026-06-06 09:33:04', NULL, '294299335de181628d5e4974e3111f4e', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-212', 'status', 'backlog', 'in_progress', NULL, '2026-06-06 09:43:49', '2026-06-06 09:43:49', '2026-06-06 09:43:49', NULL, '10094351742e1721be36aae585089bdb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-255', 'description', NULL, '## Problem
+
+While a Claude turn is in flight, the composer swaps in a static, muted
+`running…` label next to the Stop button (`lib/builtin/claude/src/claude_composer.dart:486`,
+shown when `widget.busy && widget.onInterrupt != null`). It''s gray, motionless,
+and a little lifeless — it gives no sense that anything is actually happening.
+
+## Goal
+
+Make the in-flight indicator feel alive:
+
+1. **Animation.** Add subtle motion — e.g. an animated ellipsis (`running` → `running.`
+   → `running..` → `running...`), a shimmer/pulse on the text, or a small spinner glyph.
+   Custom-painted / token-driven per the "own the rendering stack" guardrail; no
+   opinionated animation packages.
+2. **Rotating status verbs.** Cycle through playful gerunds the way the Claude Code CLI
+   does (e.g. "Clauding…", "Flibbertigibbeting…", "Pondering…", "Conjuring…"). Pick a
+   word from a curated list and rotate it every few seconds while the turn runs.
+
+## Open question — can we reuse the CLI''s words?
+
+The Claude Code CLI ships its own list of these status verbs. Before hand-rolling our
+own, check whether that list is something we''re allowed to reuse / surface (licensing,
+where it lives, whether stream-json exposes the current one). If we can''t pull the CLI''s
+list, ship our own curated, on-brand list instead. Document the decision.
+
+## Notes / constraints
+
+- Respect reduced-motion / accessibility settings — animation must be disable-able and
+  the a11y semantics should still read sensibly (the Stop button already carries the
+  interrupt hint).
+- Use theme tokens for color; keep it muted/tasteful, not distracting.
+- Touch point today is the `widget.busy` branch in `claude_composer.dart`; consider
+  whether the rotating-word state belongs there or in the session/orchestrator layer.
+- Add a widget/golden test for the animated states (bounded pumps — no real timers).', NULL, '2026-06-06 09:57:12', '2026-06-06 09:57:12', '2026-06-06 09:57:12', NULL, '586f397ed5d0f14a0e7d510237d54ea2', 1) ON CONFLICT(hash) DO NOTHING;
