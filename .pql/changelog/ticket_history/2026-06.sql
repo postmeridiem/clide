@@ -362,3 +362,39 @@ DONE (2026-06-06). Keybinding + nav were already wired (T-117 binds ctrl/meta+sh
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'status', 'ready', 'done', NULL, '2026-06-06 07:40:43', '2026-06-06 07:40:43', '2026-06-06 07:40:43', NULL, '121337ddae4598659f07bbe16c1ddcc3', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-250', 'status', 'ready', 'done', NULL, '2026-06-06 07:49:08', '2026-06-06 07:49:08', '2026-06-06 07:49:08', NULL, '0765a2ccbb37deedb402d06709511928', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-248', 'status', 'ready', 'done', NULL, '2026-06-06 07:57:16', '2026-06-06 07:57:16', '2026-06-06 07:57:16', NULL, 'b36bb78451373dae70a8b5f1f0e16ace', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-208', 'status', 'backlog', 'ready', NULL, '2026-06-06 08:06:55', '2026-06-06 08:06:55', '2026-06-06 08:06:55', NULL, 'c6035deb44dfefa54618b264a5bb4cad', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-208', 'status', 'ready', 'in_progress', NULL, '2026-06-06 08:12:45', '2026-06-06 08:12:45', '2026-06-06 08:12:45', NULL, '1a99ebcbec47b3377fd43373f9c01876', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-209', 'status', 'backlog', 'in_progress', NULL, '2026-06-06 08:12:45', '2026-06-06 08:12:45', '2026-06-06 08:12:45', NULL, '9a84a354ef89306ae8b3f0835c380a4b', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-248', 'description', 'Create a `/clide` skill (none exists today — only legacy templates under legacy/clide/templates/skills/) that advertises the clide CLI surface to Claude so new affordances become discoverable.
+
+Problem: my knowledge of the clide surface comes from a hand-curated session blurb. There is no runtime discovery — `clide help` is a stub, `clide <subsystem>` with no verb just prints `usage:`, and the dispatcher''s registered command table (e.g. pane_commands.dart) is never exposed. D-6 guarantees a verb EXISTS for every UI action, but parity != discoverability: a correctly-registered verb is still unreachable if nothing tells me it''s there.
+
+Scope:
+- Self-description first (prereq for a non-rotting skill): add a discovery verb that reflects the live dispatcher registry — e.g. `clide capabilities` (machine-readable JSON: subsystems -> verbs -> arg schema) and/or flesh out `clide help` to enumerate subsystems/verbs. Sourced from the registry so it never drifts.
+- `/clide` SKILL.md: trigger description always visible to Claude; body points at the discovery verb rather than hard-coding a verb list, plus conventions (slots: sidebar/workspace/context, pane kinds, focus/spawn/close/write/resize). Thin and always-correct.
+
+This is what makes T-249 (image viewer) and future panels reachable by Claude the moment they register — no skill edit per panel.
+
+Refs: D-6 (CLI/event-surface parity). Related: T-249.', 'Create a `/clide` skill (none exists today — only legacy templates under legacy/clide/templates/skills/) that advertises the clide CLI surface to Claude so new affordances become discoverable.
+
+Problem: my knowledge of the clide surface comes from a hand-curated session blurb. There is no runtime discovery — `clide help` is a stub, `clide <subsystem>` with no verb just prints `usage:`, and the dispatcher''s registered command table (e.g. pane_commands.dart) is never exposed. D-6 guarantees a verb EXISTS for every UI action, but parity != discoverability: a correctly-registered verb is still unreachable if nothing tells me it''s there.
+
+Scope:
+- Self-description first (prereq for a non-rotting skill): add a discovery verb that reflects the live dispatcher registry — e.g. `clide capabilities` (machine-readable JSON: subsystems -> verbs -> arg schema) and/or flesh out `clide help` to enumerate subsystems/verbs. Sourced from the registry so it never drifts.
+- `/clide` SKILL.md: trigger description always visible to Claude; body points at the discovery verb rather than hard-coding a verb list, plus conventions (slots: sidebar/workspace/context, pane kinds, focus/spawn/close/write/resize). Thin and always-correct.
+
+This is what makes T-249 (image viewer) and future panels reachable by Claude the moment they register — no skill edit per panel.
+
+Refs: D-6 (CLI/event-surface parity). Related: T-249.
+
+RE-SCOPE (2026-06-06, from T-208 completeness review): partly overtaken by reality — do NOT build from scratch.
+- The `clide capabilities` verb already EXISTS in code: registered in lib/src/daemon/dispatcher.dart:12 (built-in) and as an umbrella command in lib/src/cli/argv_to_request.dart:28. Its handler (_capabilities, dispatcher.dart:86) enumerates the live registry with arg schemas — so the non-rotting design is already implemented server-side.
+- A `/clide` skill is ALSO already present this session (other ongoing work), and it instructs agents to "Start with `clide capabilities` to enumerate the live tool surface."
+- BUT: against the live instance, `clide capabilities` returns a usage stub at exit 0 (`usage: clide capabilities <verb> [args...]`) instead of the command table — i.e. the discoverability entry point the skill advertises is currently DEAD. Likely a stale running build or a C-client umbrella mismatch (native/clide-cli/clide.c forwards argv but the live server treats `capabilities` as a subsystem needing a verb).
+
+New scope for this ticket:
+1. Verify/fix the live `clide capabilities` path end-to-end (rebuild/restart vs real wiring gap in the C client / server umbrella handling). Acceptance: `clide capabilities` returns the JSON command table against a running instance.
+2. Reconcile with the already-shipped `/clide` skill rather than authoring anew — confirm it points at the working verb and covers the conventions.
+Net: this is now a verify-and-reconcile task, not a build-from-scratch one. Related: T-249, T-208.', NULL, '2026-06-06 08:12:53', '2026-06-06 08:12:53', '2026-06-06 08:12:53', NULL, '44685b2fe0265e9e8b110d4306de92be', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-248', 'status', 'done', 'review', NULL, '2026-06-06 08:14:01', '2026-06-06 08:14:01', '2026-06-06 08:14:01', NULL, '1cfdde30e08e7e18f8b9eb39df3abcbc', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-249', 'status', 'ready', 'done', NULL, '2026-06-06 08:21:40', '2026-06-06 08:21:40', '2026-06-06 08:21:40', NULL, '996d52afaf650a7d5021184a673d09a3', 1) ON CONFLICT(hash) DO NOTHING;

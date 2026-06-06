@@ -78,5 +78,13 @@ void main() {
     test('empty input yields no groups', () {
       expect(groupConversation(const [], FoldLevel.tools), isEmpty);
     });
+
+    test('an image card stays first-class even at L3 (everything)', () {
+      final img = ImageMessage(uuid: 'i${_n++}', timestamp: _ts, isSidechain: false, path: '/abs/shot.png');
+      final groups = groupConversation([_tool('1', 'Bash'), _result('1'), img], FoldLevel.everything);
+      // The tool + result fold; the image is sticky and seals the cluster.
+      expect(groups.map((g) => g.runtimeType.toString()), ['FoldedCluster', 'StickyItem']);
+      expect((groups[1] as StickyItem).item, isA<ImageMessage>());
+    });
   });
 }

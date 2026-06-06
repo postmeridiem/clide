@@ -10,6 +10,8 @@ import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
 import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:clide/builtin/claude/src/session_storage.dart';
+import 'package:clide/builtin/claude/src/transcript_reader.dart' show ImageMessage;
+import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
 import 'package:clide/extension/extension.dart';
@@ -321,6 +323,28 @@ class ClaudeExtension extends ClideExtension {
     // session outlives its pane and is shared across surfaces.
     _orchestrator = ClaudeSessionOrchestrator();
     activeSessionOrchestrator = _orchestrator;
+
+    // `clide image show <path>` (T-249): the dispatcher resolves + publishes an
+    // 'image' message; we inject the matching card into the conversation the
+    // user is looking at (the primary lead, else the first visible session).
+    _subs.add(ctx.messages.subscribe(channel: imageShowChannel).listen(_onImageShow));
+  }
+
+  /// Inject an [ImageMessage] from a published `image` bus message (T-249).
+  /// Dropped silently if no live conversation is available — the CLI already
+  /// reported success at publish time, and a missing pane is transient.
+  void _onImageShow(Message m) {
+    final path = m.data['path'] as String?;
+    if (path == null || path.isEmpty) return;
+    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    if (target == null) return;
+    target.conversation.inject(ImageMessage(
+      uuid: 'image-${DateTime.now().microsecondsSinceEpoch}',
+      timestamp: DateTime.now(),
+      isSidechain: false,
+      path: path,
+      caption: m.data['caption'] as String?,
+    ));
   }
 
   @override

@@ -15,6 +15,7 @@ import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show Image, FileImage;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -29,6 +30,7 @@ AssistantToolUse _tool(String name, Map<String, dynamic> input) =>
     AssistantToolUse(uuid: 'tu', timestamp: _t, isSidechain: false, toolUseId: 'x1', name: name, input: input);
 ToolResultMessage _result(String content, {bool isError = false}) =>
     ToolResultMessage(uuid: 'r', timestamp: _t, isSidechain: false, toolUseId: 'x1', content: content, isError: isError);
+ImageMessage _image(String path, {String? caption}) => ImageMessage(uuid: 'i', timestamp: _t, isSidechain: false, path: path, caption: caption);
 
 class _MockClipboard {
   Map<String, dynamic> _data = {'text': null};
@@ -185,6 +187,23 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Activity, 2 steps, collapsed'));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('Activity, 2 steps, expanded'), findsOneWidget);
+    });
+
+    testWidgets('an image card renders with the "image" label, the file, and its caption (T-249)', (tester) async {
+      await pumpWith(tester, [_image('/no/such/file.png', caption: 'before the fix')]);
+      expect(find.text('image'), findsOneWidget);
+      expect(find.text('before the fix'), findsOneWidget);
+      // The image is wired to the resolved file path (display-only, D-78).
+      final img = tester.widget<Image>(find.byType(Image));
+      expect((img.image as FileImage).file.path, '/no/such/file.png');
+    });
+
+    testWidgets('inject() drives a new image card into a live view (T-249)', (tester) async {
+      final c = await pumpWith(tester, [_user('hi')]);
+      expect(find.text('image'), findsNothing);
+      c.inject(_image('/no/such/shot.png'));
+      await tester.pumpAndSettle();
+      expect(find.text('image'), findsOneWidget);
     });
 
     testWidgets('a failed result surfaces first-class, not folded (T-230)', (tester) async {

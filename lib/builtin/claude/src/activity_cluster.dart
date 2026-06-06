@@ -88,9 +88,11 @@ List<RenderGroup> groupConversation(List<ConversationItem> items, FoldLevel leve
 bool _isFoldable(ConversationItem item, FoldLevel level, Map<String, String> toolName) {
   if (level == FoldLevel.none) return false;
   switch (item) {
-    // User prose and Claude prose are always first-class.
+    // User prose, Claude prose, and driven-in image cards are always
+    // first-class — an image is the point of the turn, never folded away.
     case UserMessage():
     case AssistantTextMessage():
+    case ImageMessage():
       return false;
     // Thinking folds at L2+, first-class at L1.
     case AssistantThinkingMessage():

@@ -10,6 +10,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
@@ -233,8 +234,62 @@ class _ConversationTurn extends StatelessWidget {
         ),
       AssistantToolUse() => _toolUse(i),
       ToolResultMessage() => _toolResult(i),
+      ImageMessage() => _image(i),
     };
   }
+
+  /// A driven-in image card (T-249): the image rendered inline, clide-owned
+  /// (Flutter's [Image.file], no third-party viewer), display-only per D-78.
+  /// Bounded so a large image scales down to the pane width and never pushes
+  /// past a readable height; a missing/unreadable file degrades to a muted
+  /// placeholder rather than throwing.
+  Widget _image(ImageMessage m) {
+    final caption = m.caption;
+    return ConversationCard(
+      accent: tokens.globalTextMuted,
+      label: 'image',
+      copyText: m.path,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 360),
+              child: Image.file(
+                File(m.path),
+                fit: BoxFit.contain,
+                alignment: Alignment.centerLeft,
+                errorBuilder: (_, __, ___) => _imagePlaceholder(m.path),
+              ),
+            ),
+          ),
+          if (caption != null && caption.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            ClideText(caption, fontSize: clideFontMeta, color: tokens.globalTextMuted),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder(String path) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: tokens.panelBorder),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClideIcon(PhosphorIcons.image, size: 16, color: tokens.globalTextMuted),
+            const SizedBox(width: 8),
+            Flexible(
+              child: ClideText('could not load $path', fontSize: clideFontMeta, color: tokens.globalTextMuted, maxLines: 1),
+            ),
+          ],
+        ),
+      );
 
   Widget _toolUse(AssistantToolUse t) {
     // A resolved permission-prompted call: collapsed, green if approved / red
@@ -452,5 +507,7 @@ String _summarizeActivity(ConversationItem item) {
       return text;
     case AssistantTextMessage(:final text):
       return text;
+    case ImageMessage(:final path):
+      return 'image $path';
   }
 }

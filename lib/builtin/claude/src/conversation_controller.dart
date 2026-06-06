@@ -71,6 +71,15 @@ class ConversationController extends ChangeNotifier {
 
   bool get isEmpty => _items.isEmpty;
 
+  /// Append a locally-produced item that did not come from the transcript
+  /// stream — e.g. an image card driven by `clide image show` (T-249). It
+  /// lands in arrival order and notifies listeners exactly like a streamed
+  /// item, so the view renders it inline. No-op once disposed.
+  void inject(ConversationItem item) {
+    if (_disposed) return;
+    _onItem(item);
+  }
+
   void _onItem(ConversationItem item) {
     // Track AssistantToolUse items by toolUseId for result-card pairing (T-168).
     if (item is AssistantToolUse) {

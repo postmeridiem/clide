@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Image cards in the Claude conversation log: `clide image show <path>
+  [--caption …]` renders an image inline (PNG/JPG/JPEG/GIF/WebP/BMP),
+  clide-owned and display-only (D-78). The path is resolved workspace-relative
+  and must exist; the verb registers in the dispatcher so it shows up in `clide
+  capabilities`. (T-249)
 - `clide capabilities` lists the live command surface as JSON (every verb with
   its subsystem + argument schema), reflected from the dispatcher so it never
   drifts. A new `/clide` skill points Claude at it for discovery. (T-248)

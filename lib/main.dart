@@ -28,13 +28,14 @@ import 'package:clide/builtin/vim/vim.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
-import 'dart:io' show Directory, Platform;
+import 'dart:io' show Directory, File, Platform;
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
+import 'package:clide/src/daemon/image_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/ui_command.dart';
@@ -215,6 +216,18 @@ Future<void> main() async {
     // (T-231, drive-half of D-6). Publishes a 'selection' to the kernel
     // MessageBus, captured post-boot; null in headless contexts.
     registerUiCommands(dispatcher, () => kernelMessages?.publish);
+    // `clide image show <path>` — drive an image card into the Claude
+    // conversation log (T-249, drive-half of D-6). Resolves the path
+    // (workspace-relative → absolute, must exist) here where workRoot is in
+    // scope, then publishes an 'image' message the Claude extension injects.
+    registerImageCommands(
+      dispatcher,
+      () => kernelMessages?.publish,
+      resolve: (path) {
+        final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
+        return file.existsSync() ? file.absolute.path : null;
+      },
+    );
     // `clide status` — one-shot orientation snapshot (T-221): active pane,
     // focused file + selection, git summary, layout. Assembled here where the
     // live kernel + subsystem state is in scope; the reader's viewed doc is

@@ -141,6 +141,30 @@ final class AssistantToolUse extends ConversationItem {
   String toString() => 'AssistantToolUse(name=$name, id=$toolUseId)';
 }
 
+/// A locally-injected image card (T-249). Not parsed from the transcript —
+/// driven into the conversation by `clide image show <path>` (D-6 parity) and
+/// rendered display-only per D-78. [path] is an absolute, on-disk file the
+/// driver has already resolved (workspace-relative paths are resolved before
+/// injection); [caption] is an optional one-line label.
+final class ImageMessage extends ConversationItem {
+  const ImageMessage({
+    required super.uuid,
+    required super.timestamp,
+    required super.isSidechain,
+    required this.path,
+    this.caption,
+  });
+
+  /// Absolute path to the image file on disk.
+  final String path;
+
+  /// Optional caption shown under the image.
+  final String? caption;
+
+  @override
+  String toString() => 'ImageMessage($path${caption != null ? ', "$caption"' : ''})';
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
