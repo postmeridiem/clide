@@ -32,11 +32,14 @@ help: ## Show this help.
 # -- app (Flutter) -------------------------------------------------------
 
 .PHONY: run
-run: gen-build-info ## Launch the Flutter desktop app.
+run: gen-build-info clide-cli ## Launch the Flutter desktop app.
+	# CLIDE_CLI_BIN points the in-app "Install clide command in PATH"
+	# affordance (T-212) at the dev-tree C client; a packaged build finds it
+	# beside the GUI runner in the bundle instead.
 ifeq ($(FLUTTER_OS),linux)
-	GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR)
+	CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR)
 else
-	flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR)
+	CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR)
 endif
 
 TESTMODE_CATEGORY ?= all
@@ -168,6 +171,8 @@ ui-smoke: ## Build + serve + run Playwright smoke + stop.
 .PHONY: build
 build: gen-build-info clide-cli ## flutter build for the current OS (incl. the C CLI client).
 	flutter build $(FLUTTER_OS)
+	@install -m 755 $(CLIDE_CLI_BIN) $(CLI_BUNDLE_DEST)
+	@echo "==> bundled C client at $(CLI_BUNDLE_DEST)"
 
 .PHONY: build-linux
 build-linux: gen-build-info ## flutter build linux (desktop bundle).
@@ -185,8 +190,12 @@ INSTALL_PREFIX ?= $(HOME)/.local/lib
 
 ifeq ($(FLUTTER_OS),linux)
   BUNDLE_DIR := build/linux/x64/release/bundle
+  # The C client ships beside the GUI runner so the in-app "Install clide
+  # command in PATH" affordance (T-212) can self-install from the bundle.
+  CLI_BUNDLE_DEST := $(BUNDLE_DIR)/clide-cli
 else ifeq ($(FLUTTER_OS),macos)
   BUNDLE_DIR := build/macos/Build/Products/Release/clide.app
+  CLI_BUNDLE_DEST := $(BUNDLE_DIR)/Contents/MacOS/clide-cli
 endif
 
 ICON_SIZES := 16 32 48 128 192 256 512

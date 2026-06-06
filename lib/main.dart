@@ -5,6 +5,7 @@ import 'package:clide/test_app.dart';
 import 'package:clide/builtin/canvas/canvas.dart';
 import 'package:clide/builtin/claude/claude.dart';
 import 'package:clide/builtin/claude_control/claude_control.dart';
+import 'package:clide/builtin/cli_install/cli_install.dart';
 import 'package:clide/builtin/decisions/decisions.dart';
 import 'package:clide/builtin/default_layout/default_layout.dart';
 import 'package:clide/builtin/diff/diff.dart';
@@ -375,7 +376,8 @@ Future<void> main() async {
     ..register(SettingsUiExtension())
     ..register(ExtensionsUiExtension())
     ..register(KeybindingsUiExtension())
-    ..register(ClaudeControlExtension());
+    ..register(ClaudeControlExtension())
+    ..register(CliInstallExtension());
 
   await services.extensions.activateAll();
 
