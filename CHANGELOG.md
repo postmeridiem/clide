@@ -18,15 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- "Install 'clide' command in PATH": a command-palette / `clide` CLI verb
-  (`clide.installCli`) that copies the bundled C client into `~/.local/bin`,
-  VS Code "Install code command" style — so a user who runs the app without
-  `make install` can still reach the CLI from a shell. On launch the app now
-  detects when `clide` is missing from PATH, or resolves to a stale symlink
-  into the Flutter GUI bundle (which would launch a second app instead of
-  querying the socket), and notifies with a pointer to the command. `make
-  build` ships the C client inside the app bundle so the affordance can
-  self-install from it. (T-212)
+- "Install 'clide' command in PATH" command (`clide.installCli`) copies the
+  bundled C client to `~/.local/bin`, VS Code style. On launch clide warns when
+  `clide` is missing from PATH or points at the GUI bundle instead of the CLI
+  client. (T-212)
 - `clide ui open diff <path>` reveals the diff in a split above the Claude
   conversation, scrolls to that file and highlights its header — the
   diff-panel arm of `ui open`. Workspace tabs other than Claude/editor now
