@@ -25,6 +25,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/kernel/src/log.dart';
+import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/ipc/envelope.dart';
+
+/// Prefix for clide's own MCP tools — the full command surface, generated
+/// from the dispatcher registry (D-86). The `mcp__ide__*` pair is the
+/// separate `/ide` minimum (D-68).
+const String _clideToolPrefix = 'mcp__clide__';
 
 /// One connected SSE client. Each session has its own response
 /// stream; POST /messages routes back to the right one via the
@@ -59,6 +66,7 @@ class McpServer {
   McpServer({
     required this.workspaceRoot,
     required this.log,
+    this.dispatcher,
     this.discoveryDirOverride,
     this.bindHost = '127.0.0.1',
     this.bindPort = 0,
@@ -68,6 +76,11 @@ class McpServer {
   /// Code show "which clide is this" when multiple are running.
   final String workspaceRoot;
   final Logger log;
+
+  /// The command dispatcher whose registry drives the `mcp__clide__*` tool
+  /// surface and handles `tools/call` (D-86). Null → only the `/ide` minimum
+  /// tools are served (tests that don't need the full surface).
+  final DaemonDispatcher? dispatcher;
 
   /// Override of `$HOME/.claude/ide/` for tests. Production code
   /// passes null; tests inject a tempdir.
@@ -222,6 +235,9 @@ class McpServer {
       case 'tools/list':
         return {
           'tools': [
+            // The `/ide` minimum (D-68). Both still stubbed — getDiagnostics
+            // and executeCode (Jupyter) are deferred follow-ups; T-225 wires
+            // the clide command surface below.
             {
               'name': 'mcp__ide__getDiagnostics',
               'description': 'Return diagnostics from the open editor (stubbed).',
@@ -242,10 +258,15 @@ class McpServer {
                 },
               },
             },
+            // The full clide surface, generated from the command registry.
+            ...?dispatcher?.mcpTools(),
           ],
         };
       case 'tools/call':
         final name = (params?['name'] as String?) ?? '';
+        if (name.startsWith(_clideToolPrefix)) {
+          return _callClideTool(name, params);
+        }
         switch (name) {
           case 'mcp__ide__getDiagnostics':
             return {
@@ -266,6 +287,39 @@ class McpServer {
       default:
         throw StateError('unknown method: $method');
     }
+  }
+
+  /// Run a `mcp__clide__<cmd>` tool by dispatching the underlying command
+  /// (D-86). The MCP `arguments` object maps straight to the request's named
+  /// args — the dispatcher's D-74 schema normalises/validates them. The
+  /// response is rendered as MCP tool content: `data` as JSON text on success,
+  /// the error message with `isError: true` on failure.
+  Future<Object?> _callClideTool(String name, Map<String, Object?>? params) async {
+    final d = dispatcher;
+    if (d == null) {
+      return {
+        'content': [
+          {'type': 'text', 'text': 'clide command surface is not available'},
+        ],
+        'isError': true,
+      };
+    }
+    final cmd = name.substring(_clideToolPrefix.length);
+    final args = (params?['arguments'] as Map?)?.cast<String, Object?>() ?? const {};
+    final resp = await d.dispatch(IpcRequest(id: 'mcp', cmd: cmd, args: args));
+    if (resp.ok) {
+      return {
+        'content': [
+          {'type': 'text', 'text': jsonEncode(resp.data)},
+        ],
+      };
+    }
+    return {
+      'content': [
+        {'type': 'text', 'text': resp.error?.message ?? 'command failed'},
+      ],
+      'isError': true,
+    };
   }
 
   // -- discovery file -------------------------------------------------------

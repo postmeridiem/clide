@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- External MCP clients (Cursor, Windsurf, Copilot, …) can now drive clide: the
+  MCP server exposes the full `mcp__clide__*` tool surface, generated from the
+  command registry that already feeds the CLI + palette (D-86), with a
+  per-command opt-out. The two `/ide` tools remain stubs. (T-225)
 - `clide events --since <cursor> [--filter X]` reads events after a cursor and
   returns them plus a next-cursor — the pull-based complement to the
   `tail --events` stream, made for agent poll loops. Reports `gap: true` when

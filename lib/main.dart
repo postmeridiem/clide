@@ -151,7 +151,7 @@ Future<void> main() async {
       ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
       return;
     }
-    final mcp = McpServer(workspaceRoot: workRoot.path, log: ipcLog);
+    final mcp = McpServer(workspaceRoot: workRoot.path, log: ipcLog, dispatcher: dispatcher);
     mcpServer = mcp;
     try {
       await mcp.start();

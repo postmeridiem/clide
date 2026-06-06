@@ -89,6 +89,79 @@ void main() {
       expect(echo.containsKey('args'), isFalse);
     });
 
+    test('mcpTools generates the tool surface from the registry (T-225)', () async {
+      final d = DaemonDispatcher();
+      d.register('echo', (req) async => IpcResponse.ok(id: req.id, data: const {}));
+      d.register(
+        'pane.resize',
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+        schema: const CommandSchema(
+          positional: ['id', 'cols'],
+          args: {
+            'id': ArgSpec(required: true),
+            'cols': ArgSpec(type: ArgType.number, min: 1),
+          },
+        ),
+      );
+      d.register('pane.tail', (req) async => IpcResponse.ok(id: req.id, data: const {}), mcpExpose: false);
+      d.register(
+        'files.read',
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+        schema: const CommandSchema(
+          positional: ['path'],
+          args: {
+            'path': ArgSpec(pattern: null, allowed: {'a', 'b'}),
+            'recursive': ArgSpec(type: ArgType.boolean),
+            'globs': ArgSpec(type: ArgType.stringList, maxItems: 5),
+          },
+        ),
+      );
+
+      // Non-const so a RegExp pattern can be supplied (covers the string
+      // `pattern` mapping).
+      d.register(
+        'git.checkout',
+        (req) async => IpcResponse.ok(id: req.id, data: const {}),
+        schema: CommandSchema(positional: const ['ref'], args: {'ref': ArgSpec(pattern: RegExp(r'^\w+$'))}),
+      );
+
+      final tools = d.mcpTools();
+      final byName = {for (final t in tools) t['name'] as String: t};
+
+      // Tools are prefixed; built-ins + registered commands are present.
+      expect(byName.keys, containsAll(['mcp__clide__ping', 'mcp__clide__echo', 'mcp__clide__pane.resize']));
+      // The opt-out command is withheld.
+      expect(byName.containsKey('mcp__clide__pane.tail'), isFalse);
+
+      // Schema → JSON-Schema inputSchema.
+      final resize = byName['mcp__clide__pane.resize']!;
+      expect(resize['description'], 'pane: resize');
+      final input = resize['inputSchema'] as Map<String, Object?>;
+      expect(input['type'], 'object');
+      final props = input['properties'] as Map<String, Object?>;
+      expect((props['cols'] as Map)['type'], 'number');
+      expect((props['cols'] as Map)['minimum'], 1);
+      expect(input['required'], ['id']);
+
+      // A schema-less command gets an empty object input with no required.
+      final echo = byName['mcp__clide__echo']!;
+      final echoInput = echo['inputSchema'] as Map<String, Object?>;
+      expect(echoInput['properties'], isEmpty);
+      expect(echoInput.containsKey('required'), isFalse);
+
+      // Each ArgType maps to its JSON-Schema shape.
+      final readProps = (byName['mcp__clide__files.read']!['inputSchema'] as Map)['properties'] as Map;
+      expect((readProps['path'] as Map)['type'], 'string');
+      expect((readProps['path'] as Map)['enum'], ['a', 'b']);
+      expect((readProps['recursive'] as Map)['type'], 'boolean');
+      expect((readProps['globs'] as Map)['type'], 'array');
+      expect(((readProps['globs'] as Map)['items'] as Map)['type'], 'string');
+      expect((readProps['globs'] as Map)['maxItems'], 5);
+
+      final refProps = (byName['mcp__clide__git.checkout']!['inputSchema'] as Map)['properties'] as Map;
+      expect((refProps['ref'] as Map)['pattern'], r'^\w+$');
+    });
+
     test('clear removes user handlers but keeps the built-ins', () async {
       final d = DaemonDispatcher();
       d.register('extra', (req) async => IpcResponse.ok(id: req.id, data: const {}));

@@ -41,7 +41,9 @@ void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSo
       schema: const CommandSchema(
           positional: ['id', 'cols', 'rows'], args: {'id': ArgSpec(), 'cols': ArgSpec(type: ArgType.number), 'rows': ArgSpec(type: ArgType.number)}));
   d.register('pane.focus', (req) => _focus(req, registry), schema: idArg);
-  d.register('pane.tail', (req) => _tail(req, registry));
+  // pane.tail is a streaming/no-op verb (events arrive via the tail stream),
+  // a poor request/response MCP tool — keep it off the MCP surface (D-86).
+  d.register('pane.tail', (req) => _tail(req, registry), mcpExpose: false);
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
