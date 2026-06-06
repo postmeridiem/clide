@@ -312,12 +312,8 @@ void main() {
     final client = HttpClient();
     addTearDown(client.close);
     final resp = await (await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'))).close();
-    final data = resp
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .where((l) => l.startsWith('data: '))
-        .map((l) => l.substring(6))
-        .asBroadcastStream();
+    final data =
+        resp.transform(utf8.decoder).transform(const LineSplitter()).where((l) => l.startsWith('data: ')).map((l) => l.substring(6)).asBroadcastStream();
     final ep = Completer<String>();
     final sub = data.listen((d) {
       final m = RegExp(r'sessionId=([\w-]+)').firstMatch(d);
