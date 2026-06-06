@@ -33,7 +33,7 @@ Tooling-domain questions currently live here too. Split into
 
 ### Q-19: (withdrawn)
 - **Status:** Resolved → n/a
-- **Note:** Earlier floated as "ticket markdown mirror vs SQLite" — no longer a split question. Markdown mirror is tracked in [Q-22](questions-architecture.md#q-22-ticket-persistence-strategy); SQLite is the current stopgap per [D-40](process.md#d-40-python-stopgap-under-toolsscriptsplan).
+- **Note:** Earlier floated as "ticket markdown mirror vs SQLite" — no longer a split question. Markdown mirror is tracked in [Q-22](questions-architecture.md#q-22-ticket-persistence-strategy); SQLite is the current stopgap per [D-40](process.md#d-40-superseded-python-stopgap-under-toolsscriptsplan).
 
 ### Q-20: Kernel DB service — namespaced SQL access?
 - **Status:** Open
