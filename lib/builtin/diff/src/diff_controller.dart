@@ -31,6 +31,24 @@ class DiffController extends ChangeNotifier {
   bool _loading = false;
   bool get loading => _loading;
 
+  String? _focusPath;
+
+  /// The file the view should scroll into view + highlight (T-233), set by
+  /// [focus] when `clide ui open diff <path>` (or a UI reveal) targets a file.
+  /// Null until something focuses a path; cleared when that file leaves the
+  /// diff (e.g. its changes are reverted).
+  String? get focusPath => _focusPath;
+
+  /// Focus [path] within the working-tree diff (T-233): record it so the view
+  /// scrolls it into view + highlights it, and reload so the latest edits to
+  /// that file are present even if the `git.changed` refresh hasn't landed yet.
+  /// Revealing the diff tab itself is the caller's job (the diff extension).
+  void focus(String path) {
+    _focusPath = path;
+    notifyListeners();
+    unawaited(load(staged: _staged));
+  }
+
   /// Load diffs. Optionally filter to [paths] and toggle [staged].
   Future<void> load({
     bool staged = false,
@@ -54,6 +72,11 @@ class DiffController extends ChangeNotifier {
 
     _error = null;
     _diffs = _castList(r.data['diffs']);
+    // Drop a focus whose file no longer has changes, so the view doesn't keep
+    // a highlight on something that's gone.
+    if (_focusPath != null && !_diffs.any((d) => d['path'] == _focusPath)) {
+      _focusPath = null;
+    }
     notifyListeners();
   }
 

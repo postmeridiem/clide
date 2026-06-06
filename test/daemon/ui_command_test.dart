@@ -46,6 +46,16 @@ void main() {
     expect(published[1].data, {'path': 'docs/initial-plan.md'});
   });
 
+  test('diff keys on path and publishes a builtin.diff selection (T-233)', () async {
+    wire();
+    final r = await open(['diff', 'lib/main.dart']);
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['opened'], isTrue);
+    expect(published.single.publisher, 'builtin.diff');
+    expect(published.single.channel, 'selection');
+    expect(published.single.data, {'path': 'lib/main.dart'});
+  });
+
   test('named args work too (reader/ref)', () async {
     wire();
     final r = await d.dispatch(IpcRequest(id: '1', cmd: 'ui.open', args: {'reader': 'tickets', 'ref': 'T-7'}));

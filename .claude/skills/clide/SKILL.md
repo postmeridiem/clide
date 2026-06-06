@@ -44,7 +44,8 @@ one). `clide <subsystem>` with no verb, or an unknown command, prints usage.
   - `clide pane list`, `clide editor active` — narrower snapshots.
 - **Drive** — make the UI do something:
   - `clide ui open <reader> <ref>` — open a doc in a GUI reader
-    (`tickets`/`decisions` by id, `markdown` by path): "look at this with me."
+    (`tickets`/`decisions` by id, `markdown`/`diff` by path): "look at this
+    with me." `diff <path>` reveals the diff tab and scrolls to that file.
   - `clide ui toast "message" [--severity success|warning|error|info]` — raise
     a toast on the user's screen: "tests green", "push failed".
   - pane/editor/files/git verbs — see `clide capabilities` for the current set

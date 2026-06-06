@@ -18,6 +18,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- `clide ui open diff <path>` reveals the diff tab and scrolls to that file's
+  diff, highlighting its header — the diff-panel arm of `ui open` (T-233).
 - Image cards in the Claude conversation log: `clide image show <path>
   [--caption …]` renders an image inline (PNG/JPG/JPEG/GIF/WebP/BMP),
   clide-owned and display-only (D-78). The path is resolved workspace-relative

@@ -11,7 +11,13 @@ import 'package:flutter/widgets.dart';
 import 'diff_controller.dart';
 
 class DiffView extends StatefulWidget {
-  const DiffView({super.key});
+  const DiffView({super.key, this.controller});
+
+  /// When supplied, render this controller instead of creating one. The diff
+  /// extension passes an app-scoped controller it retains so a `ui open diff`
+  /// focus survives the tab being revealed/remounted (T-233); the view then
+  /// neither owns nor disposes it. Null → self-owned, as before.
+  final DiffController? controller;
 
   @override
   State<DiffView> createState() => _DiffViewState();
@@ -19,19 +25,51 @@ class DiffView extends StatefulWidget {
 
 class _DiffViewState extends State<DiffView> {
   DiffController? _controller;
+  bool _ownsController = false;
+  final ScrollController _scroll = ScrollController();
+
+  /// One key per file path in the current diff, so [focus] can scroll the
+  /// matching section into view. Rebuilt lazily as paths appear.
+  final Map<String, GlobalKey> _fileKeys = {};
+
+  /// The focus we last scrolled to, so a repeat build doesn't re-scroll.
+  String? _scrolledTo;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_controller != null) return;
-    final kernel = ClideKernel.of(context);
-    _controller = DiffController(ipc: kernel.ipc, events: kernel.events);
-    unawaited(_controller!.load());
+    final injected = widget.controller;
+    if (injected != null) {
+      _controller = injected;
+      _ownsController = false;
+    } else {
+      final kernel = ClideKernel.of(context);
+      _controller = DiffController(ipc: kernel.ipc, events: kernel.events);
+      _ownsController = true;
+      unawaited(_controller!.load());
+    }
+    _controller!.addListener(_onControllerChanged);
+  }
+
+  /// When the controller's focus changes, scroll that file into view after the
+  /// frame it lays out in. Keeps the highlight (paint) to [build].
+  void _onControllerChanged() {
+    final path = _controller?.focusPath;
+    if (path == null || path == _scrolledTo) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _fileKeys[path]?.currentContext;
+      if (ctx == null) return; // file not in the diff (no changes) → nothing to scroll to
+      _scrolledTo = path;
+      unawaited(Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 200), alignment: 0.05));
+    });
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _controller?.removeListener(_onControllerChanged);
+    if (_ownsController) _controller?.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -39,6 +77,12 @@ class _DiffViewState extends State<DiffView> {
   Widget build(BuildContext context) {
     final c = _controller;
     if (c == null) return const SizedBox.shrink();
+    // Forget keys for files no longer in the diff so the map can't grow without
+    // bound across reloads.
+    _fileKeys.removeWhere((path, _) => !c.diffs.any((d) => d['path'] == path));
+    if (c.focusPath != _scrolledTo && !c.diffs.any((d) => d['path'] == c.focusPath)) {
+      _scrolledTo = null; // focus left the diff; allow re-scroll if it returns
+    }
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
@@ -74,12 +118,19 @@ class _DiffViewState extends State<DiffView> {
                 ),
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _scroll,
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (final diff in c.diffs) _FileDiff(diff: diff, controller: c),
+                      for (final diff in c.diffs)
+                        _FileDiff(
+                          key: _fileKeys[diff['path'] as String? ?? ''] ??= GlobalKey(),
+                          diff: diff,
+                          controller: c,
+                          focused: (diff['path'] as String?) == c.focusPath,
+                        ),
                     ],
                   ),
                 ),
@@ -140,9 +191,13 @@ class _DiffToolbar extends StatelessWidget {
 }
 
 class _FileDiff extends StatelessWidget {
-  const _FileDiff({required this.diff, required this.controller});
+  const _FileDiff({super.key, required this.diff, required this.controller, this.focused = false});
   final Map<String, Object?> diff;
   final DiffController controller;
+
+  /// This file is the current focus target (T-233) — its header gets a focus
+  /// accent so the eye lands on it after the scroll.
+  final bool focused;
 
   @override
   Widget build(BuildContext context) {
@@ -171,14 +226,17 @@ class _FileDiff extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          color: tokens.panelHeader,
+          decoration: BoxDecoration(
+            color: tokens.panelHeader,
+            border: focused ? Border(left: BorderSide(color: tokens.globalFocus, width: 2)) : null,
+          ),
           child: Row(
             children: [
               Expanded(
                 child: ClideText(
                   path,
                   fontSize: clideFontCaption,
-                  color: tokens.panelHeaderForeground,
+                  color: focused ? tokens.globalFocus : tokens.panelHeaderForeground,
                 ),
               ),
               if (additions > 0) ClideText('+$additions ', fontSize: clideFontCaption, color: tokens.statusSuccess),
