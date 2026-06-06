@@ -36,7 +36,9 @@ void main() {
         i18nCatalogs: {
           'builtin.theme-picker': {
             const Locale('en', 'US'): const {
-              'modal.title': {'translation': 'Select theme'},
+              'modal.title': {'translation': 'Settings'},
+              'section.appearance': {'translation': 'Appearance'},
+              'toggle.highContrast': {'translation': 'High contrast'},
               'modal.cancel': {'translation': 'Cancel'},
               'modal.cancel.hint': {'translation': 'Dismiss'},
               'row.select.hint': {'translation': 'Activate this theme'},
@@ -63,11 +65,11 @@ void main() {
       );
     });
 
-    testWidgets('modal lists every bundled theme', (tester) async {
+    testWidgets('settings modal lists base themes + a High contrast toggle', (tester) async {
       await tester.pumpWidget(
         harness(
           f,
-          ThemePickerView(
+          SettingsView(
             controller: f.services.theme,
             onDismiss: ([_]) {},
           ),
@@ -77,7 +79,10 @@ void main() {
       // test fixtures so the label appears twice per row.
       expect(find.text('summer-night'), findsNWidgets(2));
       expect(find.text('forest'), findsNWidgets(2));
-      expect(find.text('Select theme'), findsOneWidget);
+      // Promoted to a Settings modal with an Appearance section (T-238).
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Appearance'), findsOneWidget);
+      expect(find.text('High contrast'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });
 
@@ -86,7 +91,7 @@ void main() {
       await tester.pumpWidget(
         harness(
           f,
-          ThemePickerView(
+          SettingsView(
             controller: f.services.theme,
             onDismiss: ([v]) => dismissed = v,
           ),
@@ -103,7 +108,7 @@ void main() {
       await tester.pumpWidget(
         harness(
           f,
-          ThemePickerView(
+          SettingsView(
             controller: f.services.theme,
             onDismiss: ([v]) => dismissed = v,
           ),
@@ -112,6 +117,31 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Cancel'));
       await tester.pumpAndSettle();
       expect(dismissed, isNull);
+    });
+
+    testWidgets('settings modal hides -hc siblings; High contrast applies them (T-238)', (tester) async {
+      // KernelFixture.create does real file I/O (temp dir + boot); awaiting it
+      // inside the testWidgets fake-async body would hang (the T-122 trap), so
+      // build it on the real event loop via runAsync.
+      late KernelFixture hf;
+      await tester.runAsync(() async => hf = await KernelFixture.create(bundledThemes: [_def('paper'), _def('paper-hc')]));
+      addTearDown(hf.dispose);
+      await tester.pumpWidget(
+        harness(
+          hf,
+          SettingsView(controller: hf.services.theme, onDismiss: ([_]) {}),
+        ),
+      );
+      // Base theme listed once (displayName + muted name); the -hc sibling is
+      // folded into the toggle, not shown as a row.
+      expect(find.text('paper'), findsNWidgets(2));
+      expect(find.text('paper-hc'), findsNothing);
+
+      // Toggling High contrast applies the -hc sibling live.
+      expect(hf.services.theme.currentName, 'paper');
+      await tester.tap(find.bySemanticsLabel('High contrast'));
+      await tester.pump();
+      expect(hf.services.theme.currentName, 'paper-hc');
     });
 
     testWidgets('status switcher shows the active theme and opens a popover (T-234)', (tester) async {

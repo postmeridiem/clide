@@ -1,5 +1,5 @@
 import 'package:clide/clide.dart';
-import 'package:clide/builtin/theme_picker/src/picker_view.dart';
+import 'package:clide/builtin/theme_picker/src/settings_view.dart';
 import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/extension/extension.dart';
 
@@ -20,10 +20,13 @@ class ThemePickerExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
+        // Opens the settings modal (T-238). Command id kept as `theme.pick`
+        // (the welcome theme-link and other callers reference it); ⌘K opens
+        // Settings, whose only section today is the theme picker.
         CommandContribution(
           id: 'theme.pick',
           command: 'theme.pick',
-          title: 'Theme: Pick…',
+          title: 'Settings…',
           defaultBinding: 'ctrl+k',
           run: _pick,
         ),
@@ -50,7 +53,7 @@ class ThemePickerExtension extends ClideExtension {
       );
     }
     final selected = await ctx.dialog.show<String>(
-      (context, dismiss) => ThemePickerView(
+      (context, dismiss) => SettingsView(
         controller: ctx.theme,
         onDismiss: dismiss,
       ),

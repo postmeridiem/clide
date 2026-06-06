@@ -100,6 +100,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- ⌘K now opens a **Settings** modal instead of a theme-only picker. Its first
+  (currently only) section is Appearance — base themes, sorted, with a High
+  contrast toggle for `-hc` siblings — matching the status-bar switcher. (T-238)
 - The pql search panel merged into the Search tab, which now has modes: Find
   (content grep), Vault (pql ranked search), Query (PQL DSL), and Markdown (the
   synced file listing). The standalone pql sidebar tab is gone; Backlinks stays
