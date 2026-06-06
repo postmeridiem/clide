@@ -29,6 +29,7 @@ class IpcServer {
     required this.log,
     this.events,
     this.replayDepth = 16,
+    this.eventLogDepth = 1024,
   });
 
   final DaemonDispatcher dispatcher;
@@ -61,6 +62,21 @@ class IpcServer {
 
   /// Per-subsystem ring buffer of recent events for replay.
   final Map<String, Queue<IpcEvent>> _replay = {};
+
+  /// Bound on the cursor log that serves `clide events --since` (T-223).
+  /// Larger than [replayDepth]: a polling agent reads at its own cadence,
+  /// so a deeper window means fewer gaps between polls.
+  final int eventLogDepth;
+
+  /// Global, arrival-ordered log of events keyed by a monotonic cursor —
+  /// the pull-based read surface (T-223 / D-85). Drop-oldest; never blocks
+  /// the producer. [_lastCursor] is the high-water mark handed back as the
+  /// next cursor; [_droppedThrough] is the highest evicted cursor, so a pull
+  /// whose cursor predates it is told there's a gap rather than silently
+  /// missing the dropped events.
+  final Queue<_LoggedEvent> _eventLog = Queue<_LoggedEvent>();
+  int _lastCursor = 0;
+  int _droppedThrough = 0;
 
   String get socketPath => _socketPath ?? workspaceSocketPath(workspaceRoot);
   bool get isRunning => _socket != null;
@@ -117,6 +133,9 @@ class IpcServer {
     _busSub = null;
     _subscribers.clear();
     _replay.clear();
+    _eventLog.clear();
+    _lastCursor = 0;
+    _droppedThrough = 0;
     await _accepts?.cancel();
     _accepts = null;
     for (final c in List<Socket>.from(_clients)) {
@@ -209,7 +228,7 @@ class IpcServer {
           await _enterStreamingMode(client, req);
           return;
         }
-        response = await dispatcher.dispatch(req);
+        response = _isEventsPull(req) ? _eventsSince(req) : await dispatcher.dispatch(req);
       }
     } on FormatException catch (e) {
       response = IpcResponse.err(
@@ -312,6 +331,59 @@ class IpcServer {
     return _replay[filter] ?? const [];
   }
 
+  // -- event pull (T-223) ---------------------------------------------------
+
+  /// `clide events [--since <cursor>] [--filter X]` — a one-shot, cursor-based
+  /// read of the event log, the request/response complement to the
+  /// never-returning `tail --events` stream.
+  bool _isEventsPull(IpcRequest req) => req.cmd == 'events';
+
+  /// Build the pull response: every logged event with cursor > `since`
+  /// (optionally filtered by subsystem), the high-water `cursor` to poll
+  /// from next, and `gap: true` when `since` predates the retained window
+  /// (events between `since` and the oldest retained entry were dropped).
+  IpcResponse _eventsSince(IpcRequest req) {
+    final flags = req.args['flags'];
+    final flagMap = flags is Map ? flags : const {};
+    final filter = (flagMap['filter'] as String?) ?? '*';
+    final since = _parseSince(flagMap['since']);
+    if (since == null) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(
+          code: IpcExitCode.userError,
+          kind: IpcErrorKind.userError,
+          message: '--since must be a non-negative integer cursor',
+        ),
+      );
+    }
+    final out = <Map<String, Object?>>[];
+    for (final logged in _eventLog) {
+      if (logged.cursor <= since) continue;
+      if (filter != '*' && logged.event.subsystem != filter) continue;
+      out.add({...logged.event.toJson(), 'cursor': logged.cursor});
+    }
+    // A gap only means something when the caller had a prior position
+    // (since > 0); a first read (since 0) just gets whatever's retained.
+    final gap = since > 0 && since < _droppedThrough;
+    return IpcResponse.ok(id: req.id, data: {
+      'events': out,
+      'cursor': _lastCursor,
+      'gap': gap,
+      if (gap) 'oldestCursor': _eventLog.isEmpty ? _lastCursor : _eventLog.first.cursor,
+    });
+  }
+
+  /// Parse the `--since` flag (a string from argv or an int from a typed
+  /// request). Null on an invalid (non-integer / negative) value; absent
+  /// means 0 (read from the beginning of the retained window).
+  int? _parseSince(Object? raw) {
+    if (raw == null) return 0;
+    if (raw is int) return raw < 0 ? null : raw;
+    final n = int.tryParse('$raw');
+    return (n == null || n < 0) ? null : n;
+  }
+
   void _onBusEvent(DaemonEvent e) {
     final ev = IpcEvent(
       subsystem: e.subsystem,
@@ -324,6 +396,13 @@ class IpcServer {
     ring.addLast(ev);
     while (ring.length > replayDepth) {
       ring.removeFirst();
+    }
+    // Push to the cursor log (T-223). Drop-oldest; record the highest
+    // evicted cursor so a later `--since` below it reports a gap.
+    final cursor = ++_lastCursor;
+    _eventLog.addLast(_LoggedEvent(cursor, ev));
+    while (_eventLog.length > eventLogDepth) {
+      _droppedThrough = _eventLog.removeFirst().cursor;
     }
     // Fan out to live subscribers whose filter matches.
     final stale = <Socket>[];
@@ -367,4 +446,12 @@ class IpcServer {
       throw ProcessException('chmod', [octal, path], r.stderr.toString(), r.exitCode);
     }
   }
+}
+
+/// One entry in the cursor log (T-223): an [IpcEvent] tagged with the
+/// monotonic [cursor] assigned when it was recorded.
+class _LoggedEvent {
+  _LoggedEvent(this.cursor, this.event);
+  final int cursor;
+  final IpcEvent event;
 }

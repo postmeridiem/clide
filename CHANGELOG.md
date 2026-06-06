@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- `clide events --since <cursor> [--filter X]` reads events after a cursor and
+  returns them plus a next-cursor — the pull-based complement to the
+  `tail --events` stream, made for agent poll loops. Reports `gap: true` when
+  the cursor has aged out of the in-memory ring (D-85). (T-223)
 - "Install 'clide' command in PATH" command (`clide.installCli`) copies the
   bundled C client to `~/.local/bin`, VS Code style. On launch clide warns when
   `clide` is missing from PATH or points at the GUI bundle instead of the CLI

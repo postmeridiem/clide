@@ -94,6 +94,13 @@ void main() {
       expect(_expectOk(parseArgv(['ping'], requestId: 'p')).cmd, 'ping');
       expect(_expectOk(parseArgv(['version'], requestId: 'v')).cmd, 'version');
     });
+
+    test('"events --since 5 --filter pane" parses to the events command (T-223)', () {
+      final req = _expectOk(parseArgv(['events', '--since', '5', '--filter', 'pane'], requestId: 'e'));
+      expect(req.cmd, 'events');
+      expect((req.args['flags'] as Map)['since'], '5');
+      expect((req.args['flags'] as Map)['filter'], 'pane');
+    });
   });
 
   group('parseArgv — errors', () {
