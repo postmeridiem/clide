@@ -487,3 +487,4 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 
 **Related:** epic T-65 (Vim preset), T-207 (Vim mode service owns Esc -> normal), T-205 / T-117 (key-sequence resolution + when-clauses).
 **Files:** `assets/keymaps/default.yaml`, `assets/keymaps/vim.yaml`, `lib/builtin/editor/src/editor_view.dart`, `lib/kernel/src/keymap/`.', NULL, '2026-06-06 14:01:03', '2026-06-06 14:01:03', '2026-06-06 14:01:03', NULL, '6cd03ce2694808401bc66fb0c9267284', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-257', 'status', 'backlog', 'in_progress', NULL, '2026-06-06 18:44:58', '2026-06-06 18:44:58', '2026-06-06 18:44:58', NULL, '00d866fbb270421aa9e7103ac2a9b720', 1) ON CONFLICT(hash) DO NOTHING;

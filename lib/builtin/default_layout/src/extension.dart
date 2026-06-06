@@ -79,6 +79,10 @@ class DefaultLayoutExtension extends ClideExtension {
           command: 'panel.focusMode.exit',
           title: 'Exit Focus Mode',
           defaultBinding: 'escape',
+          // Stand down in Vim insert/visual mode so Esc returns to normal
+          // mode instead of closing the editor (T-257). Symmetric with
+          // vim.yaml's `vim.mode.normal` (escape when vim.insert||vim.visual).
+          bindingWhen: '!vim.insert && !vim.visual',
           run: _exitFocusMode,
         ),
         // Editor split (D-049, D-054)

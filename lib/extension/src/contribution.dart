@@ -107,11 +107,18 @@ class CommandContribution extends ContributionPoint {
     required this.run,
     this.title,
     this.defaultBinding,
+    this.bindingWhen,
   });
 
   final String command; // e.g. "git.commit"
   final String? title; // "Git: Commit staged"
   final String? defaultBinding; // e.g. "ctrl+shift+g"
+
+  /// Optional when-clause guarding [defaultBinding] (same grammar as keymap
+  /// YAML `when:`). Lets a global binding yield to a higher-context one — e.g.
+  /// `panel.focusMode.exit`'s `escape` stands down in Vim insert/visual mode so
+  /// the preset's `vim.mode.normal` wins (T-257). Null → binding always active.
+  final String? bindingWhen;
   final Future<IpcResponse> Function(List<String> args) run;
 }
 

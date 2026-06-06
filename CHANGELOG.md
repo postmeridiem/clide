@@ -128,6 +128,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- In Vim mode, Esc in insert/visual mode returns to normal mode instead of
+  closing the editor. The global "exit focus / close editor" Esc binding now
+  stands down while Vim is in insert or visual mode. (T-257)
 - The permission-mode badge and Ctrl/Cmd+M now visibly cycle the mode in the
   status line. The mode was changed on the session but never reflected back, so
   both looked dead. (T-250)

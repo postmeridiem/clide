@@ -205,7 +205,7 @@ class ExtensionManager extends ChangeNotifier {
           // until all callers migrate; the keymap layer is the
           // canonical home for chord → command bindings (T-117).
           keybindings.bind(Keybinding.parse(binding), cmd.command);
-          keymap.registerCommandBinding(binding, cmd.command);
+          keymap.registerCommandBinding(binding, cmd.command, when: cmd.bindingWhen);
         }
       case TrayItemContribution t:
         tray.add(t);
