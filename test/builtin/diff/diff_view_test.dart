@@ -16,6 +16,29 @@ import '../../helpers/widget_harness.dart';
 IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data);
 Map<String, Object?> _file(String path) => {'path': path, 'hunks': const []};
 
+/// A file with rename metadata and a hunk carrying one of each line kind, so
+/// the view exercises `_FileDiff` meta, `_HunkView`, and `_DiffLineRow`.
+Map<String, Object?> _richFile() => {
+      'path': 'lib/c.dart',
+      'renamed': true,
+      'oldPath': 'lib/old.dart',
+      'additions': 2,
+      'removals': 1,
+      'hunks': [
+        {
+          'header': '@@ -1,2 +1,3 @@',
+          'lines': [
+            {'kind': 'context', 'text': 'kept', 'oldLineNo': 1, 'newLineNo': 1},
+            {'kind': 'addition', 'text': 'new line', 'newLineNo': 2},
+            {'kind': 'removal', 'text': 'gone line', 'oldLineNo': 2},
+          ],
+        },
+      ],
+    };
+
+bool _textIs(Object? w, String s) => w is ClideText && w.data == s;
+bool _textHas(Object? w, String s) => w is ClideText && w.data.contains(s);
+
 ClideText _header(WidgetTester tester, String path) => tester.widget<ClideText>(find.byWidgetPredicate((w) => w is ClideText && w.data == path));
 
 void main() {
@@ -67,5 +90,63 @@ void main() {
     expect(_header(tester, 'lib/b.dart').color, tokens.globalFocus);
     // The other file stays unhighlighted.
     expect(_header(tester, 'lib/a.dart').color, tokens.panelHeaderForeground);
+  });
+
+  testWidgets('renders hunk header, each diff line kind, and rename meta', (tester) async {
+    ipc.stub(
+        'git.diff',
+        (_) async => _ok({
+              'diffs': [_richFile()]
+            }));
+    await c.load();
+    await tester.pumpWidget(harness(f, DiffView(controller: c)));
+    await tester.pumpAndSettle();
+
+    expect(find.byWidgetPredicate((w) => _textIs(w, '@@ -1,2 +1,3 @@')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => _textIs(w, 'kept')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => _textIs(w, 'new line')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => _textIs(w, 'gone line')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => _textHas(w, 'renamed from lib/old.dart')), findsOneWidget);
+  });
+
+  testWidgets('renders new/deleted/binary metadata and skips hunks for binary', (tester) async {
+    ipc.stub(
+        'git.diff',
+        (_) async => _ok({
+              'diffs': [
+                {'path': 'img.png', 'new': true, 'binary': true, 'hunks': const []},
+                {'path': 'gone.txt', 'deleted': true, 'hunks': const []},
+              ]
+            }));
+    await c.load();
+    await tester.pumpWidget(harness(f, DiffView(controller: c)));
+    await tester.pumpAndSettle();
+
+    expect(find.byWidgetPredicate((w) => _textHas(w, 'new file')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => _textHas(w, 'binary')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => _textHas(w, 'deleted')), findsOneWidget);
+  });
+
+  testWidgets('renders the error message when git.diff fails', (tester) async {
+    ipc.stub(
+        'git.diff',
+        (_) async => IpcResponse.err(
+              id: '',
+              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+            ));
+    await c.load();
+    await tester.pumpWidget(harness(f, DiffView(controller: c)));
+    await tester.pumpAndSettle();
+
+    expect(find.byWidgetPredicate((w) => _textIs(w, 'boom')), findsOneWidget);
+  });
+
+  testWidgets('shows the empty-state message when there are no changes', (tester) async {
+    ipc.stub('git.diff', (_) async => _ok({'diffs': const []}));
+    await c.load();
+    await tester.pumpWidget(harness(f, DiffView(controller: c)));
+    await tester.pumpAndSettle();
+
+    expect(find.byWidgetPredicate((w) => _textIs(w, 'No unstaged changes.')), findsOneWidget);
   });
 }
