@@ -958,10 +958,18 @@ class _WorkspaceSlot extends StatelessWidget {
         final editorTab = tabs.where((t) => t.id == _editorTabId).firstOrNull;
 
         final claude = tabs.where((t) => t.id == _claudeTabId).firstOrNull;
-        final primary = claude ?? active;
-        final primaryPane = KeyedSubtree(key: _kWorkspacePrimary, child: primary.build(ctx));
+        final primaryPane = KeyedSubtree(key: _kWorkspacePrimary, child: (claude ?? active).build(ctx));
 
-        if (!editorOpen || editorTab == null) {
+        // A non-Claude, non-editor workspace tab being the active one (e.g.
+        // diff.view revealed by `clide ui open diff`, T-233) shows in the split
+        // region above Claude — "review alongside the conversation" — with a
+        // close affordance back to full-Claude. Only when Claude exists below
+        // it; with no Claude pane the active tab just takes the whole slot, as
+        // before. The editor keeps its own editorOpen-gated split.
+        final reveal = (claude != null && active.id != _claudeTabId && active.id != _editorTabId) ? active : null;
+        final topTab = reveal ?? (editorOpen ? editorTab : null);
+
+        if (topTab == null) {
           return Container(color: tokens.panelBackground, child: primaryPane);
         }
 
@@ -971,10 +979,18 @@ class _WorkspaceSlot extends StatelessWidget {
           child: LayoutBuilder(
             builder: (ctx, constraints) {
               final totalHeight = constraints.maxHeight;
-              final editorHeight = (totalHeight * ratio).clamp(60.0, totalHeight - 60.0);
+              final topHeight = (totalHeight * ratio).clamp(60.0, totalHeight - 60.0);
               return Column(
                 children: [
-                  SizedBox(height: editorHeight, child: editorTab.build(ctx)),
+                  SizedBox(
+                    height: topHeight,
+                    child: reveal != null
+                        ? _RevealedTab(
+                            tab: reveal,
+                            onClose: () => kernel.panels.activateTab(Slots.workspace, _claudeTabId),
+                          )
+                        : topTab.build(ctx),
+                  ),
                   _EditorDragHandle(arrangement: kernel.arrangement, totalHeight: totalHeight),
                   Expanded(child: primaryPane),
                 ],
@@ -983,6 +999,58 @@ class _WorkspaceSlot extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// A non-Claude workspace tab revealed in the split region above Claude
+/// (T-233): a thin chrome header (title + close) over the tab's body, so the
+/// user can review it alongside the conversation and dismiss it back to
+/// full-Claude. The editor uses its own split path and never renders here.
+class _RevealedTab extends StatelessWidget {
+  const _RevealedTab({required this.tab, required this.onClose});
+
+  final TabContribution tab;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Column(
+      children: [
+        Container(
+          height: 28,
+          padding: const EdgeInsets.only(left: 10, right: 4),
+          color: tokens.panelHeader,
+          child: Row(
+            children: [
+              Expanded(
+                child: ClideText(
+                  _SlotBody._resolveTitle(context, tab),
+                  fontSize: clideFontCaption,
+                  color: tokens.panelHeaderForeground,
+                  maxLines: 1,
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: 'Close',
+                excludeSemantics: true,
+                onTap: onClose,
+                child: ClideTappable(
+                  onTap: onClose,
+                  tooltip: 'Close',
+                  builder: (_, hovered, __) => Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: ClideIcon(PhosphorIcons.xMark, size: 12, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: tab.build(context)),
+      ],
     );
   }
 }

@@ -137,6 +137,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a non-Claude workspace tab reveals in the split above Claude with a close (T-233)', (tester) async {
+    registerTabs();
+    f.services.panels.contribute(TabContribution(id: 'diff.view', slot: Slots.workspace, title: 'Diff', build: (_) => const Text('DIFF')));
+    f.services.panels.activateTab(Slots.workspace, 'diff.view');
+    await pumpLayout(tester);
+
+    expect(tester.takeException(), isNull);
+    // Revealed alongside the conversation: both the diff and Claude render.
+    expect(find.text('DIFF'), findsOneWidget);
+    expect(find.text('CLAUDE'), findsOneWidget);
+
+    // The close affordance returns to full-Claude.
+    await tester.tap(find.bySemanticsLabel('Close'));
+    await tester.pump();
+    expect(f.services.panels.activeTabIn(Slots.workspace), 'claude.primary');
+    expect(find.text('DIFF'), findsNothing);
+  });
+
+  testWidgets('with no Claude pane, an active workspace tab takes the whole slot (no reveal chrome)', (tester) async {
+    final p = f.services.panels;
+    p.contribute(TabContribution(id: 'files.tree', slot: Slots.sidebar, title: 'Files', build: (_) => const Text('SIDEBAR')));
+    p.contribute(TabContribution(id: 'diff.view', slot: Slots.workspace, title: 'Diff', build: (_) => const Text('DIFF')));
+    p.contribute(TabContribution(id: 'markdown.viewer', slot: Slots.contextPanel, title: 'Preview', build: (_) => const Text('CONTEXT')));
+    p.activateTab(Slots.workspace, 'diff.view');
+    await pumpLayout(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('DIFF'), findsOneWidget);
+    // No alongside-Claude chrome, since there is no Claude pane to sit over.
+    expect(find.bySemanticsLabel('Close'), findsNothing);
+  });
+
   testWidgets('global intents dispatch through the app-root Actions', (tester) async {
     await pumpApp(tester);
     final ctx = tester.element(find.byType(RootLayout));
