@@ -85,6 +85,22 @@ void main() {
     expect(notes.first.title, 'clide CLI is stale');
   });
 
+  test('notes a dev-tree build on activation (info, not a warning) (T-256)', () async {
+    final dev = touchExec('${tmp.path}/native/linux-x64/clide').path;
+    final binDir = Directory('${tmp.path}/bin')..createSync();
+    Link('${binDir.path}/clide').createSync(dev);
+    await boot(CliInstaller(
+      resolvedExecutable: '${tmp.path}/gui/clide',
+      env: {'PATH': binDir.path},
+      bundledClientCandidates: const [],
+      installDir: binDir.path,
+    ));
+    final notes = f.services.notify.active;
+    expect(notes, isNotEmpty);
+    expect(notes.first.level, NotificationLevel.info);
+    expect(notes.first.title, 'clide CLI: dev build');
+  });
+
   test('does not warn when clide is already installed', () async {
     final binDir = Directory('${tmp.path}/bin')..createSync();
     touchExec('${binDir.path}/clide');

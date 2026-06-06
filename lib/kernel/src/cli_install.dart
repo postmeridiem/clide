@@ -23,7 +23,14 @@ enum CliInstallState {
   /// client — running it launches a second app instead of querying.
   staleGui,
 
-  /// `clide` resolves to something that is not the GUI — assumed good.
+  /// `clide` resolves to a dev-tree build artifact (`native/<plat>/clide`),
+  /// not a packaged production install (T-256). A working client — fine on a
+  /// dev checkout — but worth surfacing so it isn't mistaken for a real
+  /// install, and so a rebuild/reinstall isn't silently skipped.
+  devTree,
+
+  /// `clide` resolves to something that is not the GUI or a dev build —
+  /// assumed a good production install.
   installed,
 }
 
@@ -39,8 +46,10 @@ class CliInstallStatus {
   /// Where [pathEntry] resolves to after following symlinks, if any.
   final String? resolvedTarget;
 
-  /// True when the user should (re)install — missing or stale.
-  bool get needsInstall => state != CliInstallState.installed;
+  /// True when the user should (re)install — `clide` is absent or points at
+  /// the GUI. A dev-tree build is intentional on a checkout, so it doesn't
+  /// trigger an install prompt.
+  bool get needsInstall => state == CliInstallState.missing || state == CliInstallState.staleGui;
 }
 
 /// Result of [CliInstaller.install].
@@ -50,6 +59,7 @@ class CliInstallResult {
     required this.message,
     this.installedPath,
     this.onPath = true,
+    this.fromDevTree = false,
   });
 
   final bool ok;
@@ -59,6 +69,10 @@ class CliInstallResult {
   /// False when [installedPath]'s directory is not itself on PATH (the copy
   /// succeeded but the user must add the dir to PATH to reach `clide`).
   final bool onPath;
+
+  /// True when the source copied was a dev-tree build artifact rather than the
+  /// bundled production client (T-256) — a packaged install ships the latter.
+  final bool fromDevTree;
 }
 
 /// Copies the bundled C client onto PATH and reports what `clide` currently
@@ -105,6 +119,9 @@ class CliInstaller {
     if (_isGui(resolved)) {
       return CliInstallStatus(CliInstallState.staleGui, pathEntry: found, resolvedTarget: resolved);
     }
+    if (isDevTreeClient(resolved)) {
+      return CliInstallStatus(CliInstallState.devTree, pathEntry: found, resolvedTarget: resolved);
+    }
     return CliInstallStatus(CliInstallState.installed, pathEntry: found, resolvedTarget: resolved);
   }
 
@@ -134,11 +151,14 @@ class CliInstaller {
       return CliInstallResult(ok: false, message: 'Install failed: ${e.message}', installedPath: dest);
     }
     final onPath = _dirOnPath(installDir);
+    final fromDevTree = isDevTreeClient(_resolve(src));
+    final base = onPath ? 'Installed clide to $dest' : 'Installed clide to $dest — add $installDir to your PATH to use it.';
     return CliInstallResult(
       ok: true,
       installedPath: dest,
       onPath: onPath,
-      message: onPath ? 'Installed clide to $dest' : 'Installed clide to $dest — add $installDir to your PATH to use it.',
+      fromDevTree: fromDevTree,
+      message: fromDevTree ? '$base (from the dev-tree build; a packaged install ships the production client).' : base,
     );
   }
 
@@ -203,6 +223,15 @@ class CliInstaller {
     ];
   }
 }
+
+final RegExp _devTreeClient = RegExp(r'(^|/)native/(linux|macos)-(x64|arm64)/clide$');
+
+/// True when [path] is a dev-tree C-client build artifact —
+/// `native/<platform>/clide`, the Makefile's `CLIDE_CLI_BIN` output. On a clide
+/// checkout `make run` points `CLIDE_CLI_BIN` there and a dev may put it on
+/// PATH; it's a working client but not a packaged production install, so it's
+/// classified separately (T-256) rather than as a clean install.
+bool isDevTreeClient(String path) => _devTreeClient.hasMatch(path);
 
 /// Expand a `PATH` value. Mirrors `toolchain_paths.dart`: macOS GUI apps
 /// launch with a sparse PATH that omits the usual user/homebrew bins, so on

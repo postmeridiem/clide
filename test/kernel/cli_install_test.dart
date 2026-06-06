@@ -108,6 +108,34 @@ void main() {
       );
       expect(i.inspect().state, CliInstallState.staleGui);
     });
+
+    test('devTree when clide resolves to a native/<plat>/clide build (T-256)', () {
+      final dev = touchExec('${tmp.path}/native/linux-x64/clide').path;
+      final binDir = Directory('${tmp.path}/bin')..createSync();
+      Link('${binDir.path}/clide').createSync(dev);
+      final i = installer(
+        resolvedExecutable: '${tmp.path}/gui/clide',
+        env: {'PATH': binDir.path},
+      );
+      final s = i.inspect();
+      expect(s.state, CliInstallState.devTree);
+      // A dev build is intentional — it doesn't prompt a reinstall.
+      expect(s.needsInstall, isFalse);
+    });
+  });
+
+  group('isDevTreeClient', () {
+    test('matches the native/<platform>/clide build artifacts', () {
+      expect(isDevTreeClient('/repo/native/linux-x64/clide'), isTrue);
+      expect(isDevTreeClient('/repo/native/macos-arm64/clide'), isTrue);
+      expect(isDevTreeClient('native/linux-arm64/clide'), isTrue);
+    });
+
+    test('does not match installed or bundled paths', () {
+      expect(isDevTreeClient('/home/x/.local/bin/clide'), isFalse);
+      expect(isDevTreeClient('/usr/local/bin/clide'), isFalse);
+      expect(isDevTreeClient('/opt/clide/bundle/clide-cli'), isFalse);
+    });
   });
 
   group('defaults', () {
@@ -189,6 +217,33 @@ void main() {
         final mode = dest.statSync().mode;
         expect(mode & 0x49, 0x49, reason: 'owner/group/other +x bits set');
       }
+    });
+
+    test('flags fromDevTree when the source is a dev-tree build (T-256)', () {
+      final src = touchExec('${tmp.path}/native/linux-x64/clide');
+      final binDir = '${tmp.path}/bin';
+      final i = installer(
+        resolvedExecutable: '${tmp.path}/gui/clide',
+        env: {'PATH': binDir},
+        candidates: [src.path],
+        installDir: binDir,
+      );
+      final r = i.install();
+      expect(r.ok, isTrue);
+      expect(r.fromDevTree, isTrue);
+      expect(r.message, contains('dev-tree build'));
+    });
+
+    test('a bundled (non-dev) source is not flagged fromDevTree', () {
+      final src = touchExec('${tmp.path}/bundle/clide-cli');
+      final binDir = '${tmp.path}/bin';
+      final i = installer(
+        resolvedExecutable: '${tmp.path}/gui/clide',
+        env: {'PATH': binDir},
+        candidates: [src.path],
+        installDir: binDir,
+      );
+      expect(i.install().fromDevTree, isFalse);
     });
 
     test('overwrites a stale symlink rather than following it', () {

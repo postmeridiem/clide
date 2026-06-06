@@ -48,6 +48,12 @@ class CliInstallExtension extends ClideExtension {
           'in PATH" to replace it.',
           title: 'clide CLI is stale',
         );
+      case CliInstallState.devTree:
+        ctx.notify.info(
+          '`clide` on your PATH is the dev-tree build, not a packaged install '
+          '— fine for development; rebuild it with `make clide-cli`.',
+          title: 'clide CLI: dev build',
+        );
       case CliInstallState.installed:
         break;
     }

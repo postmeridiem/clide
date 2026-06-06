@@ -124,6 +124,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- The `clide` CLI launch check now distinguishes a dev-tree build
+  (`native/<plat>/clide`) from a packaged install — surfaced as an info note on
+  a checkout rather than treated as a clean install or prompting a reinstall.
+  (T-256)
 - Command palette (⌘⇧P) now fuzzy-matches command titles (subsequence, not
   just substring) and floats recently-used commands to the top. (T-23)
 - ⌘K now opens a **Settings** modal instead of a theme-only picker. Its first
