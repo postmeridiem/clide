@@ -100,6 +100,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Command palette (⌘⇧P) now fuzzy-matches command titles (subsequence, not
+  just substring) and floats recently-used commands to the top. (T-23)
 - ⌘K now opens a **Settings** modal instead of a theme-only picker. Its first
   (currently only) section is Appearance — base themes, sorted, with a High
   contrast toggle for `-hc` siblings — matching the status-bar switcher. (T-238)

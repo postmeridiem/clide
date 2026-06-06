@@ -329,3 +329,34 @@ Acceptance:
 - Regression test at the session level: setPermissionMode emits an updated SessionStatus on statusStream.
 
 Refs: T-226 (interactive mode badge + Ctrl/Cmd+M), T-181 (bypassPermissions behind confirmed path — keep excluded from the safe cycle), D-78 (interaction-zone / display-only conventions).', NULL, '2026-06-06 07:31:06', '2026-06-06 07:31:06', '2026-06-06 07:31:06', NULL, '1aa3d2ea3fd0501d699c5a26d87ac4eb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-250', 'status', 'backlog', 'ready', NULL, '2026-06-06 07:32:57', '2026-06-06 07:32:57', '2026-06-06 07:32:57', NULL, 'ab80a8820d40ede74f9eeed3eda250d6', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'description', 'D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.
+
+**Progress (2026-05-17, T-117):** The keymap layer now binds `ctrl+shift+p` / `meta+shift+p` to `PaletteOpenIntent` in `assets/keymaps/default.yaml`. The intent resolves end-to-end through `KeymapService.resolveEvent` → `Actions.maybeInvoke`. **Still pending**: an `Actions` provider somewhere in the tree that handles `PaletteOpenIntent` by calling `kernel.palette.open()`, plus the arrow-key / Escape / Enter handlers on `ClidePalette` itself. Those land as part of T-100 (palette keyboard nav).
+
+**Acceptance:**
+- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.
+- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.
+- Commands listed are everything registered via `CommandContribution` across all activated extensions.
+- Fuzzy match against command title; recent / pinned commands float to the top.
+
+**Implementation hints:**
+- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).
+- Bindings live in the keymap (T-117) — not in `lib/kernel/src/commands/keybindings.dart` (that file is legacy).
+- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).', 'D-48 names `⌘P` (fuzzy file open) and `⌘⇧P` (command palette) as the canonical keyboard navigation. The command palette overlay/widget exists; the keybinding is not yet wired.
+
+**Progress (2026-05-17, T-117):** The keymap layer now binds `ctrl+shift+p` / `meta+shift+p` to `PaletteOpenIntent` in `assets/keymaps/default.yaml`. The intent resolves end-to-end through `KeymapService.resolveEvent` → `Actions.maybeInvoke`. **Still pending**: an `Actions` provider somewhere in the tree that handles `PaletteOpenIntent` by calling `kernel.palette.open()`, plus the arrow-key / Escape / Enter handlers on `ClidePalette` itself. Those land as part of T-100 (palette keyboard nav).
+
+**Acceptance:**
+- `⌘⇧P` (`Ctrl+Shift+P` on Linux, follows the kernel keymap normalization) opens the command palette overlay over the active workspace.
+- Esc dismisses; Enter runs the highlighted command; arrow keys move the highlight.
+- Commands listed are everything registered via `CommandContribution` across all activated extensions.
+- Fuzzy match against command title; recent / pinned commands float to the top.
+
+**Implementation hints:**
+- Slot exists: `Slots.commandPalette` is reserved (lib/kernel/src/panels/slot_id.dart).
+- Bindings live in the keymap (T-117) — not in `lib/kernel/src/commands/keybindings.dart` (that file is legacy).
+- The overlay should not shift layout (D-48 chrome budget — no layout shift on palette open).
+
+DONE (2026-06-06). Keybinding + nav were already wired (T-117 binds ctrl/meta+shift+p -> PaletteOpenIntent; _RootShell handles it -> palette.open(); T-100 added arrow/Enter/Esc nav + selected-index). Remaining acceptance implemented now: (1) FUZZY match — PaletteController.filtered() uses a shared subsequence matcher (lib/kernel/src/fuzzy.dart, extracted from quick_open so both share one source of truth), ranked best-score-first; (2) RECENCY — invoked commands float to the top on empty filter and break fuzzy-score ties (in-session MRU). DEFERRED: ''pinned'' commands + cross-session recency persistence need a pin affordance + settings storage — filed as a follow-up. Tests: test/kernel/src/commands/palette_test.dart + test/kernel/src/fuzzy_test.dart.', NULL, '2026-06-06 07:40:43', '2026-06-06 07:40:43', '2026-06-06 07:40:43', NULL, '725ba044d75722c460c7869a2249c386', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-23', 'status', 'ready', 'done', NULL, '2026-06-06 07:40:43', '2026-06-06 07:40:43', '2026-06-06 07:40:43', NULL, '121337ddae4598659f07bbe16c1ddcc3', 1) ON CONFLICT(hash) DO NOTHING;

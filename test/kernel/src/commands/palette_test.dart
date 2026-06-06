@@ -57,5 +57,33 @@ void main() {
       expect(palette.isOpen, false);
       expect(palette.filter, '');
     });
+
+    test('fuzzy subsequence match — non-contiguous chars (not substring)', () {
+      // "gc" / "gp" aren't substrings of the titles, but are subsequences.
+      palette.setFilter('gc');
+      expect(palette.filtered().map((c) => c.command), contains('git.commit'));
+      palette.setFilter('gp');
+      expect(palette.filtered().map((c) => c.command), contains('git.push'));
+      // Garbage that isn't a subsequence matches nothing.
+      palette.setFilter('zzz');
+      expect(palette.filtered(), isEmpty);
+    });
+
+    test('recency floats invoked commands to the top on an empty filter', () async {
+      expect(palette.filtered().first.command, 'git.commit'); // registry order
+      await palette.invoke('theme.pick');
+      expect(palette.filtered().first.command, 'theme.pick');
+      await palette.invoke('git.push');
+      expect(palette.filtered().map((c) => c.command).take(2).toList(), ['git.push', 'theme.pick']);
+    });
+
+    test('recency breaks fuzzy-score ties', () async {
+      // "git" matches both git.* titles with an equal score; invoking push
+      // floats it above commit among the equal matches.
+      await palette.invoke('git.push');
+      palette.setFilter('git');
+      final order = palette.filtered().map((c) => c.command).toList();
+      expect(order.indexOf('git.push'), lessThan(order.indexOf('git.commit')));
+    });
   });
 }

@@ -5,6 +5,7 @@
 /// the palette's interaction model.
 library;
 
+import 'package:clide/kernel/src/fuzzy.dart';
 import 'package:flutter/foundation.dart';
 
 class QuickOpenController extends ChangeNotifier {
@@ -111,7 +112,7 @@ class QuickOpenController extends ChangeNotifier {
     final q = _filter.toLowerCase().trim();
     final scored = <_Scored>[];
     for (final p in _files) {
-      final s = _fuzzyScore(p.toLowerCase(), q);
+      final s = fuzzyScore(p.toLowerCase(), q);
       if (s != null) scored.add(_Scored(p, s));
     }
     scored.sort((a, b) {
@@ -127,26 +128,4 @@ class _Scored {
   _Scored(this.path, this.score);
   final String path;
   final int score;
-}
-
-/// Subsequence fuzzy match. Returns null when [query]'s characters
-/// don't appear in order within [text]; otherwise a score where lower
-/// is better — contiguous, early matches score best (gaps and a late
-/// start add penalty).
-int? _fuzzyScore(String text, String query) {
-  if (query.isEmpty) return 0;
-  var ti = 0;
-  var qi = 0;
-  var score = 0;
-  int? last;
-  while (ti < text.length && qi < query.length) {
-    if (text.codeUnitAt(ti) == query.codeUnitAt(qi)) {
-      score += last == null ? ti : (ti - last - 1);
-      last = ti;
-      qi++;
-    }
-    ti++;
-  }
-  if (qi != query.length) return null;
-  return score;
 }

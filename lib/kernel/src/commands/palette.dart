@@ -1,5 +1,6 @@
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
+import 'package:clide/kernel/src/fuzzy.dart';
 import 'package:flutter/foundation.dart';
 
 class PaletteController extends ChangeNotifier {
@@ -10,6 +11,12 @@ class PaletteController extends ChangeNotifier {
   bool _open = false;
   String _filter = '';
   int _selectedIndex = 0;
+
+  /// Recently-invoked command ids, most-recent-first. Floats recent commands
+  /// to the top of the list (empty query) and breaks fuzzy-score ties in their
+  /// favour. In-session only. Capped so it can't grow unbounded.
+  final List<String> _recent = [];
+  static const int _recentCap = 20;
 
   bool get isOpen => _open;
   String get filter => _filter;
@@ -74,17 +81,51 @@ class PaletteController extends ChangeNotifier {
     await invoke(list[selectedIndex].command);
   }
 
+  /// The visible command list. Empty query → every command with recents
+  /// floated to the top (most-recent-first), the rest in registry order. A
+  /// non-empty query → a subsequence fuzzy match over each command's title
+  /// (or id), best-score first; ties break toward recents, then alphabetical.
   List<CommandContribution> filtered() {
-    if (_filter.isEmpty) return _registry.all.toList();
-    final q = _filter.toLowerCase();
-    return _registry.all.where((c) {
-      final haystack = (c.title ?? c.command).toLowerCase();
-      return haystack.contains(q);
-    }).toList();
+    final all = _registry.all.toList();
+    final recentRank = {for (var i = 0; i < _recent.length; i++) _recent[i]: i};
+    final order = {for (var i = 0; i < all.length; i++) all[i].command: i};
+    int rank(String cmd) => recentRank[cmd] ?? (1 << 30);
+
+    final q = _filter.trim().toLowerCase();
+    if (q.isEmpty) {
+      all.sort((a, b) {
+        final c = rank(a.command).compareTo(rank(b.command));
+        // Non-recents (equal rank) keep registry order.
+        return c != 0 ? c : order[a.command]!.compareTo(order[b.command]!);
+      });
+      return all;
+    }
+
+    final scored = <({CommandContribution cmd, int score})>[];
+    for (final c in all) {
+      final s = fuzzyScore((c.title ?? c.command).toLowerCase(), q);
+      if (s != null) scored.add((cmd: c, score: s));
+    }
+    scored.sort((a, b) {
+      final byScore = a.score.compareTo(b.score);
+      if (byScore != 0) return byScore;
+      final byRecent = rank(a.cmd.command).compareTo(rank(b.cmd.command));
+      if (byRecent != 0) return byRecent;
+      return (a.cmd.title ?? a.cmd.command).toLowerCase().compareTo((b.cmd.title ?? b.cmd.command).toLowerCase());
+    });
+    return [for (final s in scored) s.cmd];
   }
 
   Future<void> invoke(String command) async {
+    _recordRecent(command);
     close();
     await _registry.execute(command);
+  }
+
+  void _recordRecent(String command) {
+    _recent
+      ..remove(command)
+      ..insert(0, command);
+    if (_recent.length > _recentCap) _recent.removeRange(_recentCap, _recent.length);
   }
 }
