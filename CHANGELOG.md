@@ -112,6 +112,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The permission-mode badge and Ctrl/Cmd+M now visibly cycle the mode in the
+  status line. The mode was changed on the session but never reflected back, so
+  both looked dead. (T-250)
 - Recent-project rows (welcome screen and the project switcher) now ellipsize a
   long path instead of overflowing the row — a long repo path no longer spills
   past the edge. (T-122)

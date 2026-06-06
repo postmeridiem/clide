@@ -583,6 +583,18 @@ void main() {
     expect(id1, isNot(equals(id2)));
   });
 
+  test('setPermissionMode emits the new mode on statusStream (T-250)', () async {
+    // The control_request itself emits no status event; without an optimistic
+    // update the badge stayed stale. Each call must surface the new mode.
+    session.setPermissionMode('plan');
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.permissionMode, 'plan');
+
+    session.setPermissionMode('acceptEdits');
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.permissionMode, 'acceptEdits');
+  });
+
   test('busy goes true on send and false on a result event', () async {
     final busy = <bool>[];
     session.busyStream.listen(busy.add);

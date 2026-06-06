@@ -674,6 +674,11 @@ class StreamJsonSession {
       'request_id': 'set-perm-${_localSeq++}',
       'request': {'subtype': 'set_permission_mode', 'mode': mode},
     }));
+    // Optimistically reflect the change so the badge / status line update
+    // immediately (T-250) — the control_request emits no status event, and a
+    // fresh system/init only arrives later. The next init reconciles if the
+    // process ends up in a different mode.
+    _mergeStatus(SessionStatus(permissionMode: mode));
   }
 
   Future<void> dispose() async {
