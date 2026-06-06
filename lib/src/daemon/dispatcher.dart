@@ -9,6 +9,7 @@ class DaemonDispatcher {
   DaemonDispatcher() {
     register('ping', _ping);
     register('version', _version);
+    register('capabilities', _capabilities);
   }
 
   final Map<String, CommandHandler> _handlers = {};
@@ -29,13 +30,17 @@ class DaemonDispatcher {
     }
   }
 
-  /// Remove all registered handlers except ping/version.
+  /// Built-in commands registered in the constructor; survive [clear] and
+  /// don't count toward [isEmpty].
+  static const _builtins = {'ping', 'version', 'capabilities'};
+
+  /// Remove all registered handlers except the built-ins.
   void clear() {
-    _handlers.removeWhere((k, _) => k != 'ping' && k != 'version');
-    _schemas.removeWhere((k, _) => k != 'ping' && k != 'version');
+    _handlers.removeWhere((k, _) => !_builtins.contains(k));
+    _schemas.removeWhere((k, _) => !_builtins.contains(k));
   }
 
-  bool get isEmpty => _handlers.length <= 2; // only ping + version
+  bool get isEmpty => _handlers.length <= _builtins.length;
 
   Future<IpcResponse> dispatch(IpcRequest req) async {
     final h = _handlers[req.cmd];
@@ -72,4 +77,36 @@ class DaemonDispatcher {
         id: req.id,
         data: {'version': clideVersion},
       );
+
+  /// Reflects the live command registry so the surface is discoverable, not
+  /// just present (T-248). Every registered verb is listed — split into
+  /// subsystem + verb — with its argument schema (positional order + per-arg
+  /// type/required/constraints) where one is declared. Sourced from the
+  /// registry, so it never drifts from what actually dispatches.
+  Future<IpcResponse> _capabilities(IpcRequest req) async {
+    final names = _handlers.keys.toList()..sort();
+    final commands = <String, Object?>{};
+    for (final cmd in names) {
+      final dot = cmd.indexOf('.');
+      final schema = _schemas[cmd];
+      commands[cmd] = {
+        'subsystem': dot >= 0 ? cmd.substring(0, dot) : '',
+        'verb': dot >= 0 ? cmd.substring(dot + 1) : cmd,
+        if (schema != null) 'positional': schema.positional,
+        if (schema != null) 'args': {for (final e in schema.args.entries) e.key: _argSpecJson(e.value)},
+      };
+    }
+    return IpcResponse.ok(id: req.id, data: {'version': clideVersion, 'commands': commands});
+  }
+
+  static Map<String, Object?> _argSpecJson(ArgSpec s) => {
+        'type': s.type.name,
+        if (s.required) 'required': true,
+        if (s.allowed != null) 'allowed': (s.allowed!.toList()..sort()),
+        if (s.pattern != null) 'pattern': s.pattern!.pattern,
+        if (s.min != null) 'min': s.min,
+        if (s.max != null) 'max': s.max,
+        if (s.maxItems != null) 'maxItems': s.maxItems,
+        if (s.rejectLeadingDash) 'rejectLeadingDash': true,
+      };
 }

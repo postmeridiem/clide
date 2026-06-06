@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- `clide capabilities` lists the live command surface as JSON (every verb with
+  its subsystem + argument schema), reflected from the dispatcher so it never
+  drifts. A new `/clide` skill points Claude at it for discovery. (T-248)
 - Toast notifications for operation feedback: non-modal cards slide in
   bottom-right, auto-dismiss (errors linger), stack, and are manually
   dismissable, with success/warning/error/info severities. Components raise

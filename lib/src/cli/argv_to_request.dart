@@ -25,7 +25,7 @@ import 'package:clide/src/ipc/schema_v1.dart';
 
 /// Umbrella commands — single-token names with no subsystem.verb
 /// split. Match the IDs the dispatcher exposes directly.
-const Set<String> _umbrellaCommands = {'status', 'tail', 'version', 'ping'};
+const Set<String> _umbrellaCommands = {'status', 'tail', 'version', 'ping', 'capabilities'};
 
 /// Sealed result of translating argv. Caller (the IPC server, or the
 /// C client wrapper in T-126) handles either branch.
