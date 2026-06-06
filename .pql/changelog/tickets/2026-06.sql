@@ -1100,3 +1100,54 @@ INSERT INTO tickets (id, type, parent_id, title, description, status, priority, 
 Wiring sketch: EditorRegistry already emits editor.opened / editor.active-changed / editor.edited (lib/src/editor/registry.dart:85). The markdown reader (lib/builtin/markdown/src/markdown_viewer.dart) currently pulls content once via files.read with no subscription. The live-sync work is: (1) on editor.opened for a renderable file, auto-activate the markdown reader in the context panel; (2) subscribe the reader to editor.edited and re-render from the in-memory buffer rather than re-reading disk; (3) read-only — no edit affordances in the mirror.
 
 HISTORY: T-36 originally bundled four D-50 clauses (parse Claude''s output for file references, swap the open viewer, badge the spine when collapsed, live-sync). The give-clide-hands push (T-208) superseded the first three: instead of clide scraping the terminal for references, the agent explicitly drives the reader via `clide ui open markdown <path>` (T-231) and ui.open -> diff (T-233). The spine badge was dropped (the open is now an intentional agent act, not a passive notification). Re-scoped 2026-06-06 to the one UI-owned piece that give-clide-hands did not deliver: the live-sync read-mirror. Re-homed from T-7 (Tier 5 canvas/graph, a mis-parent) to T-259 (interaction model). See the D-50 amendment.', 'backlog', 'low', NULL, NULL, 'D-50', '2026-04-22 20:34:09', '2026-06-06 21:14:22', NULL, '318e7923a1671f26c131d8a973f95ac3', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-255', 'story', NULL, 'Animate the ''running…'' turn indicator with rotating status verbs', '## Problem
+
+While a Claude turn is in flight, the composer swaps in a static, muted
+`running…` label next to the Stop button (`lib/builtin/claude/src/claude_composer.dart:486`,
+shown when `widget.busy && widget.onInterrupt != null`). It''s gray, motionless,
+and a little lifeless — it gives no sense that anything is actually happening.
+
+## Goal
+
+Make the in-flight indicator feel alive:
+
+1. **Animation.** Add subtle motion — e.g. an animated ellipsis (`running` → `running.`
+   → `running..` → `running...`), a shimmer/pulse on the text, or a small spinner glyph.
+   Custom-painted / token-driven per the "own the rendering stack" guardrail; no
+   opinionated animation packages.
+2. **Rotating status verbs.** Cycle through playful gerunds the way the Claude Code CLI
+   does (e.g. "Clauding…", "Flibbertigibbeting…", "Pondering…", "Conjuring…"). Pick a
+   word from a curated list and rotate it every few seconds while the turn runs.
+
+## Open question — can we reuse the CLI''s words?
+
+The Claude Code CLI ships its own list of these status verbs. Before hand-rolling our
+own, check whether that list is something we''re allowed to reuse / surface (licensing,
+where it lives, whether stream-json exposes the current one). If we can''t pull the CLI''s
+list, ship our own curated, on-brand list instead. Document the decision.
+
+## Notes / constraints
+
+- Respect reduced-motion / accessibility settings — animation must be disable-able and
+  the a11y semantics should still read sensibly (the Stop button already carries the
+  interrupt hint).
+- Use theme tokens for color; keep it muted/tasteful, not distracting.
+- Touch point today is the `widget.busy` branch in `claude_composer.dart`; consider
+  whether the rotating-word state belongs there or in the session/orchestrator layer.
+- Add a widget/golden test for the animated states (bounded pumps — no real timers).', 'ready', 'medium', NULL, NULL, NULL, '2026-06-06 09:56:23', '2026-06-06 21:43:40', NULL, '30e4ba6709c48848953df571c4d25650', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-260', 'story', NULL, 'Annotation tools on the image overlay — boxes, arrows, labels for visual dialog with Claude', 'Add an annotation layer to the full-screen image overlay (T-252) so the user can draw boxes, arrows, and text labels directly on a shown image and have a VISUAL DIALOG with Claude about it — Claude shows an image, the user marks it up ("this button is misaligned", arrow pointing at the bug, box around the region), and the markup is communicated back to Claude.
+
+The crux is the round-trip: annotations are not just decoration, they are a message to Claude. The overlay must turn what the user draws into something Claude can consume.
+
+Scope:
+- Annotation layer (lib/widgets/): a CustomPaint overlay composited on top of the T-252 zoom/pan viewer. Tools: rectangle/box, arrow, freehand pen (optional), and text label. Own-the-rendering-stack — draw with CustomPaint, no opinionated annotation package. Annotation geometry is stored in NORMALIZED IMAGE-SPACE coordinates so it survives zoom/pan and maps cleanly back to the original pixels. Select / move / delete an annotation; undo/redo; per-annotation color from theme tokens (ui-design). Min one accent + a couple of palette colors, not a full color picker.
+- Interaction surface (D-78): the overlay is a modal interaction surface, so the annotation toolbar lives in the overlay chrome (not inline in the display-only conversation card). Tool palette, color, undo/redo, clear, and a confirm/send affordance. Keyboard + AT reachable (ClideTappable / Semantics), Esc still dismisses.
+- Round-trip to Claude — TWO outputs on confirm: (1) a FLATTENED PNG (image + annotations rendered together) written to a workspace path so Claude can view it via the existing image card / clide image show (T-249); (2) a STRUCTURED text summary of the annotations (tool kind, normalized coords, label text, color) so Claude gets machine-readable intent, not just pixels. Decide whether send drops both into the composer / interaction zone as the next user turn. This is the visual-dialog loop and the main design question of the ticket.
+- Parity (D-6): a CLI counterpart so annotations are not UI-only — e.g. a verb to open an image with a starting annotation set, and/or to emit the flattened+structured result. Register it so it surfaces in clide capabilities (T-248).
+
+Open questions to resolve in design:
+- Exact send/transport: composer injection vs a dedicated clide verb that posts the annotated turn.
+- Structured-annotation schema (shared with canvas/graph later?).
+- Whether annotations persist with the image or are ephemeral per-overlay-session.
+
+Refs: D-78 (interaction zone / display-only conversation widgets), D-6 (CLI/UI parity). Builds on T-252 (lightbox overlay) and T-249 (image card + clide image show). Related: T-248 (discovery), T-259 (interaction-model epic).', 'backlog', 'medium', NULL, NULL, 'D-78', '2026-06-06 21:46:42', '2026-06-06 21:46:42', NULL, '27207574416b1c1fc2f9cd0d62d503d1', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
