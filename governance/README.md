@@ -126,12 +126,12 @@ You might also want, project-permitting:
 - [D-82: Keymap sequences are space-separated; matching is a reusable matcher consumed at the interception point](decisions/architecture.md#d-82-keymap-sequences-are-space-separated-matching-is-a-reusable-matcher-consumed-at-the-interception-point) — _architecture_
 - [D-83: Dogfood agent model — hosted stream-json session primary, external CLI driver secondary](decisions/architecture.md#d-83-dogfood-agent-model--hosted-stream-json-session-primary-external-cli-driver-secondary) — _architecture_
 - [D-84: Diff view placement — editor-mode inline above Claude, spawned from the git sidebar](decisions/architecture.md#d-84-diff-view-placement--editor-mode-inline-above-claude-spawned-from-the-git-sidebar) — _architecture_
+- [D-85: Event bus delivery — bounded ring-buffer back-pressure; in-memory cursor retention, bus-owned if persisted](decisions/architecture.md#d-85-event-bus-delivery--bounded-ring-buffer-back-pressure-in-memory-cursor-retention-bus-owned-if-persisted) — _architecture_
+- [D-86: MCP tool surface — full clide namespace generated from the co-registered command registry](decisions/architecture.md#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry) — _architecture_
 
 ## Open questions
 
 - [Q-1: Authorisation granularity on the IPC socket](questions/architecture.md#q-1-authorisation-granularity-on-the-ipc-socket) — _architecture_
-- [Q-2: Back-pressure on event streams](questions/architecture.md#q-2-back-pressure-on-event-streams) — _architecture_
-- [Q-3: Event persistence + audit/undo](questions/architecture.md#q-3-event-persistence--auditundo) — _architecture_
 - [Q-4: `.canvas` schema compatibility with Obsidian](questions/architecture.md#q-4-canvas-schema-compatibility-with-obsidian) — _architecture_
 - [Q-5: IPC wire-format stability + `schema_version:`](questions/architecture.md#q-5-ipc-wire-format-stability--schema-version) — _architecture_
 - [Q-7: macOS app bundle signing / notarisation](questions/architecture.md#q-7-macos-app-bundle-signing--notarisation) — _architecture_
@@ -155,15 +155,17 @@ You might also want, project-permitting:
 - [Q-29: Branch picker location](questions/architecture.md#q-29-branch-picker-location) — _architecture_
 - [Q-30: Focus behavior when editor is dirty and viewer is peeked](questions/architecture.md#q-30-focus-behavior-when-editor-is-dirty-and-viewer-is-peeked) — _architecture_
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
-- [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
-- [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
 
 ## Resolved questions
 
+- [Q-2: Back-pressure on event streams](questions/architecture.md#q-2-back-pressure-on-event-streams) — _architecture_
+- [Q-3: Event persistence + audit/undo](questions/architecture.md#q-3-event-persistence--auditundo) — _architecture_
 - [Q-6: Window chrome — native frame vs frameless custom](questions/architecture.md#q-6-window-chrome--native-frame-vs-frameless-custom) — _architecture_
 - [Q-19: (withdrawn)](questions/process.md#q-19-withdrawn) — _process_
 - [Q-21: Pql absorbs planning vs keeps separate](questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate) — _architecture_
 - [Q-22: Ticket persistence strategy](questions/architecture.md#q-22-ticket-persistence-strategy) — _architecture_
+- [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
+- [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
 
 ## Rejected
 

@@ -13,14 +13,16 @@ ticket persistence.
 - **Source:** ADR 0006 (migrated to [D-6](architecture.md)).
 
 ### Q-2: Back-pressure on event streams
-- **Status:** Open
+- **Status:** Resolved → [D-85](../decisions/architecture.md#d-85-event-bus-delivery--bounded-ring-buffer-back-pressure-in-memory-cursor-retention-bus-owned-if-persisted)
+- **Resolved (2026-06-06):** Bounded per-subscriber ring buffer, drop-oldest, with a per-subscriber dropped-count surfaced as a gap marker — producer never blocks, subscribers never killed. The ring also serves the [Q-3](#q-3-event-persistence--auditundo) cursor retention.
 - **Question:** A subscriber that falls behind on `pane.output` (a firehose) needs a policy: drop oldest, block producer, coalesce, or kill subscriber. Which?
 - **Context:** The event bus is in-memory; back-pressure policy is undefined. Defer until Tier 1 is in real use and we have a real firehose to measure against.
 - **Triage (2026-05-17):** Still open. PTY panes ship and produce real firehoses, but no subscriber has fallen behind in observed use. Re-evaluate when a multi-client IPC scenario (T-99) makes this measurable.
 - **Source:** ADR 0006 (migrated to [D-6](architecture.md)).
 
 ### Q-3: Event persistence + audit/undo
-- **Status:** Open
+- **Status:** Resolved → [D-85](../decisions/architecture.md#d-85-event-bus-delivery--bounded-ring-buffer-back-pressure-in-memory-cursor-retention-bus-owned-if-persisted)
+- **Resolved (2026-06-06):** In-memory cursor ring only in v1 (no disk); serves `clide events --since`. If persistence is ever needed it is **owned by the bus**, not a subscriber-subsystem — reversing ADR 0006's unreasoned open-questions footer (it asserted "a subsystem that subscribes and writes — not a property of the bus" with no rationale, which is why it became this question).
 - **Question:** Events are in-memory only in v1. If a future need (audit log, undo history) wants persistence, is it a property of the bus or a subsystem that subscribes and writes?
 - **Context:** ADR 0006 leaned "subsystem that subscribes and writes" but didn't commit.
 - **Triage (2026-05-17):** Still open; no concrete trigger yet. Revisit when the first persistence requirement lands (likely Tier-6 audit/undo).
@@ -130,13 +132,15 @@ ticket persistence.
 - **Source:** 2026-04-23 D-57 implementation.
 
 ### Q-32: MCP tool surface — minimum slash-ide or extended clide tools?
-- **Status:** Open
+- **Status:** Resolved → [D-86](../decisions/architecture.md#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry)
+- **Resolved (2026-06-06):** Full `mcp__clide__*` namespace, but **generated from the co-registered command registry** ([D-74](../decisions/architecture.md#d-74-ipc-command-schema-is-co-registered-with-the-handler-validated-at-dispatch)) that already feeds the CLI + palette — so breadth costs no hand-maintained second surface, and the extensions-first model needs registry-driven surfacing anyway. Per-command MCP opt-out for poor-fit verbs.
 - **Question:** [D-68](../decisions/architecture.md#d-68-dual-integration-surface-bash-cli-primary-mcp-secondary) commits clide to an `/ide`-compatible MCP server. The minimum surface is the two tools Claude Code's `/ide` integration currently expects: `mcp__ide__getDiagnostics` (lint/diagnostics for a file) and `mcp__ide__executeCode` (run code in a Jupyter kernel). Do we stop there, or also expose a `mcp__clide__*` namespace with higher-leverage tools (`open_file`, `goto_symbol`, `pql_query`, `pane_spawn`, `git_status`, …) so MCP clients other than Claude Code (Cursor, Windsurf, VS Code Copilot) can drive clide as a real backend?
 - **Context:** The minimum surface keeps clide a good citizen in the `/ide` ecosystem and avoids duplicating the CLI in MCP form. The extended surface would let non-Claude-Code MCP clients integrate richly, but invites surface bloat (every CLI verb tempted to gain an MCP twin) and a maintenance second front. Note that for *Claude-Code-in-a-clide-pane*, the CLI surface already covers this — extended MCP tools serve external MCP clients only.
 - **Source:** [D-68](../decisions/architecture.md#d-68-dual-integration-surface-bash-cli-primary-mcp-secondary).
 
 ### Q-33: MCP transport — SSE, WebSocket, stdio, or all?
-- **Status:** Open
+- **Status:** Resolved → [D-73](../decisions/architecture.md#d-73-mcp-transport-for-ide-is-sse-over-http)
+- **Resolved (2026-05-19, drift-fixed 2026-06-06):** SSE over HTTP only. Closed by D-73 (and confirmed in D-68's amendment) at the time, but this index was never flipped from Open. Re-confirmed 2026-06-06: stdio/WebSocket not added — D-73's reasoning (the always-running GUI is *connected to*, not spawned) still holds and no external process-spawn MCP client is a concrete need yet.
 - **Question:** Claude Code's `/ide` integration connects via SSE-IDE or WS-IDE (URL passed at startup). MCP also supports stdio for process-spawn clients. Which transport(s) should clide's MCP server expose — SSE only (the most common `/ide` server pattern), SSE + WS (broader compatibility), or all three including stdio?
 - **Context:** Transport choice affects discovery and lifecycle. SSE/WS need a port and a published URL, which collides with the `XDG_RUNTIME_DIR` Unix-socket model used for the CLI; we'd likely publish the URL alongside the socket path (env var or `XDG_RUNTIME_DIR` discovery file). stdio is process-per-client and works for clients that prefer process-spawn over network. Decision interacts with [Q-32](#q-32-mcp-tool-surface-minimum-slash-ide-or-extended-clide-tools) — if the surface stays at the `/ide` minimum, SSE alone is sufficient.
 - **Source:** [D-68](../decisions/architecture.md#d-68-dual-integration-surface-bash-cli-primary-mcp-secondary).
