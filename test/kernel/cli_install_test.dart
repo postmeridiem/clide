@@ -128,6 +128,14 @@ void main() {
       );
       expect(i.bundledClientCandidates, ['/opt/clide/bundle/clide-cli']);
     });
+
+    test('falls back to the process environment when no env is passed', () {
+      // No env → uses Platform.environment; the in-bundle candidate still
+      // derives from the exe dir and the install dir from $HOME.
+      final i = CliInstaller(resolvedExecutable: '/opt/clide/bundle/clide');
+      expect(i.bundledClientCandidates, contains('/opt/clide/bundle/clide-cli'));
+      expect(i.installDir, endsWith('/.local/bin'));
+    });
   });
 
   group('expandedPath', () {

@@ -69,6 +69,22 @@ void main() {
     expect(notes.first.title, 'clide CLI not installed');
   });
 
+  test('warns on activation when clide is a stale GUI symlink', () async {
+    final gui = touchExec('${tmp.path}/gui/clide').path;
+    final binDir = Directory('${tmp.path}/bin')..createSync();
+    Link('${binDir.path}/clide').createSync(gui); // PATH clide → the GUI
+    await boot(CliInstaller(
+      resolvedExecutable: gui,
+      env: {'PATH': binDir.path},
+      bundledClientCandidates: const [],
+      installDir: binDir.path,
+    ));
+    final notes = f.services.notify.active;
+    expect(notes, isNotEmpty);
+    expect(notes.first.level, NotificationLevel.warning);
+    expect(notes.first.title, 'clide CLI is stale');
+  });
+
   test('does not warn when clide is already installed', () async {
     final binDir = Directory('${tmp.path}/bin')..createSync();
     touchExec('${binDir.path}/clide');
