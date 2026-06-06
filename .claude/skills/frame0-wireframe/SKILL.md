@@ -36,7 +36,11 @@ Always check first:
 2. **Write wireframe JSON** — to `docs/design/wireframes/{category}/{name}.json`
 3. **Push to Frame0** — `frame0-sync.py push <file.json>`
 4. **Export PNG** — `frame0-sync.py export <file.json> <output.png>`
-5. **Clean up** — delete test/scratch pages from Frame0 when done
+5. **Show it inline** — `Read` the exported PNG so it renders for the user in
+   the conversation. Always do this after an export: the user is designing with
+   you and needs to *see* the result without leaving the chat or opening Frame0.
+   Re-show it (Read again) whenever you re-export or the user asks to see it.
+6. **Clean up** — delete test/scratch pages from Frame0 when done
 
 ### Scripts
 
