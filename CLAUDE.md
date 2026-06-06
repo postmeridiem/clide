@@ -80,6 +80,8 @@ One-time setup on a fresh clone: `make hooks && flutter pub get` once Flutter is
 
 Commit and push directly to `main` for routine work — this is a solo-dev repo and does not use a branch-first / feature-branch flow. Do **not** create a working branch just to land a change. (This overrides the generic "branch before committing on the default branch" assistant default.) The usual safety rules still hold: never `--no-verify`, never force-push `main`, and let the pre-push gate run.
 
+A pql ticket change (create / status transition) leaves `.pql/changelog/` dirty; the auto-commit hook persists it on the next `git commit`. This is known — don't narrate "the ticket won't persist until committed" on every ticket edit. Either quietly fold the bookkeeping into a commit or trust `/git-commit` to sweep it up.
+
 ## Changelog discipline
 
 [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Every user-visible commit adds an entry under `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md). Cutting a release means moving Unreleased entries under a new dated version heading **and** bumping `pubspec.yaml` `version:` in the same commit — see [`.claude/skills/git-commit/SKILL.md`](.claude/skills/git-commit/SKILL.md) for the full rule.
