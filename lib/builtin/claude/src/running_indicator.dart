@@ -27,6 +27,14 @@ const List<String> runningVerbs = [
   'Synthesizing',
   'Cogitating',
   'Whirring',
+  'Mincing',
+  'Boiling',
+  'Humming',
+  'Buzzing',
+  'Magicking',
+  'Cliding',
+  'Zooming',
+  'Bouncing',
 ];
 
 /// Seconds each verb is shown before rotating to the next.
