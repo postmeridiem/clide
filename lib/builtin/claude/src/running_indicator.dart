@@ -41,13 +41,21 @@ const List<String> runningVerbs = [
 const int _secondsPerWord = 4;
 
 class RunningIndicator extends StatefulWidget {
-  const RunningIndicator({super.key});
+  const RunningIndicator({super.key, this.shuffle = true});
+
+  /// Randomize the rotation order per turn so you don't always see the same
+  /// sequence. Off in tests for deterministic assertions.
+  final bool shuffle;
 
   @override
   State<RunningIndicator> createState() => _RunningIndicatorState();
 }
 
 class _RunningIndicatorState extends State<RunningIndicator> with SingleTickerProviderStateMixin {
+  /// The verbs for this turn — a shuffled copy in production, the canonical
+  /// order in tests. Same length, so the period is unchanged.
+  late final List<String> _verbs = widget.shuffle ? (List<String>.of(runningVerbs)..shuffle()) : runningVerbs;
+
   // One full pass over every verb; value 0→1 maps linearly to elapsed seconds.
   static final int _periodSeconds = runningVerbs.length * _secondsPerWord;
 
@@ -81,13 +89,13 @@ class _RunningIndicatorState extends State<RunningIndicator> with SingleTickerPr
       label: 'Claude is running',
       child: ExcludeSemantics(
         child: reduced
-            ? ClideText('${runningVerbs.first}…', muted: true, fontSize: clideFontMeta)
+            ? ClideText('${_verbs.first}…', muted: true, fontSize: clideFontMeta)
             : AnimatedBuilder(
                 animation: _c,
                 builder: (ctx, _) {
                   final elapsed = _c.value * _periodSeconds;
                   final dots = '.' * (elapsed.floor() % 4);
-                  final word = runningVerbs[(elapsed ~/ _secondsPerWord) % runningVerbs.length];
+                  final word = _verbs[(elapsed ~/ _secondsPerWord) % _verbs.length];
                   return ClideText('$word$dots', muted: true, fontSize: clideFontMeta);
                 },
               ),

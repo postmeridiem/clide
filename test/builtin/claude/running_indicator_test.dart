@@ -23,7 +23,7 @@ void main() {
 
   Widget wrap({bool reducedMotion = false}) => MediaQuery(
         data: MediaQueryData(disableAnimations: reducedMotion),
-        child: const RunningIndicator(),
+        child: const RunningIndicator(shuffle: false),
       );
 
   testWidgets('animates the ellipsis and rotates the verb', (tester) async {
@@ -50,5 +50,13 @@ void main() {
     expect(_text(tester), 'Pondering…');
     await tester.pump(const Duration(seconds: 6));
     expect(_text(tester), 'Pondering…'); // unchanged — no animation running
+  });
+
+  testWidgets('shuffle:true renders a verb from the list', (tester) async {
+    await tester.pumpWidget(harness(f, const MediaQuery(data: MediaQueryData(), child: RunningIndicator(shuffle: true))));
+    await tester.pump();
+    final word = _text(tester)!.replaceAll('.', '');
+    expect(runningVerbs.contains(word), isTrue);
+    await tester.pumpWidget(harness(f, const SizedBox())); // dispose the animation
   });
 }
