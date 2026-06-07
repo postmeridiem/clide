@@ -49,6 +49,14 @@ void main() {
     expect(published.single.data, {'path': '/abs/docs/diagram.png', 'caption': 'before the fix'});
   });
 
+  test('--fullscreen rides along in the payload (T-252)', () async {
+    wire();
+    final r = await show(['docs/diagram.png'], flags: {'fullscreen': true});
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['fullscreen'], isTrue);
+    expect(published.single.data, {'path': '/abs/docs/diagram.png', 'fullscreen': true});
+  });
+
   test('accepts the documented formats case-insensitively', () async {
     for (final name in ['a.PNG', 'b.jpg', 'c.jpeg', 'd.gif', 'e.webp', 'f.bmp']) {
       wire(found: {name});

@@ -11,6 +11,7 @@ export 'src/clide_column_hat.dart';
 export 'src/clide_code_block.dart';
 export 'src/clide_divider.dart';
 export 'src/clide_filter_box.dart';
+export 'src/clide_lightbox.dart';
 export 'src/clide_markdown.dart';
 export 'src/clide_marquee.dart';
 export 'src/clide_svg_view.dart';

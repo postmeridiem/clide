@@ -17,6 +17,7 @@ import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/kernel/src/facade.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -234,7 +235,7 @@ class _ConversationTurn extends StatelessWidget {
         ),
       AssistantToolUse() => _toolUse(i),
       ToolResultMessage() => _toolResult(i),
-      ImageMessage() => _image(i),
+      ImageMessage() => _image(context, i),
     };
   }
 
@@ -243,7 +244,7 @@ class _ConversationTurn extends StatelessWidget {
   /// Bounded so a large image scales down to the pane width and never pushes
   /// past a readable height; a missing/unreadable file degrades to a muted
   /// placeholder rather than throwing.
-  Widget _image(ImageMessage m) {
+  Widget _image(BuildContext context, ImageMessage m) {
     final caption = m.caption;
     return ConversationCard(
       accent: tokens.globalTextMuted,
@@ -252,15 +253,24 @@ class _ConversationTurn extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 360),
-              child: Image.file(
-                File(m.path),
-                fit: BoxFit.contain,
-                alignment: Alignment.centerLeft,
-                errorBuilder: (_, __, ___) => _imagePlaceholder(m.path),
+          // The card stays display-only (D-78); the click is a navigation
+          // gesture that opens the full-screen lightbox (T-252), not an inline
+          // control.
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => _openLightbox(context, m.path),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: Image.file(
+                    File(m.path),
+                    fit: BoxFit.contain,
+                    alignment: Alignment.centerLeft,
+                    errorBuilder: (_, __, ___) => _imagePlaceholder(m.path),
+                  ),
+                ),
               ),
             ),
           ),
@@ -271,6 +281,19 @@ class _ConversationTurn extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _openLightbox(BuildContext context, String path) {
+    ClideKernel.of(context).dialog.show<Object>(
+          (ctx, dismiss) => ClideLightbox(
+            onDismiss: dismiss,
+            child: Image.file(
+              File(path),
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _imagePlaceholder(path),
+            ),
+          ),
+        );
   }
 
   Widget _imagePlaceholder(String path) => Container(

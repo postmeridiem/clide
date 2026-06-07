@@ -336,6 +336,17 @@ class ClaudeExtension extends ClideExtension {
   void _onImageShow(Message m) {
     final path = m.data['path'] as String?;
     if (path == null || path.isEmpty) return;
+    // `clide image show <path> --fullscreen` (T-252): open straight into the
+    // lightbox instead of injecting an inline card.
+    if (m.data['fullscreen'] == true) {
+      _ctx?.dialog.show<Object>(
+        (c, dismiss) => ClideLightbox(
+          onDismiss: dismiss,
+          child: Image.file(File(path), fit: BoxFit.contain),
+        ),
+      );
+      return;
+    }
     final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
     if (target == null) return;
     target.conversation.inject(ImageMessage(

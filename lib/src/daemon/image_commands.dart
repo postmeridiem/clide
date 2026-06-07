@@ -48,6 +48,7 @@ void registerImageCommands(
       args: {
         'path': ArgSpec(required: true, rejectLeadingDash: true),
         'caption': ArgSpec(),
+        'fullscreen': ArgSpec(type: ArgType.boolean),
       },
     ),
   );
@@ -107,11 +108,13 @@ Future<IpcResponse> _show(
       error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'no live UI to drive (clide is not running a GUI)'),
     );
   }
+  final fullscreen = req.args['fullscreen'] == true;
   publish('cli', imageShowChannel, {
     'path': resolved,
     if (caption != null && caption.trim().isNotEmpty) 'caption': caption.trim(),
+    if (fullscreen) 'fullscreen': true,
   });
-  return IpcResponse.ok(id: req.id, data: {'path': resolved, if (caption != null) 'caption': caption, 'shown': true});
+  return IpcResponse.ok(id: req.id, data: {'path': resolved, if (caption != null) 'caption': caption, 'fullscreen': fullscreen, 'shown': true});
 }
 
 /// Lower-cased extension (without the dot) of [path], or '' if none.

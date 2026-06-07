@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- Click an inline image card to open it in a full-screen **lightbox** — zoom
+  (scroll/pinch), pan, double-click to reset, `Esc`/backdrop to dismiss — since
+  the cards are often too small to read. `clide image show <path> --fullscreen`
+  opens straight into it. The lightbox is a reusable `ClideLightbox` primitive.
+  (T-252)
 - A bottom **output dock**: toggle it from a status-bar widget (or `⌘J`/`Ctrl+J`)
   to see logs (Output) and diagnostics (Problems) as tabs — filterable by
   source/level/text, auto-scrolling. The status widget doubles as a health
