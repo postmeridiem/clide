@@ -18,13 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- A Zed-style **application menu bar** in the hat — **File**, **View**, and
-  **Help** menus built from custom widgets (no native menu, D-7). Items are
-  pulled from the command registry with their keybindings shown inline;
-  unplaced `view.*` commands auto-fill the View menu. Full keyboard support:
-  `Alt`+mnemonic opens a menu, arrows navigate, Enter activates, Esc closes.
-  Help → About shows version + bundled licenses. `Ctrl+O` (Open Folder) and
-  `Ctrl+Shift+N` (New Window) are now real keybindings. (T-48)
+- A Zed-style **application menu bar** in the hat — **File / View / Help**
+  menus built from custom widgets (no native menu, D-7), populated from the
+  command registry with inline keybindings. Full keyboard nav (`Alt`+mnemonic,
+  arrows, Enter, Esc). Help → About shows version + bundled licenses. `Ctrl+O`
+  and `Ctrl+Shift+N` are now real keybindings. (T-48)
 - The sidebar/dock **filter boxes are now CLI-addressable** (D-6 parity): `clide
   ui filter <address> <text>` drives a pane's filter as typing would, and `clide
   ui filter <address>` reads it back. Addresses are box ids from `clide pane
