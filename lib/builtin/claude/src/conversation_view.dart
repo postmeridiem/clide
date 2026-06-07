@@ -18,6 +18,7 @@ import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/facade.dart';
+import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -99,14 +100,31 @@ class _ConversationViewState extends State<ConversationView> {
         if (it is AssistantToolUse && it.name == 'AskUserQuestion') it.toolUseId,
     };
     final outcomes = widget.toolUseOutcomes;
+    final toolUseById = {
+      for (final it in items)
+        if (it is AssistantToolUse) it.toolUseId: it,
+    };
+
+    // A tool-use is dropped (not rendered as a card) when it's an
+    // AskUserQuestion or a still-pending permission prompt.
+    bool toolUseDropped(AssistantToolUse t) {
+      if (t.name == 'AskUserQuestion') return true;
+      return hidden.contains(t.toolUseId) && !outcomes.containsKey(t.toolUseId);
+    }
+
     bool drop(ConversationItem it) {
-      if (it is AssistantToolUse) {
-        if (it.name == 'AskUserQuestion') return true;
-        // Permission-prompted: hide only while pending; once resolved it shows
-        // collapsed with a green/red border.
-        return hidden.contains(it.toolUseId) && !outcomes.containsKey(it.toolUseId);
+      if (it is AssistantToolUse) return toolUseDropped(it);
+      if (it is ToolResultMessage) {
+        if (auqIds.contains(it.toolUseId)) return true; // AUQ result echo — noise
+        // T-262: a successful result whose paired tool-use is going to render
+        // folds INTO that card — suppress the standalone result here so it
+        // doesn't double-render. Errors stay standalone (prominent red card);
+        // orphan results (no paired tool-use) stay standalone too.
+        if (it.isError) return false;
+        final tu = toolUseById[it.toolUseId];
+        if (tu == null) return false;
+        return !toolUseDropped(tu);
       }
-      if (it is ToolResultMessage) return auqIds.contains(it.toolUseId); // AUQ result only; keep permission results
       return false;
     }
 
@@ -139,6 +157,14 @@ class _ConversationViewState extends State<ConversationView> {
       );
     }
 
+    // Reverse pairing (T-262): toolUseId → its result, so a tool-use card can
+    // fold a successful result in. Built from the full item list (not the
+    // visible one — the success result is suppressed from `items`).
+    final resultByToolUseId = <String, ToolResultMessage>{
+      for (final it in widget.controller.items)
+        if (it is ToolResultMessage) it.toolUseId: it,
+    };
+
     // Fold runs of meta items into collapsible activity cards (T-230); sticky
     // items (user/prose/surfaced errors) render first-class as before.
     final groups = groupConversation(items, widget.foldLevel);
@@ -156,12 +182,14 @@ class _ConversationViewState extends State<ConversationView> {
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
+                resultByToolUseId: resultByToolUseId,
               ),
             FoldedCluster(:final items) => _ActivityCard(
                 items: items,
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
+                resultByToolUseId: resultByToolUseId,
               ),
           };
         },
@@ -185,6 +213,7 @@ class _ConversationTurn extends StatelessWidget {
     required this.tokens,
     this.toolUseOutcomes = const <String, bool>{},
     this.toolUseById = const <String, AssistantToolUse>{},
+    this.resultByToolUseId = const <String, ToolResultMessage>{},
   });
 
   final ConversationItem item;
@@ -193,6 +222,10 @@ class _ConversationTurn extends StatelessWidget {
 
   /// Index from toolUseId → AssistantToolUse, for result-card pairing (T-168).
   final Map<String, AssistantToolUse> toolUseById;
+
+  /// Index from toolUseId → its result, so a tool-use card can fold a
+  /// successful result into one merged card (T-262).
+  final Map<String, ToolResultMessage> resultByToolUseId;
 
   @override
   Widget build(BuildContext context) {
@@ -315,8 +348,20 @@ class _ConversationTurn extends StatelessWidget {
       );
 
   Widget _toolUse(AssistantToolUse t) {
+    // T-262: fold the paired result into this card. A successful result becomes
+    // a "result" segment below the call + a green header check; a failed result
+    // stamps a red header cross but stays a separate prominent error card (the
+    // result is not suppressed — see _visibleItems). No result yet (in-flight) →
+    // no mark, no segment.
+    final result = resultByToolUseId[t.toolUseId];
+    final succeeded = result != null && !result.isError;
+    final status = result == null ? ConversationCardStatus.none : (result.isError ? ConversationCardStatus.error : ConversationCardStatus.success);
+    final segments =
+        succeeded ? [CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t)))] : const <CardSegment>[];
+
     // A resolved permission-prompted call: collapsed, green if approved / red
-    // if denied — a quiet record of what was permitted (D-78).
+    // if denied — a quiet record of what was permitted (D-78). It still folds
+    // its result + outcome check like any other merged card (T-262).
     final outcome = toolUseOutcomes[t.toolUseId];
     if (outcome != null) {
       final color = outcome ? tokens.statusSuccess : tokens.statusError;
@@ -329,7 +374,9 @@ class _ConversationTurn extends StatelessWidget {
         collapsible: true,
         collapsedByDefault: true,
         collapsedSummary: _toolUseSummary(t),
+        status: status,
         body: toolInputBody(tokens, t.name, t.input),
+        extraSegments: segments,
       );
     }
     // Per-tool body rendering (T-168): Bash → command block, Edit/Write → diff,
@@ -345,8 +392,25 @@ class _ConversationTurn extends StatelessWidget {
       collapsible: true,
       collapsedByDefault: true,
       collapsedSummary: summary,
+      status: status,
       body: body,
+      extraSegments: segments,
     );
+  }
+
+  /// Per-tool language for the folded result code block (T-262): Read shows the
+  /// file's content, so colorize by the file's grammar; Bash output is shell;
+  /// everything else (Grep/LS/Write/Edit confirmations/…) falls back to plain.
+  String _resultLanguage(AssistantToolUse t) {
+    switch (t.name) {
+      case 'Read':
+        final path = (t.input['file_path'] ?? t.input['path']) as String?;
+        return (path != null && path.isNotEmpty ? grammarForPath(path) : null) ?? 'text';
+      case 'Bash':
+        return 'bash';
+      default:
+        return 'text';
+    }
   }
 
   Widget _toolResult(ToolResultMessage t) {
@@ -430,12 +494,14 @@ class _ActivityCard extends StatefulWidget {
     required this.tokens,
     required this.toolUseOutcomes,
     required this.toolUseById,
+    required this.resultByToolUseId,
   });
 
   final List<ConversationItem> items;
   final SurfaceTokens tokens;
   final Map<String, bool> toolUseOutcomes;
   final Map<String, AssistantToolUse> toolUseById;
+  final Map<String, ToolResultMessage> resultByToolUseId;
 
   @override
   State<_ActivityCard> createState() => _ActivityCardState();
@@ -503,6 +569,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                         tokens: tokens,
                         toolUseOutcomes: widget.toolUseOutcomes,
                         toolUseById: widget.toolUseById,
+                        resultByToolUseId: widget.resultByToolUseId,
                       ),
                   ],
                 ),

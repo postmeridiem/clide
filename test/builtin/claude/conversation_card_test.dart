@@ -283,6 +283,68 @@ void main() {
     expect(find.text('result'), findsOneWidget);
   });
 
+  testWidgets('status: success renders a "succeeded" semantics mark in the header (T-262)', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(harness(
+      f,
+      const ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: Color(0xFFFFFFFF),
+        label: 'Bash',
+        status: ConversationCardStatus.success,
+        body: Text('body', textDirection: TextDirection.ltr),
+      ),
+    ));
+    await tester.pump();
+    expect(find.bySemanticsLabel('succeeded'), findsOneWidget);
+    expect(find.bySemanticsLabel('failed'), findsNothing);
+    handle.dispose();
+  });
+
+  testWidgets('status: error renders a "failed" semantics mark; none renders nothing (T-262)', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(harness(
+      f,
+      const ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: Color(0xFFFFFFFF),
+        label: 'Bash',
+        status: ConversationCardStatus.error,
+        body: Text('body', textDirection: TextDirection.ltr),
+      ),
+    ));
+    await tester.pump();
+    expect(find.bySemanticsLabel('failed'), findsOneWidget);
+    expect(find.bySemanticsLabel('succeeded'), findsNothing);
+    handle.dispose();
+  });
+
+  testWidgets('extraSegments render below the body with their sub-label when expanded (T-262)', (tester) async {
+    await tester.pumpWidget(harness(
+      f,
+      const ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: Color(0xFFFFFFFF),
+        label: 'Read',
+        collapsible: true,
+        collapsedByDefault: true,
+        body: Text('the call', textDirection: TextDirection.ltr),
+        extraSegments: [CardSegment(label: 'result', child: Text('the output', textDirection: TextDirection.ltr))],
+      ),
+    ));
+    await tester.pump();
+    // Collapsed: neither the body nor the segment shows.
+    expect(find.text('the call'), findsNothing);
+    expect(find.text('result'), findsNothing);
+    expect(find.text('the output'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Expand'));
+    await tester.pump();
+    expect(find.text('the call'), findsOneWidget); // primary body
+    expect(find.text('result'), findsOneWidget); // segment sub-label
+    expect(find.text('the output'), findsOneWidget); // segment child
+  });
+
   testWidgets('bare variant renders content without frame decoration', (tester) async {
     await tester.pumpWidget(harness(
       f,

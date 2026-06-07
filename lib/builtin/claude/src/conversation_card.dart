@@ -31,6 +31,21 @@ class MessageAction {
 
 enum ConversationCardVariant { stripe, bordered, bare }
 
+/// A trailing status mark shown at the right end of the header (T-262): a
+/// green check for a succeeded tool call, a red cross for a failure. [none]
+/// renders no mark (the default for non-tool cards).
+enum ConversationCardStatus { none, success, error }
+
+/// An extra labelled body segment shown below the primary [ConversationCard.body]
+/// when the card is expanded (T-262). Lets one card lay out CALL → RESULT (or,
+/// for the Agent card, CALL → PROMPT → RESULT — T-263) with a muted sub-label +
+/// divider between segments so the reader can tell the parts apart.
+class CardSegment {
+  const CardSegment({required this.label, required this.child});
+  final String label;
+  final Widget child;
+}
+
 class ConversationCard extends StatefulWidget {
   const ConversationCard({
     super.key,
@@ -44,12 +59,22 @@ class ConversationCard extends StatefulWidget {
     this.collapsedByDefault = false,
     this.collapsedSummary,
     this.borderColor,
+    this.status = ConversationCardStatus.none,
+    this.extraSegments = const [],
   });
 
   final ConversationCardVariant variant;
   final Color accent;
   final String label;
   final Widget body;
+
+  /// Trailing header status mark (T-262) — a success check or error cross at
+  /// the right end of the header. [ConversationCardStatus.none] shows nothing.
+  final ConversationCardStatus status;
+
+  /// Extra labelled segments rendered below [body] when expanded (T-262/T-263);
+  /// each gets a muted sub-label + divider so CALL/PROMPT/RESULT read apart.
+  final List<CardSegment> extraSegments;
 
   /// Raw text the copy action yields; no copy button when null.
   final String? copyText;
@@ -149,7 +174,14 @@ class _ConversationCardState extends State<ConversationCard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _header(tokens),
-        if (!_collapsed) ...[const SizedBox(height: 4), widget.body],
+        if (!_collapsed) ...[
+          const SizedBox(height: 4),
+          widget.body,
+          for (final seg in widget.extraSegments) ...[
+            _segmentLabel(tokens, seg.label),
+            seg.child,
+          ],
+        ],
       ],
     );
     return Padding(
@@ -215,6 +247,9 @@ class _ConversationCardState extends State<ConversationCard> {
           ),
         ] else
           const Spacer(),
+        // Trailing status mark (T-262): success check / error cross, sitting
+        // between the summary/spacer and the action bar.
+        if (widget.status != ConversationCardStatus.none) _statusMark(tokens),
         // Actions are always in the tree (keyboard/AT always reachable).
         // Opacity reveals them on hover or keyboard focus; opacity-0 keeps
         // them layout-present but visually hidden so they don't distract.
@@ -252,6 +287,47 @@ class _ConversationCardState extends State<ConversationCard> {
       ),
     );
   }
+
+  /// The trailing success/error mark (T-262). Carries a Semantics label so the
+  /// outcome is announced, not just colour-coded.
+  Widget _statusMark(SurfaceTokens tokens) {
+    final ClideIconPainter icon;
+    final Color color;
+    final String label;
+    switch (widget.status) {
+      case ConversationCardStatus.success:
+        icon = const CheckIcon();
+        color = tokens.statusSuccess;
+        label = 'succeeded';
+      case ConversationCardStatus.error:
+        icon = const CloseIcon();
+        color = tokens.statusError;
+        label = 'failed';
+      case ConversationCardStatus.none:
+        return const SizedBox.shrink();
+    }
+    return Semantics(
+      label: label,
+      container: true,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: ClideIcon(icon, size: 12, color: color),
+      ),
+    );
+  }
+
+  /// A muted sub-label + hairline divider introducing an [CardSegment] below
+  /// the primary body (T-262), so CALL/PROMPT/RESULT read as distinct parts.
+  Widget _segmentLabel(SurfaceTokens tokens, String label) => Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        child: Row(
+          children: [
+            ClideText(label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            const SizedBox(width: 8),
+            Expanded(child: Container(height: 1, color: tokens.panelBorder)),
+          ],
+        ),
+      );
 
   List<Widget> _actions(SurfaceTokens tokens) {
     final items = <_ActionItem>[];

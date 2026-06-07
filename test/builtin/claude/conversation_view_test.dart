@@ -177,7 +177,9 @@ void main() {
           tester,
           [
             _tool('Bash', const {'command': 'echo hi'}),
-            _result('hi'),
+            // A second, distinct in-flight tool call (T-262 folds a success
+            // result into its call card, so two *calls* are what make 2 steps).
+            AssistantToolUse(uuid: 'tu2', timestamp: _t, isSidechain: false, toolUseId: 'x2', name: 'Read', input: const {'file_path': '/a'}),
           ],
           foldLevel: FoldLevel.tools);
       // Collapsed by default: one card with a step count, not the raw rows.
@@ -187,6 +189,21 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Activity, 2 steps, collapsed'));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('Activity, 2 steps, expanded'), findsOneWidget);
+    });
+
+    testWidgets('a folded success result is not a separate step — merged into its call (T-262 note D)', (tester) async {
+      await pumpWith(
+          tester,
+          [
+            _tool('Bash', const {'command': 'echo hi'}),
+            _result('hi there'),
+          ],
+          foldLevel: FoldLevel.tools);
+      // The call + its success result is ONE unit now: 1 step, not 2.
+      expect(find.text('1 step'), findsOneWidget);
+      expect(find.text('2 steps'), findsNothing);
+      // The result is not double-rendered: no standalone result card.
+      expect(find.text('Bash · result'), findsNothing);
     });
 
     testWidgets('an image card renders with the "image" label, the file, and its caption (T-249)', (tester) async {
@@ -247,8 +264,9 @@ void main() {
       expect(find.text('claude'), findsOneWidget);
       expect(find.text('thinking'), findsOneWidget);
       expect(find.text('Bash'), findsOneWidget);
-      // Result labels now include the paired tool name (T-168).
-      expect(find.text('Bash · result'), findsOneWidget);
+      // T-262: a successful result folds into the tool card (no standalone
+      // "Bash · result"); a failed result keeps its prominent standalone card.
+      expect(find.text('Bash · result'), findsNothing);
       expect(find.text('Bash · error'), findsOneWidget);
     });
 
@@ -289,8 +307,12 @@ void main() {
         hiddenToolUseIds: {'x1'},
         toolUseOutcomes: {'x1': true}, // approved
       );
+      final handle = tester.ensureSemantics();
       expect(find.text('Write'), findsOneWidget); // shown (resolved)
-      expect(find.byType(ClideIcon), findsOneWidget); // collapsed caret
+      expect(find.bySemanticsLabel('Expand'), findsOneWidget); // collapsed caret
+      // T-262: the resolved card also folds its result + a success check.
+      expect(find.bySemanticsLabel('succeeded'), findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets('an injected user message renders as a muted "context" card, not "you"', (tester) async {
@@ -323,12 +345,63 @@ void main() {
       expect(find.text('/foo/bar.dart'), findsOneWidget);
     });
 
-    testWidgets('result label includes paired tool name (T-168)', (tester) async {
+    testWidgets('a successful result folds into the tool-use card with a check (T-262)', (tester) async {
+      final handle = tester.ensureSemantics();
       await pumpWith(tester, [
-        _tool('Read', {'file_path': '/x'}),
-        _result('file content'),
+        _tool('Read', {'file_path': '/foo/bar.dart'}),
+        _result('final answer = 42;'),
       ]);
-      expect(find.text('Read · result'), findsOneWidget);
+      // No standalone success result card — it's folded into the Read card.
+      expect(find.text('Read · result'), findsNothing);
+      // The merged card shows a success check.
+      expect(find.bySemanticsLabel('succeeded'), findsOneWidget);
+      // Collapsed by default: neither the call body nor the result is shown yet.
+      expect(find.text('final answer = 42;'), findsNothing);
+
+      // Expand: the call segment, a "result" sub-label, and the folded result
+      // as a colorized code block (Read → grammar from the .dart path).
+      await tester.tap(find.bySemanticsLabel('Expand'));
+      await tester.pumpAndSettle();
+      expect(find.text('result'), findsOneWidget); // segment sub-label
+      final blocks = tester.widgetList<ClideCodeBlock>(find.byType(ClideCodeBlock)).toList();
+      expect(blocks.any((b) => b.language == 'dart' && b.source == 'final answer = 42;'), isTrue);
+      handle.dispose();
+    });
+
+    testWidgets('Bash result folds as a bash code block; in-flight call has no check (T-262)', (tester) async {
+      final handle = tester.ensureSemantics();
+      // In-flight: a call with no result yet → no check, no folded result.
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'ls'})
+      ]);
+      expect(find.bySemanticsLabel('succeeded'), findsNothing);
+      expect(find.bySemanticsLabel('failed'), findsNothing);
+      handle.dispose();
+    });
+
+    testWidgets('Bash success result infers the bash language for the folded block (T-262)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'echo hi'}),
+        _result('hi\nthere'),
+      ]);
+      await tester.tap(find.bySemanticsLabel('Expand'));
+      await tester.pumpAndSettle();
+      final blocks = tester.widgetList<ClideCodeBlock>(find.byType(ClideCodeBlock)).toList();
+      expect(blocks.any((b) => b.language == 'bash' && b.source == 'hi\nthere'), isTrue);
+    });
+
+    testWidgets('a failed result is NOT folded: standalone error card + red header mark (T-262)', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'boom'}),
+        _result('permission denied', isError: true),
+      ]);
+      // The error stays a separate prominent card…
+      expect(find.text('Bash · error'), findsOneWidget);
+      expect(find.text('permission denied'), findsOneWidget);
+      // …and the call card carries a red failure mark for symmetry (note C).
+      expect(find.bySemanticsLabel('failed'), findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets('error result label includes paired tool name (T-168)', (tester) async {

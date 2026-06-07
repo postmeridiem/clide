@@ -144,6 +144,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- A successful tool call now renders as **one merged card** instead of a
+  separate call + result pair: a green check sits at the header's right edge and
+  the output folds in as a colorized code block (Read → file grammar, Bash →
+  shell) revealed on expand. Failures keep their prominent red card, now with a
+  matching header mark. (T-262)
 - The in-flight turn indicator now feels alive: instead of a static gray
   `running…`, it shows a rotating curated status verb (`Pondering…`,
   `Conjuring…`, …) with an animated ellipsis. Respects reduced-motion (static
