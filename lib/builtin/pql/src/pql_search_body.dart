@@ -103,11 +103,16 @@ class _PqlSearchBodyState extends State<PqlSearchBody> {
           children: [
             if (widget.mode == PqlPaneMode.markdown)
               ClideFilterBox(
+                address: 'search.pql.markdown',
                 hint: 'Filter markdown…',
                 onChanged: (v) => unawaited(c.loadMarkdownFiles(glob: v.isEmpty ? null : '**/*$v*.md')),
               )
             else
-              _PqlSearchInput(controller: c, dsl: widget.mode == PqlPaneMode.query),
+              _PqlSearchInput(
+                controller: c,
+                dsl: widget.mode == PqlPaneMode.query,
+                address: widget.mode == PqlPaneMode.query ? 'search.pql.query' : 'search.pql.vault',
+              ),
             if (c.error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -146,13 +151,15 @@ class _PqlSearchBodyState extends State<PqlSearchBody> {
 }
 
 class _PqlSearchInput extends StatelessWidget {
-  const _PqlSearchInput({required this.controller, required this.dsl});
+  const _PqlSearchInput({required this.controller, required this.dsl, this.address});
   final PqlController controller;
   final bool dsl;
+  final String? address;
 
   @override
   Widget build(BuildContext context) {
     return ClideFilterBox(
+      address: address,
       hint: dsl ? 'PQL query…' : 'Search vault…',
       debounce: dsl ? Duration.zero : const Duration(milliseconds: 300),
       onChanged: dsl ? (_) {} : (v) => unawaited(controller.search(v)),

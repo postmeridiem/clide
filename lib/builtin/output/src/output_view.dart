@@ -125,7 +125,7 @@ class _OutputViewState extends State<OutputView> {
       child: Row(
         children: [
           Expanded(
-            child: ClideFilterBox(hint: 'Filter…', onChanged: _c.setText),
+            child: ClideFilterBox(address: 'output.panel', hint: 'Filter…', onChanged: _c.setText),
           ),
           const SizedBox(width: 8),
           _Chip(

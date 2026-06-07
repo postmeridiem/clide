@@ -75,7 +75,7 @@ class _GitPanelViewState extends State<GitPanelView> {
           explicitChildNodes: true,
           child: Column(
             children: [
-              ClideFilterBox(hint: 'Filter changes…', onChanged: (v) => setState(() => _filter = v)),
+              ClideFilterBox(address: 'git.panel', hint: 'Filter changes…', onChanged: (v) => setState(() => _filter = v)),
               Expanded(
                   child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 4),

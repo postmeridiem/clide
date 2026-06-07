@@ -98,6 +98,9 @@ Future<void> main() async {
   // The kernel MessageBus, captured post-boot so `ui.open` can drive the GUI
   // readers (publish a 'selection') from the CLI — the drive-half of D-6 (T-231).
   MessageBus? kernelMessages;
+  // The filter-state cache, captured post-boot so `ui.filter` can read a
+  // box's current value back — the observe-half of D-6 (T-270).
+  FilterStateCache? kernelFilterStates;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -216,7 +219,11 @@ Future<void> main() async {
     // `clide ui open <reader> <id|path>` — drive the GUI readers from the CLI
     // (T-231, drive-half of D-6). Publishes a 'selection' to the kernel
     // MessageBus, captured post-boot; null in headless contexts.
-    registerUiCommands(dispatcher, () => kernelMessages?.publish);
+    registerUiCommands(
+      dispatcher,
+      () => kernelMessages?.publish,
+      filterValue: (address) => kernelFilterStates?.get(address),
+    );
     // `clide image show <path>` — drive an image card into the Claude
     // conversation log (T-249, drive-half of D-6). Resolves the path
     // (workspace-relative → absolute, must exist) here where workRoot is in
@@ -340,6 +347,7 @@ Future<void> main() async {
   // only reads it at request time (post-boot), so capturing it here is safe.
   kernelReaderNav = services.readerNav;
   kernelMessages = services.messages;
+  kernelFilterStates = services.filterStates;
   // Tee the IPC/MCP logger into the shared ring so the output dock (T-54)
   // shows socket-side logs alongside kernel/extension ones.
   ipcLog.addSink(services.logRing.add);

@@ -65,7 +65,7 @@ class _FileTreeViewState extends State<FileTreeView> {
         final rootName = root.split(Platform.pathSeparator).last;
         return Column(
           children: [
-            ClideFilterBox(hint: 'Filter files…', onChanged: (v) => setState(() => _filter = v)),
+            ClideFilterBox(address: 'files.tree', hint: 'Filter files…', onChanged: (v) => setState(() => _filter = v)),
             Expanded(
               child: Semantics(
                 label: 'file tree — $rootName',

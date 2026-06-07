@@ -105,7 +105,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ClideFilterBox(hint: 'Search', onChanged: c.run, onSubmitted: c.run),
+                  ClideFilterBox(address: 'search.findInFiles', hint: 'Search', onChanged: c.run, onSubmitted: c.run),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -137,7 +137,9 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Expanded(child: ClideFilterBox(hint: 'Replace', icon: null, debounce: Duration.zero, onChanged: c.setReplacement)),
+                      Expanded(
+                          child: ClideFilterBox(
+                              address: 'search.findInFiles.replace', hint: 'Replace', icon: null, debounce: Duration.zero, onChanged: c.setReplacement)),
                       const SizedBox(width: 6),
                       _ReplaceAllButton(
                         enabled: c.replacement.isNotEmpty && c.matchCount > 0,
@@ -147,9 +149,15 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  ClideFilterBox(hint: 'files to include (e.g. *.dart)', icon: null, debounce: Duration.zero, onChanged: (v) => c.include = v),
+                  ClideFilterBox(
+                      address: 'search.findInFiles.include',
+                      hint: 'files to include (e.g. *.dart)',
+                      icon: null,
+                      debounce: Duration.zero,
+                      onChanged: (v) => c.include = v),
                   const SizedBox(height: 4),
-                  ClideFilterBox(hint: 'files to exclude', icon: null, debounce: Duration.zero, onChanged: (v) => c.exclude = v),
+                  ClideFilterBox(
+                      address: 'search.findInFiles.exclude', hint: 'files to exclude', icon: null, debounce: Duration.zero, onChanged: (v) => c.exclude = v),
                 ],
               ),
             ),

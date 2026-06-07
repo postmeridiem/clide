@@ -159,7 +159,7 @@ class _TicketsViewState extends State<TicketsView> {
       children: [
         Row(
           children: [
-            Expanded(child: ClideFilterBox(hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v))),
+            Expanded(child: ClideFilterBox(address: 'tickets.panel', hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v))),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ClideTappable(

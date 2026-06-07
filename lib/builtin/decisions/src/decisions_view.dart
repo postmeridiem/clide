@@ -150,7 +150,7 @@ class _DecisionsViewState extends State<DecisionsView> {
       children: [
         Row(
           children: [
-            Expanded(child: ClideFilterBox(hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v))),
+            Expanded(child: ClideFilterBox(address: 'decisions.panel', hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v))),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ClideTappable(

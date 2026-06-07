@@ -1,4 +1,5 @@
-/// Registers `ui.open` — the drive-half of D-6 parity (T-231).
+/// Registers the `ui.*` drive/observe verbs — the parity peers of D-6
+/// (`ui.open` T-231, `ui.toast` T-50, `ui.filter` T-270).
 ///
 /// Epic C (T-218) gave the CLI the *observe* half: `clide status` / `pane
 /// list` read live UI state. This is the complement — the agent asks the
@@ -16,6 +17,7 @@
 /// Flutter-free and runs under `dart test`.
 library;
 
+import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import 'dispatcher.dart';
@@ -40,9 +42,26 @@ const Map<String, ({String publisher, String dataKey})> _readers = {
 /// literal so this file stays Flutter-free for `dart test`).
 const Set<String> _toastSeverities = {'success', 'warning', 'error', 'info'};
 
-void registerUiCommands(DaemonDispatcher d, MessagePublisher? Function() publisher) {
+/// Reads the current filter value for an addressable box from the kernel's
+/// `FilterStateCache` — the observe-half of `ui.filter`. Returns null when
+/// nothing has reported a value for that address (or there is no live UI).
+typedef FilterValueSource = String? Function(String address);
+
+void registerUiCommands(
+  DaemonDispatcher d,
+  MessagePublisher? Function() publisher, {
+  FilterValueSource? filterValue,
+}) {
   d.register('ui.open', (req) async => _open(req, publisher));
   d.register('ui.toast', (req) async => _toast(req, publisher));
+  d.register(
+    'ui.filter',
+    (req) async => _filter(req, publisher, filterValue),
+    schema: const CommandSchema(
+      positional: ['address', 'query'],
+      args: {'address': ArgSpec(required: true), 'query': ArgSpec()},
+    ),
+  );
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
@@ -121,4 +140,51 @@ Future<IpcResponse> _toast(IpcRequest req, MessagePublisher? Function() publishe
     if (durationMs != null) 'durationMs': durationMs,
   });
   return IpcResponse.ok(id: req.id, data: {'message': message, 'severity': severity, 'shown': true});
+}
+
+/// `clide ui filter <address> [<text>]` — the drive+observe parity peer for
+/// the sidebar filter boxes (T-270, D-6). Routed through the MessageBus so a
+/// box reacts identically whether the trigger was a UI keystroke or this
+/// verb, keeping extensions first-class (no dispatcher→widget wiring).
+///
+///   clide ui filter decisions.panel git   # set the filter to "git"
+///   clide ui filter decisions.panel ""    # clear it
+///   clide ui filter decisions.panel       # read the current value
+///
+/// `address` is a pane/box id from `clide pane list`. With a `query` arg the
+/// verb *drives* — publishes a `filter.set` the box consumes. Without one it
+/// *observes* — reads the box's last reported value from the FilterStateCache.
+Future<IpcResponse> _filter(
+  IpcRequest req,
+  MessagePublisher? Function() publisherSource,
+  FilterValueSource? filterValue,
+) async {
+  final address = req.args['address'] as String?;
+  if (address == null || address.isEmpty) {
+    return _userErr(req.id, 'an address is required', hint: 'a pane/box id from `clide pane list` (e.g. decisions.panel)');
+  }
+
+  // Absent query → observe; present (even empty string) → drive. The schema
+  // drops unmapped positionals, so a missing query leaves no `query` key.
+  if (!req.args.containsKey('query')) {
+    final getter = filterValue;
+    if (getter == null) {
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'no live UI to observe (clide is not running a GUI)'),
+      );
+    }
+    return IpcResponse.ok(id: req.id, data: {'address': address, 'query': getter(address)});
+  }
+
+  final query = (req.args['query'] as String?) ?? '';
+  final publish = publisherSource();
+  if (publish == null) {
+    return IpcResponse.err(
+      id: req.id,
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'no live UI to drive (clide is not running a GUI)'),
+    );
+  }
+  publish(address, 'filter.set', {'query': query});
+  return IpcResponse.ok(id: req.id, data: {'address': address, 'query': query, 'set': true});
 }

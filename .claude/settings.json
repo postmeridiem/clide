@@ -1,6 +1,10 @@
 {
   "permissions": {
     "allow": [
+      "Skill(pql)",
+      "Skill(clide)",
+      "Skill(whats-next)",
+      "Skill(git-commit)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git status *)",
@@ -30,6 +34,8 @@
       "Bash(make *)",
       "Bash(pql)",
       "Bash(pql *)",
+      "Bash(clide)",
+      "Bash(clide *)",
       "Bash(awk *)"
     ],
     "deny": [

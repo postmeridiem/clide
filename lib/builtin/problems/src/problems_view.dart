@@ -54,7 +54,7 @@ class _ProblemsViewState extends State<ProblemsView> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClideFilterBox(hint: 'Filter problems…', onChanged: (v) => setState(() => _filter = v)),
+                ClideFilterBox(address: 'problems.panel', hint: 'Filter problems…', onChanged: (v) => setState(() => _filter = v)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                   child: Row(

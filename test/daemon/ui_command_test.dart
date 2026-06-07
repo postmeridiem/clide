@@ -12,13 +12,22 @@ void main() {
   late List<({String publisher, String channel, Map<String, Object?> data})> published;
   late DaemonDispatcher d;
 
+  // Backing store for the ui.filter observe-half (the FilterStateCache in
+  // production). Null getter ⇒ no live UI to observe.
+  late Map<String, String> filterValues;
+
   void wire({bool liveUi = true}) {
     published = [];
+    filterValues = {};
     d = DaemonDispatcher();
-    registerUiCommands(d, () {
-      if (!liveUi) return null;
-      return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
-    });
+    registerUiCommands(
+      d,
+      () {
+        if (!liveUi) return null;
+        return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
+      },
+      filterValue: liveUi ? (address) => filterValues[address] : null,
+    );
   }
 
   Future<IpcResponse> open(List<String> positional) => d.dispatch(
@@ -135,6 +144,67 @@ void main() {
   test('ui toast with no live UI → toolError', () async {
     wire(liveUi: false);
     final r = await toast(['hi']);
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
+
+  // -- ui.filter (T-270 drive+observe half) ---------------------------------
+
+  Future<IpcResponse> filter(List<String> positional) => d.dispatch(
+        IpcRequest(id: '1', cmd: 'ui.filter', args: {'positional': positional}),
+      );
+
+  test('ui filter <address> <text> publishes a filter.set', () async {
+    wire();
+    final r = await filter(['decisions.panel', 'git']);
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['set'], isTrue);
+    expect(published.single.publisher, 'decisions.panel');
+    expect(published.single.channel, 'filter.set');
+    expect(published.single.data, {'query': 'git'});
+  });
+
+  test('ui filter <address> "" clears (drives an empty query)', () async {
+    wire();
+    final r = await filter(['decisions.panel', '']);
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(published.single.data, {'query': ''});
+  });
+
+  test('ui filter <address> with no text observes the cached value', () async {
+    wire();
+    filterValues['decisions.panel'] = 'git';
+    final r = await filter(['decisions.panel']);
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data, {'address': 'decisions.panel', 'query': 'git'});
+    expect(published, isEmpty, reason: 'observe must not publish');
+  });
+
+  test('ui filter observe of an unknown address returns a null query', () async {
+    wire();
+    final r = await filter(['never.touched']);
+    expect(r.ok, isTrue);
+    expect(r.data, {'address': 'never.touched', 'query': null});
+  });
+
+  test('ui filter with no address → userError', () async {
+    wire();
+    final r = await filter([]);
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(published, isEmpty);
+  });
+
+  test('ui filter drive with no live UI → toolError', () async {
+    wire(liveUi: false);
+    final r = await filter(['decisions.panel', 'git']);
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.toolError);
+  });
+
+  test('ui filter observe with no live UI → toolError', () async {
+    wire(liveUi: false);
+    final r = await filter(['decisions.panel']);
     expect(r.ok, isFalse);
     expect(r.error?.kind, IpcErrorKind.toolError);
   });

@@ -10,6 +10,7 @@ import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
 import 'package:clide/kernel/src/dialog.dart';
 import 'package:clide/kernel/src/events/bus.dart';
+import 'package:clide/kernel/src/events/filter_state.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/extensions_manager.dart';
 import 'package:clide/kernel/src/files.dart';
@@ -47,6 +48,7 @@ class KernelServices {
     required this.settings,
     required this.events,
     required this.messages,
+    required this.filterStates,
     required this.ipc,
     required this.theme,
     required this.i18n,
@@ -82,6 +84,10 @@ class KernelServices {
   final SettingsStore settings;
   final DaemonBus events;
   final MessageBus messages;
+
+  /// Latest filter value per addressable box, fed by `filter.state`
+  /// messages — backs the observe-half of `clide ui filter` (T-270).
+  final FilterStateCache filterStates;
   final DaemonClient ipc;
   final ThemeController theme;
   final I18n i18n;
@@ -135,6 +141,7 @@ class KernelServices {
     final log = Logger(sinks: [stderrSink, logRing.add]);
     final events = sharedBus ?? DaemonBus();
     final messages = MessageBus();
+    final filterStates = FilterStateCache(messages: messages);
 
     final settings = SettingsStore(appDir: appDir);
     await settings.load();
@@ -236,6 +243,7 @@ class KernelServices {
       settings: settings,
       events: events,
       messages: messages,
+      filterStates: filterStates,
       ipc: ipc,
       theme: theme,
       i18n: i18n,
@@ -292,6 +300,7 @@ class KernelServices {
     keymap.dispose();
     textZoom.dispose();
     await log.dispose();
+    filterStates.dispose();
     messages.dispose();
     await events.dispose();
   }
