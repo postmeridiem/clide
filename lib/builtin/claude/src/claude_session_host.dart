@@ -77,6 +77,11 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
     super.dispose();
   }
 
+  /// Ids of the open tabs, oldest-first. Exposed for tests that assert the
+  /// host resets to a lone primary on an in-place workspace switch (T-269).
+  @visibleForTesting
+  List<String> get tabIds => _controller.entries.map((e) => e.id).toList();
+
   /// Public entry point used by the `claude.new-secondary` command.
   void addSecondary() {
     final index = _nextSecondary++;
