@@ -5,7 +5,6 @@ import 'package:clide/builtin/default_layout/default_layout.dart';
 import 'package:clide/builtin/output/output.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
