@@ -6,8 +6,7 @@ import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/log_ring.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-LogRecord _rec(LogLevel level, String source, String message) =>
-    LogRecord(level: level, source: source, message: message, timestamp: DateTime.utc(2026, 6, 6));
+LogRecord _rec(LogLevel level, String source, String message) => LogRecord(level: level, source: source, message: message, timestamp: DateTime.utc(2026, 6, 6));
 
 void main() {
   test('retains records in arrival order', () {
