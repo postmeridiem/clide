@@ -13,6 +13,7 @@ import 'dart:io';
 
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/clipboard_paste.dart';
+import 'package:clide/builtin/claude/src/running_indicator.dart';
 import 'package:clide/builtin/claude/src/slash_commands.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
@@ -483,7 +484,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
-                      ClideText('running…', muted: true, fontSize: clideFontMeta),
+                      const RunningIndicator(),
                       const Spacer(),
                       ClideButton(
                         label: 'Stop  ⎋',

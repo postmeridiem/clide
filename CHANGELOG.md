@@ -134,6 +134,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- The in-flight turn indicator now feels alive: instead of a static gray
+  `running…`, it shows a rotating curated status verb (`Pondering…`,
+  `Conjuring…`, …) with an animated ellipsis. Respects reduced-motion (static
+  verb) and keeps a stable a11y label. (T-255)
 - The `clide` CLI launch check now distinguishes a dev-tree build
   (`native/<plat>/clide`) from a packaged install — surfaced as an info note on
   a checkout rather than treated as a clean install or prompting a reinstall.
