@@ -19,12 +19,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Added
 
 - The sidebar/dock **filter boxes are now CLI-addressable** (D-6 parity): `clide
-  ui filter <address> <text>` drives a pane's filter exactly as typing in it
-  would, and `clide ui filter <address>` reads the current value back. Addresses
-  are the box ids from `clide pane list` (e.g. `decisions.panel`, `files.tree`,
-  `search.findInFiles`). Routed entirely through the MessageBus pub/sub — a box
-  reacts to a published `filter.set` the same whether the trigger was a click or
-  the CLI, keeping extensions first-class. (T-270)
+  ui filter <address> <text>` drives a pane's filter as typing would, and `clide
+  ui filter <address>` reads it back. Addresses are box ids from `clide pane
+  list` (e.g. `decisions.panel`, `files.tree`). Routed through the MessageBus, so
+  a click and the CLI behave identically. (T-270)
 - Click an inline image card to open it in a full-screen **lightbox** — zoom
   (scroll/pinch), pan, double-click to reset, `Esc`/backdrop to dismiss — since
   the cards are often too small to read. `clide image show <path> --fullscreen`
