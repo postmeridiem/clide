@@ -18,6 +18,7 @@ import 'package:clide/kernel/src/i18n/catalog_loader.dart';
 import 'package:clide/kernel/src/i18n/i18n.dart';
 import 'package:clide/kernel/src/ipc/client.dart';
 import 'package:clide/kernel/src/log.dart';
+import 'package:clide/kernel/src/log_ring.dart';
 import 'package:clide/kernel/src/net.dart';
 import 'package:clide/kernel/src/notify.dart';
 import 'package:clide/kernel/src/os.dart';
@@ -74,6 +75,7 @@ class KernelServices {
     required this.keymap,
     required this.textZoom,
     required this.toast,
+    required this.logRing,
   });
 
   final Logger log;
@@ -109,6 +111,9 @@ class KernelServices {
   final TextZoom textZoom;
   final ToastService toast;
 
+  /// Bounded retention of [log] records, for the output dock (T-54 / D-87).
+  final LogRing logRing;
+
   static Future<KernelServices> boot({
     required Directory appDir,
     required List<ThemeDefinition> bundledThemes,
@@ -126,7 +131,8 @@ class KernelServices {
     Future<String?> Function(String path)? onValidateProject,
     DaemonBus? sharedBus,
   }) async {
-    final log = Logger();
+    final logRing = LogRing();
+    final log = Logger(sinks: [stderrSink, logRing.add]);
     final events = sharedBus ?? DaemonBus();
     final messages = MessageBus();
 
@@ -226,6 +232,7 @@ class KernelServices {
 
     return KernelServices(
       log: log,
+      logRing: logRing,
       settings: settings,
       events: events,
       messages: messages,

@@ -1,7 +1,6 @@
 import 'package:clide/builtin/problems/src/problems_view.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/widgets/widgets.dart';
 
 class ProblemsExtension extends ClideExtension {
   @override
@@ -15,11 +14,12 @@ class ProblemsExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
+        // Moved out of the sidebar into the bottom dock (D-87): no duplication,
+        // and the dock's width fits `severity · file:line · message` rows.
         TabContribution(
           id: 'problems.panel',
-          slot: Slots.sidebar,
+          slot: Slots.dock,
           title: 'Problems',
-          icon: PhosphorIcons.warningCircle,
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: -50,

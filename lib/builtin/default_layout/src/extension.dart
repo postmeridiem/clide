@@ -144,6 +144,10 @@ class DefaultLayoutExtension extends ClideExtension {
     if (sidebarSize != null) ctx.arrangement.setSize(Slots.sidebar, sidebarSize);
     final contextSize = s.get<double>(_kContextSize);
     if (contextSize != null) ctx.arrangement.setSize(Slots.contextPanel, contextSize);
+    final dockVisible = s.get<bool>(_kDockVisible);
+    if (dockVisible != null) ctx.arrangement.setVisible(Slots.dock, dockVisible);
+    final dockSize = s.get<double>(_kDockSize);
+    if (dockSize != null) ctx.arrangement.setSize(Slots.dock, dockSize);
     final editorRatio = s.get<double>(_kEditorRatio);
     if (editorRatio != null) ctx.arrangement.setEditorRatio(editorRatio);
     final activeLeft = s.get<String>(_kActiveLeft);
@@ -161,6 +165,8 @@ class DefaultLayoutExtension extends ClideExtension {
     s.set(_kSidebarSize, a.sizeOf(Slots.sidebar));
     s.set(_kContextSize, a.sizeOf(Slots.contextPanel));
     s.set(_kEditorRatio, a.editorRatio);
+    s.set(_kDockVisible, a.isVisible(Slots.dock));
+    s.set(_kDockSize, a.sizeOf(Slots.dock));
   }
 
   void _persistActiveTabs(ClideExtensionContext ctx) {
@@ -179,6 +185,8 @@ class DefaultLayoutExtension extends ClideExtension {
   static const _kEditorRatio = 'project.layout.editor.ratio';
   static const _kActiveLeft = 'project.layout.sidebar.activeTab';
   static const _kActiveRight = 'project.layout.context.activeTab';
+  static const _kDockVisible = 'project.layout.dock.visible';
+  static const _kDockSize = 'project.layout.dock.size';
 
   Future<IpcResponse> _reset(List<String> args) async {
     final preset = _preset;

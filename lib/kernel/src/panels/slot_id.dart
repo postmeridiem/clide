@@ -22,6 +22,10 @@ abstract class Slots {
   static const workspace = SlotId('workspace');
   static const contextPanel = SlotId('context');
   static const statusbar = SlotId('statusbar');
+
+  /// Bottom output dock — read-only logs + problems (T-54 / D-87). Toggled;
+  /// hidden by default.
+  static const dock = SlotId('dock');
   static const toolbar = SlotId('toolbar.main');
   static const commandPalette = SlotId('commandPalette');
   static const tray = SlotId('tray');

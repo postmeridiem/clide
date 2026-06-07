@@ -211,6 +211,12 @@ class RootLayout extends StatelessWidget {
         final sidebarSize = a.sizeOf(Slots.sidebar) ?? 400;
         final contextSize = a.sizeOf(Slots.contextPanel) ?? 420;
         final statusHeight = a.sizeOf(Slots.statusbar) ?? 26;
+        // Bottom output dock (T-54 / D-87): pushes the workspace up when open,
+        // capped at half the window so Claude stays the largest surface (the
+        // D-47 amendment).
+        final dockVisible = a.isVisible(Slots.dock);
+        final dockMax = (((MediaQuery.of(ctx).size.height) - statusHeight) * 0.5).clamp(80.0, double.infinity).toDouble();
+        final dockHeight = dockVisible ? ((a.sizeOf(Slots.dock) ?? 200).clamp(0.0, dockMax)).toDouble() : 0.0;
 
         return Column(
           children: [
@@ -255,6 +261,14 @@ class RootLayout extends StatelessWidget {
                 ],
               ),
             ),
+            if (dockVisible)
+              SizedBox(
+                height: dockHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder))),
+                  child: SlotHost(slot: Slots.dock),
+                ),
+              ),
             if (statusVisible)
               Container(
                 height: statusHeight,

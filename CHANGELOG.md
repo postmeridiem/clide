@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- A bottom **output dock**: toggle it from a status-bar widget (or `⌘J`/`Ctrl+J`)
+  to see logs (Output) and diagnostics (Problems) as tabs — filterable by
+  source/level/text, auto-scrolling. The status widget doubles as a health
+  badge (green `✓` clean, `⚠`/`✕` counts otherwise) and replaces the old
+  app-status item; Problems moved here from the sidebar. (T-54, D-87)
 - External MCP clients (Cursor, Windsurf, Copilot, …) can now drive clide: the
   MCP server exposes the full `mcp__clide__*` tool surface, generated from the
   command registry that already feeds the CLI + palette (D-86), with a

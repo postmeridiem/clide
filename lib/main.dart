@@ -16,7 +16,7 @@ import 'package:clide/builtin/git/git.dart';
 import 'package:clide/builtin/search/search.dart';
 import 'package:clide/builtin/grammars_core/grammars_core.dart';
 import 'package:clide/builtin/graph/graph.dart';
-import 'package:clide/builtin/ipc_status/ipc_status.dart';
+import 'package:clide/builtin/output/output.dart';
 import 'package:clide/builtin/keybindings_ui/keybindings_ui.dart';
 import 'package:clide/builtin/markdown/markdown.dart';
 import 'package:clide/builtin/pql/pql.dart';
@@ -340,6 +340,9 @@ Future<void> main() async {
   // only reads it at request time (post-boot), so capturing it here is safe.
   kernelReaderNav = services.readerNav;
   kernelMessages = services.messages;
+  // Tee the IPC/MCP logger into the shared ring so the output dock (T-54)
+  // shows socket-side logs alongside kernel/extension ones.
+  ipcLog.addSink(services.logRing.add);
 
   // Register every built-in. Tier 0 activates only the four that do
   // real work; the rest compile in as stubs so the extensions-ui can
@@ -349,7 +352,7 @@ Future<void> main() async {
   services.extensions
     ..register(DefaultLayoutExtension())
     ..register(WelcomeExtension())
-    ..register(IpcStatusExtension())
+    ..register(OutputExtension())
     ..register(ThemePickerExtension())
     // Sidebar: tickets first, then decisions, files, git, pql, problems
     ..register(TicketsExtension())
