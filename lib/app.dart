@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:io' show Platform, Process, ProcessStartMode;
+import 'dart:io' show Platform;
 
+import 'package:clide/builtin/menubar/menubar.dart';
 import 'package:clide/builtin/welcome/src/welcome_view.dart';
 import 'package:clide/clide.dart' show clideName;
 import 'package:clide/extension/src/contribution.dart';
@@ -56,6 +57,7 @@ class _RootShell extends StatefulWidget {
 
 class _RootShellState extends State<_RootShell> {
   late final FocusNode _keyFocus;
+  final MenuBarController _menuBar = MenuBarController();
 
   @override
   void initState() {
@@ -67,6 +69,7 @@ class _RootShellState extends State<_RootShell> {
   @override
   void dispose() {
     widget.services.textZoom.removeListener(_onZoom);
+    _menuBar.dispose();
     _keyFocus.dispose();
     super.dispose();
   }
@@ -156,7 +159,7 @@ class _RootShellState extends State<_RootShell> {
                 windowControls: widget.services.window,
                 child: Column(
                   children: [
-                    _HatBar(kernel: widget.services),
+                    _HatBar(kernel: widget.services, menuBar: _menuBar),
                     Expanded(
                       child: DialogHost(
                         router: widget.services.dialog,
@@ -182,6 +185,7 @@ class _RootShellState extends State<_RootShell> {
   }
 
   void _onKey(KeyEvent event) {
+    if (_handleMenuMnemonic(event)) return;
     final intent = widget.services.keymap.resolveEvent(event, HardwareKeyboard.instance);
     if (intent == null) return;
     // Dispatch the intent. Try the focused context first so feature
@@ -190,6 +194,18 @@ class _RootShellState extends State<_RootShell> {
     // (text scale, generic command bridge).
     final ctx = FocusManager.instance.primaryFocus?.context ?? context;
     Actions.maybeInvoke(ctx, intent);
+  }
+
+  /// `Alt+<mnemonic>` opens (or toggles) the matching application menu (T-48).
+  /// Returns true when consumed so it never falls through to keymap resolution.
+  bool _handleMenuMnemonic(KeyEvent event) {
+    if (event is! KeyDownEvent || !HardwareKeyboard.instance.isAltPressed) return false;
+    final label = event.logicalKey.keyLabel.toLowerCase();
+    if (label.length != 1) return false;
+    final idx = _menuBar.indexForMnemonic(label);
+    if (idx == null) return false;
+    _menuBar.toggle(idx);
+    return true;
   }
 }
 
@@ -306,8 +322,9 @@ class RootLayout extends StatelessWidget {
 }
 
 class _HatBar extends StatelessWidget {
-  const _HatBar({required this.kernel});
+  const _HatBar({required this.kernel, required this.menuBar});
   final KernelServices kernel;
+  final MenuBarController menuBar;
 
   @override
   Widget build(BuildContext context) {
@@ -324,6 +341,7 @@ class _HatBar extends StatelessWidget {
         child: Row(
           children: [
             _LeftHatContent(tokens: tokens, wc: kernel.window),
+            MenuBar(controller: menuBar),
             Expanded(
               child: Center(
                 child: _ProjectSwitcherButton(kernel: kernel, tokens: tokens),
@@ -461,49 +479,13 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
     }
   }
 
-  void _closeWorkspace() {
-    widget.kernel.project.close();
+  // File actions now live as commands (file.openFolder / file.newWindow /
+  // file.closeWorkspace) owned by the menu-bar extension (T-48). The switcher
+  // dismisses itself and dispatches the command so both surfaces share one
+  // implementation.
+  void _runFileCommand(String command) {
     widget.onDismiss();
-  }
-
-  void _newWindow() {
-    Process.start(Platform.resolvedExecutable, [], mode: ProcessStartMode.detached);
-    widget.onDismiss();
-  }
-
-  void _openFolder() async {
-    widget.onDismiss();
-
-    try {
-      final picked = await widget.kernel.window.pickDirectory();
-      if (picked != null) {
-        final ok = await widget.kernel.project.open(picked);
-        if (ok) {
-          widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
-        } else {
-          widget.kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(
-                path: picked,
-                onDismiss: () => dismiss(),
-              ));
-        }
-      }
-      return;
-    } on MissingPluginException {
-      // Fall through to text dialog.
-    }
-
-    widget.kernel.dialog.show<String>((ctx, dismiss) {
-      return _OpenFolderDialog(
-        onOpen: (path) async {
-          final ok = await widget.kernel.project.open(path);
-          if (ok) {
-            widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
-            dismiss(path);
-          }
-        },
-        onCancel: () => dismiss(),
-      );
-    });
+    unawaited(widget.kernel.commands.execute(command));
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
@@ -560,9 +542,15 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
               decoration: BoxDecoration(border: Border(top: BorderSide(color: tokens.dividerColor))),
               child: Column(
                 children: [
-                  _ActionRow(label: 'Open Local Project', shortcut: Platform.isMacOS ? '⌘O' : 'Ctrl+O', tokens: tokens, onTap: _openFolder),
-                  _ActionRow(label: 'New Window', shortcut: Platform.isMacOS ? '⌘⇧N' : 'Ctrl+Shift+N', tokens: tokens, onTap: _newWindow),
-                  if (widget.kernel.project.isOpen) _ActionRow(label: 'Close Project', shortcut: '', tokens: tokens, onTap: _closeWorkspace),
+                  _ActionRow(
+                      label: 'Open Local Project',
+                      shortcut: Platform.isMacOS ? '⌘O' : 'Ctrl+O',
+                      tokens: tokens,
+                      onTap: () => _runFileCommand('file.openFolder')),
+                  _ActionRow(
+                      label: 'New Window', shortcut: Platform.isMacOS ? '⌘⇧N' : 'Ctrl+Shift+N', tokens: tokens, onTap: () => _runFileCommand('file.newWindow')),
+                  if (widget.kernel.project.isOpen)
+                    _ActionRow(label: 'Close Project', shortcut: '', tokens: tokens, onTap: () => _runFileCommand('file.closeWorkspace')),
                 ],
               ),
             ),
@@ -643,145 +631,6 @@ class _ActionRow extends StatelessWidget {
             if (shortcut != null && shortcut!.isNotEmpty) ClideText(shortcut!, fontSize: 12, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _OpenFolderDialog extends StatefulWidget {
-  const _OpenFolderDialog({required this.onOpen, required this.onCancel});
-  final Future<void> Function(String path) onOpen;
-  final VoidCallback onCancel;
-
-  @override
-  State<_OpenFolderDialog> createState() => _OpenFolderDialogState();
-}
-
-class _OpenFolderDialogState extends State<_OpenFolderDialog> {
-  final _controller = TextEditingController();
-  final _focus = FocusNode();
-  String? _error;
-  bool _loading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focus.requestFocus();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final path = _controller.text.trim();
-    if (path.isEmpty) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await widget.onOpen(path);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Not a git repository');
-    }
-    if (mounted) setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Container(
-      width: 420,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: tokens.modalSurfaceBackground,
-        border: Border.all(color: tokens.modalSurfaceBorder),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ClideText('Open project', fontSize: 16, fontWeight: FontWeight.w600),
-          const SizedBox(height: 4),
-          const ClideText('Enter the path to a git repository.', muted: true, fontSize: 13),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: tokens.panelBackground,
-              border: Border.all(color: tokens.globalBorder),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: EditableText(
-              controller: _controller,
-              focusNode: _focus,
-              style: TextStyle(color: tokens.globalForeground, fontSize: 14, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
-              cursorColor: tokens.globalForeground,
-              backgroundCursorColor: tokens.globalTextMuted,
-              onSubmitted: (_) => unawaited(_submit()),
-            ),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            ClideText(_error!, color: tokens.statusError, fontSize: 12),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ClideButton(label: 'Cancel', onPressed: widget.onCancel),
-              const SizedBox(width: 8),
-              ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotARepoDialog extends StatelessWidget {
-  const _NotARepoDialog({required this.path, required this.onDismiss});
-  final String path;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Container(
-      width: 420,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: tokens.modalSurfaceBackground,
-        border: Border.all(color: tokens.modalSurfaceBorder),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ClideText('No git repo found', fontSize: 16, fontWeight: FontWeight.w600),
-          const SizedBox(height: 8),
-          ClideText(path, muted: true, fontSize: 13),
-          const SizedBox(height: 8),
-          const ClideText(
-            'A clide project root requires a git repository.',
-            muted: true,
-            fontSize: 13,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ClideButton(label: 'OK', onPressed: () => onDismiss()),
-            ],
-          ),
-        ],
       ),
     );
   }

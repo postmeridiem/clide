@@ -16,6 +16,7 @@ import 'package:clide/builtin/git/git.dart';
 import 'package:clide/builtin/search/search.dart';
 import 'package:clide/builtin/grammars_core/grammars_core.dart';
 import 'package:clide/builtin/graph/graph.dart';
+import 'package:clide/builtin/menubar/menubar.dart';
 import 'package:clide/builtin/output/output.dart';
 import 'package:clide/builtin/keybindings_ui/keybindings_ui.dart';
 import 'package:clide/builtin/markdown/markdown.dart';
@@ -384,6 +385,7 @@ Future<void> main() async {
     ..register(GraphExtension())
     // UI extensions
     ..register(ViewExtension(textZoom: services.textZoom))
+    ..register(MenuBarExtension(services: services))
     ..register(SettingsUiExtension())
     ..register(ExtensionsUiExtension())
     ..register(KeybindingsUiExtension())

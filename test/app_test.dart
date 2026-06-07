@@ -22,6 +22,7 @@ import 'dart:io';
 
 import 'package:clide/app.dart';
 import 'package:clide/builtin/default_layout/default_layout.dart';
+import 'package:clide/builtin/menubar/menubar.dart';
 import 'package:clide/clide.dart' show clideName;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -40,6 +41,9 @@ void main() {
     // The classic preset makes all four slots visible + sized, and registers
     // keybindings/commands so the keymap resolves real bindings.
     f.services.extensions.register(DefaultLayoutExtension());
+    // The menu-bar extension owns the File/Help commands the hat menu and the
+    // project switcher dispatch (T-48).
+    f.services.extensions.register(MenuBarExtension(services: f.services));
     await f.services.extensions.activateAll();
     // Disposed LAST (LIFO) — after any per-test teardown unmounts the tree.
     addTearDown(() async => f.dispose());
@@ -283,5 +287,51 @@ void main() {
     await tester.pump();
     expect(find.text('Open project'), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Open Folder on a non-repo path surfaces the "no git repo" dialog', (tester) async {
+    final tmp = await Directory.systemTemp.createTemp('clide-not-a-repo-');
+    addTearDown(() => tmp.delete(recursive: true));
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('clide/window'),
+      (call) async => call.method == 'pickDirectory' ? tmp.path : null,
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), null));
+
+    await pumpApp(tester);
+    await tester.tap(find.text(clideName)); // switcher (no project open)
+    await tester.pump();
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Open Local Project')); // picks tmp → not a repo
+      // Let the (unawaited) command run pickDirectory + git rev-parse.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('No git repo found'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pump();
+    expect(find.text('No git repo found'), findsNothing);
+  });
+
+  testWidgets('Alt+F opens the application File menu', (tester) async {
+    await pumpApp(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Open Folder…'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('file.closeWorkspace command closes the active project', (tester) async {
+    final repo = Directory.current.path;
+    await tester.runAsync(() async => f.services.project.open(repo));
+    expect(f.services.project.isOpen, isTrue);
+    await pumpApp(tester);
+    await tester.runAsync(() async => f.services.commands.execute('file.closeWorkspace'));
+    await tester.pump();
+    expect(f.services.project.isOpen, isFalse);
   });
 }

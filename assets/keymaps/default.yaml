@@ -89,3 +89,9 @@ bindings:
     keys: [ctrl+minus, meta+minus]
   - intent: text.scaleReset
     keys: [ctrl+0, meta+0]
+
+  # -- File (application menu, T-48) -------------------------------------
+  - intent: command:file.openFolder
+    keys: [ctrl+o, meta+o]
+  - intent: command:file.newWindow
+    keys: [ctrl+shift+n, meta+shift+n]
