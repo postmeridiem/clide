@@ -236,8 +236,7 @@ class _ClaudePaneState extends State<ClaudePane> {
 
       // A transcript already on disk means the session existed before, so resume
       // it; `claude --session-id <id>` refuses an existing id (T-161/D-77).
-      final home = Platform.environment['HOME'] ?? '';
-      final transcriptFile = '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}/$_sessionId.jsonl';
+      final transcriptFile = claudeTranscriptPath(repoRoot, _sessionId!);
       final resume = await File(transcriptFile).exists();
 
       try {
@@ -338,9 +337,23 @@ class _ClaudePaneState extends State<ClaudePane> {
     widget.onFork?.call(sourceId);
   }
 
-  /// clide-owned `/clear` (T-156): respawn on a brand-new, empty session.
+  /// clide-owned `/clear` (T-156).
+  ///
+  /// The primary pane is anchored to a deterministic session id that resumes
+  /// across restarts (D-77/T-146), so clearing it must empty THAT session in
+  /// place: delete its transcript and respawn fresh on the SAME id. Spawning a
+  /// throwaway random id instead would orphan the cleared state — the next
+  /// launch would re-resolve to the deterministic id and resume the pre-clear
+  /// conversation, which is exactly the continuity break this fixes (T-268).
+  /// Secondary panes are throwaway sessions, so for them a fresh random id is
+  /// the clear.
   Future<void> _clearSession() async {
     if (mounted) setState(() => _statusLine = 'clearing…');
+    final root = _repoRoot;
+    if (widget.isPrimary && root != null) {
+      await _respawnWithSession(primarySessionId(root), clearTranscript: true);
+      return;
+    }
     await _respawnWithSession(freshSessionId());
   }
 
@@ -350,8 +363,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     final root = _repoRoot;
     final dialog = _kernel()?.dialog;
     if (root == null || dialog == null) return;
-    final home = Platform.environment['HOME'] ?? '';
-    final dir = Directory('$home/.claude/projects/${root.replaceAll('/', '-')}');
+    final dir = Directory(claudeProjectDir(root));
     final sessions = await listSessions(dir);
     if (!mounted) return;
     final picked = await dialog.show<String>(
@@ -367,11 +379,18 @@ class _ClaudePaneState extends State<ClaudePane> {
   }
 
   /// Tear the current session down and respawn bound to [sessionId]. The old
-  /// process is killed via the orchestrator; its transcript stays on disk.
-  Future<void> _respawnWithSession(String sessionId) async {
+  /// process is killed via the orchestrator; its transcript stays on disk
+  /// unless [clearTranscript] is set, in which case [sessionId]'s transcript is
+  /// erased after the kill so `--session-id` re-creates it empty (T-268).
+  Future<void> _respawnWithSession(String sessionId, {bool clearTranscript = false}) async {
     _statusSub?.cancel();
     _statusSub = null;
     await activeSessionOrchestrator?.close(_orchId); // kills the old session
+    // Erase only after the process is dead, so claude isn't mid-write.
+    final root = _repoRoot;
+    if (clearTranscript && root != null) {
+      await clearSessionTranscript(claudeProjectDir(root), sessionId);
+    }
     _conversation = null;
     _session = null;
     _sessionId = sessionId;

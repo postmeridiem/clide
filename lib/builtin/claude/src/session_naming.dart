@@ -12,7 +12,7 @@
 library;
 
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show Directory, File, Platform;
 import 'dart:math';
 
 // ---------------------------------------------------------------------------
@@ -81,6 +81,37 @@ List<String> claudeLaunchArgs(String sessionId, {required bool resume}) => resum
 /// original. No `--session-id` is passed — the fork gets its own id from the
 /// `init` event.
 List<String> forkSessionArgs(String sourceSessionId) => ['--resume', sourceSessionId, '--fork-session'];
+
+// ---------------------------------------------------------------------------
+// Transcript locations on disk (T-161 / T-268)
+// ---------------------------------------------------------------------------
+
+/// The directory claude stores [repoRoot]'s transcripts in:
+/// `~/.claude/projects/<munged-repo-root>`, where the munge replaces `/` with
+/// `-`. Matches claude's own project-dir naming and is the single source of
+/// truth for the path that [ClaudePane] both probes (resume vs create) and
+/// lists (`/resume` picker).
+String claudeProjectDir(String repoRoot) {
+  final home = Platform.environment['HOME'] ?? '';
+  return '$home/.claude/projects/${repoRoot.replaceAll('/', '-')}';
+}
+
+/// The transcript JSONL path for [sessionId] under [repoRoot]. Its existence is
+/// what decides `--resume` vs `--session-id` (T-161).
+String claudeTranscriptPath(String repoRoot, String sessionId) => '${claudeProjectDir(repoRoot)}/$sessionId.jsonl';
+
+/// Erase [sessionId]'s transcript under [projectDir] so a subsequent
+/// `claude --session-id <sessionId>` re-creates it empty — the in-place
+/// `/clear` path for the primary pane (T-268). Removes both the `<id>.jsonl`
+/// and the sidecar `<id>/` directory claude keeps beside it. Best-effort:
+/// missing entries are not an error. The caller MUST have killed the session's
+/// process first, so claude is not mid-write.
+Future<void> clearSessionTranscript(String projectDir, String sessionId) async {
+  final file = File('$projectDir/$sessionId.jsonl');
+  if (await file.exists()) await file.delete();
+  final dir = Directory('$projectDir/$sessionId');
+  if (await dir.exists()) await dir.delete(recursive: true);
+}
 
 /// A fresh random session id for a secondary pane — secondaries are
 /// always clean sessions, never resumed.

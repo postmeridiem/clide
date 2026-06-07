@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -50,6 +52,56 @@ void main() {
       expect(resumed.first, '--resume');
       expect(fresh.last, id);
       expect(resumed.last, id);
+    });
+  });
+
+  group('transcript locations (T-161 / T-268)', () {
+    test('project dir munges the repo root and lives under ~/.claude/projects', () {
+      final dir = claudeProjectDir('/var/mnt/data/projects/clide');
+      expect(dir, endsWith('/.claude/projects/-var-mnt-data-projects-clide'));
+    });
+
+    test('transcript path is <projectDir>/<id>.jsonl', () {
+      const id = '11111111-1111-4111-8111-111111111111';
+      final path = claudeTranscriptPath('/var/mnt/data/projects/clide', id);
+      expect(path, '${claudeProjectDir('/var/mnt/data/projects/clide')}/$id.jsonl');
+    });
+  });
+
+  group('clearSessionTranscript (T-268)', () {
+    const id = '22222222-2222-4222-8222-222222222222';
+
+    test('deletes the transcript jsonl and its sidecar dir, leaving others', () async {
+      final tmp = await Directory.systemTemp.createTemp('clide-clear-');
+      try {
+        final jsonl = File('${tmp.path}/$id.jsonl');
+        await jsonl.writeAsString('{"type":"user"}\n');
+        final sidecar = Directory('${tmp.path}/$id');
+        await sidecar.create();
+        await File('${sidecar.path}/notes.json').writeAsString('{}');
+        // A different session's transcript must survive the clear.
+        final other = File('${tmp.path}/33333333-3333-4333-8333-333333333333.jsonl');
+        await other.writeAsString('{}');
+
+        await clearSessionTranscript(tmp.path, id);
+
+        expect(await jsonl.exists(), isFalse);
+        expect(await sidecar.exists(), isFalse);
+        expect(await other.exists(), isTrue, reason: 'only the cleared session is erased');
+      } finally {
+        await tmp.delete(recursive: true);
+      }
+    });
+
+    test('is a no-op when nothing is on disk (best-effort)', () async {
+      final tmp = await Directory.systemTemp.createTemp('clide-clear-');
+      try {
+        // Must not throw even though neither the jsonl nor the dir exist.
+        await clearSessionTranscript(tmp.path, id);
+        expect(await Directory(tmp.path).list().isEmpty, isTrue);
+      } finally {
+        await tmp.delete(recursive: true);
+      }
     });
   });
 

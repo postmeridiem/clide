@@ -154,6 +154,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- `/clear` in the primary Claude pane now clears that session **in place** —
+  it empties the pane's deterministic, restart-stable session instead of
+  starting a throwaway random one. Previously a cleared primary was orphaned:
+  the next launch re-resolved to the deterministic id and resumed the
+  pre-clear conversation, so the clear silently didn't stick. Secondary panes
+  keep their fresh-session behaviour. (T-268)
 - In Vim mode, Esc in insert/visual mode returns to normal mode instead of
   closing the editor. The global "exit focus / close editor" Esc binding now
   stands down while Vim is in insert or visual mode. (T-257)
