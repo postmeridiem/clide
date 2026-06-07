@@ -67,6 +67,7 @@ class ClaudePane extends StatefulWidget {
 
 class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<SessionStatus>? _statusSub;
+  StreamSubscription<ProjectOpened>? _projectSub;
   ConversationController? _conversation;
   StreamJsonSession? _session;
   SessionStatus _status = const SessionStatus();
@@ -145,12 +146,19 @@ class _ClaudePaneState extends State<ClaudePane> {
       unawaited(activeClaudeConfig?.ensureProbe());
       // Reflect skills/config changes in the status line (T-154).
       activeClaudeConfig?.addListener(_onConfigChanged);
+      // Rebind to the new repo's session when the workspace is switched in
+      // place (Open Project/Folder). This pane is built once behind a
+      // GlobalKey and spawns once, so without this it would keep the previous
+      // repo's session after a switch (T-269).
+      _projectSub = ClideKernel.of(context).events.on<ProjectOpened>().listen(_onProjectChanged);
     }
   }
 
   @override
   void dispose() {
     activeClaudeConfig?.removeListener(_onConfigChanged);
+    _projectSub?.cancel();
+    _projectSub = null;
     _statusSub?.cancel();
     _statusSub = null;
     // The orchestrator owns the session, so disposing this pane does NOT kill
@@ -183,6 +191,37 @@ class _ClaudePaneState extends State<ClaudePane> {
       if (!mounted) return;
     }
     return _spawn();
+  }
+
+  /// Rebind to the active workspace when the project is switched in place
+  /// (T-269). Only the primary rebinds — secondaries/forks belong to the old
+  /// repo and are dropped by the host. A no-op when the path is unchanged or
+  /// the session hasn't resolved its repo yet.
+  void _onProjectChanged(ProjectOpened e) {
+    if (!mounted || !widget.isPrimary) return;
+    if (_repoRoot == null || e.path == _repoRoot) return;
+    unawaited(_rebindToActiveProject());
+  }
+
+  /// Tear down the current session and respawn against the now-active
+  /// workspace: drop the cached session id and repo root so [_spawn]
+  /// re-resolves both for the new repo (T-269).
+  Future<void> _rebindToActiveProject() async {
+    _statusSub?.cancel();
+    _statusSub = null;
+    await activeSessionOrchestrator?.close(_orchId); // kills the old repo's session
+    _conversation = null;
+    _session = null;
+    _sessionId = null;
+    _repoRoot = null;
+    if (mounted) {
+      setState(() {
+        _status = const SessionStatus();
+        _error = null;
+        _statusLine = 'starting…';
+      });
+    }
+    await _spawn();
   }
 
   Future<void> _spawn() async {

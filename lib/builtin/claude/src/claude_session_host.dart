@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -21,6 +24,9 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
   late final MultitabController<_Session> _controller;
   int _nextSecondary = 1;
 
+  StreamSubscription<ProjectOpened>? _projectSub;
+  String? _projectRoot;
+
   @override
   void initState() {
     super.initState();
@@ -40,7 +46,33 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _projectSub ??= ClideKernel.of(context).events.on<ProjectOpened>().listen(_onProjectChanged);
+  }
+
+  /// Reset to a lone primary tab when the workspace is switched in place
+  /// (T-269): the old repo's secondaries/forks don't belong in the new
+  /// workspace. Removing them disposes their panes, which close their sessions
+  /// through the orchestrator. The primary tab stays and rebinds itself.
+  void _onProjectChanged(ProjectOpened e) {
+    final prev = _projectRoot;
+    _projectRoot = e.path;
+    if (prev == null || prev == e.path) return; // initial open / no change
+    if (!mounted) return;
+    final stale = _controller.entries.where((x) => x.id != _primaryId).map((x) => x.id).toList();
+    if (stale.isEmpty) return;
+    setState(() {
+      for (final id in stale) {
+        _controller.remove(id);
+      }
+      _nextSecondary = 1;
+    });
+  }
+
+  @override
   void dispose() {
+    _projectSub?.cancel();
     _controller.dispose();
     super.dispose();
   }

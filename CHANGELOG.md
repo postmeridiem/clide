@@ -154,6 +154,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Switching the workspace in place (Open Project/Folder) now rebinds the Claude
+  pane to the new repo's session instead of keeping the previous repo's
+  conversation, and drops the old repo's secondary tabs. Separate windows were
+  already isolated — this only affected reusing one window for another repo.
+  (T-269)
 - `/clear` in the primary Claude pane now clears that session **in place** —
   it empties the pane's deterministic, restart-stable session instead of
   starting a throwaway random one. Previously a cleared primary was orphaned:

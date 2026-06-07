@@ -47,11 +47,11 @@ ClaudeSessionOrchestrator _orch(List<_FakeProc> created) {
   );
 }
 
-SpawnSpec _spec(String id, {bool resume = false, String? transcriptPath}) => SpawnSpec(
+SpawnSpec _spec(String id, {bool resume = false, String? transcriptPath, String cwd = '/repo'}) => SpawnSpec(
       id: id,
       role: id,
       sessionId: '$id-uuid',
-      cwd: '/repo',
+      cwd: cwd,
       resume: resume,
       transcriptPath: transcriptPath,
     );
@@ -137,6 +137,40 @@ void main() {
       await orch.spawn(_spec('primary', resume: false));
       expect(orch.sessions, hasLength(1));
       expect(created, hasLength(2)); // a second process was created
+    });
+  });
+
+  // ---- in-place workspace switch (T-269) ---------------------------------
+
+  group('spawn — cwd-aware idempotency (T-269)', () {
+    late List<_FakeProc> created;
+    late ClaudeSessionOrchestrator orch;
+
+    setUp(() {
+      created = [];
+      orch = _orch(created);
+    });
+
+    tearDown(() => orch.dispose());
+
+    test('same id + same cwd reuses the session (no second process)', () async {
+      final a = await orch.spawn(_spec('primary', cwd: '/repo-a'));
+      final b = await orch.spawn(_spec('primary', cwd: '/repo-a'));
+      expect(identical(a, b), isTrue);
+      expect(created, hasLength(1));
+    });
+
+    test('same id + different cwd tears down the old session and spawns fresh', () async {
+      // Workspace switched in place: the new repo must NOT inherit the old
+      // repo's 'primary' session.
+      final a = await orch.spawn(_spec('primary', cwd: '/repo-a'));
+      final b = await orch.spawn(_spec('primary', cwd: '/repo-b'));
+      expect(identical(a, b), isFalse);
+      expect(b.cwd, '/repo-b');
+      expect(created, hasLength(2));
+      expect(created.first.killed, isTrue, reason: 'old repo session is killed');
+      expect(orch.sessions, hasLength(1));
+      expect(orch.byId('primary')!.cwd, '/repo-b');
     });
   });
 

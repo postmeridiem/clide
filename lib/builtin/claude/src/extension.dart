@@ -36,6 +36,10 @@ class ClaudeExtension extends ClideExtension {
   ClaudeSessionOrchestrator? _orchestrator;
   final List<StreamSubscription<dynamic>> _subs = [];
 
+  /// Active workspace root, tracked so an in-place project switch can tear
+  /// down the previous repo's sessions (T-269).
+  String? _projectRoot;
+
   /// App-wide Claude environment (skills, commands, settings, permissions,
   /// slash list). Built and loaded at activation (D-76, T-151).
   ClaudeConfig? get config => _config;
@@ -324,10 +328,32 @@ class ClaudeExtension extends ClideExtension {
     _orchestrator = ClaudeSessionOrchestrator();
     activeSessionOrchestrator = _orchestrator;
 
+    // An in-place workspace switch (Open Project/Folder) must not leave the
+    // previous repo's sessions running — including team/non-pane sessions the
+    // panes don't own. Close every session that doesn't belong to the new
+    // root; panes rebind themselves to the new repo (T-269).
+    _subs.add(ctx.events.on<ProjectOpened>().listen(_onProjectChanged));
+
     // `clide image show <path>` (T-249): the dispatcher resolves + publishes an
     // 'image' message; we inject the matching card into the conversation the
     // user is looking at (the primary lead, else the first visible session).
     _subs.add(ctx.messages.subscribe(channel: imageShowChannel).listen(_onImageShow));
+  }
+
+  /// Close every session that doesn't belong to the newly-active workspace
+  /// after an in-place project switch (T-269). The initial open (no previous
+  /// root) and a no-op re-open are skipped. Panes rebind to the new repo on
+  /// their own; this catches team/orphan sessions no pane owns.
+  void _onProjectChanged(ProjectOpened e) {
+    final prev = _projectRoot;
+    _projectRoot = e.path;
+    if (prev == null || prev == e.path) return;
+    final orch = _orchestrator;
+    if (orch == null) return;
+    final stale = orch.sessions.where((m) => m.cwd != e.path).map((m) => m.id).toList();
+    for (final id in stale) {
+      unawaited(orch.close(id));
+    }
   }
 
   /// Inject an [ImageMessage] from a published `image` bus message (T-249).

@@ -187,11 +187,20 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
 
   ManagedSession? byId(String id) => _sessions[id];
 
-  /// Spawn and register a session. Idempotent on [SpawnSpec.id] — a repeat
-  /// call returns the existing session rather than starting a second process.
+  /// Spawn and register a session. Idempotent on [SpawnSpec.id] *within a
+  /// workspace* — a repeat call for the same [SpawnSpec.cwd] returns the
+  /// existing session rather than starting a second process (the fast path that
+  /// lets a hidden/kept-alive pane keep its session). A repeat call with the
+  /// SAME id but a DIFFERENT cwd means the workspace was switched in place
+  /// (T-269): the existing session belongs to the old repo, so it is torn down
+  /// and a fresh one spawned for the new repo — a pane must never inherit
+  /// another workspace's conversation.
   Future<ManagedSession> spawn(SpawnSpec spec) async {
     final existing = _sessions[spec.id];
-    if (existing != null) return existing;
+    if (existing != null) {
+      if (existing.cwd == spec.cwd) return existing;
+      await close(spec.id);
+    }
 
     // Team sessions host the clide-team MCP server and get a roster + role
     // injected into their system prompt (T-170). Register the member before
