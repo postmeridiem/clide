@@ -1554,3 +1554,40 @@ Children: T-262 (merge tool-call + success result into one card with header stat
 Refs: D-78 (interaction zone / display-only conversation widgets). Built on T-168 (per-tool body rendering) and T-230 (activity card).
 
 SEQUENCING UPDATE (after T-266 refinement): the shared container/holder primitive now lives in T-266 and is CONSUMED by T-264 (nested agent run), so T-266 is no longer "last" — its primitive lands before/with T-264. T-264 is now blocked by T-266. Revised order: T-262 / T-263 (fold success result, fold agent prompt) → T-266 (shared holder/container primitive + activity-card restyle) → T-264 (nest the whole agent run on that primitive) → T-265 (relabel sidechain prose) can land anytime alongside.', 'backlog', 'medium', NULL, NULL, 'D-78', '2026-06-07 08:42:53', '2026-06-07 08:49:16', NULL, '1371008c924f5c0e6998894fde235c6b', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-255', 'story', NULL, 'Animate the ''running…'' turn indicator with rotating status verbs', '## Problem
+
+While a Claude turn is in flight, the composer swaps in a static, muted
+`running…` label next to the Stop button (`lib/builtin/claude/src/claude_composer.dart:486`,
+shown when `widget.busy && widget.onInterrupt != null`). It''s gray, motionless,
+and a little lifeless — it gives no sense that anything is actually happening.
+
+## Goal
+
+Make the in-flight indicator feel alive:
+
+1. **Animation.** Add subtle motion — e.g. an animated ellipsis (`running` → `running.`
+   → `running..` → `running...`), a shimmer/pulse on the text, or a small spinner glyph.
+   Custom-painted / token-driven per the "own the rendering stack" guardrail; no
+   opinionated animation packages.
+2. **Rotating status verbs.** Cycle through playful gerunds the way the Claude Code CLI
+   does (e.g. "Clauding…", "Flibbertigibbeting…", "Pondering…", "Conjuring…"). Pick a
+   word from a curated list and rotate it every few seconds while the turn runs.
+
+## Open question — can we reuse the CLI''s words?
+
+The Claude Code CLI ships its own list of these status verbs. Before hand-rolling our
+own, check whether that list is something we''re allowed to reuse / surface (licensing,
+where it lives, whether stream-json exposes the current one). If we can''t pull the CLI''s
+list, ship our own curated, on-brand list instead. Document the decision.
+
+## Notes / constraints
+
+- Respect reduced-motion / accessibility settings — animation must be disable-able and
+  the a11y semantics should still read sensibly (the Stop button already carries the
+  interrupt hint).
+- Use theme tokens for color; keep it muted/tasteful, not distracting.
+- Touch point today is the `widget.busy` branch in `claude_composer.dart`; consider
+  whether the rotating-word state belongs there or in the session/orchestrator layer.
+- Add a widget/golden test for the animated states (bounded pumps — no real timers).
+
+Refinement (2026-06-07): open question resolved — ship OUR OWN curated verb list, do not reuse the CLI''s. Rationale: the spinner words are a TUI cosmetic not surfaced by the stream-json control protocol (so there''s nothing to read live), and extracting Anthropic''s bundled list is a licensing gray area. A clide-owned list aligns with ''own the rendering stack'' and D-75 (isolate/version-pin CC coupling). State lives in the WIDGET layer (a RunningIndicator in lib/builtin/claude/), not the orchestrator — it''s ephemeral UI. Animation via AnimationController (no Timers, so tests use bounded pumps); reduced-motion (MediaQuery.disableAnimations) shows a static verb. Ready to implement.', 'done', 'medium', NULL, NULL, NULL, '2026-06-06 09:56:23', '2026-06-07 08:51:08', NULL, '2e77a2ef6235bc9f450e53c91d430b3e', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
