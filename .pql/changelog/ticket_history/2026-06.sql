@@ -517,3 +517,248 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-54', 'status', 'in_progress', 'done', NULL, '2026-06-07 08:03:17', '2026-06-07 08:03:17', '2026-06-07 08:03:17', NULL, 'e166c11b3839c37954e7e3c21194994a', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-252', 'status', 'ready', 'in_progress', NULL, '2026-06-07 08:07:42', '2026-06-07 08:07:42', '2026-06-07 08:07:42', NULL, 'ecff1f56ea618c88ac4f2dd9e5f53e41', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-252', 'status', 'in_progress', 'done', NULL, '2026-06-07 08:32:36', '2026-06-07 08:32:36', '2026-06-07 08:32:36', NULL, '7f66c2872874836d984b5e7f516ba3ff', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-262', 'description', 'Today a Claude tool call renders as TWO stacked cards in the conversation log: the tool-use card (e.g. "Write <path>" with a collapsible call body) and a separate success/result card ("Write · result / File created successfully..."). Collapse the successful pair into ONE card; failure keeps the current two-card interaction.
+
+Current code: lib/builtin/claude/src/conversation_view.dart — _toolUse (~L294) renders AssistantToolUse, _toolResult (~L329) renders ToolResultMessage; the two ConversationItems are linked by toolUseId (ToolResultMessage.isError marks failure). ConversationCard header is built in lib/builtin/claude/src/conversation_card.dart _header (~L200). Builds on T-168 (per-tool body rendering).
+
+Desired behavior (success):
+- One card per successful tool call — the tool-use card. The standalone success result card is suppressed (folded in), not rendered separately.
+- A success-green check mark sits at the RIGHT END of the card header row (reuse tokens.statusSuccess + a check glyph: PhosphorIcons.check or CheckIcon). No new theme tokens.
+- Collapsed by default: header shows the existing summary + the check. Expanding the card reveals the CALL segment (the input — path / diff / command, as today) and, BELOW it, the RESULT segment (the swallowed output). This applies to ALL tools, not just Write/Edit: for Bash/Read/Grep/LS the real output relocates into the expandable body so nothing is lost; for Write/Edit the trivial confirmation folds in the same way.
+- Render the result segment as an inline ClideCodeBlock (lib/widgets/src/clide_code_block.dart) WITH editor syntax colorization. ClideCodeBlock already colorizes via TreeSitterService when handed a language — so the work is inferring/passing the right language per tool: Read → from the file extension/path (language_map.grammarForPath), Bash → bash, Grep/LS/others → text fallback. Where a path is available, prefer it so highlighting matches the editor.
+
+Desired behavior (failure) — UNCHANGED:
+- Leave the current interaction as-is: the tool-use card plus the prominent red "· error" result card (borderColor statusError, expanded-by-default). Optionally show a red status mark on the tool-use header for symmetry, but do NOT fold the error into one card.
+
+What to build:
+1. ConversationCard: a trailing header status slot (e.g. status: success|error|none) rendered in _header between the Spacer/summary and the hover action buttons.
+2. ConversationCard: support a second body segment so an expanded card can show CALL then RESULT with a clear visual separator / sub-label (e.g. a divider or a muted "result" label) so the user can tell the call from its output.
+3. conversation_view: a result-by-toolUseId lookup (reverse of the existing toolUseById) so a tool-use card knows its outcome; on a successful pair, stamp the check + fold the result body and SUPPRESS the standalone success ToolResultMessage from the rendered list. Errors render both cards as today.
+4. Per-tool result language inference for the folded code block.
+
+Edge cases to handle:
+- In-flight tool-use with no result yet: render the call card as today (no check, no folded result); status/result appear once the result arrives.
+- Orphan result with no paired tool-use: keep rendering it standalone.
+- Permission-resolved tool-use cards (conversation_view.dart ~L297, already green/red bordered + collapsed): reconcile so the merged-card + check treatment is consistent and not duplicated with the existing border-outcome styling.
+- Result items may not be strictly adjacent to their tool-use in the list; suppression must be keyed by toolUseId, not list position.
+
+Tests: unit/widget coverage for the merged success card (collapsed shows check; expanded shows call + colorized result), language inference per tool, the unchanged error path, and the in-flight/orphan cases. Add a golden for the merged success card.
+
+Refs: D-78 (interaction zone / display-only conversation widgets). Builds on T-168 (per-tool tool-use/result body rendering).', 'Today a Claude tool call renders as TWO stacked cards in the conversation log: the tool-use card (e.g. "Write <path>" with a collapsible call body) and a separate success/result card ("Write · result / File created successfully..."). Collapse the successful pair into ONE card; failure keeps the current two-card interaction.
+
+Current code: lib/builtin/claude/src/conversation_view.dart — _toolUse (~L294) renders AssistantToolUse, _toolResult (~L329) renders ToolResultMessage; the two ConversationItems are linked by toolUseId (ToolResultMessage.isError marks failure). ConversationCard header is built in lib/builtin/claude/src/conversation_card.dart _header (~L200). Builds on T-168 (per-tool body rendering).
+
+Desired behavior (success):
+- One card per successful tool call — the tool-use card. The standalone success result card is suppressed (folded in), not rendered separately.
+- A success-green check mark sits at the RIGHT END of the card header row (reuse tokens.statusSuccess + a check glyph: PhosphorIcons.check or CheckIcon). No new theme tokens.
+- Collapsed by default: header shows the existing summary + the check. Expanding the card reveals the CALL segment (the input — path / diff / command, as today) and, BELOW it, the RESULT segment (the swallowed output). This applies to ALL tools, not just Write/Edit: for Bash/Read/Grep/LS the real output relocates into the expandable body so nothing is lost; for Write/Edit the trivial confirmation folds in the same way.
+- Render the result segment as an inline ClideCodeBlock (lib/widgets/src/clide_code_block.dart) WITH editor syntax colorization. ClideCodeBlock already colorizes via TreeSitterService when handed a language — so the work is inferring/passing the right language per tool: Read → from the file extension/path (language_map.grammarForPath), Bash → bash, Grep/LS/others → text fallback. Where a path is available, prefer it so highlighting matches the editor.
+
+Desired behavior (failure) — UNCHANGED:
+- Leave the current interaction as-is: the tool-use card plus the prominent red "· error" result card (borderColor statusError, expanded-by-default). Optionally show a red status mark on the tool-use header for symmetry, but do NOT fold the error into one card.
+
+What to build:
+1. ConversationCard: a trailing header status slot (e.g. status: success|error|none) rendered in _header between the Spacer/summary and the hover action buttons.
+2. ConversationCard: support a second body segment so an expanded card can show CALL then RESULT with a clear visual separator / sub-label (e.g. a divider or a muted "result" label) so the user can tell the call from its output.
+3. conversation_view: a result-by-toolUseId lookup (reverse of the existing toolUseById) so a tool-use card knows its outcome; on a successful pair, stamp the check + fold the result body and SUPPRESS the standalone success ToolResultMessage from the rendered list. Errors render both cards as today.
+4. Per-tool result language inference for the folded code block.
+
+Edge cases to handle:
+- In-flight tool-use with no result yet: render the call card as today (no check, no folded result); status/result appear once the result arrives.
+- Orphan result with no paired tool-use: keep rendering it standalone.
+- Permission-resolved tool-use cards (conversation_view.dart ~L297, already green/red bordered + collapsed): reconcile so the merged-card + check treatment is consistent and not duplicated with the existing border-outcome styling.
+- Result items may not be strictly adjacent to their tool-use in the list; suppression must be keyed by toolUseId, not list position.
+
+Tests: unit/widget coverage for the merged success card (collapsed shows check; expanded shows call + colorized result), language inference per tool, the unchanged error path, and the in-flight/orphan cases. Add a golden for the merged success card.
+
+Refs: D-78 (interaction zone / display-only conversation widgets). Builds on T-168 (per-tool tool-use/result body rendering).
+
+IMPLEMENTATION NOTES (from streamlining analysis):
+
+C — Error-card symmetry decision: this ticket merges only SUCCESS into the tool card; the error path intentionally stays a separate prominent red "· error" card (conversation_view.dart ~L337) for failure visibility. Decide explicitly: keep that asymmetry (success folds, failure stays two-card) OR also stamp a red status mark on the tool-use header for visual symmetry while still keeping the separate red card. Default leaning: keep the separate red card; optionally add the red header mark.
+
+D — Activity-cluster coupling: activity_cluster.groupConversation currently folds a tool CALL and its RESULT as TWO separate foldable items into a cluster (activity_cluster.dart ~L100-109, classifying each by toolUseId). Once this ticket makes call+result a single self-contained card, the grouping pass must treat the tool call as ONE unit (its result is part of the card, no longer a separate foldable item) or the result will double-render (once folded into the card, once as a cluster item). Update _isFoldable / the pairing logic accordingly and add a test that a merged tool card is not double-counted.', NULL, '2026-06-07 08:40:45', '2026-06-07 08:40:45', '2026-06-07 08:40:45', NULL, '4e43d330678ad9b5c090755cfcd892b2', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-263', 'description', 'When Claude launches a sub-agent (the Agent/Task tool), the sub-agent conversation runs as a SIDECHAIN. The prompt Claude wrote for that sub-agent comes through the transcript as a UserMessage with isSidechain=true but injected=false. The conversation view does not look at isSidechain, so it renders that prompt with the blue "you" label exactly like real user input — FALSELY implying the user sent it. It sits as a standalone block below the Agent tool-use card. This is misleading: the user did not write that prompt.
+
+Confirmed facts from the code: every transcript envelope carries BOTH isSidechain AND parentUuid (transcript_reader.dart ~L547 parses isSidechain but never USES it; parentUuid is dropped entirely). The Agent/Task tool-use is rendered by _toolUse in lib/builtin/claude/src/conversation_view.dart (only AskUserQuestion is special-cased today). The "you" vs "context" label is chosen in conversation_view.dart (~L200): UserMessage with injected=true → "context" (muted); else → "you" (blue, tokens.globalFocus). isSidechain is currently never read by any rendering/grouping logic.
+
+Design (confirmed with user):
+1. Never label a sidechain prompt "you". A UserMessage with isSidechain=true is an AGENT PROMPT, not user input — label it "agent prompt" with muted / de-emphasized styling (same precedent as injected "context" messages, D-78). Never the blue "you" treatment.
+2. Fold the prompt INTO the Agent tool-use card above it, COLLAPSED BY DEFAULT. The Agent card becomes the container that owns its prompt: expand the card to reveal the prompt; collapsed (default) it is hidden. The standalone prompt block is SUPPRESSED from the list — same fold-a-standalone-item-into-its-card pattern as T-262.
+3. Prompt folds into the CALL, not the results. Only the prompt folds into the collapsed Agent call card. The sub-agent work (its thinking / tool calls / results) stays VISIBLE as the results chain after the call — not buried. Shape: [collapsed Agent call, owning the prompt] then [the run results], with no misleading "you" block anywhere. Agent prompts are valuable enough to keep with the call rather than fold into the subsequent results chain.
+4. Link the prompt to the RIGHT Agent card via parentUuid. Parse parentUuid (currently dropped) so each sidechain prompt attaches to its spawning Agent tool-use. This matters when several agents run in parallel in one turn — a positional "nearest preceding Agent" heuristic would misattach; the parent link is the robust route. Heuristic only as a fallback when the link cannot be resolved.
+
+Touch points:
+- transcript_reader.dart: capture parentUuid from the envelope and expose it on ConversationItem (it is present in the JSONL, just not parsed).
+- conversation_view.dart: relabel sidechain UserMessage to "agent prompt" (stop the "you" path); fold it into the Agent card body; special-case the Agent/Task tool name (today only AskUserQuestion is special-cased); suppress the standalone block.
+- activity_cluster.dart: ensure the suppressed prompt is not double-counted in grouping; leave the sidechain results in the chain.
+
+Edge cases:
+- Parallel agents in one turn → each prompt attaches to its own card (the reason for parentUuid).
+- Orphan prompt (no resolvable parent) → still render as "agent prompt", muted/collapsed, never "you".
+- Nested / background sub-agents.
+
+Tests: unit/widget coverage for sidechain-prompt relabel (never "you"), folding into the Agent card (collapsed hides, expand reveals), suppression of the standalone block, parentUuid attachment with parallel agents, and the orphan fallback. Add a golden for the Agent card with a folded prompt.
+
+Refs: D-78 (interaction zone / display-only conversation widgets; injected/context muting precedent). Related: T-262 (fold-standalone-item-into-its-card pattern).', 'When Claude launches a sub-agent (the Agent/Task tool), the sub-agent conversation runs as a SIDECHAIN. The prompt Claude wrote for that sub-agent comes through the transcript as a UserMessage with isSidechain=true but injected=false. The conversation view does not look at isSidechain, so it renders that prompt with the blue "you" label exactly like real user input — FALSELY implying the user sent it. It sits as a standalone block below the Agent tool-use card. This is misleading: the user did not write that prompt.
+
+Confirmed facts from the code: every transcript envelope carries BOTH isSidechain AND parentUuid (transcript_reader.dart ~L547 parses isSidechain but never USES it; parentUuid is dropped entirely). The Agent/Task tool-use is rendered by _toolUse in lib/builtin/claude/src/conversation_view.dart (only AskUserQuestion is special-cased today). The "you" vs "context" label is chosen in conversation_view.dart (~L200): UserMessage with injected=true → "context" (muted); else → "you" (blue, tokens.globalFocus). isSidechain is currently never read by any rendering/grouping logic.
+
+Design (confirmed with user):
+1. Never label a sidechain prompt "you". A UserMessage with isSidechain=true is an AGENT PROMPT, not user input — label it "agent prompt" with muted / de-emphasized styling (same precedent as injected "context" messages, D-78). Never the blue "you" treatment.
+2. Fold the prompt INTO the Agent tool-use card above it, COLLAPSED BY DEFAULT. The Agent card becomes the container that owns its prompt: expand the card to reveal the prompt; collapsed (default) it is hidden. The standalone prompt block is SUPPRESSED from the list — same fold-a-standalone-item-into-its-card pattern as T-262.
+3. Prompt folds into the CALL, not the results. Only the prompt folds into the collapsed Agent call card. The sub-agent work (its thinking / tool calls / results) stays VISIBLE as the results chain after the call — not buried. Shape: [collapsed Agent call, owning the prompt] then [the run results], with no misleading "you" block anywhere. Agent prompts are valuable enough to keep with the call rather than fold into the subsequent results chain.
+4. Link the prompt to the RIGHT Agent card via parentUuid. Parse parentUuid (currently dropped) so each sidechain prompt attaches to its spawning Agent tool-use. This matters when several agents run in parallel in one turn — a positional "nearest preceding Agent" heuristic would misattach; the parent link is the robust route. Heuristic only as a fallback when the link cannot be resolved.
+
+Touch points:
+- transcript_reader.dart: capture parentUuid from the envelope and expose it on ConversationItem (it is present in the JSONL, just not parsed).
+- conversation_view.dart: relabel sidechain UserMessage to "agent prompt" (stop the "you" path); fold it into the Agent card body; special-case the Agent/Task tool name (today only AskUserQuestion is special-cased); suppress the standalone block.
+- activity_cluster.dart: ensure the suppressed prompt is not double-counted in grouping; leave the sidechain results in the chain.
+
+Edge cases:
+- Parallel agents in one turn → each prompt attaches to its own card (the reason for parentUuid).
+- Orphan prompt (no resolvable parent) → still render as "agent prompt", muted/collapsed, never "you".
+- Nested / background sub-agents.
+
+Tests: unit/widget coverage for sidechain-prompt relabel (never "you"), folding into the Agent card (collapsed hides, expand reveals), suppression of the standalone block, parentUuid attachment with parallel agents, and the orphan fallback. Add a golden for the Agent card with a folded prompt.
+
+Refs: D-78 (interaction zone / display-only conversation widgets; injected/context muting precedent). Related: T-262 (fold-standalone-item-into-its-card pattern).
+
+IMPLEMENTATION NOTE (E — Agent-card layered ordering, from streamlining analysis):
+
+With this ticket (fold prompt) and T-262 (merge success result) both landing, the Agent/Task card ends up owning multiple segments: the tool INPUT, the folded PROMPT, and — via T-262 — the sub-agents final returned RESULT (the Task ToolResultMessage). Define a deliberate layered order when expanded (e.g. call/input → prompt → returned result) with clear sub-labels/dividers so the Agent card stays readable and does not become a kitchen sink. Coordinate with T-262 (result merge) and T-264 (nesting the whole run): the nested run region vs the returned-result segment must not duplicate the sub-agent output.', NULL, '2026-06-07 08:40:49', '2026-06-07 08:40:49', '2026-06-07 08:40:49', NULL, '32da92ac8d6ccc26be240641d1d15ceb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-263', 'parent_id', NULL, 'T-267', NULL, '2026-06-07 08:43:00', '2026-06-07 08:43:00', '2026-06-07 08:43:00', NULL, '181e31ff6821ae0b9cc8a5909505957c', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-264', 'parent_id', NULL, 'T-267', NULL, '2026-06-07 08:43:00', '2026-06-07 08:43:00', '2026-06-07 08:43:00', NULL, '787e0ecb6f59a6849f6bdaa2595ceaaf', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-266', 'parent_id', NULL, 'T-267', NULL, '2026-06-07 08:43:00', '2026-06-07 08:43:00', '2026-06-07 08:43:00', NULL, 'c04317821855808ac734b6775b419d33', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-265', 'parent_id', NULL, 'T-267', NULL, '2026-06-07 08:43:00', '2026-06-07 08:43:00', '2026-06-07 08:43:00', NULL, 'cff6c265aa33fb5f60cfe075c3cfaa8a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-262', 'parent_id', NULL, 'T-267', NULL, '2026-06-07 08:43:00', '2026-06-07 08:43:00', '2026-06-07 08:43:00', NULL, 'fb42cd74598846125107209d7c0ba4a6', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-255', 'description', '## Problem
+
+While a Claude turn is in flight, the composer swaps in a static, muted
+`running…` label next to the Stop button (`lib/builtin/claude/src/claude_composer.dart:486`,
+shown when `widget.busy && widget.onInterrupt != null`). It''s gray, motionless,
+and a little lifeless — it gives no sense that anything is actually happening.
+
+## Goal
+
+Make the in-flight indicator feel alive:
+
+1. **Animation.** Add subtle motion — e.g. an animated ellipsis (`running` → `running.`
+   → `running..` → `running...`), a shimmer/pulse on the text, or a small spinner glyph.
+   Custom-painted / token-driven per the "own the rendering stack" guardrail; no
+   opinionated animation packages.
+2. **Rotating status verbs.** Cycle through playful gerunds the way the Claude Code CLI
+   does (e.g. "Clauding…", "Flibbertigibbeting…", "Pondering…", "Conjuring…"). Pick a
+   word from a curated list and rotate it every few seconds while the turn runs.
+
+## Open question — can we reuse the CLI''s words?
+
+The Claude Code CLI ships its own list of these status verbs. Before hand-rolling our
+own, check whether that list is something we''re allowed to reuse / surface (licensing,
+where it lives, whether stream-json exposes the current one). If we can''t pull the CLI''s
+list, ship our own curated, on-brand list instead. Document the decision.
+
+## Notes / constraints
+
+- Respect reduced-motion / accessibility settings — animation must be disable-able and
+  the a11y semantics should still read sensibly (the Stop button already carries the
+  interrupt hint).
+- Use theme tokens for color; keep it muted/tasteful, not distracting.
+- Touch point today is the `widget.busy` branch in `claude_composer.dart`; consider
+  whether the rotating-word state belongs there or in the session/orchestrator layer.
+- Add a widget/golden test for the animated states (bounded pumps — no real timers).', '## Problem
+
+While a Claude turn is in flight, the composer swaps in a static, muted
+`running…` label next to the Stop button (`lib/builtin/claude/src/claude_composer.dart:486`,
+shown when `widget.busy && widget.onInterrupt != null`). It''s gray, motionless,
+and a little lifeless — it gives no sense that anything is actually happening.
+
+## Goal
+
+Make the in-flight indicator feel alive:
+
+1. **Animation.** Add subtle motion — e.g. an animated ellipsis (`running` → `running.`
+   → `running..` → `running...`), a shimmer/pulse on the text, or a small spinner glyph.
+   Custom-painted / token-driven per the "own the rendering stack" guardrail; no
+   opinionated animation packages.
+2. **Rotating status verbs.** Cycle through playful gerunds the way the Claude Code CLI
+   does (e.g. "Clauding…", "Flibbertigibbeting…", "Pondering…", "Conjuring…"). Pick a
+   word from a curated list and rotate it every few seconds while the turn runs.
+
+## Open question — can we reuse the CLI''s words?
+
+The Claude Code CLI ships its own list of these status verbs. Before hand-rolling our
+own, check whether that list is something we''re allowed to reuse / surface (licensing,
+where it lives, whether stream-json exposes the current one). If we can''t pull the CLI''s
+list, ship our own curated, on-brand list instead. Document the decision.
+
+## Notes / constraints
+
+- Respect reduced-motion / accessibility settings — animation must be disable-able and
+  the a11y semantics should still read sensibly (the Stop button already carries the
+  interrupt hint).
+- Use theme tokens for color; keep it muted/tasteful, not distracting.
+- Touch point today is the `widget.busy` branch in `claude_composer.dart`; consider
+  whether the rotating-word state belongs there or in the session/orchestrator layer.
+- Add a widget/golden test for the animated states (bounded pumps — no real timers).
+
+Refinement (2026-06-07): open question resolved — ship OUR OWN curated verb list, do not reuse the CLI''s. Rationale: the spinner words are a TUI cosmetic not surfaced by the stream-json control protocol (so there''s nothing to read live), and extracting Anthropic''s bundled list is a licensing gray area. A clide-owned list aligns with ''own the rendering stack'' and D-75 (isolate/version-pin CC coupling). State lives in the WIDGET layer (a RunningIndicator in lib/builtin/claude/), not the orchestrator — it''s ephemeral UI. Animation via AnimationController (no Timers, so tests use bounded pumps); reduced-motion (MediaQuery.disableAnimations) shows a static verb. Ready to implement.', NULL, '2026-06-07 08:44:32', '2026-06-07 08:44:32', '2026-06-07 08:44:32', NULL, 'e9f7c48071d4669d6efdf4ab6238220f', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-255', 'status', 'ready', 'in_progress', NULL, '2026-06-07 08:44:32', '2026-06-07 08:44:32', '2026-06-07 08:44:32', NULL, 'a97e70d290c60f9055cb3d254ba3cd1f', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-266', 'description', 'DESIGN DISCUSSION PENDING — do not build until T-262/T-263/T-264/T-265 settle. Captured from user feedback; the interaction model needs a design pass first.
+
+Problem: the current activity card (lib/builtin/claude/src/conversation_view.dart _ActivityCard ~L427, grouping in activity_cluster.dart) is a COLLAPSER HEADER that, when expanded, reveals the subsequent cards rendered below it. Two issues:
+1. Model: it reads as a header-plus-loose-cards rather than a single container. Proposal: make it a HOLDER CARD that visually CONTAINS its sub-cards, where clicking anywhere in the card space (the holder) toggles collapse/expand — the whole card is the affordance, not just a small caret/header at the top.
+2. Scroll race: when a holder card is actively being written to (a live agent turn), the view keeps auto-scrolling to the bottom (conversation_view._onChanged ~L119 jumps to maxScrollExtent on every change). The collapse control lives at the TOP of the card, so the user gets into a scrolling race trying to reach it while new content keeps yanking the viewport down. The collapse affordance must remain reachable during live writes — e.g. card-space toggle (so any visible part of the holder toggles it), a sticky/pinned control, and/or pausing autoscroll on user interaction.
+
+Likely scope (to be refined after the design discussion):
+- Re-model _ActivityCard as a container that wraps its children rather than a header followed by siblings.
+- Make the whole holder card the collapse/expand hit target (ClideTappable over the card body), keeping keyboard + AT semantics.
+- Resolve the autoscroll-vs-reach-the-control conflict (sticky control, whole-card toggle, and/or suspend tail-follow on user scroll/interaction).
+
+This interacts with T-264 (nesting a whole sub-agent run is itself a holder/container) — settle the container model once so the agent-run region and the activity card share it.
+
+Refs: D-78. Related: T-230 (activity card), T-264 (nested agent run), T-262, T-263.', 'Restyle the activity card (and, via a shared primitive, the nested sub-agent run from T-264) so a folded run reads as ONE container that holds its sub-cards, with a reachable collapse/expand affordance that survives live writes.
+
+DESIGN RESOLVED (with user) — supersedes the earlier design-pending note.
+
+1. HOLDER = a shared container primitive. Extract one container widget (e.g. a ClideHolderCard / conversation-level container) that renders a titled/attributed frame WRAPPING its child sub-cards. Both the activity card (_ActivityCard, lib/builtin/claude/src/conversation_view.dart ~L427) and the nested sub-agent run (T-264) consume it, so the container model is settled once. NOTE: this makes T-266 a DEPENDENCY of T-264 (the shared primitive must exist before the agent-run nesting can consume it) — update epic T-267 sequencing: T-266''s primitive lands before/with T-264, no longer strictly last.
+
+2. Toggle = the HOLDER BACKGROUND, not the children. Clicking the container''s own background/chrome (its padding, the gaps between sub-cards, its gutter — any region NOT covered by a child) toggles collapse/expand. Crucially:
+- Taps on a child sub-card lying on top of the background MUST NOT toggle the holder. Child cards opaquely consume their own hit region across their FULL bounds (including their body), so a click on a sub-card interacts with that card, never the holder.
+- The copy button (and any child control / ClideTappable) keeps its own interaction — never swallowed by the holder toggle.
+- Implementation: a background gesture target behind the children that only fires for hits the children do not consume (HitTestBehavior; children opaque over their bounds). No whole-card overlay that would intercept child taps.
+
+3. Autoscroll stays ALWAYS-FOLLOW. Keep the current tail-follow (conversation_view._onChanged ~L119 jumps to maxScrollExtent on every change). Reachability of the collapse control no longer depends on getting to a top header: because the toggle is the ever-present holder BACKGROUND, a click on whatever background area is currently in view (near the latest content while following) collapses the holder — ending the race. Once collapsed the card shrinks to its ticker, so the scroll-yank stops.
+
+4. Keep the collapsed ticker. Collapsed (default) still shows the one-line live ticker (latest step) + step count, as today. Expanded shows the contained sub-cards.
+
+5. Accessibility (obligation): a background tap is not keyboard/AT reachable on its own, so keep an EXPLICIT focusable, Enter/Space-activatable collapse control (e.g. the ticker row remains a Semantics button / a focusable caret) in addition to the background-click affordance. Announce expanded/collapsed + step count (as _ActivityCard does today).
+
+Touch points:
+- New shared container primitive (extracted from _ActivityCard).
+- conversation_view.dart: _ActivityCard adopts the primitive; background-toggle wiring; ensure child ConversationCards opaquely consume their bounds so they do not bubble taps to the holder.
+- T-264 consumes the same primitive for the nested agent run.
+
+Edge cases:
+- A holder whose child is itself collapsible (a tool card): tapping the child''s caret/body toggles the CHILD, never the holder.
+- Text selection inside a child (ClideSelectionArea wraps the list): selection drags on child bodies must not be hijacked by the holder toggle — another reason the holder responds only to its own background, and only to taps (not drags).
+- Empty / single-item holder.
+
+Tests: holder background tap toggles; tap on a child sub-card does NOT toggle the holder; copy button still copies (not swallowed); keyboard/AT path toggles via the explicit control; collapsed ticker + step count preserved. Add a golden for the holder container (collapsed + expanded).
+
+Refs: D-78. Provides the shared container consumed by T-264. Related: T-230 (activity card), T-262 / T-263 / T-265. Parent: T-267.', NULL, '2026-06-07 08:48:47', '2026-06-07 08:48:47', '2026-06-07 08:48:47', NULL, 'f837575dbd551fad13a57e3089171395', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-267', 'description', 'Home for the cohesive set of work that streamlines how the Claude conversation log renders, so a heavy agent turn reads clearly and nothing is mislabeled or duplicated. Three recurring moves bind these tickets: (1) FOLD a redundant standalone item into its owning card (success result → tool card; agent prompt → agent card); (2) fix MISLEADING ATTRIBUTION (sub-agent prompt shown as "you"; sub-agent prose shown as "claude"); (3) settle the CONTAINER / interaction model (holder card that contains sub-cards, nested agent run, autoscroll-vs-reach-the-control).
+
+Common substrate across the children: the flat ConversationItem list and its renderers in lib/builtin/claude/src/conversation_view.dart, the pure grouping pass in activity_cluster.dart, the ConversationCard template in conversation_card.dart, and the so-far-unused ConversationItem.isSidechain / parentUuid transcript fields (transcript_reader.dart).
+
+Children: T-262 (merge tool-call + success result into one card with header status check), T-263 (fold sub-agent prompt into the Agent card; relabel you → agent prompt), T-264 (nest the whole sub-agent run under its Agent card via parentUuid), T-265 (relabel sidechain assistant prose/thinking — agent, not claude), T-266 (restyle activity/holder card as a container of sub-cards + fix the collapse-control scroll race). Sequencing: T-262/T-263 first, T-264/T-265 build the sidechain story, T-266 settles the shared container model last.
+
+Refs: D-78 (interaction zone / display-only conversation widgets). Built on T-168 (per-tool body rendering) and T-230 (activity card).', 'Home for the cohesive set of work that streamlines how the Claude conversation log renders, so a heavy agent turn reads clearly and nothing is mislabeled or duplicated. Three recurring moves bind these tickets: (1) FOLD a redundant standalone item into its owning card (success result → tool card; agent prompt → agent card); (2) fix MISLEADING ATTRIBUTION (sub-agent prompt shown as "you"; sub-agent prose shown as "claude"); (3) settle the CONTAINER / interaction model (holder card that contains sub-cards, nested agent run, autoscroll-vs-reach-the-control).
+
+Common substrate across the children: the flat ConversationItem list and its renderers in lib/builtin/claude/src/conversation_view.dart, the pure grouping pass in activity_cluster.dart, the ConversationCard template in conversation_card.dart, and the so-far-unused ConversationItem.isSidechain / parentUuid transcript fields (transcript_reader.dart).
+
+Children: T-262 (merge tool-call + success result into one card with header status check), T-263 (fold sub-agent prompt into the Agent card; relabel you → agent prompt), T-264 (nest the whole sub-agent run under its Agent card via parentUuid), T-265 (relabel sidechain assistant prose/thinking — agent, not claude), T-266 (restyle activity/holder card as a container of sub-cards + fix the collapse-control scroll race). Sequencing: T-262/T-263 first, T-264/T-265 build the sidechain story, T-266 settles the shared container model last.
+
+Refs: D-78 (interaction zone / display-only conversation widgets). Built on T-168 (per-tool body rendering) and T-230 (activity card).
+
+SEQUENCING UPDATE (after T-266 refinement): the shared container/holder primitive now lives in T-266 and is CONSUMED by T-264 (nested agent run), so T-266 is no longer "last" — its primitive lands before/with T-264. T-264 is now blocked by T-266. Revised order: T-262 / T-263 (fold success result, fold agent prompt) → T-266 (shared holder/container primitive + activity-card restyle) → T-264 (nest the whole agent run on that primitive) → T-265 (relabel sidechain prose) can land anytime alongside.', NULL, '2026-06-07 08:49:16', '2026-06-07 08:49:16', '2026-06-07 08:49:16', NULL, '7795b980e57c7bf096b495b3f61c8289', 1) ON CONFLICT(hash) DO NOTHING;
