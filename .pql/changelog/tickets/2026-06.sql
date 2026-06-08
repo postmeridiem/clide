@@ -2009,3 +2009,21 @@ Children: T-262 (merge tool-call + success result into one card with header stat
 Refs: D-78 (interaction zone / display-only conversation widgets). Built on T-168 (per-tool body rendering) and T-230 (activity card).
 
 SEQUENCING UPDATE (after T-266 refinement): the shared container/holder primitive now lives in T-266 and is CONSUMED by T-264 (nested agent run), so T-266 is no longer "last" — its primitive lands before/with T-264. T-264 is now blocked by T-266. Revised order: T-262 / T-263 (fold success result, fold agent prompt) → T-266 (shared holder/container primitive + activity-card restyle) → T-264 (nest the whole agent run on that primitive) → T-265 (relabel sidechain prose) can land anytime alongside.', 'done', 'medium', NULL, NULL, 'D-78', '2026-06-07 08:42:53', '2026-06-08 10:09:21', NULL, 'bb82ba1e08ca8009613521e59e548e77', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-279', 'story', 'T-276', 'Clickable T/D/Q/R cross-refs in the Claude conversation view → open in context-pane readers', 'In the Claude conversation view, linkify governance/ticket references so they''re clickable and open the matching record in the correct context-pane reader.
+
+Patterns to detect in rendered message text: T-NNN (pql tickets), D-NNN (decisions), Q-NNN (open questions), R-NNN (rejected alternatives).
+
+Behaviour:
+- Render each match as an inline link (ui-design tokens, link affordance consistent with other conversation links; do not linkify inside code spans/blocks).
+- On click, open the record in the proper context-pane reader:
+  - T-NNN -> tickets reader/panel (the ticket detail).
+  - D-NNN / Q-NNN / R-NNN -> decisions reader, scrolled to the D/Q/R record under governance/decisions, /questions, /rejected.
+- Reuse the existing reader-open plumbing rather than inventing new routing: ReaderNav / the ui.open verb / MessageBus reader addressing (T-186, T-231, T-233) and the decisions + tickets panels.
+- D-6 parity: opening a record by id should already (or also) be reachable via a clide verb.
+
+Scope notes:
+- Lives in the conversation rendering path (lib/builtin/claude/src/conversation_view.dart + conversation_card.dart + the markdown/text renderer it uses). Relates to the conversation-rendering epic T-267 — could move there if preferred.
+- Resolve id -> source: tickets via the pql wrapper (lib/src/pql), governance records via the decisions index/reader.
+- Handle unknown/missing ids gracefully (render as plain text or a dead-link tooltip, no crash).
+
+Tests: linkifier unit tests (matches T/D/Q/R, ignores code spans, ignores bare words like ''T-shirt''); a widget/integration test that clicking a ref dispatches the reader-open.', 'backlog', 'medium', NULL, NULL, 'D-6', '2026-06-08 10:21:20', '2026-06-08 10:21:20', NULL, 'f417cc6496819316b8926438a466bb2f', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
