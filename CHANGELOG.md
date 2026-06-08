@@ -198,6 +198,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Conversation cards no longer **mis-associate their state** when the message
+  list reshapes as a tool result streams in. The list items now carry stable
+  per-item keys, so a card you expanded (or its hover/cluster state) stays
+  pinned to its own message instead of jumping to a neighbour when a read/write
+  completes and folds its result in. (T-285)
 - The status-bar footer marquee now **honours reduced motion**: when the OS
   reduce-motion setting (`MediaQuery.disableAnimations`) is on, a long status
   line no longer scrolls — it renders statically (clipped) — matching the turn

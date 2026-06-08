@@ -15,7 +15,7 @@ import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show Image, FileImage;
+import 'package:flutter/widgets.dart' show Image, FileImage, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -170,6 +170,41 @@ void main() {
     testWidgets('empty controller shows the waiting hint', (tester) async {
       await pumpWith(tester, const []);
       expect(find.text('Waiting for Claude…'), findsOneWidget);
+    });
+
+    testWidgets('unfolded conversation cards carry stable per-item identity keys (T-285)', (tester) async {
+      tester.view.physicalSize = const Size(900, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final stream = StreamController<ConversationItem>.broadcast();
+      final c = ConversationController(stream: stream.stream);
+      addTearDown(c.dispose);
+      await tester.pumpWidget(harness(f, ConversationView(controller: c, foldLevel: FoldLevel.none)));
+      stream.add(AssistantToolUse(uuid: 'A', timestamp: _t, isSidechain: false, toolUseId: 'A', name: 'Bash', input: const {'command': 'echo a'}));
+      stream.add(AssistantThinkingMessage(uuid: 'B', timestamp: _t, isSidechain: false, thinking: 'thinking body'));
+      await tester.pumpAndSettle();
+      // Each top-level card is keyed by its item uuid so a streaming reshape
+      // pins card State (collapse/hover) to its logical item, not its position.
+      expect(find.byKey(const ValueKey('turn.A')), findsOneWidget);
+      expect(find.byKey(const ValueKey('turn.B')), findsOneWidget);
+    });
+
+    testWidgets('a folded activity cluster carries a stable identity key (T-285)', (tester) async {
+      tester.view.physicalSize = const Size(900, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final stream = StreamController<ConversationItem>.broadcast();
+      final c = ConversationController(stream: stream.stream);
+      addTearDown(c.dispose);
+      await tester.pumpWidget(harness(f, ConversationView(controller: c, foldLevel: FoldLevel.tools)));
+      stream.add(AssistantToolUse(uuid: 'A', timestamp: _t, isSidechain: false, toolUseId: 'A', name: 'Bash', input: const {'command': 'echo a'}));
+      stream.add(AssistantToolUse(uuid: 'B', timestamp: _t, isSidechain: false, toolUseId: 'B', name: 'Read', input: const {'file_path': '/a'}));
+      await tester.pumpAndSettle();
+      // The cluster is keyed by its first item's uuid, so re-folding never
+      // reattaches the holder's expand State to the wrong cluster by position.
+      expect(find.byKey(const ValueKey('cluster.A')), findsOneWidget);
     });
 
     testWidgets('clicking a bare T-ref in a message opens the tickets reader (T-279)', (tester) async {

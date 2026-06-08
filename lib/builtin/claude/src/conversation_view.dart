@@ -260,8 +260,12 @@ class _ConversationViewState extends State<ConversationView> {
         itemCount: groups.length,
         itemBuilder: (context, i) {
           final g = groups[i];
+          // Stable keys pin each card's State (collapse/hover, cluster expand)
+          // to its logical item, so streaming result updates that reshape the
+          // visible list don't reattach State to the wrong card (T-285).
           return switch (g) {
             StickyItem(:final item) => _ConversationTurn(
+                key: ValueKey('turn.${item.uuid}'),
                 item: item,
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
@@ -271,6 +275,7 @@ class _ConversationViewState extends State<ConversationView> {
                 runByToolUseId: fold.runByToolUseId,
               ),
             FoldedCluster(:final items) => _ActivityCard(
+                key: ValueKey('cluster.${items.first.uuid}'),
                 items: items,
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
@@ -310,6 +315,7 @@ void _openRecord(BuildContext context, String id) {
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({
+    super.key,
     required this.item,
     required this.tokens,
     this.toolUseOutcomes = const <String, bool>{},
@@ -543,6 +549,7 @@ class _ConversationTurn extends StatelessWidget {
             children: [
               for (final r in runItems)
                 _ConversationTurn(
+                  key: ValueKey('run.${r.uuid}'),
                   item: r,
                   tokens: tokens,
                   toolUseOutcomes: toolUseOutcomes,
@@ -650,6 +657,7 @@ class _ConversationTurn extends StatelessWidget {
 /// background toggles collapse. Stateless — the holder owns the expand state.
 class _ActivityCard extends StatelessWidget {
   const _ActivityCard({
+    super.key,
     required this.items,
     required this.tokens,
     required this.toolUseOutcomes,
@@ -676,6 +684,7 @@ class _ActivityCard extends StatelessWidget {
       children: [
         for (final item in items)
           _ConversationTurn(
+            key: ValueKey('step.${item.uuid}'),
             item: item,
             tokens: tokens,
             toolUseOutcomes: toolUseOutcomes,
