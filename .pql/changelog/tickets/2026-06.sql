@@ -2189,3 +2189,42 @@ Scope notes:
 - Handle unknown/missing ids gracefully (render as plain text or a dead-link tooltip, no crash).
 
 Tests: linkifier unit tests (matches T/D/Q/R, ignores code spans, ignores bare words like ''T-shirt''); a widget/integration test that clicking a ref dispatches the reader-open.', 'done', 'medium', NULL, NULL, 'D-6', '2026-06-08 10:21:20', '2026-06-08 14:12:46', NULL, 'e9aba50ab6a83dd280b3e4a375782dab', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-284', 'bug', 'T-276', 'ClideMarquee ignores MediaQuery.disableAnimations (reduced-motion + pumpAndSettle hang)', 'Two animation mechanisms exist and are inconsistent. The turn/running indicator (running_indicator.dart, T-273) gates its AnimationController on MediaQuery.disableAnimations and stops when reduced-motion is set. ClideMarquee (clide_marquee.dart, the status-bar footer scroll, T-150/T-160) drives a raw Ticker whenever its content overflows, with NO disableAnimations check and no flag.
+
+Two costs:
+1. Accessibility — a reduced-motion user still gets the scrolling footer; the marquee ignores the OS reduce-motion setting the turn indicator honors.
+2. Testing — the marquee''s perpetual Ticker is the historical pumpAndSettle-hang culprit; its own tests cope by only ever calling pump()/pump(Duration), never pumpAndSettle.
+
+Fix: unify on the one mechanism — make ClideMarquee honor MediaQuery.disableAnimations. When reduced motion is set, don''t start the ticker (stop + reset offset to 0 if running), and render the child statically (clipped) instead of looping. Read the flag in didChangeDependencies like running_indicator does. Then both animations obey one flag, the marquee becomes reduced-motion-correct, and it stops being a pumpAndSettle landmine.
+
+Acceptance:
+1. With MediaQuery(disableAnimations: true), an overflowing ClideMarquee does not scroll and pumpAndSettle completes (no hang).
+2. With the flag off, overflow still scrolls as today.
+3. Toggling the flag at runtime starts/stops the scroll.
+4. Test covering the reduced-motion (no-scroll, settles) case.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-08 14:55:43', '2026-06-08 14:55:43', NULL, 'c347b735d788282c75fdb183eff05806', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-284', 'bug', 'T-276', 'ClideMarquee ignores MediaQuery.disableAnimations (reduced-motion + pumpAndSettle hang)', 'Two animation mechanisms exist and are inconsistent. The turn/running indicator (running_indicator.dart, T-273) gates its AnimationController on MediaQuery.disableAnimations and stops when reduced-motion is set. ClideMarquee (clide_marquee.dart, the status-bar footer scroll, T-150/T-160) drives a raw Ticker whenever its content overflows, with NO disableAnimations check and no flag.
+
+Two costs:
+1. Accessibility — a reduced-motion user still gets the scrolling footer; the marquee ignores the OS reduce-motion setting the turn indicator honors.
+2. Testing — the marquee''s perpetual Ticker is the historical pumpAndSettle-hang culprit; its own tests cope by only ever calling pump()/pump(Duration), never pumpAndSettle.
+
+Fix: unify on the one mechanism — make ClideMarquee honor MediaQuery.disableAnimations. When reduced motion is set, don''t start the ticker (stop + reset offset to 0 if running), and render the child statically (clipped) instead of looping. Read the flag in didChangeDependencies like running_indicator does. Then both animations obey one flag, the marquee becomes reduced-motion-correct, and it stops being a pumpAndSettle landmine.
+
+Acceptance:
+1. With MediaQuery(disableAnimations: true), an overflowing ClideMarquee does not scroll and pumpAndSettle completes (no hang).
+2. With the flag off, overflow still scrolls as today.
+3. Toggling the flag at runtime starts/stops the scroll.
+4. Test covering the reduced-motion (no-scroll, settles) case.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-08 14:55:43', '2026-06-08 14:55:51', NULL, '0a74870ce1d2e452c853fc42ba803919', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-284', 'bug', 'T-276', 'ClideMarquee ignores MediaQuery.disableAnimations (reduced-motion + pumpAndSettle hang)', 'Two animation mechanisms exist and are inconsistent. The turn/running indicator (running_indicator.dart, T-273) gates its AnimationController on MediaQuery.disableAnimations and stops when reduced-motion is set. ClideMarquee (clide_marquee.dart, the status-bar footer scroll, T-150/T-160) drives a raw Ticker whenever its content overflows, with NO disableAnimations check and no flag.
+
+Two costs:
+1. Accessibility — a reduced-motion user still gets the scrolling footer; the marquee ignores the OS reduce-motion setting the turn indicator honors.
+2. Testing — the marquee''s perpetual Ticker is the historical pumpAndSettle-hang culprit; its own tests cope by only ever calling pump()/pump(Duration), never pumpAndSettle.
+
+Fix: unify on the one mechanism — make ClideMarquee honor MediaQuery.disableAnimations. When reduced motion is set, don''t start the ticker (stop + reset offset to 0 if running), and render the child statically (clipped) instead of looping. Read the flag in didChangeDependencies like running_indicator does. Then both animations obey one flag, the marquee becomes reduced-motion-correct, and it stops being a pumpAndSettle landmine.
+
+Acceptance:
+1. With MediaQuery(disableAnimations: true), an overflowing ClideMarquee does not scroll and pumpAndSettle completes (no hang).
+2. With the flag off, overflow still scrolls as today.
+3. Toggling the flag at runtime starts/stops the scroll.
+4. Test covering the reduced-motion (no-scroll, settles) case.', 'done', 'medium', NULL, NULL, NULL, '2026-06-08 14:55:43', '2026-06-08 14:57:15', NULL, '31d8fd91f6d556a68d35c7d25410d7ec', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

@@ -39,12 +39,28 @@ class _ClideMarqueeState extends State<ClideMarquee> with SingleTickerProviderSt
   double _offset = 0;
   Duration _last = Duration.zero;
 
+  /// Honour reduced motion (T-284): the same `MediaQuery.disableAnimations`
+  /// flag the running indicator gates on (T-273). When set, the marquee never
+  /// scrolls — it shows the child statically (clipped) — so reduced-motion
+  /// users get no motion and `pumpAndSettle` isn't wedged by a perpetual ticker.
+  bool _reduced = false;
+
   bool get _overflow => _contentWidth > _viewportWidth + 0.5;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduced != _reduced) {
+      setState(() => _reduced = reduced);
+      _syncTicker();
+    }
   }
 
   @override
@@ -59,10 +75,17 @@ class _ClideMarqueeState extends State<ClideMarquee> with SingleTickerProviderSt
     if ((w - _contentWidth).abs() > 0.5) {
       setState(() => _contentWidth = w);
     }
-    if (_overflow && !_ticker.isActive) {
+    _syncTicker();
+  }
+
+  /// Start the scroll ticker only when the content overflows AND motion is
+  /// allowed; otherwise stop it and reset to the start.
+  void _syncTicker() {
+    final shouldRun = _overflow && !_reduced;
+    if (shouldRun && !_ticker.isActive) {
       _last = Duration.zero;
       _ticker.start();
-    } else if (!_overflow && _ticker.isActive) {
+    } else if (!shouldRun && _ticker.isActive) {
       _ticker.stop();
       _offset = 0;
       if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -70,7 +93,7 @@ class _ClideMarqueeState extends State<ClideMarquee> with SingleTickerProviderSt
   }
 
   void _tick(Duration elapsed) {
-    if (!_overflow || !_scroll.hasClients) return;
+    if (!_overflow || _reduced || !_scroll.hasClients) return;
     final dt = _last == Duration.zero ? 0.0 : (elapsed - _last).inMicroseconds / 1e6;
     _last = elapsed;
     final span = _contentWidth + widget.gap;
@@ -101,7 +124,7 @@ class _ClideMarqueeState extends State<ClideMarquee> with SingleTickerProviderSt
               mainAxisSize: MainAxisSize.min,
               children: [
                 KeyedSubtree(key: _childKey, child: widget.child),
-                if (_overflow) ...[SizedBox(width: widget.gap), widget.child],
+                if (_overflow && !_reduced) ...[SizedBox(width: widget.gap), widget.child],
               ],
             ),
           );

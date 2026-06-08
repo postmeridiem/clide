@@ -13,6 +13,11 @@ Widget _boxed(double width, Widget child) => Directionality(
       ),
     );
 
+Widget _reducedMotion(double width, Widget child) => MediaQuery(
+      data: const MediaQueryData(disableAnimations: true),
+      child: _boxed(width, child),
+    );
+
 void main() {
   testWidgets('shows the child statically when it fits', (tester) async {
     await tester.pumpWidget(_boxed(300, const ClideMarquee(child: Text('short'))));
@@ -23,6 +28,31 @@ void main() {
 
   testWidgets('renders a looped copy and runs without overflow when wider than the slot', (tester) async {
     await tester.pumpWidget(_boxed(40, const ClideMarquee(child: Text('a long status line that overflows the slot'))));
+    await tester.pump(); // measure
+    await tester.pump(const Duration(milliseconds: 100)); // advance the ticker
+    expect(find.text('a long status line that overflows the slot'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox()); // dispose → stop ticker
+  });
+
+  testWidgets('reduced motion (disableAnimations) does not scroll; pumpAndSettle completes (T-284)', (tester) async {
+    await tester.pumpWidget(_reducedMotion(40, const ClideMarquee(child: Text('a long status line that overflows the slot'))));
+    // The ticker must never start, so the frame queue is quiescent — if the
+    // marquee still ran its ticker, this would hang for the 10-minute default.
+    await tester.pumpAndSettle();
+    expect(find.text('a long status line that overflows the slot'), findsWidgets);
+    // No looped second copy is built under reduced motion (single rendered copy).
+    expect(find.text('a long status line that overflows the slot'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('toggling disableAnimations off lets an overflowing marquee scroll again (T-284)', (tester) async {
+    const child = ClideMarquee(child: Text('a long status line that overflows the slot'));
+    await tester.pumpWidget(_reducedMotion(40, child));
+    await tester.pumpAndSettle(); // frozen, settles
+    // Flip the flag off → ticker should start; the looped copy reappears.
+    await tester.pumpWidget(_boxed(40, child));
     await tester.pump(); // measure
     await tester.pump(const Duration(milliseconds: 100)); // advance the ticker
     expect(find.text('a long status line that overflows the slot'), findsWidgets);

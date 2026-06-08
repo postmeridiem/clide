@@ -198,6 +198,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The status-bar footer marquee now **honours reduced motion**: when the OS
+  reduce-motion setting (`MediaQuery.disableAnimations`) is on, a long status
+  line no longer scrolls — it renders statically (clipped) — matching the turn
+  indicator, which already obeyed the flag. Unifies the two animations on one
+  mechanism and removes a `pumpAndSettle` hang the perpetual ticker caused.
+  (T-284)
 - Switching the workspace in place (Open Project/Folder) now rebinds the Claude
   pane to the new repo's session instead of keeping the previous repo's
   conversation, and drops the old repo's secondary tabs. Separate windows were
