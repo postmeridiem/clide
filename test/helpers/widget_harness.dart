@@ -35,6 +35,41 @@ Widget harness(KernelFixture fixture, Widget child) {
   );
 }
 
+/// Harness for **anchored-overlay content** (ClideAnchoredOverlay popovers).
+///
+/// The shared [harness] wraps its child in `Overlay(canSizeOverlay)` + a
+/// zero-size `MediaQuery` — fine for plain widgets, but it mispositions an
+/// anchored follower off-screen and defeats `autoFlip`, so popover items aren't
+/// reliably hit-testable. This builds a properly-sized Overlay tree instead:
+/// `Directionality → ClideKernel → ClideTheme → MediaQuery(size) → Overlay`,
+/// with [child] (the trigger) placed at [alignment]. Set
+/// `tester.view.physicalSize = size` to match (the default 800×600 matches the
+/// default test view, so no setup is needed unless you change [size]).
+Widget anchoredHarness(
+  KernelFixture fixture,
+  Widget child, {
+  Size size = const Size(800, 600),
+  Alignment alignment = Alignment.topLeft,
+}) {
+  return Directionality(
+    textDirection: TextDirection.ltr,
+    child: ClideKernel(
+      services: fixture.services,
+      child: ClideTheme(
+        controller: fixture.services.theme,
+        child: MediaQuery(
+          data: MediaQueryData(size: size),
+          child: Overlay(
+            initialEntries: [
+              OverlayEntry(builder: (_) => Align(alignment: alignment, child: child)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Settle async-driven UI in a widget test WITHOUT the two patterns that have
 /// repeatedly wedged this suite:
 ///

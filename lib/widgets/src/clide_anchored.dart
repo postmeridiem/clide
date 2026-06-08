@@ -161,14 +161,18 @@ class _ClideAnchoredOverlayState extends State<ClideAnchoredOverlay> {
     var side = widget.side;
     if (!widget.autoFlip || widget.centered) return side;
     final box = context.findRenderObject();
-    final media = MediaQuery.maybeOf(context);
-    if (box is RenderBox && box.hasSize && media != null) {
+    // Use the real view size, not MediaQuery — the latter can be overridden to
+    // zero (e.g. the shared test harness), which would defeat the flip.
+    final view = View.maybeOf(context);
+    if (box is RenderBox && box.hasSize && view != null) {
       final rect = box.localToGlobal(Offset.zero) & box.size;
-      final h = media.size.height;
-      if (side == ClideAnchorSide.below && rect.bottom > h * 0.6) {
-        side = ClideAnchorSide.above;
-      } else if (side == ClideAnchorSide.above && rect.top < h * 0.4) {
-        side = ClideAnchorSide.below;
+      final h = view.physicalSize.height / view.devicePixelRatio;
+      if (h > 0) {
+        if (side == ClideAnchorSide.below && rect.bottom > h * 0.6) {
+          side = ClideAnchorSide.above;
+        } else if (side == ClideAnchorSide.above && rect.top < h * 0.4) {
+          side = ClideAnchorSide.below;
+        }
       }
     }
     return side;
@@ -264,13 +268,17 @@ class _ClideAnchoredOverlayState extends State<ClideAnchoredOverlay> {
       final flipped = _resolvedSide != widget.side;
       final off = flipped ? Offset(widget.offset.dx, -widget.offset.dy) : widget.offset;
       final (target, follower) = _alignments(_resolvedSide);
+      // The Stack lays the follower out loosely, so the (shrink-wrapping) panel
+      // sizes to its content; the follower layer's transform alone positions it.
+      // An Align here would peg the panel to a corner of the full-screen follower
+      // box and break hit-testing for non-top-left anchors.
       positioned = CompositedTransformFollower(
         link: _link,
         showWhenUnlinked: false,
         targetAnchor: target,
         followerAnchor: follower,
         offset: off,
-        child: Align(alignment: follower, child: content),
+        child: content,
       );
     }
 

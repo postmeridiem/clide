@@ -97,5 +97,78 @@ void main() {
       expect(find.text('panel'), findsNothing);
       expect(tester.takeException(), isNull);
     });
+
+    // A ClideAnchoredOverlay hosting a ClideMenu of A/B/C, for the focus +
+    // positioning tests below.
+    Widget anchoredMenu(
+      ClideOverlayController c,
+      void Function(String) onPick, {
+      ClideAnchorSide side = ClideAnchorSide.below,
+      ClideAnchorAlign align = ClideAnchorAlign.start,
+      bool autoFlip = false,
+    }) {
+      return ClideAnchoredOverlay(
+        controller: c,
+        side: side,
+        align: align,
+        autoFlip: autoFlip,
+        anchor: const SizedBox(width: 80, height: 24, child: ClideText('trigger')),
+        overlayBuilder: (ctx, ctrl) => ClideMenu(
+          onClose: ctrl.close,
+          entries: [
+            ClideMenuItem(label: 'A', onSelect: () => onPick('A')),
+            ClideMenuItem(label: 'B', onSelect: () => onPick('B')),
+            ClideMenuItem(label: 'C', onSelect: () => onPick('C')),
+          ],
+        ),
+      );
+    }
+
+    testWidgets('keyboard nav reaches a ClideMenu through the overlay', (tester) async {
+      final c = ClideOverlayController();
+      addTearDown(c.dispose);
+      var picked = '';
+      await tester.pumpWidget(anchoredHarness(f, anchoredMenu(c, (v) => picked = v)));
+      c.open();
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // A
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // B
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(picked, 'B');
+    });
+
+    testWidgets('an end-aligned menu item is mouse-tappable (no Align hit-offset)', (tester) async {
+      final c = ClideOverlayController();
+      addTearDown(c.dispose);
+      var picked = '';
+      // Right-edge trigger + end alignment — the menu extends left, on-screen.
+      await tester.pumpWidget(anchoredHarness(
+        f,
+        anchoredMenu(c, (v) => picked = v, align: ClideAnchorAlign.end),
+        alignment: Alignment.topRight,
+      ));
+      c.open();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('C'));
+      await tester.pumpAndSettle();
+      expect(picked, 'C');
+    });
+
+    testWidgets('autoFlip flips below to above when the anchor is near the bottom', (tester) async {
+      final c = ClideOverlayController();
+      addTearDown(c.dispose);
+      await tester.pumpWidget(anchoredHarness(
+        f,
+        anchoredMenu(c, (_) {}, side: ClideAnchorSide.below, autoFlip: true),
+        alignment: Alignment.bottomLeft,
+      ));
+      c.open();
+      await tester.pumpAndSettle();
+      // The panel (its first item) sits ABOVE the trigger, not below.
+      final triggerTop = tester.getRect(find.text('trigger')).top;
+      final panelBottom = tester.getRect(find.text('A')).bottom;
+      expect(panelBottom, lessThanOrEqualTo(triggerTop));
+    });
   });
 }
