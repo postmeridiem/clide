@@ -144,6 +144,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- A **sub-agent's whole run** — its prose, thinking, and tool calls — now nests
+  in an **`agent run` holder under its Agent card** instead of spilling loose
+  into the main thread, so you can tell where the sub-agent's work begins and
+  ends. The run attaches via `parentUuid` (correct even for parallel agents),
+  and the redundant returned-result is no longer shown twice. (T-264)
 - The folded **activity card** now reads as one **container that wraps its
   sub-cards**, and you can collapse it by clicking anywhere on the holder's own
   background — not just a top header that scrolls out of reach while a run

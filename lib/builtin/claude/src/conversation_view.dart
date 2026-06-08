@@ -94,7 +94,7 @@ class _ConversationViewState extends State<ConversationView> {
   /// (its tool-use *and* result echo are noise — the prompt + the logged answer
   /// cover it), and any permission-prompted tool-use (keep its result — that's
   /// the useful answer).
-  List<ConversationItem> _visibleItems(List<ConversationItem> items, Set<String> foldedPromptUuids) {
+  List<ConversationItem> _visibleItems(List<ConversationItem> items, Set<String> ownedSidechainUuids) {
     final hidden = widget.hiddenToolUseIds;
     final auqIds = {
       for (final it in items)
@@ -114,10 +114,12 @@ class _ConversationViewState extends State<ConversationView> {
     }
 
     bool drop(ConversationItem it) {
+      // T-263/T-264: a sidechain item owned by an Agent run folds into (prompt)
+      // or nests under (the run) its Agent card — suppress it from the top level
+      // so it doesn't also render loose in the main chain. Checked first because
+      // a run's items include AssistantToolUse / ToolResultMessage too.
+      if (it.isSidechain && ownedSidechainUuids.contains(it.uuid)) return true;
       if (it is AssistantToolUse) return toolUseDropped(it);
-      // T-263: a sidechain agent prompt that folded into its Agent card is
-      // suppressed here so it doesn't also render as a standalone block.
-      if (it is UserMessage) return foldedPromptUuids.contains(it.uuid);
       if (it is ToolResultMessage) {
         if (auqIds.contains(it.toolUseId)) return true; // AUQ result echo — noise
         // T-262: a successful result whose paired tool-use is going to render
@@ -138,38 +140,77 @@ class _ConversationViewState extends State<ConversationView> {
     ];
   }
 
-  /// Resolves which sidechain prompts fold into which Agent/Task card (T-263).
+  /// Resolves how a sub-agent (sidechain) run attaches to its spawning
+  /// Agent/Task card (T-263 + T-264).
   ///
-  /// A sidechain prompt's owner is the Agent tool-use its `parentUuid` branches
-  /// off — robust when several agents run in parallel in one turn. Falls back to
-  /// the nearest preceding Agent tool-use when the link can't be resolved.
-  /// Returns the prompt uuids to suppress and the prompts grouped by the owning
-  /// tool-use id (so the card can fold them).
-  ({Set<String> foldedPromptUuids, Map<String, List<UserMessage>> promptsByToolUseId}) _agentPromptFold(List<ConversationItem> items) {
+  /// Every sidechain item is routed to its owning Agent tool-use by walking its
+  /// `parentUuid` chain up to the Agent message it branches off — robust when
+  /// several agents run in parallel in one turn — with the nearest preceding
+  /// Agent tool-use as a fallback. Returns:
+  /// - [ownedSidechainUuids]: sidechain item uuids to suppress from the top
+  ///   level (they fold into, or nest under, their Agent card).
+  /// - [promptsByToolUseId]: the prompt(s) folded into the Agent CALL (T-263).
+  /// - [runByToolUseId]: the rest of the run — prose / thinking / tool cards —
+  ///   nested in a holder UNDER the Agent card (T-264), with a successful
+  ///   sidechain tool result left out (it folds into its own tool card).
+  ({
+    Set<String> ownedSidechainUuids,
+    Map<String, List<UserMessage>> promptsByToolUseId,
+    Map<String, List<ConversationItem>> runByToolUseId,
+  }) _sidechainFold(List<ConversationItem> items) {
     final agentByMsgUuid = <String, AssistantToolUse>{
       for (final it in items)
         if (it is AssistantToolUse && _isAgentTool(it.name)) it.uuid: it,
     };
-    final folded = <String>{};
-    final byToolUseId = <String, List<UserMessage>>{};
+    // Envelope-level chain info (consistent across items sharing a uuid).
+    final parentByUuid = <String, String?>{};
+    final sidechainByUuid = <String, bool>{};
+    final toolUseIds = <String>{};
+    for (final it in items) {
+      parentByUuid[it.uuid] = it.parentUuid;
+      sidechainByUuid[it.uuid] = it.isSidechain;
+      if (it is AssistantToolUse) toolUseIds.add(it.toolUseId);
+    }
+
+    AssistantToolUse? resolveOwner(ConversationItem item, AssistantToolUse? nearest) {
+      var cur = item.uuid;
+      final seen = <String>{};
+      while (seen.add(cur)) {
+        final parent = parentByUuid[cur];
+        if (parent == null) break;
+        final agent = agentByMsgUuid[parent];
+        if (agent != null) return agent; // chain roots at this Agent message
+        if (sidechainByUuid[parent] != true) break; // left the run's chain
+        cur = parent;
+      }
+      return nearest;
+    }
+
+    final owned = <String>{};
+    final prompts = <String, List<UserMessage>>{};
+    final run = <String, List<ConversationItem>>{};
     AssistantToolUse? lastAgent;
     for (final it in items) {
       if (it is AssistantToolUse && _isAgentTool(it.name)) {
         lastAgent = it;
         continue;
       }
-      // Only a text user message authored inside a sidechain is an agent
-      // prompt; harness-injected messages and tool results are not.
-      if (it is UserMessage && it.isSidechain && !it.injected) {
-        final viaParent = it.parentUuid != null ? agentByMsgUuid[it.parentUuid] : null;
-        final owner = viaParent ?? lastAgent;
-        if (owner != null) {
-          folded.add(it.uuid);
-          (byToolUseId[owner.toolUseId] ??= <UserMessage>[]).add(it);
-        }
+      if (!it.isSidechain) continue;
+      if (it is UserMessage && it.injected) continue; // harness noise inside a run
+      final owner = resolveOwner(it, lastAgent);
+      if (owner == null) continue; // orphan — rendered inline + attributed
+      owned.add(it.uuid);
+      if (it is UserMessage) {
+        (prompts[owner.toolUseId] ??= <UserMessage>[]).add(it); // folded into the call
+      } else if (it is ToolResultMessage && !it.isError && toolUseIds.contains(it.toolUseId)) {
+        // A successful sidechain result folds into its own tool card inside the
+        // run — owned (suppressed up top) but not a standalone run item.
+        continue;
+      } else {
+        (run[owner.toolUseId] ??= <ConversationItem>[]).add(it);
       }
     }
-    return (foldedPromptUuids: folded, promptsByToolUseId: byToolUseId);
+    return (ownedSidechainUuids: owned, promptsByToolUseId: prompts, runByToolUseId: run);
   }
 
   void _onChanged() {
@@ -187,10 +228,11 @@ class _ConversationViewState extends State<ConversationView> {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     final allItems = widget.controller.items;
-    // T-263: resolve sidechain prompts → owning Agent card before culling, so
-    // the standalone prompt block is suppressed and folded into its card.
-    final promptFold = _agentPromptFold(allItems);
-    final items = _visibleItems(allItems, promptFold.foldedPromptUuids);
+    // T-263/T-264: resolve each sidechain run → owning Agent card before
+    // culling, so the run is suppressed up top and folded into / nested under
+    // its card.
+    final fold = _sidechainFold(allItems);
+    final items = _visibleItems(allItems, fold.ownedSidechainUuids);
 
     if (items.isEmpty) {
       return ColoredBox(
@@ -225,7 +267,8 @@ class _ConversationViewState extends State<ConversationView> {
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
-                promptsByToolUseId: promptFold.promptsByToolUseId,
+                promptsByToolUseId: fold.promptsByToolUseId,
+                runByToolUseId: fold.runByToolUseId,
               ),
             FoldedCluster(:final items) => _ActivityCard(
                 items: items,
@@ -233,7 +276,8 @@ class _ConversationViewState extends State<ConversationView> {
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
-                promptsByToolUseId: promptFold.promptsByToolUseId,
+                promptsByToolUseId: fold.promptsByToolUseId,
+                runByToolUseId: fold.runByToolUseId,
               ),
           };
         },
@@ -263,6 +307,7 @@ class _ConversationTurn extends StatelessWidget {
     this.toolUseById = const <String, AssistantToolUse>{},
     this.resultByToolUseId = const <String, ToolResultMessage>{},
     this.promptsByToolUseId = const <String, List<UserMessage>>{},
+    this.runByToolUseId = const <String, List<ConversationItem>>{},
   });
 
   final ConversationItem item;
@@ -279,6 +324,10 @@ class _ConversationTurn extends StatelessWidget {
   /// Index from an Agent/Task toolUseId → the sidechain prompt(s) it owns, so
   /// the Agent card can fold its prompt in (T-263).
   final Map<String, List<UserMessage>> promptsByToolUseId;
+
+  /// Index from an Agent/Task toolUseId → the sidechain run items (prose,
+  /// thinking, tool cards) nested under the Agent card in a holder (T-264).
+  final Map<String, List<ConversationItem>> runByToolUseId;
 
   @override
   Widget build(BuildContext context) {
@@ -410,21 +459,31 @@ class _ConversationTurn extends StatelessWidget {
     final result = resultByToolUseId[t.toolUseId];
     final succeeded = result != null && !result.isError;
     final status = result == null ? ConversationCardStatus.none : (result.isError ? ConversationCardStatus.error : ConversationCardStatus.success);
+
+    // T-264: an Agent/Task call nests its whole sub-agent run in a holder below
+    // the card. When a run is shown, the returned-result segment would just
+    // duplicate the run's final output, so drop it (note E) — but keep it when
+    // there's no captured run, so the output is never lost.
+    final isAgent = _isAgentTool(t.name);
+    final runItems = isAgent ? (runByToolUseId[t.toolUseId] ?? const <ConversationItem>[]) : const <ConversationItem>[];
+    final hasRun = runItems.isNotEmpty;
+
     // T-263: an Agent/Task card folds its sub-agent prompt(s) in. Layered order
     // when expanded (note E): call input (body) → prompt → returned result.
     final segments = <CardSegment>[
       for (final p in promptsByToolUseId[t.toolUseId] ?? const <UserMessage>[])
         CardSegment(label: 'prompt', child: ClideText(p.text, muted: true, fontSize: clideFontMeta)),
-      if (succeeded) CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t))),
+      if (succeeded && !(isAgent && hasRun)) CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t))),
     ];
 
     // A resolved permission-prompted call: collapsed, green if approved / red
     // if denied — a quiet record of what was permitted (D-78). It still folds
     // its result + outcome check like any other merged card (T-262).
     final outcome = toolUseOutcomes[t.toolUseId];
+    final ConversationCard card;
     if (outcome != null) {
       final color = outcome ? tokens.statusSuccess : tokens.statusError;
-      return ConversationCard(
+      card = ConversationCard(
         variant: ConversationCardVariant.bordered,
         accent: color,
         borderColor: color,
@@ -437,23 +496,53 @@ class _ConversationTurn extends StatelessWidget {
         body: toolInputBody(tokens, t.name, t.input),
         extraSegments: segments,
       );
+    } else {
+      // Per-tool body rendering (T-168): Bash → command block, Edit/Write →
+      // diff, Read/Grep/LS → path label, others → indented JSON. Always
+      // collapsible so a bulky write body doesn't dominate the scroll.
+      card = ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: tokens.globalFocus,
+        label: t.name,
+        copyText: const JsonEncoder.withIndent('  ').convert(t.input),
+        collapsible: true,
+        collapsedByDefault: true,
+        collapsedSummary: _toolUseSummary(t),
+        status: status,
+        body: toolInputBody(tokens, t.name, t.input),
+        extraSegments: segments,
+      );
     }
-    // Per-tool body rendering (T-168): Bash → command block, Edit/Write → diff,
-    // Read/Grep/LS → path label, others → indented JSON. Always collapsible so
-    // a bulky write body doesn't dominate the scroll.
-    final body = toolInputBody(tokens, t.name, t.input);
-    final summary = _toolUseSummary(t);
-    return ConversationCard(
-      variant: ConversationCardVariant.bordered,
-      accent: tokens.globalFocus,
-      label: t.name,
-      copyText: const JsonEncoder.withIndent('  ').convert(t.input),
-      collapsible: true,
-      collapsedByDefault: true,
-      collapsedSummary: summary,
-      status: status,
-      body: body,
-      extraSegments: segments,
+
+    if (!hasRun) return card;
+    // T-264: nest the sub-agent run in a holder UNDER the Agent card, so a
+    // reader can tell where the sub-agent work begins and ends. The run stays
+    // VISIBLE (not folded away) — this is attribution + containment.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: ClideHolderCard(
+            title: 'agent run',
+            collapsedSummary: _summarizeActivity(runItems.last),
+            stepLabel: runItems.length == 1 ? '1 step' : '${runItems.length} steps',
+            children: [
+              for (final r in runItems)
+                _ConversationTurn(
+                  item: r,
+                  tokens: tokens,
+                  toolUseOutcomes: toolUseOutcomes,
+                  toolUseById: toolUseById,
+                  resultByToolUseId: resultByToolUseId,
+                  promptsByToolUseId: promptsByToolUseId,
+                  runByToolUseId: runByToolUseId,
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -555,6 +644,7 @@ class _ActivityCard extends StatelessWidget {
     required this.toolUseById,
     required this.resultByToolUseId,
     required this.promptsByToolUseId,
+    required this.runByToolUseId,
   });
 
   final List<ConversationItem> items;
@@ -563,6 +653,7 @@ class _ActivityCard extends StatelessWidget {
   final Map<String, AssistantToolUse> toolUseById;
   final Map<String, ToolResultMessage> resultByToolUseId;
   final Map<String, List<UserMessage>> promptsByToolUseId;
+  final Map<String, List<ConversationItem>> runByToolUseId;
 
   @override
   Widget build(BuildContext context) {
@@ -579,6 +670,7 @@ class _ActivityCard extends StatelessWidget {
             toolUseById: toolUseById,
             resultByToolUseId: resultByToolUseId,
             promptsByToolUseId: promptsByToolUseId,
+            runByToolUseId: runByToolUseId,
           ),
       ],
     );

@@ -330,6 +330,69 @@ void main() {
       expect(find.text('PROMPT FOR B'), findsNothing);
     });
 
+    testWidgets('the sub-agent run nests in a holder under its Agent card (T-264)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'explore'}),
+        UserMessage(uuid: 'p', timestamp: _t, isSidechain: true, parentUuid: 'mA', text: 'go explore'),
+        // A sidechain tool call — part of the run, chained off the prompt.
+        AssistantToolUse(
+            uuid: 's1', timestamp: _t, isSidechain: true, parentUuid: 'p', toolUseId: 'sb', name: 'Bash', input: const {'command': 'grep widgets'}),
+      ]);
+      expect(find.text('Task'), findsOneWidget);
+      // The run is a nested holder titled "agent run", collapsed by default —
+      // the run's Bash card is not loose in the main chain.
+      expect(find.bySemanticsLabel('agent run, 1 step, collapsed'), findsOneWidget);
+      expect(find.text('Bash'), findsNothing); // run card hidden while holder collapsed
+
+      await tester.tap(find.bySemanticsLabel('agent run, 1 step, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.text('Bash'), findsOneWidget); // the run's tool card, now nested + visible
+    });
+
+    testWidgets('the returned result is not duplicated when the run is shown (T-264 note E)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'x'}),
+        UserMessage(uuid: 'p', timestamp: _t, isSidechain: true, parentUuid: 'mA', text: 'go'),
+        AssistantTextMessage(uuid: 's1', timestamp: _t, isSidechain: true, parentUuid: 'p', text: 'THE FINAL ANSWER'),
+        // The Task's returned result (main chain) — equals the run's final prose.
+        ToolResultMessage(uuid: 'tr', timestamp: _t, isSidechain: false, parentUuid: 'mA', toolUseId: 'tA', content: 'THE FINAL ANSWER', isError: false),
+      ]);
+      // Expand the Agent card (its "result" segment would show here if kept)…
+      await tester.tap(find.bySemanticsLabel('Expand'));
+      await tester.pumpAndSettle();
+      // …and the nested run.
+      await tester.tap(find.bySemanticsLabel('agent run, 1 step, collapsed'));
+      await tester.pumpAndSettle();
+      // The answer appears once (in the run), not also as a folded result segment.
+      expect(find.textContaining('THE FINAL ANSWER'), findsOneWidget);
+      expect(find.text('result'), findsNothing); // no result sub-label on the Agent card
+    });
+
+    testWidgets('parallel agents: each run nests under its own card via parentUuid (T-264)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'A'}),
+        AssistantToolUse(uuid: 'mB', timestamp: _t, isSidechain: false, toolUseId: 'tB', name: 'Task', input: const {'description': 'B'}),
+        AssistantToolUse(uuid: 'sA', timestamp: _t, isSidechain: true, parentUuid: 'mA', toolUseId: 'sbA', name: 'Bash', input: const {'command': 'CMD_A'}),
+        AssistantToolUse(uuid: 'sB', timestamp: _t, isSidechain: true, parentUuid: 'mB', toolUseId: 'sbB', name: 'Bash', input: const {'command': 'CMD_B'}),
+      ]);
+      // Correct routing → two separate 1-step runs. A nearest-preceding heuristic
+      // would pool both under agent B as one 2-step run.
+      expect(find.bySemanticsLabel('agent run, 1 step, collapsed'), findsNWidgets(2));
+      expect(find.bySemanticsLabel('agent run, 2 steps, collapsed'), findsNothing);
+    });
+
+    testWidgets('a successful sidechain result folds into its run tool card, not a separate step (T-264)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'x'}),
+        UserMessage(uuid: 'p', timestamp: _t, isSidechain: true, parentUuid: 'mA', text: 'go'),
+        AssistantToolUse(uuid: 's1', timestamp: _t, isSidechain: true, parentUuid: 'p', toolUseId: 'sb', name: 'Bash', input: const {'command': 'ls'}),
+        ToolResultMessage(uuid: 'sr', timestamp: _t, isSidechain: true, parentUuid: 's1', toolUseId: 'sb', content: 'file listing', isError: false),
+      ]);
+      // The tool call + its success result is ONE step in the run, not two.
+      expect(find.bySemanticsLabel('agent run, 1 step, collapsed'), findsOneWidget);
+      expect(find.bySemanticsLabel('agent run, 2 steps, collapsed'), findsNothing);
+    });
+
     testWidgets('a permission-prompted tool-use is hidden but its result is kept', (tester) async {
       await pumpWith(
         tester,
