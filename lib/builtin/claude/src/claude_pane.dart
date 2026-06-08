@@ -12,6 +12,7 @@ import 'claude_status.dart';
 import 'clipboard_paste.dart';
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
+import 'permission_mode_control.dart';
 import 'prompt_card.dart';
 import 'session_index.dart';
 import 'session_naming.dart';
@@ -117,10 +118,10 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
 
     if (seg.leading != null) add(text(seg.leading!));
-    // The permission-mode segment is an interactive badge — click or
-    // Enter/Space (when focused) cycles it (T-226).
+    // The permission-mode segment is a passive, per-mode-coloured indicator now
+    // (T-275); switching lives in the composer's mode control + Ctrl/Cmd+M.
     if (mode != null) {
-      add(_ModeBadge(label: permissionModeLabel(mode), tokens: tokens, onCycle: _session != null ? _cycleMode : null));
+      add(_ModeBadge(mode: mode, tokens: tokens));
     }
     if (seg.trailing != null) add(text(seg.trailing!));
     if (skills != null) add(text(skills));
@@ -297,6 +298,15 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     _session = managed.session;
     _conversation = managed.conversation;
+    // Diagnostic (T-274 follow-up): record how this pane bound its session —
+    // a fresh spawn vs connecting to existing on-disk history (the seed read
+    // from the transcript/sidecar). Surfaces the resume path in `make run`.
+    final seeded = _conversation?.items.length ?? 0;
+    _kernel()?.log.info(
+          'claude',
+          'pane $_orchId bound session ${_sessionId ?? '?'} in $repoRoot — '
+              '${seeded > 0 ? 'connected to history ($seeded seeded item(s))' : 'fresh session (no history)'}',
+        );
     _statusSub = managed.session.statusStream.listen((s) {
       if (!mounted) return;
       setState(() => _status = s);
@@ -510,6 +520,8 @@ class _ClaudePaneState extends State<ClaudePane> {
                     busy: busySnap.data ?? false,
                     onInterrupt: _session?.interrupt,
                     onCycleMode: _cycleMode,
+                    permissionMode: _status.permissionMode,
+                    onSetPermissionMode: _session != null ? (m) => _session!.setPermissionMode(m) : null,
                     onSubmit: _send,
                     pasteResolver: () => resolveClipboardAttachment(const NativeClipboard()),
                     initialValue: _sessionId == null ? null : _drafts[_sessionId],
@@ -545,34 +557,26 @@ class _ClaudePaneState extends State<ClaudePane> {
   }
 }
 
-/// Interactive permission-mode badge in the status line (T-226). Click, or
-/// focus + Enter/Space, cycles the safe trio (ClideTappable handles the
-/// ActivateIntent). A null [onCycle] (no live session) renders it inert.
+/// Passive permission-mode indicator in the status line (T-275). Mode
+/// switching now lives in the composer's mode control + Ctrl/Cmd+M (T-226), so
+/// this is a plain, per-mode-coloured text mirror — no click, no border.
 class _ModeBadge extends StatelessWidget {
-  const _ModeBadge({required this.label, required this.tokens, required this.onCycle});
+  const _ModeBadge({required this.mode, required this.tokens});
 
-  final String label;
+  final String mode;
   final SurfaceTokens tokens;
-  final VoidCallback? onCycle;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      button: onCycle != null,
-      label: 'permission mode: $label. Activate to cycle.',
+      label: 'permission mode: ${permissionModeLabel(mode)}',
       excludeSemantics: true,
-      child: ClideTappable(
-        onTap: onCycle,
-        tooltip: 'Permission mode — click or Ctrl/Cmd+M to cycle (default · accept-edits · plan)',
-        builder: (context, hovered, _) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          decoration: BoxDecoration(
-            color: hovered ? tokens.listItemHoverBackground : null,
-            border: Border.all(color: hovered && onCycle != null ? tokens.globalFocus : tokens.globalBorder),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusBarForeground, maxLines: 1),
-        ),
+      child: ClideText(
+        permissionModeLabel(mode),
+        fontSize: clideFontSmall,
+        fontFamily: clideMonoFamily,
+        color: permissionModeColor(mode, tokens),
+        maxLines: 1,
       ),
     );
   }

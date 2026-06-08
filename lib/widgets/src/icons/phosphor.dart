@@ -53,6 +53,8 @@ abstract class PhosphorIcons {
   static const palette = PhosphorIconPainter(0xe6c8);
   static const warning = PhosphorIconPainter(0xe4e0);
   static const warningCircle = PhosphorIconPainter(0xe4e2);
+  static const shieldCheck = PhosphorIconPainter(0xe40c);
+  static const shieldWarning = PhosphorIconPainter(0xe412);
   static const check = PhosphorIconPainter(0xe182);
   static const checkCircle = PhosphorIconPainter(0xe184);
   static const caretLeft = PhosphorIconPainter(0xe138);

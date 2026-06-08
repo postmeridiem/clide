@@ -8,7 +8,7 @@ tags: [icons, phosphor, ui-design]
 
 All **1512** glyphs bundled in clide's Phosphor font (`assets/fonts/phosphor/`, MIT). Generated from `assets/fonts/phosphor/codepoints.csv` — **do not hand-edit**; regenerate with `python3 .claude/skills/ui-design/scripts/gen-phosphor-glyphs.py`.
 
-The **In clide** column flags the **45** glyphs already wired into `PhosphorIcons` (`lib/widgets/src/icons/phosphor.dart`) — reach for those first. To use any other glyph, add a one-line `static const` to that class with the codepoint below, then `ClideIcon(PhosphorIcons.<name>, size: 13)`. Keep additions to icons we actually use — don't bulk-import.
+The **In clide** column flags the **47** glyphs already wired into `PhosphorIcons` (`lib/widgets/src/icons/phosphor.dart`) — reach for those first. To use any other glyph, add a one-line `static const` to that class with the codepoint below, then `ClideIcon(PhosphorIcons.<name>, size: 13)`. Keep additions to icons we actually use — don't bulk-import.
 
 | Codepoint | Name (kebab) | Pascal | In clide |
 |---|---|---|---|
@@ -518,10 +518,10 @@ The **In clide** column flags the **45** glyphs already wired into `PhosphorIcon
 | `0xe406` | share | Share |  |
 | `0xe408` | share-network | ShareNetwork |  |
 | `0xe40a` | shield | Shield |  |
-| `0xe40c` | shield-check | ShieldCheck |  |
+| `0xe40c` | shield-check | ShieldCheck | `PhosphorIcons.shieldCheck` |
 | `0xe40e` | shield-chevron | ShieldChevron |  |
 | `0xe410` | shield-slash | ShieldSlash |  |
-| `0xe412` | shield-warning | ShieldWarning |  |
+| `0xe412` | shield-warning | ShieldWarning | `PhosphorIcons.shieldWarning` |
 | `0xe416` | shopping-bag | ShoppingBag |  |
 | `0xe418` | shopping-bag-open | ShoppingBagOpen |  |
 | `0xe41e` | shopping-cart | ShoppingCart |  |

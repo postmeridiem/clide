@@ -18,6 +18,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Permission-mode control beside the Claude composer.** An icon-only,
+  per-mode-coloured button trails the composer text box; clicking it opens a
+  menu of the safe modes (default · accept-edits · plan, active one marked) with
+  `bypass` shown but disabled (it stays behind the cockpit guard). The label
+  appears on hover, in the menu, and in the status bar. The status-bar mode is
+  now a passive, colour-coded indicator (no click) — switching lives in the new
+  control and `Ctrl/Cmd+M`. Built on the new popover primitive (D-88). (T-275)
 - **Clickable T/D/Q/R cross-refs in the Claude conversation.** Bare ticket and
   governance references (`T-281`, `D-77`, `Q-5`, `R-2`) in rendered messages are
   now links: clicking one opens the record in its context-pane reader — `T-`

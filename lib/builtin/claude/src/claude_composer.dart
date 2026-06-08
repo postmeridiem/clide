@@ -13,6 +13,7 @@ import 'dart:io';
 
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/clipboard_paste.dart';
+import 'package:clide/builtin/claude/src/permission_mode_control.dart';
 import 'package:clide/builtin/claude/src/running_indicator.dart';
 import 'package:clide/builtin/claude/src/slash_commands.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
@@ -50,6 +51,8 @@ class ClaudeComposer extends StatefulWidget {
     this.onInterrupt,
     this.busy = false,
     this.onCycleMode,
+    this.permissionMode,
+    this.onSetPermissionMode,
     this.initialValue,
     this.onDraftChanged,
     this.history = const [],
@@ -84,6 +87,14 @@ class ClaudeComposer extends StatefulWidget {
 
   /// Whether a turn is in flight; shows the Stop affordance.
   final bool busy;
+
+  /// Current permission mode (T-275). When set together with
+  /// [onSetPermissionMode], an icon-only mode control trails the text box,
+  /// opening a menu to switch mode. Null hides the control.
+  final String? permissionMode;
+
+  /// Set a specific permission mode from the trailing control's menu (T-275).
+  final ValueChanged<String>? onSetPermissionMode;
 
   /// Seed value (text + selection) the composer mounts with — the
   /// persisted per-session draft (T-228). The composer restores this on
@@ -504,52 +515,69 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                     children: [for (final a in _attachments) _chip(theme, a)],
                   ),
                 ),
-              Semantics(
-                label: widget.hint,
-                textField: true,
-                child: Shortcuts(
-                  shortcuts: const {
-                    SingleActivator(LogicalKeyboardKey.enter): SubmitComposerIntent(),
-                    SingleActivator(LogicalKeyboardKey.numpadEnter): SubmitComposerIntent(),
-                  },
-                  child: Actions(
-                    actions: {
-                      SubmitComposerIntent: CallbackAction<SubmitComposerIntent>(
-                        onInvoke: (_) {
-                          _submit();
-                          return null;
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      label: widget.hint,
+                      textField: true,
+                      child: Shortcuts(
+                        shortcuts: const {
+                          SingleActivator(LogicalKeyboardKey.enter): SubmitComposerIntent(),
+                          SingleActivator(LogicalKeyboardKey.numpadEnter): SubmitComposerIntent(),
                         },
-                      ),
-                      PasteTextIntent: CallbackAction<PasteTextIntent>(
-                        onInvoke: (_) {
-                          unawaited(_handlePaste());
-                          return null;
-                        },
-                      ),
-                    },
-                    child: Stack(
-                      children: [
-                        if (!hasText)
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            right: 0,
-                            child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
+                        child: Actions(
+                          actions: {
+                            SubmitComposerIntent: CallbackAction<SubmitComposerIntent>(
+                              onInvoke: (_) {
+                                _submit();
+                                return null;
+                              },
+                            ),
+                            PasteTextIntent: CallbackAction<PasteTextIntent>(
+                              onInvoke: (_) {
+                                unawaited(_handlePaste());
+                                return null;
+                              },
+                            ),
+                          },
+                          child: Stack(
+                            children: [
+                              if (!hasText)
+                                Positioned(
+                                  left: 0,
+                                  top: 0,
+                                  right: 0,
+                                  child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
+                                ),
+                              EditableText(
+                                controller: _controller,
+                                focusNode: _focus,
+                                readOnly: !widget.enabled,
+                                style: TextStyle(fontSize: clideFontBody, color: fg, height: 1.4),
+                                cursorColor: theme.globalFocus,
+                                backgroundCursorColor: theme.globalTextMuted,
+                                maxLines: 8,
+                                minLines: 1,
+                              ),
+                            ],
                           ),
-                        EditableText(
-                          controller: _controller,
-                          focusNode: _focus,
-                          readOnly: !widget.enabled,
-                          style: TextStyle(fontSize: clideFontBody, color: fg, height: 1.4),
-                          cursorColor: theme.globalFocus,
-                          backgroundCursorColor: theme.globalTextMuted,
-                          maxLines: 8,
-                          minLines: 1,
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                  if (widget.permissionMode != null && widget.onSetPermissionMode != null) ...[
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: PermissionModeControl(
+                        mode: widget.permissionMode!,
+                        onSelect: widget.onSetPermissionMode!,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
