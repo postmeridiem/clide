@@ -1,5 +1,6 @@
 import 'package:alchemist/alchemist.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
+import 'package:clide/builtin/claude/src/conversation_view.dart' show claudeAccent;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,6 +12,38 @@ void main() {
 
   setUp(() async => f = await KernelFixture.create());
   tearDown(() async => f.dispose());
+
+  goldenTest(
+    'ConversationCard attribution (T-265): agent prose is muted, claude prose is coral',
+    fileName: 'conversation_card_attribution',
+    builder: () => GoldenTestGroup(
+      columns: 1,
+      children: [
+        GoldenTestScenario(
+          name: 'claude (main thread) — coral brand stripe',
+          child: _wrap(
+            f,
+            const ConversationCard(
+              accent: claudeAccent,
+              label: 'claude',
+              body: Text('Here is the main-thread answer.', textDirection: TextDirection.ltr),
+            ),
+          ),
+        ),
+        GoldenTestScenario(
+          name: 'agent (sidechain) — muted stripe, not coral',
+          child: _wrap(
+            f,
+            ConversationCard(
+              accent: const Color(0xFF8B8B8B),
+              label: 'agent',
+              body: const Text('Here is the sub-agent answer.', textDirection: TextDirection.ltr),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   goldenTest(
     'ConversationCard merged tool card (T-262): status mark + folded result segment',

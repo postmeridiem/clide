@@ -144,6 +144,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- A **sub-agent's prose and thinking** are now attributed to the **`agent`** (a
+  muted stripe), not the main-thread coral **`claude`** — so a sub-agent's
+  output is no longer presented as if the main Claude said it. Main-thread items
+  are unchanged. (T-265)
 - A **sub-agent's whole run** — its prose, thinking, and tool calls — now nests
   in an **`agent run` holder under its Agent card** instead of spilling loose
   into the main thread, so you can tell where the sub-agent's work begins and

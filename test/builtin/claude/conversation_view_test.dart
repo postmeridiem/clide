@@ -393,6 +393,32 @@ void main() {
       expect(find.bySemanticsLabel('agent run, 2 steps, collapsed'), findsNothing);
     });
 
+    testWidgets('sidechain assistant prose is attributed to "agent", not "claude" (T-265)', (tester) async {
+      // An orphan sidechain prose (no resolvable Agent) renders inline, still
+      // attributed to the agent — never the main-thread coral "claude".
+      await pumpWith(tester, [
+        AssistantTextMessage(uuid: 's', timestamp: _t, isSidechain: true, text: 'sub-agent says hi'),
+      ]);
+      expect(find.text('agent'), findsOneWidget);
+      expect(find.text('claude'), findsNothing);
+    });
+
+    testWidgets('sidechain thinking is attributed to "agent thinking" (T-265)', (tester) async {
+      await pumpWith(tester, [
+        AssistantThinkingMessage(uuid: 's', timestamp: _t, isSidechain: true, thinking: 'hmm let me think'),
+      ]);
+      expect(find.text('agent thinking'), findsOneWidget);
+      expect(find.text('thinking'), findsNothing);
+    });
+
+    testWidgets('main-thread prose + thinking keep "claude"/"thinking" (T-265 unchanged)', (tester) async {
+      await pumpWith(tester, [_asst('main says hi'), _think('main thought')]);
+      expect(find.text('claude'), findsOneWidget);
+      expect(find.text('thinking'), findsOneWidget);
+      expect(find.text('agent'), findsNothing);
+      expect(find.text('agent thinking'), findsNothing);
+    });
+
     testWidgets('a permission-prompted tool-use is hidden but its result is kept', (tester) async {
       await pumpWith(
         tester,

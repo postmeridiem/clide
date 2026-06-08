@@ -354,16 +354,19 @@ class _ConversationTurn extends StatelessWidget {
           copyText: i.text,
           body: ClideMarkdown(i.text),
         ),
+      // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
+      // agent with a muted accent, never the coral "claude" brand (T-265). The
+      // coral claudeAccent is reserved for the real main-thread Claude.
       AssistantTextMessage() => ConversationCard(
-          accent: claudeAccent,
-          label: 'claude',
+          accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
+          label: i.isSidechain ? 'agent' : 'claude',
           copyText: i.text,
           body: ClideMarkdown(i.text),
         ),
       AssistantThinkingMessage() => ConversationCard(
           variant: ConversationCardVariant.bare,
           accent: tokens.globalTextMuted,
-          label: 'thinking',
+          label: i.isSidechain ? 'agent thinking' : 'thinking',
           copyText: i.thinking,
           collapsible: true,
           collapsedByDefault: true,
