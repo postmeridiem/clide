@@ -6,6 +6,7 @@
 library;
 
 export 'src/clide_accordion.dart';
+export 'src/clide_anchored.dart';
 export 'src/clide_button.dart';
 export 'src/clide_column_hat.dart';
 export 'src/clide_code_block.dart';
@@ -14,6 +15,7 @@ export 'src/clide_filter_box.dart';
 export 'src/clide_lightbox.dart';
 export 'src/clide_markdown.dart';
 export 'src/clide_marquee.dart';
+export 'src/clide_menu.dart';
 export 'src/clide_svg_view.dart';
 export 'src/clide_toast.dart';
 export 'src/clide_icon.dart';

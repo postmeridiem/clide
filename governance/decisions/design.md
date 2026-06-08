@@ -1,0 +1,13 @@
+# Design Decisions
+
+User-facing surface — UX, UI conventions, and the public shape of clide-owned
+widget primitives.
+
+---
+
+### D-88: clide-owned anchored popover + menu primitive
+- **Date:** 2026-06-08
+- **Decision:** Anchored, non-modal popovers (dropdowns, pickers, typeaheads, the command palette) build on two clide-owned primitives in `lib/widgets/`: `ClideAnchoredOverlay` (positioning + lifecycle — a `LayerLink`/`CompositedTransformFollower` or centred `Positioned`, a full-screen tap-away barrier, `OverlayEntry` bookkeeping, focus capture, Esc-to-close, and auto-flip on viewport bounds) and `ClideMenu` + `ClideMenuListController` (a dropdown-token row surface with arrow/enter/escape nav, skip-disabled/separator, active mark, and a reusable nav controller for surfaces that keep bespoke rows). No Material/Cupertino. Modal, centred dialogs (session / project / branch pickers) stay on the kernel `DialogRouter` — a separate concern.
+- **Rationale:** Nine surfaces had hand-rolled the same anchored-overlay + row-list + barrier + keyboard-nav pattern (menu-bar dropdowns, theme picker, slash + @ typeaheads, quick-open, three modal pickers), each re-deriving positioning, dismissal, and nav — divergent a11y, inconsistent dismissal, and a `pumpAndSettle`-hostile spread of ad-hoc overlays. Owning one primitive (per "own the rendering stack", [D-5](architecture.md#d-5-dart-core-sidecar-dissolved-ptyc-as-pql-peer)) makes the behaviour uniform and testable once, and turns the tenth surface (the T-275 permission-mode picker) into a few lines instead of another hand-roll.
+- **Cost:** A migration sweep across the existing surfaces (menu bar, theme picker, typeaheads, quick-open); the typeaheads keep their text-completion/key pipeline and only delegate anchoring + body, so the primitive must stay composable (a bare lifecycle wrapper + an optional turnkey menu), not a monolith. New UI authors must reach for the primitive rather than rolling another overlay.
+- **Raised by:** 2026-06-08 — user, while building the T-275 permission-mode picker: "since we don't do Material doesn't mean we can't make components of our own." Realises the "own the rendering stack" guardrail at the component level. Tracked by epic T-286.

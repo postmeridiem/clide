@@ -129,6 +129,7 @@ You might also want, project-permitting:
 - [D-85: Event bus delivery — bounded ring-buffer back-pressure; in-memory cursor retention, bus-owned if persisted](decisions/architecture.md#d-85-event-bus-delivery--bounded-ring-buffer-back-pressure-in-memory-cursor-retention-bus-owned-if-persisted) — _architecture_
 - [D-86: MCP tool surface — full clide namespace generated from the co-registered command registry](decisions/architecture.md#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry) — _architecture_
 - [D-87: Output/log dock — bottom, toggled, read-only (logs + problems)](decisions/architecture.md#d-87-outputlog-dock--bottom-toggled-read-only-logs--problems) — _architecture_
+- [D-88: clide-owned anchored popover + menu primitive](decisions/design.md#d-88-clide-owned-anchored-popover--menu-primitive) — _design_
 
 ## Open questions
 
