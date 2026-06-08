@@ -144,6 +144,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- The in-flight **turn indicator** ("Pondering…") now renders in Claude's
+  coral-orange brand accent instead of muted grey. (T-273)
 - A **sub-agent's prose and thinking** are now attributed to the **`agent`** (a
   muted stripe), not the main-thread coral **`claude`** — so a sub-agent's
   output is no longer presented as if the main Claude said it. Main-thread items

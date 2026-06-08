@@ -1,4 +1,4 @@
-/// In-flight turn indicator (T-255): a muted, animated label shown next to the
+/// In-flight turn indicator (T-255): a Claude-accent-coloured, animated label shown next to the
 /// Stop button while a Claude turn runs. Animated ellipsis (`Pondering` →
 /// `Pondering.` → `..` → `...`) plus a verb that rotates every few seconds.
 ///
@@ -10,6 +10,7 @@
 /// pumps; reduced-motion shows a static verb and the a11y label stays stable.
 library;
 
+import 'package:clide/builtin/claude/src/conversation_view.dart' show claudeAccent;
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -89,14 +90,14 @@ class _RunningIndicatorState extends State<RunningIndicator> with SingleTickerPr
       label: 'Claude is running',
       child: ExcludeSemantics(
         child: reduced
-            ? ClideText('${_verbs.first}…', muted: true, fontSize: clideFontMeta)
+            ? ClideText('${_verbs.first}…', color: claudeAccent, fontSize: clideFontMeta)
             : AnimatedBuilder(
                 animation: _c,
                 builder: (ctx, _) {
                   final elapsed = _c.value * _periodSeconds;
                   final dots = '.' * (elapsed.floor() % 4);
                   final word = _verbs[(elapsed ~/ _secondsPerWord) % _verbs.length];
-                  return ClideText('$word$dots', muted: true, fontSize: clideFontMeta);
+                  return ClideText('$word$dots', color: claudeAccent, fontSize: clideFontMeta);
                 },
               ),
       ),
