@@ -144,6 +144,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- The folded **activity card** now reads as one **container that wraps its
+  sub-cards**, and you can collapse it by clicking anywhere on the holder's own
+  background — not just a top header that scrolls out of reach while a run
+  streams. Taps on a sub-card (and its copy button) still interact with that
+  card. A focusable caret keeps the control keyboard/AT reachable. (T-266)
 - A **sub-agent prompt** is no longer mislabelled as your input: a sidechain
   prompt now reads as a muted **`agent prompt`** (never the blue `you`) and folds
   into its **Agent/Task card**, collapsed by default. The prompt attaches to the

@@ -1873,3 +1873,63 @@ Refs: D-78 (interaction zone / display-only conversation widgets; injected/conte
 IMPLEMENTATION NOTE (E — Agent-card layered ordering, from streamlining analysis):
 
 With this ticket (fold prompt) and T-262 (merge success result) both landing, the Agent/Task card ends up owning multiple segments: the tool INPUT, the folded PROMPT, and — via T-262 — the sub-agents final returned RESULT (the Task ToolResultMessage). Define a deliberate layered order when expanded (e.g. call/input → prompt → returned result) with clear sub-labels/dividers so the Agent card stays readable and does not become a kitchen sink. Coordinate with T-262 (result merge) and T-264 (nesting the whole run): the nested run region vs the returned-result segment must not duplicate the sub-agent output.', 'done', 'medium', NULL, NULL, 'D-78', '2026-06-07 08:34:02', '2026-06-08 08:45:23', NULL, '561ac6a3308d08c0da27bcb23eb21cc0', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-266', 'story', 'T-267', 'Restyle activity/holder card as a container of sub-cards (fix collapse-control scroll race)', 'Restyle the activity card (and, via a shared primitive, the nested sub-agent run from T-264) so a folded run reads as ONE container that holds its sub-cards, with a reachable collapse/expand affordance that survives live writes.
+
+DESIGN RESOLVED (with user) — supersedes the earlier design-pending note.
+
+1. HOLDER = a shared container primitive. Extract one container widget (e.g. a ClideHolderCard / conversation-level container) that renders a titled/attributed frame WRAPPING its child sub-cards. Both the activity card (_ActivityCard, lib/builtin/claude/src/conversation_view.dart ~L427) and the nested sub-agent run (T-264) consume it, so the container model is settled once. NOTE: this makes T-266 a DEPENDENCY of T-264 (the shared primitive must exist before the agent-run nesting can consume it) — update epic T-267 sequencing: T-266''s primitive lands before/with T-264, no longer strictly last.
+
+2. Toggle = the HOLDER BACKGROUND, not the children. Clicking the container''s own background/chrome (its padding, the gaps between sub-cards, its gutter — any region NOT covered by a child) toggles collapse/expand. Crucially:
+- Taps on a child sub-card lying on top of the background MUST NOT toggle the holder. Child cards opaquely consume their own hit region across their FULL bounds (including their body), so a click on a sub-card interacts with that card, never the holder.
+- The copy button (and any child control / ClideTappable) keeps its own interaction — never swallowed by the holder toggle.
+- Implementation: a background gesture target behind the children that only fires for hits the children do not consume (HitTestBehavior; children opaque over their bounds). No whole-card overlay that would intercept child taps.
+
+3. Autoscroll stays ALWAYS-FOLLOW. Keep the current tail-follow (conversation_view._onChanged ~L119 jumps to maxScrollExtent on every change). Reachability of the collapse control no longer depends on getting to a top header: because the toggle is the ever-present holder BACKGROUND, a click on whatever background area is currently in view (near the latest content while following) collapses the holder — ending the race. Once collapsed the card shrinks to its ticker, so the scroll-yank stops.
+
+4. Keep the collapsed ticker. Collapsed (default) still shows the one-line live ticker (latest step) + step count, as today. Expanded shows the contained sub-cards.
+
+5. Accessibility (obligation): a background tap is not keyboard/AT reachable on its own, so keep an EXPLICIT focusable, Enter/Space-activatable collapse control (e.g. the ticker row remains a Semantics button / a focusable caret) in addition to the background-click affordance. Announce expanded/collapsed + step count (as _ActivityCard does today).
+
+Touch points:
+- New shared container primitive (extracted from _ActivityCard).
+- conversation_view.dart: _ActivityCard adopts the primitive; background-toggle wiring; ensure child ConversationCards opaquely consume their bounds so they do not bubble taps to the holder.
+- T-264 consumes the same primitive for the nested agent run.
+
+Edge cases:
+- A holder whose child is itself collapsible (a tool card): tapping the child''s caret/body toggles the CHILD, never the holder.
+- Text selection inside a child (ClideSelectionArea wraps the list): selection drags on child bodies must not be hijacked by the holder toggle — another reason the holder responds only to its own background, and only to taps (not drags).
+- Empty / single-item holder.
+
+Tests: holder background tap toggles; tap on a child sub-card does NOT toggle the holder; copy button still copies (not swallowed); keyboard/AT path toggles via the explicit control; collapsed ticker + step count preserved. Add a golden for the holder container (collapsed + expanded).
+
+Refs: D-78. Provides the shared container consumed by T-264. Related: T-230 (activity card), T-262 / T-263 / T-265. Parent: T-267.', 'in_progress', 'medium', NULL, NULL, 'D-78', '2026-06-07 08:41:13', '2026-06-08 08:47:43', NULL, 'c983e4459c327d71c9783c06286f4b49', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-266', 'story', 'T-267', 'Restyle activity/holder card as a container of sub-cards (fix collapse-control scroll race)', 'Restyle the activity card (and, via a shared primitive, the nested sub-agent run from T-264) so a folded run reads as ONE container that holds its sub-cards, with a reachable collapse/expand affordance that survives live writes.
+
+DESIGN RESOLVED (with user) — supersedes the earlier design-pending note.
+
+1. HOLDER = a shared container primitive. Extract one container widget (e.g. a ClideHolderCard / conversation-level container) that renders a titled/attributed frame WRAPPING its child sub-cards. Both the activity card (_ActivityCard, lib/builtin/claude/src/conversation_view.dart ~L427) and the nested sub-agent run (T-264) consume it, so the container model is settled once. NOTE: this makes T-266 a DEPENDENCY of T-264 (the shared primitive must exist before the agent-run nesting can consume it) — update epic T-267 sequencing: T-266''s primitive lands before/with T-264, no longer strictly last.
+
+2. Toggle = the HOLDER BACKGROUND, not the children. Clicking the container''s own background/chrome (its padding, the gaps between sub-cards, its gutter — any region NOT covered by a child) toggles collapse/expand. Crucially:
+- Taps on a child sub-card lying on top of the background MUST NOT toggle the holder. Child cards opaquely consume their own hit region across their FULL bounds (including their body), so a click on a sub-card interacts with that card, never the holder.
+- The copy button (and any child control / ClideTappable) keeps its own interaction — never swallowed by the holder toggle.
+- Implementation: a background gesture target behind the children that only fires for hits the children do not consume (HitTestBehavior; children opaque over their bounds). No whole-card overlay that would intercept child taps.
+
+3. Autoscroll stays ALWAYS-FOLLOW. Keep the current tail-follow (conversation_view._onChanged ~L119 jumps to maxScrollExtent on every change). Reachability of the collapse control no longer depends on getting to a top header: because the toggle is the ever-present holder BACKGROUND, a click on whatever background area is currently in view (near the latest content while following) collapses the holder — ending the race. Once collapsed the card shrinks to its ticker, so the scroll-yank stops.
+
+4. Keep the collapsed ticker. Collapsed (default) still shows the one-line live ticker (latest step) + step count, as today. Expanded shows the contained sub-cards.
+
+5. Accessibility (obligation): a background tap is not keyboard/AT reachable on its own, so keep an EXPLICIT focusable, Enter/Space-activatable collapse control (e.g. the ticker row remains a Semantics button / a focusable caret) in addition to the background-click affordance. Announce expanded/collapsed + step count (as _ActivityCard does today).
+
+Touch points:
+- New shared container primitive (extracted from _ActivityCard).
+- conversation_view.dart: _ActivityCard adopts the primitive; background-toggle wiring; ensure child ConversationCards opaquely consume their bounds so they do not bubble taps to the holder.
+- T-264 consumes the same primitive for the nested agent run.
+
+Edge cases:
+- A holder whose child is itself collapsible (a tool card): tapping the child''s caret/body toggles the CHILD, never the holder.
+- Text selection inside a child (ClideSelectionArea wraps the list): selection drags on child bodies must not be hijacked by the holder toggle — another reason the holder responds only to its own background, and only to taps (not drags).
+- Empty / single-item holder.
+
+Tests: holder background tap toggles; tap on a child sub-card does NOT toggle the holder; copy button still copies (not swallowed); keyboard/AT path toggles via the explicit control; collapsed ticker + step count preserved. Add a golden for the holder container (collapsed + expanded).
+
+Refs: D-78. Provides the shared container consumed by T-264. Related: T-230 (activity card), T-262 / T-263 / T-265. Parent: T-267.', 'done', 'medium', NULL, NULL, 'D-78', '2026-06-07 08:41:13', '2026-06-08 09:04:12', NULL, '9da8b26d36d66bf1d26125519ec45872', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

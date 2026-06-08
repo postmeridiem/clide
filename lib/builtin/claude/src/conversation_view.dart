@@ -15,6 +15,7 @@ import 'dart:io';
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
+import 'package:clide/builtin/claude/src/holder_card.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/facade.dart';
@@ -541,12 +542,12 @@ class _ConversationTurn extends StatelessWidget {
 }
 
 /// A folded run of meta items rendered as one collapsible activity card
-/// (T-230). Collapsed (default): a one-line live ticker of the latest step +
-/// a step count — re-grouped on every rebuild, so the ticker updates in place
-/// as the run grows. Expanded: every folded step in order. Keyboard + screen
-/// reader accessible: [ClideTappable] activates on Enter/Space, and the
-/// Semantics announces the step count + expanded/collapsed state.
-class _ActivityCard extends StatefulWidget {
+/// (T-230), now through the shared [ClideHolderCard] container (T-266).
+/// Collapsed (default): a one-line live ticker of the latest step + a step
+/// count — re-grouped on every rebuild, so the ticker updates in place as the
+/// run grows. Expanded: every folded step, wrapped in the holder frame whose
+/// background toggles collapse. Stateless — the holder owns the expand state.
+class _ActivityCard extends StatelessWidget {
   const _ActivityCard({
     required this.items,
     required this.tokens,
@@ -564,80 +565,22 @@ class _ActivityCard extends StatefulWidget {
   final Map<String, List<UserMessage>> promptsByToolUseId;
 
   @override
-  State<_ActivityCard> createState() => _ActivityCardState();
-}
-
-class _ActivityCardState extends State<_ActivityCard> {
-  bool _expanded = false;
-
-  @override
   Widget build(BuildContext context) {
-    final tokens = widget.tokens;
-    final count = widget.items.length;
-    final stepLabel = count == 1 ? '1 step' : '$count steps';
-
-    final header = ClideTappable(
-      onTap: () => setState(() => _expanded = !_expanded),
-      builder: (context, hovered, focused) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
-          border: Border.all(color: tokens.panelBorder),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          children: [
-            ClideIcon(_expanded ? const ChevronDownIcon() : const ChevronRightIcon(), size: 12, color: tokens.globalTextMuted),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ClideText(
-                _expanded ? 'Activity' : _summarizeActivity(widget.items.last),
-                fontSize: clideFontCaption,
-                fontFamily: clideMonoFamily,
-                color: tokens.globalTextMuted,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            ClideText(stepLabel, fontSize: clideFontCaption, color: tokens.globalTextMuted),
-          ],
-        ),
-      ),
-    );
-
-    return Semantics(
-      button: true,
-      expanded: _expanded,
-      label: 'Activity, $stepLabel, ${_expanded ? 'expanded' : 'collapsed'}',
-      excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            header,
-            if (_expanded)
-              Padding(
-                padding: const EdgeInsets.only(left: 12, top: 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final item in widget.items)
-                      _ConversationTurn(
-                        item: item,
-                        tokens: tokens,
-                        toolUseOutcomes: widget.toolUseOutcomes,
-                        toolUseById: widget.toolUseById,
-                        resultByToolUseId: widget.resultByToolUseId,
-                        promptsByToolUseId: widget.promptsByToolUseId,
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
+    final count = items.length;
+    return ClideHolderCard(
+      collapsedSummary: _summarizeActivity(items.last),
+      stepLabel: count == 1 ? '1 step' : '$count steps',
+      children: [
+        for (final item in items)
+          _ConversationTurn(
+            item: item,
+            tokens: tokens,
+            toolUseOutcomes: toolUseOutcomes,
+            toolUseById: toolUseById,
+            resultByToolUseId: resultByToolUseId,
+            promptsByToolUseId: promptsByToolUseId,
+          ),
+      ],
     );
   }
 }
