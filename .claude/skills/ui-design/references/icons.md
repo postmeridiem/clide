@@ -5,14 +5,19 @@
 The app bundles Phosphor Icons (v2.0.8, MIT) as TTF fonts at
 `assets/fonts/phosphor/` (regular, bold, fill weights).
 
-**Codepoint reference:** `assets/fonts/phosphor/codepoints.csv` — full
-mapping of all 1512 icon codepoints to kebab-case and PascalCase
-names. Read this file to look up any icon by name or codepoint.
+**Glyph reference:** [`phosphor-glyphs.md`](phosphor-glyphs.md) — the full
+1512-glyph table (codepoint · kebab name · Pascal name) with an **In clide**
+column flagging the ~45 already wired into `PhosphorIcons`. Read/grep this to
+pick a glyph; reach for an already-defined one first. (It mirrors
+`assets/fonts/phosphor/codepoints.csv`; regenerate with
+`python3 .claude/skills/ui-design/scripts/gen-phosphor-glyphs.py` after a font
+bump.)
 
 ### Adding an icon
 
-Find the codepoint in `codepoints.csv`, then add a `static const`
-entry to `PhosphorIcons` in `lib/widgets/src/icons/phosphor.dart`:
+Find the codepoint in [`phosphor-glyphs.md`](phosphor-glyphs.md), then add a
+`static const` entry to `PhosphorIcons` in
+`lib/widgets/src/icons/phosphor.dart`:
 
 ```dart
 static const arrowClockwise = PhosphorIconPainter(0xe036);

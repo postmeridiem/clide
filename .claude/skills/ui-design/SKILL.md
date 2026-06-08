@@ -22,6 +22,7 @@ This skill bundles four concerns that all surface in widget work:
 | Token selection per surface | [`references/surface.md`](references/surface.md) | Building a new widget or modifying an existing one — "which token does this need" |
 | Spacing, alignment, control layout | [`references/geometry.md`](references/geometry.md) | Building tab strips, list items, buttons, anything where icons sit next to text or padded edges |
 | Phosphor icon usage and codepoints | [`references/icons.md`](references/icons.md) | Adding or referencing an icon |
+| Full Phosphor glyph table (1512, with codepoints) | [`references/phosphor-glyphs.md`](references/phosphor-glyphs.md) | Picking a specific glyph by name/look — find its codepoint, see if it's already defined |
 
 Read the reference that matches the question. They cross-reference each
 other where relevant; you don't need to read all four.
