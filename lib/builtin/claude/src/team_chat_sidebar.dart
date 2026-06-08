@@ -45,8 +45,6 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
   StreamSubscription<void>? _sub;
   final _controller = TextEditingController();
   final _focusNode = FocusNode(debugLabel: 'team-chat-sidebar');
-  final _layerLink = LayerLink();
-  OverlayEntry? _overlay;
   List<String> _suggestions = const [];
   AtQuery? _activeQuery;
 
@@ -62,7 +60,6 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
   @override
   void dispose() {
     _sub?.cancel();
-    _removeOverlay();
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _focusNode.dispose();
@@ -93,28 +90,6 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
       _suggestions = newSuggestions;
       _activeQuery = query;
     });
-    if (newSuggestions.isEmpty) {
-      _removeOverlay();
-    } else {
-      _showOverlay();
-    }
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    final entry = OverlayEntry(
-        builder: (_) => _AtOverlay(
-              layerLink: _layerLink,
-              suggestions: _suggestions,
-              onSelect: _completeName,
-            ));
-    _overlay = entry;
-    Overlay.of(context).insert(entry);
-  }
-
-  void _removeOverlay() {
-    _overlay?.remove();
-    _overlay = null;
   }
 
   void _completeName(String name) {
@@ -125,7 +100,6 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
       text: result.text,
       selection: TextSelection.collapsed(offset: result.cursor),
     );
-    _removeOverlay();
     setState(() {
       _suggestions = const [];
       _activeQuery = null;
@@ -138,12 +112,10 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
     final parsed = parseAtTag(text);
     widget.model.postAsUser(parsed.body.isEmpty ? text : parsed.body, toName: parsed.recipient);
     _controller.clear();
-    _removeOverlay();
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-      _removeOverlay();
       setState(() {
         _suggestions = const [];
         _activeQuery = null;
@@ -199,8 +171,10 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
             _ChatRow(key: ValueKey(msg.at.microsecondsSinceEpoch), message: msg, tokens: tokens),
         const SizedBox(height: 6),
         // Quick-post composer.
-        CompositedTransformTarget(
-          link: _layerLink,
+        ClideTypeahead(
+          suggestions: _suggestions,
+          onSelect: _completeName,
+          formatLabel: (n) => '@$n',
           child: Focus(
             onKeyEvent: _handleKeyEvent,
             child: _ChatInputField(
@@ -243,9 +217,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
   StreamSubscription<void>? _sub;
   final _controller = TextEditingController();
   final _focusNode = FocusNode(debugLabel: 'team-chat-pane');
-  final _layerLink = LayerLink();
   final _scrollController = ScrollController();
-  OverlayEntry? _overlay;
   List<String> _suggestions = const [];
   AtQuery? _activeQuery;
   bool _interrupt = false;
@@ -274,7 +246,6 @@ class _TeamChatPaneState extends State<TeamChatPane> {
   @override
   void dispose() {
     _sub?.cancel();
-    _removeOverlay();
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _focusNode.dispose();
@@ -306,28 +277,6 @@ class _TeamChatPaneState extends State<TeamChatPane> {
       _suggestions = newSuggestions;
       _activeQuery = query;
     });
-    if (newSuggestions.isEmpty) {
-      _removeOverlay();
-    } else {
-      _showOverlay();
-    }
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    final entry = OverlayEntry(
-        builder: (_) => _AtOverlay(
-              layerLink: _layerLink,
-              suggestions: _suggestions,
-              onSelect: _completeName,
-            ));
-    _overlay = entry;
-    Overlay.of(context).insert(entry);
-  }
-
-  void _removeOverlay() {
-    _overlay?.remove();
-    _overlay = null;
   }
 
   void _completeName(String name) {
@@ -338,7 +287,6 @@ class _TeamChatPaneState extends State<TeamChatPane> {
       text: result.text,
       selection: TextSelection.collapsed(offset: result.cursor),
     );
-    _removeOverlay();
     setState(() {
       _suggestions = const [];
       _activeQuery = null;
@@ -355,12 +303,10 @@ class _TeamChatPaneState extends State<TeamChatPane> {
       interrupt: _interrupt,
     );
     _controller.clear();
-    _removeOverlay();
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-      _removeOverlay();
       setState(() {
         _suggestions = const [];
         _activeQuery = null;
@@ -453,8 +399,10 @@ class _TeamChatPaneState extends State<TeamChatPane> {
               ),
               const SizedBox(height: 4),
               // Input field.
-              CompositedTransformTarget(
-                link: _layerLink,
+              ClideTypeahead(
+                suggestions: _suggestions,
+                onSelect: _completeName,
+                formatLabel: (n) => '@$n',
                 child: Focus(
                   onKeyEvent: _handleKeyEvent,
                   child: _ChatInputField(
@@ -568,68 +516,6 @@ class _ChatInputField extends StatelessWidget {
         cursorColor: tokens.globalFocus,
         backgroundCursorColor: tokens.globalTextMuted,
         onSubmitted: onSubmit,
-      ),
-    );
-  }
-}
-
-/// @-completion overlay, attached via [CompositedTransformTarget] /
-/// [CompositedTransformFollower] so it tracks the input field.
-class _AtOverlay extends StatelessWidget {
-  const _AtOverlay({
-    required this.layerLink,
-    required this.suggestions,
-    required this.onSelect,
-  });
-
-  final LayerLink layerLink;
-  final List<String> suggestions;
-  final void Function(String name) onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Positioned(
-      // Overlay is attached relative to the layerLink; height is open so the
-      // follower drives layout. The CompositedTransformFollower handles x/y.
-      width: 0,
-      height: 0,
-      child: CompositedTransformFollower(
-        link: layerLink,
-        showWhenUnlinked: false,
-        offset: const Offset(0, -4),
-        child: Align(
-          alignment: Alignment.bottomLeft,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 180, maxHeight: 140),
-            decoration: BoxDecoration(
-              color: tokens.panelBackground,
-              border: Border.all(color: tokens.panelBorder),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              shrinkWrap: true,
-              children: [
-                for (final name in suggestions)
-                  Semantics(
-                    button: true,
-                    label: '@$name',
-                    excludeSemantics: true,
-                    onTap: () => onSelect(name),
-                    child: ClideTappable(
-                      onTap: () => onSelect(name),
-                      builder: (ctx, hovered, _) => Container(
-                        color: hovered ? tokens.globalFocus.withAlpha(20) : null,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        child: ClideText('@$name', fontSize: clideFontSmall, color: tokens.globalForeground),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
