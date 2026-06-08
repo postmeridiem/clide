@@ -148,16 +148,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   muted stripe), not the main-thread coral **`claude`** — so a sub-agent's
   output is no longer presented as if the main Claude said it. Main-thread items
   are unchanged. (T-265)
-- A **sub-agent's whole run** — its prose, thinking, and tool calls — now nests
-  in an **`agent run` holder under its Agent card** instead of spilling loose
-  into the main thread, so you can tell where the sub-agent's work begins and
-  ends. The run attaches via `parentUuid` (correct even for parallel agents),
+- A **sub-agent's whole run** — prose, thinking, and tool calls — now nests in
+  an **`agent run` holder under its Agent card** instead of spilling loose into
+  the main thread. It attaches via `parentUuid` (correct for parallel agents),
   and the redundant returned-result is no longer shown twice. (T-264)
-- The folded **activity card** now reads as one **container that wraps its
+- The folded **activity card** now reads as one **container wrapping its
   sub-cards**, and you can collapse it by clicking anywhere on the holder's own
-  background — not just a top header that scrolls out of reach while a run
-  streams. Taps on a sub-card (and its copy button) still interact with that
-  card. A focusable caret keeps the control keyboard/AT reachable. (T-266)
+  background — not a top header that scrolls out of reach as a run streams. Taps
+  on a sub-card (and its copy button) still hit that card; a focusable caret
+  keeps the control keyboard/AT reachable. (T-266)
 - A **sub-agent prompt** is no longer mislabelled as your input: a sidechain
   prompt now reads as a muted **`agent prompt`** (never the blue `you`) and folds
   into its **Agent/Task card**, collapsed by default. The prompt attaches to the
