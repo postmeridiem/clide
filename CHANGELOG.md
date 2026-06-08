@@ -19,18 +19,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Added
 
 - **Permission-mode control beside the Claude composer.** An icon-only,
-  per-mode-coloured button trails the composer text box; clicking it opens a
-  menu of the safe modes (default · accept-edits · plan, active one marked) with
-  `bypass` shown but disabled (it stays behind the cockpit guard). The label
-  appears on hover, in the menu, and in the status bar. The status-bar mode is
-  now a passive, colour-coded indicator (no click) — switching lives in the new
-  control and `Ctrl/Cmd+M`. Built on the new popover primitive (D-88). (T-275)
+  per-mode-coloured button opens a menu of the safe modes (default ·
+  accept-edits · plan); `bypass` shows disabled. The status-bar mode is now a
+  passive colour-coded indicator — switching lives in the control and
+  `Ctrl/Cmd+M`. (T-275)
 - **Clickable T/D/Q/R cross-refs in the Claude conversation.** Bare ticket and
   governance references (`T-281`, `D-77`, `Q-5`, `R-2`) in rendered messages are
-  now links: clicking one opens the record in its context-pane reader — `T-`
-  in the tickets reader, `D`/`Q`/`R` in the decisions reader — reusing the same
-  `selection` addressing as `clide ui open` (D-6 parity). Refs inside code spans
-  and code blocks stay literal, and `T-shirt`-style words are left alone. (T-279)
+  now links that open the record in its context-pane reader — tickets for `T-`,
+  decisions for `D`/`Q`/`R`. Refs inside code stay literal. (T-279)
 - A Zed-style **application menu bar** in the hat — **File / View / Help**
   menus built from custom widgets (no native menu, D-7), populated from the
   command registry with inline keybindings. Full keyboard nav (`Alt`+mnemonic,
