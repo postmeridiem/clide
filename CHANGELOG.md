@@ -198,6 +198,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Bordered conversation cards (tool / Agent calls) now use the same interior
+  vertical padding (8) as the stripe cards, so a collapsed tool/Agent card no
+  longer reads chunkier — taller box, more trailing space — than its
+  neighbours in the conversation log. (T-282)
 - Conversation cards no longer **mis-associate their state** when the message
   list reshapes as a tool result streams in. The list items now carry stable
   per-item keys, so a card you expanded (or its hover/cluster state) stays

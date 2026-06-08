@@ -216,7 +216,10 @@ class _ConversationCardState extends State<ConversationCard> {
         );
       case ConversationCardVariant.bordered:
         return Container(
-          padding: const EdgeInsets.all(10),
+          // Vertical interior padding matches the stripe variant (8) so boxed
+          // cards share one rhythm — a collapsed tool/Agent card no longer reads
+          // chunkier (taller box + more trailing space) than its neighbours (T-282).
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           decoration: BoxDecoration(
             color: tokens.globalBackground,
             border: Border.all(color: widget.borderColor ?? tokens.panelBorder),
