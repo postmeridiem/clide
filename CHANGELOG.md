@@ -205,6 +205,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- The welcome screen no longer overflows on a short or narrow window — its
+  content scrolls when it can't fit and stays centred when it can, and a long
+  git-branch name on a recent-project row now truncates with an ellipsis. (T-273)
 - Bordered conversation cards (tool / Agent calls) now use the same interior
   vertical padding (8) as the stripe cards, so a collapsed tool/Agent card no
   longer reads chunkier — taller box, more trailing space — than its

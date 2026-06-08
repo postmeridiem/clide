@@ -21,28 +21,38 @@ class WelcomeView extends StatelessWidget {
         final showTips = c.maxHeight > 640;
         return Stack(
           children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 850),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _Header(tokens: tokens),
-                    const SizedBox(height: 56),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _StartColumn(tokens: tokens, kernel: kernel)),
-                        const SizedBox(width: 56),
-                        Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
-                      ],
+            // Scrollable so a short/narrow viewport (many recents, small window)
+            // never overflows; minHeight keeps the content vertically centred
+            // when there is room (T-273 follow-up — welcome RenderFlex overflow).
+            Positioned.fill(
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: c.maxHeight),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 850),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _Header(tokens: tokens),
+                          const SizedBox(height: 56),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _StartColumn(tokens: tokens, kernel: kernel)),
+                              const SizedBox(width: 56),
+                              Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
+                            ],
+                          ),
+                          if (showTips) ...[
+                            const SizedBox(height: 48),
+                            _TipsCard(tokens: tokens),
+                          ],
+                        ],
+                      ),
                     ),
-                    if (showTips) ...[
-                      const SizedBox(height: 48),
-                      _TipsCard(tokens: tokens),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -324,7 +334,9 @@ class _RecentRow extends StatelessWidget {
                         ClideText('  ·  ', muted: true, fontSize: clideFontMeta),
                         ClideIcon(PhosphorIcons.gitBranch, size: 11, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
-                        ClideText(project.branch!, muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily),
+                        Flexible(
+                            child: ClideText(project.branch!,
+                                muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
                       ],
                     ],
                   ),
