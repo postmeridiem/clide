@@ -151,6 +151,7 @@ void main() {
       await pumpWithCommands(tester, ['model', 'memory', 'clear']);
       await tester.enterText(find.byType(EditableText), '/m');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
 
       expect(find.text('/model'), findsOneWidget);
       expect(find.text('/memory'), findsOneWidget);
@@ -161,6 +162,7 @@ void main() {
       await pumpWithCommands(tester, ['clear', 'compact']);
       await tester.enterText(find.byType(EditableText), 'hey /cl');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
       expect(find.text('/clear'), findsOneWidget);
     });
 
@@ -173,6 +175,7 @@ void main() {
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
+      await tester.pump(); // popover closes post-frame after completion
 
       expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '/model ');
       expect(submitted, isEmpty, reason: 'Enter completes, it does not submit, while the popup is open');
@@ -192,10 +195,12 @@ void main() {
       await pumpWithCommands(tester, ['model']);
       await tester.enterText(find.byType(EditableText), '/mo');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
       expect(find.text('/model'), findsOneWidget);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
+      await tester.pump(); // popover closes post-frame
       expect(find.text('/model'), findsNothing);
     });
 
@@ -260,11 +265,13 @@ void main() {
       ));
       await tester.enterText(find.byType(EditableText), '/mo');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
       expect(find.text('/model'), findsOneWidget);
 
       // First Escape only dismisses the popup; it does not interrupt.
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
+      await tester.pump(); // popover closes post-frame
       expect(find.text('/model'), findsNothing);
       expect(interrupts, 0);
 
@@ -302,6 +309,7 @@ void main() {
       await pumpWithCommands(tester, ['model']);
       await tester.enterText(find.byType(EditableText), '/res');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
 
       // /resume must appear (sourced from kClideOwnedCommands).
       expect(find.text('/resume'), findsOneWidget);
@@ -314,6 +322,7 @@ void main() {
       await pumpWithCommands(tester, ['clear', 'model']);
       await tester.enterText(find.byType(EditableText), '/cl');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
 
       // /clear must appear exactly once (filterSlashCommands de-dupes via seen set).
       expect(find.text('/clear'), findsOneWidget);
@@ -328,6 +337,7 @@ void main() {
       ));
       await tester.enterText(find.byType(EditableText), '/fo');
       await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
 
       // /fork is a kClideOwnedCommands member; it must appear without a probe.
       expect(find.text('/fork'), findsOneWidget);

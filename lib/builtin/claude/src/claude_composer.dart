@@ -126,12 +126,12 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
   late final FocusNode _focus = widget.focusNode ?? FocusNode();
   final List<ComposerAttachment> _attachments = [];
 
-  // Slash typeahead state (T-152).
-  final LayerLink _link = LayerLink();
-  OverlayEntry? _overlay;
+  // Slash typeahead state (T-152). The popover is a ClideTypeahead driven by
+  // [_suggestions] (D-88); [_slashNav] is its highlight, advanced from _onKey
+  // while the EditableText keeps focus.
   SlashQuery? _query;
   List<String> _suggestions = const [];
-  int _selected = 0;
+  final ClideMenuListController _slashNav = ClideMenuListController(isSelectable: (_) => true, length: 0);
 
   // Prompt-history navigation (T-163). _historyIndex is null when editing
   // the live draft; otherwise it indexes [widget.history]. _stash holds the
@@ -159,7 +159,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   @override
   void dispose() {
-    _closeTypeahead();
+    _slashNav.dispose();
     _controller.removeListener(_onTextChanged);
     _focus.removeListener(_onFocusChanged);
     _controller.dispose();
@@ -207,42 +207,47 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
       _closeTypeahead();
       return;
     }
+    // _onTextChanged (our only caller) already setState'd; just update state +
+    // the highlight, and ClideTypeahead opens the popover from [_suggestions].
     _query = q;
     _suggestions = suggestions;
-    _selected = 0;
-    if (_overlay == null) {
-      _overlay = OverlayEntry(builder: _buildTypeahead);
-      Overlay.of(context).insert(_overlay!);
-    } else {
-      _overlay!.markNeedsBuild();
-    }
+    _slashNav.length = suggestions.length;
+    _slashNav.setHighlight(0);
   }
 
   void _closeTypeahead() {
-    _overlay?.remove();
-    _overlay = null;
-    _query = null;
-    _suggestions = const [];
-    _selected = 0;
+    if (_query == null && _suggestions.isEmpty) return;
+    if (mounted) {
+      setState(() {
+        _query = null;
+        _suggestions = const [];
+      });
+    } else {
+      _query = null;
+      _suggestions = const [];
+    }
+    _slashNav.length = 0;
   }
 
-  void _moveSelection(int delta) {
-    if (_suggestions.isEmpty) return;
-    _selected = (_selected + delta) % _suggestions.length;
-    if (_selected < 0) _selected += _suggestions.length;
-    _overlay?.markNeedsBuild();
-  }
+  void _moveSelection(int delta) => delta > 0 ? _slashNav.moveNext() : _slashNav.movePrev();
 
   void _completeSelected() {
+    final i = _slashNav.highlighted;
+    if (i < 0 || i >= _suggestions.length) return;
+    _complete(_suggestions[i]);
+  }
+
+  /// Replace the active `/query` with [command] (keyboard Tab/Enter or a mouse
+  /// click on a typeahead row). The replacement re-runs _syncTypeahead via the
+  /// controller listener; the caret now sits after a space, so the query closes.
+  void _complete(String command) {
     final q = _query;
-    if (q == null || _suggestions.isEmpty) return;
-    final r = completeSlash(_controller.text, q, _suggestions[_selected]);
+    if (q == null) return;
+    final r = completeSlash(_controller.text, q, command);
     _controller.value = TextEditingValue(
       text: r.text,
       selection: TextSelection.collapsed(offset: r.cursor),
     );
-    // The replacement re-runs _syncTypeahead via the controller listener; the
-    // caret now sits after a space, so the query closes.
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
@@ -258,7 +263,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     // Escape: dismiss the typeahead if open, otherwise interrupt the running
     // turn — the escape hatch from a runaway (D-78).
     if (e.logicalKey == LogicalKeyboardKey.escape) {
-      if (_overlay != null) {
+      if (_suggestions.isNotEmpty) {
         _closeTypeahead();
         return KeyEventResult.handled;
       }
@@ -268,7 +273,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
       }
       return KeyEventResult.ignored;
     }
-    if (_overlay == null) {
+    if (_suggestions.isEmpty) {
       // Typeahead closed → Up/Down recall prompt history, but only once the
       // caret reaches the first/last line so multi-line editing still works
       // line-by-line first (T-163, Claude-CLI-style).
@@ -357,69 +362,6 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     _applyingHistory = false;
   }
 
-  Widget _buildTypeahead(BuildContext ctx) {
-    final theme = ClideTheme.of(ctx).surface;
-    return Positioned(
-      left: 0,
-      top: 0,
-      child: CompositedTransformFollower(
-        link: _link,
-        targetAnchor: Alignment.topLeft,
-        followerAnchor: Alignment.bottomLeft,
-        offset: const Offset(0, -4),
-        showWhenUnlinked: false,
-        child: SizedBox(
-          width: 320,
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.panelBackground,
-              border: Border.all(color: theme.globalBorder),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < _suggestions.length; i++) _suggestionRow(theme, i),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _suggestionRow(SurfaceTokens theme, int i) {
-    final selected = i == _selected;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '/${_suggestions[i]}',
-      child: GestureDetector(
-        onTap: () {
-          _selected = i;
-          _completeSelected();
-          _focus.requestFocus();
-        },
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Container(
-            color: selected ? theme.panelActiveBorder : null,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            child: ClideText(
-              '/${_suggestions[i]}',
-              fontSize: clideFontSmall,
-              fontFamily: clideMonoFamily,
-              color: theme.globalForeground,
-              maxLines: 1,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _submit() {
     if (!widget.enabled) return;
     final text = _controller.text;
@@ -477,8 +419,11 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-      child: CompositedTransformTarget(
-        link: _link,
+      child: ClideTypeahead(
+        suggestions: _suggestions,
+        onSelect: _complete,
+        navController: _slashNav,
+        formatLabel: (c) => '/$c',
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: theme.globalBorder),

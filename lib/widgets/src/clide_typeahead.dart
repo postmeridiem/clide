@@ -51,6 +51,13 @@ class ClideTypeahead extends StatefulWidget {
 class _ClideTypeaheadState extends State<ClideTypeahead> {
   final ClideOverlayController _overlay = ClideOverlayController();
 
+  // The live suggestion list bridged into the overlay. The OverlayEntry is a
+  // separate subtree that does NOT rebuild when this widget does, so a plain
+  // captured list would go stale as the user types; a ValueListenableBuilder
+  // inside the entry rebuilds the menu live without an (illegal, mid-build)
+  // markNeedsBuild on the entry.
+  final ValueNotifier<List<String>> _items = ValueNotifier(const []);
+
   @override
   void initState() {
     super.initState();
@@ -63,11 +70,14 @@ class _ClideTypeaheadState extends State<ClideTypeahead> {
     _scheduleSync();
   }
 
-  // Drive open/close off the suggestion list, post-frame — opening inserts an
-  // OverlayEntry, which is illegal during the parent's build.
+  // Drive open/close + live content off the suggestion list, post-frame.
+  // Opening inserts an OverlayEntry and pushing the new list notifies the
+  // overlay's ValueListenableBuilder — both rebuild widgets, which is illegal
+  // during the parent's build, so defer to after the frame.
   void _scheduleSync() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _items.value = widget.suggestions;
       if (widget.suggestions.isEmpty) {
         _overlay.close();
       } else {
@@ -79,6 +89,7 @@ class _ClideTypeaheadState extends State<ClideTypeahead> {
   @override
   void dispose() {
     _overlay.dispose();
+    _items.dispose();
     super.dispose();
   }
 
@@ -93,15 +104,18 @@ class _ClideTypeaheadState extends State<ClideTypeahead> {
       captureFocus: false, // the text field keeps focus
       dismissOnEscape: false, // the host routes Esc
       anchor: widget.child,
-      overlayBuilder: (ctx, ctrl) => ClideMenu(
-        autofocus: false,
-        hoverHighlight: widget.navController == null,
-        controller: widget.navController,
-        minWidth: 0,
-        maxWidth: widget.maxWidth,
-        entries: [
-          for (final s in widget.suggestions) ClideMenuItem(label: widget.formatLabel?.call(s) ?? s, onSelect: () => widget.onSelect(s)),
-        ],
+      overlayBuilder: (ctx, ctrl) => ValueListenableBuilder<List<String>>(
+        valueListenable: _items,
+        builder: (ctx, items, _) => ClideMenu(
+          autofocus: false,
+          hoverHighlight: widget.navController == null,
+          controller: widget.navController,
+          minWidth: 0,
+          maxWidth: widget.maxWidth,
+          entries: [
+            for (final s in items) ClideMenuItem(label: widget.formatLabel?.call(s) ?? s, onSelect: () => widget.onSelect(s)),
+          ],
+        ),
       ),
     );
   }
