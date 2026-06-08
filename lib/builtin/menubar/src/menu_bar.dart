@@ -5,7 +5,6 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 import 'extension.dart' show buildClideMenuTree;
-import 'menu_dropdown.dart';
 import 'menu_model.dart';
 
 /// Open/close state for the application menu bar (T-48). Owned by the root
@@ -102,87 +101,83 @@ class _TopMenuButton extends StatefulWidget {
   State<_TopMenuButton> createState() => _TopMenuButtonState();
 }
 
-class _TopMenuButtonState extends State<_TopMenuButton> {
-  final LayerLink _link = LayerLink();
-  OverlayEntry? _entry;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_sync);
+/// Adapts the shared [MenuBarController] (single-open across buttons) to the
+/// per-button [ClideOverlayController] the primitive drives. Reads/writes go
+/// straight through to the bar so there's one source of truth; it notifies when
+/// this button's open state flips so the anchored overlay opens/closes in step.
+class _MenuOverlayAdapter extends ClideOverlayController {
+  _MenuOverlayAdapter(this._bar, this._index) : _last = _bar.openIndex == _index {
+    _bar.addListener(_onBar);
   }
 
-  @override
-  void didUpdateWidget(_TopMenuButton old) {
-    super.didUpdateWidget(old);
-    if (!identical(old.controller, widget.controller)) {
-      old.controller.removeListener(_sync);
-      widget.controller.addListener(_sync);
+  final MenuBarController _bar;
+  final int _index;
+  bool _last;
+
+  void _onBar() {
+    final now = _bar.openIndex == _index;
+    if (now != _last) {
+      _last = now;
+      notifyListeners();
     }
-    // NB: do NOT markNeedsBuild the open entry here — didUpdateWidget runs
-    // during the parent's build, and marking an overlay entry mid-build is
-    // illegal. The menu set doesn't change while a menu is open in practice;
-    // the panel is rebuilt fresh on the next open.
   }
+
+  @override
+  bool get isOpen => _bar.openIndex == _index;
+  @override
+  void open() => _bar.open(_index);
+  @override
+  void close() => _bar.close();
+  @override
+  void toggle() => _bar.toggle(_index);
 
   @override
   void dispose() {
-    widget.controller.removeListener(_sync);
-    _entry?.remove();
-    _entry = null;
+    _bar.removeListener(_onBar);
     super.dispose();
   }
+}
 
-  void _sync() {
-    final shouldOpen = widget.controller.openIndex == widget.index;
-    if (shouldOpen && _entry == null) {
-      _entry = OverlayEntry(builder: _buildOverlay);
-      Overlay.of(context, rootOverlay: true).insert(_entry!);
-    } else if (!shouldOpen && _entry != null) {
-      _entry!.remove();
-      _entry = null;
-    }
-  }
+class _TopMenuButtonState extends State<_TopMenuButton> {
+  late final _MenuOverlayAdapter _overlay = _MenuOverlayAdapter(widget.controller, widget.index);
 
-  void _activate(String commandId) {
-    widget.controller.close();
-    unawaited(widget.kernel.commands.execute(commandId));
-  }
-
-  Widget _buildOverlay(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: widget.controller.close),
-        ),
-        CompositedTransformFollower(
-          link: _link,
-          showWhenUnlinked: false,
-          targetAnchor: Alignment.bottomLeft,
-          followerAnchor: Alignment.topLeft,
-          offset: const Offset(0, 2),
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: MenuDropdown(
-              menu: widget.menu,
-              onActivate: _activate,
-              onClose: widget.controller.close,
-              onPrevMenu: widget.controller.openPrev,
-              onNextMenu: widget.controller.openNext,
-            ),
-          ),
-        ),
-      ],
-    );
+  @override
+  void dispose() {
+    _overlay.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     final open = widget.controller.openIndex == widget.index;
-    return CompositedTransformTarget(
-      link: _link,
-      child: MouseRegion(
+    return ClideAnchoredOverlay(
+      controller: _overlay,
+      side: ClideAnchorSide.below,
+      align: ClideAnchorAlign.start,
+      offset: const Offset(0, 2),
+      autoFlip: false, // the bar sits at the top; menus always open downward
+      rootOverlay: true,
+      overlayBuilder: (ctx, ctrl) => ClideMenu(
+        onClose: ctrl.close,
+        onArrowLeft: widget.controller.openPrev,
+        onArrowRight: widget.controller.openNext,
+        entries: [
+          for (final node in widget.menu.items)
+            if (node is ResolvedItem)
+              ClideMenuItem(
+                label: node.title,
+                enabled: node.enabled,
+                trailing: node.keybinding != null
+                    ? ClideText(node.keybinding!, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: ClideTheme.of(ctx).surface.globalTextMuted)
+                    : null,
+                onSelect: () => unawaited(widget.kernel.commands.execute(node.commandId)),
+              )
+            else
+              const ClideMenuSeparator(),
+        ],
+      ),
+      anchor: MouseRegion(
         // Once a menu is open, hovering a sibling switches to it (Zed behavior).
         onEnter: (_) {
           if (widget.controller.isOpen) widget.controller.open(widget.index);
