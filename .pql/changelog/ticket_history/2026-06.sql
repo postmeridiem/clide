@@ -834,3 +834,34 @@ Quarantined with `skip:` so the suite/gate stays green. Real fix: find the leake
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-273', 'status', 'ready', 'done', NULL, '2026-06-08 11:44:27', '2026-06-08 11:44:27', '2026-06-08 11:44:27', NULL, 'd4dc7a1144ebf85630815e55f59ff99b', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-281', 'status', 'backlog', 'ready', NULL, '2026-06-08 11:47:56', '2026-06-08 11:47:56', '2026-06-08 11:47:56', NULL, '46cc72de9659468d07dc9eed045367cb', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-281', 'status', 'ready', 'done', NULL, '2026-06-08 11:49:36', '2026-06-08 11:49:36', '2026-06-08 11:49:36', NULL, 'e302cadedc3e13cf232001de156ef1ec', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-283', 'description', 'Surfaced 2026-06-08 while chasing a --resume hang in the Claude pane (T-274 diagnostic line). The specific corrupted-transcript repro may turn out to be a one-off, but the code trace found two real latent gaps that make a resume hang unrecoverable regardless of root cause.
+
+(a) No timeout / no fallback on the init-event wait.
+On spawn the orchestrator listens for the session_id from claude''s init event (StreamJsonSession sessionIdResolved -> session_orchestrator.dart ~257) with NO timeout. If ''claude --resume <id>'' never emits an init event (hangs), the listener never fires: the pane shows ''resumed · <id>'' + running indicator forever, the process is never killed, and there is no fallback to a fresh --session-id spawn. Unrecoverable without killing the process / restarting clide.
+
+(b) Resume is decided by file existence, not resumable content.
+claude_pane.dart ~279: ''final resume = await File(transcriptFile).exists();'' — resume=true purely because the .jsonl exists. A metadata-only transcript (only system / permission-mode / attachment records; parseTranscriptChunk().items returns []) yields resume=true with zero seeded items. So clide passes --resume against a functionally empty session, the diagnostic logs ''fresh session (no history)'' (it keys off seeded count, not the resume flag — itself misleading), and if that resume hangs there is no fallback per (a).
+
+Acceptance:
+1. If a --resume spawn yields no init event within a short timeout (e.g. 10-30s), fall back to a fresh --session-id spawn (or surface a recoverable error with a retry affordance) — the pane must never spin forever with no recovery.
+2. Don''t pass --resume for a transcript that has no resumable conversation items: validate parsed item count (not just file existence) before choosing --resume vs --session-id, and/or detect-and-repair a metadata-only transcript.
+3. The T-274 diagnostic log reflects the actual spawn mode (resume vs fresh), not just seeded-item count.
+4. Tests: (i) fake process that never emits init -> pane falls back / surfaces error within the timeout; (ii) metadata-only transcript -> spawn chooses fresh, not --resume.
+
+Cross-refs: T-274 (resumed-session status bar empty), T-167/T-185 (resume/fork session id capture), D-77, claude_pane.dart:279/300-308, session_orchestrator.dart:240/257.', 'Surfaced 2026-06-08 while chasing a --resume hang in the Claude pane (T-274 diagnostic line). The specific corrupted-transcript repro may turn out to be a one-off, but the code trace found two real latent gaps that make a resume hang unrecoverable regardless of root cause.
+
+(a) No timeout / no fallback on the init-event wait.
+On spawn the orchestrator listens for the session_id from claude''s init event (StreamJsonSession sessionIdResolved -> session_orchestrator.dart ~257) with NO timeout. If ''claude --resume <id>'' never emits an init event (hangs), the listener never fires: the pane shows ''resumed · <id>'' + running indicator forever, the process is never killed, and there is no fallback to a fresh --session-id spawn. Unrecoverable without killing the process / restarting clide.
+
+(b) Resume is decided by file existence, not resumable content.
+claude_pane.dart ~279: ''final resume = await File(transcriptFile).exists();'' — resume=true purely because the .jsonl exists. A metadata-only transcript (only system / permission-mode / attachment records; parseTranscriptChunk().items returns []) yields resume=true with zero seeded items. So clide passes --resume against a functionally empty session, the diagnostic logs ''fresh session (no history)'' (it keys off seeded count, not the resume flag — itself misleading), and if that resume hangs there is no fallback per (a).
+
+Acceptance:
+1. If a --resume spawn yields no init event within a short timeout (e.g. 10-30s), fall back to a fresh --session-id spawn (or surface a recoverable error with a retry affordance) — the pane must never spin forever with no recovery.
+2. Don''t pass --resume for a transcript that has no resumable conversation items: validate parsed item count (not just file existence) before choosing --resume vs --session-id, and/or detect-and-repair a metadata-only transcript.
+3. The T-274 diagnostic log reflects the actual spawn mode (resume vs fresh), not just seeded-item count.
+4. Tests: (i) fake process that never emits init -> pane falls back / surfaces error within the timeout; (ii) metadata-only transcript -> spawn chooses fresh, not --resume.
+
+Cross-refs: T-274 (resumed-session status bar empty), T-167/T-185 (resume/fork session id capture), D-77, claude_pane.dart:279/300-308, session_orchestrator.dart:240/257.
+
+UPDATE 2026-06-08: the active hang did NOT reproduce — clide is running fine inside the 31b214bd primary session (this very session resumes cleanly). So the original break was a one-off (likely the single corrupted transcript), not a live resume bug. This ticket stands as defensive hardening only: the two gaps (no init-event timeout/fallback; resume keyed off file-exists not content) are real but latent — they''d only bite again if a resume genuinely stalls or a metadata-only transcript appears. Lowering to low priority.', NULL, '2026-06-08 13:44:57', '2026-06-08 13:44:57', '2026-06-08 13:44:57', NULL, 'd8eb4299c87c4111a5bb904846e39655', 1) ON CONFLICT(hash) DO NOTHING;
