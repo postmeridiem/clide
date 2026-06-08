@@ -792,3 +792,25 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-276', 'description', 'Ongoing umbrella for small, standalone UI polish, cosmetic tweaks, and visual/interaction bug fixes that don''t belong to a feature epic — color/token corrections, control placement, status surfaces, micro-interactions, and the wireframes that frame them. Children are independently shippable; the epic stays open as a rolling home for this class of work.', 'Ongoing umbrella for small, standalone UI polish, cosmetic tweaks, and visual/interaction bug fixes that don''t belong to a feature epic — color/token corrections, control placement, status surfaces, micro-interactions, and the wireframes that frame them. Children are independently shippable; the epic stays open as a rolling home for this class of work.
 
 **PERMANENT — never close.** This is a standing rolling tracker for loose UI/UX work and bugs, not a deliverable epic. It stays open indefinitely; only its children are completed/closed. Do not mark T-276 done even when all current children are closed — new tweaks/fixes get filed here on an ongoing basis.', NULL, '2026-06-08 07:53:32', '2026-06-08 07:53:32', '2026-06-08 07:53:32', NULL, '24bbdcbf9e0699528a3ace4220dd73c5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-277', 'description', 'clide doesn''t surface pql ticket labels, so a rolling ''UI tweaks'' tracker has to be modeled as an epic (T-276) instead of a label — which is the cleaner primitive. Make labels first-class in the tickets UI so a label can BE the tracker.
+
+Scope:
+- Render a ticket''s labels on its card and detail view in the tickets panel (builtin/tickets) — small chips/pills, ui-design tokens, no hardcoded hex.
+- A label navigator: filter/group the board by label (a sidepane affordance or a filter control on the tickets panel) so ''show me everything labelled ui-tweak'' is one click. Reuse the existing filter-box / MessageBus addressability (T-270) where it fits.
+- Read labels via the pql wrapper only (D-3 — wrap, don''t duplicate); pql already supports  + labels on records.
+- CLI/UI parity (D-6): label add/remove + filter should have a clide verb counterpart.
+
+Once this lands, loose UI/UX work + bugs can move from the T-276 tracker-epic to a label (e.g. ''ui-tweak''); note that migration as a follow-up, don''t auto-close T-276 (it''s marked never-close).
+
+Relevant: lib/builtin/tickets/, lib/src/pql/ (pql wrapper), pql / label fields.', 'clide doesn''t surface pql ticket labels, so a rolling ''UI tweaks'' tracker has to be modeled as an epic (T-276) instead of a label — which is the cleaner primitive. Make labels first-class in the tickets UI so a label can BE the tracker.
+
+Scope:
+- Render a ticket''s labels on its card and detail view in the tickets panel (lib/builtin/tickets) — small chips/pills, ui-design tokens, no hardcoded hex.
+- A label navigator: filter/group the board by label (a sidepane affordance or a filter control on the tickets panel) so ''show me everything labelled ui-tweak'' is one click. Reuse the existing filter-box / MessageBus addressability (T-270) where it fits.
+- Read/write labels via the pql wrapper only (D-3 — wrap, don''t duplicate); pql already supports the ''ticket label'' verb and exposes labels on records.
+- CLI/UI parity (D-6): label add/remove + filter should each have a clide verb counterpart.
+
+Once this lands, loose UI/UX work + bugs can move from the T-276 tracker-epic to a label (e.g. ''ui-tweak''); file that migration as a follow-up — do NOT auto-close T-276 (it''s marked never-close).
+
+Relevant: lib/builtin/tickets/, lib/src/pql/ (pql wrapper), and pql''s ''ticket label'' / ''ticket list'' label fields.', NULL, '2026-06-08 08:34:24', '2026-06-08 08:34:24', '2026-06-08 08:34:24', NULL, '499355d06a5e7618a1c32e63a6cd1bcd', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-277', 'parent_id', NULL, 'T-276', NULL, '2026-06-08 08:34:47', '2026-06-08 08:34:47', '2026-06-08 08:34:47', NULL, '67d78cbf1e92166d60e45b3f51ed440e', 1) ON CONFLICT(hash) DO NOTHING;
