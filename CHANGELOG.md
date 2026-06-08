@@ -144,6 +144,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Ticket cards now show parentage as a small **tree** — the parent as a muted,
+  clickable breadcrumb above and the card's own ticket **bold** under a `└`
+  connector — instead of the ambiguous inline `T-1 ← T-9` arrow. (T-281)
 - The in-flight **turn indicator** ("Pondering…") now renders in Claude's
   coral-orange brand accent instead of muted grey. (T-273)
 - A **sub-agent's prose and thinking** are now attributed to the **`agent`** (a

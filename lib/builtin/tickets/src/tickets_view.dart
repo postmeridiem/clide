@@ -251,8 +251,25 @@ class _TicketCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Parent shown as a muted breadcrumb above; the card's own ticket
+              // sits below it under a tree connector and in bold, so it's clear
+              // which id is the subject and which is its parent (T-281).
+              if (entry.parentId != null)
+                ClideTappable(
+                  onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': entry.parentId}),
+                  builder: (ctx, hovered, _) => Padding(
+                    padding: const EdgeInsets.only(bottom: 1),
+                    child: ClideText(
+                      entry.parentId!,
+                      fontSize: clideFontSmall,
+                      color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
+                      fontFamily: clideMonoFamily,
+                    ),
+                  ),
+                ),
               Row(
                 children: [
+                  if (entry.parentId != null) ClideText('└ ', fontSize: clideFontSmall, color: tokens.globalTextMuted),
                   ClideTooltip(
                     message: entry.type ?? 'task',
                     child: Container(
@@ -262,11 +279,7 @@ class _TicketCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-                  if (entry.parentId != null) ...[
-                    ClideText(' ← ', fontSize: clideFontSmall, color: tokens.globalTextMuted),
-                    ClideText(entry.parentId!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-                  ],
+                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily, fontWeight: FontWeight.w600),
                 ],
               ),
               const SizedBox(height: 4),

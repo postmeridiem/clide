@@ -95,6 +95,18 @@ void main() {
     expect(selections.single.data['id'], 'T-1');
   });
 
+  testWidgets('tapping the parent breadcrumb selects the parent (T-281)', (tester) async {
+    f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'Child', 'backlog', parentId: 'T-9')]));
+    final selections = <Message>[];
+    final sub = f.services.messages.subscribe(publisher: 'builtin.tickets', channel: 'selection').listen(selections.add);
+    addTearDown(sub.cancel);
+    await pumpView(tester);
+
+    await tester.tap(find.text('T-9')); // the muted parent breadcrumb
+    await pumpAsync(tester);
+    expect(selections.single.data['id'], 'T-9');
+  });
+
   testWidgets('empty list shows the placeholder', (tester) async {
     f.ipc.stub('pql.tickets.list', (_) async => _list(const []));
     await pumpView(tester);

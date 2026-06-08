@@ -2053,3 +2053,33 @@ Requirements:
 - ui-design tokens for the guide lines + bold/muted weights; no hardcoded hex.
 
 Scope: tickets panel rendering — lib/builtin/tickets/. See attached screenshot for the current ''T-273 ← T-276'' card style being replaced.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-08 11:46:11', '2026-06-08 11:46:11', NULL, 'bbb16c80956550062c0f2e153ee46a94', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-281', 'task', 'T-276', 'Clearer parent/child nesting in the tickets panel (tree layout, bold focused ticket)', 'The tickets panel shows a ticket''s parent inline as ''T-273 ← T-276'', which reads ambiguously (which one am I looking at? what''s the direction of the arrow?).
+
+Replace it with a small tree/indented layout that makes the hierarchy obvious, e.g.:
+
+  T-276
+   └ T-273
+
+Requirements:
+- Parent on top, the current/child ticket indented below with a tree connector (└ / ├ style box-drawing or an equivalent indent + guide).
+- The ticket the user is actually looking at (the focused/opened one) is bold; ancestors are normal weight (and ideally muted/secondary).
+- Support more than one level if a chain exists (initiative → epic → story → task), indenting each level; at minimum handle the common 2-level parent→child case.
+- Make each id in the chain clickable to navigate to that ticket (ties into the reader/board navigation; relates to T-279 cross-ref linking).
+- ui-design tokens for the guide lines + bold/muted weights; no hardcoded hex.
+
+Scope: tickets panel rendering — lib/builtin/tickets/. See attached screenshot for the current ''T-273 ← T-276'' card style being replaced.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-08 11:46:11', '2026-06-08 11:47:56', NULL, '8a9b20a4419a7b15ad14a62e0af8a844', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-281', 'task', 'T-276', 'Clearer parent/child nesting in the tickets panel (tree layout, bold focused ticket)', 'The tickets panel shows a ticket''s parent inline as ''T-273 ← T-276'', which reads ambiguously (which one am I looking at? what''s the direction of the arrow?).
+
+Replace it with a small tree/indented layout that makes the hierarchy obvious, e.g.:
+
+  T-276
+   └ T-273
+
+Requirements:
+- Parent on top, the current/child ticket indented below with a tree connector (└ / ├ style box-drawing or an equivalent indent + guide).
+- The ticket the user is actually looking at (the focused/opened one) is bold; ancestors are normal weight (and ideally muted/secondary).
+- Support more than one level if a chain exists (initiative → epic → story → task), indenting each level; at minimum handle the common 2-level parent→child case.
+- Make each id in the chain clickable to navigate to that ticket (ties into the reader/board navigation; relates to T-279 cross-ref linking).
+- ui-design tokens for the guide lines + bold/muted weights; no hardcoded hex.
+
+Scope: tickets panel rendering — lib/builtin/tickets/. See attached screenshot for the current ''T-273 ← T-276'' card style being replaced.', 'done', 'medium', NULL, NULL, NULL, '2026-06-08 11:46:11', '2026-06-08 11:49:36', NULL, '457afd72feff0947506795a2da286447', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
