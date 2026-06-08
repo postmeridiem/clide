@@ -14,9 +14,6 @@
     "a2": {"type": "Rectangle", "left": 40, "top": 196, "width": 600, "height": 72, "fillColor": "#1b1f26", "strokeColor": "#2c323c", "corners": [6, 6, 6, 6]},
     "a2hint": {"type": "Text", "left": 58, "top": 210, "text": "Message Claude…", "fontColor": "#7d8694", "fontSize": 14},
     "a2sub": {"type": "Text", "left": 58, "top": 234, "text": "Enter to send · Shift+Enter newline", "fontColor": "#525a64", "fontSize": 11},
-    "a2tip": {"type": "Rectangle", "left": 470, "top": 222, "width": 112, "height": 24, "fillColor": "#0e1115", "strokeColor": "#3a414d", "corners": [4, 4, 4, 4]},
-    "a2tipt": {"type": "Text", "left": 480, "top": 226, "text": "accept-edits", "fontColor": "#c8d0e0", "fontSize": 12},
-    "a2hover": {"type": "Text", "left": 470, "top": 250, "text": "(hover tooltip)", "fontColor": "#525a64", "fontSize": 10},
     "a2btn": {"type": "Rectangle", "left": 596, "top": 224, "width": 32, "height": 32, "fillColor": "#20252e", "strokeColor": "#d8a657", "corners": [4, 4, 4, 4]},
     "a2ic": {"type": "Ellipse", "left": 604, "top": 232, "width": 16, "height": 16, "fillColor": "#d8a657", "strokeColor": "#d8a657"},
 
