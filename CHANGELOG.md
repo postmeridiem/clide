@@ -153,10 +153,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
-- The Claude composer's **slash typeahead** and the team-chat **@-mention**
-  list now ride the shared `ClideAnchoredOverlay` + `ClideMenu` popover
-  primitive, alongside the menu bar. The @-mention list gains full keyboard
-  nav (arrows/Enter), and both narrow live as you type. (T-286, D-88)
+- The Claude composer's **slash typeahead**, the team-chat **@-mention** list,
+  and the status-bar **theme switcher** now ride the shared
+  `ClideAnchoredOverlay` + `ClideMenu` popover primitive, alongside the menu
+  bar. The @-mention list gains full keyboard nav (arrows/Enter), and both
+  typeaheads narrow live as you type. (T-286, D-88)
 - Ticket cards now show parentage as a small **tree** — the parent as a muted,
   clickable breadcrumb above and the card's own ticket **bold** under a `└`
   connector — instead of the ambiguous inline `T-1 ← T-9` arrow. (T-281)

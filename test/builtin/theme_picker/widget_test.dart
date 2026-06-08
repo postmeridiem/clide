@@ -145,7 +145,10 @@ void main() {
     });
 
     testWidgets('status switcher shows the active theme and opens a popover (T-234)', (tester) async {
-      await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
+      // anchoredHarness gives a real 800×600 overlay with the control pinned at
+      // its real corner (bottom-right) so the above-anchored popover renders and
+      // hit-tests on-screen — the shared canSizeOverlay harness mispositions it.
+      await tester.pumpWidget(anchoredHarness(f, const ThemeSwitcherStatusItem(), alignment: Alignment.bottomRight));
       await tester.pump();
       // Controller starts on the first bundled theme.
       expect(f.services.theme.currentName, 'summer-night');
@@ -158,7 +161,10 @@ void main() {
     });
 
     testWidgets('selecting in the popover applies live and closes (T-234)', (tester) async {
-      await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
+      // anchoredHarness gives a real 800×600 overlay with the control pinned at
+      // its real corner (bottom-right) so the above-anchored popover renders and
+      // hit-tests on-screen — the shared canSizeOverlay harness mispositions it.
+      await tester.pumpWidget(anchoredHarness(f, const ThemeSwitcherStatusItem(), alignment: Alignment.bottomRight));
       await tester.pump();
       await tester.tap(find.bySemanticsLabel('Theme: summer-night'));
       await tester.pumpAndSettle();
@@ -171,7 +177,10 @@ void main() {
     });
 
     testWidgets('Esc dismisses the popover without changing the theme (T-234)', (tester) async {
-      await tester.pumpWidget(harness(f, const ThemeSwitcherStatusItem()));
+      // anchoredHarness gives a real 800×600 overlay with the control pinned at
+      // its real corner (bottom-right) so the above-anchored popover renders and
+      // hit-tests on-screen — the shared canSizeOverlay harness mispositions it.
+      await tester.pumpWidget(anchoredHarness(f, const ThemeSwitcherStatusItem(), alignment: Alignment.bottomRight));
       await tester.pump();
       await tester.tap(find.bySemanticsLabel('Theme: summer-night'));
       await tester.pumpAndSettle();
