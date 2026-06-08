@@ -114,6 +114,12 @@ void main() {
     expect(f.services.clipboard.readAs<String>(), 'copied from a held card');
     // And the holder stayed expanded (the copy tap wasn't a background toggle).
     expect(find.bySemanticsLabel('Activity, 2 steps, expanded'), findsOneWidget);
+
+    // The hover starts a ClideTooltip show-delay (a Future.delayed that exit
+    // can't cancel). Move off and advance past the delay so it fires and leaves
+    // no pending timer at teardown.
+    await g.moveTo(const Offset(-100, -100));
+    await tester.pump(const Duration(milliseconds: 600));
   });
 
   testWidgets('the explicit control is keyboard-focusable and toggles on Activate (a11y)', (tester) async {

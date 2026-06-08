@@ -201,6 +201,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Folded activity and agent-run cards in the Claude conversation now use the
+  same bottom spacing as the prose cards around them, instead of sitting
+  cramped 3px below the next card. (T-282)
 - The welcome screen no longer overflows on a short or narrow window — its
   content scrolls when it can't fit and stays centred when it can, and a long
   git-branch name on a recent-project row now truncates with an ellipsis. (T-273)

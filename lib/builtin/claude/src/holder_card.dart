@@ -72,7 +72,10 @@ class _ClideHolderCardState extends State<ClideHolderCard> {
       label: '${widget.title}, ${widget.stepLabel}, ${_expanded ? 'expanded' : 'collapsed'}',
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        // Match ConversationCard's inter-card margin (bottom 14, no top) so a
+        // folded activity / agent-run card sits in the same rhythm as the prose
+        // cards around it — not crammed 3px below the next one (T-282).
+        padding: const EdgeInsets.only(bottom: 14),
         child: _expanded ? _expandedFrame(tokens) : _tickerRow(tokens),
       ),
     );
