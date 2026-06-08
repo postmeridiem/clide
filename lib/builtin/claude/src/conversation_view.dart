@@ -93,7 +93,7 @@ class _ConversationViewState extends State<ConversationView> {
   /// (its tool-use *and* result echo are noise — the prompt + the logged answer
   /// cover it), and any permission-prompted tool-use (keep its result — that's
   /// the useful answer).
-  List<ConversationItem> _visibleItems(List<ConversationItem> items) {
+  List<ConversationItem> _visibleItems(List<ConversationItem> items, Set<String> foldedPromptUuids) {
     final hidden = widget.hiddenToolUseIds;
     final auqIds = {
       for (final it in items)
@@ -114,6 +114,9 @@ class _ConversationViewState extends State<ConversationView> {
 
     bool drop(ConversationItem it) {
       if (it is AssistantToolUse) return toolUseDropped(it);
+      // T-263: a sidechain agent prompt that folded into its Agent card is
+      // suppressed here so it doesn't also render as a standalone block.
+      if (it is UserMessage) return foldedPromptUuids.contains(it.uuid);
       if (it is ToolResultMessage) {
         if (auqIds.contains(it.toolUseId)) return true; // AUQ result echo — noise
         // T-262: a successful result whose paired tool-use is going to render
@@ -134,6 +137,40 @@ class _ConversationViewState extends State<ConversationView> {
     ];
   }
 
+  /// Resolves which sidechain prompts fold into which Agent/Task card (T-263).
+  ///
+  /// A sidechain prompt's owner is the Agent tool-use its `parentUuid` branches
+  /// off — robust when several agents run in parallel in one turn. Falls back to
+  /// the nearest preceding Agent tool-use when the link can't be resolved.
+  /// Returns the prompt uuids to suppress and the prompts grouped by the owning
+  /// tool-use id (so the card can fold them).
+  ({Set<String> foldedPromptUuids, Map<String, List<UserMessage>> promptsByToolUseId}) _agentPromptFold(List<ConversationItem> items) {
+    final agentByMsgUuid = <String, AssistantToolUse>{
+      for (final it in items)
+        if (it is AssistantToolUse && _isAgentTool(it.name)) it.uuid: it,
+    };
+    final folded = <String>{};
+    final byToolUseId = <String, List<UserMessage>>{};
+    AssistantToolUse? lastAgent;
+    for (final it in items) {
+      if (it is AssistantToolUse && _isAgentTool(it.name)) {
+        lastAgent = it;
+        continue;
+      }
+      // Only a text user message authored inside a sidechain is an agent
+      // prompt; harness-injected messages and tool results are not.
+      if (it is UserMessage && it.isSidechain && !it.injected) {
+        final viaParent = it.parentUuid != null ? agentByMsgUuid[it.parentUuid] : null;
+        final owner = viaParent ?? lastAgent;
+        if (owner != null) {
+          folded.add(it.uuid);
+          (byToolUseId[owner.toolUseId] ??= <UserMessage>[]).add(it);
+        }
+      }
+    }
+    return (foldedPromptUuids: folded, promptsByToolUseId: byToolUseId);
+  }
+
   void _onChanged() {
     if (!mounted) return;
     setState(() {});
@@ -148,7 +185,11 @@ class _ConversationViewState extends State<ConversationView> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final items = _visibleItems(widget.controller.items);
+    final allItems = widget.controller.items;
+    // T-263: resolve sidechain prompts → owning Agent card before culling, so
+    // the standalone prompt block is suppressed and folded into its card.
+    final promptFold = _agentPromptFold(allItems);
+    final items = _visibleItems(allItems, promptFold.foldedPromptUuids);
 
     if (items.isEmpty) {
       return ColoredBox(
@@ -161,7 +202,7 @@ class _ConversationViewState extends State<ConversationView> {
     // fold a successful result in. Built from the full item list (not the
     // visible one — the success result is suppressed from `items`).
     final resultByToolUseId = <String, ToolResultMessage>{
-      for (final it in widget.controller.items)
+      for (final it in allItems)
         if (it is ToolResultMessage) it.toolUseId: it,
     };
 
@@ -183,6 +224,7 @@ class _ConversationViewState extends State<ConversationView> {
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
+                promptsByToolUseId: promptFold.promptsByToolUseId,
               ),
             FoldedCluster(:final items) => _ActivityCard(
                 items: items,
@@ -190,6 +232,7 @@ class _ConversationViewState extends State<ConversationView> {
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
+                promptsByToolUseId: promptFold.promptsByToolUseId,
               ),
           };
         },
@@ -206,6 +249,10 @@ class _ConversationViewState extends State<ConversationView> {
 /// used for the "claude" message card's stripe + label.
 const claudeAccent = Color(0xFFD97757);
 
+/// The tool names that launch a sub-agent (sidechain). Claude Code emits
+/// `Task`; the Agent SDK surface uses `Agent` — accept both (T-263).
+bool _isAgentTool(String name) => name == 'Task' || name == 'Agent';
+
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({
@@ -214,6 +261,7 @@ class _ConversationTurn extends StatelessWidget {
     this.toolUseOutcomes = const <String, bool>{},
     this.toolUseById = const <String, AssistantToolUse>{},
     this.resultByToolUseId = const <String, ToolResultMessage>{},
+    this.promptsByToolUseId = const <String, List<UserMessage>>{},
   });
 
   final ConversationItem item;
@@ -227,30 +275,35 @@ class _ConversationTurn extends StatelessWidget {
   /// successful result into one merged card (T-262).
   final Map<String, ToolResultMessage> resultByToolUseId;
 
+  /// Index from an Agent/Task toolUseId → the sidechain prompt(s) it owns, so
+  /// the Agent card can fold its prompt in (T-263).
+  final Map<String, List<UserMessage>> promptsByToolUseId;
+
   @override
   Widget build(BuildContext context) {
     final i = item;
     return switch (i) {
-      UserMessage() => i.injected
-          // Harness-injected (skill load / command expansion / system
-          // reminder) — not typed by the user, so de-emphasise: a muted,
-          // collapsed "context" card rather than the "you" accent (D-78).
-          ? ConversationCard(
-              variant: ConversationCardVariant.bare,
-              accent: tokens.globalTextMuted,
-              label: 'context',
-              copyText: i.text,
-              collapsible: true,
-              collapsedByDefault: true,
-              collapsedSummary: _firstLine(i.text),
-              body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
-            )
-          : ConversationCard(
-              accent: tokens.globalFocus,
-              label: 'you',
-              copyText: i.text,
-              body: ClideMarkdown(i.text),
-            ),
+      // Harness-injected (skill load / command expansion / system reminder) and
+      // sidechain agent prompts are both NOT typed by the user, so de-emphasise:
+      // a muted, collapsed card rather than the blue "you" accent (D-78). A
+      // sidechain prompt here is an orphan one (its Agent card couldn't be
+      // resolved) — folded prompts are suppressed upstream (T-263).
+      UserMessage() when i.injected || i.isSidechain => ConversationCard(
+          variant: ConversationCardVariant.bare,
+          accent: tokens.globalTextMuted,
+          label: i.isSidechain ? 'agent prompt' : 'context',
+          copyText: i.text,
+          collapsible: true,
+          collapsedByDefault: true,
+          collapsedSummary: _firstLine(i.text),
+          body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
+        ),
+      UserMessage() => ConversationCard(
+          accent: tokens.globalFocus,
+          label: 'you',
+          copyText: i.text,
+          body: ClideMarkdown(i.text),
+        ),
       AssistantTextMessage() => ConversationCard(
           accent: claudeAccent,
           label: 'claude',
@@ -356,8 +409,13 @@ class _ConversationTurn extends StatelessWidget {
     final result = resultByToolUseId[t.toolUseId];
     final succeeded = result != null && !result.isError;
     final status = result == null ? ConversationCardStatus.none : (result.isError ? ConversationCardStatus.error : ConversationCardStatus.success);
-    final segments =
-        succeeded ? [CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t)))] : const <CardSegment>[];
+    // T-263: an Agent/Task card folds its sub-agent prompt(s) in. Layered order
+    // when expanded (note E): call input (body) → prompt → returned result.
+    final segments = <CardSegment>[
+      for (final p in promptsByToolUseId[t.toolUseId] ?? const <UserMessage>[])
+        CardSegment(label: 'prompt', child: ClideText(p.text, muted: true, fontSize: clideFontMeta)),
+      if (succeeded) CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t))),
+    ];
 
     // A resolved permission-prompted call: collapsed, green if approved / red
     // if denied — a quiet record of what was permitted (D-78). It still folds
@@ -495,6 +553,7 @@ class _ActivityCard extends StatefulWidget {
     required this.toolUseOutcomes,
     required this.toolUseById,
     required this.resultByToolUseId,
+    required this.promptsByToolUseId,
   });
 
   final List<ConversationItem> items;
@@ -502,6 +561,7 @@ class _ActivityCard extends StatefulWidget {
   final Map<String, bool> toolUseOutcomes;
   final Map<String, AssistantToolUse> toolUseById;
   final Map<String, ToolResultMessage> resultByToolUseId;
+  final Map<String, List<UserMessage>> promptsByToolUseId;
 
   @override
   State<_ActivityCard> createState() => _ActivityCardState();
@@ -570,6 +630,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                         toolUseOutcomes: widget.toolUseOutcomes,
                         toolUseById: widget.toolUseById,
                         resultByToolUseId: widget.resultByToolUseId,
+                        promptsByToolUseId: widget.promptsByToolUseId,
                       ),
                   ],
                 ),

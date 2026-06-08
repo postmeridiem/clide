@@ -52,6 +52,25 @@ void main() {
           ),
         ),
         GoldenTestScenario(
+          name: 'agent / expanded (call → prompt → result layering, T-263)',
+          child: _wrap(
+            f,
+            const ConversationCard(
+              variant: ConversationCardVariant.bordered,
+              accent: Color(0xFF4C9AFF),
+              label: 'Task',
+              status: ConversationCardStatus.success,
+              collapsible: true,
+              collapsedByDefault: false,
+              body: Text('{ "description": "explore the codebase" }', textDirection: TextDirection.ltr),
+              extraSegments: [
+                CardSegment(label: 'prompt', child: Text('find all the widgets and summarise', textDirection: TextDirection.ltr)),
+                CardSegment(label: 'result', child: Text('found 42 widgets', textDirection: TextDirection.ltr)),
+              ],
+            ),
+          ),
+        ),
+        GoldenTestScenario(
           name: 'error / header mark (call card stays separate from the red result card)',
           child: _wrap(
             f,

@@ -144,6 +144,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- A **sub-agent prompt** is no longer mislabelled as your input: a sidechain
+  prompt now reads as a muted **`agent prompt`** (never the blue `you`) and folds
+  into its **Agent/Task card**, collapsed by default. The prompt attaches to the
+  right card via `parentUuid`, so parallel agents in one turn stay correctly
+  paired. The sub-agent's work stays visible after the call. (T-263)
 - A successful tool call now renders as **one merged card** instead of a
   separate call + result pair: a green check sits at the header's right edge and
   the output folds in as a colorized code block (Read → file grammar, Bash →

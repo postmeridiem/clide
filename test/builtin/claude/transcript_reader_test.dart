@@ -361,6 +361,23 @@ void main() {
       final items = parseAll([raw]);
       expect(items.first.isSidechain, isTrue);
     });
+
+    test('parentUuid is parsed; empty parentUuid normalises to null (T-263)', () {
+      final withParent = envelope(
+        type: 'user',
+        uuid: 'u8',
+        parentUuid: 'msg-A',
+        message: {'role': 'user', 'content': 'a sidechain prompt'},
+      );
+      final withoutParent = envelope(
+        type: 'user',
+        uuid: 'u9',
+        message: {'role': 'user', 'content': 'top-level'}, // parentUuid defaults to ''
+      );
+      final items = parseAll([withParent, withoutParent]);
+      expect(items[0].parentUuid, 'msg-A');
+      expect(items[1].parentUuid, isNull); // '' → null
+    });
   });
 
   // -------------------------------------------------------------------------

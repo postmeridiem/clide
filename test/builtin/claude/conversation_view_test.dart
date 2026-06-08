@@ -282,6 +282,54 @@ void main() {
       expect(find.text('thanks'), findsOneWidget);
     });
 
+    testWidgets('a sidechain prompt folds into its Agent card; never labelled "you" (T-263)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(
+            uuid: 'agt-msg', timestamp: _t, isSidechain: false, toolUseId: 'task1', name: 'Task', input: const {'description': 'explore the codebase'}),
+        UserMessage(uuid: 'p1', timestamp: _t, isSidechain: true, text: 'find all the widgets'),
+      ]);
+      // Never the blue "you", and no standalone block (folded → suppressed).
+      expect(find.text('you'), findsNothing);
+      expect(find.text('agent prompt'), findsNothing); // not a standalone card here
+      expect(find.text('Task'), findsOneWidget);
+      // Collapsed by default: the prompt is hidden.
+      expect(find.text('find all the widgets'), findsNothing);
+
+      // Expand the Agent card → a "prompt" segment reveals the folded prompt.
+      await tester.tap(find.bySemanticsLabel('Expand'));
+      await tester.pumpAndSettle();
+      expect(find.text('prompt'), findsOneWidget); // segment sub-label
+      expect(find.text('find all the widgets'), findsOneWidget);
+    });
+
+    testWidgets('an orphan sidechain prompt renders as muted "agent prompt", never "you" (T-263)', (tester) async {
+      // No Agent tool-use to attach to → stays standalone, but relabelled.
+      await pumpWith(tester, [
+        UserMessage(uuid: 'orphan', timestamp: _t, isSidechain: true, text: 'orphaned agent instructions'),
+      ]);
+      expect(find.text('you'), findsNothing);
+      expect(find.text('agent prompt'), findsOneWidget);
+    });
+
+    testWidgets('parallel agents: each prompt attaches to its own card via parentUuid (T-263)', (tester) async {
+      // Document order scrambles the prompts so a nearest-preceding heuristic
+      // would misattach BOTH to agent B; parentUuid must route them correctly.
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'agent A'}),
+        AssistantToolUse(uuid: 'mB', timestamp: _t, isSidechain: false, toolUseId: 'tB', name: 'Task', input: const {'description': 'agent B'}),
+        UserMessage(uuid: 'pB', timestamp: _t, isSidechain: true, parentUuid: 'mB', text: 'PROMPT FOR B'),
+        UserMessage(uuid: 'pA', timestamp: _t, isSidechain: true, parentUuid: 'mA', text: 'PROMPT FOR A'),
+      ]);
+      // Two collapsed Agent cards; the first Expand caret belongs to card A.
+      expect(find.text('you'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Expand').first);
+      await tester.pumpAndSettle();
+      // Only card A is expanded → its prompt (A) shows; B's stays folded away.
+      // Nearest-preceding would have put A's prompt under B, revealing nothing.
+      expect(find.text('PROMPT FOR A'), findsOneWidget);
+      expect(find.text('PROMPT FOR B'), findsNothing);
+    });
+
     testWidgets('a permission-prompted tool-use is hidden but its result is kept', (tester) async {
       await pumpWith(
         tester,
