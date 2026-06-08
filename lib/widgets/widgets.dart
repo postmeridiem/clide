@@ -35,6 +35,7 @@ export 'src/multitab_pane.dart';
 export 'src/quick_open_overlay.dart';
 export 'src/clide_tappable.dart';
 export 'src/clide_text.dart';
+export 'src/clide_typeahead.dart';
 export 'src/clide_tooltip.dart';
 export 'src/spacing.dart';
 export 'src/typography.dart';
