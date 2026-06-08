@@ -298,6 +298,15 @@ const claudeAccent = Color(0xFFD97757);
 /// `Task`; the Agent SDK surface uses `Agent` — accept both (T-263).
 bool _isAgentTool(String name) => name == 'Task' || name == 'Agent';
 
+/// Open a governance/ticket record clicked in the conversation (T-279) in its
+/// context-pane reader, reusing the existing `selection` MessageBus addressing
+/// (the same path `clide ui open` and the panels use, T-231/T-233): T-NNN → the
+/// tickets reader, D/Q/R-NNN → the decisions reader.
+void _openRecord(BuildContext context, String id) {
+  final publisher = id.startsWith('T-') ? 'builtin.tickets' : 'builtin.decisions';
+  ClideKernel.of(context).messages.publish(publisher, 'selection', {'id': id});
+}
+
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({
@@ -352,7 +361,7 @@ class _ConversationTurn extends StatelessWidget {
           accent: tokens.globalFocus,
           label: 'you',
           copyText: i.text,
-          body: ClideMarkdown(i.text),
+          body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id)),
         ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
       // agent with a muted accent, never the coral "claude" brand (T-265). The
@@ -361,7 +370,7 @@ class _ConversationTurn extends StatelessWidget {
           accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
           label: i.isSidechain ? 'agent' : 'claude',
           copyText: i.text,
-          body: ClideMarkdown(i.text),
+          body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id)),
         ),
       AssistantThinkingMessage() => ConversationCard(
           variant: ConversationCardVariant.bare,

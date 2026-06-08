@@ -15,7 +15,17 @@ class ClideMarkdown extends StatelessWidget {
 
   static const double _fontSize = 16;
   static const double _lineHeight = clideLineHeight;
+
+  /// A whole string that is exactly a record id — used for record-shaped
+  /// markdown links (`[T-281](…)`).
   static final _recordPattern = RegExp(r'^[DQRT]-\d+$');
+
+  /// A bare governance/ticket ref inside running text (T-279): T-281, D-77,
+  /// Q-5, R-2. Anchored on word boundaries so "T-shirt" (no digits) and
+  /// "PT-281" (mid-word) stay literal. Only applied to rendered text — `code`
+  /// spans and `pre` blocks render verbatim and never reach the linkifier, so
+  /// refs inside code stay plain.
+  static final _bareRecordPattern = RegExp(r'\b[DQRT]-\d+\b');
 
   final String source;
   final RecordTapCallback? onRecordTap;
@@ -60,7 +70,7 @@ class ClideMarkdown extends StatelessWidget {
       final spans = <InlineSpan>[];
       for (final n in inlineRun) {
         if (n is md.Text) {
-          spans.add(TextSpan(text: _unescapeHtml(n.text)));
+          spans.addAll(_linkifyText(_unescapeHtml(n.text), tokens, onRecordTap));
         } else if (n is md.Element) {
           spans.add(_inlineElementSpan(n, tokens, onRecordTap));
         }
@@ -246,7 +256,7 @@ class ClideMarkdown extends StatelessWidget {
     final children = <InlineSpan>[];
     for (final child in el.children ?? const []) {
       if (child is md.Text) {
-        children.add(TextSpan(text: _unescapeHtml(child.text)));
+        children.addAll(_linkifyText(_unescapeHtml(child.text), tokens, onRecordTap));
       } else if (child is md.Element) {
         children.add(_inlineElementSpan(child, tokens, onRecordTap));
       }
@@ -271,7 +281,7 @@ class ClideMarkdown extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w700),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text) TextSpan(text: _unescapeHtml(c.text)) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
+              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
           ],
         );
       case 'em':
@@ -279,7 +289,7 @@ class ClideMarkdown extends StatelessWidget {
           style: const TextStyle(fontStyle: FontStyle.italic),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text) TextSpan(text: _unescapeHtml(c.text)) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
+              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
           ],
         );
       case 'code':
@@ -290,24 +300,7 @@ class ClideMarkdown extends StatelessWidget {
       case 'a':
         final text = _unescapeHtml(el.textContent);
         if (onRecordTap != null && _recordPattern.hasMatch(text)) {
-          return WidgetSpan(
-            alignment: PlaceholderAlignment.baseline,
-            baseline: TextBaseline.alphabetic,
-            child: ClideTappable(
-              onTap: () => onRecordTap(text),
-              builder: (_, hovered, __) => Text(
-                text,
-                style: TextStyle(
-                  color: tokens.globalFocus,
-                  fontSize: _fontSize,
-                  height: _lineHeight,
-                  fontFamily: clideMonoFamily,
-                  decoration: hovered ? TextDecoration.underline : null,
-                  decorationColor: tokens.globalFocus,
-                ),
-              ),
-            ),
-          );
+          return _recordLinkSpan(text, tokens, onRecordTap);
         }
         return TextSpan(
           text: text,
@@ -321,5 +314,45 @@ class ClideMarkdown extends StatelessWidget {
       default:
         return TextSpan(text: _unescapeHtml(el.textContent));
     }
+  }
+
+  /// Splits plain [text] into spans, turning bare governance/ticket refs
+  /// (T-281, D-77, Q-5, R-2) into clickable [_recordLinkSpan]s (T-279). With no
+  /// [onRecordTap] (or no match) the text passes through unchanged.
+  static List<InlineSpan> _linkifyText(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
+    if (onRecordTap == null || text.isEmpty) return [TextSpan(text: text)];
+    final spans = <InlineSpan>[];
+    var last = 0;
+    for (final m in _bareRecordPattern.allMatches(text)) {
+      if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
+      spans.add(_recordLinkSpan(m[0]!, tokens, onRecordTap));
+      last = m.end;
+    }
+    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
+    return spans.isEmpty ? [TextSpan(text: text)] : spans;
+  }
+
+  /// A clickable record-reference span: [id] rendered in the focus accent with
+  /// a hover underline, firing [onRecordTap] on tap (T-279). Shared by bare-text
+  /// refs and record-shaped markdown links so both look and behave alike.
+  static InlineSpan _recordLinkSpan(String id, SurfaceTokens tokens, RecordTapCallback onRecordTap) {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: ClideTappable(
+        onTap: () => onRecordTap(id),
+        builder: (_, hovered, __) => Text(
+          id,
+          style: TextStyle(
+            color: tokens.globalFocus,
+            fontSize: _fontSize,
+            height: _lineHeight,
+            fontFamily: clideMonoFamily,
+            decoration: hovered ? TextDecoration.underline : null,
+            decorationColor: tokens.globalFocus,
+          ),
+        ),
+      ),
+    );
   }
 }

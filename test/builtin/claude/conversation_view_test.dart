@@ -172,6 +172,28 @@ void main() {
       expect(find.text('Waiting for Claude…'), findsOneWidget);
     });
 
+    testWidgets('clicking a bare T-ref in a message opens the tickets reader (T-279)', (tester) async {
+      Message? opened;
+      final sub = f.services.messages.subscribe(publisher: 'builtin.tickets', channel: 'selection').listen((m) => opened = m);
+      addTearDown(sub.cancel);
+      await pumpWith(tester, [_user('please look at T-281')]);
+      await tester.tap(find.text('T-281'));
+      await tester.pumpAndSettle();
+      expect(opened, isNotNull);
+      expect(opened!.data['id'], 'T-281');
+    });
+
+    testWidgets('clicking a bare D-ref opens the decisions reader (T-279)', (tester) async {
+      Message? opened;
+      final sub = f.services.messages.subscribe(publisher: 'builtin.decisions', channel: 'selection').listen((m) => opened = m);
+      addTearDown(sub.cancel);
+      await pumpWith(tester, [_asst('we resume cleanly per D-77 today')]);
+      await tester.tap(find.text('D-77'));
+      await tester.pumpAndSettle();
+      expect(opened, isNotNull);
+      expect(opened!.data['id'], 'D-77');
+    });
+
     testWidgets('meta items fold into a collapsed activity card; tap expands (T-230)', (tester) async {
       await pumpWith(
           tester,

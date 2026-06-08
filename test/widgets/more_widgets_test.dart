@@ -98,6 +98,60 @@ After.
       expect(tapped, 'D-1');
     });
 
+    testWidgets('bare T-NNN ref in prose is tappable and fires onRecordTap (T-279)', (tester) async {
+      var tapped = '';
+      const src = 'See T-281 for the follow-up.';
+      await tester.pumpWidget(harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)));
+      await tester.pumpAndSettle();
+      // The bare ref is pulled out into a standalone tappable Text span.
+      await tester.tap(find.text('T-281'));
+      await tester.pumpAndSettle();
+      expect(tapped, 'T-281');
+    });
+
+    testWidgets('bare D/Q/R refs all linkify (T-279)', (tester) async {
+      var tapped = '';
+      // One pump (re-pumping harness() reuses the first Overlay entry), three refs.
+      await tester.pumpWidget(harness(f, ClideMarkdown('refs D-77 and Q-5 and R-2 here', onRecordTap: (x) => tapped = x)));
+      await tester.pumpAndSettle();
+      for (final id in ['D-77', 'Q-5', 'R-2']) {
+        await tester.tap(find.text(id));
+        await tester.pumpAndSettle();
+        expect(tapped, id, reason: '$id should be a clickable ref');
+      }
+    });
+
+    testWidgets('a bare word like T-shirt is not linkified (T-279)', (tester) async {
+      var tapped = '';
+      const src = 'buy a T-shirt today';
+      await tester.pumpWidget(harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)));
+      await tester.pumpAndSettle();
+      // No digits after the dash → no match → no standalone link span; the
+      // phrase stays inside the paragraph RichText.
+      expect(find.text('T-shirt'), findsNothing);
+      expect(tapped, isEmpty);
+    });
+
+    testWidgets('a ref inside an inline code span stays plain (T-279)', (tester) async {
+      var tapped = '';
+      const src = 'run `pql ticket show T-281` to see it';
+      await tester.pumpWidget(harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)));
+      await tester.pumpAndSettle();
+      // The code span renders verbatim within the paragraph, not as a
+      // standalone tappable link.
+      expect(find.text('T-281'), findsNothing);
+      expect(tapped, isEmpty);
+    });
+
+    testWidgets('without onRecordTap a bare ref renders as plain text (T-279)', (tester) async {
+      const src = 'See T-281 here';
+      await tester.pumpWidget(harness(f, const ClideMarkdown(src)));
+      await tester.pumpAndSettle();
+      // No callback → no link span carved out.
+      expect(find.text('T-281'), findsNothing);
+      expect(find.byType(ClideMarkdown), findsOneWidget);
+    });
+
     testWidgets('h3 / h4 / h5 / h6 headings render with the right padding tier', (tester) async {
       const src = '### h3\n\n#### h4\n\n##### h5\n\n###### h6\n';
       await tester.pumpWidget(harness(f, const ClideMarkdown(src)));

@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Clickable T/D/Q/R cross-refs in the Claude conversation.** Bare ticket and
+  governance references (`T-281`, `D-77`, `Q-5`, `R-2`) in rendered messages are
+  now links: clicking one opens the record in its context-pane reader — `T-`
+  in the tickets reader, `D`/`Q`/`R` in the decisions reader — reusing the same
+  `selection` addressing as `clide ui open` (D-6 parity). Refs inside code spans
+  and code blocks stay literal, and `T-shirt`-style words are left alone. (T-279)
 - A Zed-style **application menu bar** in the hat — **File / View / Help**
   menus built from custom widgets (no native menu, D-7), populated from the
   command registry with inline keybindings. Full keyboard nav (`Alt`+mnemonic,
