@@ -1,0 +1,82 @@
+{
+  "name": "T-275 Permission-mode composer control",
+  "shapes": {
+    "title": {"type": "Text", "left": 40, "top": 24, "text": "T-275 · Permission-mode control beside the Claude composer", "fontColor": "#c8d0e0", "fontSize": 20},
+
+    "secA": {"type": "Text", "left": 40, "top": 66, "text": "RESTING — mode button trailing the composer (per mode)", "fontColor": "#7d8694", "fontSize": 13},
+
+    "a1": {"type": "Rectangle", "left": 40, "top": 96, "width": 600, "height": 72, "fillColor": "#1b1f26", "strokeColor": "#2c323c", "corners": [6, 6, 6, 6]},
+    "a1hint": {"type": "Text", "left": 58, "top": 110, "text": "Message Claude…", "fontColor": "#7d8694", "fontSize": 14},
+    "a1sub": {"type": "Text", "left": 58, "top": 134, "text": "Enter to send · Shift+Enter newline", "fontColor": "#525a64", "fontSize": 11},
+    "a1btn": {"type": "Rectangle", "left": 478, "top": 124, "width": 150, "height": 32, "fillColor": "#20252e", "strokeColor": "#3a414d", "corners": [4, 4, 4, 4]},
+    "a1ic": {"type": "Ellipse", "left": 490, "top": 133, "width": 14, "height": 14, "fillColor": "#7d8694", "strokeColor": "#7d8694"},
+    "a1lbl": {"type": "Text", "left": 512, "top": 131, "text": "default", "fontColor": "#c8d0e0", "fontSize": 13},
+    "a1car": {"type": "Text", "left": 606, "top": 130, "text": "v", "fontColor": "#7d8694", "fontSize": 12},
+
+    "a2": {"type": "Rectangle", "left": 40, "top": 196, "width": 600, "height": 72, "fillColor": "#1b1f26", "strokeColor": "#2c323c", "corners": [6, 6, 6, 6]},
+    "a2hint": {"type": "Text", "left": 58, "top": 210, "text": "Message Claude…", "fontColor": "#7d8694", "fontSize": 14},
+    "a2sub": {"type": "Text", "left": 58, "top": 234, "text": "Enter to send · Shift+Enter newline", "fontColor": "#525a64", "fontSize": 11},
+    "a2btn": {"type": "Rectangle", "left": 478, "top": 224, "width": 150, "height": 32, "fillColor": "#20252e", "strokeColor": "#d8a657", "corners": [4, 4, 4, 4]},
+    "a2ic": {"type": "Ellipse", "left": 490, "top": 233, "width": 14, "height": 14, "fillColor": "#d8a657", "strokeColor": "#d8a657"},
+    "a2lbl": {"type": "Text", "left": 512, "top": 231, "text": "accept-edits", "fontColor": "#c8d0e0", "fontSize": 13},
+    "a2car": {"type": "Text", "left": 606, "top": 230, "text": "v", "fontColor": "#7d8694", "fontSize": 12},
+
+    "a3": {"type": "Rectangle", "left": 40, "top": 296, "width": 600, "height": 72, "fillColor": "#1b1f26", "strokeColor": "#2c323c", "corners": [6, 6, 6, 6]},
+    "a3hint": {"type": "Text", "left": 58, "top": 310, "text": "Message Claude…", "fontColor": "#7d8694", "fontSize": 14},
+    "a3sub": {"type": "Text", "left": 58, "top": 334, "text": "Enter to send · Shift+Enter newline", "fontColor": "#525a64", "fontSize": 11},
+    "a3btn": {"type": "Rectangle", "left": 478, "top": 324, "width": 150, "height": 32, "fillColor": "#20252e", "strokeColor": "#7fb0c8", "corners": [4, 4, 4, 4]},
+    "a3ic": {"type": "Ellipse", "left": 490, "top": 333, "width": 14, "height": 14, "fillColor": "#7fb0c8", "strokeColor": "#7fb0c8"},
+    "a3lbl": {"type": "Text", "left": 512, "top": 331, "text": "plan", "fontColor": "#c8d0e0", "fontSize": 13},
+    "a3car": {"type": "Text", "left": 606, "top": 330, "text": "v", "fontColor": "#7d8694", "fontSize": 12},
+
+    "secB": {"type": "Text", "left": 700, "top": 66, "text": "OPEN — dropdown on click (active marked; bypass guarded)", "fontColor": "#7d8694", "fontSize": 13},
+
+    "pop": {"type": "Rectangle", "left": 1118, "top": 140, "width": 200, "height": 182, "fillColor": "#1b1f26", "strokeColor": "#3a414d", "corners": [6, 6, 6, 6]},
+    "r1bg": {"type": "Rectangle", "left": 1124, "top": 147, "width": 188, "height": 34, "fillColor": "#232b34", "strokeColor": "#232b34", "corners": [4, 4, 4, 4]},
+    "r1ic": {"type": "Ellipse", "left": 1134, "top": 157, "width": 14, "height": 14, "fillColor": "#7d8694", "strokeColor": "#7d8694"},
+    "r1lbl": {"type": "Text", "left": 1156, "top": 155, "text": "default", "fontColor": "#c8d0e0", "fontSize": 13},
+    "r1chk": {"type": "Text", "left": 1292, "top": 154, "text": "ok", "fontColor": "#7fb0c8", "fontSize": 12},
+    "r2ic": {"type": "Ellipse", "left": 1134, "top": 193, "width": 14, "height": 14, "fillColor": "#d8a657", "strokeColor": "#d8a657"},
+    "r2lbl": {"type": "Text", "left": 1156, "top": 191, "text": "accept-edits", "fontColor": "#c8d0e0", "fontSize": 13},
+    "r3ic": {"type": "Ellipse", "left": 1134, "top": 229, "width": 14, "height": 14, "fillColor": "#7fb0c8", "strokeColor": "#7fb0c8"},
+    "r3lbl": {"type": "Text", "left": 1156, "top": 227, "text": "plan", "fontColor": "#c8d0e0", "fontSize": 13},
+    "rdiv": {"type": "Rectangle", "left": 1124, "top": 260, "width": 188, "height": 1, "fillColor": "#2c323c", "strokeColor": "#2c323c"},
+    "r4ic": {"type": "Ellipse", "left": 1134, "top": 273, "width": 14, "height": 14, "fillColor": "#6b4f54", "strokeColor": "#6b4f54"},
+    "r4lbl": {"type": "Text", "left": 1156, "top": 269, "text": "bypass", "fontColor": "#7a6166", "fontSize": 13},
+    "r4note": {"type": "Text", "left": 1156, "top": 288, "text": "[lock] needs confirm", "fontColor": "#6b5358", "fontSize": 10},
+
+    "b1": {"type": "Rectangle", "left": 700, "top": 300, "width": 600, "height": 72, "fillColor": "#1b1f26", "strokeColor": "#2c323c", "corners": [6, 6, 6, 6]},
+    "b1hint": {"type": "Text", "left": 718, "top": 314, "text": "Message Claude…", "fontColor": "#7d8694", "fontSize": 14},
+    "b1sub": {"type": "Text", "left": 718, "top": 338, "text": "Enter to send · Shift+Enter newline", "fontColor": "#525a64", "fontSize": 11},
+    "b1btn": {"type": "Rectangle", "left": 1138, "top": 328, "width": 150, "height": 32, "fillColor": "#232b34", "strokeColor": "#7fb0c8", "corners": [4, 4, 4, 4]},
+    "b1ic": {"type": "Ellipse", "left": 1150, "top": 337, "width": 14, "height": 14, "fillColor": "#7d8694", "strokeColor": "#7d8694"},
+    "b1lbl": {"type": "Text", "left": 1172, "top": 335, "text": "default", "fontColor": "#c8d0e0", "fontSize": 13},
+    "b1car": {"type": "Text", "left": 1266, "top": 334, "text": "^", "fontColor": "#7fb0c8", "fontSize": 12},
+
+    "secC": {"type": "Text", "left": 700, "top": 408, "text": "INTERACTION ZONE (D-78) — a prompt replaces the composer", "fontColor": "#7d8694", "fontSize": 13},
+    "c1": {"type": "Rectangle", "left": 700, "top": 438, "width": 600, "height": 96, "fillColor": "#20252e", "strokeColor": "#d8a657", "corners": [6, 6, 6, 6]},
+    "c1q": {"type": "Text", "left": 718, "top": 452, "text": "Allow  Edit  lib/main.dart ?", "fontColor": "#c8d0e0", "fontSize": 14},
+    "c1allow": {"type": "Rectangle", "left": 718, "top": 488, "width": 90, "height": 30, "fillColor": "#27332b", "strokeColor": "#7fae7f", "corners": [4, 4, 4, 4]},
+    "c1allowt": {"type": "Text", "left": 740, "top": 495, "text": "Allow", "fontColor": "#c8d0e0", "fontSize": 13},
+    "c1deny": {"type": "Rectangle", "left": 818, "top": 488, "width": 90, "height": 30, "fillColor": "#33272b", "strokeColor": "#c87f7f", "corners": [4, 4, 4, 4]},
+    "c1denyt": {"type": "Text", "left": 842, "top": 495, "text": "Deny", "fontColor": "#c8d0e0", "fontSize": 13},
+    "c1note": {"type": "Text", "left": 930, "top": 462, "text": "Composer + its mode button are replaced here.", "fontColor": "#7d8694", "fontSize": 11},
+    "c1note2": {"type": "Text", "left": 930, "top": 480, "text": "Mode stays readable in the status bar below.", "fontColor": "#7d8694", "fontSize": 11},
+
+    "sb": {"type": "Rectangle", "left": 700, "top": 548, "width": 600, "height": 26, "fillColor": "#14171c", "strokeColor": "#2c323c"},
+    "sbt": {"type": "Text", "left": 716, "top": 553, "text": "opus 4.8   ·", "fontColor": "#7d8694", "fontSize": 12},
+    "sbbadge": {"type": "Rectangle", "left": 800, "top": 551, "width": 64, "height": 20, "fillColor": "#1b1f26", "strokeColor": "#3a414d", "corners": [3, 3, 3, 3]},
+    "sbbadget": {"type": "Text", "left": 808, "top": 553, "text": "default", "fontColor": "#c8d0e0", "fontSize": 11},
+    "sbt2": {"type": "Text", "left": 874, "top": 553, "text": "·   21k ctx   ·   $0.12", "fontColor": "#7d8694", "fontSize": 12},
+
+    "nhdr": {"type": "Text", "left": 40, "top": 600, "text": "DESIGN NOTES", "fontColor": "#7d8694", "fontSize": 13},
+    "n1": {"type": "Text", "left": 40, "top": 624, "text": "1. Mode button trails the composer text box (bottom-right) — the slot where the Stop button appears when busy.", "fontColor": "#c8d0e0", "fontSize": 12},
+    "n2": {"type": "Text", "left": 40, "top": 646, "text": "2. Per-mode icon + accent: default (neutral grey), accept-edits (amber), plan (blue). bypass (red) shows only when active.", "fontColor": "#c8d0e0", "fontSize": 12},
+    "n3": {"type": "Text", "left": 40, "top": 668, "text": "3. Click opens a popover ABOVE the button; active mode marked. bypass is divided off + guarded (confirm), never one click away (T-181).", "fontColor": "#c8d0e0", "fontSize": 12},
+    "n4": {"type": "Text", "left": 40, "top": 690, "text": "4. D-78: while a permission / AskUserQuestion prompt replaces the composer, the mode button rides away with it; the status-bar badge stays as the persistent mirror.", "fontColor": "#c8d0e0", "fontSize": 12},
+    "n5": {"type": "Text", "left": 40, "top": 712, "text": "5. Status-bar badge is kept (mirrors the new control). Ctrl/Cmd+M still cycles the safe trio (T-226); the dropdown is the discoverable peer.", "fontColor": "#c8d0e0", "fontSize": 12}
+  },
+  "connectors": {
+    "pop-anchor": {"tailId": "pop", "headId": "b1btn", "strokeColor": "#3a414d"}
+  }
+}
