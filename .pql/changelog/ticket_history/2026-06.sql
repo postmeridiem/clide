@@ -1682,3 +1682,32 @@ Tests: SettingsStore round-trips ''project.theme''; opening a project applies th
 
 FIXED 2026-06-09 (this commit). Added lib/kernel/src/theme/theme_persistence.dart + wireThemePersistence() in facade. Decision on the open question: persist BOTH project.theme (per-repo, in .clide/settings.yaml) AND app.theme (global default) — so a themed repo keeps its choice, an unthemed/new repo inherits the last global choice, and the HC variant persists (name encodes -hc). Restore prefers project over app; unknown theme is ignored (no throw). Tests: test/kernel/src/theme_persistence_test.dart (6 cases — persist app/project, HC, restore-on-open, boot restore, unknown fallback). All green.', NULL, '2026-06-09 15:36:15', '2026-06-09 15:36:15', '2026-06-09 15:36:15', NULL, '7bfa444c00cfab00bb8bba19e3677547', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-293', 'status', 'ready', 'done', NULL, '2026-06-09 15:36:15', '2026-06-09 15:36:15', '2026-06-09 15:36:15', NULL, '4b398e8cbe8244580bb10b5306f73140', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-296', 'description', 'When Claude makes multiple subsequent edits to the SAME file, bundle them into a single collapsed holder card instead of rendering each edit as its own card — mirroring how we already fold meta/activity runs.
+
+Behaviour:
+- Detect a run of consecutive edits targeting the same file_path and group them into one ClideHolderCard (the shared container from T-266; see _ActivityCard in lib/builtin/claude/src/conversation_view.dart:681).
+- Collapsed (default): one-line ticker of the latest edit + a count label.
+- Show the count as "# edits" (e.g. "3 edits" / "1 edit"), NOT "# steps". The existing activity card uses stepLabel = ''$count steps'' at conversation_view.dart:683; this run wants an edits-flavoured label.
+- Expanded: every individual edit, each with its full report — bundle, do NOT drop or summarise away any information. All per-edit detail must remain reachable on expand.
+
+Notes:
+- Reuse the existing ClideHolderCard / folding machinery rather than building a new card.
+- Grouping breaks when the file_path changes or a non-edit step interleaves (consecutive-same-file only), matching the ''subsequent edits to the same file'' wording.
+- Parity with the existing meta/activity folding (T-230) — same collapse/expand affordance, just an edits-labelled run.', 'When Claude makes multiple subsequent edits to the SAME file, bundle them into a single collapsed holder card instead of rendering each edit as its own card — mirroring how we already fold meta/activity runs.
+
+Behaviour:
+- Detect a run of consecutive edits targeting the same file_path and group them into one ClideHolderCard (the shared container from T-266; see _ActivityCard in lib/builtin/claude/src/conversation_view.dart:681).
+- Collapsed (default): one-line ticker of the latest edit + a count label.
+- Show the count as "# edits" (e.g. "3 edits" / "1 edit"), NOT "# steps". The existing activity card uses stepLabel = ''$count steps'' at conversation_view.dart:683; this run wants an edits-flavoured label.
+- Expanded: every individual edit, each with its full report — bundle, do NOT drop or summarise away any information. All per-edit detail must remain reachable on expand.
+
+Notes:
+- Reuse the existing ClideHolderCard / folding machinery rather than building a new card.
+- Grouping breaks when the file_path changes or a non-edit step interleaves (consecutive-same-file only), matching the ''subsequent edits to the same file'' wording.
+- Parity with the existing meta/activity folding (T-230) — same collapse/expand affordance, just an edits-labelled run.
+
+WORKED EXAMPLE (from user screenshot, clide_markdown.dart run): the current stream renders 11 stacked cards — 3x "Edit clide_markdown.dart", then a folded "Read … 2 steps" holder, then 7x "Edit clide_markdown.dart". With this feature it collapses to THREE cards:
+- [3 edits]  (the first edit run)
+- [2 steps]  (the existing Read holder — unchanged; this is what splits the edit run)
+- [7 edits]  (the second edit run)
+Confirms the split rule: an interleaving non-edit step (here the folded Read run) breaks the consecutive-same-file edit grouping into two separate edit cards. Same-file edits with nothing between them collapse into one "# edits" card.', NULL, '2026-06-09 15:45:12', '2026-06-09 15:45:12', '2026-06-09 15:45:12', NULL, '0878699228e77f6fd0226b05c6f0d6f0', 1) ON CONFLICT(hash) DO NOTHING;
