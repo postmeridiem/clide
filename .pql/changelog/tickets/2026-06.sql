@@ -2674,3 +2674,14 @@ So this ticket is scoped to the VISUAL AFFORDANCE only:
 - D-6 CLI/keyboard parity is already satisfied by the existing commands; this adds the mouse affordance.
 
 Mock: docs/design/wireframes/hud/pane-collapse-toggles.{json,png} — State A (open) + State B (collapsed).', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 15:18:22', '2026-06-09 15:24:00', NULL, '87737b23e9119a0d46bba4977801997f', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-295', 'bug', 'T-276', 'clide image show is not tab-aware — opens in primary tab', '`clide image show <path>` (T-249 image card) renders the image into the PRIMARY tab regardless of which tab/pane is active. It should target the active tab (or otherwise be tab-aware), not hijack the primary one.
+
+Repro:
+- Have a non-primary tab focused.
+- Run `clide image show <path>`.
+- Observed: image card appears in the primary tab.
+- Expected: image card appears in the active/intended tab.
+
+Notes:
+- Surfaced while showing a Frame0 wireframe export during T-294.
+- Likely the image-show dispatch resolves a fixed/primary slot instead of the active tab context. Audit the target-resolution path for the image-show command.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 15:26:00', '2026-06-09 15:26:00', NULL, 'aa861a651e4bcc707a70e74ff2844ca8', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
