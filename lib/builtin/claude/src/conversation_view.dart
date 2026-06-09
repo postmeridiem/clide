@@ -9,6 +9,7 @@
 /// separate concern (T-138).
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -360,6 +361,11 @@ void _openRecord(BuildContext context, String id) {
   ClideKernel.of(context).messages.publish(publisher, 'selection', {'id': id});
 }
 
+/// Hand a clicked conversation link to the OS URL handler (T-253).
+void _openUrl(BuildContext context, String url) {
+  unawaited(ClideKernel.of(context).os.openURL(url));
+}
+
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({
@@ -421,6 +427,7 @@ class _ConversationTurn extends StatelessWidget {
             i.text,
             onRecordTap: (id) => _openRecord(context, id),
             onImageToken: (path) => ImageThumbnail(path: path, size: 48),
+            onLinkTap: (url) => _openUrl(context, url),
           ),
         ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
@@ -430,7 +437,7 @@ class _ConversationTurn extends StatelessWidget {
           accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
           label: i.isSidechain ? 'agent' : 'claude',
           copyText: i.text,
-          body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id)),
+          body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id), onLinkTap: (url) => _openUrl(context, url)),
         ),
       AssistantThinkingMessage() => ConversationCard(
           variant: ConversationCardVariant.bare,

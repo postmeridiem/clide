@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Links in the Claude conversation are clickable.** An http(s) link (typed or
+  autolinked) now opens in your default browser on click — with a hover
+  underline + pointer — across prose, lists, tables, and headings. Non-http
+  schemes stay inert. (T-253)
 - **The activity-card fold level is now adjustable and persists.** A
   `claude.activity.fold-level` command cycles how aggressively meta steps fold
   (none → tools → thinking → everything); the choice is saved app-wide and the

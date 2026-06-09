@@ -15,8 +15,32 @@ typedef RecordTapCallback = void Function(String id);
 /// only locates the tokens and drops the widget into the text flow.
 typedef ImageTokenBuilder = Widget Function(String path);
 
+/// Invoked when a rendered http(s) link is activated (T-253) — the caller opens
+/// it (e.g. the OS URL handler).
+typedef LinkTapCallback = void Function(String url);
+
+/// The interaction hooks a [ClideMarkdown] render may fire — bundled into one
+/// value so the render tree threads a single object instead of a growing list
+/// of optional callbacks. All optional; a null hook leaves that affordance
+/// inert (the text renders, just not interactive).
+@immutable
+class ClideMarkdownHooks {
+  const ClideMarkdownHooks({this.onRecordTap, this.onImageToken, this.onLinkTap});
+
+  /// Tap a governance/ticket ref (T-281, D-77, …) → open the record (T-279).
+  final RecordTapCallback? onRecordTap;
+
+  /// Build the inline widget for a pasted-image `@<path>` token (T-236).
+  final ImageTokenBuilder? onImageToken;
+
+  /// Open an activated http(s) link (T-253).
+  final LinkTapCallback? onLinkTap;
+
+  static const none = ClideMarkdownHooks();
+}
+
 class ClideMarkdown extends StatelessWidget {
-  const ClideMarkdown(this.source, {super.key, this.onRecordTap, this.onImageToken});
+  const ClideMarkdown(this.source, {super.key, this.onRecordTap, this.onImageToken, this.onLinkTap});
 
   static const double _fontSize = 16;
   static const double _lineHeight = clideLineHeight;
@@ -41,6 +65,7 @@ class ClideMarkdown extends StatelessWidget {
   final String source;
   final RecordTapCallback? onRecordTap;
   final ImageTokenBuilder? onImageToken;
+  final LinkTapCallback? onLinkTap;
 
   static String _unescapeHtml(String s) {
     return s
@@ -57,7 +82,8 @@ class ClideMarkdown extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     final doc = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
     final nodes = doc.parseLines(source.split('\n'));
-    final widgets = _buildNodes(nodes, tokens, onRecordTap, onImageToken: onImageToken);
+    final hooks = ClideMarkdownHooks(onRecordTap: onRecordTap, onImageToken: onImageToken, onLinkTap: onLinkTap);
+    final widgets = _buildNodes(nodes, tokens, hooks);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -73,7 +99,7 @@ class ClideMarkdown extends StatelessWidget {
     return false;
   }
 
-  static List<Widget> _buildNodes(List<md.Node> nodes, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
+  static List<Widget> _buildNodes(List<md.Node> nodes, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
     final out = <Widget>[];
     final inlineRun = <md.Node>[];
 
@@ -82,9 +108,9 @@ class ClideMarkdown extends StatelessWidget {
       final spans = <InlineSpan>[];
       for (final n in inlineRun) {
         if (n is md.Text) {
-          spans.addAll(_linkifyText(_unescapeHtml(n.text), tokens, onRecordTap, onImageToken: onImageToken));
+          spans.addAll(_linkifyText(_unescapeHtml(n.text), tokens, hooks));
         } else if (n is md.Element) {
-          spans.add(_inlineElementSpan(n, tokens, onRecordTap, onImageToken: onImageToken));
+          spans.add(_inlineElementSpan(n, tokens, hooks));
         }
       }
       out.add(Text.rich(
@@ -109,7 +135,7 @@ class ClideMarkdown extends StatelessWidget {
       } else {
         flushInline();
         if (node is md.Element) {
-          out.add(_buildElement(node, tokens, onRecordTap, onImageToken: onImageToken));
+          out.add(_buildElement(node, tokens, hooks));
         }
       }
     }
@@ -117,34 +143,34 @@ class ClideMarkdown extends StatelessWidget {
     return out;
   }
 
-  static Widget _buildElement(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
+  static Widget _buildElement(md.Element el, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
     switch (el.tag) {
       case 'h1':
         return Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 10),
-          child: _inlineText(el, tokens, onRecordTap, fontSize: 22, fontWeight: FontWeight.w500),
+          child: _inlineText(el, tokens, hooks, fontSize: 22, fontWeight: FontWeight.w500),
         );
       case 'h2':
         return Padding(
           padding: const EdgeInsets.only(top: 18, bottom: 10),
-          child: _inlineText(el, tokens, onRecordTap, fontSize: 18, fontWeight: FontWeight.w500),
+          child: _inlineText(el, tokens, hooks, fontSize: 18, fontWeight: FontWeight.w500),
         );
       case 'h3':
         return Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 8),
-          child: _inlineText(el, tokens, onRecordTap, fontSize: 16, fontWeight: FontWeight.w500),
+          child: _inlineText(el, tokens, hooks, fontSize: 16, fontWeight: FontWeight.w500),
         );
       case 'h4':
       case 'h5':
       case 'h6':
         return Padding(
           padding: const EdgeInsets.only(top: 14, bottom: 8),
-          child: _inlineText(el, tokens, onRecordTap, fontSize: clideFontBody, fontWeight: FontWeight.w600),
+          child: _inlineText(el, tokens, hooks, fontSize: clideFontBody, fontWeight: FontWeight.w600),
         );
       case 'p':
         return Padding(
           padding: const EdgeInsets.only(bottom: 14),
-          child: _inlineRichText(el, tokens, onRecordTap, onImageToken: onImageToken),
+          child: _inlineRichText(el, tokens, hooks),
         );
       case 'ul':
         return Padding(
@@ -154,7 +180,7 @@ class ClideMarkdown extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final c in el.children ?? const [])
-                if (c is md.Element) _buildListItem(c, tokens, onRecordTap, ordered: false, onImageToken: onImageToken)
+                if (c is md.Element) _buildListItem(c, tokens, hooks, ordered: false)
             ],
           ),
         );
@@ -166,8 +192,7 @@ class ClideMarkdown extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (var i = 0; i < (el.children?.length ?? 0); i++)
-                if (el.children![i] is md.Element)
-                  _buildListItem(el.children![i] as md.Element, tokens, onRecordTap, ordered: true, index: i + 1, onImageToken: onImageToken),
+                if (el.children![i] is md.Element) _buildListItem(el.children![i] as md.Element, tokens, hooks, ordered: true, index: i + 1),
             ],
           ),
         );
@@ -179,7 +204,7 @@ class ClideMarkdown extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
-            children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, onRecordTap, onImageToken: onImageToken),
+            children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, hooks),
           ),
         );
       case 'pre':
@@ -199,15 +224,14 @@ class ClideMarkdown extends StatelessWidget {
       case 'table':
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: _buildTable(el, tokens, onRecordTap),
+          child: _buildTable(el, tokens, hooks),
         );
       default:
-        return _inlineRichText(el, tokens, onRecordTap, onImageToken: onImageToken);
+        return _inlineRichText(el, tokens, hooks);
     }
   }
 
-  static Widget _buildListItem(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap,
-      {bool ordered = false, int index = 1, ImageTokenBuilder? onImageToken}) {
+  static Widget _buildListItem(md.Element el, SurfaceTokens tokens, ClideMarkdownHooks hooks, {bool ordered = false, int index = 1}) {
     final bullet = ordered ? '$index. ' : '• ';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -219,7 +243,7 @@ class ClideMarkdown extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
-              children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, onRecordTap, onImageToken: onImageToken),
+              children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, hooks),
             ),
           ),
         ],
@@ -227,7 +251,7 @@ class ClideMarkdown extends StatelessWidget {
     );
   }
 
-  static Widget _buildTable(md.Element table, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
+  static Widget _buildTable(md.Element table, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
     final rows = <TableRow>[];
     for (final child in table.children ?? const []) {
       if (child is! md.Element) continue;
@@ -239,7 +263,7 @@ class ClideMarkdown extends StatelessWidget {
           if (cell is! md.Element) continue;
           cells.add(Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            child: _inlineText(cell, tokens, onRecordTap, fontWeight: isHeader ? FontWeight.w600 : null),
+            child: _inlineText(cell, tokens, hooks, fontWeight: isHeader ? FontWeight.w600 : null),
           ));
         }
         if (cells.isNotEmpty) {
@@ -258,22 +282,21 @@ class ClideMarkdown extends StatelessWidget {
     );
   }
 
-  static Widget _inlineText(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {double? fontSize, FontWeight? fontWeight}) {
-    return Text.rich(_buildInlineSpan(el, tokens, onRecordTap, fontSize: fontSize, fontWeight: fontWeight));
+  static Widget _inlineText(md.Element el, SurfaceTokens tokens, ClideMarkdownHooks hooks, {double? fontSize, FontWeight? fontWeight}) {
+    return Text.rich(_buildInlineSpan(el, tokens, hooks, fontSize: fontSize, fontWeight: fontWeight));
   }
 
-  static Widget _inlineRichText(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
-    return Text.rich(_buildInlineSpan(el, tokens, onRecordTap, onImageToken: onImageToken));
+  static Widget _inlineRichText(md.Element el, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
+    return Text.rich(_buildInlineSpan(el, tokens, hooks));
   }
 
-  static TextSpan _buildInlineSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap,
-      {double? fontSize, FontWeight? fontWeight, ImageTokenBuilder? onImageToken}) {
+  static TextSpan _buildInlineSpan(md.Element el, SurfaceTokens tokens, ClideMarkdownHooks hooks, {double? fontSize, FontWeight? fontWeight}) {
     final children = <InlineSpan>[];
     for (final child in el.children ?? const []) {
       if (child is md.Text) {
-        children.addAll(_linkifyText(_unescapeHtml(child.text), tokens, onRecordTap, onImageToken: onImageToken));
+        children.addAll(_linkifyText(_unescapeHtml(child.text), tokens, hooks));
       } else if (child is md.Element) {
-        children.add(_inlineElementSpan(child, tokens, onRecordTap, onImageToken: onImageToken));
+        children.add(_inlineElementSpan(child, tokens, hooks));
       }
     }
     return TextSpan(
@@ -289,17 +312,14 @@ class ClideMarkdown extends StatelessWidget {
     );
   }
 
-  static InlineSpan _inlineElementSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
+  static InlineSpan _inlineElementSpan(md.Element el, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
     switch (el.tag) {
       case 'strong':
         return TextSpan(
           style: const TextStyle(fontWeight: FontWeight.w700),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text)
-                ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap, onImageToken: onImageToken)
-              else if (c is md.Element)
-                _inlineElementSpan(c, tokens, onRecordTap, onImageToken: onImageToken)
+              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, hooks) else if (c is md.Element) _inlineElementSpan(c, tokens, hooks)
           ],
         );
       case 'em':
@@ -307,10 +327,7 @@ class ClideMarkdown extends StatelessWidget {
           style: const TextStyle(fontStyle: FontStyle.italic),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text)
-                ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap, onImageToken: onImageToken)
-              else if (c is md.Element)
-                _inlineElementSpan(c, tokens, onRecordTap, onImageToken: onImageToken)
+              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, hooks) else if (c is md.Element) _inlineElementSpan(c, tokens, hooks)
           ],
         );
       case 'code':
@@ -320,8 +337,14 @@ class ClideMarkdown extends StatelessWidget {
         );
       case 'a':
         final text = _unescapeHtml(el.textContent);
-        if (onRecordTap != null && _recordPattern.hasMatch(text)) {
-          return _recordLinkSpan(text, tokens, onRecordTap);
+        if (hooks.onRecordTap != null && _recordPattern.hasMatch(text)) {
+          return _recordLinkSpan(text, tokens, hooks.onRecordTap!);
+        }
+        // An http(s) link (explicit or autolinked) → tappable, opens via the
+        // caller's handler (T-253). Non-http schemes stay coloured-but-inert.
+        final href = el.attributes['href'];
+        if (hooks.onLinkTap != null && href != null && _isHttpUrl(href)) {
+          return _urlLinkSpan(text, href, tokens, hooks.onLinkTap!);
         }
         return TextSpan(
           text: text,
@@ -341,24 +364,24 @@ class ClideMarkdown extends StatelessWidget {
   /// image widgets via [onImageToken] (T-236), and bare governance/ticket refs
   /// (T-281, D-77, Q-5, R-2) become clickable [_recordLinkSpan]s (T-279). With
   /// neither callback (or no match) the text passes through unchanged.
-  static List<InlineSpan> _linkifyText(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
+  static List<InlineSpan> _linkifyText(String text, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
     if (text.isEmpty) return [TextSpan(text: text)];
     // Pass 1: pull out image tokens, record-linkifying the prose between them.
-    if (onImageToken != null) {
+    if (hooks.onImageToken != null) {
       final spans = <InlineSpan>[];
       var last = 0;
       for (final m in _imageTokenPattern.allMatches(text)) {
-        if (m.start > last) spans.addAll(_linkifyRecords(text.substring(last, m.start), tokens, onRecordTap));
+        if (m.start > last) spans.addAll(_linkifyRecords(text.substring(last, m.start), tokens, hooks.onRecordTap));
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: onImageToken(m.group(1)!)),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: hooks.onImageToken!(m.group(1)!)),
         ));
         last = m.end;
       }
-      if (last < text.length) spans.addAll(_linkifyRecords(text.substring(last), tokens, onRecordTap));
+      if (last < text.length) spans.addAll(_linkifyRecords(text.substring(last), tokens, hooks.onRecordTap));
       return spans.isEmpty ? [TextSpan(text: text)] : spans;
     }
-    return _linkifyRecords(text, tokens, onRecordTap);
+    return _linkifyRecords(text, tokens, hooks.onRecordTap);
   }
 
   static List<InlineSpan> _linkifyRecords(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
@@ -390,6 +413,37 @@ class ClideMarkdown extends StatelessWidget {
             fontSize: _fontSize,
             height: _lineHeight,
             fontFamily: clideMonoFamily,
+            decoration: hovered ? TextDecoration.underline : null,
+            decorationColor: tokens.globalFocus,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static bool _isHttpUrl(String s) {
+    final u = Uri.tryParse(s);
+    return u != null && (u.scheme == 'http' || u.scheme == 'https') && u.host.isNotEmpty;
+  }
+
+  /// A clickable http(s) link span (T-253): the link [text] in the focus accent,
+  /// underlined on hover, opening [href] via [onLinkTap]. Keyboard-activatable
+  /// (ClideTappable) and tooltipped with the destination.
+  static InlineSpan _urlLinkSpan(String text, String href, SurfaceTokens tokens, LinkTapCallback onLinkTap) {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: ClideTappable(
+        onTap: () => onLinkTap(href),
+        tooltip: href,
+        builder: (_, hovered, __) => Text(
+          text,
+          style: TextStyle(
+            color: tokens.globalFocus,
+            fontSize: _fontSize,
+            height: _lineHeight,
+            fontFamily: clideUiFamily,
+            fontFamilyFallback: clideUiFamilyFallback,
             decoration: hovered ? TextDecoration.underline : null,
             decorationColor: tokens.globalFocus,
           ),
