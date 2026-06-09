@@ -150,37 +150,18 @@ void main() {
     });
   });
 
-  group('parseArgv — clide:// deep links (T-56)', () {
-    test('clide://open?path= maps to editor.open', () {
-      final req = _expectOk(parseArgv(['clide://open?path=/repo/x.md'], requestId: '1'));
-      expect(req.cmd, 'editor.open');
-      expect(req.args['positional'], ['/repo/x.md']);
+  group('parseArgv — clide:// deep links route to the gated handler (T-56)', () {
+    test('a clide:// URL is handed verbatim to deeplink.invoke (not translated)', () {
+      // Validation + the user prompt happen in the handler (D-90), not here.
+      final req = _expectOk(parseArgv(['clide://open?path=/repo/x.md&line=42'], requestId: '1'));
+      expect(req.cmd, 'deeplink.invoke');
+      expect(req.args['positional'], ['clide://open?path=/repo/x.md&line=42']);
     });
 
-    test('a &line= becomes the second positional', () {
-      final req = _expectOk(parseArgv(['clide://open?path=/repo/x.md&line=42'], requestId: '2'));
-      expect(req.cmd, 'editor.open');
-      expect(req.args['positional'], ['/repo/x.md', '42']);
-    });
-
-    test('an encoded path is decoded', () {
-      final req = _expectOk(parseArgv(['clide://open?path=/a%20b/c.dart'], requestId: '3'));
-      expect(req.args['positional'], ['/a b/c.dart']);
-    });
-
-    test('missing path errors', () {
-      final err = _expectErr(parseArgv(['clide://open'], requestId: '4'));
-      expect(err.error?.message, contains('requires a ?path'));
-    });
-
-    test('a non-positive or non-numeric line errors', () {
-      expect(_expectErr(parseArgv(['clide://open?path=/x&line=0'], requestId: '5')).error?.message, contains('positive integer'));
-      expect(_expectErr(parseArgv(['clide://open?path=/x&line=abc'], requestId: '6')).error?.message, contains('positive integer'));
-    });
-
-    test('an unknown action errors', () {
-      final err = _expectErr(parseArgv(['clide://frobnicate?x=1'], requestId: '7'));
-      expect(err.error?.message, contains('unknown clide:// action'));
+    test('even an unknown action is passed through (the handler rejects it)', () {
+      final req = _expectOk(parseArgv(['clide://frobnicate?x=1'], requestId: '2'));
+      expect(req.cmd, 'deeplink.invoke');
+      expect(req.args['positional'], ['clide://frobnicate?x=1']);
     });
   });
 }

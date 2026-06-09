@@ -7,6 +7,7 @@ import 'package:clide/builtin/claude/claude.dart';
 import 'package:clide/builtin/claude_control/claude_control.dart';
 import 'package:clide/builtin/cli_install/cli_install.dart';
 import 'package:clide/builtin/decisions/decisions.dart';
+import 'package:clide/builtin/deeplink/deeplink.dart';
 import 'package:clide/builtin/default_layout/default_layout.dart';
 import 'package:clide/builtin/diff/diff.dart';
 import 'package:clide/builtin/editor/editor.dart';
@@ -371,6 +372,7 @@ Future<void> main() async {
     ..register(GitExtension())
     ..register(PqlExtension())
     ..register(ProblemsExtension())
+    ..register(DeepLinkExtension())
     // Workspace
     ..register(ClaudeExtension())
     ..register(TerminalExtension())

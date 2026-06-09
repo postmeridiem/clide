@@ -104,37 +104,14 @@ ArgvParseResult parseArgv(List<String> argv, {required String requestId}) {
   ));
 }
 
-/// Translate a `clide://` deep link into an [IpcRequest] (T-56). Only the
-/// `open` action is defined today: `clide://open?path=<abs|repo-rel>&line=<n>`
-/// maps to `editor.open` (which jumps the selection to the 1-based line). The
-/// path is passed through verbatim — `editor.open` resolves it against the
-/// workspace and applies the usual `files.read` allow-list (D-80).
-ArgvParseResult _deepLinkToRequest(String url, String requestId) {
-  final uri = Uri.tryParse(url);
-  if (uri == null || uri.scheme != 'clide') {
-    return ArgvError(_err(requestId, 'malformed clide:// link: $url'));
-  }
-  switch (uri.host) {
-    case 'open':
-      final path = uri.queryParameters['path'];
-      if (path == null || path.isEmpty) {
-        return ArgvError(_err(requestId, 'clide://open requires a ?path='));
-      }
-      final positional = <String>[path];
-      final lineRaw = uri.queryParameters['line'];
-      if (lineRaw != null && lineRaw.isNotEmpty) {
-        final line = int.tryParse(lineRaw);
-        if (line == null || line < 1) {
-          return ArgvError(_err(requestId, 'clide://open: line must be a positive integer, got "$lineRaw"'));
-        }
-        positional.add('$line');
-      }
-      // Mirror the CLI's positional form so the editor.open schema maps them.
-      return ArgvParsed(IpcRequest(id: requestId, cmd: 'editor.open', args: {'positional': positional}));
-    default:
-      return ArgvError(_err(requestId, 'unknown clide:// action "${uri.host}" (expected: open)'));
-  }
-}
+/// Route a `clide://` deep link to the `deeplink.invoke` command (T-56). A
+/// clide:// URL is an UNTRUSTED external vector — any webpage can fire one — so
+/// it is NOT translated into a command here. The raw URL is handed to the
+/// deeplink handler, which validates it against a paranoid (default-deny)
+/// allowlist and prompts the user before doing anything (D-90).
+ArgvParseResult _deepLinkToRequest(String url, String requestId) => ArgvParsed(IpcRequest(id: requestId, cmd: 'deeplink.invoke', args: {
+      'positional': [url]
+    }));
 
 // -- internals --------------------------------------------------------------
 

@@ -451,3 +451,12 @@ Core, rendering, IPC, kernel, panel manager.
 - **Raised by:** 2026-06-06 — T-54 UX design session (Frame0 wireframe under `docs/design/wireframes/output-dock/`). User chose a status-bar-toggled bottom dock scoped to read-only output, Problems folded in, terminal kept first-class in the editor pane.
 
 ---
+
+### D-90: clide:// deep links — paranoid allowlist + user confirmation
+- **Date:** 2026-06-09
+- **Decision:** The `clide://` URL scheme (T-56) is treated as an UNTRUSTED external vector. A clide:// link is NOT translated into a command in the CLI parser; `parseArgv` hands the raw URL to a `deeplink.invoke` handler that is doubly defensive: (1) **default-deny allowlist** — only the actions in `kDeepLinkSafeActions` (today just `open`, a read-only navigation verb) are even parseable; anything else (`run`, `git`, `write`, arbitrary command passthrough, non-`clide` schemes) is rejected outright; and (2) **mandatory user confirmation** — every allowlisted action shows a "an external link wants to: … allow?" modal, framed as untrusted, before it executes. The OS scheme registration (linux `.desktop` `x-scheme-handler/clide`, macOS `CFBundleURLTypes`) + the CLI→IPC route mean a link lands in the running window (single-instance).
+- **Rationale:** The `clide` CLI is a *local, trusted* surface (D-1/D-6); a URL handler is the opposite — any webpage can fire `clide://…` at the OS. A generic passthrough to the full command surface would be maximally extensible but would turn a malicious link into a remote control for the IDE (trigger `git push`, file writes, session kills). Paranoid-allowlist + confirm keeps the useful "open this file at this line from a CI link / error report" case while making the dangerous surface unreachable. The allowlist is the security boundary and is unit-tested in isolation.
+- **Cost:** Each new deep-link action is an explicit, reviewed addition to `kDeepLinkSafeActions` + its handler branch — extensibility is deliberately gated, not free. The confirmation prompt adds a click to every deep-link open (acceptable for an out-of-band entry point). macOS URL *delivery* (AppDelegate `openURLs` → Dart) is a separate follow-up (T-303); the security model applies once delivery lands.
+- **Raised by:** 2026-06-09 — user, on reviewing the T-56 passthrough: "put a heavy blocklist with do-you-want-this prompts on it (a paranoid allowlist)." Spotted that routing clide:// through the CLI path is "incredibly extensible" and that extensibility is exactly the risk for an external vector.
+
+---

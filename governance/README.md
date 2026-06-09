@@ -131,6 +131,7 @@ You might also want, project-permitting:
 - [D-87: Output/log dock — bottom, toggled, read-only (logs + problems)](decisions/architecture.md#d-87-outputlog-dock--bottom-toggled-read-only-logs--problems) — _architecture_
 - [D-88: clide-owned anchored popover + menu primitive](decisions/design.md#d-88-clide-owned-anchored-popover--menu-primitive) — _design_
 - [D-89: inline pasted-image thumbnails that expand to the lightbox](decisions/design.md#d-89-inline-pasted-image-thumbnails-that-expand-to-the-lightbox) — _design_
+- [D-90: clide:// deep links — paranoid allowlist + user confirmation](decisions/architecture.md#d-90-clide-deep-links--paranoid-allowlist--user-confirmation) — _architecture_
 
 ## Open questions
 
