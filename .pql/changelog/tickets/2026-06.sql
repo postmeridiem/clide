@@ -2514,3 +2514,115 @@ Open question: app-scoped fallback. Persist project-scoped per the report; optio
 Acceptance: pick a theme (incl. the High-contrast toggle) -> restart -> same theme restored for that repo; two repos keep independent choices; with no repo open, the app default applies; a saved theme that no longer exists degrades to the default without throwing.
 
 Tests: SettingsStore round-trips ''project.theme''; opening a project applies the saved theme to the controller; select() persists; unknown saved theme falls back. Refs: T-234 (theme switcher), T-288/D-88 (picker), SettingsStore, ProjectManager.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 15:12:15', '2026-06-09 15:13:06', NULL, '138f608b7ff1aa7c449fe55f28d1c4d7', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'story', NULL, 'Render pasted images via the image viewer card in the Claude conversation panel instead of echoing only the file path', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-06 09:32:54', '2026-06-09 15:13:25', NULL, '3dd9087f24ed2bb4981fadb491713243', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-236', 'story', 'T-132', 'Render pasted-image @path tokens as thumbnails in the message log', 'When a user message contains a pasted-screenshot reference — an @<path> token pointing at an image (the composer''s ComposerAttachment.pathToken format, e.g. @/home/<user>/.cache/clide/pasted/paste-<ts>.png, see screenshot) — the conversation log renders it as the raw path string. Show it as an inline THUMBNAIL instead.
+
+The composer already renders pre-send attachments as Image.file thumbnail chips (clipboard_paste.dart + claude_composer _chip); this carries that into the post-send message log (UserMessage rendering in conversation_view/conversation_card).
+
+Scope:
+- When rendering UserMessage text, detect @<path> tokens; for image paths (reuse the extension check behind _looksLikeImage: .png/.jpg/.jpeg/.gif/.webp/.bmp), render a bounded Image.file thumbnail in place of the bare token. Surrounding prose still renders normally; a message can carry multiple tokens.
+- Click/activate the thumbnail to open the full-size image (a preview dialog). Keyboard-operable + a11y label (filename).
+- Graceful fallback: a missing/unreadable file (pasted temp files can be cleaned up) degrades to a small placeholder or the path text via Image.file errorBuilder — never a crash/exception.
+- Non-image @path tokens MAY render as a file chip (filename + icon) like the composer, but image thumbnails are the focus.
+- Note: Image.file reads the path directly via dart:io, so this is NOT gated by the files.read allow-list (D-80) — the cache dir is outside the workspace and that''s fine for display.
+- Display-only: the text actually sent to Claude is unchanged; this only affects rendering.
+
+Acceptance:
+1. A user message with an @<path> image token shows an inline thumbnail in the log (not the raw path).
+2. Clicking/activating the thumbnail opens the full image.
+3. A missing/unreadable referenced file degrades to a placeholder (or the path text), no exception.
+4. Prose and any non-image @path tokens around it still render readably; multiple tokens in one message all resolve.
+5. The message content delivered to Claude is unchanged (render-only). Relates to T-142 (paste attachments).
+
+MERGED T-254 (duplicate) into this ticket. Extra nuance carried over from T-254: keep the file path available (e.g. as a small caption/subtitle under the thumbnail, or via the lightbox) so it can still be copied/referenced. Reuse the existing inline image card + lightbox (T-252) rather than a new component.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-03 15:31:01', '2026-06-09 15:14:46', NULL, '9b8062e3e41f88ddf73d026d56d6ca01', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'story', NULL, 'Render pasted images via the image viewer card in the Claude conversation panel instead of echoing only the file path', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.', 'cancelled', 'medium', NULL, NULL, NULL, '2026-06-06 09:32:54', '2026-06-09 15:14:46', NULL, 'bd5b0c609c9e8eb26580ff62c37a9086', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'story', NULL, 'Render pasted images via the image viewer card in the Claude conversation panel instead of echoing only the file path', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.
+
+CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for rendering pasted @path images inline in the Claude conversation; its scope now includes T-254''s path-as-caption nuance. Implement under T-236.', 'cancelled', 'medium', NULL, NULL, NULL, '2026-06-06 09:32:54', '2026-06-09 15:14:46', NULL, '37cd035061a42262685fe11a862d0fa1', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'story', NULL, 'Render pasted images via the image viewer card in the Claude conversation panel instead of echoing only the file path', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.
+
+CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for rendering pasted @path images inline in the Claude conversation; its scope now includes T-254''s path-as-caption nuance. Implement under T-236.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-06 09:32:54', '2026-06-09 15:15:18', NULL, '4f3dd564fd456983fae4712d5c1d1d30', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'story', NULL, 'Render pasted images via the image viewer card in the Claude conversation panel instead of echoing only the file path', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.
+
+CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for rendering pasted @path images inline in the Claude conversation; its scope now includes T-254''s path-as-caption nuance. Implement under T-236.
+
+RETRACTED the cancellation — NOT a duplicate of T-236 (per user, 2026-06-09). Both stay open. T-254 remains its own ticket.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-06 09:32:54', '2026-06-09 15:15:18', NULL, '27c33b0119ddb5943396648504b968e5', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-236', 'story', 'T-132', 'Render pasted-image @path tokens as thumbnails in the message log', 'When a user message contains a pasted-screenshot reference — an @<path> token pointing at an image (the composer''s ComposerAttachment.pathToken format, e.g. @/home/<user>/.cache/clide/pasted/paste-<ts>.png, see screenshot) — the conversation log renders it as the raw path string. Show it as an inline THUMBNAIL instead.
+
+The composer already renders pre-send attachments as Image.file thumbnail chips (clipboard_paste.dart + claude_composer _chip); this carries that into the post-send message log (UserMessage rendering in conversation_view/conversation_card).
+
+Scope:
+- When rendering UserMessage text, detect @<path> tokens; for image paths (reuse the extension check behind _looksLikeImage: .png/.jpg/.jpeg/.gif/.webp/.bmp), render a bounded Image.file thumbnail in place of the bare token. Surrounding prose still renders normally; a message can carry multiple tokens.
+- Click/activate the thumbnail to open the full-size image (a preview dialog). Keyboard-operable + a11y label (filename).
+- Graceful fallback: a missing/unreadable file (pasted temp files can be cleaned up) degrades to a small placeholder or the path text via Image.file errorBuilder — never a crash/exception.
+- Non-image @path tokens MAY render as a file chip (filename + icon) like the composer, but image thumbnails are the focus.
+- Note: Image.file reads the path directly via dart:io, so this is NOT gated by the files.read allow-list (D-80) — the cache dir is outside the workspace and that''s fine for display.
+- Display-only: the text actually sent to Claude is unchanged; this only affects rendering.
+
+Acceptance:
+1. A user message with an @<path> image token shows an inline thumbnail in the log (not the raw path).
+2. Clicking/activating the thumbnail opens the full image.
+3. A missing/unreadable referenced file degrades to a placeholder (or the path text), no exception.
+4. Prose and any non-image @path tokens around it still render readably; multiple tokens in one message all resolve.
+5. The message content delivered to Claude is unchanged (render-only). Relates to T-142 (paste attachments).
+
+MERGED T-254 (duplicate) into this ticket. Extra nuance carried over from T-254: keep the file path available (e.g. as a small caption/subtitle under the thumbnail, or via the lightbox) so it can still be copied/referenced. Reuse the existing inline image card + lightbox (T-252) rather than a new component.
+
+RETRACTED the earlier ''merged T-254'' note — T-236 and T-254 are distinct tickets (per user); disregard that note. T-236 stays scoped to its own description.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-03 15:31:01', '2026-06-09 15:15:18', NULL, '8cfc730fea28133b2b032735dcadca7c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-294', 'task', 'T-276', 'Collapse buttons for sidebar and context pane', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 15:18:22', '2026-06-09 15:18:22', NULL, 'e9563df2809b22d6e3b7177cfb28d7f4', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

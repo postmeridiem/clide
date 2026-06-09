@@ -986,3 +986,130 @@ FIXED 2026-06-09 (commit 0231cb4). Root cause: ci/test_core.sh ran ''dart test t
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-292', 'status', 'in_progress', 'done', NULL, '2026-06-09 15:09:05', '2026-06-09 15:09:05', '2026-06-09 15:09:05', NULL, '6e5ddf473f6094246098d13c65515825', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-236', 'status', 'backlog', 'ready', NULL, '2026-06-09 15:10:57', '2026-06-09 15:10:57', '2026-06-09 15:10:57', NULL, '004f3513ae78eb18ddde5ebdba44c518', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-293', 'status', 'backlog', 'ready', NULL, '2026-06-09 15:13:06', '2026-06-09 15:13:06', '2026-06-09 15:13:06', NULL, '2dc7c5580e1bb26d741b5c6f08dbbd83', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'status', 'backlog', 'ready', NULL, '2026-06-09 15:13:25', '2026-06-09 15:13:25', '2026-06-09 15:13:25', NULL, '48cc5a8a417428ba0b42373bd7306d47', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-236', 'description', 'When a user message contains a pasted-screenshot reference — an @<path> token pointing at an image (the composer''s ComposerAttachment.pathToken format, e.g. @/home/<user>/.cache/clide/pasted/paste-<ts>.png, see screenshot) — the conversation log renders it as the raw path string. Show it as an inline THUMBNAIL instead.
+
+The composer already renders pre-send attachments as Image.file thumbnail chips (clipboard_paste.dart + claude_composer _chip); this carries that into the post-send message log (UserMessage rendering in conversation_view/conversation_card).
+
+Scope:
+- When rendering UserMessage text, detect @<path> tokens; for image paths (reuse the extension check behind _looksLikeImage: .png/.jpg/.jpeg/.gif/.webp/.bmp), render a bounded Image.file thumbnail in place of the bare token. Surrounding prose still renders normally; a message can carry multiple tokens.
+- Click/activate the thumbnail to open the full-size image (a preview dialog). Keyboard-operable + a11y label (filename).
+- Graceful fallback: a missing/unreadable file (pasted temp files can be cleaned up) degrades to a small placeholder or the path text via Image.file errorBuilder — never a crash/exception.
+- Non-image @path tokens MAY render as a file chip (filename + icon) like the composer, but image thumbnails are the focus.
+- Note: Image.file reads the path directly via dart:io, so this is NOT gated by the files.read allow-list (D-80) — the cache dir is outside the workspace and that''s fine for display.
+- Display-only: the text actually sent to Claude is unchanged; this only affects rendering.
+
+Acceptance:
+1. A user message with an @<path> image token shows an inline thumbnail in the log (not the raw path).
+2. Clicking/activating the thumbnail opens the full image.
+3. A missing/unreadable referenced file degrades to a placeholder (or the path text), no exception.
+4. Prose and any non-image @path tokens around it still render readably; multiple tokens in one message all resolve.
+5. The message content delivered to Claude is unchanged (render-only). Relates to T-142 (paste attachments).', 'When a user message contains a pasted-screenshot reference — an @<path> token pointing at an image (the composer''s ComposerAttachment.pathToken format, e.g. @/home/<user>/.cache/clide/pasted/paste-<ts>.png, see screenshot) — the conversation log renders it as the raw path string. Show it as an inline THUMBNAIL instead.
+
+The composer already renders pre-send attachments as Image.file thumbnail chips (clipboard_paste.dart + claude_composer _chip); this carries that into the post-send message log (UserMessage rendering in conversation_view/conversation_card).
+
+Scope:
+- When rendering UserMessage text, detect @<path> tokens; for image paths (reuse the extension check behind _looksLikeImage: .png/.jpg/.jpeg/.gif/.webp/.bmp), render a bounded Image.file thumbnail in place of the bare token. Surrounding prose still renders normally; a message can carry multiple tokens.
+- Click/activate the thumbnail to open the full-size image (a preview dialog). Keyboard-operable + a11y label (filename).
+- Graceful fallback: a missing/unreadable file (pasted temp files can be cleaned up) degrades to a small placeholder or the path text via Image.file errorBuilder — never a crash/exception.
+- Non-image @path tokens MAY render as a file chip (filename + icon) like the composer, but image thumbnails are the focus.
+- Note: Image.file reads the path directly via dart:io, so this is NOT gated by the files.read allow-list (D-80) — the cache dir is outside the workspace and that''s fine for display.
+- Display-only: the text actually sent to Claude is unchanged; this only affects rendering.
+
+Acceptance:
+1. A user message with an @<path> image token shows an inline thumbnail in the log (not the raw path).
+2. Clicking/activating the thumbnail opens the full image.
+3. A missing/unreadable referenced file degrades to a placeholder (or the path text), no exception.
+4. Prose and any non-image @path tokens around it still render readably; multiple tokens in one message all resolve.
+5. The message content delivered to Claude is unchanged (render-only). Relates to T-142 (paste attachments).
+
+MERGED T-254 (duplicate) into this ticket. Extra nuance carried over from T-254: keep the file path available (e.g. as a small caption/subtitle under the thumbnail, or via the lightbox) so it can still be copied/referenced. Reuse the existing inline image card + lightbox (T-252) rather than a new component.', NULL, '2026-06-09 15:14:46', '2026-06-09 15:14:46', '2026-06-09 15:14:46', NULL, 'f1a57da564d471e11c8f0d8ea223af31', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'status', 'ready', 'cancelled', NULL, '2026-06-09 15:14:46', '2026-06-09 15:14:46', '2026-06-09 15:14:46', NULL, 'a99bb80020cf6bb97e3b663c6f634f70', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'description', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.
+
+CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for rendering pasted @path images inline in the Claude conversation; its scope now includes T-254''s path-as-caption nuance. Implement under T-236.', NULL, '2026-06-09 15:14:46', '2026-06-09 15:14:46', '2026-06-09 15:14:46', NULL, 'cde407f81386ea83768640cabdc122f3', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'status', 'cancelled', 'ready', NULL, '2026-06-09 15:15:18', '2026-06-09 15:15:18', '2026-06-09 15:15:18', NULL, '4f7cbc7120c4793c6f1393d3550fd675', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'description', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.
+
+CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for rendering pasted @path images inline in the Claude conversation; its scope now includes T-254''s path-as-caption nuance. Implement under T-236.', 'When the user pastes an image, the conversation panel echoes back the file path as plain text (e.g. @/home/.../paste-<ts>.png). We now have an image viewer card — render the pasted image inline using that card instead of (or in addition to) the bare path.
+
+## Behaviour
+- Detect a pasted-image path in the conversation stream and render the image viewer card.
+- Still surface the file path (e.g. as a caption / subtitle on the card) so it can be copied/referenced.
+- Reuse the existing image viewer card component rather than building a new one.
+
+## Notes
+- Applies to the Claude conversation panel rendering path.
+- Consider failure cases: missing/deleted file, non-image paste, very large images.
+
+CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for rendering pasted @path images inline in the Claude conversation; its scope now includes T-254''s path-as-caption nuance. Implement under T-236.
+
+RETRACTED the cancellation — NOT a duplicate of T-236 (per user, 2026-06-09). Both stay open. T-254 remains its own ticket.', NULL, '2026-06-09 15:15:18', '2026-06-09 15:15:18', '2026-06-09 15:15:18', NULL, '7bb96830192e99e75aae7f151673ee41', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-236', 'description', 'When a user message contains a pasted-screenshot reference — an @<path> token pointing at an image (the composer''s ComposerAttachment.pathToken format, e.g. @/home/<user>/.cache/clide/pasted/paste-<ts>.png, see screenshot) — the conversation log renders it as the raw path string. Show it as an inline THUMBNAIL instead.
+
+The composer already renders pre-send attachments as Image.file thumbnail chips (clipboard_paste.dart + claude_composer _chip); this carries that into the post-send message log (UserMessage rendering in conversation_view/conversation_card).
+
+Scope:
+- When rendering UserMessage text, detect @<path> tokens; for image paths (reuse the extension check behind _looksLikeImage: .png/.jpg/.jpeg/.gif/.webp/.bmp), render a bounded Image.file thumbnail in place of the bare token. Surrounding prose still renders normally; a message can carry multiple tokens.
+- Click/activate the thumbnail to open the full-size image (a preview dialog). Keyboard-operable + a11y label (filename).
+- Graceful fallback: a missing/unreadable file (pasted temp files can be cleaned up) degrades to a small placeholder or the path text via Image.file errorBuilder — never a crash/exception.
+- Non-image @path tokens MAY render as a file chip (filename + icon) like the composer, but image thumbnails are the focus.
+- Note: Image.file reads the path directly via dart:io, so this is NOT gated by the files.read allow-list (D-80) — the cache dir is outside the workspace and that''s fine for display.
+- Display-only: the text actually sent to Claude is unchanged; this only affects rendering.
+
+Acceptance:
+1. A user message with an @<path> image token shows an inline thumbnail in the log (not the raw path).
+2. Clicking/activating the thumbnail opens the full image.
+3. A missing/unreadable referenced file degrades to a placeholder (or the path text), no exception.
+4. Prose and any non-image @path tokens around it still render readably; multiple tokens in one message all resolve.
+5. The message content delivered to Claude is unchanged (render-only). Relates to T-142 (paste attachments).
+
+MERGED T-254 (duplicate) into this ticket. Extra nuance carried over from T-254: keep the file path available (e.g. as a small caption/subtitle under the thumbnail, or via the lightbox) so it can still be copied/referenced. Reuse the existing inline image card + lightbox (T-252) rather than a new component.', 'When a user message contains a pasted-screenshot reference — an @<path> token pointing at an image (the composer''s ComposerAttachment.pathToken format, e.g. @/home/<user>/.cache/clide/pasted/paste-<ts>.png, see screenshot) — the conversation log renders it as the raw path string. Show it as an inline THUMBNAIL instead.
+
+The composer already renders pre-send attachments as Image.file thumbnail chips (clipboard_paste.dart + claude_composer _chip); this carries that into the post-send message log (UserMessage rendering in conversation_view/conversation_card).
+
+Scope:
+- When rendering UserMessage text, detect @<path> tokens; for image paths (reuse the extension check behind _looksLikeImage: .png/.jpg/.jpeg/.gif/.webp/.bmp), render a bounded Image.file thumbnail in place of the bare token. Surrounding prose still renders normally; a message can carry multiple tokens.
+- Click/activate the thumbnail to open the full-size image (a preview dialog). Keyboard-operable + a11y label (filename).
+- Graceful fallback: a missing/unreadable file (pasted temp files can be cleaned up) degrades to a small placeholder or the path text via Image.file errorBuilder — never a crash/exception.
+- Non-image @path tokens MAY render as a file chip (filename + icon) like the composer, but image thumbnails are the focus.
+- Note: Image.file reads the path directly via dart:io, so this is NOT gated by the files.read allow-list (D-80) — the cache dir is outside the workspace and that''s fine for display.
+- Display-only: the text actually sent to Claude is unchanged; this only affects rendering.
+
+Acceptance:
+1. A user message with an @<path> image token shows an inline thumbnail in the log (not the raw path).
+2. Clicking/activating the thumbnail opens the full image.
+3. A missing/unreadable referenced file degrades to a placeholder (or the path text), no exception.
+4. Prose and any non-image @path tokens around it still render readably; multiple tokens in one message all resolve.
+5. The message content delivered to Claude is unchanged (render-only). Relates to T-142 (paste attachments).
+
+MERGED T-254 (duplicate) into this ticket. Extra nuance carried over from T-254: keep the file path available (e.g. as a small caption/subtitle under the thumbnail, or via the lightbox) so it can still be copied/referenced. Reuse the existing inline image card + lightbox (T-252) rather than a new component.
+
+RETRACTED the earlier ''merged T-254'' note — T-236 and T-254 are distinct tickets (per user); disregard that note. T-236 stays scoped to its own description.', NULL, '2026-06-09 15:15:18', '2026-06-09 15:15:18', '2026-06-09 15:15:18', NULL, '78ef3c0cad670d9dc912aaa4fd3938ca', 1) ON CONFLICT(hash) DO NOTHING;
