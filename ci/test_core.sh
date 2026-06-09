@@ -34,16 +34,29 @@ REPORTER="${TEST_REPORTER:-failures-only}"
 # after SIGTERM if the test ignores it.
 CORE_DIRS="test/ipc test/pty test/daemon test/git test/panes test/files test/editor test/pql"
 
-echo "test-core: dart test ${CORE_DIRS}  (timeout ${TIMEOUT_SECONDS}s)"
-if ! timeout --kill-after=5s "${TIMEOUT_SECONDS}s" \
-     setsid --wait dart test -r "$REPORTER" $CORE_DIRS ; then
-  rc=$?
-  if [[ $rc -eq 124 ]]; then
-    echo "test-core: TIMEOUT — killing descendants" >&2
-    pkill -9 -f "dart test test/" 2>/dev/null || true
-    exit 1
+# Run a `dart test` pass under the hard timeout + process-group kill.
+run_pass() {
+  if ! timeout --kill-after=5s "${TIMEOUT_SECONDS}s" \
+       setsid --wait dart test -r "$REPORTER" "$@" ; then
+    rc=$?
+    if [[ $rc -eq 124 ]]; then
+      echo "test-core: TIMEOUT — killing descendants" >&2
+      pkill -9 -f "dart test" 2>/dev/null || true
+      exit 1
+    fi
+    exit $rc
   fi
-  exit $rc
-fi
+}
+
+# PTY-tagged tests spawn real PTYs (posix_openpt + posix_spawn) and rely on a
+# reader isolate; run in the default parallel pool they contend for fds + CPU
+# with the other suites and the isolate is starved, flaking 'write sends
+# keystrokes to child' (T-292). Serialize them in their own pass — matching
+# ci/test.sh — then run everything else in parallel.
+echo "test-core: dart test (pty-tagged; --concurrency=1)  (timeout ${TIMEOUT_SECONDS}s)"
+run_pass --concurrency=1 --tags pty $CORE_DIRS
+
+echo "test-core: dart test (rest; parallel, excludes pty)  (timeout ${TIMEOUT_SECONDS}s)"
+run_pass --exclude-tags pty $CORE_DIRS
 
 echo "test-core: ok"
