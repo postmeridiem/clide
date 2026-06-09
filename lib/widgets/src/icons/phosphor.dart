@@ -61,6 +61,9 @@ abstract class PhosphorIcons {
   static const caretRight = PhosphorIconPainter(0xe13a);
   static const caretDown = PhosphorIconPainter(0xe136);
   static const caretUp = PhosphorIconPainter(0xe13c);
+  // Chevron-with-edge-line: reads as "collapse to / expand from the edge" (T-294).
+  static const caretLineLeft = PhosphorIconPainter(0xe132);
+  static const caretLineRight = PhosphorIconPainter(0xe130);
   static const graph = PhosphorIconPainter(0xeb58);
   static const treeStructure = PhosphorIconPainter(0xe67c);
   static const image = PhosphorIconPainter(0xe2ca);

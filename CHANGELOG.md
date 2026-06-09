@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Collapse toggles in the status bar.** A small caret-line button bookends
+  each end of the bottom status bar — left collapses/expands the sidebar, right
+  the context pane. The chevron points inward to collapse, outward to expand,
+  and fires the existing `sidebar.collapse` / `context.collapse` commands
+  (`Ctrl+Shift+1` / `Ctrl+Shift+3`), so it's the mouse affordance for an
+  already keyboard/CLI-addressable action. (T-294)
 - **Pasted images render inline in the Claude conversation.** A pasted-image
   `@<path>` reference now shows as a bounded thumbnail in the message instead of
   the raw path; clicking it (or pressing Enter when focused) opens the full

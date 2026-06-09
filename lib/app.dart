@@ -1091,6 +1091,46 @@ class _BottomRail extends StatelessWidget {
   }
 }
 
+/// A fixed-position collapse/expand toggle bookending the status bar (T-294).
+/// The left cell controls the sidebar, the right cell the context pane; both
+/// fire the existing `sidebar.collapse` / `context.collapse` commands and flip a
+/// caret-line chevron per `arrangement.isCollapsed` (outward = expand, inward =
+/// collapse). The collapse behaviour itself lives in the commands (D-51/D-54);
+/// this is the mouse affordance for the keyboard/CLI-addressable action (D-6).
+class _CollapseToggle extends StatelessWidget {
+  const _CollapseToggle({required this.slot});
+
+  final SlotId slot;
+
+  bool get _isSidebar => slot == Slots.sidebar;
+
+  @override
+  Widget build(BuildContext context) {
+    final kernel = ClideKernel.of(context);
+    final tokens = ClideTheme.of(context).surface;
+    if (!kernel.arrangement.isVisible(slot)) return const SizedBox(width: 24);
+    final collapsed = kernel.arrangement.isCollapsed(slot);
+    // Mirror + flip: the chevron points OUT (toward the edge the pane lives on)
+    // to expand a collapsed pane, and IN to collapse an open one.
+    final icon = _isSidebar
+        ? (collapsed ? PhosphorIcons.caretLineRight : PhosphorIcons.caretLineLeft)
+        : (collapsed ? PhosphorIcons.caretLineLeft : PhosphorIcons.caretLineRight);
+    final what = _isSidebar ? 'sidebar' : 'context panel';
+    return SizedBox(
+      width: 24,
+      child: ClideTappable(
+        onTap: () => kernel.commands.execute(_isSidebar ? 'sidebar.collapse' : 'context.collapse'),
+        tooltip: collapsed ? 'Show $what' : 'Hide $what',
+        builder: (ctx, hovered, focused) => Container(
+          alignment: Alignment.center,
+          color: (hovered || focused) ? tokens.listItemHoverBackground : null,
+          child: ClideIcon(icon, size: 13, color: tokens.statusBarForeground),
+        ),
+      ),
+    );
+  }
+}
+
 class StatusbarHost extends StatelessWidget {
   const StatusbarHost({super.key});
 
@@ -1099,7 +1139,9 @@ class StatusbarHost extends StatelessWidget {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
     return ListenableBuilder(
-      listenable: kernel.panels,
+      // Also listen to the arrangement so the toggle chevrons flip with the
+      // collapsed state (T-294).
+      listenable: Listenable.merge([kernel.panels, kernel.arrangement]),
       builder: (ctx, _) {
         final items = kernel.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
         final left = items.where((i) => i.priority < 100).toList();
@@ -1110,13 +1152,15 @@ class StatusbarHost extends StatelessWidget {
         // trails it at intrinsic width — so it hugs the workspace block's
         // right edge by construction, no Spacer to fight a flex item (T-239).
         // Left items with flex > 0 wrap in Flexible(loose) so they yield width
-        // when tight (T-160).
+        // when tight (T-160). The collapse toggles bookend both ends at a fixed
+        // ~24px each; the status items sit between them (T-294).
         return Container(
           color: tokens.chromeBackground,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const _CollapseToggle(slot: Slots.sidebar),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -1127,6 +1171,7 @@ class StatusbarHost extends StatelessWidget {
                 ),
               ),
               for (final item in right) item.build(ctx),
+              const _CollapseToggle(slot: Slots.contextPanel),
             ],
           ),
         );
