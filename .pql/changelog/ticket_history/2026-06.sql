@@ -2223,3 +2223,50 @@ DONE (Linux) 2026-06-09. clide://open?path=&line= → editor.open via parseArgv,
 DONE (Linux) 2026-06-09. clide://open?path=&line= → editor.open via parseArgv, routed through the existing CLI→IPC path into the running window (single-instance for free). Parser validates action/path/line; tests in argv_to_request_test. Scheme registered: linux/clide.desktop (x-scheme-handler/clide, Exec already %U) + macOS Info.plist CFBundleURLTypes. Linux works end-to-end. macOS URL DELIVERY (AppDelegate openURLs → method channel → Dart) deferred to T-303 — needs a macOS machine to verify, not shipped blind.
 
 SECURITY REDESIGN 2026-06-09 (D-90): per user, the clide:// surface is now paranoid. The link no longer translates to a command in parseArgv — it routes the raw URL to a new builtin.deeplink handler gated by a DEFAULT-DENY allowlist (kDeepLinkSafeActions = {open} only — run/git/write/passthrough rejected) AND a mandatory confirmation prompt (''an external link wants to: … allow?'') before any action. The generic CLI-passthrough idea is deliberately NOT shipped (it would make a webpage a remote control); each new action is an explicit allowlist + handler addition. Tests: deep_link_test (allowlist boundary), extension_test (gating).', NULL, '2026-06-09 20:57:53', '2026-06-09 20:57:53', '2026-06-09 20:57:53', NULL, 'c11fcdd9e2477b0ee81e85c298e08869', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-287', 'status', 'backlog', 'ready', NULL, '2026-06-09 21:04:10', '2026-06-09 21:04:10', '2026-06-09 21:04:10', NULL, '5f05b0b47d4a2883449d9ec21e0a0a3a', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-287', 'status', 'ready', 'in_progress', NULL, '2026-06-09 21:04:33', '2026-06-09 21:04:33', '2026-06-09 21:04:33', NULL, '6d9856a6c2288f192d7cba5722ae3e2b', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-287', 'description', 'On Linux desktop startup, two GLib-GIO-CRITICAL warnings fire to stderr:
+
+  GLib-GIO-CRITICAL: GFileInfo created without standard::size
+  file ../gio/gfileinfo.c: line 1865 (g_file_info_get_size): should not be reached
+
+Repro: launch the app (make run / flutter run) on Linux. The pair fires early in boot — right after the primary pane binds its session and before the IPC server starts listening (observed ~0.3s apart, e.g. 15:53:15.570 and 15:53:15.832), on every launch.
+
+Cause: some code path calls g_file_info_get_size() on a GFileInfo that was created/queried WITHOUT requesting the G_FILE_ATTRIBUTE_STANDARD_SIZE (''standard::size'') attribute. A grep of clide''s own code (lib/, linux/runner/, native/) finds no direct g_file_info / g_file_query_info usage, so it is most likely inside GTK/GLib itself or a Flutter Linux plugin''s file enumeration (icon/thumbnail/mime probe, path lookups), not clide Dart/C++. The GTK file-chooser in linux/runner/clide_app.cc is on-demand only, so it is not the trigger (the warnings fire at boot).
+
+Impact: low — console noise at CRITICAL level; no observed functional breakage. But a size query that ''should not be reached'' may be reading a bogus/zero size somewhere worth confirming.
+
+Investigation: run with G_DEBUG=fatal-warnings (or gdb break on g_log/g_logv) to capture the stack at the warning and identify the library/plugin frame; check whether a Flutter plugin (file_selector, path_provider, url_launcher) or GTK icon/mime loading is responsible. If upstream/GTK, document + suppress-from-our-side or pin; if a plugin, file upstream.
+
+Env: Fedora, GTK Linux embedder, flutter run.
+
+UPDATE (2026-06-09): also fires MID-SESSION, not only at boot — contradicts the "fires early in boot, on every launch" framing above. Observed log: app booted 16:47:01, but the GLib-GIO-CRITICAL pair fired at 18:51:07.841 / 18:51:08.190 (~2h into the session), near pane/session activity. So the trigger is more likely a file-info code path tied to a user action or background file enumeration than pure startup. Re-scope the investigation to capture the stack when it fires mid-session (G_DEBUG=fatal-warnings / gdb break on g_log) rather than only at boot.', 'On Linux desktop startup, two GLib-GIO-CRITICAL warnings fire to stderr:
+
+  GLib-GIO-CRITICAL: GFileInfo created without standard::size
+  file ../gio/gfileinfo.c: line 1865 (g_file_info_get_size): should not be reached
+
+Repro: launch the app (make run / flutter run) on Linux. The pair fires early in boot — right after the primary pane binds its session and before the IPC server starts listening (observed ~0.3s apart, e.g. 15:53:15.570 and 15:53:15.832), on every launch.
+
+Cause: some code path calls g_file_info_get_size() on a GFileInfo that was created/queried WITHOUT requesting the G_FILE_ATTRIBUTE_STANDARD_SIZE (''standard::size'') attribute. A grep of clide''s own code (lib/, linux/runner/, native/) finds no direct g_file_info / g_file_query_info usage, so it is most likely inside GTK/GLib itself or a Flutter Linux plugin''s file enumeration (icon/thumbnail/mime probe, path lookups), not clide Dart/C++. The GTK file-chooser in linux/runner/clide_app.cc is on-demand only, so it is not the trigger (the warnings fire at boot).
+
+Impact: low — console noise at CRITICAL level; no observed functional breakage. But a size query that ''should not be reached'' may be reading a bogus/zero size somewhere worth confirming.
+
+Investigation: run with G_DEBUG=fatal-warnings (or gdb break on g_log/g_logv) to capture the stack at the warning and identify the library/plugin frame; check whether a Flutter plugin (file_selector, path_provider, url_launcher) or GTK icon/mime loading is responsible. If upstream/GTK, document + suppress-from-our-side or pin; if a plugin, file upstream.
+
+Env: Fedora, GTK Linux embedder, flutter run.
+
+UPDATE (2026-06-09): also fires MID-SESSION, not only at boot — contradicts the "fires early in boot, on every launch" framing above. Observed log: app booted 16:47:01, but the GLib-GIO-CRITICAL pair fired at 18:51:07.841 / 18:51:08.190 (~2h into the session), near pane/session activity. So the trigger is more likely a file-info code path tied to a user action or background file enumeration than pure startup. Re-scope the investigation to capture the stack when it fires mid-session (G_DEBUG=fatal-warnings / gdb break on g_log) rather than only at boot.
+
+RESOLVED (2026-06-09).
+
+Root cause CONFIRMED by reproducer: the Open Workspace folder picker. `gtk_file_chooser_dialog_new(..., SELECT_FOLDER, ...)` at linux/runner/clide_app.cc:222 builds a GtkPlacesSidebar that enumerates bookmarks/recent and internally creates GFileInfo objects WITHOUT G_FILE_ATTRIBUTE_STANDARD_SIZE, then calls g_file_info_get_size() on them — GTK''s own bug. A standalone repro (gtk3, SELECT_FOLDER dialog, auto-cancel) emitted the exact warning pair ~0.3s apart, matching the user''s mid-session log (18:51:07.841 / 18:51:08.190). The original "fires at boot" framing was wrong; the picker is opened on demand. Ruled OUT the T-138 clipboard channel: gtk_clipboard_wait_for_uris/wait_for_image emit nothing for text/image/file-uri clipboard states under G_DEBUG=fatal-warnings.
+
+No public GTK API exists to fix at source (the sidebar''s enumeration is private; can''t inject the missing attribute).
+
+Fix (both, per user direction):
+1. Switched pickDirectory to GtkFileChooserNative — portal-backed, runs out-of-process in sandboxed/Flatpak builds so the noise never enters our process; nicer Wayland picker. (Verified: outside a sandbox GtkFileChooserNative falls back to the in-process chooser and STILL warns on this box — portal is only used under Flatpak/snap or GTK_USE_PORTAL=1.)
+2. Added clide_gio_log_filter in clide_app.cc, installed via g_log_set_handler("GLib-GIO", CRITICAL, ...) in clide_app_startup. Drops ONLY messages containing "g_file_info_get_size" or "without standard::size"; forwards every other GLib-GIO log to the default handler. This is the universal fix (works in every run mode).
+
+Verification: standalone reproducer with both the native chooser AND the filter — size warnings gone, an unrelated GLib-GIO CRITICAL still passes through (filter is scoped, not a blanket mute). `make build-linux` green. CHANGELOG updated under Fixed.', NULL, '2026-06-09 21:21:04', '2026-06-09 21:21:04', '2026-06-09 21:21:04', NULL, '872947bf48bd74c3fb6942ec90149ac5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-287', 'status', 'in_progress', 'done', NULL, '2026-06-09 21:21:08', '2026-06-09 21:21:08', '2026-06-09 21:21:08', NULL, '931bae221c6780445f00b547da62c8cb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-298', 'status', 'backlog', 'ready', NULL, '2026-06-09 21:21:30', '2026-06-09 21:21:30', '2026-06-09 21:21:30', NULL, '9aeac5d0a8d6dfeb6adb96ed63dda4eb', 1) ON CONFLICT(hash) DO NOTHING;

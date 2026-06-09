@@ -1,5 +1,7 @@
 #include "clide_app.h"
 
+#include <string.h>
+
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
@@ -219,13 +221,16 @@ static void clide_app_activate(GApplication* application) {
           response = FL_METHOD_RESPONSE(fl_method_success_response_new(
               fl_value_new_bool(gtk_window_is_maximized(w))));
         } else if (g_strcmp0(method, "pickDirectory") == 0) {
-          GtkWidget* dialog = gtk_file_chooser_dialog_new(
+          // T-287: GtkFileChooserNative routes through the desktop portal in
+          // sandboxed builds (Flatpak), where the picker runs out-of-process
+          // and the GLib-GIO size-query noise never enters ours. Outside a
+          // sandbox it falls back to the in-process GTK chooser (still benign
+          // — clide_gio_log_filter swallows the resulting CRITICAL).
+          GtkFileChooserNative* dialog = gtk_file_chooser_native_new(
               "Select a project folder", w,
               GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-              "_Cancel", GTK_RESPONSE_CANCEL,
-              "_Open", GTK_RESPONSE_ACCEPT,
-              nullptr);
-          gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+              "_Open", "_Cancel");
+          gint res = gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog));
           if (res == GTK_RESPONSE_ACCEPT) {
             g_autofree gchar* folder =
                 gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -236,7 +241,7 @@ static void clide_app_activate(GApplication* application) {
             response = FL_METHOD_RESPONSE(
                 fl_method_success_response_new(fl_value_new_null()));
           }
-          gtk_widget_destroy(dialog);
+          g_object_unref(dialog);
         } else {
           response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
         }
@@ -328,8 +333,34 @@ static gboolean clide_app_local_command_line(GApplication* application,
   return TRUE;
 }
 
+// T-287: GTK's file-chooser places-sidebar enumeration builds GFileInfo
+// objects without G_FILE_ATTRIBUTE_STANDARD_SIZE, then calls
+// g_file_info_get_size() on them — emitting a GLib-GIO-CRITICAL
+// ("GFileInfo created without standard::size" / "should not be reached")
+// every time the Open Workspace folder picker opens. It is a GTK-internal
+// bug: the sidebar's enumeration is private, so there is no public API to
+// request the missing attribute or stop the size query at the source.
+// Filter out only that exact message so a known-benign CRITICAL stops
+// training us to ignore real CRITICALs; every other GLib-GIO log is
+// forwarded to the default handler untouched.
+static void clide_gio_log_filter(const gchar* log_domain,
+                                 GLogLevelFlags log_level,
+                                 const gchar* message, gpointer user_data) {
+  if (message != nullptr &&
+      (strstr(message, "g_file_info_get_size") != nullptr ||
+       strstr(message, "without standard::size") != nullptr)) {
+    return;  // known-benign GTK file-chooser noise (T-287)
+  }
+  g_log_default_handler(log_domain, log_level, message, user_data);
+}
+
 static void clide_app_startup(GApplication* application) {
   G_APPLICATION_CLASS(clide_app_parent_class)->startup(application);
+  g_log_set_handler(
+      "GLib-GIO",
+      (GLogLevelFlags)(G_LOG_LEVEL_CRITICAL | G_LOG_FLAG_FATAL |
+                       G_LOG_FLAG_RECURSION),
+      clide_gio_log_filter, nullptr);
 }
 
 static void clide_app_shutdown(GApplication* application) {

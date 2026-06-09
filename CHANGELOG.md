@@ -247,6 +247,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Open Workspace no longer spews `GLib-GIO-CRITICAL` to the console.** The
+  folder picker now uses the portal-backed `GtkFileChooserNative` (out-of-process
+  in sandboxed/Flatpak builds), and a narrowly-scoped GLib log filter swallows the
+  known-benign `g_file_info_get_size … without standard::size` message GTK's
+  file-chooser sidebar emits internally on every pick — every other GLib-GIO
+  critical still surfaces. (T-287)
 - **The conversation re-anchors when the input area resizes.** Opening a
   permission prompt or AskUserQuestion (which grows the bottom zone, D-78) no
   longer hides the last message behind it — when pinned to the tail, the view
