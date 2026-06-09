@@ -1251,3 +1251,71 @@ Mock: docs/design/wireframes/hud/pane-collapse-toggles.{json,png} — State A (o
 PLACEMENT REVISED: toggles do NOT float vertically-centered on the pane edges. They live in the BOTTOM STATUS BAR. Each toggle is horizontally pinned to the center pane''s left/right edge, so when a pane collapses the toggle slides along the status bar to that end (open: at the inner pane boundary; collapsed: at the far status-bar end — matching where the reference-screenshot arrows pointed). Still mirrored left/right for parity; chevron flips per isCollapsed. Buttons invoke the existing sidebar.collapse / context.collapse commands.
 
 Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.', NULL, '2026-06-09 15:28:16', '2026-06-09 15:28:16', '2026-06-09 15:28:16', NULL, 'a41172c3ac1fa78bbfdbf3773467d681', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-294', 'description', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.
+
+DESIGN DIRECTION (settled): anchor both toggles on the OUTER EDGES of the center (Claude conversation) pane — one on the left edge controlling the sidebar, one on the right edge controlling the context pane. The control stays fixed on the center-pane edge whether the adjacent pane is open or collapsed, so a single button both collapses an open pane and re-opens a collapsed one (chevron flips direction). This avoids needing a separate "re-expand" handle on the collapsed pane.
+
+Implications for the mock:
+- Collapsed pane can be fully hidden (no thin rail needed) since the re-open control lives on the center edge.
+- Sidebar and context pane share one mirrored control pattern (parity).
+- Chevron direction reflects state: points outward to expand, inward to collapse.
+
+IMPLEMENTATION NOTE: the collapse logic already exists — no new toggle behaviour needed. Commands `sidebar.collapse` (ctrl+shift+1) and `context.collapse` (ctrl+shift+3) are registered in lib/builtin/default_layout/src/extension.dart, exposed in the command palette + menubar, and call arrangement.toggleCollapsed(Slots.sidebar|contextPanel), returning isCollapsed (D-051, D-054).
+
+So this ticket is scoped to the VISUAL AFFORDANCE only:
+- Add the two edge-anchored toggle buttons on the center (Claude) pane''s outer edges.
+- On click, invoke the existing `sidebar.collapse` / `context.collapse` commands (do NOT reimplement collapse).
+- Read arrangement.isCollapsed(...) to flip the chevron direction per state.
+- D-6 CLI/keyboard parity is already satisfied by the existing commands; this adds the mouse affordance.
+
+Mock: docs/design/wireframes/hud/pane-collapse-toggles.{json,png} — State A (open) + State B (collapsed).
+
+PLACEMENT REVISED: toggles do NOT float vertically-centered on the pane edges. They live in the BOTTOM STATUS BAR. Each toggle is horizontally pinned to the center pane''s left/right edge, so when a pane collapses the toggle slides along the status bar to that end (open: at the inner pane boundary; collapsed: at the far status-bar end — matching where the reference-screenshot arrows pointed). Still mirrored left/right for parity; chevron flips per isCollapsed. Buttons invoke the existing sidebar.collapse / context.collapse commands.
+
+Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.
+
+DESIGN DIRECTION (settled): anchor both toggles on the OUTER EDGES of the center (Claude conversation) pane — one on the left edge controlling the sidebar, one on the right edge controlling the context pane. The control stays fixed on the center-pane edge whether the adjacent pane is open or collapsed, so a single button both collapses an open pane and re-opens a collapsed one (chevron flips direction). This avoids needing a separate "re-expand" handle on the collapsed pane.
+
+Implications for the mock:
+- Collapsed pane can be fully hidden (no thin rail needed) since the re-open control lives on the center edge.
+- Sidebar and context pane share one mirrored control pattern (parity).
+- Chevron direction reflects state: points outward to expand, inward to collapse.
+
+IMPLEMENTATION NOTE: the collapse logic already exists — no new toggle behaviour needed. Commands `sidebar.collapse` (ctrl+shift+1) and `context.collapse` (ctrl+shift+3) are registered in lib/builtin/default_layout/src/extension.dart, exposed in the command palette + menubar, and call arrangement.toggleCollapsed(Slots.sidebar|contextPanel), returning isCollapsed (D-051, D-054).
+
+So this ticket is scoped to the VISUAL AFFORDANCE only:
+- Add the two edge-anchored toggle buttons on the center (Claude) pane''s outer edges.
+- On click, invoke the existing `sidebar.collapse` / `context.collapse` commands (do NOT reimplement collapse).
+- Read arrangement.isCollapsed(...) to flip the chevron direction per state.
+- D-6 CLI/keyboard parity is already satisfied by the existing commands; this adds the mouse affordance.
+
+Mock: docs/design/wireframes/hud/pane-collapse-toggles.{json,png} — State A (open) + State B (collapsed).
+
+PLACEMENT REVISED: toggles do NOT float vertically-centered on the pane edges. They live in the BOTTOM STATUS BAR. Each toggle is horizontally pinned to the center pane''s left/right edge, so when a pane collapses the toggle slides along the status bar to that end (open: at the inner pane boundary; collapsed: at the far status-bar end — matching where the reference-screenshot arrows pointed). Still mirrored left/right for parity; chevron flips per isCollapsed. Buttons invoke the existing sidebar.collapse / context.collapse commands.
+
+Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.
+
+APPROVED (2026-06-09): pinned-to-edge status-bar placement confirmed by user. Design is settled; ready for implementation.', NULL, '2026-06-09 15:29:08', '2026-06-09 15:29:08', '2026-06-09 15:29:08', NULL, '92fdba74a32b217f7345d5095bd4fa02', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-294', 'status', 'backlog', 'ready', NULL, '2026-06-09 15:29:11', '2026-06-09 15:29:11', '2026-06-09 15:29:11', NULL, '2e8f7c70314543a83510796173c2463b', 1) ON CONFLICT(hash) DO NOTHING;
