@@ -90,6 +90,24 @@ void main() {
     });
   });
 
+  group('fold-level persistence helpers (T-235)', () {
+    test('foldLevelFromName parses known names, defaults to L1 (tools)', () {
+      expect(foldLevelFromName('none'), FoldLevel.none);
+      expect(foldLevelFromName('tools'), FoldLevel.tools);
+      expect(foldLevelFromName('thinking'), FoldLevel.thinking);
+      expect(foldLevelFromName('everything'), FoldLevel.everything);
+      expect(foldLevelFromName(null), FoldLevel.tools);
+      expect(foldLevelFromName('bogus'), FoldLevel.tools);
+    });
+
+    test('nextFoldLevel cycles none → tools → thinking → everything → none', () {
+      expect(nextFoldLevel(FoldLevel.none), FoldLevel.tools);
+      expect(nextFoldLevel(FoldLevel.tools), FoldLevel.thinking);
+      expect(nextFoldLevel(FoldLevel.thinking), FoldLevel.everything);
+      expect(nextFoldLevel(FoldLevel.everything), FoldLevel.none);
+    });
+  });
+
   group('editFilePath', () {
     test('reads the file of an edit tool-use; null otherwise', () {
       expect(editFilePath(_edit('1', '/a/b.dart')), '/a/b.dart');

@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **The activity-card fold level is now adjustable and persists.** A
+  `claude.activity.fold-level` command cycles how aggressively meta steps fold
+  (none → tools → thinking → everything); the choice is saved app-wide and the
+  Claude pane and team tiles re-fold live. (T-235)
 - **Consecutive edits to one file fold into a single card.** A run of same-file
   edits collapses to one `# edits` holder instead of a stack — every edit
   reachable on expand; a different file or an interleaving step splits it. The

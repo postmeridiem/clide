@@ -30,6 +30,18 @@ enum FoldLevel {
   everything,
 }
 
+/// Settings key for the persisted activity-card fold level (T-235). App-scoped:
+/// a personal viewing preference, not per-repo.
+const String kActivityFoldLevelKey = 'app.claude.activityFoldLevel';
+
+/// Parse a stored fold-level name back to a [FoldLevel], defaulting to L1
+/// ([FoldLevel.tools]) for null/unknown values.
+FoldLevel foldLevelFromName(String? name) => FoldLevel.values.firstWhere((l) => l.name == name, orElse: () => FoldLevel.tools);
+
+/// The next fold level in the cycle none → tools → thinking → everything → none
+/// (T-235), for the toggle command.
+FoldLevel nextFoldLevel(FoldLevel level) => FoldLevel.values[(level.index + 1) % FoldLevel.values.length];
+
 /// A unit the conversation view renders: either a single first-class item or
 /// a folded run of meta items.
 sealed class RenderGroup {

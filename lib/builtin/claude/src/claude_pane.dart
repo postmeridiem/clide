@@ -10,6 +10,7 @@ import 'claude_composer.dart';
 import 'claude_config.dart';
 import 'claude_status.dart';
 import 'clipboard_paste.dart';
+import 'activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey;
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'permission_mode_control.dart';
@@ -152,12 +153,20 @@ class _ClaudePaneState extends State<ClaudePane> {
       // GlobalKey and spawns once, so without this it would keep the previous
       // repo's session after a switch (T-269).
       _projectSub = ClideKernel.of(context).events.on<ProjectOpened>().listen(_onProjectChanged);
+      // Re-fold the conversation when the activity fold-level setting changes
+      // (claude.activity.fold-level command, T-235).
+      ClideKernel.of(context).settings.addListener(_onSettingsChanged);
     }
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     activeClaudeConfig?.removeListener(_onConfigChanged);
+    _kernel()?.settings.removeListener(_onSettingsChanged);
     _projectSub?.cancel();
     _projectSub = null;
     _statusSub?.cancel();
@@ -493,6 +502,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                   onTap: _focusComposerOnTap,
                   child: ConversationView(
                     controller: _conversation!,
+                    foldLevel: foldLevelFromName(_kernel()?.settings.get<String>(kActivityFoldLevelKey)),
                     hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
                     toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
                     emptyState: ClaudeBanner(

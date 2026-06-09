@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
@@ -75,6 +76,15 @@ class ClaudeExtension extends ClideExtension {
           command: 'claude.session-storage',
           title: 'Claude: session storage (disk usage + cleanup)',
           run: _manageStorage,
+        ),
+        // T-235: cycle how aggressively the activity card folds meta steps
+        // (none → tools → thinking → everything), persisted app-wide. The panes
+        // read kActivityFoldLevelKey and rebuild via the settings notifier.
+        CommandContribution(
+          id: 'claude.activity.fold-level',
+          command: 'claude.activity.fold-level',
+          title: 'Claude: cycle activity fold level',
+          run: _cycleFoldLevel,
         ),
         // T-171: agent roster controls (D-6 CLI/UI parity).
         // Usage: clide claude.agent.show <sessionId>
@@ -403,6 +413,18 @@ class ClaudeExtension extends ClideExtension {
   /// this when they want a hard reset — after a Claude wedge or to start
   /// completely fresh. All sessions are torn down through the orchestrator
   /// (D-77); the primary will re-spawn and resume on the next pane build.
+  /// Cycle the persisted activity fold level (T-235). Reads the current value
+  /// from settings, advances none → tools → thinking → everything → none, and
+  /// writes it back; the panes listen to settings and re-fold live.
+  Future<IpcResponse> _cycleFoldLevel(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) return IpcResponse.ok(id: '', data: const {});
+    final current = foldLevelFromName(ctx.settings.get<String>(kActivityFoldLevelKey));
+    final next = nextFoldLevel(current);
+    await ctx.settings.set<String>(kActivityFoldLevelKey, next.name);
+    return IpcResponse.ok(id: '', data: {'foldLevel': next.name});
+  }
+
   Future<IpcResponse> _killAllSessions(List<String> args) async {
     final orch = _orchestrator;
     if (orch == null) return IpcResponse.ok(id: '', data: const {});

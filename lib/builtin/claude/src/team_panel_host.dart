@@ -11,6 +11,7 @@ library;
 import 'dart:async';
 
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
+import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey;
 import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -202,7 +203,17 @@ class _TeammateTile extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: ConversationView(controller: controller, wrapInSelectionArea: false)),
+          Expanded(
+            // Re-fold live with the activity fold-level setting (T-235).
+            child: ListenableBuilder(
+              listenable: ClideKernel.of(context).settings,
+              builder: (ctx, _) => ConversationView(
+                controller: controller,
+                wrapInSelectionArea: false,
+                foldLevel: foldLevelFromName(ClideKernel.of(ctx).settings.get<String>(kActivityFoldLevelKey)),
+              ),
+            ),
+          ),
         ],
       ),
     );

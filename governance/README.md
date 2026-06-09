@@ -157,6 +157,7 @@ You might also want, project-permitting:
 - [Q-29: Branch picker location](questions/architecture.md#q-29-branch-picker-location) — _architecture_
 - [Q-30: Focus behavior when editor is dirty and viewer is peeked](questions/architecture.md#q-30-focus-behavior-when-editor-is-dirty-and-viewer-is-peeked) — _architecture_
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
+- [Q-34: How + when to surface the account/team token budget given upstream doesn't expose it](questions/architecture.md#q-34-how--when-to-surface-the-accountteam-token-budget-given-upstream-doesnt-expose-it) — _architecture_
 
 ## Resolved questions
 
