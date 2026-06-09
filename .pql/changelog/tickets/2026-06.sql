@@ -3400,3 +3400,17 @@ Notes:
 - Both should be low-noise, runnable locally and in CI (candidate home: ci/security.sh + a Makefile target, surfaced via push-check).
 - Scope is automation only — the manual review discipline already exists; this makes it enforced rather than convention.
 - Source report (gemini-report.md) is being removed from the repo once this ticket captures its only actionable content.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 16:42:47', '2026-06-09 16:42:47', NULL, '3a10dc76cf86083d128080c29a41ac18', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-132', 'epic', NULL, 'Native Claude integration: transcript-rendered conversation + tmux agent-team panels', 'Replace the terminal-based Claude pane with native rendering driven by Claude Code''s transcript JSONL (with cross-widget text selection), and surface experimental tmux agent teams (lead + teammates) as tiled native panels plus a team-meta sidebar. The terminal is retained only as a general IDE tool.
+
+Why:
+1. No cross-widget text selection/copy in clide''s native widgets today (regression vs a terminal).
+2. PTY/TUI rendering is the fragile, OS-variant part of the Claude pane.
+3. Claude Code''s experimental tmux team mode (lead + N teammates, each a tmux pane) is the flagship capability to surface as real GUI panels, not scraped TUI.
+
+Direction: run Claude headless in tmux; render its conversation natively from the transcript JSONL; lead panel (left, with composer) + teammate tiles (right) in a responsive auto-wrap grid (1->2->3 cols); team-meta sidebar with roster + token budget.
+
+Principle: Claude-centric first, CLI-first (D-6) a strong second. Accept isolated, version-pinned coupling to Claude Code internal contracts where it serves the Claude integration; preserve CLI/event surfaces where sensible.
+
+Acceptance: all child tickets done; D-record landed; Claude pane renders natively with working select+copy and no terminal; a tmux team surfaces as lead + auto-wrapping teammate tiles + meta sidebar; all fragile CC-internals parsing isolated and version-pinned.
+
+Source: plan iridescent-tinkering-umbrella (2026-05-22), grounded in an-idea.md + read-only validation of the transcript schema this session.', 'ready', 'high', NULL, NULL, NULL, '2026-05-22 15:45:15', '2026-06-09 16:54:28', NULL, 'e921f72c985f66e7d12b0a29b51bea7f', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

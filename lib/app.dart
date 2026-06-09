@@ -292,6 +292,9 @@ class RootLayout extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Collapse toggles are pinned to the screen edges (outermost
+                    // children) so they never shift when a pane collapses (T-294).
+                    StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: sidebarCollapsed, visible: sidebarVisible),
                     if (sidebarVisible && !sidebarCollapsed)
                       SizedBox(width: sidebarSize, child: _BottomRail(slot: Slots.sidebar))
                     else if (sidebarVisible && sidebarCollapsed)
@@ -301,6 +304,7 @@ class RootLayout extends StatelessWidget {
                       SizedBox(width: contextSize, child: _BottomRail(slot: Slots.contextPanel))
                     else if (contextVisible && contextCollapsed)
                       const SizedBox(width: ClideSpine.width),
+                    StatusbarCollapseToggle(slot: Slots.contextPanel, collapsed: contextCollapsed, visible: contextVisible),
                   ],
                 ),
               ),
@@ -1097,10 +1101,19 @@ class _BottomRail extends StatelessWidget {
 /// caret-line chevron per `arrangement.isCollapsed` (outward = expand, inward =
 /// collapse). The collapse behaviour itself lives in the commands (D-51/D-54);
 /// this is the mouse affordance for the keyboard/CLI-addressable action (D-6).
-class _CollapseToggle extends StatelessWidget {
-  const _CollapseToggle({required this.slot});
+/// A fixed collapse/expand toggle pinned to a screen edge of the status bar
+/// (T-294). Lives at the outer ends of the bar — NOT inside the centre
+/// [StatusbarHost] — so it never shifts when a pane collapses and the centre
+/// bar resizes. [collapsed]/[visible] are passed in (not read from the
+/// arrangement here) so the widget varies with state and rebuilds when its
+/// parent's `ListenableBuilder` fires — a const widget reading the arrangement
+/// itself is skipped as identical on rebuild, freezing the chevron.
+class StatusbarCollapseToggle extends StatelessWidget {
+  const StatusbarCollapseToggle({super.key, required this.slot, required this.collapsed, required this.visible});
 
   final SlotId slot;
+  final bool collapsed;
+  final bool visible;
 
   bool get _isSidebar => slot == Slots.sidebar;
 
@@ -1108,10 +1121,9 @@ class _CollapseToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    if (!kernel.arrangement.isVisible(slot)) return const SizedBox(width: 24);
-    final collapsed = kernel.arrangement.isCollapsed(slot);
-    // Mirror + flip: the chevron points OUT (toward the edge the pane lives on)
-    // to expand a collapsed pane, and IN to collapse an open one.
+    if (!visible) return const SizedBox(width: 24);
+    // The chevron points the DIRECTION OF THE ACTION: collapsing tucks the pane
+    // toward its own edge, expanding brings it back toward the centre.
     final icon = _isSidebar
         ? (collapsed ? PhosphorIcons.caretLineRight : PhosphorIcons.caretLineLeft)
         : (collapsed ? PhosphorIcons.caretLineLeft : PhosphorIcons.caretLineRight);
@@ -1139,9 +1151,7 @@ class StatusbarHost extends StatelessWidget {
     final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
     return ListenableBuilder(
-      // Also listen to the arrangement so the toggle chevrons flip with the
-      // collapsed state (T-294).
-      listenable: Listenable.merge([kernel.panels, kernel.arrangement]),
+      listenable: kernel.panels,
       builder: (ctx, _) {
         final items = kernel.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().toList();
         final left = items.where((i) => i.priority < 100).toList();
@@ -1152,15 +1162,13 @@ class StatusbarHost extends StatelessWidget {
         // trails it at intrinsic width — so it hugs the workspace block's
         // right edge by construction, no Spacer to fight a flex item (T-239).
         // Left items with flex > 0 wrap in Flexible(loose) so they yield width
-        // when tight (T-160). The collapse toggles bookend both ends at a fixed
-        // ~24px each; the status items sit between them (T-294).
+        // when tight (T-160).
         return Container(
           color: tokens.chromeBackground,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const _CollapseToggle(slot: Slots.sidebar),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -1171,7 +1179,6 @@ class StatusbarHost extends StatelessWidget {
                 ),
               ),
               for (final item in right) item.build(ctx),
-              const _CollapseToggle(slot: Slots.contextPanel),
             ],
           ),
         );

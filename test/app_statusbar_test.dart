@@ -69,11 +69,10 @@ void main() {
     for (final width in [600.0, 3440.0]) {
       await pumpAt(tester, width);
       expect(tester.takeException(), isNull, reason: 'width=$width');
-      // StatusbarHost pads 4px each side and reserves a fixed 24px collapse-
-      // toggle cell at each end (T-294), so status items sit 28px inside both
-      // edges: right item's right edge ≈ width - 28, left item's left ≈ 28.
-      expect(tester.getTopRight(find.text('RIGHT')).dx, closeTo(width - 28, 1.0), reason: 'right group not at edge at width=$width');
-      expect(tester.getTopLeft(find.text('LEFT')).dx, closeTo(28, 1.0), reason: 'left not at start at width=$width');
+      // StatusbarHost pads 8px each side → right item's right edge ≈ width - 8.
+      // (Collapse toggles live at the bar's screen edges, outside this host.)
+      expect(tester.getTopRight(find.text('RIGHT')).dx, closeTo(width - 8, 1.0), reason: 'right group not at edge at width=$width');
+      expect(tester.getTopLeft(find.text('LEFT')).dx, closeTo(8, 1.0), reason: 'left not at start at width=$width');
     }
   });
 
@@ -85,7 +84,6 @@ void main() {
     ));
     await pumpAt(tester, 3440.0);
     expect(tester.takeException(), isNull);
-    // 4px pad + 24px reserved toggle cell at the right end (T-294).
-    expect(tester.getTopRight(find.text('R2')).dx, closeTo(3440 - 28, 1.0));
+    expect(tester.getTopRight(find.text('R2')).dx, closeTo(3440 - 8, 1.0));
   });
 }

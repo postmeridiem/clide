@@ -1,6 +1,6 @@
-/// Status-bar collapse toggles (T-294): a fixed cell bookends each end of the
-/// status bar, flips a caret-line chevron per arrangement.isCollapsed, and fires
-/// the existing sidebar.collapse / context.collapse commands.
+/// Status-bar collapse toggle (T-294): a fixed cell pinned to a screen edge of
+/// the bar, flipping a caret-line chevron to reflect the direction of the
+/// action and firing the existing collapse commands.
 library;
 
 import 'package:clide/app.dart';
@@ -15,18 +15,15 @@ import 'helpers/kernel_fixture.dart';
 
 Finder _icon(PhosphorIconPainter p) => find.byWidgetPredicate((w) => w is ClideIcon && w.painter == p);
 
-Widget _bar(KernelFixture f) => Directionality(
+Widget _host(KernelFixture f, Widget child) => Directionality(
       textDirection: TextDirection.ltr,
       child: ClideKernel(
         services: f.services,
         child: ClideTheme(
           controller: f.services.theme,
-          child: const MediaQuery(
-            data: MediaQueryData(size: Size(800, 200)),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 800, height: 26, child: StatusbarHost()),
-            ),
+          child: MediaQuery(
+            data: const MediaQueryData(size: Size(800, 200)),
+            child: Align(alignment: Alignment.topLeft, child: SizedBox(height: 26, child: child)),
           ),
         ),
       ),
@@ -34,58 +31,68 @@ Widget _bar(KernelFixture f) => Directionality(
 
 void main() {
   late KernelFixture f;
-
-  setUp(() async {
-    f = await KernelFixture.create();
-    f.services.arrangement.applyPreset(const LayoutPresetContribution(
-      id: 'test',
-      displayName: 'test',
-      slots: [
-        LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, visible: true),
-        LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, visible: true),
-      ],
-    ));
-    f.services.extensions.register(DefaultLayoutExtension());
-    await f.services.extensions.activate('builtin.default-layout');
-  });
+  setUp(() async => f = await KernelFixture.create());
   tearDown(() => f.dispose());
 
-  testWidgets('both toggles show, chevrons point inward when panes are open', (tester) async {
-    await tester.pumpWidget(_bar(f));
+  testWidgets('chevron points the direction of the action (collapse vs expand)', (tester) async {
+    // Sidebar open → action is collapse (leftward) → caret-line-left.
+    await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: false, visible: true)));
     await tester.pump();
-    // Sidebar (left end) collapses leftward → caret-line-left; context (right
-    // end) collapses rightward → caret-line-right.
     expect(_icon(PhosphorIcons.caretLineLeft), findsOneWidget);
+
+    // Sidebar collapsed → action is expand (rightward) → caret-line-right.
+    await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: true, visible: true)));
+    await tester.pump();
+    expect(_icon(PhosphorIcons.caretLineRight), findsOneWidget);
+
+    // The context toggle mirrors it: open → collapse rightward, collapsed → expand leftward.
+    await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.contextPanel, collapsed: false, visible: true)));
+    await tester.pump();
     expect(_icon(PhosphorIcons.caretLineRight), findsOneWidget);
   });
 
-  testWidgets('a collapsed pane flips its chevron outward (expand affordance)', (tester) async {
-    f.services.arrangement.setCollapsed(Slots.sidebar, true);
-    await tester.pumpWidget(_bar(f));
+  testWidgets('the chevron flips live when the collapsed state changes', (tester) async {
+    var collapsed = false;
+    late StateSetter setOuter;
+    await tester.pumpWidget(_host(
+      f,
+      StatefulBuilder(builder: (ctx, setState) {
+        setOuter = setState;
+        return StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: collapsed, visible: true);
+      }),
+    ));
     await tester.pump();
-    // Sidebar now collapsed → its chevron points right (expand); context still
-    // open → right. So two right-pointing, none left.
-    expect(_icon(PhosphorIcons.caretLineRight), findsNWidgets(2));
+    expect(_icon(PhosphorIcons.caretLineLeft), findsOneWidget);
+
+    setOuter(() => collapsed = true);
+    await tester.pump();
+    expect(_icon(PhosphorIcons.caretLineRight), findsOneWidget, reason: 'rebuilds and flips on state change');
     expect(_icon(PhosphorIcons.caretLineLeft), findsNothing);
   });
 
-  testWidgets('tapping the sidebar toggle fires sidebar.collapse', (tester) async {
-    await tester.pumpWidget(_bar(f));
+  testWidgets('a hidden pane reserves the cell but shows no chevron', (tester) async {
+    await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: false, visible: false)));
+    await tester.pump();
+    expect(_icon(PhosphorIcons.caretLineLeft), findsNothing);
+    expect(_icon(PhosphorIcons.caretLineRight), findsNothing);
+  });
+
+  testWidgets('tapping fires the matching collapse command', (tester) async {
+    f.services.arrangement.applyPreset(const LayoutPresetContribution(
+      id: 'test',
+      displayName: 'test',
+      slots: [LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, visible: true)],
+    ));
+    f.services.extensions.register(DefaultLayoutExtension());
+    await f.services.extensions.activate('builtin.default-layout');
+
+    await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: false, visible: true)));
     await tester.pump();
     expect(f.services.arrangement.isCollapsed(Slots.sidebar), isFalse);
 
-    await tester.tap(_icon(PhosphorIcons.caretLineLeft)); // the open-sidebar toggle
+    await tester.tap(_icon(PhosphorIcons.caretLineLeft));
     await tester.pump();
 
     expect(f.services.arrangement.isCollapsed(Slots.sidebar), isTrue);
-  });
-
-  testWidgets('a hidden pane reserves the cell but shows no toggle', (tester) async {
-    f.services.arrangement.setVisible(Slots.contextPanel, false);
-    await tester.pumpWidget(_bar(f));
-    await tester.pump();
-    // Sidebar toggle present (open → left); context hidden → no right chevron.
-    expect(_icon(PhosphorIcons.caretLineLeft), findsOneWidget);
-    expect(_icon(PhosphorIcons.caretLineRight), findsNothing);
   });
 }
