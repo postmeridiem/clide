@@ -14,6 +14,22 @@ class SettingsStore extends ChangeNotifier {
   final Map<String, Object?> _appValues = <String, Object?>{};
   final Map<String, Object?> _projectValues = <String, Object?>{};
 
+  // Writes are fire-and-forget (callers don't await `set`); if the store is
+  // disposed while one is mid-flight (app shutdown, a closing test), skip the
+  // post-write notify rather than asserting on a disposed ChangeNotifier.
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _safeNotify() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _appValues
       ..clear()
@@ -22,7 +38,7 @@ class SettingsStore extends ChangeNotifier {
     if (projectDir != null) {
       _projectValues.addAll(await _readFile(_projectFile));
     }
-    notifyListeners();
+    _safeNotify();
   }
 
   Future<void> setProjectDir(Directory? dir) async {
@@ -31,7 +47,7 @@ class SettingsStore extends ChangeNotifier {
     if (dir != null) {
       _projectValues.addAll(await _readFile(_projectFile));
     }
-    notifyListeners();
+    _safeNotify();
   }
 
   File get _appFile => File('${appDir.path}/settings.yaml');
@@ -73,7 +89,7 @@ class SettingsStore extends ChangeNotifier {
         _appValues[key] = value;
         await _writeFile(_appFile, _appValues);
     }
-    notifyListeners();
+    _safeNotify();
   }
 
   Future<Map<String, Object?>> _readFile(File f) async {

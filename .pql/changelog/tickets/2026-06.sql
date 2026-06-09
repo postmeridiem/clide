@@ -3146,3 +3146,43 @@ Repro:
 Notes:
 - Likely the scroll controller doesn''t react to the composer/interaction-zone height change (no re-scroll on viewport-inset/size change). Audit the conversation view''s scroll handling around interaction-zone show/hide (D-78) and on keyboard/box resize.
 - Affects the Claude conversation panel.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 16:01:09', '2026-06-09 16:01:09', NULL, '5287b26bc163fd424808be2151796347', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-297', 'bug', 'T-276', 'Conversation doesn''t re-scroll when the bottom input resizes (content hides behind it)', 'When the bottom input area changes height, the conversation view does not re-scroll to the new viewport bottom, so the last bit of content is left hidden behind the newly-sized box.
+
+Trigger: anything that resizes the bottom interaction zone (D-78) — e.g. opening a permission dialog or the AskUserQuestion UI, which replace/expand the composer. The taller box shrinks the conversation viewport from the bottom, but the scroll offset isn''t adjusted, so content that was at the bottom edge is now occluded.
+
+Expected: when the interaction zone grows, the conversation re-anchors so the previously-visible bottom content stays visible above the box (preserve bottom-anchoring / keep the tail in view). Symmetric on shrink — no leftover gap when the box collapses back.
+
+Repro:
+1. Scroll the Claude conversation to the bottom (tail in view).
+2. Trigger a permission prompt or AskUserQuestion (interaction zone expands).
+3. Observed: a strip of the last message/card is hidden behind the enlarged input box.
+4. Expected: view scrolls so that content remains fully visible above the box.
+
+Notes:
+- Likely the scroll controller doesn''t react to the composer/interaction-zone height change (no re-scroll on viewport-inset/size change). Audit the conversation view''s scroll handling around interaction-zone show/hide (D-78) and on keyboard/box resize.
+- Affects the Claude conversation panel.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 16:01:09', '2026-06-09 16:01:58', NULL, '6508dfb893a7d12cad13e8d9e7b03718', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-296', 'task', 'T-276', 'Group consecutive edits to the same file into one collapsed card', 'When Claude makes multiple subsequent edits to the SAME file, bundle them into a single collapsed holder card instead of rendering each edit as its own card — mirroring how we already fold meta/activity runs.
+
+Behaviour:
+- Detect a run of consecutive edits targeting the same file_path and group them into one ClideHolderCard (the shared container from T-266; see _ActivityCard in lib/builtin/claude/src/conversation_view.dart:681).
+- Collapsed (default): one-line ticker of the latest edit + a count label.
+- Show the count as "# edits" (e.g. "3 edits" / "1 edit"), NOT "# steps". The existing activity card uses stepLabel = ''$count steps'' at conversation_view.dart:683; this run wants an edits-flavoured label.
+- Expanded: every individual edit, each with its full report — bundle, do NOT drop or summarise away any information. All per-edit detail must remain reachable on expand.
+
+Notes:
+- Reuse the existing ClideHolderCard / folding machinery rather than building a new card.
+- Grouping breaks when the file_path changes or a non-edit step interleaves (consecutive-same-file only), matching the ''subsequent edits to the same file'' wording.
+- Parity with the existing meta/activity folding (T-230) — same collapse/expand affordance, just an edits-labelled run.
+
+WORKED EXAMPLE (from user screenshot, clide_markdown.dart run): the current stream renders 11 stacked cards — 3x "Edit clide_markdown.dart", then a folded "Read … 2 steps" holder, then 7x "Edit clide_markdown.dart". With this feature it collapses to THREE cards:
+- [3 edits]  (the first edit run)
+- [2 steps]  (the existing Read holder — unchanged; this is what splits the edit run)
+- [7 edits]  (the second edit run)
+Confirms the split rule: an interleaving non-edit step (here the folded Read run) breaks the consecutive-same-file edit grouping into two separate edit cards. Same-file edits with nothing between them collapse into one "# edits" card.
+
+STATUS INDICATOR (live tick reuse): the bundled edits card carries ONE header status indicator that reuses the existing per-step success tick, driven by the latest edit''s state:
+- edit in flight  -> spinner
+- edit completed  -> success check (the current green tick)
+- next edit starts -> back to spinner
+- ...repeat, settling on check when the final edit in the run completes (or the error glyph if one fails).
+So the collapsed card''s indicator animates spinner<->check as the run grows, rather than showing a static tick. Each individual edit keeps its own tick in the expanded list (unchanged); this is the aggregate indicator on the holder header/ticker. Mirror the same treatment for the existing "# steps" activity card if it doesn''t already do this.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 15:43:58', '2026-06-09 16:02:14', NULL, '79d8b599af75fc98290b7ab3751c077c', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

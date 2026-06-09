@@ -39,7 +39,7 @@ void main() {
     });
 
     tearDown(() async {
-      await pumpEventQueue(); // flush any in-flight unawaited set() file writes
+      await pumpEventQueue(); // let in-flight writes settle (dispose then no-ops any straggler)
       settings.dispose();
       theme.dispose();
       for (final d in [appTmp, repoTmp]) {
