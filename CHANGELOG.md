@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`clide://` deep links open files.** `clide://open?path=/repo/file.dart&line=42`
+  opens the file at the line — handy for CI links, error reports, and cross-tool
+  integration. The link routes through the existing CLI→IPC path, so it lands in
+  the running window (no second instance). The scheme is registered on Linux
+  (`x-scheme-handler/clide`) and macOS. (T-56)
 - **Number keys pick prompt buttons (CLI muscle memory).** In a permission or
   AskUserQuestion prompt, `1`/`2`/`3`… select the matching button or option
   (labels are now numbered), and Enter confirms the primary action. Typing in a

@@ -8,4 +8,4 @@ Terminal=false
 Categories=Development;IDE;TextEditor;
 Keywords=code;editor;ide;claude;terminal;
 StartupWMClass=net.schweitz.clide
-MimeType=inode/directory;
+MimeType=inode/directory;x-scheme-handler/clide;

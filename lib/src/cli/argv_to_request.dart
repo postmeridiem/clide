@@ -60,6 +60,12 @@ ArgvParseResult parseArgv(List<String> argv, {required String requestId}) {
   }
 
   final first = argv[0];
+  // A clide:// deep link (T-56): the OS scheme handler invokes
+  // `clide clide://open?path=…&line=…`, which lands here as the first arg and
+  // routes through the same IPC path to the running app (no second instance).
+  if (first.startsWith('clide://')) {
+    return _deepLinkToRequest(first, requestId);
+  }
   // Umbrella commands: single-token name, no verb required.
   if (_umbrellaCommands.contains(first)) {
     final tail = argv.sublist(1);
@@ -96,6 +102,38 @@ ArgvParseResult parseArgv(List<String> argv, {required String requestId}) {
     cmd: '$subsystem.$verb',
     args: (parsed as _TailOk).toArgs(),
   ));
+}
+
+/// Translate a `clide://` deep link into an [IpcRequest] (T-56). Only the
+/// `open` action is defined today: `clide://open?path=<abs|repo-rel>&line=<n>`
+/// maps to `editor.open` (which jumps the selection to the 1-based line). The
+/// path is passed through verbatim — `editor.open` resolves it against the
+/// workspace and applies the usual `files.read` allow-list (D-80).
+ArgvParseResult _deepLinkToRequest(String url, String requestId) {
+  final uri = Uri.tryParse(url);
+  if (uri == null || uri.scheme != 'clide') {
+    return ArgvError(_err(requestId, 'malformed clide:// link: $url'));
+  }
+  switch (uri.host) {
+    case 'open':
+      final path = uri.queryParameters['path'];
+      if (path == null || path.isEmpty) {
+        return ArgvError(_err(requestId, 'clide://open requires a ?path='));
+      }
+      final positional = <String>[path];
+      final lineRaw = uri.queryParameters['line'];
+      if (lineRaw != null && lineRaw.isNotEmpty) {
+        final line = int.tryParse(lineRaw);
+        if (line == null || line < 1) {
+          return ArgvError(_err(requestId, 'clide://open: line must be a positive integer, got "$lineRaw"'));
+        }
+        positional.add('$line');
+      }
+      // Mirror the CLI's positional form so the editor.open schema maps them.
+      return ArgvParsed(IpcRequest(id: requestId, cmd: 'editor.open', args: {'positional': positional}));
+    default:
+      return ArgvError(_err(requestId, 'unknown clide:// action "${uri.host}" (expected: open)'));
+  }
 }
 
 // -- internals --------------------------------------------------------------
