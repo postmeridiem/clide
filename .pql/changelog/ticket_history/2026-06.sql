@@ -2014,3 +2014,39 @@ So the collapsed card''s indicator animates spinner<->check as the run grows, ra
 DONE 2026-06-09 (commit). coalesceEditRuns folds consecutive same-file edits into one ''# edits'' ClideHolderCard; aggregate live status via new ClideStatusIndicator (running/success/error) + ClideSpinner (logo-mark, 3D Y rotation, reduced-motion aware), shared with the activity card. Per user: spinner is a self-contained component (not built on ConversationCard''s mark) with an AnimatedSwitcher seam for a richer spinner→check transition later. Tests: activity_cluster_test (coalesce), conversation_view_test (edits card), clide_status_indicator_test.', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '899916f67fe3c12a2ac4d231630bd34d', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-296', 'status', 'ready', 'done', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '9c76b18710ed6e17c878dea8f92ad881', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-132', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:54:28', '2026-06-09 16:54:28', '2026-06-09 16:54:28', NULL, '992ed635baad8cd22fbc9a7d1fee52be', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-241', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:55:49', '2026-06-09 16:55:49', '2026-06-09 16:55:49', NULL, '03b3031c85c7266d0b2309bf25a9ce46', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-44', 'status', 'backlog', 'done', NULL, '2026-06-09 16:56:55', '2026-06-09 16:56:55', '2026-06-09 16:56:55', NULL, '987700c439d6728dfbb6451c2d9ed816', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-242', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:57:16', '2026-06-09 16:57:16', '2026-06-09 16:57:16', NULL, '3c162ac53229d8aa097d6b986807cc69', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-56', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:57:23', '2026-06-09 16:57:23', '2026-06-09 16:57:23', NULL, '50e18e6e1213791071dd78f766b91af6', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-240', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:57:35', '2026-06-09 16:57:35', '2026-06-09 16:57:35', NULL, '5241fed0ca5bed83588583f4f5aab228', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-253', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:58:12', '2026-06-09 16:58:12', '2026-06-09 16:58:12', NULL, 'f88e3d53c9a681fb33293ad51e9116f9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-132', 'description', 'Replace the terminal-based Claude pane with native rendering driven by Claude Code''s transcript JSONL (with cross-widget text selection), and surface experimental tmux agent teams (lead + teammates) as tiled native panels plus a team-meta sidebar. The terminal is retained only as a general IDE tool.
+
+Why:
+1. No cross-widget text selection/copy in clide''s native widgets today (regression vs a terminal).
+2. PTY/TUI rendering is the fragile, OS-variant part of the Claude pane.
+3. Claude Code''s experimental tmux team mode (lead + N teammates, each a tmux pane) is the flagship capability to surface as real GUI panels, not scraped TUI.
+
+Direction: run Claude headless in tmux; render its conversation natively from the transcript JSONL; lead panel (left, with composer) + teammate tiles (right) in a responsive auto-wrap grid (1->2->3 cols); team-meta sidebar with roster + token budget.
+
+Principle: Claude-centric first, CLI-first (D-6) a strong second. Accept isolated, version-pinned coupling to Claude Code internal contracts where it serves the Claude integration; preserve CLI/event surfaces where sensible.
+
+Acceptance: all child tickets done; D-record landed; Claude pane renders natively with working select+copy and no terminal; a tmux team surfaces as lead + auto-wrapping teammate tiles + meta sidebar; all fragile CC-internals parsing isolated and version-pinned.
+
+Source: plan iridescent-tinkering-umbrella (2026-05-22), grounded in an-idea.md + read-only validation of the transcript schema this session.', 'Replace the terminal-based Claude pane with native rendering driven by Claude Code''s transcript JSONL (with cross-widget text selection), and surface experimental tmux agent teams (lead + teammates) as tiled native panels plus a team-meta sidebar. The terminal is retained only as a general IDE tool.
+
+Why:
+1. No cross-widget text selection/copy in clide''s native widgets today (regression vs a terminal).
+2. PTY/TUI rendering is the fragile, OS-variant part of the Claude pane.
+3. Claude Code''s experimental tmux team mode (lead + N teammates, each a tmux pane) is the flagship capability to surface as real GUI panels, not scraped TUI.
+
+Direction: run Claude headless in tmux; render its conversation natively from the transcript JSONL; lead panel (left, with composer) + teammate tiles (right) in a responsive auto-wrap grid (1->2->3 cols); team-meta sidebar with roster + token budget.
+
+Principle: Claude-centric first, CLI-first (D-6) a strong second. Accept isolated, version-pinned coupling to Claude Code internal contracts where it serves the Claude integration; preserve CLI/event surfaces where sensible.
+
+Acceptance: all child tickets done; D-record landed; Claude pane renders natively with working select+copy and no terminal; a tmux team surfaces as lead + auto-wrapping teammate tiles + meta sidebar; all fragile CC-internals parsing isolated and version-pinned.
+
+Source: plan iridescent-tinkering-umbrella (2026-05-22), grounded in an-idea.md + read-only validation of the transcript schema this session.
+
+STATUS CORRECTED (2026-06-09): not superseded — substantially DELIVERED. 32/34 children done; the native Claude pane (transcript rendering, select/copy, no terminal), tmux team tiles + meta sidebar, composer, and D-75 all shipped. Re-flagged from ''ready'' (misleading — no startable work) to in_progress. Remaining, both non-blocking, kept under this epic: T-158 (team/account token budget — blocked on upstream /usage exposure) and T-235 (persist activity-card fold level, T-230 follow-up). Close when those land.', NULL, '2026-06-09 17:06:47', '2026-06-09 17:06:47', '2026-06-09 17:06:47', NULL, 'a11411cd79f8fa9b93a74693676d02f0', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-132', 'status', 'ready', 'in_progress', NULL, '2026-06-09 17:06:47', '2026-06-09 17:06:47', '2026-06-09 17:06:47', NULL, '8f39c5ef2d84d66fd67b8b0bce0c0fe3', 1) ON CONFLICT(hash) DO NOTHING;
