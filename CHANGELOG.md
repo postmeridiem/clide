@@ -18,13 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- **Consecutive edits to one file fold into a single card.** A run of edits to
-  the same file now collapses to one `# edits` holder (the latest edit as the
-  ticker; every edit reachable on expand) instead of a stack of cards — a
-  different file or an interleaving step splits the run. The card carries an
-  aggregate live status: a new logo-mark **`ClideSpinner`** while editing,
-  settling to a check (or a cross on failure); the activity card shares it.
-  (T-296)
+- **Consecutive edits to one file fold into a single card.** A run of same-file
+  edits collapses to one `# edits` holder instead of a stack — every edit
+  reachable on expand; a different file or an interleaving step splits it. The
+  card shows an aggregate live status: a logo-mark spinner while editing,
+  settling to a check or cross. (T-296)
 - **Collapse toggles in the status bar.** A small caret-line button bookends
   each end of the bottom status bar — left collapses/expands the sidebar, right
   the context pane. The chevron points inward to collapse, outward to expand,
@@ -32,11 +30,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   (`Ctrl+Shift+1` / `Ctrl+Shift+3`), so it's the mouse affordance for an
   already keyboard/CLI-addressable action. (T-294)
 - **Pasted images render inline in the Claude conversation.** A pasted-image
-  `@<path>` reference now shows as a bounded thumbnail in the message instead of
-  the raw path; clicking it (or pressing Enter when focused) opens the full
-  image in the lightbox. The composer's attachment previews use the same,
-  larger thumbnail. A missing file degrades to a placeholder; the text sent to
-  Claude is unchanged. (T-236, T-254, D-89)
+  `@<path>` reference shows as a bounded thumbnail instead of the raw path;
+  clicking it (or Enter when focused) opens it in the lightbox. The composer's
+  attachment previews use the same larger thumbnail. A missing file degrades to
+  a placeholder; the sent text is unchanged. (T-236, T-254, D-89)
 - **The editor honours `.editorconfig`.** Opening a file resolves the
   workspace rules into a source-agnostic `EditorSettings` (own INI parser +
   glob matcher, `root`/nearest-wins precedence — no new dependency). The editor
