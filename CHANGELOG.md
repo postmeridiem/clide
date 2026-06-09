@@ -212,6 +212,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The chosen theme now persists across restarts**, per repo. Picking a theme
+  (status-bar switcher or Settings) writes it to the repo's
+  `.clide/settings.yaml` (and a global default), and reopening the repo restores
+  it — including the high-contrast variant. A removed theme falls back to the
+  default instead of resetting silently. (T-293)
 - Folded activity and agent-run cards in the Claude conversation now use the
   same bottom spacing as the prose cards around them, instead of sitting
   cramped 3px below the next card. (T-282)

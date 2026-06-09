@@ -5,6 +5,7 @@ import 'package:clide/kernel/src/clipboard.dart';
 import 'package:clide/kernel/src/commands/keybindings.dart';
 import 'package:clide/kernel/src/keymap/keymap_service.dart';
 import 'package:clide/kernel/src/text_zoom.dart';
+import 'package:clide/kernel/src/theme/theme_persistence.dart';
 import 'package:clide/kernel/src/toast.dart';
 import 'package:clide/kernel/src/commands/palette.dart';
 import 'package:clide/kernel/src/commands/registry.dart';
@@ -158,6 +159,7 @@ class KernelServices {
     }
 
     final theme = ThemeController(bundled: bundledThemes);
+    wireThemePersistence(theme, settings);
     final panels = PanelRegistry();
     final arrangement = LayoutArrangement();
     final commands = CommandRegistry();
