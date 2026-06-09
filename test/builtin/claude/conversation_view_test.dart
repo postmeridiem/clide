@@ -10,6 +10,7 @@ import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/claude_banner.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
+import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
@@ -227,6 +228,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(opened, isNotNull);
       expect(opened!.data['id'], 'D-77');
+    });
+
+    testWidgets('a pasted-image @path token renders an inline thumbnail (T-236/T-254)', (tester) async {
+      await pumpWith(tester, [_user('look at this @/tmp/clide/paste-1.png please')]);
+      expect(find.byType(ImageThumbnail), findsOneWidget);
+      // The prose around the token still renders.
+      expect(find.textContaining('look at this'), findsWidgets);
+    });
+
+    testWidgets('multiple image tokens each render a thumbnail (T-236)', (tester) async {
+      await pumpWith(tester, [_user('@/tmp/a.png and @/tmp/b.jpg')]);
+      expect(find.byType(ImageThumbnail), findsNWidgets(2));
+    });
+
+    testWidgets('a non-image @path stays literal text (T-236)', (tester) async {
+      await pumpWith(tester, [_user('see @/tmp/notes.txt for details')]);
+      expect(find.byType(ImageThumbnail), findsNothing);
     });
 
     testWidgets('meta items fold into a collapsed activity card; tap expands (T-230)', (tester) async {

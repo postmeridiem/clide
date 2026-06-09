@@ -9,10 +9,10 @@
 library;
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/clipboard_paste.dart';
+import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/permission_mode_control.dart';
 import 'package:clide/builtin/claude/src/running_indicator.dart';
 import 'package:clide/builtin/claude/src/slash_commands.dart';
@@ -574,18 +574,11 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
   }
 
   Widget _chipLeading(SurfaceTokens theme, ComposerAttachment a) {
-    const dim = 28.0;
+    // A readable preview (not the old 28px speck) that opens the full image in
+    // the lightbox on click — the same thumbnail the conversation log uses
+    // (T-236/T-254).
     if (a.isImage) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Image.file(
-          File(a.path),
-          width: dim,
-          height: dim,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => ClideIcon(PhosphorIcons.image, size: 18, color: theme.globalTextMuted),
-        ),
-      );
+      return ImageThumbnail(path: a.path, size: 44);
     }
     return ClideIcon(PhosphorIcons.fileText, size: 18, color: theme.globalTextMuted);
   }

@@ -5,6 +5,15 @@ widget primitives.
 
 ---
 
+### D-89: inline pasted-image thumbnails that expand to the lightbox
+- **Date:** 2026-06-09
+- **Decision:** A pasted-image reference (the composer's `@<path>` token) renders **inline** in the message prose as a bounded, keyboard-activatable thumbnail; activating it opens the full image in the shared lightbox (T-252). The same `ImageThumbnail` is used in the composer's attachment chips. The renderer (`ClideMarkdown`) only locates `@<path>` image tokens and drops a caller-built widget into the text flow via a `WidgetSpan` — it owns no `Image.file`/lightbox. Display-only: the text sent to Claude and the card's `copyText` are unchanged.
+- **Rationale:** Two conflicting designs were filed — T-236 (inline thumbnail, in place of the token) and T-254 (a separate image-viewer **card** with a path caption). The user resolved the conflict toward a hybrid: *inline* (a separate card "breaks context") **plus** the lightbox expansion. Reusing the existing lightbox keeps presentation consistent and avoids a second image surface; keeping `Image.file`/lightbox out of `ClideMarkdown` keeps the generic renderer decoupled (it gained only an `onImageToken` builder, mirroring the existing `onRecordTap` seam).
+- **Cost:** `ClideMarkdown` threads one optional builder through its inline chain; the Claude layer owns `ImageThumbnail` + the token→widget wiring. Mid-sentence tokens render the thumbnail at the token's position; in practice the composer appends tokens, so they trail the prose.
+- **Supersedes:** the either/or framing of **T-236** vs **T-254** — both are satisfied by this one design (neither rejected). Raised by the user while triaging the two as "conflicting designs."
+
+---
+
 ### D-88: clide-owned anchored popover + menu primitive
 - **Date:** 2026-06-08
 - **Decision:** Anchored, non-modal popovers (dropdowns, pickers, typeaheads, the command palette) build on two clide-owned primitives in `lib/widgets/`: `ClideAnchoredOverlay` (positioning + lifecycle — a `LayerLink`/`CompositedTransformFollower` or centred `Positioned`, a full-screen tap-away barrier, `OverlayEntry` bookkeeping, focus capture, Esc-to-close, and auto-flip on viewport bounds) and `ClideMenu` + `ClideMenuListController` (a dropdown-token row surface with arrow/enter/escape nav, skip-disabled/separator, active mark, and a reusable nav controller for surfaces that keep bespoke rows). No Material/Cupertino. Modal, centred dialogs (session / project / branch pickers) stay on the kernel `DialogRouter` — a separate concern.

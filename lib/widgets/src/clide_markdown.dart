@@ -10,8 +10,13 @@ import 'package:markdown/markdown.dart' as md;
 
 typedef RecordTapCallback = void Function(String id);
 
+/// Builds the inline widget for a recognised `@<path>` image token (T-236). The
+/// caller owns how the image renders (thumbnail, tap-to-lightbox); the renderer
+/// only locates the tokens and drops the widget into the text flow.
+typedef ImageTokenBuilder = Widget Function(String path);
+
 class ClideMarkdown extends StatelessWidget {
-  const ClideMarkdown(this.source, {super.key, this.onRecordTap});
+  const ClideMarkdown(this.source, {super.key, this.onRecordTap, this.onImageToken});
 
   static const double _fontSize = 16;
   static const double _lineHeight = clideLineHeight;
@@ -27,8 +32,15 @@ class ClideMarkdown extends StatelessWidget {
   /// refs inside code stay plain.
   static final _bareRecordPattern = RegExp(r'\b[DQRT]-\d+\b');
 
+  /// A pasted-image `@<path>` token in running text (T-236): an `@` at a token
+  /// boundary followed by a path ending in an image extension. The lookbehind
+  /// keeps `foo@bar.png` (email-ish, mid-word) literal — only start-of-string or
+  /// a preceding space qualifies, which is how the composer emits them.
+  static final _imageTokenPattern = RegExp(r'(?<![^\s])@(\S+\.(?:png|jpe?g|gif|webp|bmp))', caseSensitive: false);
+
   final String source;
   final RecordTapCallback? onRecordTap;
+  final ImageTokenBuilder? onImageToken;
 
   static String _unescapeHtml(String s) {
     return s
@@ -45,7 +57,7 @@ class ClideMarkdown extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     final doc = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
     final nodes = doc.parseLines(source.split('\n'));
-    final widgets = _buildNodes(nodes, tokens, onRecordTap);
+    final widgets = _buildNodes(nodes, tokens, onRecordTap, onImageToken: onImageToken);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -61,7 +73,7 @@ class ClideMarkdown extends StatelessWidget {
     return false;
   }
 
-  static List<Widget> _buildNodes(List<md.Node> nodes, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
+  static List<Widget> _buildNodes(List<md.Node> nodes, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
     final out = <Widget>[];
     final inlineRun = <md.Node>[];
 
@@ -70,9 +82,9 @@ class ClideMarkdown extends StatelessWidget {
       final spans = <InlineSpan>[];
       for (final n in inlineRun) {
         if (n is md.Text) {
-          spans.addAll(_linkifyText(_unescapeHtml(n.text), tokens, onRecordTap));
+          spans.addAll(_linkifyText(_unescapeHtml(n.text), tokens, onRecordTap, onImageToken: onImageToken));
         } else if (n is md.Element) {
-          spans.add(_inlineElementSpan(n, tokens, onRecordTap));
+          spans.add(_inlineElementSpan(n, tokens, onRecordTap, onImageToken: onImageToken));
         }
       }
       out.add(Text.rich(
@@ -97,7 +109,7 @@ class ClideMarkdown extends StatelessWidget {
       } else {
         flushInline();
         if (node is md.Element) {
-          out.add(_buildElement(node, tokens, onRecordTap));
+          out.add(_buildElement(node, tokens, onRecordTap, onImageToken: onImageToken));
         }
       }
     }
@@ -105,7 +117,7 @@ class ClideMarkdown extends StatelessWidget {
     return out;
   }
 
-  static Widget _buildElement(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
+  static Widget _buildElement(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
     switch (el.tag) {
       case 'h1':
         return Padding(
@@ -132,7 +144,7 @@ class ClideMarkdown extends StatelessWidget {
       case 'p':
         return Padding(
           padding: const EdgeInsets.only(bottom: 14),
-          child: _inlineRichText(el, tokens, onRecordTap),
+          child: _inlineRichText(el, tokens, onRecordTap, onImageToken: onImageToken),
         );
       case 'ul':
         return Padding(
@@ -142,7 +154,7 @@ class ClideMarkdown extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final c in el.children ?? const [])
-                if (c is md.Element) _buildListItem(c, tokens, onRecordTap, ordered: false)
+                if (c is md.Element) _buildListItem(c, tokens, onRecordTap, ordered: false, onImageToken: onImageToken)
             ],
           ),
         );
@@ -154,7 +166,8 @@ class ClideMarkdown extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (var i = 0; i < (el.children?.length ?? 0); i++)
-                if (el.children![i] is md.Element) _buildListItem(el.children![i] as md.Element, tokens, onRecordTap, ordered: true, index: i + 1),
+                if (el.children![i] is md.Element)
+                  _buildListItem(el.children![i] as md.Element, tokens, onRecordTap, ordered: true, index: i + 1, onImageToken: onImageToken),
             ],
           ),
         );
@@ -166,7 +179,7 @@ class ClideMarkdown extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
-            children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, onRecordTap),
+            children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, onRecordTap, onImageToken: onImageToken),
           ),
         );
       case 'pre':
@@ -189,11 +202,12 @@ class ClideMarkdown extends StatelessWidget {
           child: _buildTable(el, tokens, onRecordTap),
         );
       default:
-        return _inlineRichText(el, tokens, onRecordTap);
+        return _inlineRichText(el, tokens, onRecordTap, onImageToken: onImageToken);
     }
   }
 
-  static Widget _buildListItem(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {bool ordered = false, int index = 1}) {
+  static Widget _buildListItem(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap,
+      {bool ordered = false, int index = 1, ImageTokenBuilder? onImageToken}) {
     final bullet = ordered ? '$index. ' : '• ';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -205,7 +219,7 @@ class ClideMarkdown extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
-              children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, onRecordTap),
+              children: _buildNodes(el.children?.cast<md.Node>() ?? const [], tokens, onRecordTap, onImageToken: onImageToken),
             ),
           ),
         ],
@@ -248,17 +262,18 @@ class ClideMarkdown extends StatelessWidget {
     return Text.rich(_buildInlineSpan(el, tokens, onRecordTap, fontSize: fontSize, fontWeight: fontWeight));
   }
 
-  static Widget _inlineRichText(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
-    return Text.rich(_buildInlineSpan(el, tokens, onRecordTap));
+  static Widget _inlineRichText(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
+    return Text.rich(_buildInlineSpan(el, tokens, onRecordTap, onImageToken: onImageToken));
   }
 
-  static TextSpan _buildInlineSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {double? fontSize, FontWeight? fontWeight}) {
+  static TextSpan _buildInlineSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap,
+      {double? fontSize, FontWeight? fontWeight, ImageTokenBuilder? onImageToken}) {
     final children = <InlineSpan>[];
     for (final child in el.children ?? const []) {
       if (child is md.Text) {
-        children.addAll(_linkifyText(_unescapeHtml(child.text), tokens, onRecordTap));
+        children.addAll(_linkifyText(_unescapeHtml(child.text), tokens, onRecordTap, onImageToken: onImageToken));
       } else if (child is md.Element) {
-        children.add(_inlineElementSpan(child, tokens, onRecordTap));
+        children.add(_inlineElementSpan(child, tokens, onRecordTap, onImageToken: onImageToken));
       }
     }
     return TextSpan(
@@ -274,14 +289,17 @@ class ClideMarkdown extends StatelessWidget {
     );
   }
 
-  static InlineSpan _inlineElementSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
+  static InlineSpan _inlineElementSpan(md.Element el, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
     switch (el.tag) {
       case 'strong':
         return TextSpan(
           style: const TextStyle(fontWeight: FontWeight.w700),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
+              if (c is md.Text)
+                ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap, onImageToken: onImageToken)
+              else if (c is md.Element)
+                _inlineElementSpan(c, tokens, onRecordTap, onImageToken: onImageToken)
           ],
         );
       case 'em':
@@ -289,7 +307,10 @@ class ClideMarkdown extends StatelessWidget {
           style: const TextStyle(fontStyle: FontStyle.italic),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap) else if (c is md.Element) _inlineElementSpan(c, tokens, onRecordTap)
+              if (c is md.Text)
+                ..._linkifyText(_unescapeHtml(c.text), tokens, onRecordTap, onImageToken: onImageToken)
+              else if (c is md.Element)
+                _inlineElementSpan(c, tokens, onRecordTap, onImageToken: onImageToken)
           ],
         );
       case 'code':
@@ -316,10 +337,31 @@ class ClideMarkdown extends StatelessWidget {
     }
   }
 
-  /// Splits plain [text] into spans, turning bare governance/ticket refs
-  /// (T-281, D-77, Q-5, R-2) into clickable [_recordLinkSpan]s (T-279). With no
-  /// [onRecordTap] (or no match) the text passes through unchanged.
-  static List<InlineSpan> _linkifyText(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
+  /// Splits plain [text] into spans: pasted-image `@<path>` tokens become inline
+  /// image widgets via [onImageToken] (T-236), and bare governance/ticket refs
+  /// (T-281, D-77, Q-5, R-2) become clickable [_recordLinkSpan]s (T-279). With
+  /// neither callback (or no match) the text passes through unchanged.
+  static List<InlineSpan> _linkifyText(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap, {ImageTokenBuilder? onImageToken}) {
+    if (text.isEmpty) return [TextSpan(text: text)];
+    // Pass 1: pull out image tokens, record-linkifying the prose between them.
+    if (onImageToken != null) {
+      final spans = <InlineSpan>[];
+      var last = 0;
+      for (final m in _imageTokenPattern.allMatches(text)) {
+        if (m.start > last) spans.addAll(_linkifyRecords(text.substring(last, m.start), tokens, onRecordTap));
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: onImageToken(m.group(1)!)),
+        ));
+        last = m.end;
+      }
+      if (last < text.length) spans.addAll(_linkifyRecords(text.substring(last), tokens, onRecordTap));
+      return spans.isEmpty ? [TextSpan(text: text)] : spans;
+    }
+    return _linkifyRecords(text, tokens, onRecordTap);
+  }
+
+  static List<InlineSpan> _linkifyRecords(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
     if (onRecordTap == null || text.isEmpty) return [TextSpan(text: text)];
     final spans = <InlineSpan>[];
     var last = 0;

@@ -130,6 +130,7 @@ You might also want, project-permitting:
 - [D-86: MCP tool surface — full clide namespace generated from the co-registered command registry](decisions/architecture.md#d-86-mcp-tool-surface--full-clide-namespace-generated-from-the-co-registered-command-registry) — _architecture_
 - [D-87: Output/log dock — bottom, toggled, read-only (logs + problems)](decisions/architecture.md#d-87-outputlog-dock--bottom-toggled-read-only-logs--problems) — _architecture_
 - [D-88: clide-owned anchored popover + menu primitive](decisions/design.md#d-88-clide-owned-anchored-popover--menu-primitive) — _design_
+- [D-89: inline pasted-image thumbnails that expand to the lightbox](decisions/design.md#d-89-inline-pasted-image-thumbnails-that-expand-to-the-lightbox) — _design_
 
 ## Open questions
 

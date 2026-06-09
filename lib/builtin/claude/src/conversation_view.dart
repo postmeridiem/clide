@@ -16,6 +16,7 @@ import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/holder_card.dart';
+import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/facade.dart';
@@ -367,7 +368,13 @@ class _ConversationTurn extends StatelessWidget {
           accent: tokens.globalFocus,
           label: 'you',
           copyText: i.text,
-          body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id)),
+          // Pasted-image @path tokens render as inline thumbnails that open the
+          // lightbox (T-236/T-254); copyText keeps the original text verbatim.
+          body: ClideMarkdown(
+            i.text,
+            onRecordTap: (id) => _openRecord(context, id),
+            onImageToken: (path) => ImageThumbnail(path: path, size: 48),
+          ),
         ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
       // agent with a muted accent, never the coral "claude" brand (T-265). The

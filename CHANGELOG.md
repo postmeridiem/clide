@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Pasted images render inline in the Claude conversation.** A pasted-image
+  `@<path>` reference now shows as a bounded thumbnail in the message instead of
+  the raw path; clicking it (or pressing Enter when focused) opens the full
+  image in the lightbox. The composer's attachment previews use the same,
+  larger thumbnail. A missing file degrades to a placeholder; the text sent to
+  Claude is unchanged. (T-236, T-254, D-89)
 - **The editor honours `.editorconfig`.** Opening a file resolves the
   workspace rules into a source-agnostic `EditorSettings` (own INI parser +
   glob matcher, `root`/nearest-wins precedence — no new dependency). The editor
