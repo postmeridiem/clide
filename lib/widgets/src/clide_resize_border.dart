@@ -7,7 +7,12 @@ class ClideResizeBorder extends StatelessWidget {
   final WindowControls windowControls;
   final Widget child;
 
-  static const double _edge = 6;
+  /// Thickness of the window-edge resize-drag strips. Exposed so layouts can
+  /// reserve a matching inset for bottom-most content that would otherwise sit
+  /// under the bottom drag zone when no chrome (e.g. the status bar) covers it
+  /// (T-298).
+  static const double edgeThickness = 6;
+  static const double _edge = edgeThickness;
   static const double _corner = 12;
 
   @override

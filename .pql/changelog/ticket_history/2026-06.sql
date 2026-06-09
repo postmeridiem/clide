@@ -2270,3 +2270,21 @@ Fix (both, per user direction):
 Verification: standalone reproducer with both the native chooser AND the filter — size warnings gone, an unrelated GLib-GIO CRITICAL still passes through (filter is scoped, not a blanket mute). `make build-linux` green. CHANGELOG updated under Fixed.', NULL, '2026-06-09 21:21:04', '2026-06-09 21:21:04', '2026-06-09 21:21:04', NULL, '872947bf48bd74c3fb6942ec90149ac5', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-287', 'status', 'in_progress', 'done', NULL, '2026-06-09 21:21:08', '2026-06-09 21:21:08', '2026-06-09 21:21:08', NULL, '931bae221c6780445f00b547da62c8cb', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-298', 'status', 'backlog', 'ready', NULL, '2026-06-09 21:21:30', '2026-06-09 21:21:30', '2026-06-09 21:21:30', NULL, '9aeac5d0a8d6dfeb6adb96ed63dda4eb', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-298', 'status', 'ready', 'in_progress', NULL, '2026-06-09 21:22:26', '2026-06-09 21:22:26', '2026-06-09 21:22:26', NULL, 'b14a5b998bd76cda5bb558fc0faa4be9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-304', 'parent_id', NULL, 'T-276', NULL, '2026-06-09 21:22:31', '2026-06-09 21:22:31', '2026-06-09 21:22:31', NULL, '0b04f300702a4b9a46d5b591f15e82af', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-304', 'description', NULL, 'The logo-mark spinner shown on in-progress activity/holder cards in the Claude conversation is too small to read as a spinner — it reads as a static speck. Enlarge it so the running state is legible at a glance.
+
+**Where**
+- `ClideSpinner` (lib/widgets/src/clide_spinner.dart) — defaults to size 14; renders the logo SVG at width/height = size.
+- `ClideStatusIndicator` (lib/widgets/src/clide_status_indicator.dart) — default size 14; maps running→ClideSpinner, success→check, error→cross at the same size.
+- Call sites: holder_card.dart:117 and :199 pass `size: 12` — the small value the user is seeing.
+
+**Direction (settle in review)**
+- Bump the spinner size on the activity cards (the `size: 12` call sites, and/or the indicator default) to something clearly legible — pull a concrete value from the ui-design control-geometry tokens rather than a magic number.
+- Keep the running spinner, success check, and error cross visually balanced at the new size (they share `size`), so the card doesn''t jump when the state settles.
+- Check the other ClideSpinner/StatusIndicator consumers (status surfaces) so the bump doesn''t bloat unrelated spots — may warrant sizing the cards explicitly rather than changing the shared default.
+
+**Acceptance**
+- The in-progress spinner on conversation activity cards is comfortably distinguishable as a spinning indicator; success/error glyphs stay aligned at the same footprint.', NULL, '2026-06-09 21:22:44', '2026-06-09 21:22:44', '2026-06-09 21:22:44', NULL, '1aec6212db45140ee906592f9ce125ef', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-280', 'status', 'backlog', 'ready', NULL, '2026-06-09 21:32:29', '2026-06-09 21:32:29', '2026-06-09 21:32:29', NULL, '0fcac3a23b0303186fefb36827374616', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-298', 'status', 'in_progress', 'done', NULL, '2026-06-09 21:36:05', '2026-06-09 21:36:05', '2026-06-09 21:36:05', NULL, 'ecf870d28771c1368654195d93ec4dec', 1) ON CONFLICT(hash) DO NOTHING;

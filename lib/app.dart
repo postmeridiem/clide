@@ -234,7 +234,7 @@ class RootLayout extends StatelessWidget {
         final dockMax = (((MediaQuery.of(ctx).size.height) - statusHeight) * 0.5).clamp(80.0, double.infinity).toDouble();
         final dockHeight = dockVisible ? ((a.sizeOf(Slots.dock) ?? 200).clamp(0.0, dockMax)).toDouble() : 0.0;
 
-        return Column(
+        final column = Column(
           children: [
             Expanded(
               child: Row(
@@ -309,6 +309,17 @@ class RootLayout extends StatelessWidget {
                 ),
               ),
           ],
+        );
+        // When the status bar is hidden it no longer occupies the window's
+        // bottom edge, so the bottom-most content (the Claude composer, an
+        // editor, a terminal) would otherwise run flush into the resize-drag
+        // strip and look jammed against the window bottom (T-298). Reserve a
+        // matching inset so the interaction zone bottom-anchors consistently,
+        // independent of status-bar visibility.
+        if (statusVisible) return column;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: ClideResizeBorder.edgeThickness),
+          child: column,
         );
       },
     );

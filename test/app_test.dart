@@ -113,6 +113,32 @@ void main() {
     expect(find.byType(ClideIconRail), findsNWidgets(2));
   });
 
+  testWidgets('RootLayout reserves the resize-border inset for bottom content when the status bar is hidden (T-298)', (tester) async {
+    registerTabs();
+
+    // Status bar visible: the bar covers the window's bottom edge, so no extra
+    // inset is reserved — the content column is not bottom-padded.
+    await pumpLayout(tester);
+    expect(find.byType(StatusbarHost), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Padding && w.padding == const EdgeInsets.only(bottom: ClideResizeBorder.edgeThickness)),
+      findsNothing,
+      reason: 'no resize inset is needed while the status bar occupies the bottom edge',
+    );
+
+    // Hide the status bar: nothing covers the bottom resize-drag strip, so the
+    // bottom-most content (the composer) must clear it via a reserved inset.
+    f.services.arrangement.setVisible(Slots.statusbar, false);
+    await tester.pump();
+    expect(find.byType(StatusbarHost), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is Padding && w.padding == const EdgeInsets.only(bottom: ClideResizeBorder.edgeThickness)),
+      findsOneWidget,
+      reason: 'the interaction zone must bottom-anchor clear of the resize border when no status bar covers it',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('RootLayout collapses side panels into spines with the active-tab label', (tester) async {
     registerTabs();
     f.services.panels.activateTab(Slots.sidebar, 'files.tree');

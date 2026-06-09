@@ -247,6 +247,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The composer no longer jams against the window bottom when the status bar
+  is hidden.** With the bar gone, the bottom-most pane content used to run flush
+  into the window's resize-drag edge; the layout now reserves that edge so the
+  input box bottom-anchors consistently whether or not the status bar shows.
+  (T-298)
 - **Open Workspace no longer spews `GLib-GIO-CRITICAL` to the console.** The
   folder picker now uses the portal-backed `GtkFileChooserNative` (out-of-process
   in sandboxed/Flatpak builds), and a narrowly-scoped GLib log filter swallows the
