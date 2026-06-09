@@ -151,4 +151,51 @@ void main() {
     expect(s.hashCode, isNot(equals(const Selection(start: 3, end: 8).hashCode)));
     expect(s.toString(), 'Selection(3-7)');
   });
+
+  group('.editorconfig (T-29)', () {
+    test('open resolves the editorconfig for the file', () async {
+      await File('${sandbox.path}/.editorconfig').writeAsString('root = true\n[*]\nindent_style = space\nindent_size = 2\n');
+      final buf = await reg.open('README.md');
+      expect(buf.editorConfig.indentStyle, 'space');
+      expect(buf.editorConfig.indentSize, 2);
+      // Exposed over IPC for the UI.
+      expect(buf.toJson()['editorConfig'], {'indent_style': 'space', 'indent_size': 2, 'tab_width': 2});
+    });
+
+    test('save trims trailing whitespace + adds a final newline on disk', () async {
+      await File('${sandbox.path}/.editorconfig').writeAsString('root = true\n[*]\ntrim_trailing_whitespace = true\ninsert_final_newline = true\n');
+      final buf = await reg.open('README.md');
+      reg.setContent(buf.id, 'line one   \nline two');
+      sink.events.clear();
+
+      await reg.save(buf.id);
+
+      final onDisk = await File('${sandbox.path}/README.md').readAsString();
+      expect(onDisk, 'line one\nline two\n');
+      // The in-memory buffer reconciles to the normalized text...
+      expect(buf.content, 'line one\nline two\n');
+      expect(buf.dirty, isFalse);
+      // ...and the UI is told to reload it.
+      expect(sink.ofKind('editor.edited'), hasLength(1));
+      expect(sink.ofKind('editor.saved'), hasLength(1));
+    });
+
+    test('save normalizes EOL to the configured style', () async {
+      await File('${sandbox.path}/.editorconfig').writeAsString('root = true\n[*]\nend_of_line = crlf\n');
+      final buf = await reg.open('README.md');
+      reg.setContent(buf.id, 'a\nb\n');
+      await reg.save(buf.id);
+      expect(await File('${sandbox.path}/README.md').readAsString(), 'a\r\nb\r\n');
+    });
+
+    test('save without an editorconfig writes content verbatim (no extra edit event)', () async {
+      final buf = await reg.open('README.md');
+      reg.setContent(buf.id, 'kept   \nas-is');
+      sink.events.clear();
+      await reg.save(buf.id);
+      expect(await File('${sandbox.path}/README.md').readAsString(), 'kept   \nas-is');
+      expect(sink.ofKind('editor.edited'), isEmpty); // nothing to reconcile
+      expect(sink.ofKind('editor.saved'), hasLength(1));
+    });
+  });
 }

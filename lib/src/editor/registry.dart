@@ -12,6 +12,7 @@ import 'dart:io';
 import '../ipc/envelope.dart';
 import '../panes/event_sink.dart';
 import 'buffer.dart';
+import 'editorconfig.dart';
 
 class EditorRegistry {
   EditorRegistry({
@@ -52,7 +53,12 @@ class EditorRegistry {
     }
 
     final id = 'b_${_nextId++}';
-    final buf = EditorBuffer(id: id, path: path, content: content);
+    final buf = EditorBuffer(
+      id: id,
+      path: path,
+      content: content,
+      editorConfig: resolveEditorConfig(workspaceRoot, path),
+    );
     _buffers[id] = buf;
     _pathToId[path] = id;
 
@@ -144,12 +150,37 @@ class EditorRegistry {
     });
   }
 
-  /// Persist [id] to disk. Clears the dirty flag on success.
+  /// Persist [id] to disk. Applies the buffer's `.editorconfig` save fixes
+  /// (EOL, trailing-whitespace, final-newline) first, and — when those changed
+  /// the text — reconciles the in-memory buffer + UI so disk and buffer agree.
+  /// Clears the dirty flag on success.
   Future<bool> save(String id) async {
     final buf = _buffers[id];
     if (buf == null) return false;
+
+    final normalized = applyEditorConfigOnSave(buf.content, buf.editorConfig);
+    final changed = normalized != buf.content;
+
     final absolute = _absolutePathOf(buf.path);
-    await File(absolute).writeAsString(buf.content);
+    await File(absolute).writeAsString(normalized);
+
+    if (changed) {
+      buf.content = normalized;
+      buf.selection = Selection(
+        start: buf.selection.start.clamp(0, normalized.length),
+        end: buf.selection.end.clamp(0, normalized.length),
+      );
+      // Re-broadcast so the UI reloads the normalized text (the editor.edited
+      // handler re-reads the buffer); emitted before editor.saved clears dirty.
+      buf.dirty = false;
+      _emit('editor.edited', {
+        'id': id,
+        'kind': 'replace',
+        'length': normalized.length,
+        'selection': buf.selection.toJson(),
+      });
+    }
+
     buf.dirty = false;
     _emit('editor.saved', {'id': id, 'path': buf.path});
     return true;

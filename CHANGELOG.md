@@ -18,6 +18,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **The editor reads `.editorconfig`.** Opening a file resolves the
+  workspace's `.editorconfig` rules (own INI parser + glob matcher, directory
+  walk with `root = true` and nearest-wins precedence — no new dependency), and
+  saving applies `end_of_line`, `trim_trailing_whitespace`, and
+  `insert_final_newline`. The resolved indent/ruler settings ride along on the
+  buffer for the editor surface to honour. (T-29)
 - **Permission-mode control beside the Claude composer.** An icon-only,
   per-mode-coloured button opens a menu of the safe modes (default ·
   accept-edits · plan); `bypass` shows disabled. The status-bar mode is now a
