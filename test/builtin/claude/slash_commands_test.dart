@@ -69,6 +69,12 @@ void main() {
       // Cursor sits right after "/mo" inside "/model".
       expect(activeSlashQuery('/model', 3), const SlashQuery(start: 0, query: 'mo'));
     });
+
+    test('hyphens are part of the command token, not a boundary (T-278)', () {
+      expect(activeSlashQuery('/add-dir', 8), const SlashQuery(start: 0, query: 'add-dir'));
+      expect(activeSlashQuery('/add-', 5), const SlashQuery(start: 0, query: 'add-'));
+      expect(activeSlashQuery('go /output-st', 13), const SlashQuery(start: 3, query: 'output-st'));
+    });
   });
 
   group('filterSlashCommands', () {
@@ -85,6 +91,14 @@ void main() {
 
     test('de-duplicates', () {
       expect(filterSlashCommands('p', ['pql', 'pql', 'plan']), ['plan', 'pql']);
+    });
+
+    test('keeps filtering through a hyphen in the query (T-278)', () {
+      const hyphenated = ['add-dir', 'add-context', 'agents', 'output-style'];
+      // Typing the '-' narrows rather than emptying the list.
+      expect(filterSlashCommands('add', hyphenated), ['add-context', 'add-dir']);
+      expect(filterSlashCommands('add-', hyphenated), ['add-context', 'add-dir']);
+      expect(filterSlashCommands('add-d', hyphenated), ['add-dir']);
     });
   });
 

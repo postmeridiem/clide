@@ -191,6 +191,28 @@ void main() {
       expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '/clear ');
     });
 
+    testWidgets('a hyphenated command keeps filtering through the dash and Tab completes it (T-278)', (tester) async {
+      await pumpWithCommands(tester, ['add-dir', 'add-context', 'model']);
+      await tester.enterText(find.byType(EditableText), '/add-');
+      await tester.pump();
+      await tester.pump(); // ClideTypeahead inserts the popover post-frame
+      expect(find.text('/add-dir'), findsOneWidget);
+      expect(find.text('/add-context'), findsOneWidget);
+      expect(find.text('/model'), findsNothing);
+
+      // Typing further through the hyphen narrows the list (it does not empty it).
+      await tester.enterText(find.byType(EditableText), '/add-d');
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('/add-dir'), findsOneWidget);
+      expect(find.text('/add-context'), findsNothing);
+
+      // Tab reliably accepts the highlighted suggestion.
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '/add-dir ');
+    });
+
     testWidgets('Escape dismisses the typeahead', (tester) async {
       await pumpWithCommands(tester, ['model']);
       await tester.enterText(find.byType(EditableText), '/mo');
