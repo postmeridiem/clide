@@ -30,6 +30,7 @@ class ClideHolderCard extends StatefulWidget {
     required this.children,
     this.title = 'Activity',
     this.initiallyExpanded = false,
+    this.status,
   });
 
   /// One-line gist of the latest step, shown in the collapsed ticker.
@@ -46,6 +47,10 @@ class ClideHolderCard extends StatefulWidget {
   final String title;
 
   final bool initiallyExpanded;
+
+  /// Optional aggregate run status (spinner / check / cross) shown at the head
+  /// of the ticker + header — the run's live state (T-296). Null shows nothing.
+  final ClideRunStatus? status;
 
   @override
   State<ClideHolderCard> createState() => _ClideHolderCardState();
@@ -108,6 +113,10 @@ class _ClideHolderCardState extends State<ClideHolderCard> {
                 ),
               ),
               const SizedBox(width: 8),
+              if (widget.status != null) ...[
+                ClideStatusIndicator(status: widget.status!, size: 12),
+                const SizedBox(width: 8),
+              ],
               ClideText(widget.stepLabel, fontSize: clideFontCaption, color: tokens.globalTextMuted),
             ],
           ),
@@ -186,6 +195,10 @@ class _ClideHolderCardState extends State<ClideHolderCard> {
                 child: ClideText(widget.title, fontSize: clideFontCaption, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
               ),
               const SizedBox(width: 8),
+              if (widget.status != null) ...[
+                ClideStatusIndicator(status: widget.status!, size: 12),
+                const SizedBox(width: 8),
+              ],
               ClideText(widget.stepLabel, fontSize: clideFontCaption, color: tokens.globalTextMuted),
             ],
           ),

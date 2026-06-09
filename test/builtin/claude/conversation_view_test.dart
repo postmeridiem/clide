@@ -16,7 +16,7 @@ import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show Image, FileImage, ValueKey;
+import 'package:flutter/widgets.dart' show Builder, Image, FileImage, MediaQuery, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -159,8 +159,17 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester
-          .pumpWidget(harness(f, ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds, toolUseOutcomes: toolUseOutcomes, foldLevel: foldLevel)));
+      // Disable animations so an in-flight run's ClideSpinner (a perpetual
+      // animation) renders static and pumpAndSettle can settle (T-296).
+      await tester.pumpWidget(harness(
+        f,
+        Builder(
+          builder: (ctx) => MediaQuery(
+            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+            child: ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds, toolUseOutcomes: toolUseOutcomes, foldLevel: foldLevel),
+          ),
+        ),
+      ));
       for (final it in items) {
         stream.add(it);
       }
@@ -199,7 +208,15 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(f, ConversationView(controller: c, foldLevel: FoldLevel.tools)));
+      await tester.pumpWidget(harness(
+        f,
+        Builder(
+          builder: (ctx) => MediaQuery(
+            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+            child: ConversationView(controller: c, foldLevel: FoldLevel.tools),
+          ),
+        ),
+      ));
       stream.add(AssistantToolUse(uuid: 'A', timestamp: _t, isSidechain: false, toolUseId: 'A', name: 'Bash', input: const {'command': 'echo a'}));
       stream.add(AssistantToolUse(uuid: 'B', timestamp: _t, isSidechain: false, toolUseId: 'B', name: 'Read', input: const {'file_path': '/a'}));
       await tester.pumpAndSettle();
@@ -245,6 +262,32 @@ void main() {
     testWidgets('a non-image @path stays literal text (T-236)', (tester) async {
       await pumpWith(tester, [_user('see @/tmp/notes.txt for details')]);
       expect(find.byType(ImageThumbnail), findsNothing);
+    });
+
+    testWidgets('consecutive same-file edits collapse into one "# edits" card (T-296)', (tester) async {
+      AssistantToolUse edit(String id, String path) =>
+          AssistantToolUse(uuid: id, timestamp: _t, isSidechain: false, toolUseId: id, name: 'Edit', input: {'file_path': path});
+      ToolResultMessage ok(String id) => ToolResultMessage(uuid: 'r$id', timestamp: _t, isSidechain: false, toolUseId: id, content: 'done', isError: false);
+      await pumpWith(
+          tester,
+          [
+            edit('e1', '/lib/x.dart'),
+            ok('e1'),
+            edit('e2', '/lib/x.dart'),
+            ok('e2'),
+          ],
+          foldLevel: FoldLevel.tools);
+      // One bundled card labelled "2 edits" with an aggregate status indicator.
+      expect(find.text('2 edits'), findsOneWidget);
+      expect(find.byType(ClideStatusIndicator), findsOneWidget);
+    });
+
+    testWidgets('an edit to a different file is not bundled with the first (T-296)', (tester) async {
+      AssistantToolUse edit(String id, String path) =>
+          AssistantToolUse(uuid: id, timestamp: _t, isSidechain: false, toolUseId: id, name: 'Edit', input: {'file_path': path});
+      await pumpWith(tester, [edit('e1', '/a.dart'), edit('e2', '/b.dart')], foldLevel: FoldLevel.tools);
+      // Two lone edits, different files → no "edits" bundle.
+      expect(find.textContaining('edits'), findsNothing);
     });
 
     testWidgets('meta items fold into a collapsed activity card; tap expands (T-230)', (tester) async {

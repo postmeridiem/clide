@@ -270,8 +270,9 @@ class _ConversationViewState extends State<ConversationView> {
     };
 
     // Fold runs of meta items into collapsible activity cards (T-230); sticky
-    // items (user/prose/surfaced errors) render first-class as before.
-    final groups = groupConversation(items, widget.foldLevel);
+    // items (user/prose/surfaced errors) render first-class as before. Then
+    // bundle consecutive same-file edits into one "# edits" card (T-296).
+    final groups = coalesceEditRuns(groupConversation(items, widget.foldLevel));
     final list = ClideScrollbar(
       controller: _scroll,
       child: ListView.builder(
@@ -297,6 +298,16 @@ class _ConversationViewState extends State<ConversationView> {
             FoldedCluster(:final items) => _ActivityCard(
                 key: ValueKey('cluster.${items.first.uuid}'),
                 items: items,
+                tokens: tokens,
+                toolUseOutcomes: widget.toolUseOutcomes,
+                toolUseById: widget.controller.toolUseById,
+                resultByToolUseId: resultByToolUseId,
+                promptsByToolUseId: fold.promptsByToolUseId,
+                runByToolUseId: fold.runByToolUseId,
+              ),
+            EditRun(:final edits) => _EditRunCard(
+                key: ValueKey('edits.${edits.first.uuid}'),
+                edits: edits,
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
@@ -724,10 +735,72 @@ class _ActivityCard extends StatelessWidget {
     return ClideHolderCard(
       collapsedSummary: _summarizeActivity(items.last),
       stepLabel: count == 1 ? '1 step' : '$count steps',
+      status: _runStatus(items, resultByToolUseId),
       children: [
         for (final item in items)
           _ConversationTurn(
             key: ValueKey('step.${item.uuid}'),
+            item: item,
+            tokens: tokens,
+            toolUseOutcomes: toolUseOutcomes,
+            toolUseById: toolUseById,
+            resultByToolUseId: resultByToolUseId,
+            promptsByToolUseId: promptsByToolUseId,
+            runByToolUseId: runByToolUseId,
+          ),
+      ],
+    );
+  }
+}
+
+/// Aggregate live status for a run's header tick (T-296): error if any tool in
+/// the run failed, else running while its last tool awaits a result, else
+/// success. Null (no tools) shows no indicator.
+ClideRunStatus? _runStatus(List<ConversationItem> items, Map<String, ToolResultMessage> results) {
+  final tools = items.whereType<AssistantToolUse>().toList();
+  if (tools.isEmpty) return null;
+  for (final t in tools) {
+    final r = results[t.toolUseId];
+    if (r != null && r.isError) return ClideRunStatus.error;
+  }
+  return results[tools.last.toolUseId] == null ? ClideRunStatus.running : ClideRunStatus.success;
+}
+
+/// A run of consecutive same-file edits, bundled into one collapsible "# edits"
+/// card (T-296) through the shared [ClideHolderCard]. Each edit keeps its own
+/// merged tool card when expanded; the header carries the aggregate live tick.
+class _EditRunCard extends StatelessWidget {
+  const _EditRunCard({
+    super.key,
+    required this.edits,
+    required this.tokens,
+    required this.toolUseOutcomes,
+    required this.toolUseById,
+    required this.resultByToolUseId,
+    required this.promptsByToolUseId,
+    required this.runByToolUseId,
+  });
+
+  final List<ConversationItem> edits;
+  final SurfaceTokens tokens;
+  final Map<String, bool> toolUseOutcomes;
+  final Map<String, AssistantToolUse> toolUseById;
+  final Map<String, ToolResultMessage> resultByToolUseId;
+  final Map<String, List<UserMessage>> promptsByToolUseId;
+  final Map<String, List<ConversationItem>> runByToolUseId;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = edits.length;
+    return ClideHolderCard(
+      title: 'Edits',
+      collapsedSummary: _summarizeActivity(edits.last),
+      stepLabel: count == 1 ? '1 edit' : '$count edits',
+      status: _runStatus(edits, resultByToolUseId),
+      children: [
+        for (final item in edits)
+          _ConversationTurn(
+            key: ValueKey('edit.${item.uuid}'),
             item: item,
             tokens: tokens,
             toolUseOutcomes: toolUseOutcomes,

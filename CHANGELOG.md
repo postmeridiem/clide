@@ -18,6 +18,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Consecutive edits to one file fold into a single card.** A run of edits to
+  the same file now collapses to one `# edits` holder (the latest edit as the
+  ticker; every edit reachable on expand) instead of a stack of cards — a
+  different file or an interleaving step splits the run. The card carries an
+  aggregate live status: a new logo-mark **`ClideSpinner`** while editing,
+  settling to a check (or a cross on failure); the activity card shares it.
+  (T-296)
 - **Collapse toggles in the status bar.** A small caret-line button bookends
   each end of the bottom status bar — left collapses/expands the sidebar, right
   the context pane. The chevron points inward to collapse, outward to expand,

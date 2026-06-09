@@ -50,8 +50,57 @@ final class FoldedCluster extends RenderGroup {
   final List<ConversationItem> items;
 }
 
+/// A run of 2+ consecutive edits to the SAME file, bundled into one collapsed
+/// "# edits" card (T-296). Holds the edit tool-use items (their success results
+/// fold into each child card as usual). Always length >= 2.
+final class EditRun extends RenderGroup {
+  const EditRun(this.edits, this.filePath);
+  final List<ConversationItem> edits;
+  final String filePath;
+}
+
 /// Tools whose result is a diff the user wants to keep first-class at L1/L2.
 bool isDiffTool(String name) => const {'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Update'}.contains(name);
+
+/// The file an edit tool-use targets, or null if [it] isn't a same-file edit
+/// (used to group consecutive edits, T-296).
+String? editFilePath(ConversationItem it) {
+  if (it is! AssistantToolUse || !isDiffTool(it.name)) return null;
+  final p = it.input['file_path'] ?? it.input['path'] ?? it.input['notebook_path'];
+  return p is String && p.isNotEmpty ? p : null;
+}
+
+/// Coalesce maximal runs of consecutive same-file edit [StickyItem]s into one
+/// [EditRun] (T-296). A different file, or any non-edit group, breaks the run;
+/// a lone edit stays a [StickyItem]. Run this after [groupConversation], on its
+/// output, so it composes with the existing meta-folding (a folded Read cluster
+/// between two edit runs splits them — matching the worked example).
+List<RenderGroup> coalesceEditRuns(List<RenderGroup> groups) {
+  final out = <RenderGroup>[];
+  var run = <ConversationItem>[];
+  String? runPath;
+
+  void flush() {
+    if (run.isEmpty) return;
+    out.add(run.length >= 2 ? EditRun(List.unmodifiable(run), runPath!) : StickyItem(run.single));
+    run = [];
+    runPath = null;
+  }
+
+  for (final g in groups) {
+    final path = g is StickyItem ? editFilePath(g.item) : null;
+    if (path != null) {
+      if (runPath != null && path != runPath) flush(); // different file → new run
+      runPath = path;
+      run.add((g as StickyItem).item);
+    } else {
+      flush();
+      out.add(g);
+    }
+  }
+  flush();
+  return out;
+}
 
 /// Group [items] into render units per [level]. Pairs tool results to their
 /// originating tool-use (by `toolUseId`) so a result can be classified by its

@@ -13,6 +13,8 @@ AssistantTextMessage _prose([String t = 'sure']) => AssistantTextMessage(uuid: '
 AssistantThinkingMessage _think() => AssistantThinkingMessage(uuid: 't${_n++}', timestamp: _ts, isSidechain: false, thinking: '…');
 AssistantToolUse _tool(String id, String name) =>
     AssistantToolUse(uuid: 'tu${_n++}', timestamp: _ts, isSidechain: false, toolUseId: id, name: name, input: const {});
+AssistantToolUse _edit(String id, String path, {String name = 'Edit'}) =>
+    AssistantToolUse(uuid: 'tu${_n++}', timestamp: _ts, isSidechain: false, toolUseId: id, name: name, input: {'file_path': path});
 ToolResultMessage _result(String id, {bool isError = false}) =>
     ToolResultMessage(uuid: 'r${_n++}', timestamp: _ts, isSidechain: false, toolUseId: id, content: '', isError: isError);
 
@@ -85,6 +87,59 @@ void main() {
       // The tool + result fold; the image is sticky and seals the cluster.
       expect(groups.map((g) => g.runtimeType.toString()), ['FoldedCluster', 'StickyItem']);
       expect((groups[1] as StickyItem).item, isA<ImageMessage>());
+    });
+  });
+
+  group('editFilePath', () {
+    test('reads the file of an edit tool-use; null otherwise', () {
+      expect(editFilePath(_edit('1', '/a/b.dart')), '/a/b.dart');
+      expect(editFilePath(_edit('1', '/a/b.dart', name: 'Write')), '/a/b.dart');
+      expect(editFilePath(_tool('1', 'Bash')), isNull); // not a diff tool
+      expect(editFilePath(_tool('1', 'Edit')), isNull); // diff tool, but no file_path
+      expect(editFilePath(_prose()), isNull);
+    });
+  });
+
+  group('coalesceEditRuns (T-296)', () {
+    test('consecutive same-file edits bundle into one EditRun', () {
+      final out = coalesceEditRuns([StickyItem(_edit('1', '/a')), StickyItem(_edit('2', '/a')), StickyItem(_edit('3', '/a'))]);
+      expect(out, hasLength(1));
+      expect(out.single, isA<EditRun>());
+      final run = out.single as EditRun;
+      expect(run.edits, hasLength(3));
+      expect(run.filePath, '/a');
+    });
+
+    test('a lone edit stays a StickyItem (not a one-item run)', () {
+      final out = coalesceEditRuns([StickyItem(_edit('1', '/a')), StickyItem(_prose())]);
+      expect(out.first, isA<StickyItem>());
+      expect((out.first as StickyItem).item, isA<AssistantToolUse>());
+    });
+
+    test('a different file starts a new run', () {
+      final out = coalesceEditRuns([StickyItem(_edit('1', '/a')), StickyItem(_edit('2', '/a')), StickyItem(_edit('3', '/b')), StickyItem(_edit('4', '/b'))]);
+      expect(out.map((g) => g.runtimeType.toString()), ['EditRun', 'EditRun']);
+      expect((out[0] as EditRun).filePath, '/a');
+      expect((out[1] as EditRun).filePath, '/b');
+    });
+
+    test('an interleaving non-edit group splits the run (the worked example)', () {
+      // 3 edits to /a, a folded Read cluster, then 7 edits to /a → [3 edits][cluster][7 edits].
+      final groups = <RenderGroup>[
+        for (var i = 0; i < 3; i++) StickyItem(_edit('a$i', '/a')),
+        FoldedCluster([_tool('r', 'Read'), _result('r')]),
+        for (var i = 0; i < 7; i++) StickyItem(_edit('b$i', '/a')),
+      ];
+      final out = coalesceEditRuns(groups);
+      expect(out.map((g) => g.runtimeType.toString()), ['EditRun', 'FoldedCluster', 'EditRun']);
+      expect((out[0] as EditRun).edits, hasLength(3));
+      expect((out[2] as EditRun).edits, hasLength(7));
+    });
+
+    test('a sticky non-edit between edits breaks the run', () {
+      final out = coalesceEditRuns([StickyItem(_edit('1', '/a')), StickyItem(_prose()), StickyItem(_edit('2', '/a'))]);
+      // edit (lone) → sticky, prose → sticky, edit (lone) → sticky.
+      expect(out.map((g) => g.runtimeType.toString()), ['StickyItem', 'StickyItem', 'StickyItem']);
     });
   });
 }

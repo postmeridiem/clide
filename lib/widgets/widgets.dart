@@ -16,6 +16,8 @@ export 'src/clide_lightbox.dart';
 export 'src/clide_markdown.dart';
 export 'src/clide_marquee.dart';
 export 'src/clide_menu.dart';
+export 'src/clide_spinner.dart';
+export 'src/clide_status_indicator.dart';
 export 'src/clide_svg_view.dart';
 export 'src/clide_toast.dart';
 export 'src/clide_icon.dart';
