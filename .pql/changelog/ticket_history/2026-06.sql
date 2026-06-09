@@ -1650,3 +1650,35 @@ GLYPH DECISION: use Phosphor caret-line icons (chevron + edge line), which read 
 The glyphs already ship in assets/fonts/phosphor (codepoints.csv lines 150-151) — no new dependency. Add two consts to lib/widgets/src/icons/phosphor.dart (PhosphorIcons.caretLineLeft / caretLineRight) during implementation. Chevron-line direction flips per isCollapsed.
 
 RESOLUTION (2026-06-09): considered moving the re-open control into the center (pane edge or center status segment) to dodge the end-of-bar space contention; user chose to KEEP TOGGLES FIXED AT THE STATUS-BAR ENDS (best muscle memory). Final design = v3 mock: caret-line glyphs at fixed far-left/far-right status-bar cells (~24px reserved, side items shifted in), chevron-line flips per isCollapsed, firing existing sidebar.collapse / context.collapse. Design fully settled; ready to implement.', NULL, '2026-06-09 15:34:11', '2026-06-09 15:34:11', '2026-06-09 15:34:11', NULL, '7126eddc9c30025df3f4a73de45edf40', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-293', 'description', 'Picking a theme (status-bar switcher T-234, or the Settings modal) applies live but is never saved, so every reload resets to the first bundled theme. The choice should persist PER REPO.
+
+Root cause: ThemeController.select() (lib/kernel/src/theme/controller.dart:43) only mutates _currentName + notifies — no persistence. It is constructed in facade.dart:160 as ThemeController(bundled: bundledThemes) with no initialName, so on boot it always falls back to bundled.first.
+
+Infra already exists — no new store needed: SettingsStore (lib/kernel/src/settings.dart) has a PROJECT scope that persists to <repo>/.clide/settings.yaml via ''project.*'' keys, and ProjectManager.openProject() already calls settings.setProjectDir() on open (project.dart:130), which loads that file.
+
+Proposed fix:
+1. PERSIST on change — wire a listener on ThemeController (in facade.dart, where both theme + settings exist) that writes the current theme to settings whenever currentName changes; use project scope (''project.theme'') when a repo is open. currentName already encodes the high-contrast variant (resolveThemeName -> ''<base>-hc''), so the HC toggle persists for free.
+2. RESTORE on load — the project dir is set AFTER boot, so restoration must hook project-open (ProjectManager.openProject / settings.setProjectDir), not just construction: when a project opens, read ''project.theme'' and, if present + known, theme.select() it. Guard ArgumentError for a theme that is no longer bundled (fall back to default, don''t throw).
+
+Open question: app-scoped fallback. Persist project-scoped per the report; optionally also write ''app.theme'' as the global default so a brand-new repo inherits the last choice instead of bundled.first. Decide during implementation.
+
+Acceptance: pick a theme (incl. the High-contrast toggle) -> restart -> same theme restored for that repo; two repos keep independent choices; with no repo open, the app default applies; a saved theme that no longer exists degrades to the default without throwing.
+
+Tests: SettingsStore round-trips ''project.theme''; opening a project applies the saved theme to the controller; select() persists; unknown saved theme falls back. Refs: T-234 (theme switcher), T-288/D-88 (picker), SettingsStore, ProjectManager.', 'Picking a theme (status-bar switcher T-234, or the Settings modal) applies live but is never saved, so every reload resets to the first bundled theme. The choice should persist PER REPO.
+
+Root cause: ThemeController.select() (lib/kernel/src/theme/controller.dart:43) only mutates _currentName + notifies — no persistence. It is constructed in facade.dart:160 as ThemeController(bundled: bundledThemes) with no initialName, so on boot it always falls back to bundled.first.
+
+Infra already exists — no new store needed: SettingsStore (lib/kernel/src/settings.dart) has a PROJECT scope that persists to <repo>/.clide/settings.yaml via ''project.*'' keys, and ProjectManager.openProject() already calls settings.setProjectDir() on open (project.dart:130), which loads that file.
+
+Proposed fix:
+1. PERSIST on change — wire a listener on ThemeController (in facade.dart, where both theme + settings exist) that writes the current theme to settings whenever currentName changes; use project scope (''project.theme'') when a repo is open. currentName already encodes the high-contrast variant (resolveThemeName -> ''<base>-hc''), so the HC toggle persists for free.
+2. RESTORE on load — the project dir is set AFTER boot, so restoration must hook project-open (ProjectManager.openProject / settings.setProjectDir), not just construction: when a project opens, read ''project.theme'' and, if present + known, theme.select() it. Guard ArgumentError for a theme that is no longer bundled (fall back to default, don''t throw).
+
+Open question: app-scoped fallback. Persist project-scoped per the report; optionally also write ''app.theme'' as the global default so a brand-new repo inherits the last choice instead of bundled.first. Decide during implementation.
+
+Acceptance: pick a theme (incl. the High-contrast toggle) -> restart -> same theme restored for that repo; two repos keep independent choices; with no repo open, the app default applies; a saved theme that no longer exists degrades to the default without throwing.
+
+Tests: SettingsStore round-trips ''project.theme''; opening a project applies the saved theme to the controller; select() persists; unknown saved theme falls back. Refs: T-234 (theme switcher), T-288/D-88 (picker), SettingsStore, ProjectManager.
+
+FIXED 2026-06-09 (this commit). Added lib/kernel/src/theme/theme_persistence.dart + wireThemePersistence() in facade. Decision on the open question: persist BOTH project.theme (per-repo, in .clide/settings.yaml) AND app.theme (global default) — so a themed repo keeps its choice, an unthemed/new repo inherits the last global choice, and the HC variant persists (name encodes -hc). Restore prefers project over app; unknown theme is ignored (no throw). Tests: test/kernel/src/theme_persistence_test.dart (6 cases — persist app/project, HC, restore-on-open, boot restore, unknown fallback). All green.', NULL, '2026-06-09 15:36:15', '2026-06-09 15:36:15', '2026-06-09 15:36:15', NULL, '7bfa444c00cfab00bb8bba19e3677547', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-293', 'status', 'ready', 'done', NULL, '2026-06-09 15:36:15', '2026-06-09 15:36:15', '2026-06-09 15:36:15', NULL, '4b398e8cbe8244580bb10b5306f73140', 1) ON CONFLICT(hash) DO NOTHING;
