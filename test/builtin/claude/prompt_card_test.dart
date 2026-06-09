@@ -1,6 +1,7 @@
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -84,10 +85,10 @@ void main() {
     await tester.pump();
 
     expect(find.text('permission · Write'), findsOneWidget);
-    expect(find.text('Allow'), findsOneWidget);
-    expect(find.text('Deny'), findsOneWidget);
+    expect(find.text('1. Allow'), findsOneWidget);
+    expect(find.text('2. Deny'), findsOneWidget);
 
-    await tester.tap(find.text('Allow'));
+    await tester.tap(find.text('1. Allow'));
     await tester.pump();
 
     expect(id, 'req-1');
@@ -188,7 +189,7 @@ void main() {
     ));
     await tester.pump();
 
-    await tester.tap(find.text('Deny'));
+    await tester.tap(find.text('2. Deny'));
     await tester.pump();
 
     expect(decision, isA<DenyTool>());
@@ -198,7 +199,7 @@ void main() {
   testWidgets('permission: no "don\'t ask again" button without a suggestion', (tester) async {
     await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, __) {})));
     await tester.pump();
-    expect(find.text("Allow & don't ask again"), findsNothing);
+    expect(find.text("2. Allow & don't ask again"), findsNothing);
   });
 
   testWidgets('permission: "don\'t ask again" shows with a suggestion and returns updatedPermissions', (tester) async {
@@ -212,8 +213,8 @@ void main() {
     ));
     await tester.pump();
 
-    expect(find.text("Allow & don't ask again"), findsOneWidget);
-    await tester.tap(find.text("Allow & don't ask again"));
+    expect(find.text("2. Allow & don't ask again"), findsOneWidget);
+    await tester.tap(find.text("2. Allow & don't ask again"));
     await tester.pump();
     expect((decision as AllowTool).updatedPermissions, hasLength(1));
   });
@@ -224,7 +225,7 @@ void main() {
     await tester.pump();
     await tester.enterText(find.byType(EditableText), 'write it under docs/ instead');
     await tester.pump();
-    await tester.tap(find.text('Deny'));
+    await tester.tap(find.text('2. Deny'));
     await tester.pump();
     expect((decision as DenyTool).message, 'write it under docs/ instead');
   });
@@ -235,7 +236,7 @@ void main() {
     await tester.pump();
     await tester.enterText(find.byType(EditableText), 'fyi: sandbox only');
     await tester.pump();
-    await tester.tap(find.text('Allow'));
+    await tester.tap(find.text('1. Allow'));
     await tester.pump();
     expect((decision as AllowTool).followUpNote, 'fyi: sandbox only');
   });
@@ -289,7 +290,7 @@ void main() {
     await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(), onResolve: (_, d) => decision = d)));
     await tester.pump();
 
-    await tester.tap(find.text('○ Other…'));
+    await tester.tap(find.textContaining('Other…'));
     await tester.pump();
     // Two fields now: [0] = the Other free-text, [1] = the per-choice note.
     await tester.enterText(find.byType(EditableText).first, 'Kiwi');
@@ -470,6 +471,81 @@ void main() {
       await tester.pump();
       expect(decision, isA<AllowTool>());
       expect((decision as AllowTool).updatedInput['answers']['New question?'], 'Alpha');
+    });
+  });
+
+  group('number-key + Enter shortcuts (T-240)', () {
+    late KernelFixture f;
+    setUp(() async => f = await KernelFixture.create());
+    tearDown(() => f.dispose());
+
+    Future<void> pumpCard(WidgetTester tester, ToolPrompt p, void Function(ToolDecision) onDecide) async {
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: p, onResolve: (_, d) => onDecide(d))));
+      await tester.pump(); // let the card autofocus
+    }
+
+    testWidgets('1 = Allow, 2 = Deny when there is no remember button', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await tester.pump();
+      expect(d, isA<AllowTool>());
+    });
+
+    testWidgets('2 = Deny with no remember button', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+      await tester.pump();
+      expect(d, isA<DenyTool>());
+    });
+
+    const sugg = [
+      {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'}
+    ];
+
+    testWidgets('with a remember suggestion: 2 = Allow & remember', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(suggestions: sugg), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+      await tester.pump();
+      expect((d as AllowTool).updatedPermissions, hasLength(1));
+    });
+
+    testWidgets('with a remember suggestion: 3 = Deny', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(suggestions: sugg), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+      await tester.pump();
+      expect(d, isA<DenyTool>());
+    });
+
+    testWidgets('a number key selects a question option', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, questionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2); // Dogs (option 2)
+      await tester.pump();
+      await tester.tap(find.text('Submit'));
+      await tester.pump();
+      expect((d as AllowTool).updatedInput['answers']['Do you prefer cats or dogs?'], 'Dogs');
+    });
+
+    testWidgets('Enter confirms the primary action (Allow)', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(d, isA<AllowTool>());
+    });
+
+    testWidgets('a focused note field swallows digits (no button fires)', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.tap(find.byType(EditableText)); // focus the note field
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await tester.pump();
+      expect(d, isNull, reason: 'typing in the note must not trigger Allow');
     });
   });
 }

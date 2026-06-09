@@ -2124,3 +2124,79 @@ INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, 
 - Pairs with T-300 (clickable file references) — same conversation/markdown render path; likely share path-detection + workspace-root resolution.', NULL, '2026-06-09 20:04:54', '2026-06-09 20:04:54', '2026-06-09 20:04:54', NULL, '05fb96e25be6d666d0e259f45ada35a5', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-242', 'description', NULL, 'VERIFIED DONE 2026-06-09: failures-only is the default reporter across all gate scripts — ci/test.sh (REPORTER var, used in every flutter/dart test invocation), ci/test_core.sh, ci/test_a11y.sh — each with a TEST_REPORTER=expanded escape hatch for debugging. No work remaining.', NULL, '2026-06-09 20:07:29', '2026-06-09 20:07:29', '2026-06-09 20:07:29', NULL, '5a4b91ffd41fde8bca92457d539e2bd5', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-242', 'status', 'ready', 'done', NULL, '2026-06-09 20:07:30', '2026-06-09 20:07:30', '2026-06-09 20:07:30', NULL, '98793f24ffa8ce23f574b1ddd702a476', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-253', 'description', 'The Claude conversation panel detects URLs and colorizes them, but they are not interactive. Make detected links clickable (a plain click, or control/cmd-click) so they are handed off to the OS URL opener.
+
+## Behaviour
+- Click (or ctrl/cmd-click) on a colorized link opens it via the OS default handler.
+- Hover affordance (cursor change / underline) so it reads as clickable.
+- Keep the existing colorization.
+
+## Notes
+- Honour user/Claude parity (D-6) where relevant.
+- Use the platform URL launcher; avoid pulling in an opinionated package if a thin native/url_launcher shim already exists in the tree.
+- Guard against non-http schemes / malformed URLs.', 'The Claude conversation panel detects URLs and colorizes them, but they are not interactive. Make detected links clickable (a plain click, or control/cmd-click) so they are handed off to the OS URL opener.
+
+## Behaviour
+- Click (or ctrl/cmd-click) on a colorized link opens it via the OS default handler.
+- Hover affordance (cursor change / underline) so it reads as clickable.
+- Keep the existing colorization.
+
+## Notes
+- Honour user/Claude parity (D-6) where relevant.
+- Use the platform URL launcher; avoid pulling in an opinionated package if a thin native/url_launcher shim already exists in the tree.
+- Guard against non-http schemes / malformed URLs.
+
+DONE 2026-06-09. http(s) links in the conversation open via OsBridge.openURL on click (hover underline + pointer); non-http inert. ClideMarkdown gained an onLinkTap hook + _urlLinkSpan; the 3 inline-interaction callbacks were bundled into ClideMarkdownHooks (single threaded param) — also fixed links/images only working in some markdown contexts. Tests: clide_markdown_test.', NULL, '2026-06-09 20:17:04', '2026-06-09 20:17:04', '2026-06-09 20:17:04', NULL, '52aeaf560871a3f62a3790d3ad0946dc', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-253', 'status', 'ready', 'done', NULL, '2026-06-09 20:17:04', '2026-06-09 20:17:04', '2026-06-09 20:17:04', NULL, '316ad39ac68ed299afeaed9e74c46387', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-302', 'parent_id', NULL, 'T-8', NULL, '2026-06-09 20:24:57', '2026-06-09 20:24:57', '2026-06-09 20:24:57', NULL, 'd2dbf772252ce008d7c7e59bdd5f06d7', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-302', 'description', NULL, 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.', NULL, '2026-06-09 20:25:49', '2026-06-09 20:25:49', '2026-06-09 20:25:49', NULL, '4b1fefa0723073ca71fdb99cb319f424', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-287', 'description', 'On Linux desktop startup, two GLib-GIO-CRITICAL warnings fire to stderr:
+
+  GLib-GIO-CRITICAL: GFileInfo created without standard::size
+  file ../gio/gfileinfo.c: line 1865 (g_file_info_get_size): should not be reached
+
+Repro: launch the app (make run / flutter run) on Linux. The pair fires early in boot — right after the primary pane binds its session and before the IPC server starts listening (observed ~0.3s apart, e.g. 15:53:15.570 and 15:53:15.832), on every launch.
+
+Cause: some code path calls g_file_info_get_size() on a GFileInfo that was created/queried WITHOUT requesting the G_FILE_ATTRIBUTE_STANDARD_SIZE (''standard::size'') attribute. A grep of clide''s own code (lib/, linux/runner/, native/) finds no direct g_file_info / g_file_query_info usage, so it is most likely inside GTK/GLib itself or a Flutter Linux plugin''s file enumeration (icon/thumbnail/mime probe, path lookups), not clide Dart/C++. The GTK file-chooser in linux/runner/clide_app.cc is on-demand only, so it is not the trigger (the warnings fire at boot).
+
+Impact: low — console noise at CRITICAL level; no observed functional breakage. But a size query that ''should not be reached'' may be reading a bogus/zero size somewhere worth confirming.
+
+Investigation: run with G_DEBUG=fatal-warnings (or gdb break on g_log/g_logv) to capture the stack at the warning and identify the library/plugin frame; check whether a Flutter plugin (file_selector, path_provider, url_launcher) or GTK icon/mime loading is responsible. If upstream/GTK, document + suppress-from-our-side or pin; if a plugin, file upstream.
+
+Env: Fedora, GTK Linux embedder, flutter run.', 'On Linux desktop startup, two GLib-GIO-CRITICAL warnings fire to stderr:
+
+  GLib-GIO-CRITICAL: GFileInfo created without standard::size
+  file ../gio/gfileinfo.c: line 1865 (g_file_info_get_size): should not be reached
+
+Repro: launch the app (make run / flutter run) on Linux. The pair fires early in boot — right after the primary pane binds its session and before the IPC server starts listening (observed ~0.3s apart, e.g. 15:53:15.570 and 15:53:15.832), on every launch.
+
+Cause: some code path calls g_file_info_get_size() on a GFileInfo that was created/queried WITHOUT requesting the G_FILE_ATTRIBUTE_STANDARD_SIZE (''standard::size'') attribute. A grep of clide''s own code (lib/, linux/runner/, native/) finds no direct g_file_info / g_file_query_info usage, so it is most likely inside GTK/GLib itself or a Flutter Linux plugin''s file enumeration (icon/thumbnail/mime probe, path lookups), not clide Dart/C++. The GTK file-chooser in linux/runner/clide_app.cc is on-demand only, so it is not the trigger (the warnings fire at boot).
+
+Impact: low — console noise at CRITICAL level; no observed functional breakage. But a size query that ''should not be reached'' may be reading a bogus/zero size somewhere worth confirming.
+
+Investigation: run with G_DEBUG=fatal-warnings (or gdb break on g_log/g_logv) to capture the stack at the warning and identify the library/plugin frame; check whether a Flutter plugin (file_selector, path_provider, url_launcher) or GTK icon/mime loading is responsible. If upstream/GTK, document + suppress-from-our-side or pin; if a plugin, file upstream.
+
+Env: Fedora, GTK Linux embedder, flutter run.
+
+UPDATE (2026-06-09): also fires MID-SESSION, not only at boot — contradicts the "fires early in boot, on every launch" framing above. Observed log: app booted 16:47:01, but the GLib-GIO-CRITICAL pair fired at 18:51:07.841 / 18:51:08.190 (~2h into the session), near pane/session activity. So the trigger is more likely a file-info code path tied to a user action or background file enumeration than pure startup. Re-scope the investigation to capture the stack when it fires mid-session (G_DEBUG=fatal-warnings / gdb break on g_log) rather than only at boot.', NULL, '2026-06-09 20:26:44', '2026-06-09 20:26:44', '2026-06-09 20:26:44', NULL, '0686bc37e43fe2adb5e54d6628abbd24', 1) ON CONFLICT(hash) DO NOTHING;

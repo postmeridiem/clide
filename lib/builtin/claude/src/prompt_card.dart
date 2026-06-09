@@ -17,6 +17,7 @@ import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// Sentinel option key for the always-present free-text "Other…" choice.
@@ -93,39 +94,116 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     final (accent, label, children) = widget.prompt.isQuestion ? _question(tokens) : _permission(tokens);
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: tokens.panelBackground,
-        border: Border(top: BorderSide(color: accent, width: 2)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: accent),
-          const SizedBox(height: 8),
-          ...children,
-        ],
+    // Autofocus the card so number keys pick a button/option on appear (T-240).
+    // _onKey self-guards via hasPrimaryFocus, so once the user clicks a note
+    // field the digits type normally instead of triggering buttons.
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _onKey,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: tokens.panelBackground,
+          border: Border(top: BorderSide(color: accent, width: 2)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: accent),
+            const SizedBox(height: 8),
+            ...children,
+          ],
+        ),
       ),
     );
   }
 
+  // -- number-key + Enter shortcuts (T-240, CLI muscle memory) ---------------
+
+  static const _digitKeys = [
+    LogicalKeyboardKey.digit1,
+    LogicalKeyboardKey.digit2,
+    LogicalKeyboardKey.digit3,
+    LogicalKeyboardKey.digit4,
+    LogicalKeyboardKey.digit5,
+    LogicalKeyboardKey.digit6,
+    LogicalKeyboardKey.digit7,
+    LogicalKeyboardKey.digit8,
+    LogicalKeyboardKey.digit9,
+  ];
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent) return KeyEventResult.ignored;
+    // A note field has focus → let the digits type; only act for the card.
+    if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
+    final hw = HardwareKeyboard.instance;
+    if (hw.isControlPressed || hw.isAltPressed || hw.isMetaPressed) return KeyEventResult.ignored;
+    if (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      return _activatePrimary() ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+    final i = _digitKeys.indexOf(e.logicalKey);
+    if (i < 0) return KeyEventResult.ignored;
+    return _activateNumber(i + 1) ? KeyEventResult.handled : KeyEventResult.ignored;
+  }
+
+  /// The question whose options the number keys address, or null (permission is
+  /// handled separately; the review step has no numbered options).
+  int? _currentQuestion() {
+    if (_q.isEmpty) return null;
+    if (_q.length <= 1) return 0;
+    return _step < _q.length ? _step : null;
+  }
+
+  bool _activateNumber(int n) {
+    if (!widget.prompt.isQuestion) {
+      final canRemember = widget.prompt.permissionSuggestions.isNotEmpty;
+      if (n == 1) return _then(_permAllow);
+      if (canRemember && n == 2) return _then(() => _permAllow(remember: true));
+      if (n == (canRemember ? 3 : 2)) return _then(_permDeny);
+      return false;
+    }
+    final qi = _currentQuestion();
+    if (qi == null) return false;
+    final q = _q[qi];
+    final keys = [...q.options.map((o) => o.label), _kOther];
+    if (n < 1 || n > keys.length) return false;
+    _toggleOption(qi, keys[n - 1], q.multiSelect);
+    return true;
+  }
+
+  /// Enter confirms the primary action: Allow (permission), or Submit / Next /
+  /// Review for questions — only when the step is answerable.
+  bool _activatePrimary() {
+    if (!widget.prompt.isQuestion) return _then(_permAllow);
+    if (_q.length <= 1) return (_q.isNotEmpty && _answer(0).isNotEmpty) ? _then(_submit) : false;
+    if (_step >= _q.length) return _allAnswered ? _then(_submit) : false;
+    return _answer(_step).isNotEmpty ? _then(() => setState(() => _step++)) : false;
+  }
+
+  bool _then(void Function() action) {
+    action();
+    return true;
+  }
+
   // -- permission allow / allow-remember / deny ------------------------------
+
+  String? _permNote() {
+    final t = _note.text.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  void _permAllow({bool remember = false}) {
+    final p = widget.prompt;
+    widget.onResolve(p.promptId, AllowTool(p.input, updatedPermissions: remember ? p.permissionSuggestions : null, followUpNote: _permNote()));
+  }
+
+  void _permDeny() => widget.onResolve(widget.prompt.promptId, DenyTool(_permNote() ?? 'Denied by the user.'));
 
   (Color, String, List<Widget>) _permission(SurfaceTokens tokens) {
     final p = widget.prompt;
     final canRemember = p.permissionSuggestions.isNotEmpty;
-    String? note() {
-      final t = _note.text.trim();
-      return t.isEmpty ? null : t;
-    }
-
-    void allow({bool remember = false}) => widget.onResolve(
-          p.promptId,
-          AllowTool(p.input, updatedPermissions: remember ? p.permissionSuggestions : null, followUpNote: note()),
-        );
     return (
       tokens.statusWarning,
       'permission · ${p.displayName}',
@@ -149,9 +227,9 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ClideButton(label: 'Allow', variant: ClideButtonVariant.primary, onPressed: () => allow()),
-            if (canRemember) ClideButton(label: "Allow & don't ask again", onPressed: () => allow(remember: true)),
-            ClideButton(label: 'Deny', onPressed: () => widget.onResolve(p.promptId, DenyTool(note() ?? 'Denied by the user.'))),
+            ClideButton(label: '1. Allow', variant: ClideButtonVariant.primary, onPressed: () => _permAllow()),
+            if (canRemember) ClideButton(label: "2. Allow & don't ask again", onPressed: () => _permAllow(remember: true)),
+            ClideButton(label: '${canRemember ? '3' : '2'}. Deny', onPressed: _permDeny),
           ],
         ),
         const SizedBox(height: 10),
@@ -277,8 +355,9 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final opt in q.options) _optButton(qi, opt.label, opt.label, q.multiSelect, opt.description),
-            _optButton(qi, _kOther, 'Other…', q.multiSelect, ''),
+            for (var oi = 0; oi < q.options.length; oi++)
+              _optButton(qi, q.options[oi].label, q.options[oi].label, q.multiSelect, q.options[oi].description, oi + 1),
+            _optButton(qi, _kOther, 'Other…', q.multiSelect, '', q.options.length + 1),
           ],
         ),
         if (hasOther) ...[
@@ -291,23 +370,27 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     );
   }
 
-  Widget _optButton(int qi, String key, String label, bool multi, String description) {
+  Widget _optButton(int qi, String key, String label, bool multi, String description, int number) {
     final sel = _picked[qi].contains(key);
     return ClideButton(
-      label: '${sel ? '●' : '○'} $label',
+      label: '$number. ${sel ? '●' : '○'} $label',
       variant: sel ? ClideButtonVariant.primary : ClideButtonVariant.subtle,
       tooltip: description.isNotEmpty ? description : null,
-      onPressed: () => setState(() {
-        final s = _picked[qi];
-        if (multi) {
-          s.contains(key) ? s.remove(key) : s.add(key);
-        } else {
-          s
-            ..clear()
-            ..add(key);
-        }
-      }),
+      onPressed: () => _toggleOption(qi, key, multi),
     );
+  }
+
+  void _toggleOption(int qi, String key, bool multi) {
+    setState(() {
+      final s = _picked[qi];
+      if (multi) {
+        s.contains(key) ? s.remove(key) : s.add(key);
+      } else {
+        s
+          ..clear()
+          ..add(key);
+      }
+    });
   }
 
   Widget _chatInstead(SurfaceTokens tokens) {

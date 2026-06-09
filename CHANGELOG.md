@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Number keys pick prompt buttons (CLI muscle memory).** In a permission or
+  AskUserQuestion prompt, `1`/`2`/`3`… select the matching button or option
+  (labels are now numbered), and Enter confirms the primary action. Typing in a
+  note field is unaffected — digits only act while the card itself holds focus.
+  (T-240)
 - **Links in the Claude conversation are clickable.** An http(s) link (typed or
   autolinked) now opens in your default browser on click — with a hover
   underline + pointer — across prose, lists, tables, and headings. Non-http
