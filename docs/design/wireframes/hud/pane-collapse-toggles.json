@@ -1,0 +1,120 @@
+{
+  "name": "Pane Collapse Toggles",
+  "shapes": {
+    "titleA": {
+      "type": "Text",
+      "left": 40, "top": 50,
+      "text": "STATE A — both side panes open (toggles sit on center-pane edges)",
+      "fontColor": "#c8d8f0", "fontSize": 15
+    },
+    "a-sidebar": {
+      "type": "Rectangle",
+      "left": 40, "top": 90, "width": 200, "height": 250,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "a-sidebar-lbl": {
+      "type": "Text", "parent": "a-sidebar",
+      "left": 60, "top": 105, "text": "Sidebar\n(ticket list)",
+      "fontColor": "#c8d0e0", "fontSize": 13
+    },
+    "a-center": {
+      "type": "Rectangle",
+      "left": 250, "top": 90, "width": 480, "height": 250,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "a-center-lbl": {
+      "type": "Text", "parent": "a-center",
+      "left": 270, "top": 105, "text": "Claude conversation (center)",
+      "fontColor": "#c8d0e0", "fontSize": 13
+    },
+    "a-context": {
+      "type": "Rectangle",
+      "left": 740, "top": 90, "width": 200, "height": 250,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "a-context-lbl": {
+      "type": "Text", "parent": "a-context",
+      "left": 760, "top": 105, "text": "Context\npane",
+      "fontColor": "#c8d0e0", "fontSize": 13
+    },
+    "a-toggle-left": {
+      "type": "Rectangle",
+      "left": 233, "top": 200, "width": 26, "height": 30,
+      "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [5, 5, 5, 5]
+    },
+    "a-toggle-left-icon": {
+      "type": "Text", "parent": "a-toggle-left",
+      "left": 240, "top": 205, "text": "<", "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "a-toggle-right": {
+      "type": "Rectangle",
+      "left": 721, "top": 200, "width": 26, "height": 30,
+      "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [5, 5, 5, 5]
+    },
+    "a-toggle-right-icon": {
+      "type": "Text", "parent": "a-toggle-right",
+      "left": 729, "top": 205, "text": ">", "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "a-note-left": {
+      "type": "Text",
+      "left": 150, "top": 348, "text": "click -> collapse sidebar (edge slides left)",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "a-note-right": {
+      "type": "Text",
+      "left": 600, "top": 348, "text": "click -> collapse context (edge slides right)",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+
+    "titleB": {
+      "type": "Text",
+      "left": 40, "top": 410,
+      "text": "STATE B — both collapsed: same buttons stay anchored on center edge, chevrons flip to re-open",
+      "fontColor": "#c8d8f0", "fontSize": 15
+    },
+    "b-center": {
+      "type": "Rectangle",
+      "left": 40, "top": 450, "width": 900, "height": 250,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "b-center-lbl": {
+      "type": "Text", "parent": "b-center",
+      "left": 380, "top": 465, "text": "Claude conversation — full width",
+      "fontColor": "#c8d0e0", "fontSize": 13
+    },
+    "b-toggle-left": {
+      "type": "Rectangle",
+      "left": 40, "top": 560, "width": 26, "height": 30,
+      "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [0, 5, 5, 0]
+    },
+    "b-toggle-left-icon": {
+      "type": "Text", "parent": "b-toggle-left",
+      "left": 48, "top": 565, "text": ">", "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "b-toggle-right": {
+      "type": "Rectangle",
+      "left": 914, "top": 560, "width": 26, "height": 30,
+      "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [5, 0, 0, 5]
+    },
+    "b-toggle-right-icon": {
+      "type": "Text", "parent": "b-toggle-right",
+      "left": 921, "top": 565, "text": "<", "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "b-note-left": {
+      "type": "Text",
+      "left": 80, "top": 595, "text": "click -> re-open sidebar",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "b-note-right": {
+      "type": "Text",
+      "left": 760, "top": 595, "text": "click -> re-open context pane",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "footer": {
+      "type": "Text",
+      "left": 40, "top": 720,
+      "text": "One control per edge, fixed to the center pane. Collapsed panes hide fully (no rail). Chevron points the way the edge travels. Mirrored left/right for parity. Each toggle = a clide verb (D-6).",
+      "fontColor": "#8a92a6", "fontSize": 11
+    }
+  }
+}
