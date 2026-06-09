@@ -4,7 +4,7 @@
     "titleA": {
       "type": "Text",
       "left": 40, "top": 50,
-      "text": "STATE A — both panes open: toggles live in the status bar, pinned to the center-pane edges",
+      "text": "STATE A — both panes open: toggles fixed at the far ends of the bottom status bar",
       "fontColor": "#c8d8f0", "fontSize": 15
     },
     "a-sidebar": {
@@ -44,47 +44,47 @@
     },
     "a-status-left": {
       "type": "Text", "parent": "a-statusbar",
-      "left": 56, "top": 299, "text": "main    13 skills",
+      "left": 84, "top": 299, "text": "main    13 skills",
       "fontColor": "#8a92a6", "fontSize": 11
     },
     "a-status-right": {
       "type": "Text", "parent": "a-statusbar",
-      "left": 820, "top": 299, "text": "Output   terminal",
+      "left": 770, "top": 299, "text": "Output   terminal",
       "fontColor": "#8a92a6", "fontSize": 11
     },
     "a-toggle-left": {
       "type": "Rectangle",
-      "left": 238, "top": 294, "width": 24, "height": 24,
+      "left": 44, "top": 294, "width": 24, "height": 24,
       "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [4, 4, 4, 4]
     },
     "a-toggle-left-icon": {
       "type": "Text", "parent": "a-toggle-left",
-      "left": 246, "top": 299, "text": "<", "fontColor": "#c8d8f0", "fontSize": 14
+      "left": 52, "top": 299, "text": "<", "fontColor": "#c8d8f0", "fontSize": 14
     },
     "a-toggle-right": {
       "type": "Rectangle",
-      "left": 718, "top": 294, "width": 24, "height": 24,
+      "left": 912, "top": 294, "width": 24, "height": 24,
       "fillColor": "#2a3040", "strokeColor": "#c8d8f0", "corners": [4, 4, 4, 4]
     },
     "a-toggle-right-icon": {
       "type": "Text", "parent": "a-toggle-right",
-      "left": 726, "top": 299, "text": ">", "fontColor": "#c8d8f0", "fontSize": 14
+      "left": 920, "top": 299, "text": ">", "fontColor": "#c8d8f0", "fontSize": 14
     },
     "a-note-left": {
       "type": "Text",
-      "left": 150, "top": 328, "text": "sits under center's left edge -> collapse sidebar",
+      "left": 44, "top": 328, "text": "far-left -> collapse sidebar",
       "fontColor": "#8a92a6", "fontSize": 11
     },
     "a-note-right": {
       "type": "Text",
-      "left": 600, "top": 328, "text": "sits under center's right edge -> collapse context",
+      "left": 740, "top": 328, "text": "far-right -> collapse context",
       "fontColor": "#8a92a6", "fontSize": 11
     },
 
     "titleB": {
       "type": "Text",
       "left": 40, "top": 388,
-      "text": "STATE B — both collapsed: each toggle slides along the status bar to the far end as its edge moves out",
+      "text": "STATE B — both collapsed: toggles stay put at the same status-bar ends, only the chevron flips",
       "fontColor": "#c8d8f0", "fontSize": 15
     },
     "b-center": {
@@ -109,7 +109,7 @@
     },
     "b-status-right": {
       "type": "Text", "parent": "b-statusbar",
-      "left": 780, "top": 637, "text": "Output   terminal",
+      "left": 770, "top": 637, "text": "Output   terminal",
       "fontColor": "#8a92a6", "fontSize": 11
     },
     "b-toggle-left": {
@@ -132,18 +132,18 @@
     },
     "b-note-left": {
       "type": "Text",
-      "left": 80, "top": 666, "text": "now at far-left -> re-open sidebar",
+      "left": 44, "top": 666, "text": "same spot -> re-open sidebar",
       "fontColor": "#8a92a6", "fontSize": 11
     },
     "b-note-right": {
       "type": "Text",
-      "left": 700, "top": 666, "text": "now at far-right -> re-open context pane",
+      "left": 730, "top": 666, "text": "same spot -> re-open context pane",
       "fontColor": "#8a92a6", "fontSize": 11
     },
     "footer": {
       "type": "Text",
       "left": 40, "top": 700,
-      "text": "Toggles live in the bottom status bar (not floating on the pane). Each is pinned to the center pane's left/right edge, so it slides to the status-bar end when its pane collapses. Mirrored for parity. Buttons call the existing sidebar.collapse / context.collapse commands; chevron reads isCollapsed.",
+      "text": "Toggles sit at fixed far-left / far-right ends of the bottom status bar in every state — muscle memory, always where the reference arrows pointed. Only the chevron flips per isCollapsed. Mirrored for parity. Buttons call the existing sidebar.collapse / context.collapse commands.",
       "fontColor": "#8a92a6", "fontSize": 11
     }
   }
