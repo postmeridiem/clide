@@ -224,6 +224,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The conversation re-anchors when the input area resizes.** Opening a
+  permission prompt or AskUserQuestion (which grows the bottom zone, D-78) no
+  longer hides the last message behind it — when pinned to the tail, the view
+  re-scrolls to keep it visible; a scrolled-up reader is left undisturbed.
+  (T-297)
 - **The chosen theme now persists across restarts**, per repo. Picking a theme
   (status-bar switcher or Settings) writes it to the repo's
   `.clide/settings.yaml` (and a global default), and reopening the repo restores

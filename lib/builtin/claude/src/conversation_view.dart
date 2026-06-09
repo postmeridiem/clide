@@ -69,10 +69,28 @@ class ConversationView extends StatefulWidget {
 class _ConversationViewState extends State<ConversationView> {
   final ScrollController _scroll = ScrollController();
 
+  /// Whether the view is pinned to the tail — only then do we re-anchor on a
+  /// viewport resize, so a user who scrolled up isn't yanked back down (T-297).
+  bool _atBottom = true;
+
+  /// Last laid-out viewport height; a change means the bottom interaction zone
+  /// grew/shrank (a permission prompt / AskUserQuestion opened, D-78) and the
+  /// tail needs re-anchoring above the newly-sized box.
+  double? _lastViewportHeight;
+
+  static const double _bottomEpsilon = 8;
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onChanged);
+    _scroll.addListener(_trackBottom);
+  }
+
+  void _trackBottom() {
+    if (!_scroll.hasClients) return;
+    final p = _scroll.position;
+    _atBottom = (p.maxScrollExtent - p.pixels) <= _bottomEpsilon;
   }
 
   @override
@@ -87,6 +105,7 @@ class _ConversationViewState extends State<ConversationView> {
   @override
   void dispose() {
     widget.controller.removeListener(_onChanged);
+    _scroll.removeListener(_trackBottom);
     _scroll.dispose();
     super.dispose();
   }
@@ -289,9 +308,26 @@ class _ConversationViewState extends State<ConversationView> {
         },
       ),
     );
+    // Re-anchor the tail when the viewport height changes — the bottom
+    // interaction zone (composer ↔ permission prompt / AskUserQuestion, D-78)
+    // resizing would otherwise leave the last card hidden behind the taller box
+    // (T-297). Only when already pinned to the bottom, so scrolled-up reading
+    // is undisturbed.
+    final sized = LayoutBuilder(
+      builder: (ctx, constraints) {
+        final h = constraints.maxHeight;
+        if (_lastViewportHeight != null && h != _lastViewportHeight && _atBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
+          });
+        }
+        _lastViewportHeight = h;
+        return list;
+      },
+    );
     return ColoredBox(
       color: tokens.panelBackground,
-      child: widget.wrapInSelectionArea ? ClideSelectionArea(child: list) : list,
+      child: widget.wrapInSelectionArea ? ClideSelectionArea(child: sized) : sized,
     );
   }
 }
