@@ -3131,3 +3131,18 @@ CANCELLED as a duplicate of T-236 (2026-06-09). T-236 is the concrete spec for r
 RETRACTED the cancellation — NOT a duplicate of T-236 (per user, 2026-06-09). Both stay open. T-254 remains its own ticket.
 
 DONE 2026-06-09 — satisfied by D-89 together with T-236. The lightbox-expansion + path-retention (filename a11y label / unchanged copyText) intent from T-254 is delivered by the shared ImageThumbnail → lightbox; the chosen presentation is inline (not a separate card) per the user. See T-236 / D-89 / commit.', 'done', 'medium', NULL, NULL, NULL, '2026-06-06 09:32:54', '2026-06-09 15:55:06', NULL, '0ed8b0f0f4012715eb1a62de2cae9ad6', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (id, type, parent_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-297', 'bug', 'T-276', 'Conversation doesn''t re-scroll when the bottom input resizes (content hides behind it)', 'When the bottom input area changes height, the conversation view does not re-scroll to the new viewport bottom, so the last bit of content is left hidden behind the newly-sized box.
+
+Trigger: anything that resizes the bottom interaction zone (D-78) — e.g. opening a permission dialog or the AskUserQuestion UI, which replace/expand the composer. The taller box shrinks the conversation viewport from the bottom, but the scroll offset isn''t adjusted, so content that was at the bottom edge is now occluded.
+
+Expected: when the interaction zone grows, the conversation re-anchors so the previously-visible bottom content stays visible above the box (preserve bottom-anchoring / keep the tail in view). Symmetric on shrink — no leftover gap when the box collapses back.
+
+Repro:
+1. Scroll the Claude conversation to the bottom (tail in view).
+2. Trigger a permission prompt or AskUserQuestion (interaction zone expands).
+3. Observed: a strip of the last message/card is hidden behind the enlarged input box.
+4. Expected: view scrolls so that content remains fully visible above the box.
+
+Notes:
+- Likely the scroll controller doesn''t react to the composer/interaction-zone height change (no re-scroll on viewport-inset/size change). Audit the conversation view''s scroll handling around interaction-zone show/hide (D-78) and on keyboard/box resize.
+- Affects the Claude conversation panel.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-09 16:01:09', '2026-06-09 16:01:09', NULL, '5287b26bc163fd424808be2151796347', 1) ON CONFLICT(id) DO UPDATE SET type=excluded.type, parent_id=excluded.parent_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
