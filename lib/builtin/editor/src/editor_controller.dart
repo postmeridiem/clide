@@ -14,6 +14,7 @@ import 'dart:async';
 
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/editor/editor_settings.dart';
 import 'package:flutter/foundation.dart';
 
 /// Lightweight view of one open buffer for the tab strip — the
@@ -36,6 +37,7 @@ class EditorController extends ChangeNotifier {
   Selection _selection = const Selection.collapsed(0);
   bool _dirty = false;
   String? _error;
+  EditorSettings _settings = EditorSettings.empty;
 
   /// All open buffers, in daemon order, for the tab strip.
   List<OpenBuffer> _buffers = const [];
@@ -50,6 +52,9 @@ class EditorController extends ChangeNotifier {
   bool get dirty => _dirty;
   String? get error => _error;
   List<OpenBuffer> get buffers => _buffers;
+
+  /// Effective editor settings for the active buffer (T-29).
+  EditorSettings get settings => _settings;
 
   /// On first mount we don't know what's already open. Ask the daemon
   /// for the buffer list and the active buffer.
@@ -128,6 +133,7 @@ class EditorController extends ChangeNotifier {
     }
     _activeId = r.data['id']! as String;
     _activePath = r.data['path']! as String;
+    _settings = EditorSettings.fromJson(r.data['editorSettings']);
     _content = (r.data['content'] as String?) ?? '';
     final sel = r.data['selection'];
     _selection = sel is Map ? Selection.fromJson(sel.cast<String, Object?>()) : const Selection.collapsed(0);
@@ -210,6 +216,13 @@ class EditorController extends ChangeNotifier {
           _dirty = false;
           notifyListeners();
         }
+      case 'editor.settings-changed':
+        // A source (e.g. a saved .editorconfig) re-resolved the buffer's
+        // settings. Refresh the active buffer's copy so indent/ruler update.
+        if (e.data['id'] == _activeId) {
+          _settings = EditorSettings.fromJson(e.data['editorSettings']);
+          notifyListeners();
+        }
       case 'editor.closed':
         // A buffer left the set — refresh the tab list. If it was the
         // active one the daemon promotes another and emits
@@ -227,6 +240,7 @@ class EditorController extends ChangeNotifier {
     _content = '';
     _selection = const Selection.collapsed(0);
     _dirty = false;
+    _settings = EditorSettings.empty;
     notifyListeners();
   }
 

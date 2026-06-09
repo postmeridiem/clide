@@ -20,13 +20,16 @@ IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data)
 
 Map<String, Object?> _buf(String id, String path, {bool dirty = false}) => {'id': id, 'path': path, 'dirty': dirty};
 
-Map<String, Object?> _read(String id, String path) => {
+Map<String, Object?> _read(String id, String path, {Map<String, Object?>? settings}) => {
       'id': id,
       'path': path,
       'content': 'content of $path',
       'selection': {'start': 0, 'end': 0},
       'dirty': false,
+      if (settings != null) 'editorSettings': settings,
     };
+
+Finder _ruler() => find.byWidgetPredicate((w) => w is CustomPaint && w.painter?.runtimeType.toString() == '_RulerPainter');
 
 void main() {
   group('EditorView tabs', () {
@@ -140,6 +143,105 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(saved, 'b_1');
+    });
+
+    void stubOne(String path, {Map<String, Object?>? settings}) {
+      f.ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', path)]
+              }));
+      f.ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      f.ipc.stub('editor.read', (_) async => _ok(_read('b_1', path, settings: settings)));
+    }
+
+    testWidgets('Tab indents per the resolved settings (spaces)', (tester) async {
+      stubOne('lib/a.dart', settings: {'indent_style': 'space', 'indent_size': 2});
+      f.ipc.stub('editor.set-content', (_) async => _ok(const {}));
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+
+      final before = tester.widget<EditableText>(find.byType(EditableText)).controller.text;
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+
+      final after = tester.widget<EditableText>(find.byType(EditableText)).controller.text;
+      expect(after.length, before.length + 2); // two spaces inserted
+      expect(after, contains('  ')); // adjacent pair our indent added
+    });
+
+    void stubReadContent(String path, String content, Map<String, Object?> settings) {
+      f.ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', path)]
+              }));
+      f.ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      f.ipc.stub(
+          'editor.read',
+          (_) async => _ok({
+                'id': 'b_1',
+                'path': path,
+                'content': content,
+                'selection': {'start': 0, 'end': 0},
+                'dirty': false,
+                'editorSettings': settings
+              }));
+      f.ipc.stub('editor.set-content', (_) async => _ok(const {}));
+    }
+
+    testWidgets('Shift+Tab dedents a space-indented line', (tester) async {
+      stubReadContent('lib/a.dart', '    x', {'indent_style': 'space', 'indent_size': 2});
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '  x'); // two spaces stripped
+    });
+
+    testWidgets('Shift+Tab dedents one leading tab', (tester) async {
+      stubReadContent('lib/a.dart', '\t\tx', {'indent_style': 'tab', 'tab_width': 4});
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, '\tx'); // one tab stripped
+    });
+
+    testWidgets('a max_line_length renders the wrap-guide ruler', (tester) async {
+      stubOne('lib/a.dart', settings: {'max_line_length': 80});
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+      expect(_ruler(), findsOneWidget);
+    });
+
+    testWidgets('no max_line_length draws no ruler', (tester) async {
+      stubOne('lib/a.dart');
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+      expect(_ruler(), findsNothing);
     });
   });
 }

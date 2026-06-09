@@ -429,4 +429,56 @@ void main() {
       expect(c.content, 'local');
     });
   });
+
+  group('editor settings (T-29)', () {
+    Future<void> hydrateWith(Map<String, Object?> read) async {
+      ipc.stub(
+          'editor.list',
+          (_) async => _ok({
+                'buffers': [_buf('b_1', 'lib/a.dart')]
+              }));
+      ipc.stub(
+          'editor.active',
+          (_) async => _ok({
+                'active': {'id': 'b_1'}
+              }));
+      ipc.stub('editor.read', (_) async => _ok(read));
+      await c.hydrate();
+    }
+
+    test('reading a buffer parses its editorSettings', () async {
+      await hydrateWith({
+        ..._read('b_1', 'lib/a.dart', 'x'),
+        'editorSettings': {'indent_style': 'space', 'indent_size': 2, 'max_line_length': 80},
+      });
+      expect(c.settings.indentUnit, '  ');
+      expect(c.settings.maxLineLength, 80);
+    });
+
+    test('a buffer with no settings exposes empty (no opinion)', () async {
+      await hydrateWith(_read('b_1', 'lib/a.dart', 'x'));
+      expect(c.settings.isEmpty, isTrue);
+      expect(c.settings.indentUnit, isNull);
+    });
+
+    test('editor.settings-changed refreshes the active buffer live', () async {
+      await hydrateWith(_read('b_1', 'lib/a.dart', 'x'));
+      expect(c.settings.indentSize, isNull);
+
+      emitEditor(bus, 'editor.settings-changed', {
+        'id': 'b_1',
+        'editorSettings': {'indent_size': 4},
+      });
+      await pumpEventQueue();
+      expect(c.settings.indentSize, 4);
+
+      // An event for some other buffer doesn't touch the active settings.
+      emitEditor(bus, 'editor.settings-changed', {
+        'id': 'b_other',
+        'editorSettings': {'indent_size': 8},
+      });
+      await pumpEventQueue();
+      expect(c.settings.indentSize, 4);
+    });
+  });
 }

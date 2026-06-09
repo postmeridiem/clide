@@ -183,6 +183,17 @@ class _EditorViewState extends State<EditorView> {
       return KeyEventResult.handled;
     }
 
+    // Tab indents per `.editorconfig` (T-29) — but only when the config has an
+    // opinion, otherwise leave Flutter's default (focus traversal) alone. Skip
+    // in Vim command mode, where keys drive motions.
+    if (event.logicalKey == LogicalKeyboardKey.tab && !isCmd && !hw.isAltPressed && !_vimCommandMode) {
+      final unit = _controller?.settings.indentUnit;
+      if (unit != null) {
+        _indent(unit, dedent: hw.isShiftPressed);
+        return KeyEventResult.handled;
+      }
+    }
+
     final kernel = ClideKernel.of(context);
     final scope = kernel.keymap.scope;
     final inNormal = scope['vim.normal'] == true;
@@ -219,6 +230,45 @@ class _EditorViewState extends State<EditorView> {
         _dispatchVim(r.intent!, r.count, kernel, visual: inVisual);
         return KeyEventResult.handled;
     }
+  }
+
+  /// Apply one indent step at the caret per the resolved settings (T-29).
+  /// [unit] is the text a Tab inserts (spaces or a tab); [dedent] (Shift+Tab)
+  /// instead strips up to one unit of leading whitespace from the caret's line.
+  /// Writes through [_text] so `_onTextChanged` persists it to the daemon.
+  void _indent(String unit, {required bool dedent}) {
+    final value = _text.value;
+    final sel = value.selection;
+    if (!sel.isValid) return;
+    final text = value.text;
+
+    if (!dedent) {
+      final newText = text.replaceRange(sel.start, sel.end, unit);
+      _text.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: sel.start + unit.length),
+      );
+      return;
+    }
+
+    // Dedent: remove leading whitespace from the start of the caret's line.
+    final caret = sel.baseOffset < 0 ? text.length : sel.baseOffset;
+    final lineStart = text.lastIndexOf('\n', caret - 1) + 1; // 0 when on the first line
+    var remove = 0;
+    if (unit == '\t') {
+      if (lineStart < text.length && text[lineStart] == '\t') remove = 1;
+    } else {
+      while (remove < unit.length && lineStart + remove < text.length && text[lineStart + remove] == ' ') {
+        remove++;
+      }
+    }
+    if (remove == 0) return;
+    final newText = text.replaceRange(lineStart, lineStart + remove, '');
+    int shift(int off) => off > lineStart ? (off - remove).clamp(lineStart, newText.length) : off;
+    _text.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(baseOffset: shift(sel.baseOffset), extentOffset: shift(sel.extentOffset)),
+    );
   }
 
   void _dispatchVim(Intent intent, int count, KernelServices kernel, {required bool visual}) {
@@ -274,6 +324,7 @@ class _EditorViewState extends State<EditorView> {
               background: tokens.panelBackground,
               foreground: tokens.globalForeground,
               accent: tokens.globalFocus,
+              rulerColumn: c.settings.maxLineLength,
             ),
           ),
         );
@@ -290,6 +341,7 @@ class _TextBody extends StatelessWidget {
     required this.background,
     required this.foreground,
     required this.accent,
+    this.rulerColumn,
   });
 
   final TextEditingController controller;
@@ -299,8 +351,32 @@ class _TextBody extends StatelessWidget {
   final Color foreground;
   final Color accent;
 
+  /// `max_line_length` from the resolved settings — draws a wrap-guide ruler at
+  /// that column (T-29). Null hides it.
+  final int? rulerColumn;
+
   @override
   Widget build(BuildContext context) {
+    final style = TextStyle(
+      color: foreground,
+      fontSize: clideFontMono,
+      fontFamily: clideMonoFamily,
+      fontFamilyFallback: clideMonoFamilyFallback,
+    );
+    final editable = EditableText(
+      controller: controller,
+      focusNode: focus,
+      readOnly: readOnly,
+      style: style,
+      cursorColor: foreground,
+      backgroundCursorColor: foreground.withAlpha(0x44),
+      selectionColor: accent.withAlpha(0x55),
+      maxLines: null,
+      expands: true,
+      keyboardType: TextInputType.multiline,
+      textAlign: TextAlign.start,
+      showCursor: true,
+    );
     return Semantics(
       label: 'editor text area',
       textField: true,
@@ -309,27 +385,41 @@ class _TextBody extends StatelessWidget {
         color: background,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: EditableText(
-            controller: controller,
-            focusNode: focus,
-            readOnly: readOnly,
-            style: TextStyle(
-              color: foreground,
-              fontSize: clideFontMono,
-              fontFamily: clideMonoFamily,
-              fontFamilyFallback: clideMonoFamilyFallback,
-            ),
-            cursorColor: foreground,
-            backgroundCursorColor: foreground.withAlpha(0x44),
-            selectionColor: accent.withAlpha(0x55),
-            maxLines: null,
-            expands: true,
-            keyboardType: TextInputType.multiline,
-            textAlign: TextAlign.start,
-            showCursor: true,
+          // CustomPaint sizes to and paints behind the EditableText, so the
+          // ruler shares the text's coordinate space (column 0 at the left edge).
+          child: CustomPaint(
+            painter: rulerColumn == null ? null : _RulerPainter(x: _charWidth(style) * rulerColumn!, color: foreground.withAlpha(0x22)),
+            child: editable,
           ),
         ),
       ),
     );
   }
+
+  /// Advance width of one monospace glyph in [style].
+  static double _charWidth(TextStyle style) {
+    final tp = TextPainter(text: TextSpan(text: '0', style: style), textDirection: TextDirection.ltr)..layout();
+    return tp.width;
+  }
+}
+
+/// A 1px vertical wrap-guide at [x] (content-relative), behind the text.
+class _RulerPainter extends CustomPainter {
+  const _RulerPainter({required this.x, required this.color});
+
+  final double x;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        Paint()
+          ..color = color
+          ..strokeWidth = 1);
+  }
+
+  @override
+  bool shouldRepaint(_RulerPainter old) => old.x != x || old.color != color;
 }
