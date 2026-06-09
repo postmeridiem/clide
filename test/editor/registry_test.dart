@@ -153,13 +153,13 @@ void main() {
   });
 
   group('.editorconfig (T-29)', () {
-    test('open resolves the editorconfig for the file', () async {
+    test('open resolves the settings for the file', () async {
       await File('${sandbox.path}/.editorconfig').writeAsString('root = true\n[*]\nindent_style = space\nindent_size = 2\n');
       final buf = await reg.open('README.md');
-      expect(buf.editorConfig.indentStyle, 'space');
-      expect(buf.editorConfig.indentSize, 2);
+      expect(buf.settings.indentStyle, 'space');
+      expect(buf.settings.indentSize, 2);
       // Exposed over IPC for the UI.
-      expect(buf.toJson()['editorConfig'], {'indent_style': 'space', 'indent_size': 2, 'tab_width': 2});
+      expect(buf.toJson()['editorSettings'], {'indent_style': 'space', 'indent_size': 2, 'tab_width': 2});
     });
 
     test('save trims trailing whitespace + adds a final newline on disk', () async {
@@ -196,6 +196,23 @@ void main() {
       expect(await File('${sandbox.path}/README.md').readAsString(), 'kept   \nas-is');
       expect(sink.ofKind('editor.edited'), isEmpty); // nothing to reconcile
       expect(sink.ofKind('editor.saved'), hasLength(1));
+    });
+
+    test('saving a .editorconfig re-resolves open buffers and notifies', () async {
+      // README opens with no rules in effect.
+      final readme = await reg.open('README.md');
+      expect(readme.settings.indentSize, isNull);
+
+      // Author a .editorconfig in the editor and save it.
+      final cfg = await reg.open('.editorconfig');
+      reg.setContent(cfg.id, 'root = true\n[*]\nindent_size = 4\n');
+      sink.events.clear();
+      await reg.save(cfg.id);
+
+      // The open README picks up the new rules without reopening.
+      expect(readme.settings.indentSize, 4);
+      final changed = sink.ofKind('editor.settings-changed');
+      expect(changed.map((e) => e.data['id']), contains(readme.id));
     });
   });
 }

@@ -12,7 +12,7 @@ import 'dart:io';
 import '../ipc/envelope.dart';
 import '../panes/event_sink.dart';
 import 'buffer.dart';
-import 'editorconfig.dart';
+import 'editor_settings_resolver.dart';
 
 class EditorRegistry {
   EditorRegistry({
@@ -57,7 +57,7 @@ class EditorRegistry {
       id: id,
       path: path,
       content: content,
-      editorConfig: resolveEditorConfig(workspaceRoot, path),
+      settings: resolveEditorSettings(workspaceRoot, path),
     );
     _buffers[id] = buf;
     _pathToId[path] = id;
@@ -150,15 +150,16 @@ class EditorRegistry {
     });
   }
 
-  /// Persist [id] to disk. Applies the buffer's `.editorconfig` save fixes
-  /// (EOL, trailing-whitespace, final-newline) first, and — when those changed
-  /// the text — reconciles the in-memory buffer + UI so disk and buffer agree.
-  /// Clears the dirty flag on success.
+  /// Persist [id] to disk. Applies the buffer's on-save settings (EOL,
+  /// trailing-whitespace, final-newline) first, and — when those changed the
+  /// text — reconciles the in-memory buffer + UI so disk and buffer agree.
+  /// Clears the dirty flag on success. Saving a `.editorconfig` re-resolves the
+  /// settings of every open buffer (its rules just changed).
   Future<bool> save(String id) async {
     final buf = _buffers[id];
     if (buf == null) return false;
 
-    final normalized = applyEditorConfigOnSave(buf.content, buf.editorConfig);
+    final normalized = buf.settings.applyOnSave(buf.content);
     final changed = normalized != buf.content;
 
     final absolute = _absolutePathOf(buf.path);
@@ -183,8 +184,28 @@ class EditorRegistry {
 
     buf.dirty = false;
     _emit('editor.saved', {'id': id, 'path': buf.path});
+
+    if (_isEditorConfigPath(buf.path)) _reresolveSettings();
     return true;
   }
+
+  /// Recompute every open buffer's effective settings from its sources and tell
+  /// the UI about the ones that changed. Called when a `.editorconfig` is saved
+  /// in-app (the file's rules changed under the open buffers).
+  void _reresolveSettings() {
+    for (final buf in _buffers.values) {
+      final next = resolveEditorSettings(workspaceRoot, buf.path);
+      if (next.toJson().toString() == buf.settings.toJson().toString()) continue;
+      buf.settings = next;
+      _emit('editor.settings-changed', {
+        'id': buf.id,
+        'path': buf.path,
+        'editorSettings': next.toJson(),
+      });
+    }
+  }
+
+  bool _isEditorConfigPath(String path) => path == '.editorconfig' || path.endsWith('/.editorconfig');
 
   /// Close a buffer. Idempotent.
   void close(String id) {

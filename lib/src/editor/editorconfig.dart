@@ -1,142 +1,33 @@
-/// EditorConfig support (T-29) — read `.editorconfig` from the workspace and
-/// resolve the properties that apply to a given file.
+/// `.editorconfig` as an [EditorSettings] source (T-29).
+///
+/// Reads `.editorconfig` files from the workspace and resolves the properties
+/// that apply to a given file into the source-agnostic [EditorSettings] model.
+/// This is one *source* feeding `editor_settings_resolver.dart`; it is not the
+/// thing the editor obeys directly.
 ///
 /// We parse the INI-ish format and match section globs ourselves (no
-/// dependency, per the prefer-zero-deps rule). Resolution walks from the file's
+/// dependency, per prefer-zero-deps). Resolution walks from the file's
 /// directory up to the workspace root, honouring `root = true` to stop the
 /// ascent, with nearer files and later sections winning on conflict — the
 /// precedence the EditorConfig spec defines.
 ///
 /// Flutter-free by construction: this runs daemon-side under `dart test`
-/// alongside [EditorRegistry], so it imports only `dart:io` + core.
+/// alongside [EditorRegistry], so it imports only `dart:io` + the model.
 library;
 
 import 'dart:io';
 
-/// The resolved, typed EditorConfig properties for one file. A `null` field
-/// means "no opinion" — the editor keeps its default and changes nothing.
-class EditorConfig {
-  const EditorConfig({
-    this.indentStyle,
-    this.indentSize,
-    this.tabWidth,
-    this.endOfLine,
-    this.maxLineLength,
-    this.trimTrailingWhitespace,
-    this.insertFinalNewline,
-  });
+import 'editor_settings.dart';
 
-  /// `tab` or `space`.
-  final String? indentStyle;
-
-  /// Columns per indent level. Follows [tabWidth] when the file says
-  /// `indent_size = tab`.
-  final int? indentSize;
-
-  /// Width of a tab character.
-  final int? tabWidth;
-
-  /// `lf`, `crlf`, or `cr`.
-  final String? endOfLine;
-
-  /// Ruler / wrap-guide column. Null when unset or `off`.
-  final int? maxLineLength;
-
-  final bool? trimTrailingWhitespace;
-  final bool? insertFinalNewline;
-
-  static const empty = EditorConfig();
-
-  bool get isEmpty =>
-      indentStyle == null &&
-      indentSize == null &&
-      tabWidth == null &&
-      endOfLine == null &&
-      maxLineLength == null &&
-      trimTrailingWhitespace == null &&
-      insertFinalNewline == null;
-
-  /// The line terminator [endOfLine] names, or null when unset.
-  String? get eolString => switch (endOfLine) {
-        'lf' => '\n',
-        'crlf' => '\r\n',
-        'cr' => '\r',
-        _ => null,
-      };
-
-  /// Only the set keys, for the IPC buffer payload. Empty map when [isEmpty].
-  Map<String, Object?> toJson() => {
-        if (indentStyle != null) 'indent_style': indentStyle,
-        if (indentSize != null) 'indent_size': indentSize,
-        if (tabWidth != null) 'tab_width': tabWidth,
-        if (endOfLine != null) 'end_of_line': endOfLine,
-        if (maxLineLength != null) 'max_line_length': maxLineLength,
-        if (trimTrailingWhitespace != null) 'trim_trailing_whitespace': trimTrailingWhitespace,
-        if (insertFinalNewline != null) 'insert_final_newline': insertFinalNewline,
-      };
-
-  /// Build from a merged raw property map (keys already lowercased). Applies
-  /// the spec's `indent_size`/`tab_width` cross-defaulting. A property whose
-  /// value is `unset` (or unparseable for its type) resolves to null.
-  factory EditorConfig.fromProps(Map<String, String> p) {
-    String? lc(String k) {
-      final v = p[k];
-      if (v == null) return null;
-      final t = v.trim().toLowerCase();
-      return t == 'unset' ? null : t;
-    }
-
-    final indentStyle = _oneOf(lc('indent_style'), const {'tab', 'space'});
-    int? tabWidth = _posInt(lc('tab_width'));
-
-    final rawIndent = lc('indent_size');
-    int? indentSize;
-    if (rawIndent == 'tab') {
-      indentSize = tabWidth;
-    } else {
-      indentSize = _posInt(rawIndent);
-    }
-    // tab_width defaults to indent_size; indent_size (for tabs) defaults to
-    // tab_width — the reciprocal defaulting from the spec.
-    tabWidth ??= indentSize;
-    if (indentStyle == 'tab') indentSize ??= tabWidth;
-
-    final maxRaw = lc('max_line_length');
-    final maxLineLength = (maxRaw == 'off') ? null : _posInt(maxRaw);
-
-    return EditorConfig(
-      indentStyle: indentStyle,
-      indentSize: indentSize,
-      tabWidth: tabWidth,
-      endOfLine: _oneOf(lc('end_of_line'), const {'lf', 'crlf', 'cr'}),
-      maxLineLength: maxLineLength,
-      trimTrailingWhitespace: _bool(lc('trim_trailing_whitespace')),
-      insertFinalNewline: _bool(lc('insert_final_newline')),
-    );
-  }
-
-  static String? _oneOf(String? v, Set<String> allowed) => (v != null && allowed.contains(v)) ? v : null;
-  static int? _posInt(String? v) {
-    if (v == null) return null;
-    final n = int.tryParse(v);
-    return (n != null && n > 0) ? n : null;
-  }
-
-  static bool? _bool(String? v) => switch (v) {
-        'true' => true,
-        'false' => false,
-        _ => null,
-      };
-}
-
-/// Resolve the EditorConfig for [relPath] (a workspace-relative, `/`-separated
-/// path) against the `.editorconfig` files under [workspaceRoot].
+/// Resolve the EditorConfig-sourced [EditorSettings] for [relPath] (a
+/// workspace-relative, `/`-separated path) against the `.editorconfig` files
+/// under [workspaceRoot].
 ///
 /// Walks from the file's directory up to (and including) the workspace root,
 /// stopping once a file declares `root = true`. Never throws — an unreadable or
 /// malformed file is skipped, so a broken `.editorconfig` can't wedge a file
 /// open or save.
-EditorConfig resolveEditorConfig(Directory workspaceRoot, String relPath) {
+EditorSettings readEditorConfig(Directory workspaceRoot, String relPath) {
   final rel = relPath.replaceAll('\\', '/').replaceAll(RegExp(r'^/+'), '');
   final segs = rel.split('/');
   final dirSegs = segs.sublist(0, segs.length - 1);
@@ -170,41 +61,62 @@ EditorConfig resolveEditorConfig(Directory workspaceRoot, String relPath) {
       }
     }
   }
-  return EditorConfig.fromProps(props);
+  return editorSettingsFromProps(props);
 }
 
-/// Apply the on-save text fixes [cfg] requests: end-of-line normalization,
-/// trailing-whitespace trimming, and final-newline insertion/removal. Returns
-/// the content unchanged where [cfg] has no opinion.
-String applyEditorConfigOnSave(String content, EditorConfig cfg) {
-  if (content.isEmpty) return content;
-  var out = content;
-
-  // Trim trailing spaces/tabs before any line break or end-of-string. Done
-  // first and EOL-agnostically so it composes with the EOL rewrite below.
-  if (cfg.trimTrailingWhitespace == true) {
-    out = out.replaceAll(RegExp(r'[ \t]+(?=\r\n|\r|\n|$)'), '');
+/// Build [EditorSettings] from a merged raw EditorConfig property map (keys
+/// already lowercased). Applies the spec's `indent_size`/`tab_width`
+/// cross-defaulting; a property valued `unset` (or unparseable for its type)
+/// resolves to null. Public for direct unit testing of the mapping.
+EditorSettings editorSettingsFromProps(Map<String, String> p) {
+  String? lc(String k) {
+    final v = p[k];
+    if (v == null) return null;
+    final t = v.trim().toLowerCase();
+    return t == 'unset' ? null : t;
   }
 
-  final eol = cfg.eolString;
-  if (eol != null) {
-    out = out.replaceAll(RegExp(r'\r\n|\r|\n'), eol);
-  }
+  final indentStyle = _oneOf(lc('indent_style'), const {'tab', 'space'});
+  int? tabWidth = _posInt(lc('tab_width'));
 
-  if (cfg.insertFinalNewline == true) {
-    if (out.isNotEmpty && !out.endsWith('\n') && !out.endsWith('\r')) {
-      out += eol ?? _detectEol(out) ?? '\n';
-    }
-  } else if (cfg.insertFinalNewline == false) {
-    out = out.replaceAll(RegExp(r'(\r\n|\r|\n)+$'), '');
+  final rawIndent = lc('indent_size');
+  int? indentSize;
+  if (rawIndent == 'tab') {
+    indentSize = tabWidth;
+  } else {
+    indentSize = _posInt(rawIndent);
   }
-  return out;
+  // tab_width defaults to indent_size; indent_size (for tabs) defaults to
+  // tab_width — the reciprocal defaulting from the spec.
+  tabWidth ??= indentSize;
+  if (indentStyle == 'tab') indentSize ??= tabWidth;
+
+  final maxRaw = lc('max_line_length');
+  final maxLineLength = (maxRaw == 'off') ? null : _posInt(maxRaw);
+
+  return EditorSettings(
+    indentStyle: indentStyle,
+    indentSize: indentSize,
+    tabWidth: tabWidth,
+    endOfLine: _oneOf(lc('end_of_line'), const {'lf', 'crlf', 'cr'}),
+    maxLineLength: maxLineLength,
+    trimTrailingWhitespace: _bool(lc('trim_trailing_whitespace')),
+    insertFinalNewline: _bool(lc('insert_final_newline')),
+  );
 }
 
-String? _detectEol(String s) {
-  final m = RegExp(r'\r\n|\r|\n').firstMatch(s);
-  return m?.group(0);
+String? _oneOf(String? v, Set<String> allowed) => (v != null && allowed.contains(v)) ? v : null;
+int? _posInt(String? v) {
+  if (v == null) return null;
+  final n = int.tryParse(v);
+  return (n != null && n > 0) ? n : null;
 }
+
+bool? _bool(String? v) => switch (v) {
+      'true' => true,
+      'false' => false,
+      _ => null,
+    };
 
 // ---------------------------------------------------------------------------
 // INI parsing

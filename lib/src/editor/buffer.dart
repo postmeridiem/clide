@@ -6,7 +6,7 @@
 /// transitions.
 library;
 
-import 'editorconfig.dart';
+import 'editor_settings.dart';
 
 class Selection {
   const Selection({required this.start, required this.end});
@@ -45,7 +45,7 @@ class EditorBuffer {
     required this.content,
     Selection? selection,
     this.dirty = false,
-    this.editorConfig = EditorConfig.empty,
+    this.settings = EditorSettings.empty,
   }) : selection = selection ?? const Selection.collapsed(0);
 
   /// Stable daemon-local id (`b_1`, `b_2`, …).
@@ -70,10 +70,11 @@ class EditorBuffer {
   /// `editor.save` (or `files.save` in future).
   bool dirty;
 
-  /// Resolved `.editorconfig` properties for this file (T-29). Drives the
-  /// editor's indent/ruler rendering on the UI side and the save-time
-  /// normalization daemon-side. [EditorConfig.empty] when nothing applies.
-  EditorConfig editorConfig;
+  /// Effective editor settings for this file (T-29), resolved from its sources
+  /// (today: `.editorconfig`). Drives the editor's indent/ruler rendering on
+  /// the UI side and the save-time normalization daemon-side.
+  /// [EditorSettings.empty] when nothing applies.
+  EditorSettings settings;
 
   Map<String, Object?> toJson() => {
         'id': id,
@@ -81,7 +82,7 @@ class EditorBuffer {
         'length': content.length,
         'selection': selection.toJson(),
         'dirty': dirty,
-        'editorConfig': editorConfig.toJson(),
+        'editorSettings': settings.toJson(),
       };
 
   /// Full snapshot including [content] — for `editor.read` / tests /
