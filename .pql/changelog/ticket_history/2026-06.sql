@@ -1113,3 +1113,33 @@ Acceptance:
 MERGED T-254 (duplicate) into this ticket. Extra nuance carried over from T-254: keep the file path available (e.g. as a small caption/subtitle under the thumbnail, or via the lightbox) so it can still be copied/referenced. Reuse the existing inline image card + lightbox (T-252) rather than a new component.
 
 RETRACTED the earlier ''merged T-254'' note — T-236 and T-254 are distinct tickets (per user); disregard that note. T-236 stays scoped to its own description.', NULL, '2026-06-09 15:15:18', '2026-06-09 15:15:18', '2026-06-09 15:15:18', NULL, '78ef3c0cad670d9dc912aaa4fd3938ca', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-294', 'description', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.
+
+DESIGN DIRECTION (settled): anchor both toggles on the OUTER EDGES of the center (Claude conversation) pane — one on the left edge controlling the sidebar, one on the right edge controlling the context pane. The control stays fixed on the center-pane edge whether the adjacent pane is open or collapsed, so a single button both collapses an open pane and re-opens a collapsed one (chevron flips direction). This avoids needing a separate "re-expand" handle on the collapsed pane.
+
+Implications for the mock:
+- Collapsed pane can be fully hidden (no thin rail needed) since the re-open control lives on the center edge.
+- Sidebar and context pane share one mirrored control pattern (parity).
+- Chevron direction reflects state: points outward to expand, inward to collapse.', NULL, '2026-06-09 15:21:37', '2026-06-09 15:21:37', '2026-06-09 15:21:37', NULL, '123270ca44c9cfc48192cfc2412410f7', 1) ON CONFLICT(hash) DO NOTHING;
