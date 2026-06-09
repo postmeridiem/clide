@@ -1831,3 +1831,185 @@ DONE 2026-06-09 — satisfied by D-89 together with T-236. The lightbox-expansio
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-254', 'status', 'ready', 'done', NULL, '2026-06-09 15:55:06', '2026-06-09 15:55:06', '2026-06-09 15:55:06', NULL, 'e07372e7e9662712183808199ac27210', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-297', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:01:58', '2026-06-09 16:01:58', '2026-06-09 16:01:58', NULL, '12474d426c882ddf33efdd4fa6f86f95', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-296', 'status', 'backlog', 'ready', NULL, '2026-06-09 16:02:14', '2026-06-09 16:02:14', '2026-06-09 16:02:14', NULL, '8f3930428725856dcfd8042261852398', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-294', 'description', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.
+
+DESIGN DIRECTION (settled): anchor both toggles on the OUTER EDGES of the center (Claude conversation) pane — one on the left edge controlling the sidebar, one on the right edge controlling the context pane. The control stays fixed on the center-pane edge whether the adjacent pane is open or collapsed, so a single button both collapses an open pane and re-opens a collapsed one (chevron flips direction). This avoids needing a separate "re-expand" handle on the collapsed pane.
+
+Implications for the mock:
+- Collapsed pane can be fully hidden (no thin rail needed) since the re-open control lives on the center edge.
+- Sidebar and context pane share one mirrored control pattern (parity).
+- Chevron direction reflects state: points outward to expand, inward to collapse.
+
+IMPLEMENTATION NOTE: the collapse logic already exists — no new toggle behaviour needed. Commands `sidebar.collapse` (ctrl+shift+1) and `context.collapse` (ctrl+shift+3) are registered in lib/builtin/default_layout/src/extension.dart, exposed in the command palette + menubar, and call arrangement.toggleCollapsed(Slots.sidebar|contextPanel), returning isCollapsed (D-051, D-054).
+
+So this ticket is scoped to the VISUAL AFFORDANCE only:
+- Add the two edge-anchored toggle buttons on the center (Claude) pane''s outer edges.
+- On click, invoke the existing `sidebar.collapse` / `context.collapse` commands (do NOT reimplement collapse).
+- Read arrangement.isCollapsed(...) to flip the chevron direction per state.
+- D-6 CLI/keyboard parity is already satisfied by the existing commands; this adds the mouse affordance.
+
+Mock: docs/design/wireframes/hud/pane-collapse-toggles.{json,png} — State A (open) + State B (collapsed).
+
+PLACEMENT REVISED: toggles do NOT float vertically-centered on the pane edges. They live in the BOTTOM STATUS BAR. Each toggle is horizontally pinned to the center pane''s left/right edge, so when a pane collapses the toggle slides along the status bar to that end (open: at the inner pane boundary; collapsed: at the far status-bar end — matching where the reference-screenshot arrows pointed). Still mirrored left/right for parity; chevron flips per isCollapsed. Buttons invoke the existing sidebar.collapse / context.collapse commands.
+
+Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.
+
+APPROVED (2026-06-09): pinned-to-edge status-bar placement confirmed by user. Design is settled; ready for implementation.
+
+PLACEMENT FINAL (supersedes "pinned-to-edge"): toggles are FIXED at the far-left and far-right ends of the bottom status bar in every state. They do not slide with the pane edge. Position is constant (muscle memory; always where the reference-screenshot arrows pointed); only the chevron flips per isCollapsed. Left end = sidebar toggle, right end = context toggle. Mirrored for parity. Buttons invoke the existing sidebar.collapse / context.collapse commands.
+
+Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.
+
+SPACE NOTE: the status bar already hosts content at both ends (left: branch / skills count; right: Output / terminal). Fixed-end toggles therefore share that space. Resolution: reserve the OUTERMOST ~24px cell at each end for the toggle and shift the existing status items inward by that width — a constant reservation, not a dynamic fight (the toggle never moves or grows). The mock reflects this: status text begins after the left toggle and ends before the right toggle.
+
+GLYPH DECISION: use Phosphor caret-line icons (chevron + edge line), which read as "collapse to the edge":
+- caret-line-left  -> 0xe132 (CaretLineLeft)
+- caret-line-right -> 0xe130 (CaretLineRight)
+The glyphs already ship in assets/fonts/phosphor (codepoints.csv lines 150-151) — no new dependency. Add two consts to lib/widgets/src/icons/phosphor.dart (PhosphorIcons.caretLineLeft / caretLineRight) during implementation. Chevron-line direction flips per isCollapsed.
+
+RESOLUTION (2026-06-09): considered moving the re-open control into the center (pane edge or center status segment) to dodge the end-of-bar space contention; user chose to KEEP TOGGLES FIXED AT THE STATUS-BAR ENDS (best muscle memory). Final design = v3 mock: caret-line glyphs at fixed far-left/far-right status-bar cells (~24px reserved, side items shifted in), chevron-line flips per isCollapsed, firing existing sidebar.collapse / context.collapse. Design fully settled; ready to implement.', 'Design and add collapse/expand controls for the left sidebar and the right context pane, along the lines of the reference screenshot (green arrows mark the two intended affordance locations — bottom-left of the sidebar and bottom-right of the context pane).
+
+Scope of this ticket: set up a Frame0 mock to talk through the design before implementing.
+
+Open questions to resolve in the mock:
+- Affordance placement: footer/status-bar anchored (as the screenshot arrows suggest) vs. pane-edge chevron.
+- Collapsed state: fully hidden vs. thin rail with a re-expand handle.
+- Iconography (chevron direction) and hover/active states.
+- Whether sidebar and context pane share one control pattern (parity) or differ.
+- Keyboard/CLI parity (D-6): each collapse action needs a clide verb.
+
+Deliverable: Frame0 wireframe(s) of collapsed + expanded states for both panes, reviewed before any code.
+
+DESIGN DIRECTION (settled): anchor both toggles on the OUTER EDGES of the center (Claude conversation) pane — one on the left edge controlling the sidebar, one on the right edge controlling the context pane. The control stays fixed on the center-pane edge whether the adjacent pane is open or collapsed, so a single button both collapses an open pane and re-opens a collapsed one (chevron flips direction). This avoids needing a separate "re-expand" handle on the collapsed pane.
+
+Implications for the mock:
+- Collapsed pane can be fully hidden (no thin rail needed) since the re-open control lives on the center edge.
+- Sidebar and context pane share one mirrored control pattern (parity).
+- Chevron direction reflects state: points outward to expand, inward to collapse.
+
+IMPLEMENTATION NOTE: the collapse logic already exists — no new toggle behaviour needed. Commands `sidebar.collapse` (ctrl+shift+1) and `context.collapse` (ctrl+shift+3) are registered in lib/builtin/default_layout/src/extension.dart, exposed in the command palette + menubar, and call arrangement.toggleCollapsed(Slots.sidebar|contextPanel), returning isCollapsed (D-051, D-054).
+
+So this ticket is scoped to the VISUAL AFFORDANCE only:
+- Add the two edge-anchored toggle buttons on the center (Claude) pane''s outer edges.
+- On click, invoke the existing `sidebar.collapse` / `context.collapse` commands (do NOT reimplement collapse).
+- Read arrangement.isCollapsed(...) to flip the chevron direction per state.
+- D-6 CLI/keyboard parity is already satisfied by the existing commands; this adds the mouse affordance.
+
+Mock: docs/design/wireframes/hud/pane-collapse-toggles.{json,png} — State A (open) + State B (collapsed).
+
+PLACEMENT REVISED: toggles do NOT float vertically-centered on the pane edges. They live in the BOTTOM STATUS BAR. Each toggle is horizontally pinned to the center pane''s left/right edge, so when a pane collapses the toggle slides along the status bar to that end (open: at the inner pane boundary; collapsed: at the far status-bar end — matching where the reference-screenshot arrows pointed). Still mirrored left/right for parity; chevron flips per isCollapsed. Buttons invoke the existing sidebar.collapse / context.collapse commands.
+
+Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.
+
+APPROVED (2026-06-09): pinned-to-edge status-bar placement confirmed by user. Design is settled; ready for implementation.
+
+PLACEMENT FINAL (supersedes "pinned-to-edge"): toggles are FIXED at the far-left and far-right ends of the bottom status bar in every state. They do not slide with the pane edge. Position is constant (muscle memory; always where the reference-screenshot arrows pointed); only the chevron flips per isCollapsed. Left end = sidebar toggle, right end = context toggle. Mirrored for parity. Buttons invoke the existing sidebar.collapse / context.collapse commands.
+
+Mock updated: docs/design/wireframes/hud/pane-collapse-toggles.{json,png}.
+
+SPACE NOTE: the status bar already hosts content at both ends (left: branch / skills count; right: Output / terminal). Fixed-end toggles therefore share that space. Resolution: reserve the OUTERMOST ~24px cell at each end for the toggle and shift the existing status items inward by that width — a constant reservation, not a dynamic fight (the toggle never moves or grows). The mock reflects this: status text begins after the left toggle and ends before the right toggle.
+
+GLYPH DECISION: use Phosphor caret-line icons (chevron + edge line), which read as "collapse to the edge":
+- caret-line-left  -> 0xe132 (CaretLineLeft)
+- caret-line-right -> 0xe130 (CaretLineRight)
+The glyphs already ship in assets/fonts/phosphor (codepoints.csv lines 150-151) — no new dependency. Add two consts to lib/widgets/src/icons/phosphor.dart (PhosphorIcons.caretLineLeft / caretLineRight) during implementation. Chevron-line direction flips per isCollapsed.
+
+RESOLUTION (2026-06-09): considered moving the re-open control into the center (pane edge or center status segment) to dodge the end-of-bar space contention; user chose to KEEP TOGGLES FIXED AT THE STATUS-BAR ENDS (best muscle memory). Final design = v3 mock: caret-line glyphs at fixed far-left/far-right status-bar cells (~24px reserved, side items shifted in), chevron-line flips per isCollapsed, firing existing sidebar.collapse / context.collapse. Design fully settled; ready to implement.
+
+DONE 2026-06-09 (commit). Fixed ~24px caret-line toggles bookend the status bar (StatusbarHost), flip chevron per arrangement.isCollapsed, fire existing sidebar.collapse/context.collapse. Visual affordance only. Tests: app_collapse_toggle_test + updated app_statusbar_test.', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '96263b16de5104d6579d5b010e105b16', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-294', 'status', 'ready', 'done', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, 'd0ac2758ff994f261a6b774c25ff61aa', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-297', 'description', 'When the bottom input area changes height, the conversation view does not re-scroll to the new viewport bottom, so the last bit of content is left hidden behind the newly-sized box.
+
+Trigger: anything that resizes the bottom interaction zone (D-78) — e.g. opening a permission dialog or the AskUserQuestion UI, which replace/expand the composer. The taller box shrinks the conversation viewport from the bottom, but the scroll offset isn''t adjusted, so content that was at the bottom edge is now occluded.
+
+Expected: when the interaction zone grows, the conversation re-anchors so the previously-visible bottom content stays visible above the box (preserve bottom-anchoring / keep the tail in view). Symmetric on shrink — no leftover gap when the box collapses back.
+
+Repro:
+1. Scroll the Claude conversation to the bottom (tail in view).
+2. Trigger a permission prompt or AskUserQuestion (interaction zone expands).
+3. Observed: a strip of the last message/card is hidden behind the enlarged input box.
+4. Expected: view scrolls so that content remains fully visible above the box.
+
+Notes:
+- Likely the scroll controller doesn''t react to the composer/interaction-zone height change (no re-scroll on viewport-inset/size change). Audit the conversation view''s scroll handling around interaction-zone show/hide (D-78) and on keyboard/box resize.
+- Affects the Claude conversation panel.', 'When the bottom input area changes height, the conversation view does not re-scroll to the new viewport bottom, so the last bit of content is left hidden behind the newly-sized box.
+
+Trigger: anything that resizes the bottom interaction zone (D-78) — e.g. opening a permission dialog or the AskUserQuestion UI, which replace/expand the composer. The taller box shrinks the conversation viewport from the bottom, but the scroll offset isn''t adjusted, so content that was at the bottom edge is now occluded.
+
+Expected: when the interaction zone grows, the conversation re-anchors so the previously-visible bottom content stays visible above the box (preserve bottom-anchoring / keep the tail in view). Symmetric on shrink — no leftover gap when the box collapses back.
+
+Repro:
+1. Scroll the Claude conversation to the bottom (tail in view).
+2. Trigger a permission prompt or AskUserQuestion (interaction zone expands).
+3. Observed: a strip of the last message/card is hidden behind the enlarged input box.
+4. Expected: view scrolls so that content remains fully visible above the box.
+
+Notes:
+- Likely the scroll controller doesn''t react to the composer/interaction-zone height change (no re-scroll on viewport-inset/size change). Audit the conversation view''s scroll handling around interaction-zone show/hide (D-78) and on keyboard/box resize.
+- Affects the Claude conversation panel.
+
+DONE 2026-06-09 (commit). conversation_view tracks at-bottom + a LayoutBuilder re-jumps to the tail when the viewport height changes (interaction-zone resize, D-78), only when pinned. Tests: conversation_scroll_test.', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '4a480f458656a560dbf8ec4dc37b7f06', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-297', 'status', 'ready', 'done', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '5e057b905d14d1bddbb58ad4e72dc6cd', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-296', 'description', 'When Claude makes multiple subsequent edits to the SAME file, bundle them into a single collapsed holder card instead of rendering each edit as its own card — mirroring how we already fold meta/activity runs.
+
+Behaviour:
+- Detect a run of consecutive edits targeting the same file_path and group them into one ClideHolderCard (the shared container from T-266; see _ActivityCard in lib/builtin/claude/src/conversation_view.dart:681).
+- Collapsed (default): one-line ticker of the latest edit + a count label.
+- Show the count as "# edits" (e.g. "3 edits" / "1 edit"), NOT "# steps". The existing activity card uses stepLabel = ''$count steps'' at conversation_view.dart:683; this run wants an edits-flavoured label.
+- Expanded: every individual edit, each with its full report — bundle, do NOT drop or summarise away any information. All per-edit detail must remain reachable on expand.
+
+Notes:
+- Reuse the existing ClideHolderCard / folding machinery rather than building a new card.
+- Grouping breaks when the file_path changes or a non-edit step interleaves (consecutive-same-file only), matching the ''subsequent edits to the same file'' wording.
+- Parity with the existing meta/activity folding (T-230) — same collapse/expand affordance, just an edits-labelled run.
+
+WORKED EXAMPLE (from user screenshot, clide_markdown.dart run): the current stream renders 11 stacked cards — 3x "Edit clide_markdown.dart", then a folded "Read … 2 steps" holder, then 7x "Edit clide_markdown.dart". With this feature it collapses to THREE cards:
+- [3 edits]  (the first edit run)
+- [2 steps]  (the existing Read holder — unchanged; this is what splits the edit run)
+- [7 edits]  (the second edit run)
+Confirms the split rule: an interleaving non-edit step (here the folded Read run) breaks the consecutive-same-file edit grouping into two separate edit cards. Same-file edits with nothing between them collapse into one "# edits" card.
+
+STATUS INDICATOR (live tick reuse): the bundled edits card carries ONE header status indicator that reuses the existing per-step success tick, driven by the latest edit''s state:
+- edit in flight  -> spinner
+- edit completed  -> success check (the current green tick)
+- next edit starts -> back to spinner
+- ...repeat, settling on check when the final edit in the run completes (or the error glyph if one fails).
+So the collapsed card''s indicator animates spinner<->check as the run grows, rather than showing a static tick. Each individual edit keeps its own tick in the expanded list (unchanged); this is the aggregate indicator on the holder header/ticker. Mirror the same treatment for the existing "# steps" activity card if it doesn''t already do this.', 'When Claude makes multiple subsequent edits to the SAME file, bundle them into a single collapsed holder card instead of rendering each edit as its own card — mirroring how we already fold meta/activity runs.
+
+Behaviour:
+- Detect a run of consecutive edits targeting the same file_path and group them into one ClideHolderCard (the shared container from T-266; see _ActivityCard in lib/builtin/claude/src/conversation_view.dart:681).
+- Collapsed (default): one-line ticker of the latest edit + a count label.
+- Show the count as "# edits" (e.g. "3 edits" / "1 edit"), NOT "# steps". The existing activity card uses stepLabel = ''$count steps'' at conversation_view.dart:683; this run wants an edits-flavoured label.
+- Expanded: every individual edit, each with its full report — bundle, do NOT drop or summarise away any information. All per-edit detail must remain reachable on expand.
+
+Notes:
+- Reuse the existing ClideHolderCard / folding machinery rather than building a new card.
+- Grouping breaks when the file_path changes or a non-edit step interleaves (consecutive-same-file only), matching the ''subsequent edits to the same file'' wording.
+- Parity with the existing meta/activity folding (T-230) — same collapse/expand affordance, just an edits-labelled run.
+
+WORKED EXAMPLE (from user screenshot, clide_markdown.dart run): the current stream renders 11 stacked cards — 3x "Edit clide_markdown.dart", then a folded "Read … 2 steps" holder, then 7x "Edit clide_markdown.dart". With this feature it collapses to THREE cards:
+- [3 edits]  (the first edit run)
+- [2 steps]  (the existing Read holder — unchanged; this is what splits the edit run)
+- [7 edits]  (the second edit run)
+Confirms the split rule: an interleaving non-edit step (here the folded Read run) breaks the consecutive-same-file edit grouping into two separate edit cards. Same-file edits with nothing between them collapse into one "# edits" card.
+
+STATUS INDICATOR (live tick reuse): the bundled edits card carries ONE header status indicator that reuses the existing per-step success tick, driven by the latest edit''s state:
+- edit in flight  -> spinner
+- edit completed  -> success check (the current green tick)
+- next edit starts -> back to spinner
+- ...repeat, settling on check when the final edit in the run completes (or the error glyph if one fails).
+So the collapsed card''s indicator animates spinner<->check as the run grows, rather than showing a static tick. Each individual edit keeps its own tick in the expanded list (unchanged); this is the aggregate indicator on the holder header/ticker. Mirror the same treatment for the existing "# steps" activity card if it doesn''t already do this.
+
+DONE 2026-06-09 (commit). coalesceEditRuns folds consecutive same-file edits into one ''# edits'' ClideHolderCard; aggregate live status via new ClideStatusIndicator (running/success/error) + ClideSpinner (logo-mark, 3D Y rotation, reduced-motion aware), shared with the activity card. Per user: spinner is a self-contained component (not built on ConversationCard''s mark) with an AnimatedSwitcher seam for a richer spinner→check transition later. Tests: activity_cluster_test (coalesce), conversation_view_test (edits card), clide_status_indicator_test.', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '899916f67fe3c12a2ac4d231630bd34d', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-296', 'status', 'ready', 'done', NULL, '2026-06-09 16:34:46', '2026-06-09 16:34:46', '2026-06-09 16:34:46', NULL, '9c76b18710ed6e17c878dea8f92ad881', 1) ON CONFLICT(hash) DO NOTHING;
