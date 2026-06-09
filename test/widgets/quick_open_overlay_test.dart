@@ -163,4 +163,15 @@ void main() {
     await pumpAsync(tester);
     expect(find.text('No matching files'), findsOneWidget);
   });
+
+  testWidgets('the palette is width-capped (not stretched) on an ultrawide surface (T-241)', (tester) async {
+    setSurfaceSize(tester, 3440);
+    await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
+    f.services.quickOpen.open();
+    await pumpAsync(tester);
+    // The panel is a fixed 480 — the filter field must stay capped, not span the
+    // full 3440 (a Row/Expanded regression would stretch it edge to edge).
+    final field = tester.getRect(find.byType(EditableText));
+    expect(field.width, lessThan(600), reason: 'capped to the panel, not stretched across the ultrawide surface');
+  });
 }

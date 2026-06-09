@@ -6,6 +6,8 @@ import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/widget_harness.dart';
+
 Widget _boxed(double width, Widget child) => Directionality(
       textDirection: TextDirection.ltr,
       child: Center(
@@ -33,6 +35,19 @@ void main() {
     expect(find.text('a long status line that overflows the slot'), findsWidgets);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox()); // dispose → stop ticker
+  });
+
+  testWidgets('a line that fits an ultrawide slot stays static, no scroll/overflow (T-241)', (tester) async {
+    // The slot must really be 3440 wide — a SizedBox(3440) under the default
+    // 800px surface would be clamped, so size the view first.
+    setSurfaceSize(tester, 3440, height: 200);
+    await tester.pumpWidget(_boxed(3440, const ClideMarquee(child: Text('a normal-length status line'))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100)); // would advance a ticker if one started
+    // Fits the wide slot → a single static copy (not the looped duplicate), no overflow.
+    expect(find.text('a normal-length status line'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('reduced motion (disableAnimations) does not scroll; pumpAndSettle completes (T-284)', (tester) async {

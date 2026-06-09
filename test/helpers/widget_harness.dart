@@ -89,3 +89,17 @@ Future<void> pumpAsync(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 20));
 }
+
+/// Size the test surface to [width]×[height] for width-sensitive layout checks
+/// (T-241). A wide SizedBox under the default 800px surface is CLAMPED, so the
+/// view's physicalSize must be set directly. Auto-resets after the test. Pass an
+/// ultrawide width (e.g. 3440) alongside a normal one to catch width-PROPORTIONAL
+/// bugs that hide at 800px (the T-239 class of bug).
+void setSurfaceSize(WidgetTester tester, double width, {double height = 800}) {
+  tester.view.physicalSize = Size(width, height);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
