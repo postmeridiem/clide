@@ -2092,3 +2092,35 @@ STATUS CORRECTED (2026-06-09): not superseded — substantially DELIVERED. 32/34
 
 CLOSED 2026-06-09: all doable work delivered (native Claude pane, transcript rendering, select/copy, no terminal, tmux team tiles + meta sidebar, composer, activity-card folding incl. the persisted fold level T-235, D-75). The one blocked item — account/team token budget — was detached (T-158) and reframed as Q-34 (how + when to surface it given upstream doesn''t expose the data); T-158 is the resolver, parked in the backlog. Nothing actionable remains under this epic.', NULL, '2026-06-09 17:23:25', '2026-06-09 17:23:25', '2026-06-09 17:23:25', NULL, '19f585ff8564f76c5d823a3455831636', 1) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-132', 'status', 'in_progress', 'done', NULL, '2026-06-09 17:23:25', '2026-06-09 17:23:25', '2026-06-09 17:23:25', NULL, '6ad60f480bedf1a382cfb9af3d415060', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-300', 'parent_id', NULL, 'T-276', NULL, '2026-06-09 20:02:53', '2026-06-09 20:02:53', '2026-06-09 20:02:53', NULL, '260fe1f17b71bdc89c40df70fba3aab9', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-300', 'description', NULL, 'Make file-path references rendered in the Claude conversation pane clickable: clicking a path opens that file in the editor.
+
+**Behavior**
+- Detect references to files in the workspace as the conversation markdown is rendered — bare paths (`lib/app.dart`), `file:line` forms (`lib/app.dart:42`, clickable per CLAUDE.md), and likely inline-code spans / markdown links pointing at repo paths.
+- Resolve against the workspace root (CLIDE_WORKSPACE / git repo root). Only linkify paths that exist in the repo to avoid false positives on prose.
+- On click, open in the editor — same path as `clide editor open <path>` — and jump to the line when a `:line` suffix is present.
+
+**Notes / constraints**
+- Markdown rendering is clide-owned custom CustomPaint/widgets (not a package), so detection + hit-testing lands in the conversation/markdown render path.
+- Honors User/Claude parity (D-6): the click maps to the existing `clide editor open` verb.
+- Open questions to settle during design: how aggressive path detection should be (existence check vs. heuristic), handling of non-existent / external paths, and visual affordance (underline/hover) for a linkified ref.', NULL, '2026-06-09 20:03:08', '2026-06-09 20:03:08', '2026-06-09 20:03:08', NULL, 'b958458ae0528f8c5a90e2222c1b4447', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-301', 'parent_id', NULL, 'T-276', NULL, '2026-06-09 20:04:31', '2026-06-09 20:04:31', '2026-06-09 20:04:31', NULL, 'b8ab10d6e8cf7cef0fc3ee4e26295469', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-301', 'description', NULL, 'When file paths to files inside the current repo appear in the Claude conversation, show them relative to the repo root rather than as absolute paths.
+
+**DESIGN OPEN — needs discussion before implementation.** The exact presentation is undecided.
+
+**Intent**
+- Paths that resolve inside the workspace (CLIDE_WORKSPACE / git repo root) should read as repo-relative (e.g. `lib/app.dart` instead of `/var/mnt/data/projects/clide/lib/app.dart`).
+- Goal is readability — strip the absolute prefix that''s noise for in-repo files.
+
+**Open questions to settle in discussion**
+- Visual treatment: silently rewrite the displayed text? show relative with the absolute available on hover/tooltip? a leading marker (e.g. `./` or a repo-root glyph)?
+- Scope: only linkified/recognized refs (ties to T-300), or any path-looking token in the rendered output?
+- Out-of-repo / absolute paths: leave untouched, or abbreviate (e.g. `~`)?
+- Interaction with copy: does copying yield the relative or the original absolute path?
+- Does this happen at render time only, or is the underlying text also normalized?
+
+**Related**
+- Pairs with T-300 (clickable file references) — same conversation/markdown render path; likely share path-detection + workspace-root resolution.', NULL, '2026-06-09 20:04:54', '2026-06-09 20:04:54', '2026-06-09 20:04:54', NULL, '05fb96e25be6d666d0e259f45ada35a5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-242', 'description', NULL, 'VERIFIED DONE 2026-06-09: failures-only is the default reporter across all gate scripts — ci/test.sh (REPORTER var, used in every flutter/dart test invocation), ci/test_core.sh, ci/test_a11y.sh — each with a TEST_REPORTER=expanded escape hatch for debugging. No work remaining.', NULL, '2026-06-09 20:07:29', '2026-06-09 20:07:29', '2026-06-09 20:07:29', NULL, '5a4b91ffd41fde8bca92457d539e2bd5', 1) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('T-242', 'status', 'ready', 'done', NULL, '2026-06-09 20:07:30', '2026-06-09 20:07:30', '2026-06-09 20:07:30', NULL, '98793f24ffa8ce23f574b1ddd702a476', 1) ON CONFLICT(hash) DO NOTHING;
