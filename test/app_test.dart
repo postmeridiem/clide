@@ -315,14 +315,16 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // QUARANTINED (T-280): this test wedges the runner for 10 minutes — teardown
-  // hangs on `_RawReceivePort._handleMessage`. Pre-existing (reproduces at the
-  // base commit, predates the T-267 epic) and not a `Process.run`/`runAsync`
-  // fix away — the booted-app + open-folder path holds a native port teardown
-  // never drains. Skipped to keep the gate green; see T-280 for the bisection
-  // and the real fix (drain the leaked resource, then remove this skip).
-  testWidgets('Open Folder on a non-repo path surfaces the "no git repo" dialog', (tester) async {
-    final tmp = await Directory.systemTemp.createTemp('clide-not-a-repo-');
+  // T-280: this previously wedged the runner ~10 min on a `_RawReceivePort`
+  // teardown hang. Root cause: project validation shelled out to `git rev-parse`
+  // via `Process.run`, whose exit ReceivePort leaks under the widget-test
+  // fake-async harness. The fixture now validates with a pure-Dart `.git` walk
+  // (no subprocess), so the open-folder flow is subprocess-free and the test
+  // runs clean. The only real I/O left (creating the temp dir) is confined to
+  // `tester.runAsync`.
+  testWidgets('Open Folder on a non-repo path surfaces the "no git repo" dialog (T-280)', (tester) async {
+    late final Directory tmp;
+    await tester.runAsync(() async => tmp = await Directory.systemTemp.createTemp('clide-not-a-repo-'));
     addTearDown(() => tmp.delete(recursive: true));
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('clide/window'),
@@ -331,20 +333,18 @@ void main() {
     addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), null));
 
     await pumpApp(tester);
-    await tester.tap(find.text(clideName)); // switcher (no project open)
+    // The welcome overlay also renders a "clide" wordmark, so scope the tap to
+    // the hat-bar switcher button (the only ClideTappable bearing that label).
+    await tester.tap(find.widgetWithText(ClideTappable, clideName)); // switcher (no project open)
     await tester.pump();
-    await tester.runAsync(() async {
-      await tester.tap(find.text('Open Local Project')); // picks tmp → not a repo
-      // Let the (unawaited) command run pickDirectory + git rev-parse.
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-    });
+    await tester.tap(find.text('Open Local Project')); // picks tmp → not a repo (pure-Dart walk)
     await tester.pump();
     await tester.pump();
     expect(find.text('No git repo found'), findsOneWidget);
     await tester.tap(find.text('OK'));
     await tester.pump();
     expect(find.text('No git repo found'), findsNothing);
-  }, skip: true); // T-280: wedges the runner ~10min on a ReceivePort teardown hang (pre-existing)
+  });
 
   testWidgets('Alt+F opens the application File menu', (tester) async {
     await pumpApp(tester);

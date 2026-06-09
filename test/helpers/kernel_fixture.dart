@@ -21,6 +21,7 @@ class KernelFixture {
     List<String>? preloadNamespaces,
     Locale? initialLocale,
     Locale defaultLocale = const Locale('en', 'US'),
+    Future<String?> Function(String path)? onValidateProject,
   }) async {
     final tempDir = await Directory.systemTemp.createTemp('clide_test_');
     final themes = bundledThemes ?? [_miniTheme()];
@@ -38,6 +39,11 @@ class KernelFixture {
         return fake!;
       },
       autoStartDaemonClient: false,
+      // Validate projects with a pure-Dart `.git` walk instead of the default
+      // `git rev-parse` subprocess. A real `Process.run` under the widget-test
+      // fake-async harness leaks its exit ReceivePort and wedges teardown for
+      // ~10 minutes (T-280); `existsSync` opens no native port, so it's safe.
+      onValidateProject: onValidateProject ?? _walkForGitRoot,
     );
     return KernelFixture._(
       services: services,
@@ -55,6 +61,26 @@ class KernelFixture {
         // ignore in tests; OS will reclaim
       }
     }
+  }
+}
+
+/// Pure-Dart stand-in for `git rev-parse --show-toplevel`: walk up from [path]
+/// looking for a `.git` directory and return the repo root, or null if none.
+/// Synchronous `existsSync` deliberately — it opens no native ReceivePort, so
+/// it completes cleanly under the fake-async widget-test harness where a real
+/// `Process.run` would leak and hang teardown (T-280).
+Future<String?> _walkForGitRoot(String path) {
+  var dir = Directory(path);
+  if (!dir.existsSync()) return Future.value(null);
+  while (true) {
+    // A `.git` directory (normal clone) or file (worktree/submodule) both mark
+    // a repo root — match either, like `git rev-parse` would.
+    if (FileSystemEntity.typeSync('${dir.path}/.git') != FileSystemEntityType.notFound) {
+      return Future.value(dir.path);
+    }
+    final parent = dir.parent;
+    if (parent.path == dir.path) return Future.value(null); // reached the fs root
+    dir = parent;
   }
 }
 
