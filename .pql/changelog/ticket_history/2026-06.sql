@@ -3042,3 +3042,46 @@ The LABEL is the bridge between the two surfaces: Claude attaches a label to eac
 - Unknown/invalid icon names fail with a clear user error, not a blank glyph.
 
 FOLLOW-UPS: the piped-JSON (--stdin) variant is split out as T-315 (generic CLI stdin plumbing); image.show gets the same metadata/annotation treatment in T-316. T-313 ships with --file regardless of T-315.', NULL, '2026-06-10 10:55:49', '2026-06-10 10:55:49', '2026-06-10 10:55:49', NULL, 'b75962f3fb5da0a8c44f7e059d7035b2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EDCBYRBDSV9V1PJ1KE3CM', 'description', NULL, 'Epic for the unified conversation drawing card — ONE clide-owned canvas renderer driven by a JSON document, replacing the trend of one-off conversation renderers (image card, icon card, …). See decision D-91.
+
+## The model
+
+Think HTML `<canvas>`, NOT Obsidian''s `.canvas` (Obsidian naming its feature ''canvas'' doesn''t make its schema our pattern). The card''s JSON can express raw PRIMITIVES (rects/lines/text at coordinates — ''draw a box at x,y, a line from x,y to x,y'' works), but in the common case it runs in TEMPLATE mode: the JSON names a predefined component and the card grabs it. Templates lower onto the same primitive scene the raw API accepts (hybrid: scene-graph core + high-level block sugar).
+
+Per drawn object there is an optional label + description widget rendered BENEATH it, shown only when those fields are present in the JSON.
+
+The card is DISPLAY-ONLY (D-78) — selection/interaction happens in the interaction zone, never on the card. The labels are the bridge to interaction-zone choice lists (see T-313).
+
+## Template set (expand as we go)
+
+- image — display the file, lightbox on click
+- icon — the multi-size glyph set (T-313)
+- compare-images / before-after — two (or more) paths side by side, each with its label/description
+- svg — render an SVG file
+- graph — render a graph
+- …more added incrementally; ''we will expand the templates as we go''
+
+## Reuse goal
+
+The same renderer is intended for reuse as the `.canvas` VIEWER elsewhere: a `.canvas` file is converted into this JSON (not the card adopting Obsidian''s schema natively). Narrows Q-4.
+
+## Input
+
+Driven via the clide CLI (D-6 parity), consuming the JSON-payload plumbing — `--file` and the stdin path (T-315).
+
+## Children / related
+
+- Core canvas engine (primitives + template dispatch + per-object label/description) — foundational.
+- Per-template tickets: image, icon (T-313), compare/before-after, svg, graph.
+- T-315 — stdin/--file JSON input plumbing (input channel).
+- T-316 — image annotation metadata (folds in as the image/compare template''s label/description/markers).
+- `.canvas` -> JSON converter / reuse (deferred).
+- Existing image card (T-249/T-252): LEFT AS-IS for now; migrated onto the canvas once the canvas layer lands.
+
+## Scope note
+
+This is a real renderer with a schema, not a one-off widget. The schema must stay coherent across the primitive and template layers as templates accrue (D-91 cost). Start with a true canvas + the first templates; grow the template set over time.', NULL, '2026-06-10 11:10:59', '2026-06-10 11:10:59', '2026-06-10 11:10:59', NULL, '7892f2cc2259a7e3cf3d50ceb1c93358', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2AD3HPR3HXSVASVZEX8PK0', 'parent_id', 'T-276', 'T-317', NULL, '2026-06-10 11:11:10', '2026-06-10 11:11:10', '2026-06-10 11:11:10', NULL, '245a2639738736df805e3e3eaa7cbb96', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'parent_id', 'T-276', 'T-317', NULL, '2026-06-10 11:11:10', '2026-06-10 11:11:10', '2026-06-10 11:11:10', NULL, '994f7c1bd8f3f205dc7183cccf7d4329', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ACSDBDZARV3NNGYD9NYYR', 'parent_id', 'T-276', 'T-317', NULL, '2026-06-10 11:11:10', '2026-06-10 11:11:10', '2026-06-10 11:11:10', NULL, 'e0ba90285dafac31357bb999d8e12c36', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16YM1Y910T07Y1Y22MGTEM', 'status', 'ready', 'done', NULL, '2026-06-10 11:16:41', '2026-06-10 11:16:41', '2026-06-10 11:16:41', NULL, '9873b3f3b5d107be1146224ac48b9b45', 2) ON CONFLICT(hash) DO NOTHING;

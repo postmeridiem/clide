@@ -122,6 +122,60 @@ void main() {
       ],
     ),
   );
+
+  goldenTest(
+    'ConversationCard meta cards (T-306): context / thinking are framed + muted',
+    fileName: 'conversation_card_meta',
+    builder: () => GoldenTestGroup(
+      columns: 1,
+      children: [
+        GoldenTestScenario(
+          name: 'context — framed, muted, collapsed with first-line summary',
+          child: _wrap(
+            f,
+            const ConversationCard(
+              variant: ConversationCardVariant.bordered,
+              accent: Color(0xFF6A7280),
+              label: 'context',
+              collapsible: true,
+              collapsedByDefault: true,
+              collapsedSummary: 'Base directory for this skill: /var/mnt/…',
+              body: Text('Base directory for this skill: /var/mnt/data/projects/clide', textDirection: TextDirection.ltr),
+            ),
+          ),
+        ),
+        GoldenTestScenario(
+          name: 'thinking — framed, muted, collapsed with first-line summary',
+          child: _wrap(
+            f,
+            const ConversationCard(
+              variant: ConversationCardVariant.bordered,
+              accent: Color(0xFF6A7280),
+              label: 'thinking',
+              collapsible: true,
+              collapsedByDefault: true,
+              collapsedSummary: 'Let me check the layout chain first…',
+              body: Text('Let me check the layout chain first…', textDirection: TextDirection.ltr),
+            ),
+          ),
+        ),
+        GoldenTestScenario(
+          name: 'context — expanded body',
+          child: _wrap(
+            f,
+            const ConversationCard(
+              variant: ConversationCardVariant.bordered,
+              accent: Color(0xFF6A7280),
+              label: 'context',
+              collapsible: true,
+              collapsedByDefault: false,
+              body: Text('Base directory for this skill: /var/mnt/data/projects/clide', textDirection: TextDirection.ltr),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 Widget _wrap(KernelFixture f, Widget child) => SizedBox(

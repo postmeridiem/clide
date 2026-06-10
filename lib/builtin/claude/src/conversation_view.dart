@@ -419,7 +419,10 @@ class _ConversationTurn extends StatelessWidget {
       // sidechain prompt here is an orphan one (its Agent card couldn't be
       // resolved) — folded prompts are suppressed upstream (T-263).
       UserMessage() when i.injected || i.isSidechain => ConversationCard(
-          variant: ConversationCardVariant.bare,
+          // Framed like every other card (T-306) — just muted + collapsed, not
+          // the blue "you" accent (D-78); bare read as unfinished next to the
+          // carded tool calls.
+          variant: ConversationCardVariant.bordered,
           accent: tokens.globalTextMuted,
           label: i.isSidechain ? 'agent prompt' : 'context',
           copyText: i.text,
@@ -454,12 +457,14 @@ class _ConversationTurn extends StatelessWidget {
           body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id), onLinkTap: (url) => _openUrl(context, url)),
         ),
       AssistantThinkingMessage() => ConversationCard(
-          variant: ConversationCardVariant.bare,
+          // Framed + muted like the context card (T-306).
+          variant: ConversationCardVariant.bordered,
           accent: tokens.globalTextMuted,
           label: i.isSidechain ? 'agent thinking' : 'thinking',
           copyText: i.thinking,
           collapsible: true,
           collapsedByDefault: true,
+          collapsedSummary: _firstLine(i.thinking),
           margin: _childMargin,
           body: ClideText(i.thinking, muted: true, fontSize: clideFontMeta),
         ),

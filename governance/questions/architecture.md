@@ -29,9 +29,10 @@ ticket persistence.
 - **Source:** ADR 0006 (migrated to [D-6](architecture.md)).
 
 ### Q-4: `.canvas` schema compatibility with Obsidian
-- **Status:** Open
+- **Status:** Open — narrowed by [D-91](../decisions/architecture.md#d-91-unified-conversation-drawing-card-backed-by-a-canvas-renderer)
 - **Question:** Clide's canvas (Tier 5) should read/write something — either Obsidian's `.canvas` JSON schema verbatim, a compatible-ish superset, or our own format. Each has trade-offs.
 - **Context:** Obsidian's canvas users might want their canvases portable; conversely, bending to Obsidian's schema constrains our canvas features.
+- **Narrowed (2026-06-10):** D-91 sets the direction — clide's canvas uses its OWN HTML-`<canvas>`-inspired JSON (the unified drawing-card schema), not Obsidian's `.canvas` natively. Obsidian `.canvas` is treated as an **import** format, ingested by converting it into clide's JSON, so the same renderer can display it. What remains open here: the exact converter mapping and how lossless/round-trippable `.canvas` interop needs to be.
 - **Source:** CLAUDE.md "Open questions" footer.
 
 ### Q-5: IPC wire-format stability + `schema_version:`

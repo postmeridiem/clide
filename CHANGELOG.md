@@ -256,6 +256,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **The `context` / `thinking` / agent-prompt blocks are now carded like the
+  rest.** These muted meta blocks used to render frameless, reading as
+  unfinished `> context …` rows wedged between the framed tool cards. They now
+  sit in a proper bordered card — still muted, collapsed by default, with a
+  first-line summary and a left chevron toggle — matching the surrounding
+  cards. (T-306)
 - **Numpad digits now pick permission/question options too.** The prompt card's
   number-key shortcuts only matched the top number row; numpad `1`-`9` now map to
   the same 1-9 selection, so the keypad works for Allow/Deny and question options.

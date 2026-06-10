@@ -1866,3 +1866,157 @@ The LABEL is the bridge between the two surfaces: Claude attaches a label to eac
 - Unknown/invalid icon names fail with a clear user error, not a blank glyph.
 
 FOLLOW-UPS: the piped-JSON (--stdin) variant is split out as T-315 (generic CLI stdin plumbing); image.show gets the same metadata/annotation treatment in T-316. T-313 ships with --file regardless of T-315.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 10:55:49', NULL, 'e2a3afff7620d41cf75d0b55c90543df', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EDCBYRBDSV9V1PJ1KE3CM', 'epic', NULL, 'Unified conversation drawing card (canvas renderer)', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 11:10:07', '2026-06-10 11:10:07', NULL, 'f62f2ff781a057083ca0dc6855824778', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EDCBYRBDSV9V1PJ1KE3CM', 'epic', NULL, 'Unified conversation drawing card (canvas renderer)', 'Epic for the unified conversation drawing card — ONE clide-owned canvas renderer driven by a JSON document, replacing the trend of one-off conversation renderers (image card, icon card, …). See decision D-91.
+
+## The model
+
+Think HTML `<canvas>`, NOT Obsidian''s `.canvas` (Obsidian naming its feature ''canvas'' doesn''t make its schema our pattern). The card''s JSON can express raw PRIMITIVES (rects/lines/text at coordinates — ''draw a box at x,y, a line from x,y to x,y'' works), but in the common case it runs in TEMPLATE mode: the JSON names a predefined component and the card grabs it. Templates lower onto the same primitive scene the raw API accepts (hybrid: scene-graph core + high-level block sugar).
+
+Per drawn object there is an optional label + description widget rendered BENEATH it, shown only when those fields are present in the JSON.
+
+The card is DISPLAY-ONLY (D-78) — selection/interaction happens in the interaction zone, never on the card. The labels are the bridge to interaction-zone choice lists (see T-313).
+
+## Template set (expand as we go)
+
+- image — display the file, lightbox on click
+- icon — the multi-size glyph set (T-313)
+- compare-images / before-after — two (or more) paths side by side, each with its label/description
+- svg — render an SVG file
+- graph — render a graph
+- …more added incrementally; ''we will expand the templates as we go''
+
+## Reuse goal
+
+The same renderer is intended for reuse as the `.canvas` VIEWER elsewhere: a `.canvas` file is converted into this JSON (not the card adopting Obsidian''s schema natively). Narrows Q-4.
+
+## Input
+
+Driven via the clide CLI (D-6 parity), consuming the JSON-payload plumbing — `--file` and the stdin path (T-315).
+
+## Children / related
+
+- Core canvas engine (primitives + template dispatch + per-object label/description) — foundational.
+- Per-template tickets: image, icon (T-313), compare/before-after, svg, graph.
+- T-315 — stdin/--file JSON input plumbing (input channel).
+- T-316 — image annotation metadata (folds in as the image/compare template''s label/description/markers).
+- `.canvas` -> JSON converter / reuse (deferred).
+- Existing image card (T-249/T-252): LEFT AS-IS for now; migrated onto the canvas once the canvas layer lands.
+
+## Scope note
+
+This is a real renderer with a schema, not a one-off widget. The schema must stay coherent across the primitive and template layers as templates accrue (D-91 cost). Start with a true canvas + the first templates; grow the template set over time.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 11:10:07', '2026-06-10 11:10:59', NULL, 'bc20218bb8e27a91cd16929d5b99352d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Native Phosphor glyph card — multi-icon list with optional labels/descriptions (previews + choice offers)', 'A conversation-pane card that renders one OR MANY Phosphor glyphs by name/codepoint, each with an optional label and an optional description line, so icons can be previewed and compared in the live pane — and so a set of candidate icons can be offered as a labelled choice list (e.g. picking settings-scope icons, T-302).
+
+## Why
+
+Picking icons needs to SEE real glyphs side by side with what each one means. Frame0 can''t render Phosphor (private-use codepoints, no font) and goldens render the font as Ahem boxes, so preview only works where the app has the font — a native card is the vehicle. Beyond a bare grid, real icon decisions are ''which of these N icons, for these N meanings'' — so each entry wants an optional label (what we''d call it) and an optional description (what it represents), turning the card into an offer/choice list.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a list/grid of entries, each entry = glyph + optional label + optional description, driven by the clide CLI (D-6 parity). Uses the bundled Phosphor.ttf via PhosphorIconPainter.
+
+### Multi-size rendering (per entry)
+
+Each icon is shown at SEVERAL sizes, not one: (1) a large hero rendering so the glyph''s detail is clearly legible, and (2) a sample at each font-size token the app actually uses inline, so you can judge how the glyph reads at real UI sizes. The relevant inline scale is in lib/widgets/src/typography.dart: clideFontBadge (11), clideFontSmall (12), clideFontMeta (13), clideFontCaption/clideFontMono (14), clideFontBody (15). Drive the inline samples off those tokens (not bare numbers) so the row tracks the scale if it changes. For the hero, REUSE the existing clideFontWelcomeBanner (52) token rather than adding a new constant — it''s already the app''s named oversized size; no new token needed. Lay the size samples out in a single row/strip per entry, smallest to largest, labelled with the token/px so a reviewer sees exactly where each size lands.
+
+### CLI shape + IPC wiring (mirror image.show exactly)
+
+Follow the image-card template (lib/src/daemon/image_commands.dart) end to end — it is the proven D-6 parity pattern:
+
+- REGISTRATION: a dotted `icon.show` command on DaemonDispatcher (invoked as `clide icon show`), declared with a CommandSchema — positional + per-arg ArgSpec — exactly like image.show''s `{positional: [''path''], args: {...}}`. Handler stays Flutter-free so it runs under `dart test`.
+- BARE PREVIEW (variadic): one or more icons as positionals via ArgType.stringList — `clide icon show gear folder gauge` — each a kebab-case name (resolved by PhosphorIcons.byName) or a 0xNNNN codepoint. stringList is already supported by the schema (lib/src/ipc/command_schema.dart) and the argv parser, so no new CLI plumbing.
+- LABELLED/DESCRIBED entries: a `--file <path.json>` flag whose value is a JSON array of `{"icon": "gear", "label": "Settings", "description": "global scope"}` (label, description optional); the handler reads and parses the file. NOTE: do NOT spec `--stdin` — clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals/flags/passthrough and has no stdin path, so a `--file` flag (or repeated flags) is the grounded choice unless we deliberately add stdin support as separate work.
+- RENDER PATH: validate + resolve icon names in the handler (inject a resolver the way image.show injects ImagePathResolver, so headless/dart-test stays filesystem-free), then publish on a dedicated MessageBus channel — e.g. `iconShowChannel = ''icon''`, peer of `imageShowChannel = ''image''` — captured post-boot in main.dart; the Claude extension subscribes to that literal and injects the card into the primary session''s conversation log. Honest failure (IpcError userError/notFound) on an unknown glyph name or a malformed/missing --file, and on no live UI bus (headless), mirroring image.show.
+- One card per invocation; entries render as rows (or a grid when label/description are absent).
+
+## Display-only card + interaction-zone selection (D-78 — decided)
+
+DECIDED: the display card is display-only; the SELECTION happens in the convo box (interaction zone), not on the card. The card renders the labelled icon options for the user to SEE; when a pick is needed, Claude offers a matching choice list in the interaction zone (AskUserQuestion-style options that replace the composer), and the user selects there. This keeps conversation widgets display-only per D-78 and the interaction-zone rule.
+
+The LABEL is the bridge between the two surfaces: Claude attaches a label to each icon on the display card, then offers the SAME labels as the options in the interaction-zone choice list — so ''I pick Settings'' in the convo box maps unambiguously back to the glyph the user saw on the card. That''s why per-entry labels are first-class here: they exist to facilitate this show-then-pick flow, with the description giving the extra context that doesn''t fit a one-word option. The card may still copy a codepoint/name on click (a convenience), but it never resolves the choice itself.
+
+## Notes / scope
+
+- Name->codepoint resolution ALREADY EXISTS: lib/widgets/src/icons/phosphor_glyphs.g.dart (generated, 1512 glyphs) + PhosphorIcons.byName. The earlier ''OPTIONAL: generate the full set'' caveat is resolved — every named glyph is already resolvable; the 49 curated consts in phosphor.dart remain curated sugar.
+- Every glyph already renders via PhosphorIconPainter(0xNNNN).
+- label and description are both optional per entry; an entry with neither degrades to the bare-preview look.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302); refined 2026-06-10 to cover multi-icon labelled offer/choice lists.
+
+## Acceptance
+
+- `icon.show` is registered on DaemonDispatcher with a CommandSchema and invoked as `clide icon show`, mirroring image.show; the handler is Flutter-free and publishes on an `icon` MessageBus channel injected by the Claude extension.
+- `clide icon show <name> [<name> ...]` accepts multiple icons (variadic stringList positionals) in one call and renders them in a single conversation card.
+- A `--file <path.json>` payload lets each icon carry an optional label and optional description, both rendered alongside the glyph (no --stdin — not supported by the CLI parser).
+- Each icon renders at multiple sizes: a hero at the existing clideFontWelcomeBanner (52) token plus one sample at each inline font-size token (badge 11 -> body 15), sized off the typography tokens and labelled so the reviewer sees legibility at real UI sizes.
+- The card is display-only (no inline selection); selection happens in the interaction zone (convo box) via a Claude-offered choice list whose options reuse the per-icon labels from the card.
+- Unknown/invalid icon names fail with a clear user error, not a blank glyph.
+
+FOLLOW-UPS: the piped-JSON (--stdin) variant is split out as T-315 (generic CLI stdin plumbing); image.show gets the same metadata/annotation treatment in T-316. T-313 ships with --file regardless of T-315.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 11:11:10', NULL, '55c15feee383840b59617058ed513421', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ACSDBDZARV3NNGYD9NYYR', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'clide CLI: accept a JSON payload on stdin for structured commands', 'Add a stdin path to clide''s CLI so a command can receive a JSON payload piped in — `… | clide icon show --stdin`, `cat meta.json | clide image show foo.png --stdin` — instead of only positionals/flags or a `--file`.
+
+## Why
+
+Structured commands (the labelled icon-card entries in T-313, image annotation metadata in T-316) want a JSON payload that''s awkward to express as flags. Today clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals, --flags, and `-- passthrough`; there is no stdin path. T-313 therefore falls back to a `--file <path.json>` flag. A `--stdin` convention is the ergonomic peer of `--file` for piping, and is shared infra both icon.show and image.show consume.
+
+## Where the work lives
+
+clide''s IPC server runs in-process and the `clide` CLI is a thin client that serialises argv into an IpcRequest over CLIDE_SOCK. So stdin must be slurped CLIENT-SIDE (in lib/src/cli/, around argv_to_request.dart / argv_dispatch.dart) and folded into the request before it is sent — the in-process handler never sees the real stdin. Decide how it surfaces in the envelope: e.g. a reserved `stdin`/`payload` field on IpcRequest, or a synthesised arg the CommandSchema can opt into (an ArgSpec flag like `acceptsStdin`, mirroring how ArgType.stringList is declared in lib/src/ipc/command_schema.dart).
+
+## Scope / decisions
+
+- Generic infra, not icon/image specific — once landed, any command opts in via its CommandSchema.
+- Keep `--file` working; --stdin and --file should be mutually exclusive (error if both given) or layered with a defined precedence.
+- Text/JSON payloads only to start; define a size cap and a clear error when --stdin is passed but stdin is empty/not a pipe (don''t hang waiting on a TTY).
+- Honest IpcError (userError) on malformed JSON, surfaced like image.show''s other validation failures.
+- D-6 parity: document the stdin convention alongside the other CLI verbs.
+
+## Acceptance
+
+- A command can declare (via CommandSchema) that it accepts a stdin payload; piping JSON in populates the IpcRequest with that payload.
+- `clide icon show --stdin` (T-313) and `clide image show <path> --stdin` (T-316) both consume it.
+- --stdin + --file together is a clear user error; --stdin with no piped input fails fast, never hangs on a TTY.
+- Malformed JSON returns a userError with a helpful message.
+
+Unblocks the piped-JSON variants of T-313 (icon entries) and T-316 (image annotations); both can also ship with --file independently of this.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 10:52:34', '2026-06-10 11:11:10', NULL, '69251007038985decbc3e18585f2d7b1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2AD3HPR3HXSVASVZEX8PK0', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'clide image show: JSON metadata payload so images can be annotated (label/description/markers)', 'Give `clide image show` the same structured-metadata plumbing the icon card gets (T-313), so an image driven into the conversation can carry ANNOTATIONS — not just a single one-line caption.
+
+## Why
+
+Today image.show (lib/src/daemon/image_commands.dart) takes a `path` positional plus an optional `--caption` string, and ImageMessage (lib/builtin/claude/src/transcript_reader.dart:160) holds only `path` + optional one-line `caption`. When showing a screenshot/wireframe to discuss, one line is thin — we want to attach a title/label, a longer description, and potentially captioned markers (callouts on specific spots). This mirrors the per-entry label+description the icon card introduces.
+
+## Deliverable
+
+Extend image.show to accept a JSON metadata payload (via the new stdin plumbing T-315 and/or a `--file <path.json>` flag, same as T-313''s icon entries) describing the image''s annotations, e.g.:
+
+  { "path": "docs/shot.png", "label": "HUD v3", "description": "note the cramped status row", "caption": "before the fix" }
+
+Extend ImageMessage + the image card to render the richer metadata. Keep the existing `clide image show <path> --caption "…"` form working unchanged (back-compat); the JSON payload is additive.
+
+## Open decision — text vs visual annotation
+
+''Annotated'' could mean (a) richer TEXT metadata shown around the image (label + description + caption), or (b) VISUAL overlays drawn ON the image (markers/arrows/numbered callouts at coordinates). Start with (a) — straightforward extension of the current card. (b) is a bigger, clide-owned CustomPaint job (markers:[{x,y,label}] painted over the image); feasible since the image card is our own rendering, but scope it as a follow-up unless we decide we need it now. Flag which we want before building markers.
+
+## Dependencies
+
+- Pairs with T-315 (stdin JSON plumbing) for the piped form; can land with `--file` alone if T-315 isn''t ready.
+- Parallel to T-313 (icon card) — same --file/--stdin metadata pattern, same Flutter-free handler + MessageBus publish path.
+
+## Acceptance
+
+- `clide image show` accepts a JSON metadata payload (via --file, and via --stdin once T-315 lands) carrying at least label + description alongside the existing caption.
+- ImageMessage + the image card render the added metadata.
+- The existing `image show <path> [--caption]` form is unchanged.
+- Malformed payload / unknown fields fail with a clear userError, mirroring image.show''s current validation.
+- Visual marker overlays are explicitly noted as a separate follow-up unless pulled in by decision.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 10:52:36', '2026-06-10 11:11:10', NULL, 'ab80fa0823568f0d159b6a9d162114b2', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ERREMEEF26KKHGNZBWW64', 'story', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Drawing card core: canvas engine + JSON schema + template dispatch', 'Foundational build for the unified drawing card (epic T-317, decision D-91). A clide-owned canvas (CustomPaint) that renders from a JSON document: a PRIMITIVE scene-graph layer (rect/line/text/glyph/image at coordinates) plus a TEMPLATE-dispatch layer that maps a named component in the JSON to a predefined renderer. Templates lower onto the same primitive scene (hybrid model). Per drawn object, an optional label + description widget renders beneath it, only when those fields are present in the JSON. Display-only (D-78) — no inline selection. Driven via the clide CLI (D-6 parity), consuming the JSON input plumbing (T-315 / --file); mirror image.show''s Flutter-free handler + MessageBus publish + Claude-extension injection pattern. THIS ticket = the engine, the JSON schema, the primitive renderer, the dispatch mechanism, and the shared per-object label/description widget. Individual templates (image, icon, compare, svg, graph) are separate children. Acceptance: a JSON doc with raw primitives draws; a JSON doc naming a template dispatches to it; an object with label/description renders the caption widget; unknown template/primitive fails with a clear userError.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 11:11:40', '2026-06-10 11:11:40', NULL, '73af1f59dfa92fcb13073cd31a73e2f4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ESCR4V6V07CRH18FBCDN8', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Drawing card template: compare-images / before-after', 'Template for the unified drawing card (T-317, D-91): compare-images / before-after. The JSON carries two (or more) image paths, each with an optional label + description; the card renders them side by side for visual comparison, each with a lightbox-on-click (shared with the image template). Lowers onto the canvas primitives + the shared per-object label/description widget (T-318). Display-only (D-78). Depends on the core engine (T-318).', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 11:11:45', '2026-06-10 11:11:45', NULL, '5d2d21c180849ce0bb652d79855c40af', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ETJQP0CT6X7W3CWZ6NS9G', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Drawing card template: SVG render', 'Template for the unified drawing card (T-317, D-91): render an SVG file referenced in the JSON. clide-owned rendering per the own-the-rendering-stack guardrail — no opinionated SVG package without justification; evaluate what is feasible via CustomPaint / a minimal path parser, and scope accordingly (SVG is a broad spec; define the supported subset). Optional label + description beneath (T-318). Display-only (D-78). Depends on the core engine (T-318).', 'backlog', 'low', NULL, NULL, NULL, '2026-06-10 11:11:55', '2026-06-10 11:11:55', NULL, 'aee93f5693c771bedec77e288a2784b1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EV29HSK6EJ5VF50R87VC4', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Drawing card template: graph render', 'Template for the unified drawing card (T-317, D-91): render a graph passed in the JSON. Reuses clide''s native graph rendering (CustomPaint; the planned graph subsystem, D-46) rather than a new renderer. Optional label + description beneath (T-318). Display-only (D-78). Depends on the core engine (T-318); coordinate with the graph subsystem so the card embeds it rather than forking it.', 'backlog', 'low', NULL, NULL, NULL, '2026-06-10 11:11:59', '2026-06-10 11:11:59', NULL, 'd21ba3f471f6518d5775008897e67416', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16YM1Y910T07Y1Y22MGTEM', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Card the ''context'' conversation block like the rest of the cards', 'The injected "context" block (skill-load / command-expansion / system-reminder messages) renders as a frameless `ConversationCardVariant.bare` card in `lib/builtin/claude/src/conversation_view.dart:410-419`, so it reads as a bare `> context …` row wedged between the fully-framed Skill and Bash tool cards (see pasted screenshot). It looks unfinished next to the carded tool calls.
+
+Make the context block follow the standard collapser-card pattern established for all group/tool cards in the `collapser-card` wireframe (docs/design/wireframes/cards/): a proper card frame with the chevron toggle hard against the left edge, label, and the fixed-width right-aligned counter/status slot — so it is visually consistent with the Skill/Bash/Activity cards around it.
+
+Keep the de-emphasis that D-78 calls for (muted accent, collapsed-by-default, first-line summary) — this is about giving it the same *frame* as the other cards, not the blue "you" accent. The same treatment likely applies to the sibling bare cards that share this branch (agent prompt, thinking) for consistency; scope to context first and note whether thinking/agent-prompt should follow.
+
+Acceptance: the context row sits in a framed card matching the collapser-card wireframe geometry, still muted and collapsed by default, with the toggle and counter/status slot aligned to the other cards. Update/extend the relevant golden(s).', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 08:17:42', '2026-06-10 11:16:41', NULL, '5b583df100b64dbebe19c235f32e0541', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
