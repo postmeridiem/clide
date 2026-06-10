@@ -242,6 +242,8 @@ void main() {
     // The clause that keeps Claude off the permission surface.
     expect(msg, contains('do not add a memory'));
     expect(msg, contains('change permission settings'));
+    // …and the clause that tells it not to narrate the reformulation (T-328).
+    expect(msg, contains('Do not narrate'));
   });
 
   testWidgets('permission: Deny & simplify appends the user note rather than discarding it (T-311)', (tester) async {

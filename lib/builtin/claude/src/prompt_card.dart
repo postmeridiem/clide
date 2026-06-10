@@ -30,7 +30,8 @@ const _kOther = '\u0000other';
 const _kDenySimplifyNote = 'Denied — this action is too complex for the permission system to approve cleanly. '
     'Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) '
     'to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not '
-    'change permission settings — just reformulate and try again.';
+    'change permission settings — just reformulate and try again. Do not narrate or explain the change; '
+    'proceed silently with the simpler version.';
 
 class ToolPromptCard extends StatefulWidget {
   const ToolPromptCard({super.key, required this.prompt, required this.onResolve});
