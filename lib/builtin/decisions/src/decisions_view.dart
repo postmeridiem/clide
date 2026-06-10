@@ -23,6 +23,7 @@ class _DecisionsViewState extends State<DecisionsView> {
   StreamSubscription<Message>? _focusSub;
   StreamSubscription<DaemonEvent>? _fileSub;
   StreamSubscription<SchedulerTick>? _schedulerSub;
+  StreamSubscription<ProjectOpened>? _projectSub;
   bool _refreshing = false;
   bool _pendingRefresh = false;
 
@@ -37,6 +38,12 @@ class _DecisionsViewState extends State<DecisionsView> {
           .where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && _isDecisionPath(e.data['path'] as String? ?? ''))
           .listen((_) => _refresh());
       _schedulerSub = kernel.events.on<SchedulerTick>().where((e) => e.tier == SchedulerTier.oneMinute).listen((_) => _refresh());
+      // The first load can fire before the project's workspace is wired into
+      // the daemon (the boot workDir is the launch CWD, not the repo), so pql
+      // runs against the wrong/old DB and the list errors. Re-fetch once the
+      // workspace is actually open — ProjectOpened fires after the IPC server
+      // swaps to the project workRoot. (T-352)
+      _projectSub = kernel.events.on<ProjectOpened>().listen((_) => _refresh());
     }
     if (!_loading || _decisions.isNotEmpty) return;
     unawaited(_load());
@@ -88,6 +95,7 @@ class _DecisionsViewState extends State<DecisionsView> {
     _focusSub?.cancel();
     _fileSub?.cancel();
     _schedulerSub?.cancel();
+    _projectSub?.cancel();
     super.dispose();
   }
 

@@ -137,6 +137,21 @@ void main() {
     expect(calls, greaterThan(before));
   });
 
+  testWidgets('refetches when the workspace opens (T-352)', (tester) async {
+    // The first load can fire before the daemon's pql workDir is the repo; a
+    // ProjectOpened (fired after the IPC server swaps) must re-fetch.
+    var calls = 0;
+    f.ipc.stub('pql.tickets.list', (_) async {
+      calls++;
+      return _list([_t('T-1', 'Thing', 'backlog')]);
+    });
+    await pumpView(tester);
+    final before = calls;
+    f.services.events.emit(const ProjectOpened(path: '/repo'));
+    await pumpAsync(tester);
+    expect(calls, greaterThan(before));
+  });
+
   // -- Type-filter chips (T-343) ------------------------------------------
   // The chips own one GestureDetector for both onTap (toggle) and onDoubleTap
   // (solo), so a single tap's onTap only fires after the ~300ms double-tap

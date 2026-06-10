@@ -27,6 +27,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   SQLite lock under concurrent writes) is now retried a few times before
   surfacing, instead of leaving the pane on "pql … failed" until a manual
   refresh. (T-350)
+- **Ticket and decision sidebars load on first open, not just after a manual
+  refresh.** On a desktop launch the daemon's pql workspace starts as the
+  launch directory, not the repo, so the panes' first fetch ran against the
+  wrong (or a stale-schema) DB and errored. They now re-fetch when the
+  workspace actually opens, by which point the pql workspace is the repo. (T-352)
 
 ## [2.3.0] — 2026-06-10
 

@@ -37,6 +37,7 @@ class _TicketsViewState extends State<TicketsView> {
   StreamSubscription<Message>? _focusSub;
   StreamSubscription<SchedulerTick>? _schedulerSub;
   StreamSubscription<Message>? _changedSub;
+  StreamSubscription<ProjectOpened>? _projectSub;
   bool _refreshing = false;
   bool _pendingRefresh = false;
 
@@ -111,6 +112,12 @@ class _TicketsViewState extends State<TicketsView> {
         }));
       });
       _schedulerSub = kernel.events.on<SchedulerTick>().where((e) => e.tier == SchedulerTier.oneMinute).listen((_) => _refresh());
+      // The first load can fire before the project's workspace is wired into
+      // the daemon (the boot workDir is the launch CWD, not the repo), so pql
+      // runs against the wrong/old DB and the list errors. Re-fetch once the
+      // workspace is actually open — the daemon's pql workDir is correct by
+      // then (ProjectOpened fires after the IPC server swaps). (T-352)
+      _projectSub = kernel.events.on<ProjectOpened>().listen((_) => _refresh());
     }
     if (!_loading || _tickets.isNotEmpty) return;
     unawaited(_load());
@@ -121,6 +128,7 @@ class _TicketsViewState extends State<TicketsView> {
     _focusSub?.cancel();
     _changedSub?.cancel();
     _schedulerSub?.cancel();
+    _projectSub?.cancel();
     super.dispose();
   }
 

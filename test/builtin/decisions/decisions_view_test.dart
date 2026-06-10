@@ -546,6 +546,29 @@ void main() {
     });
   });
 
+  group('DecisionsView — workspace open triggers reload (T-352)', () {
+    testWidgets('ProjectOpened triggers _refresh', (tester) async {
+      // The first load can fire before the daemon's pql workDir is the repo; a
+      // ProjectOpened (fired after the IPC server swaps) must re-fetch.
+      int listCallCount = 0;
+      f.ipc.stub('pql.decisions.sync', (_) async => _ok(const {}));
+      f.ipc.stub('pql.decisions.list', (_) async {
+        listCallCount++;
+        return _ok({
+          'decisions': [_decision(id: 'D-$listCallCount', title: 'open $listCallCount')],
+        });
+      });
+
+      await pumpView(tester);
+      expect(listCallCount, 1);
+
+      f.services.events.emit(const ProjectOpened(path: '/repo'));
+      await pumpAsync(tester);
+
+      expect(listCallCount, greaterThanOrEqualTo(2));
+    });
+  });
+
   group('DecisionsView — concurrent refresh guard', () {
     testWidgets('second refresh while one is running sets _pendingRefresh', (tester) async {
       final Completer<IpcResponse> firstListCompleter = Completer();
