@@ -1,0 +1,230 @@
+{
+  "name": "Ticket Panel — Type Filters",
+  "shapes": {
+    "panel": {
+      "type": "Rectangle",
+      "left": 80, "top": 60, "width": 400, "height": 520,
+      "fillColor": "#0d0d11",
+      "strokeColor": "#23232b",
+      "corners": [6, 6, 6, 6]
+    },
+
+    "filter-box": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 96, "top": 76, "width": 368, "height": 30,
+      "fillColor": "#16161c",
+      "strokeColor": "#2c2c36",
+      "corners": [5, 5, 5, 5]
+    },
+    "filter-icon": {
+      "type": "Text",
+      "parent": "filter-box",
+      "left": 108, "top": 84,
+      "text": "⌕",
+      "fontColor": "#5b5b66",
+      "fontSize": 13
+    },
+    "filter-text": {
+      "type": "Text",
+      "parent": "filter-box",
+      "left": 126, "top": 85,
+      "text": "Filter tickets…",
+      "fontColor": "#5b5b66",
+      "fontSize": 12
+    },
+    "refresh-icon": {
+      "type": "Text",
+      "parent": "filter-box",
+      "left": 442, "top": 84,
+      "text": "↻",
+      "fontColor": "#5b5b66",
+      "fontSize": 13
+    },
+
+    "chip-bug": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 96, "top": 118, "width": 66, "height": 24,
+      "fillColor": "#211519",
+      "strokeColor": "#E87D7D",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-bug-dot": {
+      "type": "Ellipse",
+      "parent": "chip-bug",
+      "left": 104, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#E87D7D",
+      "strokeColor": "#E87D7D"
+    },
+    "chip-bug-label": {
+      "type": "Text",
+      "parent": "chip-bug",
+      "left": 117, "top": 124,
+      "text": "Bug",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-ticket": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 168, "top": 118, "width": 78, "height": 24,
+      "fillColor": "#15191d",
+      "strokeColor": "#7DD3A8",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-ticket-dot": {
+      "type": "Ellipse",
+      "parent": "chip-ticket",
+      "left": 176, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#7DD3A8",
+      "strokeColor": "#7DD3A8"
+    },
+    "chip-ticket-label": {
+      "type": "Text",
+      "parent": "chip-ticket",
+      "left": 189, "top": 124,
+      "text": "Ticket",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-epic": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 252, "top": 118, "width": 68, "height": 24,
+      "fillColor": "#14171f",
+      "strokeColor": "#78A0F8",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-epic-dot": {
+      "type": "Ellipse",
+      "parent": "chip-epic",
+      "left": 260, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#78A0F8",
+      "strokeColor": "#78A0F8"
+    },
+    "chip-epic-label": {
+      "type": "Text",
+      "parent": "chip-epic",
+      "left": 273, "top": 124,
+      "text": "Epic",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-init": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 326, "top": 118, "width": 86, "height": 24,
+      "fillColor": "#1a151f",
+      "strokeColor": "#C792EA",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-init-dot": {
+      "type": "Ellipse",
+      "parent": "chip-init",
+      "left": 334, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#C792EA",
+      "strokeColor": "#C792EA"
+    },
+    "chip-init-label": {
+      "type": "Text",
+      "parent": "chip-init",
+      "left": 347, "top": 124,
+      "text": "Initiative",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "divider": {
+      "type": "Line",
+      "parent": "panel",
+      "left": 96, "top": 158, "width": 368, "height": 1,
+      "strokeColor": "#23232b"
+    },
+
+    "section-header": {
+      "type": "Text",
+      "parent": "panel",
+      "left": 98, "top": 172,
+      "text": "▾  BACKLOG · 61",
+      "fontColor": "#6b6b76",
+      "fontSize": 10
+    },
+
+    "card-1": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 96, "top": 192, "width": 368, "height": 56,
+      "fillColor": "#0d0d11",
+      "strokeColor": "#23232b",
+      "corners": [4, 4, 4, 4]
+    },
+    "card-1-dot": {
+      "type": "Ellipse",
+      "parent": "card-1",
+      "left": 108, "top": 204, "width": 8, "height": 8,
+      "fillColor": "#C792EA",
+      "strokeColor": "#C792EA"
+    },
+    "card-1-id": {
+      "type": "Text",
+      "parent": "card-1",
+      "left": 122, "top": 200,
+      "text": "T-8",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+    "card-1-title": {
+      "type": "Text",
+      "parent": "card-1",
+      "left": 108, "top": 220,
+      "text": "Tier 6 — extension API, settings, theming, builds",
+      "fontColor": "#b8b8c2",
+      "fontSize": 11
+    },
+
+    "card-2": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 96, "top": 254, "width": 368, "height": 56,
+      "fillColor": "#0d0d11",
+      "strokeColor": "#23232b",
+      "corners": [4, 4, 4, 4]
+    },
+    "card-2-dot": {
+      "type": "Ellipse",
+      "parent": "card-2",
+      "left": 108, "top": 266, "width": 8, "height": 8,
+      "fillColor": "#E87D7D",
+      "strokeColor": "#E87D7D"
+    },
+    "card-2-id": {
+      "type": "Text",
+      "parent": "card-2",
+      "left": 122, "top": 262,
+      "text": "T-19",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+    "card-2-title": {
+      "type": "Text",
+      "parent": "card-2",
+      "left": 108, "top": 282,
+      "text": "Filter box loses focus on refresh tick",
+      "fontColor": "#b8b8c2",
+      "fontSize": 11
+    },
+
+    "caption": {
+      "type": "Text",
+      "parent": "panel",
+      "left": 96, "top": 540,
+      "text": "All four type filters ON by default — tap a chip to toggle that type out.",
+      "fontColor": "#56565f",
+      "fontSize": 10
+    }
+  }
+}

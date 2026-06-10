@@ -2903,3 +2903,59 @@ SCOPE CLARIFICATION (2026-06-10, from user):
    - Net behaviour: a fan-out of N agents -> N distinct collapsed cards, each containing its own complete run; surrounding non-agent tool calls still group into their normal Activity card.
 
 Test additions: (a) two concurrent agents whose sidechain items interleave -> each agent''s run items land under its own card, none cross-attributed; (b) an unattributable sidechain item (no parent_tool_use_id, broken chain) is NOT swept into the nearest agent''s card; (c) regression: consecutive Bash/Read calls still form one Activity cluster.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 15:26:33', '2026-06-10 15:28:52', NULL, '05bc2daa013de8cf163cdd54c6014f07', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket panel: per-type filter chips (Bug / Ticket / Epic / Initiative)', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 15:54:09', '2026-06-10 15:54:09', NULL, '3e7c03bbb536a4c2d45f770abfee8b13', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket panel: per-type filter chips (Bug / Ticket / Epic / Initiative)', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 15:54:09', '2026-06-10 15:54:23', NULL, 'f5614424c00196aabab868db75483bf2', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
