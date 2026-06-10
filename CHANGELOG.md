@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Claude's task list is now visible, docked above the composer.** When Claude
+  is tracking a TodoWrite checklist, a compact display-only strip shows it pinned
+  above the input — collapsed to `N tasks · M done` + the current in-progress
+  item, expandable to the full list with per-item status glyphs. Hidden when
+  there are no tasks. (T-308)
 - **A "Deny & simplify" option on the permission card.** Alongside Allow /
   Allow-and-remember / Deny, a fourth button denies the action with a
   preformatted note telling Claude it was too complex for the permission system

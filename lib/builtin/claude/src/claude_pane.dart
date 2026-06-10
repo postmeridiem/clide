@@ -9,6 +9,7 @@ import 'claude_banner.dart';
 import 'claude_composer.dart';
 import 'claude_config.dart';
 import 'claude_status.dart';
+import 'claude_task_dock.dart';
 import 'clipboard_paste.dart';
 import 'activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey;
 import 'conversation_controller.dart';
@@ -21,6 +22,7 @@ import 'session_orchestrator.dart';
 import 'session_picker.dart';
 import 'slash_commands.dart';
 import 'stream_json_session.dart';
+import 'task_list.dart';
 import 'transcript_reader.dart';
 
 /// The Claude conversation pane. Drives `claude` over the stream-json control
@@ -512,6 +514,12 @@ class _ClaudePaneState extends State<ClaudePane> {
                     ),
                   ),
                 ),
+              ),
+              // Claude's task list, docked above the composer (T-308). Rebuilds
+              // with the conversation; renders nothing when there are no tasks.
+              ListenableBuilder(
+                listenable: _conversation!,
+                builder: (_, __) => ClaudeTaskDock(tasks: taskListFrom(_conversation!.items)),
               ),
               // An open prompt takes the composer's space and hides the text
               // input until it's answered, so interaction stays out of the
