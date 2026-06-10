@@ -1675,3 +1675,43 @@ The LABEL is the bridge between the two surfaces: Claude attaches a label to eac
 - Each icon renders at multiple sizes: a 48px hero (new named constant, e.g. clideIconPreviewHero) plus one sample at each inline font-size token (badge 11 -> body 15), sized off the typography tokens and labelled so the reviewer sees legibility at real UI sizes.
 - The card is display-only (no inline selection); selection happens in the interaction zone (convo box) via a Claude-offered choice list whose options reuse the per-icon labels from the card.
 - Unknown/invalid icon names fail with a clear user error, not a blank glyph.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 10:43:01', NULL, '04e889f18335733517fba43971eb67f4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Native Phosphor glyph card — multi-icon list with optional labels/descriptions (previews + choice offers)', 'A conversation-pane card that renders one OR MANY Phosphor glyphs by name/codepoint, each with an optional label and an optional description line, so icons can be previewed and compared in the live pane — and so a set of candidate icons can be offered as a labelled choice list (e.g. picking settings-scope icons, T-302).
+
+## Why
+
+Picking icons needs to SEE real glyphs side by side with what each one means. Frame0 can''t render Phosphor (private-use codepoints, no font) and goldens render the font as Ahem boxes, so preview only works where the app has the font — a native card is the vehicle. Beyond a bare grid, real icon decisions are ''which of these N icons, for these N meanings'' — so each entry wants an optional label (what we''d call it) and an optional description (what it represents), turning the card into an offer/choice list.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a list/grid of entries, each entry = glyph + optional label + optional description, driven by the clide CLI (D-6 parity). Uses the bundled Phosphor.ttf via PhosphorIconPainter.
+
+### Multi-size rendering (per entry)
+
+Each icon is shown at SEVERAL sizes, not one: (1) a large hero rendering so the glyph''s detail is clearly legible, and (2) a sample at each font-size token the app actually uses inline, so you can judge how the glyph reads at real UI sizes. The relevant inline scale is in lib/widgets/src/typography.dart: clideFontBadge (11), clideFontSmall (12), clideFontMeta (13), clideFontCaption/clideFontMono (14), clideFontBody (15). Drive the inline samples off those tokens (not bare numbers) so the row tracks the scale if it changes. For the hero, REUSE the existing clideFontWelcomeBanner (52) token rather than adding a new constant — it''s already the app''s named oversized size; no new token needed. Lay the size samples out in a single row/strip per entry, smallest to largest, labelled with the token/px so a reviewer sees exactly where each size lands.
+
+### CLI shape
+
+- Trivial case stays terse, mirroring image show: `clide icon show <name|0xNNNN> [<name> ...]` renders the bare glyph(s) with name + codepoint.
+- Labelled/described case takes a structured payload (per entry has up to three fields, so flags get unwieldy): a JSON array via `--stdin`/`--file`, each item `{"icon": "gear", "label": "Settings", "description": "global scope"}` where label and description are optional. icon resolves by kebab-case name (PhosphorIcons.byName) or 0xNNNN codepoint.
+- One card per invocation; the entries render as rows (or a grid when label/description are absent).
+
+## Display-only card + interaction-zone selection (D-78 — decided)
+
+DECIDED: the display card is display-only; the SELECTION happens in the convo box (interaction zone), not on the card. The card renders the labelled icon options for the user to SEE; when a pick is needed, Claude offers a matching choice list in the interaction zone (AskUserQuestion-style options that replace the composer), and the user selects there. This keeps conversation widgets display-only per D-78 and the interaction-zone rule.
+
+The LABEL is the bridge between the two surfaces: Claude attaches a label to each icon on the display card, then offers the SAME labels as the options in the interaction-zone choice list — so ''I pick Settings'' in the convo box maps unambiguously back to the glyph the user saw on the card. That''s why per-entry labels are first-class here: they exist to facilitate this show-then-pick flow, with the description giving the extra context that doesn''t fit a one-word option. The card may still copy a codepoint/name on click (a convenience), but it never resolves the choice itself.
+
+## Notes / scope
+
+- Name->codepoint resolution ALREADY EXISTS: lib/widgets/src/icons/phosphor_glyphs.g.dart (generated, 1512 glyphs) + PhosphorIcons.byName. The earlier ''OPTIONAL: generate the full set'' caveat is resolved — every named glyph is already resolvable; the 49 curated consts in phosphor.dart remain curated sugar.
+- Every glyph already renders via PhosphorIconPainter(0xNNNN).
+- label and description are both optional per entry; an entry with neither degrades to the bare-preview look.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302); refined 2026-06-10 to cover multi-icon labelled offer/choice lists.
+
+## Acceptance
+
+- `clide icon show` accepts multiple icons in one call and renders them in a single conversation card.
+- A structured (JSON) input lets each icon carry an optional label and optional description, both rendered alongside the glyph.
+- Each icon renders at multiple sizes: a hero at the existing clideFontWelcomeBanner (52) token plus one sample at each inline font-size token (badge 11 -> body 15), sized off the typography tokens and labelled so the reviewer sees legibility at real UI sizes.
+- The card is display-only (no inline selection); selection happens in the interaction zone (convo box) via a Claude-offered choice list whose options reuse the per-icon labels from the card.
+- Unknown/invalid icon names fail with a clear user error, not a blank glyph.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 10:44:06', NULL, '9a25fe730b81f5192fb4142d66fbff85', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
