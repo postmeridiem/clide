@@ -166,7 +166,7 @@ class _TicketsViewState extends State<TicketsView> {
                 onTap: _refreshing ? null : _refresh,
                 tooltip: 'Refresh tickets',
                 builder: (ctx, hovered, _) =>
-                    ClideIcon(PhosphorIcons.arrowClockwise, size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                    ClideIcon(PhosphorIcons.byName('arrow-clockwise'), size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
               ),
             ),
           ],

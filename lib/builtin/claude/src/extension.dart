@@ -296,7 +296,7 @@ class ClaudeExtension extends ClideExtension {
           id: 'claude.meta',
           slot: Slots.sidebar,
           title: 'Activity',
-          icon: PhosphorIcons.robot,
+          icon: PhosphorIcons.byName('robot'),
           priority: 60,
           build: (_) => const ClaudeMetaSidebar(),
         ),

@@ -20,7 +20,7 @@ class GitExtension extends ClideExtension {
           id: 'git.panel',
           slot: Slots.sidebar,
           title: 'Git',
-          icon: PhosphorIcons.gitBranch,
+          icon: PhosphorIcons.byName('git-branch'),
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: -80,

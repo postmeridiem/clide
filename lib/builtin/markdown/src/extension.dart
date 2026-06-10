@@ -23,7 +23,7 @@ class MarkdownExtension extends ClideExtension {
           id: 'markdown.viewer',
           slot: Slots.contextPanel,
           title: 'Markdown',
-          icon: PhosphorIcons.fileText,
+          icon: PhosphorIcons.byName('file-text'),
           build: (_) => const MarkdownViewer(),
         ),
       ];

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:clide/widgets/src/clide_icon.dart';
+import 'package:clide/widgets/src/icons/phosphor_glyphs.g.dart';
 
 class PhosphorIconPainter extends ClideIconPainter {
   const PhosphorIconPainter(this.codePoint, {this.family = 'Phosphor'});
@@ -27,55 +28,23 @@ class PhosphorIconPainter extends ClideIconPainter {
   int get hashCode => Object.hash(codePoint, family);
 }
 
+/// Phosphor glyphs, resolved by their exact kebab-case name (e.g. `folder`,
+/// `folder-simple`, `git-branch`). The full label→codepoint table is the
+/// generated [kPhosphorGlyphs]; raw codepoints live only there, so feature code
+/// reads `PhosphorIcons.byName('folder')` rather than `0xe24a` (T-314). A
+/// string key also lets a Lua extension name an icon without crossing the FFI
+/// boundary with a codepoint.
 abstract class PhosphorIcons {
-  static const folder = PhosphorIconPainter(0xe24a);
-  static const fileText = PhosphorIconPainter(0xe23a);
-  static const gitBranch = PhosphorIconPainter(0xe278);
-  static const gitCommit = PhosphorIconPainter(0xe27a);
-  static const gitDiff = PhosphorIconPainter(0xe27c);
-  static const gitPullRequest = PhosphorIconPainter(0xe282);
-  static const magnifyingGlass = PhosphorIconPainter(0xe30c);
-  static const terminal = PhosphorIconPainter(0xe47e);
-  static const terminalWindow = PhosphorIconPainter(0xeae8);
-  static const code = PhosphorIconPainter(0xe1bc);
-  static const codeBlock = PhosphorIconPainter(0xeafe);
-  static const pencilSimple = PhosphorIconPainter(0xe3b4);
-  static const eye = PhosphorIconPainter(0xe220);
-  static const eyeSlash = PhosphorIconPainter(0xe224);
-  static const arrowClockwise = PhosphorIconPainter(0xe036);
-  static const arrowsOutSimple = PhosphorIconPainter(0xe0a6);
-  static const arrowsInSimple = PhosphorIconPainter(0xe09e);
-  static const list = PhosphorIconPainter(0xe2f0);
-  static const listChecks = PhosphorIconPainter(0xeadc);
-  static const gear = PhosphorIconPainter(0xe270);
-  static const puzzlePiece = PhosphorIconPainter(0xe596);
-  static const keyboard = PhosphorIconPainter(0xe2d8);
-  static const palette = PhosphorIconPainter(0xe6c8);
-  static const warning = PhosphorIconPainter(0xe4e0);
-  static const warningCircle = PhosphorIconPainter(0xe4e2);
-  static const shieldCheck = PhosphorIconPainter(0xe40c);
-  static const shieldWarning = PhosphorIconPainter(0xe412);
-  static const check = PhosphorIconPainter(0xe182);
-  static const checkCircle = PhosphorIconPainter(0xe184);
-  static const caretLeft = PhosphorIconPainter(0xe138);
-  static const caretRight = PhosphorIconPainter(0xe13a);
-  static const caretDown = PhosphorIconPainter(0xe136);
-  static const caretUp = PhosphorIconPainter(0xe13c);
-  // Chevron-with-edge-line: reads as "collapse to / expand from the edge" (T-294).
-  static const caretLineLeft = PhosphorIconPainter(0xe132);
-  static const caretLineRight = PhosphorIconPainter(0xe130);
-  static const graph = PhosphorIconPainter(0xeb58);
-  static const treeStructure = PhosphorIconPainter(0xe67c);
-  static const image = PhosphorIconPainter(0xe2ca);
-  static const link = PhosphorIconPainter(0xe2e2);
-  static const pushPin = PhosphorIconPainter(0xe3e2);
-  static const arrowUUpLeft = PhosphorIconPainter(0xe08a);
-  static const chatCircle = PhosphorIconPainter(0xe168);
-  static const robot = PhosphorIconPainter(0xe762);
-  static const ticket = PhosphorIconPainter(0xe490);
-  static const lightbulb = PhosphorIconPainter(0xe2dc);
-  static const notepad = PhosphorIconPainter(0xe63e);
-  static const bookOpen = PhosphorIconPainter(0xe0e6);
-  static const xMark = PhosphorIconPainter(0xe4f6);
-  static const circlesFour = PhosphorIconPainter(0xe190);
+  /// Shown when a name doesn't resolve. An unresolved name is a real error — a
+  /// wrong or missing label — so the fallback is `placeholder`: the box reads
+  /// as a render error and surfaces the bug honestly, rather than masking it as
+  /// an intentional "unknown" the way a `question` mark would.
+  static const String fallbackName = 'placeholder';
+
+  /// Resolve a glyph by its kebab-case [name]. A total function: an unknown
+  /// name degrades to [fallbackName] so a bad value (a typo, a stale setting, a
+  /// Lua extension's string) never crashes the UI. Typos in clide's own call
+  /// sites are caught at CI by `phosphor_glyphs_test`, which asserts every
+  /// `byName('…')` literal in `lib/` exists in the map.
+  static PhosphorIconPainter byName(String name) => PhosphorIconPainter(kPhosphorGlyphs[name] ?? kPhosphorGlyphs[fallbackName]!);
 }

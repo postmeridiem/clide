@@ -23,7 +23,7 @@ class SearchExtension extends ClideExtension {
           id: 'search.findInFiles',
           slot: Slots.sidebar,
           title: 'Search',
-          icon: PhosphorIcons.magnifyingGlass,
+          icon: PhosphorIcons.byName('magnifying-glass'),
           priority: -90,
           build: (_) => const SearchPanelView(),
         ),

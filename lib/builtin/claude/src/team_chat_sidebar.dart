@@ -150,7 +150,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
                 builder: (ctx, hovered, _) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
                   child: ClideIcon(
-                    PhosphorIcons.arrowsOutSimple,
+                    PhosphorIcons.byName('arrows-out-simple'),
                     size: 10,
                     color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
                   ),
@@ -383,7 +383,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                           ),
                           child: _interrupt
                               ? Center(
-                                  child: ClideIcon(PhosphorIcons.check, size: 9, color: tokens.globalFocus),
+                                  child: ClideIcon(PhosphorIcons.byName('check'), size: 9, color: tokens.globalFocus),
                                 )
                               : null,
                         ),

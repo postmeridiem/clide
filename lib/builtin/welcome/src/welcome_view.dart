@@ -167,21 +167,21 @@ class _StartColumn extends StatelessWidget {
         ClideText('START', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
         const SizedBox(height: 20),
         _ActionRow(
-          icon: PhosphorIcons.folder,
+          icon: PhosphorIcons.byName('folder'),
           label: 'Open folder…',
           shortcut: '⌘O',
           tokens: tokens,
           onTap: () => _openFolder(context),
         ),
         _ActionRow(
-          icon: PhosphorIcons.gitBranch,
+          icon: PhosphorIcons.byName('git-branch'),
           label: 'Clone from git…',
           shortcut: '⌘G',
           tokens: tokens,
           onTap: () {},
         ),
         _ActionRow(
-          icon: PhosphorIcons.chatCircle,
+          icon: PhosphorIcons.byName('chat-circle'),
           label: 'Start a Claude session',
           shortcut: '⌘C',
           tokens: tokens,
@@ -332,7 +332,7 @@ class _RecentRow extends StatelessWidget {
                               muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
                       if (project.branch != null) ...[
                         ClideText('  ·  ', muted: true, fontSize: clideFontMeta),
-                        ClideIcon(PhosphorIcons.gitBranch, size: 11, color: tokens.globalTextMuted),
+                        ClideIcon(PhosphorIcons.byName('git-branch'), size: 11, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
                         Flexible(
                             child: ClideText(project.branch!,
@@ -384,7 +384,7 @@ class _StickyToggle extends StatelessWidget {
             border: Border.all(color: hovered || sticky ? tokens.panelActiveBorder : tokens.globalBorder),
             borderRadius: BorderRadius.circular(3),
           ),
-          child: sticky ? ClideIcon(PhosphorIcons.check, size: 12, color: tokens.buttonForeground) : null,
+          child: sticky ? ClideIcon(PhosphorIcons.byName('check'), size: 12, color: tokens.buttonForeground) : null,
         ),
       ),
     );

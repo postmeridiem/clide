@@ -38,17 +38,17 @@ void main() {
     // Sidebar open → action is collapse (leftward) → caret-line-left.
     await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: false, visible: true)));
     await tester.pump();
-    expect(_icon(PhosphorIcons.caretLineLeft), findsOneWidget);
+    expect(_icon(PhosphorIcons.byName('caret-line-left')), findsOneWidget);
 
     // Sidebar collapsed → action is expand (rightward) → caret-line-right.
     await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: true, visible: true)));
     await tester.pump();
-    expect(_icon(PhosphorIcons.caretLineRight), findsOneWidget);
+    expect(_icon(PhosphorIcons.byName('caret-line-right')), findsOneWidget);
 
     // The context toggle mirrors it: open → collapse rightward, collapsed → expand leftward.
     await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.contextPanel, collapsed: false, visible: true)));
     await tester.pump();
-    expect(_icon(PhosphorIcons.caretLineRight), findsOneWidget);
+    expect(_icon(PhosphorIcons.byName('caret-line-right')), findsOneWidget);
   });
 
   testWidgets('the chevron flips live when the collapsed state changes', (tester) async {
@@ -62,19 +62,19 @@ void main() {
       }),
     ));
     await tester.pump();
-    expect(_icon(PhosphorIcons.caretLineLeft), findsOneWidget);
+    expect(_icon(PhosphorIcons.byName('caret-line-left')), findsOneWidget);
 
     setOuter(() => collapsed = true);
     await tester.pump();
-    expect(_icon(PhosphorIcons.caretLineRight), findsOneWidget, reason: 'rebuilds and flips on state change');
-    expect(_icon(PhosphorIcons.caretLineLeft), findsNothing);
+    expect(_icon(PhosphorIcons.byName('caret-line-right')), findsOneWidget, reason: 'rebuilds and flips on state change');
+    expect(_icon(PhosphorIcons.byName('caret-line-left')), findsNothing);
   });
 
   testWidgets('a hidden pane reserves the cell but shows no chevron', (tester) async {
     await tester.pumpWidget(_host(f, const StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: false, visible: false)));
     await tester.pump();
-    expect(_icon(PhosphorIcons.caretLineLeft), findsNothing);
-    expect(_icon(PhosphorIcons.caretLineRight), findsNothing);
+    expect(_icon(PhosphorIcons.byName('caret-line-left')), findsNothing);
+    expect(_icon(PhosphorIcons.byName('caret-line-right')), findsNothing);
   });
 
   testWidgets('tapping fires the matching collapse command', (tester) async {
@@ -90,7 +90,7 @@ void main() {
     await tester.pump();
     expect(f.services.arrangement.isCollapsed(Slots.sidebar), isFalse);
 
-    await tester.tap(_icon(PhosphorIcons.caretLineLeft));
+    await tester.tap(_icon(PhosphorIcons.byName('caret-line-left')));
     await tester.pump();
 
     expect(f.services.arrangement.isCollapsed(Slots.sidebar), isTrue);

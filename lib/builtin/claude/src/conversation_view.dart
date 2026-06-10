@@ -535,7 +535,7 @@ class _ConversationTurn extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClideIcon(PhosphorIcons.image, size: 16, color: tokens.globalTextMuted),
+            ClideIcon(PhosphorIcons.byName('image'), size: 16, color: tokens.globalTextMuted),
             const SizedBox(width: 8),
             Flexible(
               child: ClideText('could not load $path', fontSize: clideFontMeta, color: tokens.globalTextMuted, maxLines: 1),

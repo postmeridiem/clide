@@ -157,7 +157,7 @@ class _DecisionsViewState extends State<DecisionsView> {
                 onTap: _refreshing ? null : _refresh,
                 tooltip: 'Refresh decisions',
                 builder: (ctx, hovered, _) =>
-                    ClideIcon(PhosphorIcons.arrowClockwise, size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                    ClideIcon(PhosphorIcons.byName('arrow-clockwise'), size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
               ),
             ),
           ],

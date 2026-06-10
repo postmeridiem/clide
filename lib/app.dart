@@ -395,7 +395,7 @@ class _RightHatContent extends StatelessWidget {
     return Row(children: [
       _WinBtn(icon: const PhosphorIconPainter(0xe32a), onTap: wc.minimize, tokens: tokens),
       _WinBtn(icon: const PhosphorIconPainter(0xe45e), onTap: wc.toggleMaximize, tokens: tokens),
-      _WinBtn(icon: PhosphorIcons.xMark, onTap: wc.close, tokens: tokens, isClose: true),
+      _WinBtn(icon: PhosphorIcons.byName('x'), onTap: wc.close, tokens: tokens, isClose: true),
     ]);
   }
 }
@@ -452,7 +452,7 @@ class _ProjectSwitcherButton extends StatelessWidget {
             children: [
               ClideText(label, fontSize: 12, color: hovered ? tokens.globalForeground : tokens.chromeForeground, fontFamily: clideMonoFamily),
               const SizedBox(width: 4),
-              ClideIcon(PhosphorIcons.caretDown, size: 8, color: tokens.chromeForeground),
+              ClideIcon(PhosphorIcons.byName('caret-down'), size: 8, color: tokens.chromeForeground),
             ],
           ),
         );
@@ -591,7 +591,7 @@ class _RecentProjectRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
           children: [
-            ClideIcon(PhosphorIcons.folder, size: 14, color: tokens.globalTextMuted),
+            ClideIcon(PhosphorIcons.byName('folder'), size: 14, color: tokens.globalTextMuted),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -608,7 +608,7 @@ class _RecentProjectRow extends StatelessWidget {
                               muted: true, fontSize: 12, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
                         ),
                         ClideText('  ·  ', muted: true, fontSize: 12),
-                        ClideIcon(PhosphorIcons.gitBranch, size: 10, color: tokens.globalTextMuted),
+                        ClideIcon(PhosphorIcons.byName('git-branch'), size: 10, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
                         ClideText(project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
                       ],
@@ -920,7 +920,7 @@ class _RevealedTab extends StatelessWidget {
                   tooltip: 'Close',
                   builder: (_, hovered, __) => Padding(
                     padding: const EdgeInsets.all(6),
-                    child: ClideIcon(PhosphorIcons.xMark, size: 12, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                    child: ClideIcon(PhosphorIcons.byName('x'), size: 12, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
                   ),
                 ),
               ),
@@ -1088,20 +1088,20 @@ class _BottomRail extends StatelessWidget {
     if (t.icon is ClideIconPainter) return t.icon as ClideIconPainter;
     if (slot == Slots.sidebar) {
       return switch (t.id) {
-        'files.tree' => PhosphorIcons.folder,
-        'git.panel' => PhosphorIcons.gitBranch,
-        'pql.panel' => PhosphorIcons.magnifyingGlass,
-        'problems.panel' => PhosphorIcons.warningCircle,
-        'decisions.panel' => PhosphorIcons.lightbulb,
-        'tickets.panel' => PhosphorIcons.ticket,
-        _ => PhosphorIcons.circlesFour,
+        'files.tree' => PhosphorIcons.byName('folder'),
+        'git.panel' => PhosphorIcons.byName('git-branch'),
+        'pql.panel' => PhosphorIcons.byName('magnifying-glass'),
+        'problems.panel' => PhosphorIcons.byName('warning-circle'),
+        'decisions.panel' => PhosphorIcons.byName('lightbulb'),
+        'tickets.panel' => PhosphorIcons.byName('ticket'),
+        _ => PhosphorIcons.byName('circles-four'),
       };
     }
     return switch (t.id) {
-      'markdown.viewer' => PhosphorIcons.eye,
-      'graph.view' => PhosphorIcons.graph,
-      'pql.backlinks' => PhosphorIcons.link,
-      _ => PhosphorIcons.circlesFour,
+      'markdown.viewer' => PhosphorIcons.byName('eye'),
+      'graph.view' => PhosphorIcons.byName('graph'),
+      'pql.backlinks' => PhosphorIcons.byName('link'),
+      _ => PhosphorIcons.byName('circles-four'),
     };
   }
 }
@@ -1136,8 +1136,8 @@ class StatusbarCollapseToggle extends StatelessWidget {
     // The chevron points the DIRECTION OF THE ACTION: collapsing tucks the pane
     // toward its own edge, expanding brings it back toward the centre.
     final icon = _isSidebar
-        ? (collapsed ? PhosphorIcons.caretLineRight : PhosphorIcons.caretLineLeft)
-        : (collapsed ? PhosphorIcons.caretLineLeft : PhosphorIcons.caretLineRight);
+        ? (collapsed ? PhosphorIcons.byName('caret-line-right') : PhosphorIcons.byName('caret-line-left'))
+        : (collapsed ? PhosphorIcons.byName('caret-line-left') : PhosphorIcons.byName('caret-line-right'));
     final what = _isSidebar ? 'sidebar' : 'context panel';
     return SizedBox(
       width: 24,

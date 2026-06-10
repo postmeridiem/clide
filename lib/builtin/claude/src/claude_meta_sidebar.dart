@@ -902,14 +902,14 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
       children: [
         // Show / hide
         _IconButton(
-          painter: isVisible ? PhosphorIcons.eye : PhosphorIcons.eyeSlash,
+          painter: isVisible ? PhosphorIcons.byName('eye') : PhosphorIcons.byName('eye-slash'),
           tooltip: isVisible ? 'Hide pane' : 'Show pane',
           color: tokens.globalTextMuted,
           onTap: () => isVisible ? widget.orchestrator!.hide(managed.id) : widget.orchestrator!.show(managed.id),
         ),
         // Mute / unmute
         _IconButton(
-          painter: isMuted ? PhosphorIcons.eyeSlash : PhosphorIcons.eye,
+          painter: isMuted ? PhosphorIcons.byName('eye-slash') : PhosphorIcons.byName('eye'),
           // NOTE: We use eye/eyeSlash as stand-ins until a dedicated speaker
           // icon is added to PhosphorIcons (no speaker codepoint yet).
           // The semantic tooltip still says mute/unmute so AT users are clear.
@@ -919,21 +919,21 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
         ),
         // Inject message
         _IconButton(
-          painter: PhosphorIcons.chatCircle,
+          painter: PhosphorIcons.byName('chat-circle'),
           tooltip: 'Inject message',
           color: isInjecting ? tokens.globalFocus : tokens.globalTextMuted,
           onTap: () => widget.onToggleInject(widget.member.name),
         ),
         // Fork session (T-172): branch into a new pane without touching the original.
         _IconButton(
-          painter: PhosphorIcons.gitBranch,
+          painter: PhosphorIcons.byName('git-branch'),
           tooltip: 'Fork session',
           color: tokens.globalTextMuted,
           onTap: () => widget.onFork(widget.member.name),
         ),
         // Close session
         _IconButton(
-          painter: PhosphorIcons.xMark,
+          painter: PhosphorIcons.byName('x'),
           tooltip: 'Close session',
           color: tokens.globalTextMuted,
           onTap: () => widget.onClose(widget.member.name),
@@ -958,7 +958,7 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
           ),
           const SizedBox(width: 4),
           _IconButton(
-            painter: PhosphorIcons.xMark,
+            painter: PhosphorIcons.byName('x'),
             tooltip: 'Cancel',
             color: tokens.globalTextMuted,
             onTap: () => widget.onToggleInject(widget.member.name),
@@ -1186,7 +1186,7 @@ class _TaskRow extends StatelessWidget {
           // Reassign: cycle to the next roster member.
           if (broker != null && broker!.members.length > 1)
             _IconButton(
-              painter: PhosphorIcons.arrowClockwise,
+              painter: PhosphorIcons.byName('arrow-clockwise'),
               tooltip: 'Reassign task',
               color: tokens.globalTextMuted,
               onTap: () => _reassign(context),

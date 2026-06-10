@@ -12,13 +12,13 @@ import 'package:flutter/widgets.dart';
 ({Color color, ClideIconPainter icon}) _styleFor(ToastSeverity s, SurfaceTokens t) {
   switch (s) {
     case ToastSeverity.success:
-      return (color: t.statusSuccess, icon: PhosphorIcons.checkCircle);
+      return (color: t.statusSuccess, icon: PhosphorIcons.byName('check-circle'));
     case ToastSeverity.warning:
-      return (color: t.statusWarning, icon: PhosphorIcons.warningCircle);
+      return (color: t.statusWarning, icon: PhosphorIcons.byName('warning-circle'));
     case ToastSeverity.error:
-      return (color: t.statusError, icon: PhosphorIcons.warningCircle);
+      return (color: t.statusError, icon: PhosphorIcons.byName('warning-circle'));
     case ToastSeverity.info:
-      return (color: t.statusInfo, icon: PhosphorIcons.circlesFour);
+      return (color: t.statusInfo, icon: PhosphorIcons.byName('circles-four'));
   }
 }
 
@@ -87,7 +87,7 @@ class _ClideToastState extends State<ClideToast> {
                     child: ClideTappable(
                       onTap: widget.onDismiss,
                       builder: (ctx, hovered, _) => ClideIcon(
-                        PhosphorIcons.xMark,
+                        PhosphorIcons.byName('x'),
                         size: clideIconStandard,
                         color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
                       ),

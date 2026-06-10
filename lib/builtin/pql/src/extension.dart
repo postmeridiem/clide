@@ -21,7 +21,7 @@ class PqlExtension extends ClideExtension {
           id: 'pql.backlinks',
           slot: Slots.contextPanel,
           title: 'Links',
-          icon: PhosphorIcons.link,
+          icon: PhosphorIcons.byName('link'),
           priority: -80,
           build: (_) => const BacklinksView(),
         ),

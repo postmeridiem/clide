@@ -288,7 +288,7 @@ class _ConversationCardState extends State<ConversationCard> {
         builder: (_, hovered, pressed) => Padding(
           padding: const EdgeInsets.only(right: 6),
           child: ClideIcon(
-            _collapsed ? PhosphorIcons.caretRight : PhosphorIcons.caretDown,
+            _collapsed ? PhosphorIcons.byName('caret-right') : PhosphorIcons.byName('caret-down'),
             size: 12,
             color: tokens.globalTextMuted,
           ),

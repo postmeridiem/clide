@@ -36,7 +36,7 @@ class ClideAccordion extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, top: 10, bottom: 4),
             child: Row(
               children: [
-                ClideIcon(expanded ? PhosphorIcons.caretDown : PhosphorIcons.caretRight, size: 10, color: tokens.globalTextMuted),
+                ClideIcon(expanded ? PhosphorIcons.byName('caret-down') : PhosphorIcons.byName('caret-right'), size: 10, color: tokens.globalTextMuted),
                 const SizedBox(width: 6),
                 if (leading != null) ...[leading!, const SizedBox(width: 6)],
                 ClideText('$label · $count',

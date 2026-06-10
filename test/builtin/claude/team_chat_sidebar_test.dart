@@ -368,7 +368,7 @@ void main() {
       expect(find.text('Interrupt'), findsOneWidget);
       // The tickbox is implemented as a Container that is empty when unchecked
       // and shows a check icon when checked. Verify by checking that the check
-      // icon (PhosphorIcons.check) is NOT rendered when unchecked.
+      // icon (PhosphorIcons.byName('check')) is NOT rendered when unchecked.
       // We use the Semantics widget's checked property which maps to isChecked.
       final interruptFinder = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Interrupt target session');
       // Widget exists in tree.

@@ -61,7 +61,7 @@ class _ThemeSwitcherStatusItemState extends State<ThemeSwitcherStatusItem> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ClideIcon(PhosphorIcons.palette, size: 13, color: tokens.statusBarForeground),
+                    ClideIcon(PhosphorIcons.byName('palette'), size: 13, color: tokens.statusBarForeground),
                     const SizedBox(width: 6),
                     // The status bar is all-lowercase; the proper-case name stays
                     // in the Semantics label for screen readers.

@@ -296,11 +296,13 @@ void main() {
     testWidgets('renders the hint as a placeholder (shown empty, hidden once typed); icon optional', (tester) async {
       await tester.pumpWidget(harness(
         f,
-        ClideFilterBox(onChanged: (_) {}, hint: 'Replace', icon: null),
+        ClideFilterBox(onChanged: (_) {}, hint: 'Replace', showIcon: false),
       ));
-      // Placeholder visible while empty; no leading search glyph (icon: null).
+      // Placeholder visible while empty; the icon slot is kept for alignment but
+      // draws a blank glyph (showIcon: false → EmptyIconPainter).
       expect(find.text('Replace'), findsOneWidget);
-      expect(find.byType(ClideIcon), findsNothing);
+      expect(find.byType(ClideIcon), findsOneWidget);
+      expect(tester.widget<ClideIcon>(find.byType(ClideIcon)).painter, isA<EmptyIconPainter>());
       // Typing hides the placeholder.
       await tester.enterText(find.byType(EditableText), 'x');
       await tester.pump();
@@ -349,9 +351,9 @@ void main() {
       await tester.pumpWidget(harness(
         f,
         ClideIconRail(
-          items: const [
-            ClideIconRailItem(id: 'a', icon: PhosphorIcons.folder, tooltip: 'A'),
-            ClideIconRailItem(id: 'b', icon: PhosphorIcons.gitBranch, tooltip: 'B'),
+          items: [
+            ClideIconRailItem(id: 'a', icon: PhosphorIcons.byName('folder'), tooltip: 'A'),
+            ClideIconRailItem(id: 'b', icon: PhosphorIcons.byName('git-branch'), tooltip: 'B'),
           ],
           activeId: 'a',
           onSelect: (id) => selected = id,
@@ -373,7 +375,7 @@ void main() {
           height: 30,
           child: ClideIconRail(
             items: [
-              for (var i = 0; i < 10; i++) ClideIconRailItem(id: '$i', icon: PhosphorIcons.folder, tooltip: 'Tab $i'),
+              for (var i = 0; i < 10; i++) ClideIconRailItem(id: '$i', icon: PhosphorIcons.byName('folder'), tooltip: 'Tab $i'),
             ],
             activeId: '0',
             onSelect: (_) {},

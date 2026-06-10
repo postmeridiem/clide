@@ -36,7 +36,7 @@ Widget _placeholder(BuildContext context, double size) {
     height: size,
     color: t.panelBackground,
     alignment: Alignment.center,
-    child: ClideIcon(PhosphorIcons.image, size: size * 0.45, color: t.globalTextMuted),
+    child: ClideIcon(PhosphorIcons.byName('image'), size: size * 0.45, color: t.globalTextMuted),
   );
 }
 

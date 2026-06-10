@@ -45,14 +45,14 @@ class TicketsExtension extends ClideExtension {
           title: 'Tickets',
           titleKey: 'tab.title',
           i18nNamespace: id,
-          icon: PhosphorIcons.ticket,
+          icon: PhosphorIcons.byName('ticket'),
           build: (_) => const TicketsView(),
         ),
         TabContribution(
           id: 'tickets.detail',
           slot: Slots.contextPanel,
           title: 'Ticket',
-          icon: PhosphorIcons.ticket,
+          icon: PhosphorIcons.byName('ticket'),
           build: (_) => const TicketDetailView(),
         ),
       ];

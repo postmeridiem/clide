@@ -43,14 +43,14 @@ class DecisionsExtension extends ClideExtension {
           title: 'Decisions',
           titleKey: 'tab.title',
           i18nNamespace: id,
-          icon: PhosphorIcons.lightbulb,
+          icon: PhosphorIcons.byName('lightbulb'),
           build: (_) => const DecisionsView(),
         ),
         TabContribution(
           id: 'decisions.detail',
           slot: Slots.contextPanel,
           title: 'Decision',
-          icon: PhosphorIcons.lightbulb,
+          icon: PhosphorIcons.byName('lightbulb'),
           build: (_) => const DecisionDetailView(),
         ),
       ];

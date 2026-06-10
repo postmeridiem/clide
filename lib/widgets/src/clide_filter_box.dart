@@ -15,7 +15,8 @@ class ClideFilterBox extends StatefulWidget {
     this.hint = 'Filter…',
     this.debounce = const Duration(milliseconds: 200),
     this.onSubmitted,
-    this.icon = PhosphorIcons.magnifyingGlass,
+    this.icon,
+    this.showIcon = true,
     this.address,
   });
 
@@ -24,9 +25,15 @@ class ClideFilterBox extends StatefulWidget {
   final Duration debounce;
   final ValueChanged<String>? onSubmitted;
 
-  /// Leading glyph. Defaults to the search glass; pass null for inputs
-  /// that aren't searches (e.g. a replace or glob field).
+  /// Leading glyph. Defaults to the search glass (resolved at build, since
+  /// [PhosphorIcons.byName] isn't const); pass a custom painter to override it,
+  /// or set [showIcon] = false for inputs that aren't searches (a replace/glob
+  /// field).
   final ClideIconPainter? icon;
+
+  /// Whether to draw a leading glyph. False draws a blank one but keeps the
+  /// slot's space, so non-search fields stay aligned with search ones.
+  final bool showIcon;
 
   /// Makes this box addressable from the CLI (D-6 parity, T-270). When set,
   /// the box listens on the MessageBus `filter.set` channel for its address
@@ -123,10 +130,14 @@ class _ClideFilterBoxState extends State<ClideFilterBox> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: Row(
             children: [
-              if (widget.icon != null) ...[
-                ClideIcon(widget.icon!, size: 13, color: tokens.globalTextMuted),
-                const SizedBox(width: 6),
-              ],
+              // The slot is always reserved (size + gap) so search and non-search
+              // boxes align; showIcon: false just draws a blank glyph (T-314).
+              ClideIcon(
+                widget.showIcon ? (widget.icon ?? PhosphorIcons.byName('magnifying-glass')) : const EmptyIconPainter(),
+                size: 13,
+                color: tokens.globalTextMuted,
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: Stack(
                   alignment: Alignment.centerLeft,
@@ -160,7 +171,7 @@ class _ClideFilterBoxState extends State<ClideFilterBox> {
                   onTap: _clear,
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
-                    child: ClideIcon(PhosphorIcons.xMark, size: 11, color: tokens.globalTextMuted),
+                    child: ClideIcon(PhosphorIcons.byName('x'), size: 11, color: tokens.globalTextMuted),
                   ),
                 ),
             ],

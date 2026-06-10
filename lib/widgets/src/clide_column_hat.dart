@@ -94,7 +94,7 @@ class _RightContent extends StatelessWidget {
       children: [
         _WinButton(icon: const PhosphorIconPainter(0xe32a), onTap: wc.minimize, tokens: tokens),
         _WinButton(icon: const PhosphorIconPainter(0xe45e), onTap: wc.toggleMaximize, tokens: tokens),
-        _WinButton(icon: PhosphorIcons.xMark, onTap: wc.close, tokens: tokens, isClose: true),
+        _WinButton(icon: PhosphorIcons.byName('x'), onTap: wc.close, tokens: tokens, isClose: true),
       ],
     );
   }

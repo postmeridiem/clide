@@ -190,7 +190,7 @@ class _BranchPickerState extends State<_BranchPicker> {
                     onTap: () => widget.onDismiss(),
                     child: MouseRegion(
                       cursor: SystemMouseCursors.click,
-                      child: ClideIcon(PhosphorIcons.xMark, size: 12, color: tokens.globalTextMuted),
+                      child: ClideIcon(PhosphorIcons.byName('x'), size: 12, color: tokens.globalTextMuted),
                     ),
                   ),
                 ],

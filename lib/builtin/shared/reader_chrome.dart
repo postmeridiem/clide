@@ -51,7 +51,7 @@ class ReaderActionBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _ActionButton(
-          painter: PhosphorIcons.caretLeft,
+          painter: PhosphorIcons.byName('caret-left'),
           tooltip: 'Back',
           enabled: canGoBack,
           onTap: canGoBack ? onBack : null,
@@ -59,7 +59,7 @@ class ReaderActionBar extends StatelessWidget {
         ),
         const SizedBox(width: 2),
         _ActionButton(
-          painter: PhosphorIcons.caretRight,
+          painter: PhosphorIcons.byName('caret-right'),
           tooltip: 'Forward',
           enabled: canGoForward,
           onTap: canGoForward ? onForward : null,
@@ -68,7 +68,7 @@ class ReaderActionBar extends StatelessWidget {
         if (hasPinned) ...[
           const SizedBox(width: 2),
           _ActionButton(
-            painter: PhosphorIcons.arrowUUpLeft,
+            painter: PhosphorIcons.byName('arrow-u-up-left'),
             tooltip: 'Jump to pin',
             enabled: true,
             onTap: onJumpToPin,
@@ -78,7 +78,7 @@ class ReaderActionBar extends StatelessWidget {
         if (onEdit != null) ...[
           const SizedBox(width: 4),
           _ActionButton(
-            painter: PhosphorIcons.pencilSimple,
+            painter: PhosphorIcons.byName('pencil-simple'),
             tooltip: 'Edit in editor',
             enabled: true,
             onTap: onEdit,
@@ -103,7 +103,7 @@ class ReaderPinButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ActionButton(
-      painter: PhosphorIcons.pushPin,
+      painter: PhosphorIcons.byName('push-pin'),
       tooltip: pinned ? 'Unpin' : 'Pin',
       enabled: onTap != null,
       active: pinned,

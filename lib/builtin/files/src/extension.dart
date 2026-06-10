@@ -23,7 +23,7 @@ class FilesExtension extends ClideExtension {
           id: 'files.tree',
           slot: Slots.sidebar,
           title: 'Files',
-          icon: PhosphorIcons.folder,
+          icon: PhosphorIcons.byName('folder'),
           titleKey: 'tab.title',
           i18nNamespace: id,
           priority: -100,

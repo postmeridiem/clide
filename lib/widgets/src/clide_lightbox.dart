@@ -114,7 +114,7 @@ class _ClideLightboxState extends State<ClideLightbox> {
             Positioned(
               top: 8,
               right: 8,
-              child: _IconChip(icon: PhosphorIcons.xMark, label: 'close', onTap: widget.onDismiss, tokens: tokens),
+              child: _IconChip(icon: PhosphorIcons.byName('x'), label: 'close', onTap: widget.onDismiss, tokens: tokens),
             ),
             Positioned(
               bottom: 8,

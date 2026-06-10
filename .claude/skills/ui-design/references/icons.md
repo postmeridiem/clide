@@ -6,32 +6,30 @@ The app bundles Phosphor Icons (v2.0.8, MIT) as TTF fonts at
 `assets/fonts/phosphor/` (regular, bold, fill weights).
 
 **Glyph reference:** [`phosphor-glyphs.md`](phosphor-glyphs.md) — the full
-1512-glyph table (codepoint · kebab name · Pascal name) with an **In clide**
-column flagging the ~45 already wired into `PhosphorIcons`. Read/grep this to
-pick a glyph; reach for an already-defined one first. (It mirrors
-`assets/fonts/phosphor/codepoints.csv`; regenerate with
-`python3 .claude/skills/ui-design/scripts/gen-phosphor-glyphs.py` after a font
-bump.)
-
-### Adding an icon
-
-Find the codepoint in [`phosphor-glyphs.md`](phosphor-glyphs.md), then add a
-`static const` entry to `PhosphorIcons` in
-`lib/widgets/src/icons/phosphor.dart`:
-
-```dart
-static const arrowClockwise = PhosphorIconPainter(0xe036);
-```
-
-Only add icons we actually use — don't bulk-import the full set.
+1512-glyph table (codepoint · kebab name · Pascal name). Grep it for the exact
+kebab name; **all 1512 are available** — no per-icon wiring (T-314).
 
 ### Using an icon
 
+Reference a glyph by its **exact kebab-case name** — no codepoints in feature
+code; the label→codepoint table lives only in the generated
+`lib/widgets/src/icons/phosphor_glyphs.g.dart`:
+
 ```dart
-ClideIcon(PhosphorIcons.arrowClockwise, size: 13)
+ClideIcon(PhosphorIcons.byName('arrow-clockwise'), size: 13)
 ```
 
-Or as a `TabContribution` icon field: `icon: PhosphorIcons.lightbulb`.
+Or as a `TabContribution` icon field: `icon: PhosphorIcons.byName('lightbulb')`.
+
+- An **unknown name** is a bug — it degrades to the `placeholder` error box so
+  the mistake is visible. `phosphor_glyphs_test` asserts every `byName('…')`
+  literal in `lib/` resolves, recovering the typo check a const would give.
+- For an **intentional blank** that still reserves the icon's box (alignment),
+  use `const EmptyIconPainter()` — *not* a missing name.
+- Regenerate the map after a font bump: `dart run tool/gen_phosphor_glyphs.dart`.
+
+**Bold weight:** pass `family: 'Phosphor-Bold'` to `PhosphorIconPainter`.
+**Fill weight:** `family: 'Phosphor-Fill'`.
 
 **Bold weight:** pass `family: 'Phosphor-Bold'` to `PhosphorIconPainter`.
 **Fill weight:** `family: 'Phosphor-Fill'`.

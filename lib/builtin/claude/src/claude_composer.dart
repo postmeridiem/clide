@@ -564,7 +564,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
               onTap: () => _removeAttachment(a),
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
-                child: ClideIcon(PhosphorIcons.xMark, size: 12, color: theme.globalTextMuted),
+                child: ClideIcon(PhosphorIcons.byName('x'), size: 12, color: theme.globalTextMuted),
               ),
             ),
           ),
@@ -580,6 +580,6 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     if (a.isImage) {
       return ImageThumbnail(path: a.path, size: 44);
     }
-    return ClideIcon(PhosphorIcons.fileText, size: 18, color: theme.globalTextMuted);
+    return ClideIcon(PhosphorIcons.byName('file-text'), size: 18, color: theme.globalTextMuted);
   }
 }

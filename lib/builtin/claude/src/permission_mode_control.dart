@@ -19,13 +19,13 @@ import 'package:flutter/widgets.dart';
 ClideIconPainter permissionModeIcon(String mode) {
   switch (mode) {
     case 'acceptEdits':
-      return PhosphorIcons.pencilSimple;
+      return PhosphorIcons.byName('pencil-simple');
     case 'plan':
-      return PhosphorIcons.listChecks;
+      return PhosphorIcons.byName('list-checks');
     case 'bypassPermissions':
-      return PhosphorIcons.shieldWarning;
+      return PhosphorIcons.byName('shield-warning');
     default:
-      return PhosphorIcons.shieldCheck;
+      return PhosphorIcons.byName('shield-check');
   }
 }
 

@@ -11,6 +11,23 @@ abstract class ClideIconPainter {
   void paint(Canvas canvas, Color color);
 }
 
+/// Draws nothing, but [ClideIcon] still reserves its `size×size` box — so a
+/// caller can keep the icon slot for alignment without showing a glyph. This is
+/// the *intentional* empty (e.g. a non-search filter field), distinct from an
+/// unknown glyph name, which renders a visible `placeholder` error box (T-314).
+class EmptyIconPainter extends ClideIconPainter {
+  const EmptyIconPainter();
+
+  @override
+  void paint(Canvas canvas, Color color) {}
+
+  @override
+  bool operator ==(Object other) => other is EmptyIconPainter;
+
+  @override
+  int get hashCode => (EmptyIconPainter).hashCode;
+}
+
 class ClideIcon extends StatelessWidget {
   const ClideIcon(
     this.painter, {
