@@ -547,5 +547,42 @@ void main() {
       await tester.pump();
       expect(d, isNull, reason: 'typing in the note must not trigger Allow');
     });
+
+    // Numpad twins map to the same selection as the number row (T-310).
+    testWidgets('numpad 1 = Allow', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpad1);
+      await tester.pump();
+      expect(d, isA<AllowTool>());
+    });
+
+    testWidgets('numpad 2 = Deny when there is no remember button', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpad2);
+      await tester.pump();
+      expect(d, isA<DenyTool>());
+    });
+
+    testWidgets('numpad selects a question option just like the number row', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, questionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpad2); // Dogs (option 2)
+      await tester.pump();
+      await tester.tap(find.text('Submit'));
+      await tester.pump();
+      expect((d as AllowTool).updatedInput['answers']['Do you prefer cats or dogs?'], 'Dogs');
+    });
+
+    testWidgets('a focused note field swallows numpad digits too', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.tap(find.byType(EditableText)); // focus the note field
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpad1);
+      await tester.pump();
+      expect(d, isNull, reason: 'typing in the note must not trigger Allow');
+    });
   });
 }

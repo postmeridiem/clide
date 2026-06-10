@@ -122,6 +122,8 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 
   // -- number-key + Enter shortcuts (T-240, CLI muscle memory) ---------------
 
+  // Number-row digits and their numpad twins map to the same 1-9 selection,
+  // so the shortcut works regardless of which key the user reaches for (T-310).
   static const _digitKeys = [
     LogicalKeyboardKey.digit1,
     LogicalKeyboardKey.digit2,
@@ -134,6 +136,18 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     LogicalKeyboardKey.digit9,
   ];
 
+  static const _numpadKeys = [
+    LogicalKeyboardKey.numpad1,
+    LogicalKeyboardKey.numpad2,
+    LogicalKeyboardKey.numpad3,
+    LogicalKeyboardKey.numpad4,
+    LogicalKeyboardKey.numpad5,
+    LogicalKeyboardKey.numpad6,
+    LogicalKeyboardKey.numpad7,
+    LogicalKeyboardKey.numpad8,
+    LogicalKeyboardKey.numpad9,
+  ];
+
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (e is! KeyDownEvent) return KeyEventResult.ignored;
     // A note field has focus → let the digits type; only act for the card.
@@ -143,7 +157,8 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     if (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.numpadEnter) {
       return _activatePrimary() ? KeyEventResult.handled : KeyEventResult.ignored;
     }
-    final i = _digitKeys.indexOf(e.logicalKey);
+    var i = _digitKeys.indexOf(e.logicalKey);
+    if (i < 0) i = _numpadKeys.indexOf(e.logicalKey);
     if (i < 0) return KeyEventResult.ignored;
     return _activateNumber(i + 1) ? KeyEventResult.handled : KeyEventResult.ignored;
   }

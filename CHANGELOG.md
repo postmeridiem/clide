@@ -256,6 +256,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Numpad digits now pick permission/question options too.** The prompt card's
+  number-key shortcuts only matched the top number row; numpad `1`-`9` now map to
+  the same 1-9 selection, so the keypad works for Allow/Deny and question options.
+  The note-field guard still lets digits type normally when a note is focused.
+  (T-310)
 - **The composer no longer jams against the window bottom when the status bar
   is hidden.** With the bar gone, the bottom-most pane content used to run flush
   into the window's resize-drag edge; the layout now reserves that edge so the
