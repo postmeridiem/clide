@@ -47,4 +47,34 @@ void main() {
       expect(v.allOk, isFalse);
     });
   });
+
+  group('expandToolPath (T-347)', () {
+    const minimal = '/usr/bin:/bin'; // a desktop-launch PATH, no ~/.local/bin
+
+    test('Linux prepends ~/.local/bin + /usr/local/bin (desktop-launch fix)', () {
+      final out = expandToolPath(minimal, isMac: false, isLinux: true, home: '/home/u');
+      expect(out, '/home/u/.local/bin:/usr/local/bin:/usr/bin:/bin');
+      // No homebrew dirs on Linux.
+      expect(out.contains('/opt/homebrew'), isFalse);
+    });
+
+    test('macOS also adds the homebrew dirs', () {
+      final out = expandToolPath(minimal, isMac: true, isLinux: false, home: '/Users/u');
+      expect(out.split(':'), containsAll(['/Users/u/.local/bin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin']));
+    });
+
+    test('does not duplicate dirs already on PATH', () {
+      final base = '/home/u/.local/bin:/usr/local/bin:/usr/bin';
+      expect(expandToolPath(base, isMac: false, isLinux: true, home: '/home/u'), base);
+    });
+
+    test('skips ~/.local/bin when HOME is empty', () {
+      final out = expandToolPath(minimal, isMac: false, isLinux: true, home: '');
+      expect(out, '/usr/local/bin:/usr/bin:/bin');
+    });
+
+    test('other platforms pass PATH through unchanged', () {
+      expect(expandToolPath(minimal, isMac: false, isLinux: false, home: '/home/u'), minimal);
+    });
+  });
 }

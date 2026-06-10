@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Tools like `pql` resolve when clide is launched from the desktop on Linux.**
+  A desktop launch inherits a minimal PATH without `~/.local/bin`, so the pql
+  pane (and other PATH-resolved tools) failed — the PATH expansion that fixes
+  this previously ran on macOS only. It now also runs on Linux. (T-347)
 - **Consistent card font sizes in the Claude conversation.** Tool/result cards
   and the Activity/run collapser cards now share the same header-label (14) and
   collapsed-summary (13) sizes, so neighbouring cards in the stream no longer

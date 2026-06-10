@@ -145,14 +145,29 @@ String? _firstExisting(List<String> candidates) {
 }
 
 /// Build expanded PATH inline — must be self-contained for isolate use.
-String _expandedPath() {
-  final base = Platform.environment['PATH'] ?? '';
-  if (!Platform.isMacOS) return base;
-  final home = Platform.environment['HOME'] ?? '';
+String _expandedPath() => expandToolPath(
+      Platform.environment['PATH'] ?? '',
+      isMac: Platform.isMacOS,
+      isLinux: Platform.isLinux,
+      home: Platform.environment['HOME'],
+    );
+
+/// Pure PATH-expansion logic, extracted so it's testable without touching the
+/// process environment.
+///
+/// A desktop-launched app (macOS or Linux) inherits a minimal PATH that lacks
+/// the user bin dirs where tools like `pql` install (`~/.local/bin`), so tool
+/// resolution fails even though a terminal launch would find them. Re-add the
+/// common user/local bin dirs — that any are missing means they're prepended,
+/// so they take precedence over a stale system copy (T-347). Homebrew dirs are
+/// macOS-only. On other platforms the base PATH passes through unchanged.
+String expandToolPath(String base, {required bool isMac, required bool isLinux, String? home}) {
+  if (!isMac && !isLinux) return base;
+  final h = home ?? '';
   final extras = <String>[
-    if (home.isNotEmpty) '$home/.local/bin',
-    '/opt/homebrew/bin',
-    '/opt/homebrew/sbin',
+    if (h.isNotEmpty) '$h/.local/bin',
+    if (isMac) '/opt/homebrew/bin',
+    if (isMac) '/opt/homebrew/sbin',
     '/usr/local/bin',
   ];
   final existing = base.split(':').toSet();
