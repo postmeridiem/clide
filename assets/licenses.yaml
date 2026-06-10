@@ -144,7 +144,7 @@ dependencies:
     purpose: >-
       Incremental parsing library with embedded WASM grammar engine.
       Vendored as libtree-sitter.so (wasmtime statically linked) in
-      app/native/. Called via dart:ffi. Loads grammar .wasm files
+      native/linux-x64/. Called via dart:ffi. Loads grammar .wasm files
       through its built-in WASM store API.
 
   - name: wasmtime
@@ -232,7 +232,7 @@ dev_dependencies:
 
   - name: test
     kind: dart-package
-    version: "1.30.0"
+    version: "1.31.0"
     homepage: https://pub.dev/packages/test
     license: BSD-3-Clause
     purpose: >-
