@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Clickable file references in the Claude conversation.** Workspace file paths
+  mentioned by Claude — bare (`lib/app.dart`), with a line (`lib/app.dart:42`),
+  backticked, or as markdown links — are now clickable and open in the editor,
+  jumping to the line when present. Only paths that actually exist in the repo
+  linkify, so prose like version numbers stays literal. (T-300)
 - **Hand a ticket to Claude from the sidebar.** Hovering a ticket card reveals a
   run icon; clicking it hands the full ticket to the active Claude pane as a
   "pick this up and start" prompt. Routed over the message bus, so the sidebar

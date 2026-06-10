@@ -19,13 +19,23 @@ typedef ImageTokenBuilder = Widget Function(String path);
 /// it (e.g. the OS URL handler).
 typedef LinkTapCallback = void Function(String url);
 
+/// Resolves a path-like token to an absolute path if it names a file that
+/// exists in the workspace, else null (T-300). The caller owns workspace-root
+/// resolution + the existence check; a null resolver — or a null return —
+/// leaves the token literal, so prose like "e.g." or "2.2.0" never linkifies.
+typedef FileRefResolver = String? Function(String path);
+
+/// Open a resolved workspace file in the editor, jumping to [line] when a
+/// `path:line` suffix was present (T-300).
+typedef FileTapCallback = void Function(String path, int? line);
+
 /// The interaction hooks a [ClideMarkdown] render may fire — bundled into one
 /// value so the render tree threads a single object instead of a growing list
 /// of optional callbacks. All optional; a null hook leaves that affordance
 /// inert (the text renders, just not interactive).
 @immutable
 class ClideMarkdownHooks {
-  const ClideMarkdownHooks({this.onRecordTap, this.onImageToken, this.onLinkTap});
+  const ClideMarkdownHooks({this.onRecordTap, this.onImageToken, this.onLinkTap, this.resolveFileRef, this.onOpenFile});
 
   /// Tap a governance/ticket ref (T-281, D-77, …) → open the record (T-279).
   final RecordTapCallback? onRecordTap;
@@ -36,11 +46,18 @@ class ClideMarkdownHooks {
   /// Open an activated http(s) link (T-253).
   final LinkTapCallback? onLinkTap;
 
+  /// Confirm a path-like token names a real workspace file (T-300). Both this
+  /// and [onOpenFile] must be set for file refs to linkify.
+  final FileRefResolver? resolveFileRef;
+
+  /// Open a resolved workspace file in the editor (T-300).
+  final FileTapCallback? onOpenFile;
+
   static const none = ClideMarkdownHooks();
 }
 
 class ClideMarkdown extends StatelessWidget {
-  const ClideMarkdown(this.source, {super.key, this.onRecordTap, this.onImageToken, this.onLinkTap});
+  const ClideMarkdown(this.source, {super.key, this.onRecordTap, this.onImageToken, this.onLinkTap, this.resolveFileRef, this.onOpenFile});
 
   static const double _fontSize = 16;
   static const double _lineHeight = clideLineHeight;
@@ -62,10 +79,21 @@ class ClideMarkdown extends StatelessWidget {
   /// a preceding space qualifies, which is how the composer emits them.
   static final _imageTokenPattern = RegExp(r'(?<![^\s])@(\S+\.(?:png|jpe?g|gif|webp|bmp))', caseSensitive: false);
 
+  /// A workspace file reference in running text (T-300): an optional `/`-rooted
+  /// path of slash-separated segments ending in a `name.ext`, plus an optional
+  /// `:line` (and ignored `:col`). The leading lookbehind keeps it from
+  /// starting mid-token. Group 1 is the path, group 2 the line. The existence
+  /// check (resolver) is the real gate — this only narrows the candidates, so
+  /// "version 2.2.0" (ext `0`, not a letter) and "e.g." (no such file) stay
+  /// literal even when they slip through.
+  static final _filePathPattern = RegExp(r'(?<![\w@./\-])(/?(?:[\w.\-]+/)*[\w\-][\w.\-]*\.[A-Za-z][\w]*)(?::(\d+))?(?::\d+)?');
+
   final String source;
   final RecordTapCallback? onRecordTap;
   final ImageTokenBuilder? onImageToken;
   final LinkTapCallback? onLinkTap;
+  final FileRefResolver? resolveFileRef;
+  final FileTapCallback? onOpenFile;
 
   static String _unescapeHtml(String s) {
     return s
@@ -82,7 +110,13 @@ class ClideMarkdown extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     final doc = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
     final nodes = doc.parseLines(source.split('\n'));
-    final hooks = ClideMarkdownHooks(onRecordTap: onRecordTap, onImageToken: onImageToken, onLinkTap: onLinkTap);
+    final hooks = ClideMarkdownHooks(
+      onRecordTap: onRecordTap,
+      onImageToken: onImageToken,
+      onLinkTap: onLinkTap,
+      resolveFileRef: resolveFileRef,
+      onOpenFile: onOpenFile,
+    );
     final widgets = _buildNodes(nodes, tokens, hooks);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -331,8 +365,15 @@ class ClideMarkdown extends StatelessWidget {
           ],
         );
       case 'code':
+        final raw = _unescapeHtml(el.textContent);
+        // A backticked path (`lib/app.dart:42`) → clickable, opening in the
+        // editor (T-300); other inline code renders verbatim.
+        if (hooks.resolveFileRef != null && hooks.onOpenFile != null) {
+          final ref = _codeFileRef(raw, hooks.resolveFileRef!);
+          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, mono: true);
+        }
         return TextSpan(
-          text: _unescapeHtml(el.textContent),
+          text: raw,
           style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.syntaxString, backgroundColor: tokens.panelBackground),
         );
       case 'a':
@@ -345,6 +386,13 @@ class ClideMarkdown extends StatelessWidget {
         final href = el.attributes['href'];
         if (hooks.onLinkTap != null && href != null && _isHttpUrl(href)) {
           return _urlLinkSpan(text, href, tokens, hooks.onLinkTap!);
+        }
+        // A link whose href points at an existing workspace file → open it in
+        // the editor (T-300).
+        if (hooks.resolveFileRef != null && hooks.onOpenFile != null && href != null) {
+          final (path, line) = _splitFileRef(href);
+          final abs = hooks.resolveFileRef!(path);
+          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!);
         }
         return TextSpan(
           text: text,
@@ -361,40 +409,89 @@ class ClideMarkdown extends StatelessWidget {
   }
 
   /// Splits plain [text] into spans: pasted-image `@<path>` tokens become inline
-  /// image widgets via [onImageToken] (T-236), and bare governance/ticket refs
-  /// (T-281, D-77, Q-5, R-2) become clickable [_recordLinkSpan]s (T-279). With
-  /// neither callback (or no match) the text passes through unchanged.
+  /// image widgets via [onImageToken] (T-236), with the prose between them run
+  /// through [_linkifyProse] (record + file refs). With no hooks (or no match)
+  /// the text passes through unchanged.
   static List<InlineSpan> _linkifyText(String text, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
     if (text.isEmpty) return [TextSpan(text: text)];
-    // Pass 1: pull out image tokens, record-linkifying the prose between them.
+    // Pass 1: pull out image tokens, linkifying the prose between them.
     if (hooks.onImageToken != null) {
       final spans = <InlineSpan>[];
       var last = 0;
       for (final m in _imageTokenPattern.allMatches(text)) {
-        if (m.start > last) spans.addAll(_linkifyRecords(text.substring(last, m.start), tokens, hooks.onRecordTap));
+        if (m.start > last) spans.addAll(_linkifyProse(text.substring(last, m.start), tokens, hooks));
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: hooks.onImageToken!(m.group(1)!)),
         ));
         last = m.end;
       }
-      if (last < text.length) spans.addAll(_linkifyRecords(text.substring(last), tokens, hooks.onRecordTap));
+      if (last < text.length) spans.addAll(_linkifyProse(text.substring(last), tokens, hooks));
       return spans.isEmpty ? [TextSpan(text: text)] : spans;
     }
-    return _linkifyRecords(text, tokens, hooks.onRecordTap);
+    return _linkifyProse(text, tokens, hooks);
   }
 
-  static List<InlineSpan> _linkifyRecords(String text, SurfaceTokens tokens, RecordTapCallback? onRecordTap) {
-    if (onRecordTap == null || text.isEmpty) return [TextSpan(text: text)];
+  /// Linkifies running prose: governance/ticket refs (T-279) and workspace file
+  /// references (T-300) both become clickable spans, plain text between passing
+  /// through. File refs only linkify when [ClideMarkdownHooks.resolveFileRef]
+  /// confirms the path exists, so non-file dotted prose stays literal. On
+  /// overlap the earlier match wins (records and file paths don't collide in
+  /// practice — one needs a `.ext`, the other forbids one).
+  static List<InlineSpan> _linkifyProse(String text, SurfaceTokens tokens, ClideMarkdownHooks hooks) {
+    if (text.isEmpty) return [TextSpan(text: text)];
+    final wantRecords = hooks.onRecordTap != null;
+    final wantFiles = hooks.resolveFileRef != null && hooks.onOpenFile != null;
+    if (!wantRecords && !wantFiles) return [TextSpan(text: text)];
+
+    final hits = <_LinkHit>[];
+    if (wantRecords) {
+      for (final m in _bareRecordPattern.allMatches(text)) {
+        hits.add(_LinkHit(m.start, m.end, _recordLinkSpan(m[0]!, tokens, hooks.onRecordTap!)));
+      }
+    }
+    if (wantFiles) {
+      for (final m in _filePathPattern.allMatches(text)) {
+        final abs = hooks.resolveFileRef!(m.group(1)!);
+        if (abs == null) continue;
+        final line = m.group(2) == null ? null : int.tryParse(m.group(2)!);
+        hits.add(_LinkHit(m.start, m.end, _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!)));
+      }
+    }
+    if (hits.isEmpty) return [TextSpan(text: text)];
+    hits.sort((a, b) => a.start.compareTo(b.start));
+
     final spans = <InlineSpan>[];
     var last = 0;
-    for (final m in _bareRecordPattern.allMatches(text)) {
-      if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
-      spans.add(_recordLinkSpan(m[0]!, tokens, onRecordTap));
-      last = m.end;
+    for (final h in hits) {
+      if (h.start < last) continue; // overlapped by an earlier match
+      if (h.start > last) spans.add(TextSpan(text: text.substring(last, h.start)));
+      spans.add(h.span);
+      last = h.end;
     }
     if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
-    return spans.isEmpty ? [TextSpan(text: text)] : spans;
+    return spans;
+  }
+
+  /// If a code span's whole content is a single workspace file ref (`path` or
+  /// `path:line`), returns (absPath, line); else null (T-300). Requires a
+  /// full-content single-token match so multi-word inline code stays verbatim.
+  static (String, int?)? _codeFileRef(String content, FileRefResolver resolve) {
+    final s = content.trim();
+    if (s.isEmpty || s.contains(RegExp(r'\s'))) return null;
+    final m = _filePathPattern.firstMatch(s);
+    if (m == null || m.start != 0 || m.end != s.length) return null;
+    final abs = resolve(m.group(1)!);
+    if (abs == null) return null;
+    return (abs, m.group(2) == null ? null : int.tryParse(m.group(2)!));
+  }
+
+  /// Splits a `path` or `path:line` (also `path:line:col`) href into its path
+  /// and optional 1-based line (T-300).
+  static (String, int?) _splitFileRef(String raw) {
+    final m = RegExp(r'^(.*?):(\d+)(?::\d+)?$').firstMatch(raw);
+    if (m != null) return (m.group(1)!, int.tryParse(m.group(2)!));
+    return (raw, null);
   }
 
   /// A clickable record-reference span: [id] rendered in the focus accent with
@@ -426,6 +523,33 @@ class ClideMarkdown extends StatelessWidget {
     return u != null && (u.scheme == 'http' || u.scheme == 'https') && u.host.isNotEmpty;
   }
 
+  /// A clickable workspace file-reference span (T-300): the path [display] in
+  /// the focus accent, underlined on hover, opening the resolved [absPath] at
+  /// [line] (when present) in the editor via [onOpenFile]. The [mono] flag keeps
+  /// backticked refs in the monospace face; prose refs use the UI face.
+  static InlineSpan _fileLinkSpan(String display, String absPath, int? line, SurfaceTokens tokens, FileTapCallback onOpenFile, {bool mono = false}) {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: ClideTappable(
+        onTap: () => onOpenFile(absPath, line),
+        tooltip: 'Open in editor',
+        builder: (_, hovered, __) => Text(
+          display,
+          style: TextStyle(
+            color: tokens.globalFocus,
+            fontSize: mono ? clideFontMono : _fontSize,
+            height: _lineHeight,
+            fontFamily: mono ? clideMonoFamily : clideUiFamily,
+            fontFamilyFallback: mono ? null : clideUiFamilyFallback,
+            decoration: hovered ? TextDecoration.underline : null,
+            decorationColor: tokens.globalFocus,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// A clickable http(s) link span (T-253): the link [text] in the focus accent,
   /// underlined on hover, opening [href] via [onLinkTap]. Keyboard-activatable
   /// (ClideTappable) and tooltipped with the destination.
@@ -451,4 +575,15 @@ class ClideMarkdown extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One linkified span and the `[start, end)` slice of the prose it covers, so
+/// [ClideMarkdown._linkifyProse] can merge record + file matches in order and
+/// drop overlaps.
+@immutable
+class _LinkHit {
+  const _LinkHit(this.start, this.end, this.span);
+  final int start;
+  final int end;
+  final InlineSpan span;
 }

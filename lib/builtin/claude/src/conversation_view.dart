@@ -11,6 +11,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
@@ -365,6 +366,25 @@ void _openUrl(BuildContext context, String url) {
   unawaited(ClideKernel.of(context).os.openURL(url));
 }
 
+/// Resolve a path-like token from the conversation to an absolute workspace
+/// file, or null if it doesn't name a real repo file (T-300). The existence
+/// check is what keeps prose ("e.g.", "2.2.0") from linkifying. Resolves
+/// relative tokens against the open project root; absolute tokens must already
+/// live inside it. `..` segments are rejected so a ref can't escape the repo.
+String? _resolveRepoFile(BuildContext context, String raw) {
+  final root = ClideKernel.of(context).project.current?.path;
+  if (root == null || raw.isEmpty || raw.contains('..')) return null;
+  final abs = raw.startsWith('/') ? raw : '$root/$raw';
+  if (!abs.startsWith('$root/')) return null;
+  return File(abs).existsSync() ? abs : null;
+}
+
+/// Open a clicked workspace file reference in the editor, jumping to [line]
+/// when present — the Dart-side twin of `clide editor open <path>` (T-300, D-6).
+void _openFile(BuildContext context, String path, int? line) {
+  unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path, if (line != null) 'line': line}));
+}
+
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({
@@ -443,6 +463,8 @@ class _ConversationTurn extends StatelessWidget {
             onRecordTap: (id) => _openRecord(context, id),
             onImageToken: (path) => ImageThumbnail(path: path, size: 48),
             onLinkTap: (url) => _openUrl(context, url),
+            resolveFileRef: (p) => _resolveRepoFile(context, p),
+            onOpenFile: (path, line) => _openFile(context, path, line),
           ),
         ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
@@ -453,7 +475,13 @@ class _ConversationTurn extends StatelessWidget {
           label: i.isSidechain ? 'agent' : 'claude',
           copyText: i.text,
           margin: _childMargin,
-          body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id), onLinkTap: (url) => _openUrl(context, url)),
+          body: ClideMarkdown(
+            i.text,
+            onRecordTap: (id) => _openRecord(context, id),
+            onLinkTap: (url) => _openUrl(context, url),
+            resolveFileRef: (p) => _resolveRepoFile(context, p),
+            onOpenFile: (path, line) => _openFile(context, path, line),
+          ),
         ),
       AssistantThinkingMessage() => ConversationCard(
           // Framed + muted like the context card (T-306).
