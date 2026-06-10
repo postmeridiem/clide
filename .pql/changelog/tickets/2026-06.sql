@@ -1067,3 +1067,70 @@ Bisected (each a 45s-timeout repro, all on this box):
 - The full openFolder tap flow hangs even when project validation is stubbed to a synchronous, pure-Dart `.git` walk (no subprocess) AND `runAsync` is removed — so the wedge is not solely the git subprocess; something in the booted-app + extensions + open-folder command path holds a native port that teardown waits on forever.
 
 Quarantined with `skip:` so the suite/gate stays green. Real fix: find the leaked native async resource (likely a Process/Isolate/FakeDaemonClient port reachable from the open-folder command or app boot under the test harness) and ensure it''s drained/cancelled before teardown — or drive the "no git repo" assertion without booting the resource. Then remove the skip.', 'done', 'high', NULL, NULL, NULL, '2026-06-08 11:29:22', '2026-06-09 21:42:59', NULL, 'c49e75c2d73ddec10469bf2405dde626', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Unify collapser cards onto one ClideCollapserCard primitive', 'Group/tool collapser cards (ClideHolderCard vs ConversationCard) handle collapse + visuals inconsistently; extract one shared collapser primitive with a color property, fixed-width counter slot, and the status icon hard against the card edge.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 08:15:39', '2026-06-10 08:15:39', NULL, '0c5af482db33b4ea4dd241bd3491a51f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Unify collapser cards onto one ClideCollapserCard primitive', 'Group/tool collapser cards (ClideHolderCard vs ConversationCard) handle collapse + visuals inconsistently; extract one shared collapser primitive with a color property, fixed-width counter slot, and the status icon hard against the card edge.
+
+## Bug / discrepancy
+
+There are two collapser-card families with inconsistent collapse handling and
+"card within card" chrome:
+
+- **`ClideHolderCard`** (lib/builtin/claude/src/holder_card.dart, T-266) — the
+  group container for Activity (`_ActivityCard`) and Edits (`_EditRunCard`).
+  Collapse = ticker row + frame background + a header caret. Header order:
+  `[chevron] summary … [status] [count]`. Status indicator sits INBOARD, left
+  of the count label. Border/text hardcoded to `panelBorder` / `globalTextMuted`
+  (no color knob).
+- **`ConversationCard`** (lib/builtin/claude/src/conversation_card.dart, T-262)
+  — the per-tool merged card. Collapse = a single leading caret only (no
+  background/ticker). Header order: `[caret] label summary/spacer [status]
+  [actions]`. Has `borderColor` + `accent`.
+
+So the toggle is attached differently, the status mark sits in a different
+place, the counter has no fixed slot, and color customization exists on one but
+not the other. They should grab the SAME widget (each its own instance — NOT
+collapsing across types).
+
+## Proposal — one `ClideCollapserCard` primitive
+
+Both families render through a single collapser primitive. Requirements:
+
+1. **`color` property** drives the border AND the label/text color, so each
+   instance keeps its visual identity (activity = muted, edits = accent,
+   error = red, sub-agent, …) through one widget. Default = panelBorder/muted.
+2. **Fixed-width counter slot** — the `N steps` / `N edits` count lives in a
+   right-aligned fixed-width slot so it (and the trailing status icon) never
+   shift as the number grows or the status appears/changes.
+3. **Status icon hard against the card edge** — flip the current
+   `[count][status]` to `[status]` against the right edge with the counter
+   inboard of it. The chevron already hugs the LEFT edge. Rule: both icons hug
+   the card edges; text sits inboard.
+4. **Consistent collapse/expand attachment** across both uses (keep the
+   group-container background-tap-to-collapse for the tail-follow case, D-78,
+   but the visible control + header layout are identical).
+5. Status glyphs: `ClideRunStatus` running (logo-mark spinner ◐) / success ✓ /
+   error ✕, reusing ClideStatusIndicator.
+
+Nested sub-cards render the SAME primitive (card-within-card consistency).
+
+## Scope
+
+- New `ClideCollapserCard` in lib/widgets/src/ (exported from widgets.dart).
+- Migrate `ClideHolderCard` (Activity/Edits) and `ConversationCard` (merged
+  tool card) onto it; keep per-type content/labels.
+- Hold visual fidelity via goldens (conversation_card_goldens_test,
+  ClideHolderCard golden) + a11y (expanded/collapsed semantics, focusable
+  toggle).
+
+## Wireframe
+
+docs/design/wireframes/cards/collapser-card.json (+ .png) — collapsed (3 color
+variants), expanded with nested sub-cards, annotated for the counter slot +
+edge-anchored icons.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 08:15:39', '2026-06-10 08:16:05', NULL, '384d36f5718f573bdaba210b0b8a147f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16YM1Y910T07Y1Y22MGTEM', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Card the ''context'' conversation block like the rest of the cards', 'The injected "context" block (skill-load / command-expansion / system-reminder messages) renders as a frameless `ConversationCardVariant.bare` card in `lib/builtin/claude/src/conversation_view.dart:410-419`, so it reads as a bare `> context …` row wedged between the fully-framed Skill and Bash tool cards (see pasted screenshot). It looks unfinished next to the carded tool calls.
+
+Make the context block follow the standard collapser-card pattern established for all group/tool cards in the `collapser-card` wireframe (docs/design/wireframes/cards/): a proper card frame with the chevron toggle hard against the left edge, label, and the fixed-width right-aligned counter/status slot — so it is visually consistent with the Skill/Bash/Activity cards around it.
+
+Keep the de-emphasis that D-78 calls for (muted accent, collapsed-by-default, first-line summary) — this is about giving it the same *frame* as the other cards, not the blue "you" accent. The same treatment likely applies to the sibling bare cards that share this branch (agent prompt, thinking) for consistency; scope to context first and note whether thinking/agent-prompt should follow.
+
+Acceptance: the context row sits in a framed card matching the collapser-card wireframe geometry, still muted and collapsed by default, with the toggle and counter/status slot aligned to the other cards. Update/extend the relevant golden(s).', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 08:17:42', '2026-06-10 08:17:42', NULL, 'b7f1ad221558368a6c547e00043087b7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

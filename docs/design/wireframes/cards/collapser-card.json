@@ -1,0 +1,121 @@
+{
+  "name": "ClideCollapserCard",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 40, "top": 28,
+      "text": "ClideCollapserCard — one collapser primitive for all group / tool cards",
+      "fontColor": "#E2E8F5", "fontSize": 18
+    },
+    "subtitle": {
+      "type": "Text",
+      "left": 40, "top": 56,
+      "text": "Each card type grabs the same widget (no cross-type collapsing) · color property drives border + label/text · fixed-width counter slot · status icon hard against the card edge",
+      "fontColor": "#6A7280", "fontSize": 12
+    },
+
+    "lbl-collapsed": {
+      "type": "Text",
+      "left": 40, "top": 100,
+      "text": "COLLAPSED  (ticker row = toggle, focusable)",
+      "fontColor": "#6A7280", "fontSize": 11
+    },
+
+    "a1": {
+      "type": "Rectangle",
+      "left": 40, "top": 124, "width": 660, "height": 46,
+      "fillColor": "#21262F", "strokeColor": "#393E48", "corners": [4, 4, 4, 4]
+    },
+    "a1-chev": { "type": "Text", "parent": "a1", "left": 52, "top": 138, "text": "›", "fontColor": "#6A7280", "fontSize": 16 },
+    "a1-label": { "type": "Text", "parent": "a1", "left": 74, "top": 140, "text": "Activity", "fontColor": "#6A7280", "fontSize": 12 },
+    "a1-summary": { "type": "Text", "parent": "a1", "left": 150, "top": 140, "text": "Read  conversation_view.dart", "fontColor": "#6A7280", "fontSize": 11 },
+    "a1-count": { "type": "Text", "parent": "a1", "left": 560, "top": 140, "text": "3 steps", "fontColor": "#6A7280", "fontSize": 11 },
+    "a1-status": { "type": "Text", "parent": "a1", "left": 676, "top": 139, "text": "✓", "fontColor": "#00AB9A", "fontSize": 14 },
+
+    "a2": {
+      "type": "Rectangle",
+      "left": 40, "top": 178, "width": 660, "height": 46,
+      "fillColor": "#21262F", "strokeColor": "#00AB9A", "corners": [4, 4, 4, 4]
+    },
+    "a2-chev": { "type": "Text", "parent": "a2", "left": 52, "top": 192, "text": "›", "fontColor": "#00AB9A", "fontSize": 16 },
+    "a2-label": { "type": "Text", "parent": "a2", "left": 74, "top": 194, "text": "Edits", "fontColor": "#00AB9A", "fontSize": 12 },
+    "a2-summary": { "type": "Text", "parent": "a2", "left": 150, "top": 194, "text": "clide_markdown.dart", "fontColor": "#6A7280", "fontSize": 11 },
+    "a2-count": { "type": "Text", "parent": "a2", "left": 560, "top": 194, "text": "7 edits", "fontColor": "#6A7280", "fontSize": 11 },
+    "a2-status": { "type": "Text", "parent": "a2", "left": 674, "top": 193, "text": "◐", "fontColor": "#00A3D2", "fontSize": 14 },
+
+    "a3": {
+      "type": "Rectangle",
+      "left": 40, "top": 232, "width": 660, "height": 46,
+      "fillColor": "#21262F", "strokeColor": "#F06C6F", "corners": [4, 4, 4, 4]
+    },
+    "a3-chev": { "type": "Text", "parent": "a3", "left": 52, "top": 246, "text": "›", "fontColor": "#F06C6F", "fontSize": 16 },
+    "a3-label": { "type": "Text", "parent": "a3", "left": 74, "top": 248, "text": "Bash", "fontColor": "#F06C6F", "fontSize": 12 },
+    "a3-summary": { "type": "Text", "parent": "a3", "left": 150, "top": 248, "text": "npm test", "fontColor": "#6A7280", "fontSize": 11 },
+    "a3-count": { "type": "Text", "parent": "a3", "left": 560, "top": 248, "text": "1 step", "fontColor": "#6A7280", "fontSize": 11 },
+    "a3-status": { "type": "Text", "parent": "a3", "left": 676, "top": 247, "text": "✕", "fontColor": "#F06C6F", "fontSize": 14 },
+
+    "counter-note": { "type": "Text", "left": 470, "top": 96, "text": "counters share a fixed-width right-aligned slot ▾ so the status icon never shifts", "fontColor": "#D08447", "fontSize": 10 },
+
+    "edge-note": { "type": "Text", "left": 470, "top": 286, "text": "status icon hard against the card edge  ▲  (was inboard, left of the counter)", "fontColor": "#D08447", "fontSize": 10 },
+    "left-note": { "type": "Text", "left": 40, "top": 286, "text": "chevron hard against the left edge — the toggle (keyboard / AT focusable)", "fontColor": "#D08447", "fontSize": 10 },
+
+    "lbl-expanded": {
+      "type": "Text",
+      "left": 40, "top": 332,
+      "text": "EXPANDED  (same header; framed body wraps the nested cards — which are the SAME primitive)",
+      "fontColor": "#6A7280", "fontSize": 11
+    },
+
+    "b": {
+      "type": "Rectangle",
+      "left": 40, "top": 356, "width": 660, "height": 196,
+      "fillColor": "#21262F", "strokeColor": "#00AB9A", "corners": [4, 4, 4, 4]
+    },
+    "b-header": {
+      "type": "Rectangle", "parent": "b",
+      "left": 40, "top": 356, "width": 660, "height": 40,
+      "fillColor": "#292E38", "strokeColor": "#393E48", "corners": [4, 4, 0, 0]
+    },
+    "b-chev": { "type": "Text", "parent": "b-header", "left": 52, "top": 368, "text": "⌄", "fontColor": "#00AB9A", "fontSize": 16 },
+    "b-label": { "type": "Text", "parent": "b-header", "left": 74, "top": 369, "text": "Edits", "fontColor": "#00AB9A", "fontSize": 12 },
+    "b-count": { "type": "Text", "parent": "b-header", "left": 560, "top": 369, "text": "7 edits", "fontColor": "#6A7280", "fontSize": 11 },
+    "b-status": { "type": "Text", "parent": "b-header", "left": 676, "top": 368, "text": "✓", "fontColor": "#00AB9A", "fontSize": 14 },
+
+    "sub1": {
+      "type": "Rectangle", "parent": "b",
+      "left": 56, "top": 408, "width": 628, "height": 40,
+      "fillColor": "#1A1E24", "strokeColor": "#393E48", "corners": [3, 3, 3, 3]
+    },
+    "sub1-chev": { "type": "Text", "parent": "sub1", "left": 66, "top": 420, "text": "›", "fontColor": "#6A7280", "fontSize": 14 },
+    "sub1-label": { "type": "Text", "parent": "sub1", "left": 86, "top": 421, "text": "Edit", "fontColor": "#FA5F8B", "fontSize": 11 },
+    "sub1-sum": { "type": "Text", "parent": "sub1", "left": 150, "top": 421, "text": "clide_markdown.dart  · _urlLinkSpan", "fontColor": "#6A7280", "fontSize": 10 },
+    "sub1-status": { "type": "Text", "parent": "sub1", "left": 660, "top": 420, "text": "✓", "fontColor": "#00AB9A", "fontSize": 13 },
+
+    "sub2": {
+      "type": "Rectangle", "parent": "b",
+      "left": 56, "top": 454, "width": 628, "height": 40,
+      "fillColor": "#1A1E24", "strokeColor": "#393E48", "corners": [3, 3, 3, 3]
+    },
+    "sub2-chev": { "type": "Text", "parent": "sub2", "left": 66, "top": 466, "text": "›", "fontColor": "#6A7280", "fontSize": 14 },
+    "sub2-label": { "type": "Text", "parent": "sub2", "left": 86, "top": 467, "text": "Edit", "fontColor": "#FA5F8B", "fontSize": 11 },
+    "sub2-sum": { "type": "Text", "parent": "sub2", "left": 150, "top": 467, "text": "clide_markdown.dart  · _isHttpUrl", "fontColor": "#6A7280", "fontSize": 10 },
+    "sub2-status": { "type": "Text", "parent": "sub2", "left": 660, "top": 466, "text": "✓", "fontColor": "#00AB9A", "fontSize": 13 },
+
+    "sub3": {
+      "type": "Rectangle", "parent": "b",
+      "left": 56, "top": 500, "width": 628, "height": 40,
+      "fillColor": "#1A1E24", "strokeColor": "#393E48", "corners": [3, 3, 3, 3]
+    },
+    "sub3-chev": { "type": "Text", "parent": "sub3", "left": 66, "top": 512, "text": "›", "fontColor": "#6A7280", "fontSize": 14 },
+    "sub3-label": { "type": "Text", "parent": "sub3", "left": 86, "top": 513, "text": "Edit", "fontColor": "#FA5F8B", "fontSize": 11 },
+    "sub3-sum": { "type": "Text", "parent": "sub3", "left": 150, "top": 513, "text": "clide_markdown.dart  · build()", "fontColor": "#6A7280", "fontSize": 10 },
+    "sub3-status": { "type": "Text", "parent": "sub3", "left": 660, "top": 512, "text": "◐", "fontColor": "#00A3D2", "fontSize": 13 },
+
+    "legend": {
+      "type": "Text",
+      "left": 40, "top": 572,
+      "text": "Status glyph (right edge): ◐ running (logo-mark spinner) · ✓ success · ✕ error  —  set per-instance by a single `color` (border + label/text) + a `ClideRunStatus`.",
+      "fontColor": "#6A7280", "fontSize": 11
+    }
+  }
+}

@@ -2289,3 +2289,62 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5YNEQM1WY25BV7TD8', 'status', 'backlog', 'ready', NULL, '2026-06-09 21:32:29', '2026-06-09 21:32:29', '2026-06-09 21:32:29', NULL, 'b6690849ecbdddf638c67dfa82192a3f', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM50S6WRD81V3Z0NH1M', 'status', 'in_progress', 'done', NULL, '2026-06-09 21:36:05', '2026-06-09 21:36:05', '2026-06-09 21:36:05', NULL, 'c494cd6008aa55db47c5f372ab52c5b2', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5YNEQM1WY25BV7TD8', 'status', 'ready', 'done', NULL, '2026-06-09 21:42:59', '2026-06-09 21:42:59', '2026-06-09 21:42:59', NULL, '73d904ce53c8f0d5adbb6e724d47f885', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'description', 'Group/tool collapser cards (ClideHolderCard vs ConversationCard) handle collapse + visuals inconsistently; extract one shared collapser primitive with a color property, fixed-width counter slot, and the status icon hard against the card edge.', 'Group/tool collapser cards (ClideHolderCard vs ConversationCard) handle collapse + visuals inconsistently; extract one shared collapser primitive with a color property, fixed-width counter slot, and the status icon hard against the card edge.
+
+## Bug / discrepancy
+
+There are two collapser-card families with inconsistent collapse handling and
+"card within card" chrome:
+
+- **`ClideHolderCard`** (lib/builtin/claude/src/holder_card.dart, T-266) — the
+  group container for Activity (`_ActivityCard`) and Edits (`_EditRunCard`).
+  Collapse = ticker row + frame background + a header caret. Header order:
+  `[chevron] summary … [status] [count]`. Status indicator sits INBOARD, left
+  of the count label. Border/text hardcoded to `panelBorder` / `globalTextMuted`
+  (no color knob).
+- **`ConversationCard`** (lib/builtin/claude/src/conversation_card.dart, T-262)
+  — the per-tool merged card. Collapse = a single leading caret only (no
+  background/ticker). Header order: `[caret] label summary/spacer [status]
+  [actions]`. Has `borderColor` + `accent`.
+
+So the toggle is attached differently, the status mark sits in a different
+place, the counter has no fixed slot, and color customization exists on one but
+not the other. They should grab the SAME widget (each its own instance — NOT
+collapsing across types).
+
+## Proposal — one `ClideCollapserCard` primitive
+
+Both families render through a single collapser primitive. Requirements:
+
+1. **`color` property** drives the border AND the label/text color, so each
+   instance keeps its visual identity (activity = muted, edits = accent,
+   error = red, sub-agent, …) through one widget. Default = panelBorder/muted.
+2. **Fixed-width counter slot** — the `N steps` / `N edits` count lives in a
+   right-aligned fixed-width slot so it (and the trailing status icon) never
+   shift as the number grows or the status appears/changes.
+3. **Status icon hard against the card edge** — flip the current
+   `[count][status]` to `[status]` against the right edge with the counter
+   inboard of it. The chevron already hugs the LEFT edge. Rule: both icons hug
+   the card edges; text sits inboard.
+4. **Consistent collapse/expand attachment** across both uses (keep the
+   group-container background-tap-to-collapse for the tail-follow case, D-78,
+   but the visible control + header layout are identical).
+5. Status glyphs: `ClideRunStatus` running (logo-mark spinner ◐) / success ✓ /
+   error ✕, reusing ClideStatusIndicator.
+
+Nested sub-cards render the SAME primitive (card-within-card consistency).
+
+## Scope
+
+- New `ClideCollapserCard` in lib/widgets/src/ (exported from widgets.dart).
+- Migrate `ClideHolderCard` (Activity/Edits) and `ConversationCard` (merged
+  tool card) onto it; keep per-type content/labels.
+- Hold visual fidelity via goldens (conversation_card_goldens_test,
+  ClideHolderCard golden) + a11y (expanded/collapsed semantics, focusable
+  toggle).
+
+## Wireframe
+
+docs/design/wireframes/cards/collapser-card.json (+ .png) — collapsed (3 color
+variants), expanded with nested sub-cards, annotated for the counter slot +
+edge-anchored icons.', NULL, '2026-06-10 08:16:05', '2026-06-10 08:16:05', '2026-06-10 08:16:05', NULL, 'fe6c300aa083f7faa80d3d78bd1ba0bf', 2) ON CONFLICT(hash) DO NOTHING;
