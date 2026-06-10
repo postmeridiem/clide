@@ -8,6 +8,8 @@ library;
 export 'src/clide_accordion.dart';
 export 'src/clide_anchored.dart';
 export 'src/clide_button.dart';
+export 'src/clide_card_metrics.dart';
+export 'src/clide_collapser_card.dart';
 export 'src/clide_column_hat.dart';
 export 'src/clide_code_block.dart';
 export 'src/clide_divider.dart';

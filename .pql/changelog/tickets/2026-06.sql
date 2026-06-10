@@ -1139,3 +1139,33 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 Adjust the skill so that after step 5 (showing an exported screen inline), it STOPS and waits for explicit user approval/feedback before authoring or exporting the next screen. One screen at a time: show it, ask, then proceed only on a go-ahead. Do not fan out a whole set of wireframes unprompted.
 
 Acceptance: SKILL.md instructs the agent to surface one screen and pause for user approval before continuing; the loop is approval-gated, framing wireframing as a back-and-forth design conversation rather than a one-shot generation run.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 08:17:57', '2026-06-10 08:17:57', NULL, 'e9e59e2c52e643e2c0a2831c90d8cda8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Unify collapser cards onto one ClideCollapserCard primitive', 'Unify the conversation-panel collapsible cards onto one ClideCollapserCard primitive, and share card spacing across all card categories. Supersedes ClideHolderCard (T-266) and the collapse logic in ConversationCard (T-262) for the tool path.
+
+## Conversation-panel card model (agreed 2026-06-10)
+
+### Shared spacing — constants, NOT a shared wrapper
+All card categories share a small set of spacing CONSTANTS (inter-card bottom gap, inner padding, corner radius). NOT a forced common wrapper widget — each category is its own widget; they just pull the same spacing tokens so the stream reads as one consistent rhythm.
+
+### Three card categories
+1. **Dialog cards** — carry the side stripe marking who is speaking (user / Claude / agent). Prose / attribution. Not collapsible. (Today: ConversationCard stripe variant.)
+2. **Simple cards** — a single item shown fully open in the stream, never collapses (e.g. the image-show card; more to come). Standalone display: no chevron, no status chrome.
+3. **Collapsibles** — the unified collapser. Covers edits, bash, task updates, runs — every tool use. Behaves like the bash card should:
+   - The whole card is clickable to collapse/expand.
+   - Collapsed: title = the echoed last content line (like bash now) + an item count + aggregate status (spinner / check / cross).
+   - Expanded: an inner canvas holding the nested item card(s), each item in its own inner card.
+   - A single item still gets its own inner card inside the collapser when open, and pushes its status / count / last-line up to the collapser header.
+   - Inner item cards ALSO show their own per-item status (check / cross / spinner) when expanded; the collapser header carries the aggregate.
+   - Chrome (per the wireframe): `color` (outer border + chevron / label / text), fixed-width counter slot, status icon hard against the right edge, chevron hard against the left edge.
+
+## Scope
+- New `ClideCollapserCard` in lib/widgets/ (exported from widgets.dart) — the category-3 primitive: a list of 1..N inner item cards, collapsed ticker <-> expanded inner canvas, color / fixed-counter / edge-status / edge-chevron chrome, background + caret toggle (D-78 tail-follow), aggregate status + count + echoed-title computed from the items.
+- Shared card-spacing constants consumed by all three categories.
+- ALL tool uses render as collapsers — single ones as a 1-item list (Bash, Read, Edit, Task, edits runs, activity runs, etc.).
+- Inner item cards: content + their own per-item status; no own collapse; no stripe.
+- Dialog cards (1) and simple cards (2) are NOT pulled into the collapser — they only adopt the shared spacing constants (keep stripe / inner config).
+
+## Verify
+- Goldens regenerated (holder_card, conversation_card_merged) + a11y (expanded / collapsed semantics, focusable toggle).
+- Wireframe: docs/design/wireframes/cards/collapser-card.{json,png}.
+- After landing: update the ui-design skill''s conversation-panel guidance to describe the three card categories + the collapser.
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 08:15:39', '2026-06-10 08:43:03', NULL, '444e8c535d796bae0519d4a4761b12e1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

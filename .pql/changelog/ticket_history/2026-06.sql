@@ -2348,3 +2348,91 @@ Nested sub-cards render the SAME primitive (card-within-card consistency).
 docs/design/wireframes/cards/collapser-card.json (+ .png) — collapsed (3 color
 variants), expanded with nested sub-cards, annotated for the counter slot +
 edge-anchored icons.', NULL, '2026-06-10 08:16:05', '2026-06-10 08:16:05', '2026-06-10 08:16:05', NULL, 'fe6c300aa083f7faa80d3d78bd1ba0bf', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'description', 'Group/tool collapser cards (ClideHolderCard vs ConversationCard) handle collapse + visuals inconsistently; extract one shared collapser primitive with a color property, fixed-width counter slot, and the status icon hard against the card edge.
+
+## Bug / discrepancy
+
+There are two collapser-card families with inconsistent collapse handling and
+"card within card" chrome:
+
+- **`ClideHolderCard`** (lib/builtin/claude/src/holder_card.dart, T-266) — the
+  group container for Activity (`_ActivityCard`) and Edits (`_EditRunCard`).
+  Collapse = ticker row + frame background + a header caret. Header order:
+  `[chevron] summary … [status] [count]`. Status indicator sits INBOARD, left
+  of the count label. Border/text hardcoded to `panelBorder` / `globalTextMuted`
+  (no color knob).
+- **`ConversationCard`** (lib/builtin/claude/src/conversation_card.dart, T-262)
+  — the per-tool merged card. Collapse = a single leading caret only (no
+  background/ticker). Header order: `[caret] label summary/spacer [status]
+  [actions]`. Has `borderColor` + `accent`.
+
+So the toggle is attached differently, the status mark sits in a different
+place, the counter has no fixed slot, and color customization exists on one but
+not the other. They should grab the SAME widget (each its own instance — NOT
+collapsing across types).
+
+## Proposal — one `ClideCollapserCard` primitive
+
+Both families render through a single collapser primitive. Requirements:
+
+1. **`color` property** drives the border AND the label/text color, so each
+   instance keeps its visual identity (activity = muted, edits = accent,
+   error = red, sub-agent, …) through one widget. Default = panelBorder/muted.
+2. **Fixed-width counter slot** — the `N steps` / `N edits` count lives in a
+   right-aligned fixed-width slot so it (and the trailing status icon) never
+   shift as the number grows or the status appears/changes.
+3. **Status icon hard against the card edge** — flip the current
+   `[count][status]` to `[status]` against the right edge with the counter
+   inboard of it. The chevron already hugs the LEFT edge. Rule: both icons hug
+   the card edges; text sits inboard.
+4. **Consistent collapse/expand attachment** across both uses (keep the
+   group-container background-tap-to-collapse for the tail-follow case, D-78,
+   but the visible control + header layout are identical).
+5. Status glyphs: `ClideRunStatus` running (logo-mark spinner ◐) / success ✓ /
+   error ✕, reusing ClideStatusIndicator.
+
+Nested sub-cards render the SAME primitive (card-within-card consistency).
+
+## Scope
+
+- New `ClideCollapserCard` in lib/widgets/src/ (exported from widgets.dart).
+- Migrate `ClideHolderCard` (Activity/Edits) and `ConversationCard` (merged
+  tool card) onto it; keep per-type content/labels.
+- Hold visual fidelity via goldens (conversation_card_goldens_test,
+  ClideHolderCard golden) + a11y (expanded/collapsed semantics, focusable
+  toggle).
+
+## Wireframe
+
+docs/design/wireframes/cards/collapser-card.json (+ .png) — collapsed (3 color
+variants), expanded with nested sub-cards, annotated for the counter slot +
+edge-anchored icons.', 'Unify the conversation-panel collapsible cards onto one ClideCollapserCard primitive, and share card spacing across all card categories. Supersedes ClideHolderCard (T-266) and the collapse logic in ConversationCard (T-262) for the tool path.
+
+## Conversation-panel card model (agreed 2026-06-10)
+
+### Shared spacing — constants, NOT a shared wrapper
+All card categories share a small set of spacing CONSTANTS (inter-card bottom gap, inner padding, corner radius). NOT a forced common wrapper widget — each category is its own widget; they just pull the same spacing tokens so the stream reads as one consistent rhythm.
+
+### Three card categories
+1. **Dialog cards** — carry the side stripe marking who is speaking (user / Claude / agent). Prose / attribution. Not collapsible. (Today: ConversationCard stripe variant.)
+2. **Simple cards** — a single item shown fully open in the stream, never collapses (e.g. the image-show card; more to come). Standalone display: no chevron, no status chrome.
+3. **Collapsibles** — the unified collapser. Covers edits, bash, task updates, runs — every tool use. Behaves like the bash card should:
+   - The whole card is clickable to collapse/expand.
+   - Collapsed: title = the echoed last content line (like bash now) + an item count + aggregate status (spinner / check / cross).
+   - Expanded: an inner canvas holding the nested item card(s), each item in its own inner card.
+   - A single item still gets its own inner card inside the collapser when open, and pushes its status / count / last-line up to the collapser header.
+   - Inner item cards ALSO show their own per-item status (check / cross / spinner) when expanded; the collapser header carries the aggregate.
+   - Chrome (per the wireframe): `color` (outer border + chevron / label / text), fixed-width counter slot, status icon hard against the right edge, chevron hard against the left edge.
+
+## Scope
+- New `ClideCollapserCard` in lib/widgets/ (exported from widgets.dart) — the category-3 primitive: a list of 1..N inner item cards, collapsed ticker <-> expanded inner canvas, color / fixed-counter / edge-status / edge-chevron chrome, background + caret toggle (D-78 tail-follow), aggregate status + count + echoed-title computed from the items.
+- Shared card-spacing constants consumed by all three categories.
+- ALL tool uses render as collapsers — single ones as a 1-item list (Bash, Read, Edit, Task, edits runs, activity runs, etc.).
+- Inner item cards: content + their own per-item status; no own collapse; no stripe.
+- Dialog cards (1) and simple cards (2) are NOT pulled into the collapser — they only adopt the shared spacing constants (keep stripe / inner config).
+
+## Verify
+- Goldens regenerated (holder_card, conversation_card_merged) + a11y (expanded / collapsed semantics, focusable toggle).
+- Wireframe: docs/design/wireframes/cards/collapser-card.{json,png}.
+- After landing: update the ui-design skill''s conversation-panel guidance to describe the three card categories + the collapser.
+', NULL, '2026-06-10 08:43:03', '2026-06-10 08:43:03', '2026-06-10 08:43:03', NULL, '15f42c1d62be96cf45d583bf3ac704cd', 2) ON CONFLICT(hash) DO NOTHING;
