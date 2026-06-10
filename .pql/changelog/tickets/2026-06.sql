@@ -1314,3 +1314,33 @@ Root cause: lib/builtin/claude/src/prompt_card.dart:125-135 defines _digitKeys a
 Fix: extend _digitKeys (or the match in _onKey) to also map LogicalKeyboardKey.numpad1..numpad9 to the same 1-9 selection. Keep the hasPrimaryFocus / modifier guards as-is so digits still type into note fields.
 
 Acceptance: with the prompt card focused, numpad 1-9 selects the corresponding option/button exactly like the number-row digits; numpad keys still type normally when a note field has focus.', 'backlog', 'low', NULL, NULL, NULL, '2026-06-10 09:39:05', '2026-06-10 09:39:05', NULL, '85f9ce66179451f329a97211dbb96c86', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Unify collapser cards onto one ClideCollapserCard primitive', 'Unify the conversation-panel collapsible cards onto one ClideCollapserCard primitive, and share card spacing across all card categories. Supersedes ClideHolderCard (T-266) and the collapse logic in ConversationCard (T-262) for the tool path.
+
+## Conversation-panel card model (agreed 2026-06-10)
+
+### Shared spacing — constants, NOT a shared wrapper
+All card categories share a small set of spacing CONSTANTS (inter-card bottom gap, inner padding, corner radius). NOT a forced common wrapper widget — each category is its own widget; they just pull the same spacing tokens so the stream reads as one consistent rhythm.
+
+### Three card categories
+1. **Dialog cards** — carry the side stripe marking who is speaking (user / Claude / agent). Prose / attribution. Not collapsible. (Today: ConversationCard stripe variant.)
+2. **Simple cards** — a single item shown fully open in the stream, never collapses (e.g. the image-show card; more to come). Standalone display: no chevron, no status chrome.
+3. **Collapsibles** — the unified collapser. Covers edits, bash, task updates, runs — every tool use. Behaves like the bash card should:
+   - The whole card is clickable to collapse/expand.
+   - Collapsed: title = the echoed last content line (like bash now) + an item count + aggregate status (spinner / check / cross).
+   - Expanded: an inner canvas holding the nested item card(s), each item in its own inner card.
+   - A single item still gets its own inner card inside the collapser when open, and pushes its status / count / last-line up to the collapser header.
+   - Inner item cards ALSO show their own per-item status (check / cross / spinner) when expanded; the collapser header carries the aggregate.
+   - Chrome (per the wireframe): `color` (outer border + chevron / label / text), fixed-width counter slot, status icon hard against the right edge, chevron hard against the left edge.
+
+## Scope
+- New `ClideCollapserCard` in lib/widgets/ (exported from widgets.dart) — the category-3 primitive: a list of 1..N inner item cards, collapsed ticker <-> expanded inner canvas, color / fixed-counter / edge-status / edge-chevron chrome, background + caret toggle (D-78 tail-follow), aggregate status + count + echoed-title computed from the items.
+- Shared card-spacing constants consumed by all three categories.
+- ALL tool uses render as collapsers — single ones as a 1-item list (Bash, Read, Edit, Task, edits runs, activity runs, etc.).
+- Inner item cards: content + their own per-item status; no own collapse; no stripe.
+- Dialog cards (1) and simple cards (2) are NOT pulled into the collapser — they only adopt the shared spacing constants (keep stripe / inner config).
+
+## Verify
+- Goldens regenerated (holder_card, conversation_card_merged) + a11y (expanded / collapsed semantics, focusable toggle).
+- Wireframe: docs/design/wireframes/cards/collapser-card.{json,png}.
+- After landing: update the ui-design skill''s conversation-panel guidance to describe the three card categories + the collapser.
+', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 08:15:39', '2026-06-10 09:39:52', NULL, 'd173d4e6a58bb9dba5ad279d705f083b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
