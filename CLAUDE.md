@@ -76,6 +76,15 @@ make clean           # remove build artefacts
 
 One-time setup on a fresh clone: `make hooks && flutter pub get` once Flutter is installed.
 
+### Tooling discipline
+
+The `make` targets above are the entry points — run them, not the scripts they wrap. Check the changelog with `make changelog-gate`, never `ci/changelog_gate.sh` directly; same for `analyze`/`format`/`test`/`push-check`. The `make` layer sets up the environment and stays correct if a script moves.
+
+Shell hygiene (keeps commands inside the permission allowlist, so they don't get denied mid-task):
+- **Working directory is the repo root already** — don't prepend `cd /…/clide` or pass `git -C`. Just run the command.
+- **One command per invocation** — no `&&`/`;` chaining and no multiple greps/echos in one call. The only exception is the `git commit -F` HEREDOC.
+- Prefer the Read/Edit/Grep tools over `cat`/`sed`/`grep` for inspecting files.
+
 ## Git workflow
 
 Commit and push directly to `main` for routine work — this is a solo-dev repo and does not use a branch-first / feature-branch flow. Do **not** create a working branch just to land a change. (This overrides the generic "branch before committing on the default branch" assistant default.) The usual safety rules still hold: never `--no-verify`, never force-push `main`, and let the pre-push gate run.

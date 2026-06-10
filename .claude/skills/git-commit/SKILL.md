@@ -55,7 +55,7 @@ Entries should be short imperative phrases that describe user-facing impact — 
 
 ### Be concise — this is the rule, not a suggestion
 
-CHANGELOG entries must be **one or two short sentences**. Hard cap: **60 words per bullet** (enforced by `ci/changelog_gate.sh`). Aim for 30 or under; if you can't say it in one line wrapped at ~75 columns, you're writing the wrong document.
+CHANGELOG entries must be **one or two short sentences**. Hard cap: **60 words per bullet**, enforced by the pre-push gate — verify before committing with `make changelog-gate` (run the `make` target, not the script it wraps). Aim for 30 or under; if you can't say it in one line wrapped at ~75 columns, you're writing the wrong document.
 
 The CHANGELOG is read by humans scanning for what changed between two versions. It is **not** the place for the rationale, the probe results, the implementation detail, the behavior-change deep dive, or the "see also" cross-references. Those belong in:
 
