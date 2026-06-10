@@ -2397,3 +2397,29 @@ Acceptance:
 5. Tests: transcript_reader parses the task-list event into the model (incl. status transitions + latest-wins); widget renders states + collapse/expand + hidden-when-empty.
 
 Refs: conversation card patterns (conversation_card.dart), D-78 (interaction zone), ui-design skill (tokens/icons).', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 09:28:04', '2026-06-10 12:32:07', NULL, '9ed7b932a0448a813e89c462e383b88a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2W4G9K8ZF782W7H2TM5XA8', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Hover ''pick up ticket'' run-icon that injects the full ticket into the focused Claude pane via the message bus', 'On ticket-card mouseover in the tickets sidebar, surface a small `person-simple-run` icon that, when clicked, hands the full ticket to the currently-focused Claude conversation panel as a "pick this up and start processing it" prompt. Routed over the message bus, not by reaching into the session orchestrator directly.
+
+**Interaction**
+- Hover a ticket card -> a `person-simple-run` action icon fades in (top-right of the card, where the green-arrow mock points).
+- Click -> the focused Claude pane receives an injected user prompt that contains the full ticket (all fields, as the context/detail pane renders it) plus a short instruction to begin working it.
+
+**Where (file:line)**
+- Card + hover: `_TicketCard` in lib/builtin/tickets/src/tickets_view.dart:226-304. `ClideTappable` (line 242) already exposes a `hovered` bool in its builder (line 244) — gate the icon''s visibility on that. No new MouseRegion needed.
+- Icon: `PhosphorIcons.byName(''person-simple-run'')` (lib/widgets/src/icons/phosphor.dart:49). Confirmed present in phosphor_glyphs.g.dart (0xe730).
+- Full-ticket payload: fetch via the same path the context pane uses — `pql.tickets.show` with `withContext:true` (ticket_detail_controller.dart:45-49) -> TicketDetail (id/title/type/status/priority/description/parentId/decisionRef/assignedTo, ticket_detail_controller.dart:12-20). No serializer exists yet; build the prompt text from these fields (same content the detail view renders, ticket_detail_view.dart:59-127).
+
+**Use the message bus (required)**
+- Do NOT call ClaudeSessionOrchestrator.injectMessage directly from the sidebar. Publish on the bus instead, matching the existing tickets pattern: `messages.publish(''builtin.tickets'', ''<channel>'', {...})` (see ticket_detail_controller.dart:62 publishing ''focus''; bus lives on the kernel facade as `messages`, facade.dart:87/144).
+- Proposed: publish `(''builtin.tickets'', ''pick-up'', { ''id'': T-NNN, ''prompt'': <full ticket + instruction text> })`.
+- The Claude builtin subscribes to that channel and injects into the focused session — it resolves the focused pane via focus.activeContributionId (focus.dart:27-28) and routes through the orchestrator (session_orchestrator.dart:331-336 injectMessage / stream_json_session.dart:635 send). This keeps the sidebar decoupled from Claude internals and honors the bus-for-interaction rule.
+
+**Edge cases (settle in review)**
+- No focused Claude pane (focus.activeContributionId null / non-Claude pane focused): no-op with a toast, or fall back to ''primary''? Decide in review.
+- Busy session (mid-turn): queue the inject vs. block with a hint.
+- Prompt shape: confirm the exact wording/format of the injected message (full ticket markdown + a one-line "start processing this ticket" lead-in).
+
+**Acceptance**
+- Hovering a sidebar ticket card reveals a `person-simple-run` icon; it is hidden when not hovered.
+- Clicking it publishes a single message-bus event carrying the full ticket; the focused Claude pane receives an injected prompt containing all ticket fields and an instruction to begin.
+- The sidebar code does not import or call the session orchestrator directly — interaction is bus-only.
+- Clicking with no focused Claude pane degrades gracefully (no crash).', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 12:10:04', '2026-06-10 12:51:50', NULL, 'a9982bdc3ed2e36cc57787e4582c4e46', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

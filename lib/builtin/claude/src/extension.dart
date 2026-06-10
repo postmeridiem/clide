@@ -348,6 +348,20 @@ class ClaudeExtension extends ClideExtension {
     // 'image' message; we inject the matching card into the conversation the
     // user is looking at (the primary lead, else the first visible session).
     _subs.add(ctx.messages.subscribe(channel: imageShowChannel).listen(_onImageShow));
+
+    // A sidebar "pick up" click (T-327) publishes the full ticket; inject it
+    // into the active conversation as a user turn so Claude starts working it.
+    _subs.add(ctx.messages.subscribe(publisher: 'builtin.tickets', channel: 'pick-up').listen(_onTicketPickUp));
+  }
+
+  /// Hand a picked-up ticket to the active Claude session (T-327): the primary
+  /// lead, else the first visible session. A quiet no-op when none is live.
+  void _onTicketPickUp(Message m) {
+    final prompt = m.data['prompt'] as String?;
+    if (prompt == null || prompt.isEmpty) return;
+    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    if (target == null) return;
+    _orchestrator?.injectMessage(target.id, prompt);
   }
 
   /// Close every session that doesn't belong to the newly-active workspace

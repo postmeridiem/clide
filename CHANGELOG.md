@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Hand a ticket to Claude from the sidebar.** Hovering a ticket card reveals a
+  run icon; clicking it hands the full ticket to the active Claude pane as a
+  "pick this up and start" prompt. Routed over the message bus, so the sidebar
+  stays decoupled from the session internals. (T-327)
 - **Claude's task list is now visible, docked above the composer.** When Claude
   is tracking a TodoWrite checklist, a compact display-only strip shows it pinned
   above the input — collapsed to `N tasks · M done` + the current in-progress

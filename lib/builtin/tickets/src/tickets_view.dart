@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clide/builtin/tickets/src/pick_up_prompt.dart';
 import 'package:clide/builtin/tickets/src/ticket_colors.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -248,46 +249,53 @@ class _TicketCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             border: Border.all(color: focused ? tokens.globalFocus : (hovered ? tokens.panelActiveBorder : tokens.panelBorder), width: 1),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              // Parent shown as a muted breadcrumb above; the card's own ticket
-              // sits below it under a tree connector and in bold, so it's clear
-              // which id is the subject and which is its parent (T-281).
-              if (entry.parentId != null)
-                ClideTappable(
-                  onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': entry.parentId}),
-                  builder: (ctx, hovered, _) => Padding(
-                    padding: const EdgeInsets.only(bottom: 1),
-                    child: ClideText(
-                      entry.parentId!,
-                      fontSize: clideFontSmall,
-                      color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
-                      fontFamily: clideMonoFamily,
-                    ),
-                  ),
-                ),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (entry.parentId != null) ClideText('└ ', fontSize: clideFontSmall, color: tokens.globalTextMuted),
-                  ClideTooltip(
-                    message: entry.type ?? 'task',
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+                  // Parent shown as a muted breadcrumb above; the card's own ticket
+                  // sits below it under a tree connector and in bold, so it's clear
+                  // which id is the subject and which is its parent (T-281).
+                  if (entry.parentId != null)
+                    ClideTappable(
+                      onTap: () => ClideKernel.of(context).messages.publish('builtin.tickets', 'selection', {'id': entry.parentId}),
+                      builder: (ctx, hovered, _) => Padding(
+                        padding: const EdgeInsets.only(bottom: 1),
+                        child: ClideText(
+                          entry.parentId!,
+                          fontSize: clideFontSmall,
+                          color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
+                          fontFamily: clideMonoFamily,
+                        ),
+                      ),
                     ),
+                  Row(
+                    children: [
+                      if (entry.parentId != null) ClideText('└ ', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+                      ClideTooltip(
+                        message: entry.type ?? 'task',
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily, fontWeight: FontWeight.w600),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily, fontWeight: FontWeight.w600),
+                  const SizedBox(height: 4),
+                  ClideText(entry.title, fontSize: clideFontCaption),
+                  if (statusLabel != null) ...[
+                    const SizedBox(height: 6),
+                    _StatusBadge(label: statusLabel, tokens: tokens, status: entry.status),
+                  ],
                 ],
               ),
-              const SizedBox(height: 4),
-              ClideText(entry.title, fontSize: clideFontCaption),
-              if (statusLabel != null) ...[
-                const SizedBox(height: 6),
-                _StatusBadge(label: statusLabel, tokens: tokens, status: entry.status),
-              ],
+              // Hover affordance (T-327): hand the full ticket to the focused
+              // Claude pane via the message bus.
+              if (hovered) Positioned(top: 0, right: 0, child: _PickUpAction(id: entry.id, tokens: tokens)),
             ],
           ),
         ),
@@ -301,6 +309,34 @@ class _TicketCard extends StatelessWidget {
         'cancelled' => 'CANCELLED',
         _ => null,
       };
+}
+
+/// The hover "pick up" run-icon (T-327): fetches the full ticket and publishes
+/// it on the message bus for the focused Claude pane to inject — the sidebar
+/// stays decoupled from the session orchestrator (bus-only).
+class _PickUpAction extends StatelessWidget {
+  const _PickUpAction({required this.id, required this.tokens});
+  final String id;
+  final SurfaceTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClideTappable(
+      tooltip: 'Pick up — hand this ticket to the Claude pane',
+      onTap: () {
+        final kernel = ClideKernel.of(context);
+        unawaited(() async {
+          final resp = await kernel.ipc.request('pql.tickets.show', args: {'id': id, 'withContext': true});
+          if (!resp.ok) return; // a missing ticket / failed fetch is a quiet no-op
+          kernel.messages.publish('builtin.tickets', 'pick-up', {'id': id, 'prompt': pickUpPrompt(resp.data)});
+        }());
+      },
+      builder: (ctx, hovered, _) => Padding(
+        padding: const EdgeInsets.all(2),
+        child: ClideIcon(PhosphorIcons.byName('person-simple-run'), size: 14, color: hovered ? tokens.globalFocus : tokens.globalTextMuted),
+      ),
+    );
+  }
 }
 
 class _StatusBadge extends StatelessWidget {
