@@ -5,9 +5,9 @@ library;
 
 import 'dart:async';
 
-import 'package:clide/builtin/claude/src/extension.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
+import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';

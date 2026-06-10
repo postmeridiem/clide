@@ -392,12 +392,19 @@ void _openUrl(BuildContext context, String url) {
 }
 
 /// Resolve a path-like token from the conversation to an absolute workspace
-/// file, or null if it doesn't name a real repo file (T-300). The existence
-/// check is what keeps prose ("e.g.", "2.2.0") from linkifying. Resolves
-/// relative tokens against the open project root; absolute tokens must already
-/// live inside it. `..` segments are rejected so a ref can't escape the repo.
-String? _resolveRepoFile(BuildContext context, String raw) {
-  final root = ClideKernel.of(context).project.current?.path;
+/// file, or null if it doesn't name a real repo file (T-300). Delegates the
+/// (pure, testable) path logic to [resolveWorkspaceFilePath] with the open
+/// project root.
+String? _resolveRepoFile(BuildContext context, String raw) =>
+    resolveWorkspaceFilePath(ClideKernel.of(context).project.current?.path, raw);
+
+/// Resolve [raw] (a path-like token) against the workspace [root] to an absolute
+/// path, or null if it doesn't name a real file under the repo (T-300). The
+/// existence check is what keeps prose ("e.g.", "2.2.0") from linkifying.
+/// Relative tokens resolve against [root]; absolute tokens must already live
+/// inside it. `..` segments are rejected so a ref can't escape the repo.
+@visibleForTesting
+String? resolveWorkspaceFilePath(String? root, String raw) {
   if (root == null || raw.isEmpty || raw.contains('..')) return null;
   final abs = raw.startsWith('/') ? raw : '$root/$raw';
   if (!abs.startsWith('$root/')) return null;
