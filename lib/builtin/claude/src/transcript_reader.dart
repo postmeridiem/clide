@@ -39,7 +39,7 @@ import 'dart:isolate';
 
 /// Discriminated union of conversation items the reader can emit.
 sealed class ConversationItem {
-  const ConversationItem({required this.uuid, required this.timestamp, required this.isSidechain, this.parentUuid});
+  const ConversationItem({required this.uuid, required this.timestamp, required this.isSidechain, this.parentUuid, this.parentToolUseId});
 
   final String uuid;
   final DateTime timestamp;
@@ -50,6 +50,14 @@ sealed class ConversationItem {
   /// branches off the assistant message that issued its spawning Agent/Task
   /// tool-use, so this links the prompt to the right Agent card (T-263).
   final String? parentUuid;
+
+  /// The `parent_tool_use_id` from the stream-json wire (T-338): the tool-use
+  /// id of the Agent/Task call that spawned this sub-agent message. Stream-json
+  /// tags every sidechain item with it — the transcript JSONL instead uses
+  /// [isSidechain] + [parentUuid]. When present it routes the item straight to
+  /// its Agent card by tool-use id, no uuid-chain walk needed, and on its own
+  /// marks the item as a sidechain message.
+  final String? parentToolUseId;
 }
 
 /// A user-typed message (plain text, possibly multi-part).
@@ -59,6 +67,7 @@ final class UserMessage extends ConversationItem {
     required super.timestamp,
     required super.isSidechain,
     super.parentUuid,
+    super.parentToolUseId,
     required this.text,
     this.injected = false,
   });
@@ -82,6 +91,7 @@ final class ToolResultMessage extends ConversationItem {
     required super.timestamp,
     required super.isSidechain,
     super.parentUuid,
+    super.parentToolUseId,
     required this.toolUseId,
     required this.content,
     required this.isError,
@@ -102,6 +112,7 @@ final class AssistantTextMessage extends ConversationItem {
     required super.timestamp,
     required super.isSidechain,
     super.parentUuid,
+    super.parentToolUseId,
     required this.text,
   });
 
@@ -118,6 +129,7 @@ final class AssistantThinkingMessage extends ConversationItem {
     required super.timestamp,
     required super.isSidechain,
     super.parentUuid,
+    super.parentToolUseId,
     required this.thinking,
   });
 
@@ -134,6 +146,7 @@ final class AssistantToolUse extends ConversationItem {
     required super.timestamp,
     required super.isSidechain,
     super.parentUuid,
+    super.parentToolUseId,
     required this.toolUseId,
     required this.name,
     required this.input,
@@ -555,9 +568,14 @@ void _parseLineInto(String line, List<ConversationItem> out, List<String> warnin
   if (_skipTypes.contains(type)) return;
 
   final uuid = envelope['uuid'] as String? ?? '';
-  final isSidechain = envelope['isSidechain'] as bool? ?? false;
   final rawParent = envelope['parentUuid'] as String?;
   final parentUuid = (rawParent != null && rawParent.isNotEmpty) ? rawParent : null;
+  // Stream-json tags sub-agent messages with `parent_tool_use_id` (the spawning
+  // Agent/Task tool-use), not the transcript's isSidechain/parentUuid (T-338).
+  // Treat its presence as a sidechain marker so the fold + de-emphasis kick in.
+  final rawParentTool = envelope['parent_tool_use_id'] as String?;
+  final parentToolUseId = (rawParentTool != null && rawParentTool.isNotEmpty) ? rawParentTool : null;
+  final isSidechain = (envelope['isSidechain'] as bool? ?? false) || parentToolUseId != null;
 
   DateTime timestamp;
   try {
@@ -568,9 +586,9 @@ void _parseLineInto(String line, List<ConversationItem> out, List<String> warnin
 
   switch (type) {
     case 'user':
-      _parseUserInto(envelope, uuid, timestamp, isSidechain, parentUuid, out);
+      _parseUserInto(envelope, uuid, timestamp, isSidechain, parentUuid, parentToolUseId, out);
     case 'assistant':
-      _parseAssistantInto(envelope, uuid, timestamp, isSidechain, parentUuid, out);
+      _parseAssistantInto(envelope, uuid, timestamp, isSidechain, parentUuid, parentToolUseId, out);
       _extractAssistantStatus(envelope, status);
     default:
       break; // unknown type — degrade gracefully
@@ -596,6 +614,7 @@ void _parseUserInto(
   DateTime timestamp,
   bool isSidechain,
   String? parentUuid,
+  String? parentToolUseId,
   List<ConversationItem> out,
 ) {
   final message = envelope['message'] as Map?;
@@ -609,7 +628,14 @@ void _parseUserInto(
 
   if (content is String) {
     if (content.isNotEmpty) {
-      out.add(UserMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, text: content, injected: injected));
+      out.add(UserMessage(
+          uuid: uuid,
+          timestamp: timestamp,
+          isSidechain: isSidechain,
+          parentUuid: parentUuid,
+          parentToolUseId: parentToolUseId,
+          text: content,
+          injected: injected));
     }
     return;
   }
@@ -629,6 +655,7 @@ void _parseUserInto(
           timestamp: timestamp,
           isSidechain: isSidechain,
           parentUuid: parentUuid,
+          parentToolUseId: parentToolUseId,
           toolUseId: item['tool_use_id'] as String? ?? '',
           content: rawContent is String ? rawContent : jsonEncode(rawContent),
           isError: item['is_error'] as bool? ?? false,
@@ -648,6 +675,7 @@ void _parseAssistantInto(
   DateTime timestamp,
   bool isSidechain,
   String? parentUuid,
+  String? parentToolUseId,
   List<ConversationItem> out,
 ) {
   final message = envelope['message'] as Map?;
@@ -661,12 +689,14 @@ void _parseAssistantInto(
       case 'text':
         final text = item['text'] as String? ?? '';
         if (text.isNotEmpty) {
-          out.add(AssistantTextMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, text: text));
+          out.add(AssistantTextMessage(
+              uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, parentToolUseId: parentToolUseId, text: text));
         }
       case 'thinking':
         final thinking = item['thinking'] as String? ?? '';
         if (thinking.isNotEmpty) {
-          out.add(AssistantThinkingMessage(uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, thinking: thinking));
+          out.add(AssistantThinkingMessage(
+              uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, parentToolUseId: parentToolUseId, thinking: thinking));
         }
       case 'tool_use':
         final rawInput = item['input'];
@@ -675,6 +705,7 @@ void _parseAssistantInto(
           timestamp: timestamp,
           isSidechain: isSidechain,
           parentUuid: parentUuid,
+          parentToolUseId: parentToolUseId,
           toolUseId: item['id'] as String? ?? '',
           name: item['name'] as String? ?? '',
           input: rawInput is Map ? rawInput.cast<String, dynamic>() : <String, dynamic>{},

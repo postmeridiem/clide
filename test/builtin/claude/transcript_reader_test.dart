@@ -378,6 +378,30 @@ void main() {
       expect(items[0].parentUuid, 'msg-A');
       expect(items[1].parentUuid, isNull); // '' → null
     });
+
+    test('stream-json parent_tool_use_id marks a sidechain message (T-338)', () {
+      // The stream-json wire tags sub-agent messages with parent_tool_use_id and
+      // NO isSidechain flag — we must treat it as a sidechain item anyway.
+      final raw = envelope(
+        type: 'user',
+        uuid: 'sp',
+        message: {'role': 'user', 'content': 'go explore the codebase'},
+      )..['parent_tool_use_id'] = 'toolu_task1';
+      final items = parseAll([raw]);
+      expect(items.first.isSidechain, isTrue);
+      expect(items.first.parentToolUseId, 'toolu_task1');
+    });
+
+    test('empty parent_tool_use_id normalises to null and stays main-thread (T-338)', () {
+      final raw = envelope(
+        type: 'user',
+        uuid: 'mt',
+        message: {'role': 'user', 'content': 'a normal turn'},
+      )..['parent_tool_use_id'] = '';
+      final items = parseAll([raw]);
+      expect(items.first.isSidechain, isFalse);
+      expect(items.first.parentToolUseId, isNull);
+    });
   });
 
   // -------------------------------------------------------------------------

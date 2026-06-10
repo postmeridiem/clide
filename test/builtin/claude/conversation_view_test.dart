@@ -430,6 +430,24 @@ void main() {
       expect(find.text('find all the widgets'), findsOneWidget);
     });
 
+    testWidgets('a stream-json prompt folds via parentToolUseId, not "you" (T-338)', (tester) async {
+      // The live stream-json wire flags sub-agent prompts with parent_tool_use_id
+      // (the Task tool-use id) and NO isSidechain/parentUuid — the prompt must
+      // still fold into the Agent card rather than render as a blue "you" turn.
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'agt-msg', timestamp: _t, isSidechain: false, toolUseId: 'task1', name: 'Task', input: const {'description': 'explore'}),
+        UserMessage(uuid: 'sp', timestamp: _t, isSidechain: true, parentToolUseId: 'task1', text: 'find all the widgets'),
+      ]);
+      expect(find.text('you'), findsNothing);
+      expect(find.text('agent prompt'), findsNothing);
+      expect(find.text('Task'), findsOneWidget);
+      expect(find.text('find all the widgets'), findsNothing); // folded, collapsed
+
+      await tester.tap(find.bySemanticsLabel('Task, 1 step, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.text('find all the widgets'), findsOneWidget);
+    });
+
     testWidgets('an orphan sidechain prompt renders as muted "agent prompt", never "you" (T-263)', (tester) async {
       // No Agent tool-use to attach to → stays standalone, but relabelled.
       await pumpWith(tester, [

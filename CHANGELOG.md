@@ -16,6 +16,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sub-agent prompts no longer render as a blue "you" card.** In live
+  (stream-json) sessions a sub-agent's spawning prompt is tagged with
+  `parent_tool_use_id` rather than the transcript's `isSidechain`/`parentUuid`,
+  so it slipped past the sidechain fold and showed as a top-level user turn. The
+  parser now treats `parent_tool_use_id` as a sidechain marker and routes the
+  item straight to its Agent card by tool-use id. (T-338)
+
 ### Added
 
 - **Clickable file references in the Claude conversation.** Workspace file paths

@@ -182,6 +182,13 @@ class _ConversationViewState extends State<ConversationView> {
       for (final it in items)
         if (it is AssistantToolUse && _isAgentTool(it.name)) it.uuid: it,
     };
+    // Stream-json tags sidechain items with the spawning Agent's tool-use id
+    // directly (T-338), so map Agent cards by tool-use id for a direct lookup
+    // that doesn't depend on the (transcript-only) parentUuid chain.
+    final agentByToolUseId = <String, AssistantToolUse>{
+      for (final it in items)
+        if (it is AssistantToolUse && _isAgentTool(it.name)) it.toolUseId: it,
+    };
     // Envelope-level chain info (consistent across items sharing a uuid).
     final parentByUuid = <String, String?>{};
     final sidechainByUuid = <String, bool>{};
@@ -193,6 +200,13 @@ class _ConversationViewState extends State<ConversationView> {
     }
 
     AssistantToolUse? resolveOwner(ConversationItem item, AssistantToolUse? nearest) {
+      // Direct route: stream-json hands us the spawning Agent's tool-use id on
+      // the item itself (T-338) — no chain to walk.
+      final byTool = item.parentToolUseId;
+      if (byTool != null) {
+        final agent = agentByToolUseId[byTool];
+        if (agent != null) return agent;
+      }
       var cur = item.uuid;
       final seen = <String>{};
       while (seen.add(cur)) {
