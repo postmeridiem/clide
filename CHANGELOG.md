@@ -27,6 +27,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Picking up a ticket now starts it.** When a ticket is handed to a live
+  Claude pane via the sidebar pick-up button, it also transitions to
+  `in_progress` and the sidebar refreshes — but only on acceptance (a live
+  session took the prompt) and only from a not-yet-started status, so a
+  pick-up with no live pane stays a quiet no-op and a re-pick-up never drags a
+  `review`/`done` ticket backwards. (T-339)
 - **Clickable file references in the Claude conversation.** Workspace file paths
   mentioned by Claude — bare (`lib/app.dart`), with a line (`lib/app.dart:42`),
   backticked, or as markdown links — are now clickable and open in the editor,

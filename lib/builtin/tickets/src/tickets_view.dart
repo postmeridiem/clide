@@ -328,7 +328,9 @@ class _PickUpAction extends StatelessWidget {
         unawaited(() async {
           final resp = await kernel.ipc.request('pql.tickets.show', args: {'id': id, 'withContext': true});
           if (!resp.ok) return; // a missing ticket / failed fetch is a quiet no-op
-          kernel.messages.publish('builtin.tickets', 'pick-up', {'id': id, 'prompt': pickUpPrompt(resp.data)});
+          // Carry the current status so the receiver can gate the in_progress
+          // transition without a second fetch (T-339).
+          kernel.messages.publish('builtin.tickets', 'pick-up', {'id': id, 'prompt': pickUpPrompt(resp.data), 'status': resp.data['status']});
         }());
       },
       builder: (ctx, hovered, _) => Padding(
