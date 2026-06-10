@@ -96,6 +96,23 @@ void main() {
     expect(find.bySemanticsLabel('Edits, 3 edits, expanded'), findsOneWidget);
   });
 
+  testWidgets('a deeper interactive control inside an item still fires (not swallowed)', (tester) async {
+    var tapped = false;
+    await pump(tester, expanded: true, children: [
+      ClideTappable(
+        onTap: () => tapped = true,
+        builder: (_, __, ___) => const Padding(
+          padding: EdgeInsets.all(8),
+          child: Text('press me', textDirection: TextDirection.ltr),
+        ),
+      ),
+    ]);
+    await tester.tap(find.text('press me'));
+    await tester.pump();
+    expect(tapped, isTrue); // the item's own control won the hit
+    expect(find.bySemanticsLabel('Edits, 3 edits, expanded'), findsOneWidget); // collapser unchanged
+  });
+
   testWidgets('the ticker is keyboard-focusable and toggles on Activate (a11y)', (tester) async {
     await pump(tester);
     final focusWidget = tester.widget<Focus>(

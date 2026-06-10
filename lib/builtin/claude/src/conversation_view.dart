@@ -16,7 +16,6 @@ import 'dart:io';
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
-import 'package:clide/builtin/claude/src/holder_card.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
@@ -603,10 +602,10 @@ class _ConversationTurn extends StatelessWidget {
         card,
         Padding(
           padding: const EdgeInsets.only(left: 12),
-          child: ClideHolderCard(
-            title: 'agent run',
+          child: ClideCollapserCard(
+            label: 'agent run',
             collapsedSummary: _summarizeActivity(runItems.last),
-            stepLabel: runItems.length == 1 ? '1 step' : '${runItems.length} steps',
+            counter: runItems.length == 1 ? '1 step' : '${runItems.length} steps',
             children: [
               for (final r in runItems)
                 _ConversationTurn(
@@ -711,11 +710,11 @@ class _ConversationTurn extends StatelessWidget {
 }
 
 /// A folded run of meta items rendered as one collapsible activity card
-/// (T-230), now through the shared [ClideHolderCard] container (T-266).
+/// (T-230), now through the shared [ClideCollapserCard] container (T-305).
 /// Collapsed (default): a one-line live ticker of the latest step + a step
 /// count — re-grouped on every rebuild, so the ticker updates in place as the
-/// run grows. Expanded: every folded step, wrapped in the holder frame whose
-/// background toggles collapse. Stateless — the holder owns the expand state.
+/// run grows. Expanded: every folded step, wrapped in the collapser frame whose
+/// background toggles collapse. Stateless — the collapser owns the expand state.
 class _ActivityCard extends StatelessWidget {
   const _ActivityCard({
     super.key,
@@ -739,9 +738,10 @@ class _ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = items.length;
-    return ClideHolderCard(
+    return ClideCollapserCard(
+      label: 'Activity',
       collapsedSummary: _summarizeActivity(items.last),
-      stepLabel: count == 1 ? '1 step' : '$count steps',
+      counter: count == 1 ? '1 step' : '$count steps',
       status: _runStatus(items, resultByToolUseId),
       children: [
         for (final item in items)
@@ -774,7 +774,7 @@ ClideRunStatus? _runStatus(List<ConversationItem> items, Map<String, ToolResultM
 }
 
 /// A run of consecutive same-file edits, bundled into one collapsible "# edits"
-/// card (T-296) through the shared [ClideHolderCard]. Each edit keeps its own
+/// card (T-296) through the shared [ClideCollapserCard]. Each edit keeps its own
 /// merged tool card when expanded; the header carries the aggregate live tick.
 class _EditRunCard extends StatelessWidget {
   const _EditRunCard({
@@ -799,10 +799,10 @@ class _EditRunCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = edits.length;
-    return ClideHolderCard(
-      title: 'Edits',
+    return ClideCollapserCard(
+      label: 'Edits',
       collapsedSummary: _summarizeActivity(edits.last),
-      stepLabel: count == 1 ? '1 edit' : '$count edits',
+      counter: count == 1 ? '1 edit' : '$count edits',
       status: _runStatus(edits, resultByToolUseId),
       children: [
         for (final item in edits)
