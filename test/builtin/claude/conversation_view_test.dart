@@ -149,7 +149,10 @@ void main() {
     tearDown(() => f.dispose());
 
     Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items,
-        {Set<String> hiddenToolUseIds = const {}, Map<String, bool> toolUseOutcomes = const {}, FoldLevel foldLevel = FoldLevel.none}) async {
+        {Set<String> hiddenToolUseIds = const {},
+        Map<String, bool> toolUseOutcomes = const {},
+        Set<String> quietErrorToolUseIds = const {},
+        FoldLevel foldLevel = FoldLevel.none}) async {
       tester.view.physicalSize = const Size(900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -166,7 +169,12 @@ void main() {
         Builder(
           builder: (ctx) => MediaQuery(
             data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
-            child: ConversationView(controller: c, hiddenToolUseIds: hiddenToolUseIds, toolUseOutcomes: toolUseOutcomes, foldLevel: foldLevel),
+            child: ConversationView(
+                controller: c,
+                hiddenToolUseIds: hiddenToolUseIds,
+                toolUseOutcomes: toolUseOutcomes,
+                quietErrorToolUseIds: quietErrorToolUseIds,
+                foldLevel: foldLevel),
           ),
         ),
       ));
@@ -695,6 +703,33 @@ void main() {
         _result('No such file', isError: true),
       ]);
       expect(find.text('Bash · error'), findsOneWidget);
+    });
+
+    testWidgets('a quiet (user-initiated) denial folds to a muted "denied" card (T-340)', (tester) async {
+      await pumpWith(
+        tester,
+        [
+          _tool('Bash', {'command': 'rm -rf x'}),
+          _result('Denied — too complex\nretry simpler', isError: true),
+        ],
+        quietErrorToolUseIds: {'x1'}, // the toolUseId shared by _tool/_result
+      );
+      // Labelled "denied", not the loud "error", and folded by default so the
+      // body (its second line) is hidden behind a collapsed summary.
+      expect(find.text('Bash · denied'), findsOneWidget);
+      expect(find.text('Bash · error'), findsNothing);
+      expect(find.textContaining('retry simpler'), findsNothing);
+    });
+
+    testWidgets('a genuine error (not in the quiet set) stays expanded red (T-340)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Bash', {'command': 'rm -rf x'}),
+        _result('Denied — too complex\nretry simpler', isError: true),
+      ]);
+      // Same content, but not flagged quiet → the normal expanded error path.
+      expect(find.text('Bash · error'), findsOneWidget);
+      expect(find.text('Bash · denied'), findsNothing);
+      expect(find.textContaining('retry simpler'), findsOneWidget);
     });
 
     testWidgets('result without a paired tool_use uses plain "result" label (T-168)', (tester) async {

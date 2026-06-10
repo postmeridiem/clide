@@ -507,6 +507,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     foldLevel: foldLevelFromName(_kernel()?.settings.get<String>(kActivityFoldLevelKey)),
                     hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
                     toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
+                    quietErrorToolUseIds: _session?.quietErrorToolUseIds ?? const <String>{},
                     emptyState: ClaudeBanner(
                       role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
                       workspace: _repoRoot,

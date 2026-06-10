@@ -2606,3 +2606,19 @@ Acceptance:
 - Picking up a ticket with a live Claude pane injects the prompt AND moves the ticket to in_progress, with the sidebar reflecting the new state.
 - Picking up with no live session leaves the ticket untouched.
 - Test coverage on _onTicketPickUp for both the accepted and no-session paths.', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 13:48:18', '2026-06-10 14:14:33', NULL, 'd615d07653f4916b50514993935b90da', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB3KS499THAD899M0NWN7E3R', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Fold the Deny & simplify denial note instead of showing it as an expanded error', 'The ''Deny & simplify'' permission option (T-311/T-328) denies the action carrying a preformatted note (_kDenySimplifyNote in lib/builtin/claude/src/prompt_card.dart:27). Because it comes back as a tool_result with isError, the Claude pane renders it as a prominent red ''Bash · error'' block, expanded by default — see _toolResult() in lib/builtin/claude/src/conversation_view.dart:698, specifically collapsedByDefault: false (line 715).
+
+But this denial is user-initiated (the user clicked ''Deny & simplify''), so the full red confirmation is noise — the user already knows what they did and just wants Claude to retry simpler. Either suppress this specific error block, or fold it into the collapsible (collapsedByDefault: true, with the first line as the collapsed summary) so it doesn''t shout.
+
+Scope: ONLY the Deny & simplify-spawned error. Genuine Bash/tool errors must keep their current expanded-by-default behaviour (T-168). So this needs a way to distinguish a user-initiated deny-simplify denial from a real tool error — e.g. tag the DenyTool result so the renderer can recognise it, rather than string-matching the note text.
+
+Implementation sketch:
+- Mark the deny-simplify result as a user-initiated denial when constructing DenyTool(note) in _permDenySimplify() (prompt_card.dart:234), carrying a flag through the tool_result envelope.
+- In _toolResult(), when that flag is set, render collapsed-by-default (or suppress) instead of the expanded error path.
+- Avoid brittle string matching against _kDenySimplifyNote.
+
+Acceptance:
+- Clicking ''Deny & simplify'' produces a collapsed/quiet card, not an expanded red error.
+- A real Bash error still renders expanded by default.
+
+Reference screenshot: paste-1781099488608.png (the expanded red ''Denied — this action is too complex...'' block over a follow-up retry).', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 13:53:23', '2026-06-10 14:29:07', NULL, '6fad665013ede83fb4e538bb73308aa6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

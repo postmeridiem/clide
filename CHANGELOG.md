@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **"Deny & simplify" no longer shows a loud red error.** A denial the user
+  deliberately chose (Deny & simplify) folds into a muted, collapsed "denied"
+  card instead of the prominent expanded-red block reserved for genuine tool
+  failures — which still render expanded. Driven by a reusable per-result
+  "quiet error" flag, not by matching the note text. (T-340)
 - **Sub-agent prompts no longer render as a blue "you" card.** In live
   (stream-json) sessions a sub-agent's spawning prompt is tagged with
   `parent_tool_use_id` rather than the transcript's `isSidechain`/`parentUuid`,

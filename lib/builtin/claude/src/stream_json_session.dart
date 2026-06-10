@@ -183,9 +183,15 @@ final class AllowTool extends ToolDecision {
 }
 
 /// Deny the tool with a user-facing [message] (required by the protocol).
+///
+/// [quiet] marks a deliberate, user-initiated denial that the user already
+/// understands (e.g. "Deny & simplify", T-340) — the resulting error tool-result
+/// should fold to a muted card rather than shout as a red failure. Off by
+/// default, so a genuine/unexpected denial still renders prominently.
 final class DenyTool extends ToolDecision {
-  const DenyTool(this.message);
+  const DenyTool(this.message, {this.quiet = false});
   final String message;
+  final bool quiet;
   @override
   Map<String, dynamic> toJson() => {'behavior': 'deny', 'message': message};
 }
@@ -246,9 +252,16 @@ class StreamJsonSession {
   /// green/red border (D-78).
   final _toolUseOutcome = <String, bool>{};
 
+  /// tool_use_ids whose error result should render folded + muted rather than as
+  /// a loud red failure (T-340): expected, user-initiated denials (Deny &
+  /// simplify, today) that the user already understands. The reusable extension
+  /// point — add an id here at the moment you know its error is non-alarming.
+  final _quietErrorToolUses = <String>{};
+
   /// Read-only views for the conversation view.
   Set<String> get promptedToolUseIds => _promptedToolUses;
   Map<String, bool> get toolUseOutcomes => _toolUseOutcome;
+  Set<String> get quietErrorToolUseIds => _quietErrorToolUses;
 
   /// Whether a turn is in flight (between a send and claude's `result`). Drives
   /// the composer's Stop affordance.
@@ -542,7 +555,10 @@ class StreamJsonSession {
     final idx = _queue.indexWhere((p) => p.promptId == promptId);
     if (idx < 0) return; // unknown / already resolved
     final prompt = _queue.removeAt(idx);
-    if (prompt.toolUseId.isNotEmpty) _toolUseOutcome[prompt.toolUseId] = decision is AllowTool;
+    if (prompt.toolUseId.isNotEmpty) {
+      _toolUseOutcome[prompt.toolUseId] = decision is AllowTool;
+      if (decision is DenyTool && decision.quiet) _quietErrorToolUses.add(prompt.toolUseId);
+    }
     _proc.writeLine(jsonEncode({
       'type': 'control_response',
       'response': {'subtype': 'success', 'request_id': promptId, 'response': decision.toJson()},

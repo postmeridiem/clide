@@ -34,6 +34,7 @@ class ConversationView extends StatefulWidget {
     this.emptyState,
     this.hiddenToolUseIds = const <String>{},
     this.toolUseOutcomes = const <String, bool>{},
+    this.quietErrorToolUseIds = const <String>{},
     this.foldLevel = FoldLevel.tools,
   });
 
@@ -52,6 +53,13 @@ class ConversationView extends StatefulWidget {
   /// — a resolved permission tool-use renders collapsed with a green/red
   /// border instead of being hidden (D-78).
   final Map<String, bool> toolUseOutcomes;
+
+  /// tool_use_ids whose error result should render folded + muted instead of as
+  /// a loud red failure (T-340) — expected, user-initiated denials the user
+  /// already understands (Deny & simplify). Genuine tool errors (ids not in
+  /// here) keep the prominent expanded-red treatment (T-168). A reusable filter:
+  /// add ids to quiet more error kinds without string-matching their text.
+  final Set<String> quietErrorToolUseIds;
 
   /// Whether to wrap the list in its own [ClideSelectionArea]. The team
   /// grid sets this false and wraps all tiles in one shared area so
@@ -305,6 +313,7 @@ class _ConversationViewState extends State<ConversationView> {
                 tokens: tokens,
                 collapseTools: true,
                 toolUseOutcomes: widget.toolUseOutcomes,
+                quietErrorToolUseIds: widget.quietErrorToolUseIds,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
                 promptsByToolUseId: fold.promptsByToolUseId,
@@ -315,6 +324,7 @@ class _ConversationViewState extends State<ConversationView> {
                 items: items,
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
+                quietErrorToolUseIds: widget.quietErrorToolUseIds,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
                 promptsByToolUseId: fold.promptsByToolUseId,
@@ -325,6 +335,7 @@ class _ConversationViewState extends State<ConversationView> {
                 edits: edits,
                 tokens: tokens,
                 toolUseOutcomes: widget.toolUseOutcomes,
+                quietErrorToolUseIds: widget.quietErrorToolUseIds,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
                 promptsByToolUseId: fold.promptsByToolUseId,
@@ -407,6 +418,7 @@ class _ConversationTurn extends StatelessWidget {
     required this.tokens,
     this.collapseTools = false,
     this.toolUseOutcomes = const <String, bool>{},
+    this.quietErrorToolUseIds = const <String>{},
     this.toolUseById = const <String, AssistantToolUse>{},
     this.resultByToolUseId = const <String, ToolResultMessage>{},
     this.promptsByToolUseId = const <String, List<UserMessage>>{},
@@ -426,6 +438,10 @@ class _ConversationTurn extends StatelessWidget {
   /// even inner spacing (10) when this turn is a collapser child (T-305).
   EdgeInsetsGeometry get _childMargin => collapseTools ? const EdgeInsets.only(bottom: 14) : const EdgeInsets.only(bottom: kClideCardHeaderPadH);
   final Map<String, bool> toolUseOutcomes;
+
+  /// tool_use_ids whose error result folds quietly instead of expanded-red
+  /// (T-340) — see [ConversationView.quietErrorToolUseIds].
+  final Set<String> quietErrorToolUseIds;
 
   /// Index from toolUseId → AssistantToolUse, for result-card pairing (T-168).
   final Map<String, AssistantToolUse> toolUseById;
@@ -627,6 +643,7 @@ class _ConversationTurn extends StatelessWidget {
                   item: r,
                   tokens: tokens,
                   toolUseOutcomes: toolUseOutcomes,
+                  quietErrorToolUseIds: quietErrorToolUseIds,
                   toolUseById: toolUseById,
                   resultByToolUseId: resultByToolUseId,
                   promptsByToolUseId: promptsByToolUseId,
@@ -717,22 +734,28 @@ class _ConversationTurn extends StatelessWidget {
     // Error result: render the error message prominently (T-168). If we have
     // the paired tool_use, show the tool name as a sub-label so the user can
     // see what failed without expanding.
+    //
+    // Exception (T-340): an expected, user-initiated denial (Deny & simplify)
+    // is noise as a loud red error — the user already knows what they did. Fold
+    // it to a muted, collapsed card. Genuine failures keep the expanded-red look.
     if (t.isError) {
+      final quiet = quietErrorToolUseIds.contains(t.toolUseId);
       final multiline = t.content.contains('\n');
+      final errLabel = quiet ? 'denied' : label;
       return ConversationCard(
         variant: ConversationCardVariant.bordered,
-        accent: accent,
-        borderColor: tokens.statusError,
-        label: paired != null ? '${paired.name} · $label' : label,
+        accent: quiet ? tokens.globalTextMuted : accent,
+        borderColor: quiet ? tokens.panelBorder : tokens.statusError,
+        label: paired != null ? '${paired.name} · $errLabel' : errLabel,
         copyText: t.content,
-        collapsible: multiline,
-        collapsedByDefault: false, // errors default expanded so they're visible
-        collapsedSummary: multiline ? _firstLine(t.content) : null,
+        collapsible: quiet || multiline,
+        collapsedByDefault: quiet, // genuine errors stay expanded; a denial folds
+        collapsedSummary: (quiet || multiline) ? _firstLine(t.content) : null,
         body: ClideText(
           t.content,
           fontSize: clideFontMeta,
           fontFamily: clideMonoFamily,
-          color: tokens.statusError,
+          color: quiet ? tokens.globalTextMuted : tokens.statusError,
         ),
       );
     }
@@ -790,6 +813,7 @@ class _ActivityCard extends StatelessWidget {
     required this.items,
     required this.tokens,
     required this.toolUseOutcomes,
+    required this.quietErrorToolUseIds,
     required this.toolUseById,
     required this.resultByToolUseId,
     required this.promptsByToolUseId,
@@ -799,6 +823,7 @@ class _ActivityCard extends StatelessWidget {
   final List<ConversationItem> items;
   final SurfaceTokens tokens;
   final Map<String, bool> toolUseOutcomes;
+  final Set<String> quietErrorToolUseIds;
   final Map<String, AssistantToolUse> toolUseById;
   final Map<String, ToolResultMessage> resultByToolUseId;
   final Map<String, List<UserMessage>> promptsByToolUseId;
@@ -819,6 +844,7 @@ class _ActivityCard extends StatelessWidget {
             item: item,
             tokens: tokens,
             toolUseOutcomes: toolUseOutcomes,
+            quietErrorToolUseIds: quietErrorToolUseIds,
             toolUseById: toolUseById,
             resultByToolUseId: resultByToolUseId,
             promptsByToolUseId: promptsByToolUseId,
@@ -851,6 +877,7 @@ class _EditRunCard extends StatelessWidget {
     required this.edits,
     required this.tokens,
     required this.toolUseOutcomes,
+    required this.quietErrorToolUseIds,
     required this.toolUseById,
     required this.resultByToolUseId,
     required this.promptsByToolUseId,
@@ -860,6 +887,7 @@ class _EditRunCard extends StatelessWidget {
   final List<ConversationItem> edits;
   final SurfaceTokens tokens;
   final Map<String, bool> toolUseOutcomes;
+  final Set<String> quietErrorToolUseIds;
   final Map<String, AssistantToolUse> toolUseById;
   final Map<String, ToolResultMessage> resultByToolUseId;
   final Map<String, List<UserMessage>> promptsByToolUseId;
@@ -880,6 +908,7 @@ class _EditRunCard extends StatelessWidget {
             item: item,
             tokens: tokens,
             toolUseOutcomes: toolUseOutcomes,
+            quietErrorToolUseIds: quietErrorToolUseIds,
             toolUseById: toolUseById,
             resultByToolUseId: resultByToolUseId,
             promptsByToolUseId: promptsByToolUseId,

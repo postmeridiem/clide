@@ -234,7 +234,9 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
   void _permDenySimplify() {
     final user = _permNote();
     final note = user == null ? _kDenySimplifyNote : '$_kDenySimplifyNote\n\nUser note: $user';
-    widget.onResolve(widget.prompt.promptId, DenyTool(note));
+    // Quiet: the user deliberately chose this, so its denial folds rather than
+    // shouting as a red error (T-340).
+    widget.onResolve(widget.prompt.promptId, DenyTool(note, quiet: true));
   }
 
   (Color, String, List<Widget>) _permission(SurfaceTokens tokens) {
