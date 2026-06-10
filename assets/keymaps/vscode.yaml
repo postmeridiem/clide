@@ -1,0 +1,114 @@
+# clide VS Code keymap preset (T-64).
+#
+# Maps VS Code's default keybindings to clide intents + commands so users
+# with VS Code muscle memory feel at home. A preset fully REPLACES the
+# active layer, so this file is self-contained (activation, focus, palette
+# and quick-open navigation are all repeated from `default.yaml`).
+#
+# Notation (D-82): `+` joins a chord, a space sequences (`ctrl+k z`), a
+# YAML list alternates (`[ctrl+b, meta+b]`). Both Ctrl (Linux/Windows) and
+# Meta/Cmd (macOS) variants are bound so one preset serves every platform.
+#
+# Scope flags: only `palette.open` and `quickOpen.open` are published today
+# (by the palette / quick-open overlays). VS Code's editor-scoped contexts
+# (`editor.focused`, `inputFocused`) have no producer yet, so the global
+# chords below stay ungated — which matches VS Code, where these commands
+# (palette, quick-open, sidebar toggle, …) are global anyway. Editor-text-
+# scoped gating lands when those scope producers do.
+
+name: vscode
+
+bindings:
+  # -- Activation / focus -----------------------------------------------
+  - intent: activate
+    keys: [enter, space]
+  - intent: dismiss
+    keys: escape
+  - intent: focus.next
+    keys: tab
+  - intent: focus.previous
+    keys: shift+tab
+  # Cycle the editor "parts" / panels (VS Code F6).
+  - intent: focus.nextPanel
+    keys: f6
+  - intent: focus.previousPanel
+    keys: shift+f6
+
+  # -- Command palette (Ctrl+Shift+P, F1) -------------------------------
+  - intent: palette.open
+    keys: [ctrl+shift+p, meta+shift+p, f1]
+  - intent: palette.selectNext
+    keys: [down, ctrl+n]
+    when: palette.open
+  - intent: palette.selectPrevious
+    keys: [up, ctrl+p]
+    when: palette.open
+  - intent: palette.accept
+    keys: enter
+    when: palette.open
+  - intent: dismiss
+    keys: escape
+    when: palette.open
+
+  # -- Quick open / Go to File (Ctrl+P) ---------------------------------
+  - intent: quickOpen.open
+    keys: [ctrl+p, meta+p]
+    when: "!palette.open"
+  - intent: quickOpen.selectNext
+    keys: [down, ctrl+n]
+    when: quickOpen.open
+  - intent: quickOpen.selectPrevious
+    keys: up
+    when: quickOpen.open
+  - intent: quickOpen.accept
+    keys: enter
+    when: quickOpen.open
+  - intent: dismiss
+    keys: escape
+    when: quickOpen.open
+
+  # -- Search (Ctrl+Shift+F) --------------------------------------------
+  - intent: findInFiles.open
+    keys: [ctrl+shift+f, meta+shift+f]
+
+  # -- Panel toggles ----------------------------------------------------
+  # Toggle Side Bar (Ctrl+B), Panel (Ctrl+J), Secondary Side Bar
+  # (Ctrl+Alt+B). clide's left sidebar / bottom dock / right context bar.
+  - intent: command:sidebar.collapse
+    keys: [ctrl+b, meta+b]
+  - intent: command:dock.toggle
+    keys: [ctrl+j, meta+j]
+  - intent: command:context.collapse
+    keys: [ctrl+alt+b, meta+alt+b]
+  # Toggle Terminal (Ctrl+`). clide has one bottom dock where shell/output
+  # live, so the terminal chord targets the same dock as Ctrl+J.
+  - intent: command:dock.toggle
+    keys: [ctrl+backquote, meta+backquote]
+  # Zen Mode (Ctrl+K Z).
+  - intent: command:panel.focusMode
+    keys: ["ctrl+k z", "meta+k z"]
+
+  # -- Editor actions ---------------------------------------------------
+  # Close Editor (Ctrl+W).
+  - intent: command:editor.close
+    keys: [ctrl+w, meta+w]
+  # Window zoom (VS Code View: Zoom In/Out/Reset). `+` is shift+equal on
+  # most layouts, so bind both equal and shift+equal.
+  - intent: command:view.zoomIn
+    keys: [ctrl+equal, ctrl+shift+equal, meta+equal, meta+shift+equal]
+  - intent: command:view.zoomOut
+    keys: [ctrl+minus, meta+minus]
+  - intent: command:view.zoomReset
+    keys: [ctrl+0, meta+0]
+
+  # -- File / workspace -------------------------------------------------
+  # Open Folder (Ctrl+K Ctrl+O), New Window (Ctrl+Shift+N), Close Folder
+  # (Ctrl+K F), Color Theme (Ctrl+K Ctrl+T).
+  - intent: command:file.openFolder
+    keys: ["ctrl+k ctrl+o", "meta+k meta+o"]
+  - intent: command:file.newWindow
+    keys: [ctrl+shift+n, meta+shift+n]
+  - intent: command:file.closeWorkspace
+    keys: ["ctrl+k f", "meta+k f"]
+  - intent: command:theme.pick
+    keys: ["ctrl+k ctrl+t", "meta+k meta+t"]

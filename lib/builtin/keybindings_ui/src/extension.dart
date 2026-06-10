@@ -26,11 +26,13 @@ class KeybindingsUiExtension extends ClideExtension {
   @override
   Future<void> deactivate() async => _keymap = null;
 
-  /// Presets that ship today. VS Code / JetBrains (T-64/T-66) join here
-  /// once their YAMLs land.
+  /// Presets that ship today, each exposed as a `keymap.preset.<name>`
+  /// command that activates it.
   static const _presets = <String, String>{
     'default': 'Keymap: Default',
     'vim': 'Keymap: Vim',
+    'vscode': 'Keymap: VS Code',
+    'jetbrains': 'Keymap: JetBrains',
   };
 
   @override

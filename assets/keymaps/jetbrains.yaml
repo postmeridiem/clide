@@ -1,0 +1,95 @@
+# clide JetBrains / IntelliJ keymap preset (T-66).
+#
+# Maps IntelliJ's default keybindings to clide intents + commands. A preset
+# fully REPLACES the active layer, so this file is self-contained.
+#
+# Notation (D-82): `+` joins a chord, a space sequences, a YAML list
+# alternates. IntelliJ's mac and Linux/Windows defaults diverge for several
+# actions (Go to File is Cmd+Shift+O on mac but Ctrl+Shift+N on win/linux),
+# so both spellings are bound.
+#
+# Scope flags: only `palette.open` / `quickOpen.open` are published today;
+# IntelliJ's editor-scoped contexts have no producer yet, so global chords
+# stay ungated (they're global in IntelliJ too).
+#
+# Not bound — no clide command analogue (kept out of scope per the ticket):
+# Run (Shift+F10), Debug (Shift+F9), Rename/Refactor (Shift+F6), Settings
+# (Ctrl+Alt+S). And "Search Everywhere" (double-Shift) is not expressible by
+# the current chord matcher (bare/double modifiers unsupported) — tracked by
+# T-341; Go to File / Find Action below are the practical stand-ins.
+
+name: jetbrains
+
+bindings:
+  # -- Activation / focus -----------------------------------------------
+  # No F6 panel cycling here: IntelliJ uses F6 (Move) / Shift+F6 (Rename),
+  # so binding them to panel focus would fight muscle memory.
+  - intent: activate
+    keys: [enter, space]
+  - intent: dismiss
+    keys: escape
+  - intent: focus.next
+    keys: tab
+  - intent: focus.previous
+    keys: shift+tab
+
+  # -- Find Action (≈ command palette): Ctrl+Shift+A --------------------
+  - intent: palette.open
+    keys: [ctrl+shift+a, meta+shift+a]
+  - intent: palette.selectNext
+    keys: down
+    when: palette.open
+  - intent: palette.selectPrevious
+    keys: up
+    when: palette.open
+  - intent: palette.accept
+    keys: enter
+    when: palette.open
+  - intent: dismiss
+    keys: escape
+    when: palette.open
+
+  # -- Quick open: Go to File / Go to Class / Recent Files --------------
+  # win/linux: Ctrl+Shift+N, Ctrl+N, Ctrl+E.  mac: Cmd+Shift+O, Cmd+O,
+  # Cmd+E. clide has one fuzzy file finder, so all land on quick-open.
+  - intent: quickOpen.open
+    keys: [ctrl+shift+n, ctrl+n, ctrl+e, meta+shift+o, meta+o, meta+e]
+    when: "!palette.open"
+  - intent: quickOpen.selectNext
+    keys: down
+    when: quickOpen.open
+  - intent: quickOpen.selectPrevious
+    keys: up
+    when: quickOpen.open
+  - intent: quickOpen.accept
+    keys: enter
+    when: quickOpen.open
+  - intent: dismiss
+    keys: escape
+    when: quickOpen.open
+
+  # -- Find in Path (search): Ctrl+Shift+F ------------------------------
+  - intent: findInFiles.open
+    keys: [ctrl+shift+f, meta+shift+f]
+
+  # -- Tool windows -----------------------------------------------------
+  # Project (Alt+1) → sidebar; Terminal (Alt+F12) → bottom dock; Hide All
+  # Windows / distraction-free (Ctrl+Shift+F12) → focus (zen) mode.
+  - intent: command:sidebar.collapse
+    keys: [alt+1, meta+1]
+  - intent: command:dock.toggle
+    keys: alt+f12
+  - intent: command:panel.focusMode
+    keys: [ctrl+shift+f12, meta+shift+f12]
+
+  # -- Editor -----------------------------------------------------------
+  # Close active tab: Ctrl+F4 (win/linux) / Cmd+W (mac).
+  - intent: command:editor.close
+    keys: [ctrl+f4, meta+w]
+  # Zoom is a clide convenience — IntelliJ has no default zoom keys.
+  - intent: command:view.zoomIn
+    keys: [ctrl+equal, ctrl+shift+equal, meta+equal, meta+shift+equal]
+  - intent: command:view.zoomOut
+    keys: [ctrl+minus, meta+minus]
+  - intent: command:view.zoomReset
+    keys: [ctrl+0, meta+0]

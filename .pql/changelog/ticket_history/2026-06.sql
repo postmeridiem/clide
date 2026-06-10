@@ -3233,3 +3233,150 @@ Disposition (2026-06-10): mostly already done before pickup.
 - #22 (logger): DONE prior. lib/src/ipc/server.dart imports the kernel Logger, holds a ''final Logger log'', and logs via log.error/warn/info(''ipc'', …). No stderr.writeln/print anywhere in lib/src/ipc, lib/src/pty, or lib/src/daemon. Folded in by the D-56 daemon dissolution + PTY FFI pivot.
 - #26 (cmd correlation): the only live remnant — the catch-all ''dispatch threw'' log omitted the request cmd. Fixed: it now logs ''dispatch threw for "<cmd>"''. Internal logging only; no changelog.', NULL, '2026-06-10 14:58:32', '2026-06-10 14:58:32', '2026-06-10 14:58:32', NULL, '067666253769388e306dd99c4f976df9', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'status', 'in_progress', 'done', NULL, '2026-06-10 14:58:43', '2026-06-10 14:58:43', '2026-06-10 14:58:43', NULL, '192064fbd5628b282512128ddc3d2688', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM42M9RK4399B4F4WSG', 'status', 'backlog', 'ready', NULL, '2026-06-10 15:01:43', '2026-06-10 15:01:43', '2026-06-10 15:01:43', NULL, 'a002c3ce8b3efa35c18d9708ed37c9c3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM60QRRNEEWG84VWKXC', 'status', 'backlog', 'ready', NULL, '2026-06-10 15:01:52', '2026-06-10 15:01:52', '2026-06-10 15:01:52', NULL, 'dee252ba6fbb07189c947101968e1743', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM42M9RK4399B4F4WSG', 'status', 'ready', 'in_progress', NULL, '2026-06-10 15:01:54', '2026-06-10 15:01:54', '2026-06-10 15:01:54', NULL, '1c3ed11e37579ea9a3a21e85e3ba110a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM60QRRNEEWG84VWKXC', 'status', 'ready', 'in_progress', NULL, '2026-06-10 15:02:14', '2026-06-10 15:02:14', '2026-06-10 15:02:14', NULL, 'c5844c06118422cb09538405b12fe478', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM42M9RK4399B4F4WSG', 'description', 'Ship a VS Code-compatible keybinding preset that maps standard VS Code shortcuts to clide commands. Users select it in settings. Covers file navigation, editor actions, panel toggles, search, and terminal.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is now in place. Implementation is now just authoring `assets/keymaps/vscode.yaml` against the typed Intents in `lib/kernel/src/keymap/intents.dart` (plus `command:<id>` bindings for VS-Code-specific commands the preset wants to bind to clide commands). Users will switch presets via `app.keymap.preset = vscode` once a settings UI exists, or directly via the setting today.
+
+**Acceptance:**
+1. `assets/keymaps/vscode.yaml` ships covering the documented VS Code default keybindings.
+2. `KeymapService.setPreset("vscode")` activates the preset and all asserted bindings resolve as expected.
+3. The preset uses when-clauses where VS Code does (`editor.focused`, `inputFocused`, `palette.open`, …).
+4. A regression test loads the preset and asserts a representative subset (e.g. ctrl+p → quick-open command, ctrl+shift+p → palette).
+
+**Out of scope:** clide commands that have no VS Code analogue (those keep their default-preset bindings).', 'Ship a VS Code-compatible keybinding preset that maps standard VS Code shortcuts to clide commands. Users select it in settings. Covers file navigation, editor actions, panel toggles, search, and terminal.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is now in place. Implementation is now just authoring `assets/keymaps/vscode.yaml` against the typed Intents in `lib/kernel/src/keymap/intents.dart` (plus `command:<id>` bindings for VS-Code-specific commands the preset wants to bind to clide commands). Users will switch presets via `app.keymap.preset = vscode` once a settings UI exists, or directly via the setting today.
+
+**Acceptance:**
+1. `assets/keymaps/vscode.yaml` ships covering the documented VS Code default keybindings.
+2. `KeymapService.setPreset("vscode")` activates the preset and all asserted bindings resolve as expected.
+3. The preset uses when-clauses where VS Code does (`editor.focused`, `inputFocused`, `palette.open`, …).
+4. A regression test loads the preset and asserts a representative subset (e.g. ctrl+p → quick-open command, ctrl+shift+p → palette).
+
+**Out of scope:** clide commands that have no VS Code analogue (those keep their default-preset bindings).
+
+Correction (2026-06-10): this ticket''s ''see Q-9'' reference is stale — Q-9 is ''Lua runtime vendoring'', unrelated. The search-everywhere / double-tap-modifier gap is now tracked by T-341.', NULL, '2026-06-10 15:07:52', '2026-06-10 15:07:52', '2026-06-10 15:07:52', NULL, 'f5caba1a25d32651bbd7503c906633cf', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM60QRRNEEWG84VWKXC', 'description', 'Ship a JetBrains/IntelliJ-compatible keybinding preset mapping standard JetBrains shortcuts to clide commands. Covers navigation, refactoring, search, run/debug, and tool windows.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place. Implementation is authoring `assets/keymaps/jetbrains.yaml` against the typed Intents + `command:<id>` bindings, plus when-clauses for the contexts JetBrains presets typically scope to (`editor.focused`, `inputFocused`, etc.).
+
+**Acceptance:**
+1. `assets/keymaps/jetbrains.yaml` ships covering the documented IntelliJ default keybindings.
+2. `KeymapService.setPreset("jetbrains")` activates the preset and all asserted bindings resolve.
+3. A regression test exercises a representative subset (e.g. shift+shift → quick-open command — see Q-9 if the search-everywhere overlay needs its own intent).', 'Ship a JetBrains/IntelliJ-compatible keybinding preset mapping standard JetBrains shortcuts to clide commands. Covers navigation, refactoring, search, run/debug, and tool windows.
+
+**Unblocked by T-117 (2026-05-17):** the keystroke mapper layer is in place. Implementation is authoring `assets/keymaps/jetbrains.yaml` against the typed Intents + `command:<id>` bindings, plus when-clauses for the contexts JetBrains presets typically scope to (`editor.focused`, `inputFocused`, etc.).
+
+**Acceptance:**
+1. `assets/keymaps/jetbrains.yaml` ships covering the documented IntelliJ default keybindings.
+2. `KeymapService.setPreset("jetbrains")` activates the preset and all asserted bindings resolve.
+3. A regression test exercises a representative subset (e.g. shift+shift → quick-open command — see Q-9 if the search-everywhere overlay needs its own intent).
+
+Correction (2026-06-10): ''see Q-9'' is stale (Q-9 is Lua runtime vendoring). The double-Shift ''Search Everywhere'' chord is NOT expressible by the current matcher (bare/double modifiers unsupported) — tracked in T-341. This preset maps quick-open to Ctrl+Shift+N and the palette to Ctrl+Shift+A as the expressible IntelliJ equivalents.', NULL, '2026-06-10 15:07:52', '2026-06-10 15:07:52', '2026-06-10 15:07:52', NULL, '18bc4f20a98f7528f3a9a976e34d9377', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5YG22EV7BFTX5RTPR', 'description', 'Conditional import behind TreeSitterService: native impl uses dart:ffi to libtree-sitter.so, web impl uses dart:js_interop to web-tree-sitter (official emscripten build from tree-sitter org). Same grammar .wasm files on both platforms. Vendor web-tree-sitter .wasm + JS glue as Flutter web assets, pinned version, added to licenses.yaml.', 'Conditional import behind TreeSitterService: native impl uses dart:ffi to libtree-sitter.so, web impl uses dart:js_interop to web-tree-sitter (official emscripten build from tree-sitter org). Same grammar .wasm files on both platforms. Vendor web-tree-sitter .wasm + JS glue as Flutter web assets, pinned version, added to licenses.yaml.
+
+Cancelled 2026-06-10 (backlog relevance sweep): contradicts the desktop-first guardrail (CLAUDE.md) - web is an explicit non-goal / happy-accident only. TreeSitterService is FFI-only and there is no shipped web product, so a web-tree-sitter dual-path is not wanted. Reopen only if web ever becomes a real target.', NULL, '2026-06-10 15:13:50', '2026-06-10 15:13:50', '2026-06-10 15:13:50', NULL, 'ad42a5b7d9d3cc5c5e0e1ed97b9858aa', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM50X0DX8XTVZEA5GN8', 'description', 'Prompt before running extensions or loading project settings in untrusted repositories. Trust decision persisted per repo path. Untrusted mode disables third-party extensions and restricts IPC commands.', 'Prompt before running extensions or loading project settings in untrusted repositories. Trust decision persisted per repo path. Untrusted mode disables third-party extensions and restricts IPC commands.
+
+Cancelled 2026-06-10 (relevance sweep): premature. Third-party (Lua) extension loading is not shipped - ExtensionScanner.discover is test-only and the Lua runtime is a Tier-6 skeleton. Nothing to trust-gate yet; revisit at Tier 6 when external extension loading lands (the trust surface will likely be Lua sandboxing per D-19, not a per-repo prompt).', NULL, '2026-06-10 15:13:52', '2026-06-10 15:13:52', '2026-06-10 15:13:52', NULL, 'c4e57efc161c7afbc5e8a3c3d08b8d74', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM6RDM2EKZX132GPV7M', 'description', 'Spec lists PRs as a left-panel section (icon rail position 5). No extension exists yet.', 'Spec lists PRs as a left-panel section (icon rail position 5). No extension exists yet.
+
+Cancelled 2026-06-10 (relevance sweep): spec''d in D-47 but unscoped, no extension exists, and the data path (git host API vs local metadata) is undecided. Closing to clear the backlog; file a fresh scoped story if a PRs surface is wanted.', NULL, '2026-06-10 15:13:52', '2026-06-10 15:13:52', '2026-06-10 15:13:52', NULL, '99b1fceb9134d0e6bead70da08a51710', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4W194B2421P2SF83R', 'description', 'BUILD.md at app/native/linux-x64/ has TODO checklist: build from pinned source SHA in CI, record SHA-256, cross-compile for macOS (aarch64, x86_64) and Windows (x86_64). Currently built on contributor machine.', 'BUILD.md at app/native/linux-x64/ has TODO checklist: build from pinned source SHA in CI, record SHA-256, cross-compile for macOS (aarch64, x86_64) and Windows (x86_64). Currently built on contributor machine.
+
+Path fix (2026-06-10 sweep): ticket says app/native/linux-x64/ - the app/ prefix is stale (D-56 dissolved the two-package layout). Correct path is native/linux-x64/BUILD.md. Work remains valid: native/linux-x64/libtree-sitter.so is committed but there is still no CI build/cross-compile job.', NULL, '2026-06-10 15:13:54', '2026-06-10 15:13:54', '2026-06-10 15:13:54', NULL, '3ddd8faeeaabb70a137165ec736e8a07', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM48MDE8ZZ82VWNY994', 'description', 'D-46 defines the boundary: content extensions (editor, claude, claude-control, markdown, diff, git-ui, pql, canvas, graph, decisions, tickets, todos, problems) move from app/lib/builtin/ to app/lib/extensions/. Incremental — one at a time, each behind a working build. Extension contract must support bundled Dart extension as a first-class category.', 'D-46 defines the boundary: content extensions (editor, claude, claude-control, markdown, diff, git-ui, pql, canvas, graph, decisions, tickets, todos, problems) move from app/lib/builtin/ to app/lib/extensions/. Incremental — one at a time, each behind a working build. Extension contract must support bundled Dart extension as a first-class category.
+
+Path fix (2026-06-10 sweep): app/lib/builtin/ -> lib/builtin/ (app/ prefix stale per D-56). D-46 still confirmed/active. lib/extensions/ does not exist yet and the shipped extensions (editor, claude, markdown, diff, git-ui, pql, canvas, graph, decisions, tickets, todos, problems) are still under lib/builtin/. Migration unstarted, still valid.', NULL, '2026-06-10 15:13:56', '2026-06-10 15:13:56', '2026-06-10 15:13:56', NULL, '81d27a7cf777fc0290574d807938ea36', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM6T6580D8ABDVTMNZW', 'description', 'Tier 6 of the build plan: the things that make clide a real product instead of a working prototype.
+
+**Extension API (third-party Lua):**
+- The Lua runtime supporter tool (D-19) lands as a peer of pql/ptyc.
+- Manifest schema, capability gating, sandboxed FS/IPC access.
+- Same TabContribution / CommandContribution / etc. surface as built-in Dart extensions (D-15).
+- Marketplace / distribution story is OUT OF SCOPE for Tier 6 — local-install only.
+
+**Settings UI (`builtin.settings-ui`):**
+- Schema-driven settings panel reading from the kernel SettingsStore.
+- Render strategy: form fields keyed off the schema each subsystem registers.
+- Edits write back to `.clide/settings.yaml`.
+
+**Theming UI (`builtin.theme-picker` extends):**
+- Live preview of the four bundled themes (D-44).
+- Custom theme: import YAML, validate against schema, register at runtime.
+- Per-component override surface (long horizon).
+
+**Distributable builds:**
+- AppImage / Flatpak for Linux, .dmg for macOS — see T-46.
+- Self-update mechanism — see T-47.
+- License manifest auto-regen as part of the release build.
+
+Big epic — children land incrementally. Most concrete child tickets already exist; this is the umbrella.', 'Tier 6 of the build plan: the things that make clide a real product instead of a working prototype.
+
+**Extension API (third-party Lua):**
+- The Lua runtime supporter tool (D-19) lands as a peer of pql/ptyc.
+- Manifest schema, capability gating, sandboxed FS/IPC access.
+- Same TabContribution / CommandContribution / etc. surface as built-in Dart extensions (D-15).
+- Marketplace / distribution story is OUT OF SCOPE for Tier 6 — local-install only.
+
+**Settings UI (`builtin.settings-ui`):**
+- Schema-driven settings panel reading from the kernel SettingsStore.
+- Render strategy: form fields keyed off the schema each subsystem registers.
+- Edits write back to `.clide/settings.yaml`.
+
+**Theming UI (`builtin.theme-picker` extends):**
+- Live preview of the four bundled themes (D-44).
+- Custom theme: import YAML, validate against schema, register at runtime.
+- Per-component override surface (long horizon).
+
+**Distributable builds:**
+- AppImage / Flatpak for Linux, .dmg for macOS — see T-46.
+- Self-update mechanism — see T-47.
+- License manifest auto-regen as part of the release build.
+
+Big epic — children land incrementally. Most concrete child tickets already exist; this is the umbrella.
+
+Status note (2026-06-10 sweep): mixed completion. theme-picker is substantially implemented; settings-ui is a stub; the Lua runtime is skeleton-only (lib/lua/); distributable builds (T-46/T-47) remain deferred Tier-6 work. Epic stays open as the umbrella.', NULL, '2026-06-10 15:13:57', '2026-06-10 15:13:57', '2026-06-10 15:13:57', NULL, '15d4ca47570b23a19b16c22e40a8d73e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM66FTCTWHH9AQTNFKR', 'description', 'Minimize to system tray on Linux (AppIndicator) or Dock on macOS. Reopening from tray restores the window without cold boot. tmux sessions stay alive in background regardless.', 'Minimize to system tray on Linux (AppIndicator) or Dock on macOS. Reopening from tray restores the window without cold boot. tmux sessions stay alive in background regardless.
+
+Scope split (2026-06-10 sweep): the session-persistence half is effectively done - tmux keeps Claude/terminal sessions alive across restart (D-41). The OS-tray/AppIndicator + dock half is a stub only (lib/kernel/src/tray.dart - TrayRegistry has no platform-channel wiring) and is Tier-6+. Remaining work = the tray integration.', NULL, '2026-06-10 15:13:59', '2026-06-10 15:13:59', '2026-06-10 15:13:59', NULL, '8a2142b2ae85644bdbe22627ce3bde77', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM67JSC5RKS6M9182KG', 'description', 'Spec lists images as a right-panel section. No extension exists yet.', 'Spec lists images as a right-panel section. No extension exists yet.
+
+Relevance note (2026-06-10 sweep): likely superseded. The image card + full-screen lightbox shipped (T-249/T-252) and the canvas epic (T-317, D-91) folds image display into the unified drawing-card renderer rather than a separate context-panel tab. Confirm whether a distinct images rail section is still wanted; otherwise close in favor of the canvas path.', NULL, '2026-06-10 15:14:01', '2026-06-10 15:14:01', '2026-06-10 15:14:01', NULL, 'faf96dd64f003093273f6a331c56bfa8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7P6Q0DG4RG4CBHFJG', 'description', 'Audit all interactive widgets for Semantics coverage (labels, roles, states). Verify flutter test can locate and interact with every panel, button, and input via find.bySemanticsLabel. Run the existing a11y test suite and document gaps. Target: every user-facing action is testable without widget keys.', 'Audit all interactive widgets for Semantics coverage (labels, roles, states). Verify flutter test can locate and interact with every panel, button, and input via find.bySemanticsLabel. Run the existing a11y test suite and document gaps. Target: every user-facing action is testable without widget keys.
+
+Reframe (2026-06-10 sweep): the original ''audit Semantics coverage'' framing is stale - test/a11y/ (semantic_coverage, contrast, keyboard_traversal, i18n) is now a mature per-PR gate per D-20. Re-scope to forward work: ratchet the semantic-coverage floor and deepen per-extension Semantics assertions, rather than a one-time review.', NULL, '2026-06-10 15:14:02', '2026-06-10 15:14:02', '2026-06-10 15:14:02', NULL, 'a83b56d7fee3b9a20bc0d78f6125532a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM79CNBXJ2S3CFQR7VM', 'description', 'Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:
+
+- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.
+- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.
+- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.
+- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 <= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.
+- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.
+- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.
+- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.
+- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.
+
+Land each as a small focused commit; ticket closes when all items above are merged.', 'Catch-all for the medium-priority items from the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md) that didn`t earn dedicated tickets:
+
+- **#17** — `files.read` `readAsStringSync` is unguarded; UTF-8 errors / permissions / mid-read deletion become 500-style dispatch errors. Wrap in try/catch and emit a clean `IpcResponse.err`.
+- **#19** — `PtySession.close` swallows the 500ms timeout silently (`onTimeout: () {}`). Log when the timeout fires so we know SIGKILL was needed.
+- **#20** — Reader isolate treats every negative `read()` return that isn`t EINTR as EOF. Distinguish EBADF/EIO (real EOF) from transient EAGAIN (recoverable) and log the latter.
+- **#21** — `scm_rights.dart` reads cmsg-data fd without verifying `dataOffset + 4 <= msgControllen`. Bounds check before deref so a malformed peer can`t feed garbage as an fd.
+- **#25** — `_gitError` in `lib/src/daemon/git_commands.dart` always reports `tool_error`; push rejections / merge conflicts should map to `IpcExitCode.conflict` when stderr matches known patterns.
+- **#27** — `pane.spawn` returns `ok` even when `registry.write(id, bytes)` returned `n == -1`. Distinguish the failure.
+- **#28** — `IpcResponse.fromJson` throws `TypeError` on a malformed peer response missing `error`. Graceful degrade.
+- **#29** — PATH resolution in `native_pty.dart` uses the first existing match without `X_OK` check; non-executable files shadow valid binaries further along PATH.
+
+Land each as a small focused commit; ticket closes when all items above are merged.
+
+Item status (2026-06-10 sweep): from the T-18 audit, #16 (git error kinds) landed via T-79 and #22 (logging) via T-80. #21 (scm_rights.dart bounds check) is OBSOLETE - fd-passing/recvmsg was removed, the file no longer exists; drop it. Spot-checked still-open: #17 files.read unguarded readAsStringSync (files_commands.dart), #28 IpcResponse.fromJson TypeError (envelope.dart), #29 PATH X_OK check (native_pty.dart). ~7 items remain.', NULL, '2026-06-10 15:14:04', '2026-06-10 15:14:04', '2026-06-10 15:14:04', NULL, '94ea0fc1d09ea5eb98acf8ff624ac984', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5YG22EV7BFTX5RTPR', 'status', 'backlog', 'cancelled', NULL, '2026-06-10 15:14:17', '2026-06-10 15:14:17', '2026-06-10 15:14:17', NULL, 'b459f350a8c1a86865579cde7f7b02b1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM50X0DX8XTVZEA5GN8', 'status', 'backlog', 'cancelled', NULL, '2026-06-10 15:14:17', '2026-06-10 15:14:17', '2026-06-10 15:14:17', NULL, '351f1eede59364f6bb95653147b98ee2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM6RDM2EKZX132GPV7M', 'status', 'backlog', 'cancelled', NULL, '2026-06-10 15:14:17', '2026-06-10 15:14:17', '2026-06-10 15:14:17', NULL, '992ba3fca9faf99417aaa1a7afa9e6be', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM42M9RK4399B4F4WSG', 'status', 'in_progress', 'done', NULL, '2026-06-10 15:17:59', '2026-06-10 15:17:59', '2026-06-10 15:17:59', NULL, '61000cdb8bb01686c6001f57d16ae717', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM60QRRNEEWG84VWKXC', 'status', 'in_progress', 'done', NULL, '2026-06-10 15:17:59', '2026-06-10 15:17:59', '2026-06-10 15:17:59', NULL, '81990604a08fbedc28075b95538625d6', 2) ON CONFLICT(hash) DO NOTHING;

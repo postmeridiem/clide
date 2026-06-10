@@ -31,6 +31,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **VS Code keybinding preset.** A `vscode` keymap mapping VS Code's default
+  shortcuts (Ctrl+P, Ctrl+Shift+P, Ctrl+B, Ctrl+J, Ctrl+`, zoom, …) to clide.
+  Activate via the "Keymap: VS Code" command or `app.keymap.preset = vscode`. (T-64)
+- **JetBrains keybinding preset.** A `jetbrains` keymap mapping IntelliJ's
+  defaults (Find Action, Go to File, tool windows, …). Double-Shift "Search
+  Everywhere" isn't expressible by the chord matcher yet (T-341), so Go to File
+  stands in for quick-open. (T-66)
 - **Picking up a ticket now starts it.** Handing a ticket to a live Claude pane
   (sidebar pick-up) also moves it to `in_progress` and refreshes the sidebar —
   but only on acceptance and only from a not-yet-started status, so a pick-up
