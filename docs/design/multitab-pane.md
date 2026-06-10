@@ -79,8 +79,8 @@ The widget is a thin shell:
 - Calls `bodyBuilder(active)` for the visible content
 - Routes user gestures to controller methods or callbacks
 - Emits `onCloseRequested` / `onAddRequested` so the host decides
-  the actual lifecycle (e.g. Claude pane spawns a new tmux session,
-  doesn't just append a UI tab)
+  the actual lifecycle (e.g. the Claude pane spawns a new stream-json
+  session, doesn't just append a UI tab)
 
 The host owns the controller and the payload type. The widget never
 touches PTY, IPC, or Claude session naming.
@@ -138,7 +138,7 @@ ClaudePane (host)
     )
 ```
 
-`ClaudeSessionRef` carries the tmux session name + isPrimary. The
+`ClaudeSessionRef` carries the stream-json session id + isPrimary. The
 controller is seeded with `[primary]` on boot; secondaries get
 appended as the user clicks `+`. Closing a secondary triggers
 `pane.close` IPC and removes the entry; closing the primary is not

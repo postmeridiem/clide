@@ -33,9 +33,12 @@ One OS process. The Flutter app hosts:
 - every subsystem handler (pane/files/editor/git/pql),
 - the extension manager and all built-in extensions.
 
-`tmux` is the only external long-lived process — it owns Claude
-session persistence so panes survive app restarts (D-41). The app
-re-attaches via `tmux new-session -A` on boot.
+The Claude pane is driven over Claude Code's stream-json stdio control
+protocol — clide spawns the `claude` child directly and renders its
+event stream natively (D-75/D-77/D-78). Session continuity is
+`--resume <session-id>` (state lives in Claude's transcript files), not
+a long-lived wrapper process. `tmux` is no longer in the Claude path; it
+is retained only by the general-purpose terminal builtin.
 
 PTYs are spawned natively from Dart. `lib/src/pty/native_pty.dart`
 calls `posix_openpt()` + `posix_spawn()` via FFI; the child inherits
@@ -74,11 +77,12 @@ state-changing command emits one or more events on a long-lived
 event stream; every UI affordance has a matching CLI verb. See D-6
 for the subsystem/verb/event contract.
 
-> **Caveat (2026-05):** the Unix-socket server that exposes the
-> dispatcher to a thin `clide` C client is currently unimplemented.
-> Today's working path is in-process direct dispatch. See **T-99**
-> (IPC server implementation) and **D-68** (dual integration surface
-> — Bash CLI primary, MCP secondary).
+The Unix-socket server that exposes the dispatcher to a thin `clide` C
+client (`native/clide-cli/clide.c`) is implemented in
+`lib/src/ipc/server.dart`; the socket path, access control, and dispatch
+model are pinned by D-70/D-71/D-72. In-process direct dispatch remains
+the path for the Flutter app's own subsystem calls. See **D-68** (dual
+integration surface — Bash CLI primary, MCP secondary).
 
 ### User-facing — Flutter desktop
 

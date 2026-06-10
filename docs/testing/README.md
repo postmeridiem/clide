@@ -8,10 +8,10 @@ on any Linux or macOS dev box without network access or shared state.
 
 | layer | location | runner | time | when |
 |---|---|---|---|---|
-| unit (root) | `test/` | `dart test` | ~5s | `make test` |
-| unit + widget + golden (app) | `app/test/` | `flutter test` | ~30s | `make test` |
-| a11y contract | `app/test/a11y/` | `flutter test` | ~5s | `make test-a11y` |
-| integration (startup gate) | `app/integration_test/` | `flutter test integration_test/` | ~60s | `make test-integration` |
+| unit (Flutter-free core) | `test/ipc/`, `test/daemon/`, `test/pty/` | `dart test` | ~5s | `make test-core` |
+| unit + widget + golden | `test/` | `flutter test` | ~30s | `make test` |
+| a11y contract | `test/a11y/` | `flutter test` | ~5s | `make test-a11y` |
+| integration (startup gate) | `integration_test/` | `flutter test integration_test/` | ~60s | `make test-integration` |
 | daemon E2E + web WASM smoke | `test/daemon/` + `tools/ui/tests/` | `dart test` + Playwright | ~60s | `make test-e2e` |
 | startup bundle smoke | `ci/smoke_bundle.sh` | xvfb-run, 5s timeout | ~30s | `make smoke-bundle` |
 

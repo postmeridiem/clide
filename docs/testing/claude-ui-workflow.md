@@ -4,7 +4,7 @@ Claude Code needs to *actually use* the app while building features.
 The pipeline:
 
 1. **Flutter builds the app to WASM.** `flutter build web --wasm` ships
-   a CanvasKit/Skwasm bundle under `app/build/web/`.
+   a CanvasKit/Skwasm bundle under `build/web/`.
 2. **A local server serves it.** `tools/ui/serve.sh` starts
    `http://localhost:4280` in the background with a pidfile.
 3. **Playwright drives a headless Chromium.** Instead of click-by-pixel
