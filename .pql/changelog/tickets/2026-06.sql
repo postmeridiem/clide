@@ -1349,3 +1349,75 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 Adjust the skill so that after step 5 (showing an exported screen inline), it STOPS and waits for explicit user approval/feedback before authoring or exporting the next screen. One screen at a time: show it, ask, then proceed only on a go-ahead. Do not fan out a whole set of wireframes unprompted.
 
 Acceptance: SKILL.md instructs the agent to surface one screen and pause for user approval before continuing; the loop is approval-gated, framing wireframing as a back-and-forth design conversation rather than a one-shot generation run.', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 08:17:57', '2026-06-10 09:41:52', NULL, 'ed51880a7f0f3c9f29949d91d4c4ad32', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'task', '06FB0TNQM6T6580D8ABDVTMNZW', 'Frame0 wireframe: settings screen design', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 20:24:54', '2026-06-10 09:42:26', NULL, '6c742b5a63eeb4f907a7f5aa41a98384', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1XDWKQ594ET4GDYEFK5ZJ4', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Permission card: add ''Deny & simplify'' option that denies with a retry-simpler note', 'Add a fourth option to the Claude permission prompt card (lib/builtin/claude/src/prompt_card.dart) alongside Allow / Allow & don''t ask again / Deny.
+
+WHAT IT DOES
+A deny that carries a preformatted follow-up note telling Claude the action was too complex for the permission system and to retry in a simpler format. Implemented as a _permDeny variant that passes a fixed note into DenyTool (today _permDeny uses _permNote() ?? ''Denied by the user.'' at prompt_card.dart:202). The user''s own note field, if filled, should still be respected — append it to / combine with the preformatted text rather than discard it.
+
+LABEL: ''Deny & simplify'' (working label; placed after Deny).
+TOOLTIP: ClideButton already supports  (clide_button.dart:26) — add a mouseover explaining the behavior, e.g. ''Deny and ask Claude to retry this action in a simpler format — complex interactions don''t work well with the permission system.''
+
+PREFORMATTED DENY NOTE (workshop wording, starting point):
+"Denied — this action is too complex for the permission system to approve cleanly. Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not change permission settings — just reformulate and try again."
+The ''do not add a memory / do not change permission settings'' clause is deliberate: without it Claude tends to ''fix'' the permission system (writing memories, rewriting permission config), which means continuous fiddling with a surface we don''t want it touching.
+
+NUMBER-KEY SLOT
+_activateNumber (prompt_card.dart:161-164) maps 1=Allow, 2=Allow&remember (when canRemember), 3/2=Deny. Add the new option as the next index (4 when canRemember, else 3). Keep Deny as its own option; the new one is additive. Update the digit/numpad shortcut mapping accordingly (see also T-310 numpad parity).
+
+DESIGN NOTE — escalation behavior
+The deny note enters the conversation and stays in context, so repeated use within one session compounds (Claude leans progressively harder toward simpler formats). That''s largely the intended escalating pressure, but the note is phrased as a one-shot ''retry THIS action'' rather than a standing rule to limit over-correction. Worth watching in testing whether repeated denials over-bias toward trivial formats.
+
+ACCEPTANCE
+- A fourth button ''Deny & simplify'' appears on the permission card with a tooltip.
+- Activating it resolves the prompt as a deny whose note is the preformatted retry-simpler text (with the user''s typed note appended when present).
+- The note explicitly tells Claude not to add a memory or change permission settings.
+- Number-row and numpad digit shortcuts address the new option in the correct slot.
+- Widget test covers the new button resolving to a DenyTool with the expected note.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 09:55:55', '2026-06-10 09:55:55', NULL, '74171c90e0e0bda3be6590e1e7e536dd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1XDWKQ594ET4GDYEFK5ZJ4', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Permission card: add ''Deny & simplify'' option that denies with a retry-simpler note', 'Add a fourth option to the Claude permission prompt card (lib/builtin/claude/src/prompt_card.dart) alongside Allow / Allow & don''t ask again / Deny.
+
+WHAT IT DOES
+A deny that carries a preformatted follow-up note telling Claude the action was too complex for the permission system and to retry in a simpler format. Implemented as a _permDeny variant that passes a fixed note into DenyTool (today _permDeny uses _permNote() ?? ''Denied by the user.'' at prompt_card.dart:202). The user''s own note field, if filled, should still be respected — append it to / combine with the preformatted text rather than discard it.
+
+LABEL: ''Deny & simplify'' (working label; placed after Deny).
+TOOLTIP: ClideButton already supports  (clide_button.dart:26) — add a mouseover explaining the behavior, e.g. ''Deny and ask Claude to retry this action in a simpler format — complex interactions don''t work well with the permission system.''
+
+PREFORMATTED DENY NOTE (workshop wording, starting point):
+"Denied — this action is too complex for the permission system to approve cleanly. Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not change permission settings — just reformulate and try again."
+The ''do not add a memory / do not change permission settings'' clause is deliberate: without it Claude tends to ''fix'' the permission system (writing memories, rewriting permission config), which means continuous fiddling with a surface we don''t want it touching.
+
+NUMBER-KEY SLOT
+_activateNumber (prompt_card.dart:161-164) maps 1=Allow, 2=Allow&remember (when canRemember), 3/2=Deny. Add the new option as the next index (4 when canRemember, else 3). Keep Deny as its own option; the new one is additive. Update the digit/numpad shortcut mapping accordingly (see also T-310 numpad parity).
+
+DESIGN NOTE — escalation behavior
+The deny note enters the conversation and stays in context, so repeated use within one session compounds (Claude leans progressively harder toward simpler formats). That''s largely the intended escalating pressure, but the note is phrased as a one-shot ''retry THIS action'' rather than a standing rule to limit over-correction. Worth watching in testing whether repeated denials over-bias toward trivial formats.
+
+ACCEPTANCE
+- A fourth button ''Deny & simplify'' appears on the permission card with a tooltip.
+- Activating it resolves the prompt as a deny whose note is the preformatted retry-simpler text (with the user''s typed note appended when present).
+- The note explicitly tells Claude not to add a memory or change permission settings.
+- Number-row and numpad digit shortcuts address the new option in the correct slot.
+- Widget test covers the new button resolving to a DenyTool with the expected note.
+
+CLARIFICATION (the TOOLTIP line above lost a word to shell escaping): ClideButton already exposes a tooltip parameter (clide_button.dart:17,26,42) — pass tooltip on the new button for the mouseover; no widget change needed.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 09:55:55', '2026-06-10 09:56:24', NULL, '43ec3a8962c96601978154295a38cebb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

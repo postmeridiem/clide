@@ -2446,3 +2446,53 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'status', 'backlog', 'in_progress', NULL, '2026-06-10 09:13:08', '2026-06-10 09:13:08', '2026-06-10 09:13:08', NULL, '56fbf20da154b3465d3d2e7dcc87dfc9', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16FJ7KXGFHQXEG88MYRFTG', 'status', 'in_progress', 'done', NULL, '2026-06-10 09:39:52', '2026-06-10 09:39:52', '2026-06-10 09:39:52', NULL, '5f059718e9cf548a13a9d141970ccd2e', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB170DJA02EH2E8HMH7X7SS4', 'status', 'backlog', 'done', NULL, '2026-06-10 09:41:52', '2026-06-10 09:41:52', '2026-06-10 09:41:52', NULL, '67000e62833f645575e2b557a711d292', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'status', 'backlog', 'ready', NULL, '2026-06-10 09:42:26', '2026-06-10 09:42:26', '2026-06-10 09:42:26', NULL, '4dc40a53e7b803afd26d2334adc708b6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1XDWKQ594ET4GDYEFK5ZJ4', 'description', 'Add a fourth option to the Claude permission prompt card (lib/builtin/claude/src/prompt_card.dart) alongside Allow / Allow & don''t ask again / Deny.
+
+WHAT IT DOES
+A deny that carries a preformatted follow-up note telling Claude the action was too complex for the permission system and to retry in a simpler format. Implemented as a _permDeny variant that passes a fixed note into DenyTool (today _permDeny uses _permNote() ?? ''Denied by the user.'' at prompt_card.dart:202). The user''s own note field, if filled, should still be respected — append it to / combine with the preformatted text rather than discard it.
+
+LABEL: ''Deny & simplify'' (working label; placed after Deny).
+TOOLTIP: ClideButton already supports  (clide_button.dart:26) — add a mouseover explaining the behavior, e.g. ''Deny and ask Claude to retry this action in a simpler format — complex interactions don''t work well with the permission system.''
+
+PREFORMATTED DENY NOTE (workshop wording, starting point):
+"Denied — this action is too complex for the permission system to approve cleanly. Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not change permission settings — just reformulate and try again."
+The ''do not add a memory / do not change permission settings'' clause is deliberate: without it Claude tends to ''fix'' the permission system (writing memories, rewriting permission config), which means continuous fiddling with a surface we don''t want it touching.
+
+NUMBER-KEY SLOT
+_activateNumber (prompt_card.dart:161-164) maps 1=Allow, 2=Allow&remember (when canRemember), 3/2=Deny. Add the new option as the next index (4 when canRemember, else 3). Keep Deny as its own option; the new one is additive. Update the digit/numpad shortcut mapping accordingly (see also T-310 numpad parity).
+
+DESIGN NOTE — escalation behavior
+The deny note enters the conversation and stays in context, so repeated use within one session compounds (Claude leans progressively harder toward simpler formats). That''s largely the intended escalating pressure, but the note is phrased as a one-shot ''retry THIS action'' rather than a standing rule to limit over-correction. Worth watching in testing whether repeated denials over-bias toward trivial formats.
+
+ACCEPTANCE
+- A fourth button ''Deny & simplify'' appears on the permission card with a tooltip.
+- Activating it resolves the prompt as a deny whose note is the preformatted retry-simpler text (with the user''s typed note appended when present).
+- The note explicitly tells Claude not to add a memory or change permission settings.
+- Number-row and numpad digit shortcuts address the new option in the correct slot.
+- Widget test covers the new button resolving to a DenyTool with the expected note.', 'Add a fourth option to the Claude permission prompt card (lib/builtin/claude/src/prompt_card.dart) alongside Allow / Allow & don''t ask again / Deny.
+
+WHAT IT DOES
+A deny that carries a preformatted follow-up note telling Claude the action was too complex for the permission system and to retry in a simpler format. Implemented as a _permDeny variant that passes a fixed note into DenyTool (today _permDeny uses _permNote() ?? ''Denied by the user.'' at prompt_card.dart:202). The user''s own note field, if filled, should still be respected — append it to / combine with the preformatted text rather than discard it.
+
+LABEL: ''Deny & simplify'' (working label; placed after Deny).
+TOOLTIP: ClideButton already supports  (clide_button.dart:26) — add a mouseover explaining the behavior, e.g. ''Deny and ask Claude to retry this action in a simpler format — complex interactions don''t work well with the permission system.''
+
+PREFORMATTED DENY NOTE (workshop wording, starting point):
+"Denied — this action is too complex for the permission system to approve cleanly. Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not change permission settings — just reformulate and try again."
+The ''do not add a memory / do not change permission settings'' clause is deliberate: without it Claude tends to ''fix'' the permission system (writing memories, rewriting permission config), which means continuous fiddling with a surface we don''t want it touching.
+
+NUMBER-KEY SLOT
+_activateNumber (prompt_card.dart:161-164) maps 1=Allow, 2=Allow&remember (when canRemember), 3/2=Deny. Add the new option as the next index (4 when canRemember, else 3). Keep Deny as its own option; the new one is additive. Update the digit/numpad shortcut mapping accordingly (see also T-310 numpad parity).
+
+DESIGN NOTE — escalation behavior
+The deny note enters the conversation and stays in context, so repeated use within one session compounds (Claude leans progressively harder toward simpler formats). That''s largely the intended escalating pressure, but the note is phrased as a one-shot ''retry THIS action'' rather than a standing rule to limit over-correction. Worth watching in testing whether repeated denials over-bias toward trivial formats.
+
+ACCEPTANCE
+- A fourth button ''Deny & simplify'' appears on the permission card with a tooltip.
+- Activating it resolves the prompt as a deny whose note is the preformatted retry-simpler text (with the user''s typed note appended when present).
+- The note explicitly tells Claude not to add a memory or change permission settings.
+- Number-row and numpad digit shortcuts address the new option in the correct slot.
+- Widget test covers the new button resolving to a DenyTool with the expected note.
+
+CLARIFICATION (the TOOLTIP line above lost a word to shell escaping): ClideButton already exposes a tooltip parameter (clide_button.dart:17,26,42) — pass tooltip on the new button for the mouseover; no widget change needed.', NULL, '2026-06-10 09:56:24', '2026-06-10 09:56:24', '2026-06-10 09:56:24', NULL, 'f4fa8bc5799ef68d14512e128c03d1ba', 2) ON CONFLICT(hash) DO NOTHING;
