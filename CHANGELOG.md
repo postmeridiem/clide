@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.3.1] — 2026-06-10
+
 ### Fixed
 
 - **Frameless window chrome works on KDE Plasma 6 / KWin 6.** The Wayland
