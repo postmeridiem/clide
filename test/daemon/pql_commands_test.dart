@@ -1,3 +1,15 @@
+/// Drives the pql.* daemon handlers against the real `pql` binary and the
+/// working directory's vault.
+///
+/// Tagged `serial`: each handler spawns a real `pql` process that opens the
+/// shared on-disk `.pql/pql.db`. Run in the parallel pool these contend for
+/// the SQLite lock and flake (`PqlException(69)`, db busy); one-at-a-time they
+/// pass — isolation is the real fix (T-193). The error-path companion
+/// (`pql_commands_errors_test.dart`) points at a fake binary, so it needs no
+/// such tag.
+@Tags(['serial'])
+library;
+
 import 'dart:io';
 
 import 'package:clide/clide.dart';

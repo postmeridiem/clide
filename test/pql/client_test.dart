@@ -1,6 +1,12 @@
 /// Integration tests for `lib/src/pql/client.dart`. Drives the real
 /// `pql` binary against the working directory's vault for happy-path
 /// methods; uses a fake pql path for the error-handling tail.
+///
+/// Tagged `serial`: each happy-path test spawns a real `pql` process that
+/// opens the shared on-disk `.pql/pql.db`. Run in the parallel pool these
+/// contend for the SQLite lock and flake with `PqlException(69)` (db busy).
+/// They pass reliably one-at-a-time — isolation is the real fix here (T-193).
+@Tags(['serial'])
 library;
 
 import 'dart:io';

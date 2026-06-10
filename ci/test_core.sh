@@ -48,15 +48,20 @@ run_pass() {
   fi
 }
 
-# PTY-tagged tests spawn real PTYs (posix_openpt + posix_spawn) and rely on a
-# reader isolate; run in the default parallel pool they contend for fds + CPU
-# with the other suites and the isolate is starved, flaking 'write sends
-# keystrokes to child' (T-292). Serialize them in their own pass — matching
-# ci/test.sh — then run everything else in parallel.
-echo "test-core: dart test (pty-tagged; --concurrency=1)  (timeout ${TIMEOUT_SECONDS}s)"
-run_pass --concurrency=1 --tags pty $CORE_DIRS
+# Some core tests must not share the parallel pool:
+#   - pty: spawn real PTYs (posix_openpt + posix_spawn) + a reader isolate;
+#     in the parallel pool they contend for fds + CPU and the isolate starves,
+#     flaking 'write sends keystrokes to child' (T-292).
+#   - serial: spawn real `pql` processes against the shared on-disk
+#     `.pql/pql.db`; concurrent invocations contend for the SQLite lock and
+#     flake with PqlException(69) (db busy). (T-193, surfaced by the pql 1.10
+#     record_id migration.)
+# Run both in one --concurrency=1 pass (matching ci/test.sh's serial handling),
+# then everything else in parallel.
+echo "test-core: dart test (pty + serial; --concurrency=1)  (timeout ${TIMEOUT_SECONDS}s)"
+run_pass --concurrency=1 --tags "pty || serial" $CORE_DIRS
 
-echo "test-core: dart test (rest; parallel, excludes pty)  (timeout ${TIMEOUT_SECONDS}s)"
-run_pass --exclude-tags pty $CORE_DIRS
+echo "test-core: dart test (rest; parallel, excludes pty + serial)  (timeout ${TIMEOUT_SECONDS}s)"
+run_pass --exclude-tags "pty || serial" $CORE_DIRS
 
 echo "test-core: ok"
