@@ -3199,3 +3199,37 @@ Notes (2026-06-10):
 1. Applies to BOTH rails — the left sidebar icon rail and the right context-bar icon rail. Reordering + persistence must work the same on each.
 2. After ordering, the left-most (first) item in the rail is the one that opens by default.', NULL, '2026-06-10 14:45:17', '2026-06-10 14:45:17', '2026-06-10 14:45:17', NULL, '86f1c477f9408ce87b624799a73b82c0', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'status', 'backlog', 'ready', NULL, '2026-06-10 14:46:51', '2026-06-10 14:46:51', '2026-06-10 14:46:51', NULL, 'a3785538cc5ea4040c7f88ee615342b4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'status', 'ready', 'in_progress', NULL, '2026-06-10 14:53:03', '2026-06-10 14:53:03', '2026-06-10 14:53:03', NULL, '6fe6ac08d39ee01463fc6e629a0b00d7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'description', 'From the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md). Two cleanup items rolled together:
+
+**Errno constants (audit item #23):**
+- Magic numbers (`4` for EINTR, `9` for EBADF, `28` for SIGWINCH, `1` for SIGHUP, `32` for EPIPE) appear inline across `lib/src/pty/session.dart` and `lib/src/pty/native_pty.dart`.
+- Centralize them in `lib/src/pty/errors.dart` or a sibling `posix.dart` as named constants.
+- Existing `lib/src/ipc/errno_mapping.dart` already has a `PosixErrno` class — extend it or move to a shared location both layers import from.
+
+**Logger standardization (audit item #22, partial #26):**
+- `lib/src/ipc/server.dart` uses `stderr.writeln(...)` directly; the rest of the daemon either uses no logger or a custom one.
+- The Flutter-host process often consumes stderr, so log lines disappear silently.
+- Pick one logger interface (kernel `log` already exists for the app side), wire `DaemonServer` and the daemon-side handlers to use it.
+- Dispatch error messages should prefix with the request `cmd` so log correlation works (audit item #26).
+
+**Out of scope for this ticket:** changes to log-LEVEL policy, log retention, log files vs stderr — pure substitution job.', 'From the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md). Two cleanup items rolled together:
+
+**Errno constants (audit item #23):**
+- Magic numbers (`4` for EINTR, `9` for EBADF, `28` for SIGWINCH, `1` for SIGHUP, `32` for EPIPE) appear inline across `lib/src/pty/session.dart` and `lib/src/pty/native_pty.dart`.
+- Centralize them in `lib/src/pty/errors.dart` or a sibling `posix.dart` as named constants.
+- Existing `lib/src/ipc/errno_mapping.dart` already has a `PosixErrno` class — extend it or move to a shared location both layers import from.
+
+**Logger standardization (audit item #22, partial #26):**
+- `lib/src/ipc/server.dart` uses `stderr.writeln(...)` directly; the rest of the daemon either uses no logger or a custom one.
+- The Flutter-host process often consumes stderr, so log lines disappear silently.
+- Pick one logger interface (kernel `log` already exists for the app side), wire `DaemonServer` and the daemon-side handlers to use it.
+- Dispatch error messages should prefix with the request `cmd` so log correlation works (audit item #26).
+
+**Out of scope for this ticket:** changes to log-LEVEL policy, log retention, log files vs stderr — pure substitution job.
+
+Disposition (2026-06-10): mostly already done before pickup.
+- #23 (errno constants): DONE prior. Magic numbers are centralized — errno values in lib/src/ipc/errno_mapping.dart (PosixErrno: eintr=4, ebadf=9, epipe=32, …), signals in lib/src/pty/ffi/libc.dart (sighup=1, sigwinch=28). native_pty.dart uses PosixErrno.* and libc.* throughout; no inline magic numbers remain. The ticket''s lib/src/pty/session.dart never existed at that path.
+- #22 (logger): DONE prior. lib/src/ipc/server.dart imports the kernel Logger, holds a ''final Logger log'', and logs via log.error/warn/info(''ipc'', …). No stderr.writeln/print anywhere in lib/src/ipc, lib/src/pty, or lib/src/daemon. Folded in by the D-56 daemon dissolution + PTY FFI pivot.
+- #26 (cmd correlation): the only live remnant — the catch-all ''dispatch threw'' log omitted the request cmd. Fixed: it now logs ''dispatch threw for "<cmd>"''. Internal logging only; no changelog.', NULL, '2026-06-10 14:58:32', '2026-06-10 14:58:32', '2026-06-10 14:58:32', NULL, '067666253769388e306dd99c4f976df9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'status', 'in_progress', 'done', NULL, '2026-06-10 14:58:43', '2026-06-10 14:58:43', '2026-06-10 14:58:43', NULL, '192064fbd5628b282512128ddc3d2688', 2) ON CONFLICT(hash) DO NOTHING;

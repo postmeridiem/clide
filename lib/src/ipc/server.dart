@@ -190,6 +190,9 @@ class IpcServer {
     final trimmed = line.trim();
     if (trimmed.isEmpty) return;
     IpcResponse response;
+    // Tracked across the try so a dispatch failure can be logged against the
+    // command that caused it, for log correlation (audit #26 / T-80).
+    var reqCmd = '?';
     try {
       final msg = IpcMessage.decode(trimmed);
       if (msg is! IpcRequest) {
@@ -206,6 +209,7 @@ class IpcServer {
         // streaming check sees the unwrapped command (T-129). Plain
         // typed requests skip this path.
         var req = msg;
+        reqCmd = req.cmd;
         if (req.cmd == argvSentinelCmd) {
           final result = unwrapArgvRequest(req);
           if (result is ArgvError) {
@@ -220,6 +224,7 @@ class IpcServer {
             return;
           }
           req = (result as ArgvParsed).request;
+          reqCmd = req.cmd;
         }
         if (_isTailSubscribe(req)) {
           // Long-lived subscription branch (T-129). Send the streaming
@@ -240,7 +245,7 @@ class IpcServer {
         ),
       );
     } catch (e, st) {
-      log.error('ipc', 'dispatch threw', error: e, stackTrace: st);
+      log.error('ipc', 'dispatch threw for "$reqCmd"', error: e, stackTrace: st);
       response = IpcResponse.err(
         id: '',
         error: IpcError(
