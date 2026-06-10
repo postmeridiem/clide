@@ -89,6 +89,8 @@ Shell hygiene (keeps commands inside the permission allowlist, so they don't get
 
 Commit and push directly to `main` for routine work — this is a solo-dev repo and does not use a branch-first / feature-branch flow. Do **not** create a working branch just to land a change. (This overrides the generic "branch before committing on the default branch" assistant default.) The usual safety rules still hold: never `--no-verify`, never force-push `main`, and let the pre-push gate run.
 
+The pre-commit hook auto-exports and stages `.pql/changelog/` (the pql ticket DB) on every commit — don't hand-stage it. A ticket change only persists if the turn makes at least one commit; with no commit the hook never fires and a later branch switch can drop it.
+
 ## Changelog discipline
 
 [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Every user-visible commit adds an entry under `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md). Cutting a release means moving Unreleased entries under a new dated version heading **and** bumping `pubspec.yaml` `version:` in the same commit — see [`.claude/skills/git-commit/SKILL.md`](.claude/skills/git-commit/SKILL.md) for the full rule.

@@ -134,6 +134,10 @@ Never pass multi-line messages via `-m "line1\nline2"` or multiple `-m` flags �
 - SQLite index files (`*.sqlite`, `*.sqlite-wal`, `*.sqlite-shm`, `*.db`) — caches generated against local repos; must never land here. Gitignored defensively.
 - Coverage / test output (`*.out`, `coverage.*`, `*.test`) — gitignored.
 
+## Don't hand-manage `.pql/changelog`
+
+The pre-commit hook exports the pql ticket DB and **auto-stages `.pql/changelog/` on every commit**. Don't `git add .pql/changelog` yourself and don't write a dedicated "flush the export" commit — just make your normal commit and the hook sweeps the ticket state in. The only thing to remember: a turn that files/changes a ticket but makes **zero commits** never fires the hook, so the change won't persist (and a later branch switch can drop it). The fix is simply to make a commit — you don't need to touch `.pql/changelog`.
+
 ## Safety reminders (reinforced from the global Claude Code protocol)
 
 - **Never** `--no-verify`. If a pre-commit hook fails, fix the underlying issue and create a new commit.
