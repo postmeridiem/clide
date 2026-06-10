@@ -1,0 +1,95 @@
+{
+  "name": "Settings Modal",
+  "shapes": {
+    "backdrop": { "type": "Rectangle", "left": 0, "top": 0, "width": 1120, "height": 720, "fillColor": "#0B0D11", "strokeColor": "#0B0D11" },
+    "modal": { "type": "Rectangle", "left": 140, "top": 70, "width": 840, "height": 580, "fillColor": "#21262F", "strokeColor": "#3A4150", "corners": [8, 8, 8, 8] },
+
+    "title": { "type": "Text", "parent": "modal", "left": 164, "top": 90, "text": "Settings", "fontColor": "#E2E8F5", "fontSize": 18 },
+
+    "close": { "type": "Text", "parent": "modal", "left": 944, "top": 90, "text": "✕", "fontColor": "#6A7280", "fontSize": 16 },
+
+    "header-rule": { "type": "Line", "parent": "modal", "left": 140, "top": 134, "width": 840, "height": 1, "strokeColor": "#393E48" },
+
+    "sidebar": { "type": "Rectangle", "parent": "modal", "left": 140, "top": 135, "width": 220, "height": 467, "fillColor": "#1C2128", "strokeColor": "#1C2128" },
+    "sidebar-rule": { "type": "Line", "parent": "modal", "left": 360, "top": 135, "width": 1, "height": 467, "strokeColor": "#393E48" },
+
+    "search": { "type": "Rectangle", "parent": "sidebar", "left": 156, "top": 150, "width": 188, "height": 30, "fillColor": "#14181E", "strokeColor": "#393E48", "corners": [6, 6, 6, 6] },
+    "search-t": { "type": "Text", "parent": "search", "left": 168, "top": 158, "text": "Search settings…", "fontColor": "#5A626E", "fontSize": 12 },
+
+    "cat-appearance": { "type": "Text", "parent": "sidebar", "left": 172, "top": 204, "text": "Appearance", "fontColor": "#9DA5B4", "fontSize": 13 },
+    "cat-editor-bg": { "type": "Rectangle", "parent": "sidebar", "left": 152, "top": 232, "width": 196, "height": 32, "fillColor": "#2A3340", "strokeColor": "#2A3340", "corners": [6, 6, 6, 6] },
+    "cat-editor": { "type": "Text", "parent": "cat-editor-bg", "left": 172, "top": 240, "text": "Editor", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "cat-keymap": { "type": "Text", "parent": "sidebar", "left": 172, "top": 280, "text": "Keymap", "fontColor": "#9DA5B4", "fontSize": 13 },
+    "cat-files": { "type": "Text", "parent": "sidebar", "left": 172, "top": 316, "text": "Files", "fontColor": "#9DA5B4", "fontSize": 13 },
+    "cat-claude": { "type": "Text", "parent": "sidebar", "left": 172, "top": 352, "text": "Claude", "fontColor": "#9DA5B4", "fontSize": 13 },
+    "cat-advanced": { "type": "Text", "parent": "sidebar", "left": 172, "top": 388, "text": "Advanced", "fontColor": "#9DA5B4", "fontSize": 13 },
+
+    "panel-heading": { "type": "Text", "parent": "modal", "left": 384, "top": 148, "text": "Editor", "fontColor": "#E2E8F5", "fontSize": 16 },
+    "panel-legend": { "type": "Text", "parent": "modal", "left": 384, "top": 174, "text": "Edits save to this Project by default. Each field's tag is its scope — tap it to make it Always (all clide) or reset. Overridden layers show shadowed inline.", "fontColor": "#6A7280", "fontSize": 11 },
+    "panel-rule": { "type": "Line", "parent": "modal", "left": 384, "top": 198, "width": 572, "height": 1, "strokeColor": "#30363F" },
+
+    "f1-label": { "type": "Text", "parent": "modal", "left": 384, "top": 216, "text": "Tab width", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f1-help": { "type": "Text", "parent": "modal", "left": 384, "top": 236, "text": "Spaces per indent level.", "fontColor": "#6A7280", "fontSize": 11 },
+    "f1-num": { "type": "Rectangle", "parent": "modal", "left": 824, "top": 214, "width": 70, "height": 28, "fillColor": "#14181E", "strokeColor": "#393E48", "corners": [5, 5, 5, 5] },
+    "f1-num-t": { "type": "Text", "parent": "f1-num", "left": 836, "top": 221, "text": "2", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f1-num-step": { "type": "Text", "parent": "f1-num", "left": 874, "top": 220, "text": "⌃⌄", "fontColor": "#6A7280", "fontSize": 11 },
+    "f1-tag": { "type": "Rectangle", "parent": "modal", "left": 902, "top": 219, "width": 54, "height": 18, "fillColor": "#0E2A26", "strokeColor": "#1A5", "corners": [9, 9, 9, 9] },
+    "f1-tag-t": { "type": "Text", "parent": "f1-tag", "left": 909, "top": 222, "text": "Project", "fontColor": "#33C6B4", "fontSize": 10 },
+    "f1-tag-c": { "type": "Text", "parent": "f1-tag", "left": 947, "top": 222, "text": "▾", "fontColor": "#33C6B4", "fontSize": 9 },
+    "f1-rule": { "type": "Line", "parent": "modal", "left": 384, "top": 262, "width": 572, "height": 1, "strokeColor": "#262B33" },
+
+    "f2-label": { "type": "Text", "parent": "modal", "left": 384, "top": 278, "text": "End of line", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f2-help": { "type": "Text", "parent": "modal", "left": 384, "top": 298, "text": "Line-ending written on save.", "fontColor": "#6A7280", "fontSize": 11 },
+    "f2-sel": { "type": "Rectangle", "parent": "modal", "left": 784, "top": 276, "width": 110, "height": 28, "fillColor": "#14181E", "strokeColor": "#393E48", "corners": [5, 5, 5, 5] },
+    "f2-sel-t": { "type": "Text", "parent": "f2-sel", "left": 796, "top": 283, "text": "LF", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f2-sel-c": { "type": "Text", "parent": "f2-sel", "left": 874, "top": 283, "text": "▾", "fontColor": "#6A7280", "fontSize": 12 },
+    "f2-tag": { "type": "Rectangle", "parent": "modal", "left": 902, "top": 281, "width": 54, "height": 18, "fillColor": "#262B33", "strokeColor": "#30363F", "corners": [9, 9, 9, 9] },
+    "f2-tag-t": { "type": "Text", "parent": "f2-tag", "left": 912, "top": 284, "text": "Default", "fontColor": "#6A7280", "fontSize": 10 },
+    "f2-rule": { "type": "Line", "parent": "modal", "left": 384, "top": 324, "width": 572, "height": 1, "strokeColor": "#262B33" },
+
+    "f3-label": { "type": "Text", "parent": "modal", "left": 384, "top": 340, "text": "Insert final newline", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f3-help": { "type": "Text", "parent": "modal", "left": 384, "top": 360, "text": "Ensure files end with a newline on save.", "fontColor": "#6A7280", "fontSize": 11 },
+    "f3-tog": { "type": "Rectangle", "parent": "modal", "left": 858, "top": 342, "width": 36, "height": 20, "fillColor": "#00A3D2", "strokeColor": "#00A3D2", "corners": [10, 10, 10, 10] },
+    "f3-knob": { "type": "Ellipse", "parent": "f3-tog", "left": 876, "top": 344, "width": 16, "height": 16, "fillColor": "#0B0D11", "strokeColor": "#0B0D11" },
+    "f3-tag": { "type": "Rectangle", "parent": "modal", "left": 902, "top": 343, "width": 54, "height": 18, "fillColor": "#0E2A26", "strokeColor": "#1A5", "corners": [9, 9, 9, 9] },
+    "f3-tag-t": { "type": "Text", "parent": "f3-tag", "left": 909, "top": 346, "text": "Project", "fontColor": "#33C6B4", "fontSize": 10 },
+    "f3-rule": { "type": "Line", "parent": "modal", "left": 384, "top": 388, "width": 572, "height": 1, "strokeColor": "#262B33" },
+
+    "f4-label": { "type": "Text", "parent": "modal", "left": 384, "top": 404, "text": "Trim trailing whitespace", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f4-help": { "type": "Text", "parent": "modal", "left": 384, "top": 424, "text": "Strip trailing spaces from each line on save.", "fontColor": "#6A7280", "fontSize": 11 },
+    "f4-tog": { "type": "Rectangle", "parent": "modal", "left": 858, "top": 406, "width": 36, "height": 20, "fillColor": "#00A3D2", "strokeColor": "#00A3D2", "corners": [10, 10, 10, 10] },
+    "f4-knob": { "type": "Ellipse", "parent": "f4-tog", "left": 876, "top": 408, "width": 16, "height": 16, "fillColor": "#0B0D11", "strokeColor": "#0B0D11" },
+    "f4-tag": { "type": "Rectangle", "parent": "modal", "left": 896, "top": 407, "width": 60, "height": 18, "fillColor": "#2A2410", "strokeColor": "#6E5A1C", "corners": [9, 9, 9, 9] },
+    "f4-tag-t": { "type": "Text", "parent": "f4-tag", "left": 906, "top": 410, "text": "Always", "fontColor": "#E0A458", "fontSize": 10 },
+    "f4-rule": { "type": "Line", "parent": "modal", "left": 384, "top": 452, "width": 572, "height": 1, "strokeColor": "#262B33" },
+
+    "f5-label": { "type": "Text", "parent": "modal", "left": 384, "top": 468, "text": "Max line length", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f5-help": { "type": "Text", "parent": "modal", "left": 384, "top": 488, "text": "Column for the editor ruler. 0 disables it.", "fontColor": "#6A7280", "fontSize": 11 },
+    "f5-num": { "type": "Rectangle", "parent": "modal", "left": 824, "top": 466, "width": 70, "height": 28, "fillColor": "#14181E", "strokeColor": "#00AB9A", "corners": [5, 5, 5, 5] },
+    "f5-num-t": { "type": "Text", "parent": "f5-num", "left": 834, "top": 473, "text": "100", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f5-num-step": { "type": "Text", "parent": "f5-num", "left": 874, "top": 472, "text": "⌃⌄", "fontColor": "#6A7280", "fontSize": 11 },
+    "f5-tag": { "type": "Rectangle", "parent": "modal", "left": 902, "top": 471, "width": 54, "height": 18, "fillColor": "#0E2A26", "strokeColor": "#1A5", "corners": [9, 9, 9, 9] },
+    "f5-tag-t": { "type": "Text", "parent": "f5-tag", "left": 910, "top": 474, "text": "Project", "fontColor": "#33C6B4", "fontSize": 10 },
+    "f5-shadow": { "type": "Text", "parent": "modal", "left": 384, "top": 506, "text": "↳ overrides  Always 80  ·  Default 0", "fontColor": "#5A626E", "fontSize": 11 },
+    "f5-rule": { "type": "Line", "parent": "modal", "left": 384, "top": 528, "width": 572, "height": 1, "strokeColor": "#262B33" },
+
+    "f6-label": { "type": "Text", "parent": "modal", "left": 384, "top": 544, "text": "Project .editorconfig", "fontColor": "#E2E8F5", "fontSize": 13 },
+    "f6-help": { "type": "Text", "parent": "modal", "left": 384, "top": 564, "text": "Per-file rules layered on top of these defaults (T-290).", "fontColor": "#6A7280", "fontSize": 11 },
+    "f6-btn": { "type": "Rectangle", "parent": "modal", "left": 824, "top": 542, "width": 132, "height": 28, "fillColor": "#1A1E24", "strokeColor": "#3A4150", "corners": [5, 5, 5, 5] },
+    "f6-btn-t": { "type": "Text", "parent": "f6-btn", "left": 838, "top": 549, "text": "Edit file  ↗", "fontColor": "#9DA5B4", "fontSize": 12 },
+
+    "footer-rule": { "type": "Line", "parent": "modal", "left": 140, "top": 602, "width": 840, "height": 1, "strokeColor": "#393E48" },
+    "footer-hint": { "type": "Text", "parent": "modal", "left": 384, "top": 620, "text": "Changes apply immediately. Project ▸ Always ▸ Default precedence; tags: Project teal · Always amber · Default grey.", "fontColor": "#6A7280", "fontSize": 11 },
+    "footer-done": { "type": "Rectangle", "parent": "modal", "left": 884, "top": 614, "width": 72, "height": 28, "fillColor": "#2A3340", "strokeColor": "#3A4150", "corners": [5, 5, 5, 5] },
+    "footer-done-t": { "type": "Text", "parent": "footer-done", "left": 908, "top": 621, "text": "Done", "fontColor": "#E2E8F5", "fontSize": 13 },
+
+    "menu": { "type": "Rectangle", "left": 800, "top": 242, "width": 166, "height": 84, "fillColor": "#1A1E24", "strokeColor": "#3A4150", "corners": [6, 6, 6, 6] },
+    "menu-r1-bg": { "type": "Rectangle", "parent": "menu", "left": 804, "top": 246, "width": 158, "height": 22, "fillColor": "#0E2A26", "strokeColor": "#0E2A26", "corners": [4, 4, 4, 4] },
+    "menu-r1": { "type": "Text", "parent": "menu-r1-bg", "left": 812, "top": 251, "text": "✓  This project", "fontColor": "#33C6B4", "fontSize": 11 },
+    "menu-r2": { "type": "Text", "parent": "menu", "left": 812, "top": 277, "text": "Always — all clide", "fontColor": "#E0A458", "fontSize": 11 },
+    "menu-div": { "type": "Line", "parent": "menu", "left": 806, "top": 300, "width": 154, "height": 1, "strokeColor": "#30363F" },
+    "menu-r3": { "type": "Text", "parent": "menu", "left": 812, "top": 307, "text": "Reset to default", "fontColor": "#9DA5B4", "fontSize": 11 },
+
+    "note": { "type": "Text", "left": 140, "top": 662, "text": "Settings modal (T-302) — no header toggle: scope lives in the per-line tag. Edits default to PROJECT (.clide/settings.yaml). Tap a tag to flip it to ALWAYS (global, all clide) or Reset. Effective value + source tag always shown; overridden layers shadowed inline. Precedence Project ▸ Always ▸ Default.", "fontColor": "#5A626E", "fontSize": 11 }
+  }
+}

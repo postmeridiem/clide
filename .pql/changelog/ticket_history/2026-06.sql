@@ -2498,3 +2498,92 @@ ACCEPTANCE
 CLARIFICATION (the TOOLTIP line above lost a word to shell escaping): ClideButton already exposes a tooltip parameter (clide_button.dart:17,26,42) — pass tooltip on the new button for the mouseover; no widget change needed.', NULL, '2026-06-10 09:56:24', '2026-06-10 09:56:24', '2026-06-10 09:56:24', NULL, 'f4fa8bc5799ef68d14512e128c03d1ba', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1SJKA7KRCQMZE41SPQG780', 'status', 'backlog', 'ready', NULL, '2026-06-10 10:01:09', '2026-06-10 10:01:09', '2026-06-10 10:01:09', NULL, '7ed94c6ae98bb9f7a2e3a843512c47bd', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1SJKA7KRCQMZE41SPQG780', 'status', 'ready', 'done', NULL, '2026-06-10 10:07:19', '2026-06-10 10:07:19', '2026-06-10 10:07:19', NULL, '15b320f72bf2a7bec603482d4b980bf6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1ZFJK6J2GSV4SA69QF730C', 'status', 'backlog', 'ready', NULL, '2026-06-10 10:08:59', '2026-06-10 10:08:59', '2026-06-10 10:08:59', NULL, 'e240ed5c41e787235e004fc193df9163', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16YM1Y910T07Y1Y22MGTEM', 'status', 'backlog', 'ready', NULL, '2026-06-10 10:09:11', '2026-06-10 10:09:11', '2026-06-10 10:09:11', NULL, '4cc7018105565dc1ab774296d7bdf4ac', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'description', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.
+
+## Scope-tag icon decision (review, 2026-06-10)
+
+The per-field scope tag is an ICON, not a text label (space + cognitive load).
+Chosen trio (location→global reach ladder), keeping the colour coding + a
+tooltip with the word for clarity/a11y; tapping opens the scope menu:
+
+- Project (this repo)  = `folder`        0xe24a  (teal)   — already wired
+- Always (all clide)   = `globe`         0xe288  (amber)  — add const
+- Default (unset)      = `circle-dashed` 0xe602  (grey)   — add const
+
+Alternatives considered: house (warmer home↔world pair), user-circle (mirrors
+the real .clide vs ~/.clide files), gear (collides with "settings"). Note that
+every Phosphor glyph already renders via PhosphorIconPainter(0xNNNN); only named
+consts need adding. Preview/picking is blocked on a native glyph card (see the
+new ticket) — goldens render the font as Ahem boxes.', NULL, '2026-06-10 10:20:48', '2026-06-10 10:20:48', '2026-06-10 10:20:48', NULL, '14f95d56a8f037f285dc4cbeb1ae7504', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'description', 'A conversation-pane card that renders Phosphor glyphs by name/codepoint, so icons can be previewed and picked in the live pane.', 'A conversation-pane card that renders Phosphor glyphs by name/codepoint, so icons can be previewed and picked in the live pane.
+
+## Why
+
+Picking icons (e.g. the settings scope tags, T-302) needs to SEE real glyphs.
+Frame0 can''t render Phosphor (private-use codepoints, no font) and golden tests
+render the font as Ahem boxes (only painter_bold_metrics loads a real font), so
+preview only works where the app has the font — a native card is the vehicle.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a
+grid of Phosphor glyphs with their name + codepoint, driven by the clide CLI —
+e.g. `clide icon show <name|0xNNNN ...>` or `clide glyphs [filter]` (D-6 parity).
+Uses the already-bundled Phosphor.ttf via PhosphorIconPainter.
+
+## Notes / scope
+
+- Every glyph already renders via `PhosphorIconPainter(0xNNNN)`; the 49 named
+  consts in lib/widgets/src/icons/phosphor.dart are curated sugar. We do NOT
+  need to bulk-add all ~1512 consts for availability.
+- OPTIONAL behind this card: generate the full name→codepoint set (from
+  .claude/skills/ui-design/references/phosphor-glyphs.md, 1512 entries) so glyphs
+  are discoverable by name — but only if the card makes them browsable; weigh
+  against clide''s curated/minimal philosophy.
+- The card is display-only (D-78); a click could copy the codepoint/name.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302).', NULL, '2026-06-10 10:21:09', '2026-06-10 10:21:09', '2026-06-10 10:21:09', NULL, '1ea34a81269e81267f69a993eabf4002', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'status', 'ready', 'done', NULL, '2026-06-10 10:21:48', '2026-06-10 10:21:48', '2026-06-10 10:21:48', NULL, '37b28095fb8c93b3e3319402eae91173', 2) ON CONFLICT(hash) DO NOTHING;

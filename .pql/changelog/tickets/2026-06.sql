@@ -1446,3 +1446,125 @@ Root cause: lib/builtin/claude/src/prompt_card.dart:125-135 defines _digitKeys a
 Fix: extend _digitKeys (or the match in _onKey) to also map LogicalKeyboardKey.numpad1..numpad9 to the same 1-9 selection. Keep the hasPrimaryFocus / modifier guards as-is so digits still type into note fields.
 
 Acceptance: with the prompt card focused, numpad 1-9 selects the corresponding option/button exactly like the number-row digits; numpad keys still type normally when a note field has focus.', 'done', 'low', NULL, NULL, NULL, '2026-06-10 09:39:05', '2026-06-10 10:07:19', NULL, '229d4e82ae8b66e249475f49d69bacdb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1ZFJK6J2GSV4SA69QF730C', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Image card caches by path — overwritten file shows stale render', 'clide image show (and the conversation image viewer card) appears to cache by file path: re-showing a file after its bytes change at the SAME path renders the previous image, not the new one. Hit live while iterating on a Frame0 wireframe (re-exported settings-modal.png in place; the pane kept showing the prior version until exported under a new filename).
+
+Expected: showing a path always reflects the current file bytes.
+
+Explore / options:
+- Cache-key on mtime + size (or a content hash) instead of path alone; invalidate when they change.
+- A force-refresh path for clide image show (re-decode, bypass cache).
+- Check where the cache lives: the image card widget (Image.file / ImageProvider cache — Flutter''s imageCache keys by path+scale and won''t refresh on overwrite), the IPC image.show handler, or the pane render layer.
+- Likely Flutter imageCache: evict the key (or use a FileImage with a key that includes mtime) before showing.
+
+Note: surfaced via clide image show (T-249 / T-252 lightbox share the same provider). Repro: export an image, show it, overwrite the same path with different content, show again -> stale.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 10:04:53', '2026-06-10 10:08:59', NULL, '92b12d703dccdb13e19da14a9d051e6b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16YM1Y910T07Y1Y22MGTEM', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Card the ''context'' conversation block like the rest of the cards', 'The injected "context" block (skill-load / command-expansion / system-reminder messages) renders as a frameless `ConversationCardVariant.bare` card in `lib/builtin/claude/src/conversation_view.dart:410-419`, so it reads as a bare `> context …` row wedged between the fully-framed Skill and Bash tool cards (see pasted screenshot). It looks unfinished next to the carded tool calls.
+
+Make the context block follow the standard collapser-card pattern established for all group/tool cards in the `collapser-card` wireframe (docs/design/wireframes/cards/): a proper card frame with the chevron toggle hard against the left edge, label, and the fixed-width right-aligned counter/status slot — so it is visually consistent with the Skill/Bash/Activity cards around it.
+
+Keep the de-emphasis that D-78 calls for (muted accent, collapsed-by-default, first-line summary) — this is about giving it the same *frame* as the other cards, not the blue "you" accent. The same treatment likely applies to the sibling bare cards that share this branch (agent prompt, thinking) for consistency; scope to context first and note whether thinking/agent-prompt should follow.
+
+Acceptance: the context row sits in a framed card matching the collapser-card wireframe geometry, still muted and collapsed by default, with the toggle and counter/status slot aligned to the other cards. Update/extend the relevant golden(s).', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 08:17:42', '2026-06-10 10:09:11', NULL, '647c5ca8b442dd1f86336889e054f779', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'task', '06FB0TNQM6T6580D8ABDVTMNZW', 'Frame0 wireframe: settings screen design', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.
+
+## Scope-tag icon decision (review, 2026-06-10)
+
+The per-field scope tag is an ICON, not a text label (space + cognitive load).
+Chosen trio (location→global reach ladder), keeping the colour coding + a
+tooltip with the word for clarity/a11y; tapping opens the scope menu:
+
+- Project (this repo)  = `folder`        0xe24a  (teal)   — already wired
+- Always (all clide)   = `globe`         0xe288  (amber)  — add const
+- Default (unset)      = `circle-dashed` 0xe602  (grey)   — add const
+
+Alternatives considered: house (warmer home↔world pair), user-circle (mirrors
+the real .clide vs ~/.clide files), gear (collides with "settings"). Note that
+every Phosphor glyph already renders via PhosphorIconPainter(0xNNNN); only named
+consts need adding. Preview/picking is blocked on a native glyph card (see the
+new ticket) — goldens render the font as Ahem boxes.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 20:24:54', '2026-06-10 10:20:48', NULL, '267a1e8c9bab093fa443f7d8272525b9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Native Phosphor glyph preview card (clide icon show)', 'A conversation-pane card that renders Phosphor glyphs by name/codepoint, so icons can be previewed and picked in the live pane.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 10:20:54', NULL, '645c474b9333b748ea355cb0d8191fd9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Native Phosphor glyph preview card (clide icon show)', 'A conversation-pane card that renders Phosphor glyphs by name/codepoint, so icons can be previewed and picked in the live pane.
+
+## Why
+
+Picking icons (e.g. the settings scope tags, T-302) needs to SEE real glyphs.
+Frame0 can''t render Phosphor (private-use codepoints, no font) and golden tests
+render the font as Ahem boxes (only painter_bold_metrics loads a real font), so
+preview only works where the app has the font — a native card is the vehicle.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a
+grid of Phosphor glyphs with their name + codepoint, driven by the clide CLI —
+e.g. `clide icon show <name|0xNNNN ...>` or `clide glyphs [filter]` (D-6 parity).
+Uses the already-bundled Phosphor.ttf via PhosphorIconPainter.
+
+## Notes / scope
+
+- Every glyph already renders via `PhosphorIconPainter(0xNNNN)`; the 49 named
+  consts in lib/widgets/src/icons/phosphor.dart are curated sugar. We do NOT
+  need to bulk-add all ~1512 consts for availability.
+- OPTIONAL behind this card: generate the full name→codepoint set (from
+  .claude/skills/ui-design/references/phosphor-glyphs.md, 1512 entries) so glyphs
+  are discoverable by name — but only if the card makes them browsable; weigh
+  against clide''s curated/minimal philosophy.
+- The card is display-only (D-78); a click could copy the codepoint/name.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302).', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 10:21:09', NULL, '00bfb44c7719b117d224dfe778a5bffe', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'task', '06FB0TNQM6T6580D8ABDVTMNZW', 'Frame0 wireframe: settings screen design', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.
+
+## Scope-tag icon decision (review, 2026-06-10)
+
+The per-field scope tag is an ICON, not a text label (space + cognitive load).
+Chosen trio (location→global reach ladder), keeping the colour coding + a
+tooltip with the word for clarity/a11y; tapping opens the scope menu:
+
+- Project (this repo)  = `folder`        0xe24a  (teal)   — already wired
+- Always (all clide)   = `globe`         0xe288  (amber)  — add const
+- Default (unset)      = `circle-dashed` 0xe602  (grey)   — add const
+
+Alternatives considered: house (warmer home↔world pair), user-circle (mirrors
+the real .clide vs ~/.clide files), gear (collides with "settings"). Note that
+every Phosphor glyph already renders via PhosphorIconPainter(0xNNNN); only named
+consts need adding. Preview/picking is blocked on a native glyph card (see the
+new ticket) — goldens render the font as Ahem boxes.', 'done', 'medium', NULL, NULL, NULL, '2026-06-09 20:24:54', '2026-06-10 10:21:48', NULL, '0ab1ccc1bfc22b98f08f6e0c58116f2e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
