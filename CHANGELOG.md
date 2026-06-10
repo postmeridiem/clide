@@ -24,20 +24,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   failures — which still render expanded. Driven by a reusable per-result
   "quiet error" flag, not by matching the note text. (T-340)
 - **Sub-agent prompts no longer render as a blue "you" card.** In live
-  (stream-json) sessions a sub-agent's spawning prompt is tagged with
-  `parent_tool_use_id` rather than the transcript's `isSidechain`/`parentUuid`,
-  so it slipped past the sidechain fold and showed as a top-level user turn. The
-  parser now treats `parent_tool_use_id` as a sidechain marker and routes the
-  item straight to its Agent card by tool-use id. (T-338)
+  (stream-json) sessions the spawning prompt is tagged with `parent_tool_use_id`,
+  not the transcript's `isSidechain`/`parentUuid`, so it slipped past the
+  sidechain fold. The parser now treats that field as a sidechain marker and
+  folds the prompt into its Agent card. (T-338)
 
 ### Added
 
-- **Picking up a ticket now starts it.** When a ticket is handed to a live
-  Claude pane via the sidebar pick-up button, it also transitions to
-  `in_progress` and the sidebar refreshes — but only on acceptance (a live
-  session took the prompt) and only from a not-yet-started status, so a
-  pick-up with no live pane stays a quiet no-op and a re-pick-up never drags a
-  `review`/`done` ticket backwards. (T-339)
+- **Picking up a ticket now starts it.** Handing a ticket to a live Claude pane
+  (sidebar pick-up) also moves it to `in_progress` and refreshes the sidebar —
+  but only on acceptance and only from a not-yet-started status, so a pick-up
+  with no live pane is a quiet no-op and a re-pick-up never moves a ticket
+  backwards. (T-339)
 - **Clickable file references in the Claude conversation.** Workspace file paths
   mentioned by Claude — bare (`lib/app.dart`), with a line (`lib/app.dart:42`),
   backticked, or as markdown links — are now clickable and open in the editor,
@@ -52,12 +50,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   above the input — collapsed to `N tasks · M done` + the current in-progress
   item, expandable to the full list with per-item status glyphs. Hidden when
   there are no tasks. (T-308)
-- **A "Deny & simplify" option on the permission card.** Alongside Allow /
-  Allow-and-remember / Deny, a fourth button denies the action with a
-  preformatted note telling Claude it was too complex for the permission system
-  and to retry in a simpler, more granular form — explicitly without writing a
-  memory or changing permission settings. A typed note is appended. Addressable
-  by its number key (4, or 3 without remember). (T-311)
+- **A "Deny & simplify" option on the permission card.** A fourth button
+  (alongside Allow / Allow-and-remember / Deny) denies the action with a
+  preformatted note telling Claude it was too complex and to retry simpler —
+  without writing a memory or changing settings. A typed note is appended;
+  addressable by number key (4, or 3 without remember). (T-311)
 
 ### Fixed
 
