@@ -61,7 +61,13 @@ class ConversationCard extends StatefulWidget {
     this.borderColor,
     this.status = ConversationCardStatus.none,
     this.extraSegments = const [],
+    this.margin = const EdgeInsets.only(bottom: 14),
   });
+
+  /// Outer margin below the card. The stream rhythm is `bottom: 14` (T-282);
+  /// a card used as a collapser's inner item passes [EdgeInsets.zero] so the
+  /// collapser owns the surrounding padding evenly (T-305).
+  final EdgeInsetsGeometry margin;
 
   final ConversationCardVariant variant;
   final Color accent;
@@ -185,7 +191,7 @@ class _ConversationCardState extends State<ConversationCard> {
       ],
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: widget.margin,
       child: MouseRegion(
         onEnter: (_) => setState(() => _hover = true),
         onExit: (_) => setState(() => _hover = false),

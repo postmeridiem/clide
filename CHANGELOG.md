@@ -194,12 +194,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
-- The conversation stream's **collapsible cards** (activity runs, edit runs,
-  sub-agent runs) now share one `ClideCollapserCard` primitive with consistent
-  chrome: the collapsed ticker leads with the card's label, the step/edit count
-  sits in a fixed-width slot, and the status tick (spinner / check / cross) is
-  pinned hard against the card's right edge while the chevron hugs the left. A
-  `color` drives the border + label tint per card type. (T-305)
+- **Every tool use in the conversation is now a collapsible card** on one
+  `ClideCollapserCard` primitive — activity runs, edit runs, sub-agent runs, and
+  each individual tool call (a single tool is a collapser over a one-item list).
+  Consistent chrome throughout: the collapsed ticker leads with the label +
+  echoed last line, the count sits in a fixed-width slot, and the status tick
+  (spinner while running, check / cross once done) is pinned hard against the
+  right edge while the chevron hugs the left; a `color` drives the border +
+  label tint. The inner content card carries its own per-item status, with even
+  padding on all sides. (T-305)
 - The Claude composer's **slash typeahead**, the team-chat **@-mention** list,
   and the status-bar **theme switcher** now ride the shared
   `ClideAnchoredOverlay` + `ClideMenu` popover primitive, alongside the menu

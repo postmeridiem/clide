@@ -15,7 +15,7 @@ void main() {
   // A stand-in inner item card: content + its own per-item status mark (the
   // collapser carries the aggregate; items keep their own — T-305).
   Widget item(String label, ClideRunStatus status) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: 10),
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: const Color(0xFF393E48)),

@@ -190,7 +190,17 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(f, ConversationView(controller: c, foldLevel: FoldLevel.none)));
+      await tester.pumpWidget(harness(
+        f,
+        Builder(
+          // The in-flight Bash collapser shows a live spinner (T-305); disable
+          // animations so it renders static and pumpAndSettle can settle.
+          builder: (ctx) => MediaQuery(
+            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+            child: ConversationView(controller: c, foldLevel: FoldLevel.none),
+          ),
+        ),
+      ));
       stream.add(AssistantToolUse(uuid: 'A', timestamp: _t, isSidechain: false, toolUseId: 'A', name: 'Bash', input: const {'command': 'echo a'}));
       stream.add(AssistantThinkingMessage(uuid: 'B', timestamp: _t, isSidechain: false, thinking: 'thinking body'));
       await tester.pumpAndSettle();
@@ -413,8 +423,8 @@ void main() {
       // Collapsed by default: the prompt is hidden.
       expect(find.text('find all the widgets'), findsNothing);
 
-      // Expand the Agent card → a "prompt" segment reveals the folded prompt.
-      await tester.tap(find.bySemanticsLabel('Expand'));
+      // Expand the Agent collapser → a "prompt" segment reveals the folded prompt.
+      await tester.tap(find.bySemanticsLabel('Task, 1 step, collapsed'));
       await tester.pumpAndSettle();
       expect(find.text('prompt'), findsOneWidget); // segment sub-label
       expect(find.text('find all the widgets'), findsOneWidget);
@@ -438,9 +448,9 @@ void main() {
         UserMessage(uuid: 'pB', timestamp: _t, isSidechain: true, parentUuid: 'mB', text: 'PROMPT FOR B'),
         UserMessage(uuid: 'pA', timestamp: _t, isSidechain: true, parentUuid: 'mA', text: 'PROMPT FOR A'),
       ]);
-      // Two collapsed Agent cards; the first Expand caret belongs to card A.
+      // Two collapsed Agent collapsers; the first belongs to card A.
       expect(find.text('you'), findsNothing);
-      await tester.tap(find.bySemanticsLabel('Expand').first);
+      await tester.tap(find.bySemanticsLabel('Task, 1 step, collapsed').first);
       await tester.pumpAndSettle();
       // Only card A is expanded → its prompt (A) shows; B's stays folded away.
       // Nearest-preceding would have put A's prompt under B, revealing nothing.
@@ -475,8 +485,8 @@ void main() {
         // The Task's returned result (main chain) — equals the run's final prose.
         ToolResultMessage(uuid: 'tr', timestamp: _t, isSidechain: false, parentUuid: 'mA', toolUseId: 'tA', content: 'THE FINAL ANSWER', isError: false),
       ]);
-      // Expand the Agent card (its "result" segment would show here if kept)…
-      await tester.tap(find.bySemanticsLabel('Expand'));
+      // Expand the Agent collapser (its "result" segment would show here if kept)…
+      await tester.tap(find.bySemanticsLabel('Task, 1 step, collapsed'));
       await tester.pumpAndSettle();
       // …and the nested run.
       await tester.tap(find.bySemanticsLabel('agent run, 1 step, collapsed'));
@@ -563,10 +573,12 @@ void main() {
         toolUseOutcomes: {'x1': true}, // approved
       );
       final handle = tester.ensureSemantics();
-      expect(find.text('Write'), findsOneWidget); // shown (resolved)
-      expect(find.bySemanticsLabel('Expand'), findsOneWidget); // collapsed caret
-      // T-262: the resolved card also folds its result + a success check.
-      expect(find.bySemanticsLabel('succeeded'), findsOneWidget);
+      expect(find.text('Write'), findsOneWidget); // shown (resolved) — collapser label
+      // T-305: the resolved tool is its own collapser, collapsed by default.
+      expect(find.bySemanticsLabel('Write, 1 step, collapsed'), findsOneWidget);
+      // T-262: the resolved card folds its result + carries a success check on
+      // the collapser (the inner card is hidden while collapsed).
+      expect(find.byWidgetPredicate((w) => w is ClideStatusIndicator && w.status == ClideRunStatus.success), findsOneWidget);
       handle.dispose();
     });
 
@@ -583,10 +595,10 @@ void main() {
       await pumpWith(tester, [
         _tool('Bash', {'command': 'ls -la'})
       ]);
-      // Card starts collapsed — the command appears as the collapsed summary.
+      // Collapser starts collapsed — the command appears as the echoed summary.
       expect(find.text('ls -la'), findsOneWidget);
-      // Expand to verify the body is a bash code block.
-      await tester.tap(find.byType(ClideIcon));
+      // Expand the collapser to verify the inner body is a bash code block.
+      await tester.tap(find.bySemanticsLabel('Bash, 1 step, collapsed'));
       await tester.pump();
       final blocks = tester.widgetList<ClideCodeBlock>(find.byType(ClideCodeBlock)).toList();
       expect(blocks.any((b) => b.language == 'bash' && b.source.contains('ls -la')), isTrue);
@@ -608,14 +620,14 @@ void main() {
       ]);
       // No standalone success result card — it's folded into the Read card.
       expect(find.text('Read · result'), findsNothing);
-      // The merged card shows a success check.
-      expect(find.bySemanticsLabel('succeeded'), findsOneWidget);
+      // The collapser shows a success check while collapsed.
+      expect(find.byWidgetPredicate((w) => w is ClideStatusIndicator && w.status == ClideRunStatus.success), findsOneWidget);
       // Collapsed by default: neither the call body nor the result is shown yet.
       expect(find.text('final answer = 42;'), findsNothing);
 
       // Expand: the call segment, a "result" sub-label, and the folded result
       // as a colorized code block (Read → grammar from the .dart path).
-      await tester.tap(find.bySemanticsLabel('Expand'));
+      await tester.tap(find.bySemanticsLabel('Read, 1 step, collapsed'));
       await tester.pumpAndSettle();
       expect(find.text('result'), findsOneWidget); // segment sub-label
       final blocks = tester.widgetList<ClideCodeBlock>(find.byType(ClideCodeBlock)).toList();
@@ -639,7 +651,7 @@ void main() {
         _tool('Bash', {'command': 'echo hi'}),
         _result('hi\nthere'),
       ]);
-      await tester.tap(find.bySemanticsLabel('Expand'));
+      await tester.tap(find.bySemanticsLabel('Bash, 1 step, collapsed'));
       await tester.pumpAndSettle();
       final blocks = tester.widgetList<ClideCodeBlock>(find.byType(ClideCodeBlock)).toList();
       expect(blocks.any((b) => b.language == 'bash' && b.source == 'hi\nthere'), isTrue);
@@ -654,8 +666,8 @@ void main() {
       // The error stays a separate prominent card…
       expect(find.text('Bash · error'), findsOneWidget);
       expect(find.text('permission denied'), findsOneWidget);
-      // …and the call card carries a red failure mark for symmetry (note C).
-      expect(find.bySemanticsLabel('failed'), findsOneWidget);
+      // …and the call collapser carries a red failure mark for symmetry (note C).
+      expect(find.byWidgetPredicate((w) => w is ClideStatusIndicator && w.status == ClideRunStatus.error), findsOneWidget);
       handle.dispose();
     });
 

@@ -289,6 +289,7 @@ class _ConversationViewState extends State<ConversationView> {
                 key: ValueKey('turn.${item.uuid}'),
                 item: item,
                 tokens: tokens,
+                collapseTools: true,
                 toolUseOutcomes: widget.toolUseOutcomes,
                 toolUseById: widget.controller.toolUseById,
                 resultByToolUseId: resultByToolUseId,
@@ -371,6 +372,7 @@ class _ConversationTurn extends StatelessWidget {
     super.key,
     required this.item,
     required this.tokens,
+    this.collapseTools = false,
     this.toolUseOutcomes = const <String, bool>{},
     this.toolUseById = const <String, AssistantToolUse>{},
     this.resultByToolUseId = const <String, ToolResultMessage>{},
@@ -380,6 +382,16 @@ class _ConversationTurn extends StatelessWidget {
 
   final ConversationItem item;
   final SurfaceTokens tokens;
+
+  /// When true (top-level stream items), a tool use renders as its own
+  /// collapser over a one-item list (T-305). When false (already inside a run /
+  /// edit collapser), it renders the bare inner content card so collapsers
+  /// don't nest.
+  final bool collapseTools;
+
+  /// Card bottom margin: the stream rhythm (14) at top level, or the collapser's
+  /// even inner spacing (10) when this turn is a collapser child (T-305).
+  EdgeInsetsGeometry get _childMargin => collapseTools ? const EdgeInsets.only(bottom: 14) : const EdgeInsets.only(bottom: kClideCardHeaderPadH);
   final Map<String, bool> toolUseOutcomes;
 
   /// Index from toolUseId → AssistantToolUse, for result-card pairing (T-168).
@@ -414,12 +426,14 @@ class _ConversationTurn extends StatelessWidget {
           collapsible: true,
           collapsedByDefault: true,
           collapsedSummary: _firstLine(i.text),
+          margin: _childMargin,
           body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
         ),
       UserMessage() => ConversationCard(
           accent: tokens.globalFocus,
           label: 'you',
           copyText: i.text,
+          margin: _childMargin,
           // Pasted-image @path tokens render as inline thumbnails that open the
           // lightbox (T-236/T-254); copyText keeps the original text verbatim.
           body: ClideMarkdown(
@@ -436,6 +450,7 @@ class _ConversationTurn extends StatelessWidget {
           accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
           label: i.isSidechain ? 'agent' : 'claude',
           copyText: i.text,
+          margin: _childMargin,
           body: ClideMarkdown(i.text, onRecordTap: (id) => _openRecord(context, id), onLinkTap: (url) => _openUrl(context, url)),
         ),
       AssistantThinkingMessage() => ConversationCard(
@@ -445,9 +460,10 @@ class _ConversationTurn extends StatelessWidget {
           copyText: i.thinking,
           collapsible: true,
           collapsedByDefault: true,
+          margin: _childMargin,
           body: ClideText(i.thinking, muted: true, fontSize: clideFontMeta),
         ),
-      AssistantToolUse() => _toolUse(i),
+      AssistantToolUse() => collapseTools ? _toolUseCollapser(i) : _toolContentCard(i),
       ToolResultMessage() => _toolResult(i),
       ImageMessage() => _image(context, i),
     };
@@ -528,78 +544,30 @@ class _ConversationTurn extends StatelessWidget {
         ),
       );
 
-  Widget _toolUse(AssistantToolUse t) {
-    // T-262: fold the paired result into this card. A successful result becomes
-    // a "result" segment below the call + a green header check; a failed result
-    // stamps a red header cross but stays a separate prominent error card (the
-    // result is not suppressed — see _visibleItems). No result yet (in-flight) →
-    // no mark, no segment.
-    final result = resultByToolUseId[t.toolUseId];
-    final succeeded = result != null && !result.isError;
-    final status = result == null ? ConversationCardStatus.none : (result.isError ? ConversationCardStatus.error : ConversationCardStatus.success);
-
-    // T-264: an Agent/Task call nests its whole sub-agent run in a holder below
-    // the card. When a run is shown, the returned-result segment would just
-    // duplicate the run's final output, so drop it (note E) — but keep it when
-    // there's no captured run, so the output is never lost.
-    final isAgent = _isAgentTool(t.name);
-    final runItems = isAgent ? (runByToolUseId[t.toolUseId] ?? const <ConversationItem>[]) : const <ConversationItem>[];
-    final hasRun = runItems.isNotEmpty;
-
-    // T-263: an Agent/Task card folds its sub-agent prompt(s) in. Layered order
-    // when expanded (note E): call input (body) → prompt → returned result.
-    final segments = <CardSegment>[
-      for (final p in promptsByToolUseId[t.toolUseId] ?? const <UserMessage>[])
-        CardSegment(label: 'prompt', child: ClideText(p.text, muted: true, fontSize: clideFontMeta)),
-      if (succeeded && !(isAgent && hasRun)) CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t))),
-    ];
-
-    // A resolved permission-prompted call: collapsed, green if approved / red
-    // if denied — a quiet record of what was permitted (D-78). It still folds
-    // its result + outcome check like any other merged card (T-262).
+  /// A standalone tool use (T-305): every tool use is a collapser over a
+  /// one-item list. The collapser carries the echoed last line, the count, and
+  /// the aggregate status (spinner while in-flight, check / cross once resolved)
+  /// — pushed up from the item; the inner card holds the call body + segments
+  /// and its own per-item mark. An Agent/Task call also nests its visible
+  /// sub-agent run in a second collapser below (T-264).
+  Widget _toolUseCollapser(AssistantToolUse t) {
     final outcome = toolUseOutcomes[t.toolUseId];
-    final ConversationCard card;
-    if (outcome != null) {
-      final color = outcome ? tokens.statusSuccess : tokens.statusError;
-      card = ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: color,
-        borderColor: color,
-        label: t.name,
-        copyText: const JsonEncoder.withIndent('  ').convert(t.input),
-        collapsible: true,
-        collapsedByDefault: true,
-        collapsedSummary: _toolUseSummary(t),
-        status: status,
-        body: toolInputBody(tokens, t.name, t.input),
-        extraSegments: segments,
-      );
-    } else {
-      // Per-tool body rendering (T-168): Bash → command block, Edit/Write →
-      // diff, Read/Grep/LS → path label, others → indented JSON. Always
-      // collapsible so a bulky write body doesn't dominate the scroll.
-      card = ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: tokens.globalFocus,
-        label: t.name,
-        copyText: const JsonEncoder.withIndent('  ').convert(t.input),
-        collapsible: true,
-        collapsedByDefault: true,
-        collapsedSummary: _toolUseSummary(t),
-        status: status,
-        body: toolInputBody(tokens, t.name, t.input),
-        extraSegments: segments,
-      );
-    }
+    final color = outcome == null ? tokens.globalFocus : (outcome ? tokens.statusSuccess : tokens.statusError);
+    final collapser = ClideCollapserCard(
+      label: t.name,
+      color: color,
+      collapsedSummary: _toolUseSummary(t),
+      counter: '1 step',
+      status: _toolRunStatus(t),
+      children: [_toolContentCard(t)],
+    );
 
-    if (!hasRun) return card;
-    // T-264: nest the sub-agent run in a holder UNDER the Agent card, so a
-    // reader can tell where the sub-agent work begins and ends. The run stays
-    // VISIBLE (not folded away) — this is attribution + containment.
+    final runItems = _isAgentTool(t.name) ? (runByToolUseId[t.toolUseId] ?? const <ConversationItem>[]) : const <ConversationItem>[];
+    if (runItems.isEmpty) return collapser;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        card,
+        collapser,
         Padding(
           padding: const EdgeInsets.only(left: 12),
           child: ClideCollapserCard(
@@ -623,6 +591,61 @@ class _ConversationTurn extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// The inner content card for a tool use (T-305): the call body + folded
+  /// CALL/PROMPT/RESULT segments + its own per-item status mark, with NO own
+  /// collapse caret — the enclosing collapser owns collapse. Used both as a
+  /// run/edit child and as the single child of a standalone tool's collapser.
+  Widget _toolContentCard(AssistantToolUse t) {
+    // T-262: fold the paired result into this card. A successful result becomes
+    // a "result" segment below the call + a green header check; a failed result
+    // stamps a red header cross. No result yet (in-flight) → no mark, no segment.
+    final result = resultByToolUseId[t.toolUseId];
+    final succeeded = result != null && !result.isError;
+    final status = result == null ? ConversationCardStatus.none : (result.isError ? ConversationCardStatus.error : ConversationCardStatus.success);
+
+    // T-264: an Agent/Task call's run is shown in its own collapser, so the
+    // returned-result segment would just duplicate the run's final output —
+    // drop it (note E) when there's a captured run, keep it otherwise.
+    final isAgent = _isAgentTool(t.name);
+    final runItems = isAgent ? (runByToolUseId[t.toolUseId] ?? const <ConversationItem>[]) : const <ConversationItem>[];
+    final hasRun = runItems.isNotEmpty;
+
+    // T-263: an Agent/Task card folds its sub-agent prompt(s) in. Layered order
+    // (note E): call input (body) → prompt → returned result.
+    final segments = <CardSegment>[
+      for (final p in promptsByToolUseId[t.toolUseId] ?? const <UserMessage>[])
+        CardSegment(label: 'prompt', child: ClideText(p.text, muted: true, fontSize: clideFontMeta)),
+      if (succeeded && !(isAgent && hasRun)) CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t))),
+    ];
+
+    // A resolved permission-prompted call is tinted green if approved / red if
+    // denied — a quiet record of what was permitted (D-78).
+    final outcome = toolUseOutcomes[t.toolUseId];
+    final accent = outcome == null ? tokens.globalFocus : (outcome ? tokens.statusSuccess : tokens.statusError);
+    return ConversationCard(
+      variant: ConversationCardVariant.bordered,
+      accent: accent,
+      borderColor: outcome == null ? null : accent,
+      label: t.name,
+      copyText: const JsonEncoder.withIndent('  ').convert(t.input),
+      status: status,
+      body: toolInputBody(tokens, t.name, t.input),
+      extraSegments: segments,
+      // Inside a collapser the surrounding padding is even on all sides
+      // (T-305): a matching bottom margin is the canvas's bottom inset and the
+      // inter-item gap in a multi-item run.
+      margin: const EdgeInsets.only(bottom: kClideCardHeaderPadH),
+    );
+  }
+
+  /// Aggregate run status for a tool's collapser tick: a spinner while the call
+  /// is in-flight, settling to a check or cross once the result lands (T-305).
+  ClideRunStatus _toolRunStatus(AssistantToolUse t) {
+    final r = resultByToolUseId[t.toolUseId];
+    if (r == null) return ClideRunStatus.running;
+    return r.isError ? ClideRunStatus.error : ClideRunStatus.success;
   }
 
   /// Per-tool language for the folded result code block (T-262): Read shows the

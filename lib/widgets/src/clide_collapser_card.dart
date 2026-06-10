@@ -187,8 +187,12 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _headerRow(tokens),
+                // Even padding around the inner item canvas (T-305): the sides +
+                // top match, and each inner item carries a matching bottom margin
+                // (so the last item's margin is the bottom inset and items in a
+                // multi-item run are evenly separated) — hence bottom 0 here.
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(kClideCardHeaderPadH, 0, kClideCardHeaderPadH, 8),
+                  padding: const EdgeInsets.fromLTRB(kClideCardHeaderPadH, kClideCardHeaderPadH, kClideCardHeaderPadH, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
