@@ -136,4 +136,67 @@ void main() {
     await pumpAsync(tester);
     expect(calls, greaterThan(before));
   });
+
+  // -- Type-filter chips (T-343) ------------------------------------------
+  // The chips own one GestureDetector for both onTap (toggle) and onDoubleTap
+  // (solo), so a single tap's onTap only fires after the ~300ms double-tap
+  // window — hence the 350ms pumps below.
+
+  Future<void> loadTwoTypes(WidgetTester tester) async {
+    f.ipc.stub(
+        'pql.tickets.list',
+        (_) async => _list([
+              _t('T-1', 'a bug item', 'backlog', type: 'bug'),
+              _t('T-2', 'a task item', 'backlog', type: 'task'),
+            ]));
+    await pumpView(tester);
+  }
+
+  testWidgets('renders a chip per type, large→small (T-343)', (tester) async {
+    f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'x', 'backlog')]));
+    await pumpView(tester);
+    for (final label in ['Initiative', 'Epic', 'Story', 'Task', 'Bug']) {
+      expect(find.text(label), findsOneWidget);
+    }
+  });
+
+  testWidgets('single-click toggles a type out, others stay (T-343)', (tester) async {
+    await loadTwoTypes(tester);
+    expect(find.text('a bug item'), findsOneWidget);
+
+    await tester.tap(find.text('Bug'));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('a bug item'), findsNothing);
+    expect(find.text('a task item'), findsOneWidget);
+  });
+
+  testWidgets('double-click isolates a type (solo) (T-343)', (tester) async {
+    await loadTwoTypes(tester);
+
+    await tester.tap(find.text('Bug'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Bug'));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('a bug item'), findsOneWidget);
+    expect(find.text('a task item'), findsNothing);
+  });
+
+  testWidgets('toggling off the last enabled type resets all on (T-343)', (tester) async {
+    await loadTwoTypes(tester);
+
+    // Solo Bug → task hidden.
+    await tester.tap(find.text('Bug'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Bug'));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('a task item'), findsNothing);
+
+    // Toggle the only-remaining Bug off → snaps all back on → task returns.
+    await tester.tap(find.text('Bug'));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('a task item'), findsOneWidget);
+    expect(find.text('a bug item'), findsOneWidget);
+  });
 }

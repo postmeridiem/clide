@@ -3436,3 +3436,67 @@ SCOPE CLARIFICATION (2026-06-10, from user):
 
 Test additions: (a) two concurrent agents whose sidechain items interleave -> each agent''s run items land under its own card, none cross-attributed; (b) an unattributable sidechain item (no parent_tool_use_id, broken chain) is NOT swept into the nearest agent''s card; (c) regression: consecutive Bash/Read calls still form one Activity cluster.', NULL, '2026-06-10 15:28:52', '2026-06-10 15:28:52', '2026-06-10 15:28:52', NULL, '0352b24d88a4bf24ede628880fe9b502', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'status', 'backlog', 'in_progress', NULL, '2026-06-10 15:54:23', '2026-06-10 15:54:23', '2026-06-10 15:54:23', NULL, '8061a1d449acdb1e467239de0dce5d1d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'status', 'in_progress', 'in_progress', NULL, '2026-06-10 16:02:55', '2026-06-10 16:02:55', '2026-06-10 16:02:55', NULL, '9c00a4d5fefdc3cf8f227b040bc78acb', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'description', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)
+
+Design revision (2026-06-10, supersedes the chip set/order above): FIVE chips, one per pql type — no story+task grouping. Ordered LARGE→SMALL left to right: Initiative, Epic, Story, Task, Bug. Each maps 1:1 to its pql type (initiative/epic/story/task/bug) with its TicketTypeColors dot+border (initiative #C792EA, epic #78A0F8, story #7DD3A8, task #9AA0AA grey, bug #E87D7D). All five ON by default. Toggle/solo(double-click)/last-off-reset behaviour unchanged. Wireframe updated + approved.', NULL, '2026-06-10 16:06:25', '2026-06-10 16:06:25', '2026-06-10 16:06:25', NULL, '26b5b4d5cf2a48fe6aeacd7b83968848', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5TWC00GW0P3X02HZW', 'status', 'backlog', 'ready', NULL, '2026-06-10 16:09:21', '2026-06-10 16:09:21', '2026-06-10 16:09:21', NULL, 'c89b4ddcbdeea95483c53b1b76220842', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5TWC00GW0P3X02HZW', 'status', 'ready', 'in_progress', NULL, '2026-06-10 16:09:26', '2026-06-10 16:09:26', '2026-06-10 16:09:26', NULL, 'c36e6343d44f59ff4af0eea3178b5a94', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5TWC00GW0P3X02HZW', 'status', 'in_progress', 'backlog', NULL, '2026-06-10 16:09:57', '2026-06-10 16:09:57', '2026-06-10 16:09:57', NULL, 'be22c7ff64f106d600b4a5bd70ced1d2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4J5E6W983P1S7BE0FDPSMM', 'status', 'backlog', 'ready', NULL, '2026-06-10 16:10:20', '2026-06-10 16:10:20', '2026-06-10 16:10:20', NULL, '6f4b3ce9e2167200ebdde0c1511d4a91', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4J5E6W983P1S7BE0FDPSMM', 'status', 'ready', 'in_progress', NULL, '2026-06-10 16:10:22', '2026-06-10 16:10:22', '2026-06-10 16:10:22', NULL, 'cce7ce3f17ae087f753f4d6d072a702e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'status', 'in_progress', 'done', NULL, '2026-06-10 16:12:15', '2026-06-10 16:12:15', '2026-06-10 16:12:15', NULL, '4cb2daa831a115888a9456461bf53bdf', 2) ON CONFLICT(hash) DO NOTHING;

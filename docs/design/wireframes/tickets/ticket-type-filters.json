@@ -42,82 +42,10 @@
       "fontSize": 13
     },
 
-    "chip-bug": {
-      "type": "Rectangle",
-      "parent": "panel",
-      "left": 96, "top": 118, "width": 66, "height": 24,
-      "fillColor": "#211519",
-      "strokeColor": "#E87D7D",
-      "corners": [4, 4, 4, 4]
-    },
-    "chip-bug-dot": {
-      "type": "Ellipse",
-      "parent": "chip-bug",
-      "left": 104, "top": 126, "width": 8, "height": 8,
-      "fillColor": "#E87D7D",
-      "strokeColor": "#E87D7D"
-    },
-    "chip-bug-label": {
-      "type": "Text",
-      "parent": "chip-bug",
-      "left": 117, "top": 124,
-      "text": "Bug",
-      "fontColor": "#e8e8ee",
-      "fontSize": 11
-    },
-
-    "chip-ticket": {
-      "type": "Rectangle",
-      "parent": "panel",
-      "left": 168, "top": 118, "width": 78, "height": 24,
-      "fillColor": "#15191d",
-      "strokeColor": "#7DD3A8",
-      "corners": [4, 4, 4, 4]
-    },
-    "chip-ticket-dot": {
-      "type": "Ellipse",
-      "parent": "chip-ticket",
-      "left": 176, "top": 126, "width": 8, "height": 8,
-      "fillColor": "#7DD3A8",
-      "strokeColor": "#7DD3A8"
-    },
-    "chip-ticket-label": {
-      "type": "Text",
-      "parent": "chip-ticket",
-      "left": 189, "top": 124,
-      "text": "Ticket",
-      "fontColor": "#e8e8ee",
-      "fontSize": 11
-    },
-
-    "chip-epic": {
-      "type": "Rectangle",
-      "parent": "panel",
-      "left": 252, "top": 118, "width": 68, "height": 24,
-      "fillColor": "#14171f",
-      "strokeColor": "#78A0F8",
-      "corners": [4, 4, 4, 4]
-    },
-    "chip-epic-dot": {
-      "type": "Ellipse",
-      "parent": "chip-epic",
-      "left": 260, "top": 126, "width": 8, "height": 8,
-      "fillColor": "#78A0F8",
-      "strokeColor": "#78A0F8"
-    },
-    "chip-epic-label": {
-      "type": "Text",
-      "parent": "chip-epic",
-      "left": 273, "top": 124,
-      "text": "Epic",
-      "fontColor": "#e8e8ee",
-      "fontSize": 11
-    },
-
     "chip-init": {
       "type": "Rectangle",
       "parent": "panel",
-      "left": 326, "top": 118, "width": 86, "height": 24,
+      "left": 96, "top": 118, "width": 86, "height": 24,
       "fillColor": "#1a151f",
       "strokeColor": "#C792EA",
       "corners": [4, 4, 4, 4]
@@ -125,15 +53,111 @@
     "chip-init-dot": {
       "type": "Ellipse",
       "parent": "chip-init",
-      "left": 334, "top": 126, "width": 8, "height": 8,
+      "left": 104, "top": 126, "width": 8, "height": 8,
       "fillColor": "#C792EA",
       "strokeColor": "#C792EA"
     },
     "chip-init-label": {
       "type": "Text",
       "parent": "chip-init",
-      "left": 347, "top": 124,
+      "left": 117, "top": 124,
       "text": "Initiative",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-epic": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 188, "top": 118, "width": 58, "height": 24,
+      "fillColor": "#14171f",
+      "strokeColor": "#78A0F8",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-epic-dot": {
+      "type": "Ellipse",
+      "parent": "chip-epic",
+      "left": 196, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#78A0F8",
+      "strokeColor": "#78A0F8"
+    },
+    "chip-epic-label": {
+      "type": "Text",
+      "parent": "chip-epic",
+      "left": 209, "top": 124,
+      "text": "Epic",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-story": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 252, "top": 118, "width": 62, "height": 24,
+      "fillColor": "#15191d",
+      "strokeColor": "#7DD3A8",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-story-dot": {
+      "type": "Ellipse",
+      "parent": "chip-story",
+      "left": 260, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#7DD3A8",
+      "strokeColor": "#7DD3A8"
+    },
+    "chip-story-label": {
+      "type": "Text",
+      "parent": "chip-story",
+      "left": 273, "top": 124,
+      "text": "Story",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-task": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 320, "top": 118, "width": 56, "height": 24,
+      "fillColor": "#17181a",
+      "strokeColor": "#9AA0AA",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-task-dot": {
+      "type": "Ellipse",
+      "parent": "chip-task",
+      "left": 328, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#9AA0AA",
+      "strokeColor": "#9AA0AA"
+    },
+    "chip-task-label": {
+      "type": "Text",
+      "parent": "chip-task",
+      "left": 341, "top": 124,
+      "text": "Task",
+      "fontColor": "#e8e8ee",
+      "fontSize": 11
+    },
+
+    "chip-bug": {
+      "type": "Rectangle",
+      "parent": "panel",
+      "left": 382, "top": 118, "width": 54, "height": 24,
+      "fillColor": "#211519",
+      "strokeColor": "#E87D7D",
+      "corners": [4, 4, 4, 4]
+    },
+    "chip-bug-dot": {
+      "type": "Ellipse",
+      "parent": "chip-bug",
+      "left": 390, "top": 126, "width": 8, "height": 8,
+      "fillColor": "#E87D7D",
+      "strokeColor": "#E87D7D"
+    },
+    "chip-bug-label": {
+      "type": "Text",
+      "parent": "chip-bug",
+      "left": 403, "top": 124,
+      "text": "Bug",
       "fontColor": "#e8e8ee",
       "fontSize": 11
     },
@@ -222,7 +246,7 @@
       "type": "Text",
       "parent": "panel",
       "left": 96, "top": 540,
-      "text": "All four type filters ON by default — tap a chip to toggle that type out.",
+      "text": "All five type filters ON by default — click a chip to toggle, double-click to isolate.",
       "fontColor": "#56565f",
       "fontSize": 10
     }

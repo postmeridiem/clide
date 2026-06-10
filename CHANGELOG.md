@@ -31,6 +31,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Per-type filter chips on the tickets panel.** A row of toggle chips
+  (Initiative · Epic · Story · Task · Bug, large→small) below the filter box.
+  Click a chip to toggle that type; double-click to isolate it (chart-legend
+  solo); disabling the last one snaps all back on. ANDed with the text filter.
+  All on by default. (T-343)
 - **VS Code keybinding preset.** A `vscode` keymap mapping VS Code's default
   shortcuts (Ctrl+P, Ctrl+Shift+P, Ctrl+B, Ctrl+J, Ctrl+`, zoom, …) to clide.
   Activate via the "Keymap: VS Code" command or `app.keymap.preset = vscode`. (T-64)

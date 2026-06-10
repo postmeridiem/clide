@@ -2959,3 +2959,124 @@ Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87
 
 ## Wireframe
 docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 15:54:09', '2026-06-10 15:54:23', NULL, 'f5614424c00196aabab868db75483bf2', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket panel: per-type filter chips (Bug / Ticket / Epic / Initiative)', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 15:54:09', '2026-06-10 16:02:55', NULL, '83c5d82ad411e2827733928cdb81c6e0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4J5E6W983P1S7BE0FDPSMM', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Conversation card font sizes inconsistent: ClideCollapserCard vs ConversationCard', 'Two collapsible-card primitives sit adjacent in the Claude conversation stream but use different font-size tokens for the same visual roles, so labels/summaries are visibly 1-2px off between neighbouring cards.
+
+- ClideCollapserCard (lib/widgets/src/clide_collapser_card.dart) — the ''Activity'' / agent-run / edit-run cards: header label, collapsedSummary, and counter all use clideFontCaption (14).
+- ConversationCard (lib/builtin/claude/src/conversation_card.dart) — tool-use / result / ''denied'' cards: header label uses clideFontSmall (12), collapsedSummary uses clideFontMeta (13).
+
+Result: an ''Activity Bash …'' collapser and a neighbouring ''Bash · denied'' tool card render their label + collapsed summary at different sizes in the same list. Spotted in a screenshot of three stacked cards (collapser Bash, denied tool result, collapser Read).
+
+Fix: pick one set of tokens for the shared header/label/summary role across both primitives (likely align ConversationCard''s label to clideFontCaption and standardise the collapsed-summary size), or extract a shared card-header style. Tokens: clideFontCaption=14, clideFontMeta=13, clideFontSmall=12 (lib/widgets/src/typography.dart).', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 16:06:08', '2026-06-10 16:06:08', NULL, 'c858a9b7c474697611c3ff8240c61a2d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket panel: per-type filter chips (Bug / Ticket / Epic / Initiative)', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)
+
+Design revision (2026-06-10, supersedes the chip set/order above): FIVE chips, one per pql type — no story+task grouping. Ordered LARGE→SMALL left to right: Initiative, Epic, Story, Task, Bug. Each maps 1:1 to its pql type (initiative/epic/story/task/bug) with its TicketTypeColors dot+border (initiative #C792EA, epic #78A0F8, story #7DD3A8, task #9AA0AA grey, bug #E87D7D). All five ON by default. Toggle/solo(double-click)/last-off-reset behaviour unchanged. Wireframe updated + approved.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 15:54:09', '2026-06-10 16:06:25', NULL, '93554cd5afe5bd881b12bef2892e25b8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5TWC00GW0P3X02HZW', 'epic', NULL, 'UI tweaks & fixes', 'Ongoing umbrella for small, standalone UI polish, cosmetic tweaks, and visual/interaction bug fixes that don''t belong to a feature epic — color/token corrections, control placement, status surfaces, micro-interactions, and the wireframes that frame them. Children are independently shippable; the epic stays open as a rolling home for this class of work.
+
+**PERMANENT — never close.** This is a standing rolling tracker for loose UI/UX work and bugs, not a deliverable epic. It stays open indefinitely; only its children are completed/closed. Do not mark T-276 done even when all current children are closed — new tweaks/fixes get filed here on an ongoing basis.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-08 07:46:23', '2026-06-10 16:09:21', NULL, 'd9e663378cc6deec9bc85f95f5552db8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5TWC00GW0P3X02HZW', 'epic', NULL, 'UI tweaks & fixes', 'Ongoing umbrella for small, standalone UI polish, cosmetic tweaks, and visual/interaction bug fixes that don''t belong to a feature epic — color/token corrections, control placement, status surfaces, micro-interactions, and the wireframes that frame them. Children are independently shippable; the epic stays open as a rolling home for this class of work.
+
+**PERMANENT — never close.** This is a standing rolling tracker for loose UI/UX work and bugs, not a deliverable epic. It stays open indefinitely; only its children are completed/closed. Do not mark T-276 done even when all current children are closed — new tweaks/fixes get filed here on an ongoing basis.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-08 07:46:23', '2026-06-10 16:09:26', NULL, 'fc45344f2d71e9b71573100825c2bce7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5TWC00GW0P3X02HZW', 'epic', NULL, 'UI tweaks & fixes', 'Ongoing umbrella for small, standalone UI polish, cosmetic tweaks, and visual/interaction bug fixes that don''t belong to a feature epic — color/token corrections, control placement, status surfaces, micro-interactions, and the wireframes that frame them. Children are independently shippable; the epic stays open as a rolling home for this class of work.
+
+**PERMANENT — never close.** This is a standing rolling tracker for loose UI/UX work and bugs, not a deliverable epic. It stays open indefinitely; only its children are completed/closed. Do not mark T-276 done even when all current children are closed — new tweaks/fixes get filed here on an ongoing basis.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-08 07:46:23', '2026-06-10 16:09:57', NULL, 'a1ab5ae76714ede6d6a473db9b5d8aa9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4J5E6W983P1S7BE0FDPSMM', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Conversation card font sizes inconsistent: ClideCollapserCard vs ConversationCard', 'Two collapsible-card primitives sit adjacent in the Claude conversation stream but use different font-size tokens for the same visual roles, so labels/summaries are visibly 1-2px off between neighbouring cards.
+
+- ClideCollapserCard (lib/widgets/src/clide_collapser_card.dart) — the ''Activity'' / agent-run / edit-run cards: header label, collapsedSummary, and counter all use clideFontCaption (14).
+- ConversationCard (lib/builtin/claude/src/conversation_card.dart) — tool-use / result / ''denied'' cards: header label uses clideFontSmall (12), collapsedSummary uses clideFontMeta (13).
+
+Result: an ''Activity Bash …'' collapser and a neighbouring ''Bash · denied'' tool card render their label + collapsed summary at different sizes in the same list. Spotted in a screenshot of three stacked cards (collapser Bash, denied tool result, collapser Read).
+
+Fix: pick one set of tokens for the shared header/label/summary role across both primitives (likely align ConversationCard''s label to clideFontCaption and standardise the collapsed-summary size), or extract a shared card-header style. Tokens: clideFontCaption=14, clideFontMeta=13, clideFontSmall=12 (lib/widgets/src/typography.dart).', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 16:06:08', '2026-06-10 16:10:20', NULL, '140190d844d98929ecc83e30cdcc0745', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4J5E6W983P1S7BE0FDPSMM', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Conversation card font sizes inconsistent: ClideCollapserCard vs ConversationCard', 'Two collapsible-card primitives sit adjacent in the Claude conversation stream but use different font-size tokens for the same visual roles, so labels/summaries are visibly 1-2px off between neighbouring cards.
+
+- ClideCollapserCard (lib/widgets/src/clide_collapser_card.dart) — the ''Activity'' / agent-run / edit-run cards: header label, collapsedSummary, and counter all use clideFontCaption (14).
+- ConversationCard (lib/builtin/claude/src/conversation_card.dart) — tool-use / result / ''denied'' cards: header label uses clideFontSmall (12), collapsedSummary uses clideFontMeta (13).
+
+Result: an ''Activity Bash …'' collapser and a neighbouring ''Bash · denied'' tool card render their label + collapsed summary at different sizes in the same list. Spotted in a screenshot of three stacked cards (collapser Bash, denied tool result, collapser Read).
+
+Fix: pick one set of tokens for the shared header/label/summary role across both primitives (likely align ConversationCard''s label to clideFontCaption and standardise the collapsed-summary size), or extract a shared card-header style. Tokens: clideFontCaption=14, clideFontMeta=13, clideFontSmall=12 (lib/widgets/src/typography.dart).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 16:06:08', '2026-06-10 16:10:22', NULL, 'f02a03592e970322a82bf1be7002b7fa', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB4FDREHRYRR7B9ER72KCQKC', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Ticket panel: per-type filter chips (Bug / Ticket / Epic / Initiative)', 'Add a row of type-filter toggle chips at the top of the tickets panel, directly below the "Filter tickets…" box (no section header — the chips read on their own). One chip per ticket type the user thinks in: Bug, Ticket, Epic, Initiative. All four ON by default.
+
+## Behaviour
+- Single-click a chip → toggle that type in/out of the list.
+- Double-click a chip → isolate (solo) that type: turns it ON and all others OFF. Double-click the same chip again → restore all to ON. This is the chart-legend solo pattern (Plotly/Tableau/Grafana) — learnable and fully reversible.
+- Last-off resets to all-on: disabling the final remaining type snaps all chips back ON. An empty type filter means "no filter", so the list is never mysteriously blank.
+- Tooltip per chip: "Click to toggle · double-click to isolate".
+
+## Type mapping (pql → chip)
+pql ticket types are initiative, epic, story, task, bug (see lib/builtin/tickets/src/ticket_colors.dart). The four chips map as:
+- Bug → bug
+- Ticket → story + task (leaf work items)
+- Epic → epic
+- Initiative → initiative
+
+Each chip carries its type-colored dot + border using TicketTypeColors (bug #E87D7D, story/task green/grey, epic #78A0F8, initiative #C792EA).
+
+## Filtering
+- Type filter is ANDed with the existing text filter in _TicketsViewState (lib/builtin/tickets/src/tickets_view.dart): a ticket shows only if its type is enabled AND it matches the text filter.
+- When the type filter hides all items in a status section, that section collapses out (same as text-filter behaviour today).
+
+## Implementation notes
+- Active-chip visual: filled tint + type-colored border (active) vs muted/no border (inactive) — reuse the _Toggle pattern from lib/builtin/search/src/search_panel_view.dart and ClideTappable.
+- Persist nothing across sessions for v1 (always all-on on load); revisit if requested.
+- a11y: Semantics(button, toggled) per chip, mirroring the search-panel toggle.
+
+## Wireframe
+docs/design/wireframes/tickets/ticket-type-filters.json (+ .png export)
+
+Design revision (2026-06-10, supersedes the chip set/order above): FIVE chips, one per pql type — no story+task grouping. Ordered LARGE→SMALL left to right: Initiative, Epic, Story, Task, Bug. Each maps 1:1 to its pql type (initiative/epic/story/task/bug) with its TicketTypeColors dot+border (initiative #C792EA, epic #78A0F8, story #7DD3A8, task #9AA0AA grey, bug #E87D7D). All five ON by default. Toggle/solo(double-click)/last-off-reset behaviour unchanged. Wireframe updated + approved.', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 15:54:09', '2026-06-10 16:12:15', NULL, '3dd40475245455459d9f09d26ef34316', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
