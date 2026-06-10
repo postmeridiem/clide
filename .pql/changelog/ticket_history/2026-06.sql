@@ -3198,3 +3198,4 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 Notes (2026-06-10):
 1. Applies to BOTH rails — the left sidebar icon rail and the right context-bar icon rail. Reordering + persistence must work the same on each.
 2. After ordering, the left-most (first) item in the rail is the one that opens by default.', NULL, '2026-06-10 14:45:17', '2026-06-10 14:45:17', '2026-06-10 14:45:17', NULL, '86f1c477f9408ce87b624799a73b82c0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'status', 'backlog', 'ready', NULL, '2026-06-10 14:46:51', '2026-06-10 14:46:51', '2026-06-10 14:46:51', NULL, 'a3785538cc5ea4040c7f88ee615342b4', 2) ON CONFLICT(hash) DO NOTHING;

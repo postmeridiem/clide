@@ -2633,3 +2633,17 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 Notes (2026-06-10):
 1. Applies to BOTH rails — the left sidebar icon rail and the right context-bar icon rail. Reordering + persistence must work the same on each.
 2. After ordering, the left-most (first) item in the rail is the one that opens by default.', 'backlog', 'medium', NULL, NULL, NULL, '2026-04-23 20:32:06', '2026-06-10 14:45:17', NULL, '0a4deb6d577554435b76af528b170224', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM734YZ060Q63H40EYG', 'task', NULL, 'Standardize errno constants + logger in PTY/IPC/daemon', 'From the PTY/IPC error-handling audit (T-18, see docs/audits/pty-ipc-error-handling-2026-05-05.md). Two cleanup items rolled together:
+
+**Errno constants (audit item #23):**
+- Magic numbers (`4` for EINTR, `9` for EBADF, `28` for SIGWINCH, `1` for SIGHUP, `32` for EPIPE) appear inline across `lib/src/pty/session.dart` and `lib/src/pty/native_pty.dart`.
+- Centralize them in `lib/src/pty/errors.dart` or a sibling `posix.dart` as named constants.
+- Existing `lib/src/ipc/errno_mapping.dart` already has a `PosixErrno` class — extend it or move to a shared location both layers import from.
+
+**Logger standardization (audit item #22, partial #26):**
+- `lib/src/ipc/server.dart` uses `stderr.writeln(...)` directly; the rest of the daemon either uses no logger or a custom one.
+- The Flutter-host process often consumes stderr, so log lines disappear silently.
+- Pick one logger interface (kernel `log` already exists for the app side), wire `DaemonServer` and the daemon-side handlers to use it.
+- Dispatch error messages should prefix with the request `cmd` so log correlation works (audit item #26).
+
+**Out of scope for this ticket:** changes to log-LEVEL policy, log retention, log files vs stderr — pure substitution job.', 'ready', 'low', NULL, NULL, NULL, '2026-05-05 12:58:59', '2026-06-10 14:46:51', NULL, '1637ba89d9bf5d1e81a42247e6cf46bd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
