@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-06-10
+
 ### Added
 
 - **`clide://` deep links open files, safely.**
@@ -194,15 +196,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
-- **Every tool use in the conversation is now a collapsible card** on one
-  `ClideCollapserCard` primitive — activity runs, edit runs, sub-agent runs, and
-  each individual tool call (a single tool is a collapser over a one-item list).
-  Consistent chrome throughout: the collapsed ticker leads with the label +
-  echoed last line, the count sits in a fixed-width slot, and the status tick
-  (spinner while running, check / cross once done) is pinned hard against the
-  right edge while the chevron hugs the left; a `color` drives the border +
-  label tint. The inner content card carries its own per-item status, with even
-  padding on all sides. (T-305)
+- **Every tool use is now a collapsible card** on one `ClideCollapserCard`
+  primitive — activity / edit / sub-agent runs and each tool call (single = a
+  one-item list). The collapsed ticker shows the label + echoed last line + a
+  fixed-width count; the status tick hugs the right edge, the chevron the left;
+  `color` drives the border + label. (T-305)
 - The Claude composer's **slash typeahead**, the team-chat **@-mention** list,
   and the status-bar **theme switcher** now ride the shared
   `ClideAnchoredOverlay` + `ClideMenu` popover primitive, alongside the menu
@@ -261,15 +259,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   it now sits 1px below, the pane surface showing through the gap. (T-324)
 - **Re-showing an image after it changes on disk now refreshes.** Image cards,
   thumbnails, the lightbox, and `clide image show` keyed Flutter's image cache by
-  path alone, so overwriting a file in place (e.g. re-exporting a wireframe PNG)
-  kept showing the stale render. A new `ClideFileImage` folds the file's mtime +
-  size into the cache key, so an in-place change re-decodes. (T-312)
+  path alone, so overwriting a file in place showed the stale render. A new
+  `ClideFileImage` folds mtime + size into the key, so an in-place change
+  re-decodes. (T-312)
 - **The `context` / `thinking` / agent-prompt blocks are now carded like the
-  rest.** These muted meta blocks used to render frameless, reading as
-  unfinished `> context …` rows wedged between the framed tool cards. They now
-  sit in a proper bordered card — still muted, collapsed by default, with a
-  first-line summary and a left chevron toggle — matching the surrounding
-  cards. (T-306)
+  rest.** These muted meta blocks rendered frameless, reading as unfinished
+  `> context …` rows between the framed tool cards. They now sit in a bordered
+  card — still muted, collapsed by default, with a first-line summary and a left
+  chevron. (T-306)
 - **Numpad digits now pick permission/question options too.** The prompt card's
   number-key shortcuts only matched the top number row; numpad `1`-`9` now map to
   the same 1-9 selection, so the keypad works for Allow/Deny and question options.
