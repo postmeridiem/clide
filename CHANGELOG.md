@@ -16,6 +16,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- **A "Deny & simplify" option on the permission card.** Alongside Allow /
+  Allow-and-remember / Deny, a fourth button denies the action with a
+  preformatted note telling Claude it was too complex for the permission system
+  and to retry in a simpler, more granular form — explicitly without writing a
+  memory or changing permission settings. A typed note is appended. Addressable
+  by its number key (4, or 3 without remember). (T-311)
+
 ### Fixed
 
 - **The activity-card run-status spinner is now legible.** At 12px the spinning

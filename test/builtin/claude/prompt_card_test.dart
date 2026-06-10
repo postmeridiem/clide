@@ -230,6 +230,33 @@ void main() {
     expect((decision as DenyTool).message, 'write it under docs/ instead');
   });
 
+  testWidgets('permission: Deny & simplify resolves with the preformatted retry-simpler note (T-311)', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+    expect(find.text('3. Deny & simplify'), findsOneWidget); // slot 3 with no remember button
+    await tester.tap(find.text('3. Deny & simplify'));
+    await tester.pump();
+    final msg = (decision as DenyTool).message;
+    expect(msg, contains('too complex'));
+    // The clause that keeps Claude off the permission surface.
+    expect(msg, contains('do not add a memory'));
+    expect(msg, contains('change permission settings'));
+  });
+
+  testWidgets('permission: Deny & simplify appends the user note rather than discarding it (T-311)', (tester) async {
+    ToolDecision? decision;
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d)));
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), 'this is a glob, not a path');
+    await tester.pump();
+    await tester.tap(find.text('3. Deny & simplify'));
+    await tester.pump();
+    final msg = (decision as DenyTool).message;
+    expect(msg, contains('too complex'));
+    expect(msg, contains('User note: this is a glob, not a path'));
+  });
+
   testWidgets('permission: a typed note rides Allow as a follow-up note', (tester) async {
     ToolDecision? decision;
     await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d)));
@@ -518,6 +545,22 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
       await tester.pump();
       expect(d, isA<DenyTool>());
+    });
+
+    testWidgets('no remember: 3 = Deny & simplify (T-311)', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+      await tester.pump();
+      expect((d as DenyTool).message, contains('too complex'));
+    });
+
+    testWidgets('with a remember suggestion: 4 = Deny & simplify (T-311)', (tester) async {
+      ToolDecision? d;
+      await pumpCard(tester, permissionPrompt(suggestions: sugg), (x) => d = x);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
+      await tester.pump();
+      expect((d as DenyTool).message, contains('too complex'));
     });
 
     testWidgets('a number key selects a question option', (tester) async {

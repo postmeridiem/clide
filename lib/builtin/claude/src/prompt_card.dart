@@ -1,5 +1,6 @@
 /// The interactive prompt surface for the stream-json control channel
-/// (T-166, T-175, T-176, D-78): a permission Allow / Allow-and-remember / Deny,
+/// (T-166, T-175, T-176, D-78): a permission Allow / Allow-and-remember / Deny /
+/// Deny-and-simplify (T-311),
 /// or an `AskUserQuestion` picker (single = bare; multi = stepper + review).
 /// Rendered in the composer zone (not inline in the conversation) so
 /// interaction and conversation widgets don't mix — the pane swaps it in for
@@ -22,6 +23,14 @@ import 'package:flutter/widgets.dart';
 
 /// Sentinel option key for the always-present free-text "Other…" choice.
 const _kOther = '\u0000other';
+
+/// Preformatted note for the "Deny & simplify" permission option (T-311): deny
+/// THIS action and ask Claude to reformulate it more simply, explicitly without
+/// touching the permission surface (memories / settings).
+const _kDenySimplifyNote = 'Denied — this action is too complex for the permission system to approve cleanly. '
+    'Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) '
+    'to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not '
+    'change permission settings — just reformulate and try again.';
 
 class ToolPromptCard extends StatefulWidget {
   const ToolPromptCard({super.key, required this.prompt, required this.onResolve});
@@ -177,6 +186,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
       if (n == 1) return _then(_permAllow);
       if (canRemember && n == 2) return _then(() => _permAllow(remember: true));
       if (n == (canRemember ? 3 : 2)) return _then(_permDeny);
+      if (n == (canRemember ? 4 : 3)) return _then(_permDenySimplify);
       return false;
     }
     final qi = _currentQuestion();
@@ -216,6 +226,16 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 
   void _permDeny() => widget.onResolve(widget.prompt.promptId, DenyTool(_permNote() ?? 'Denied by the user.'));
 
+  /// Deny carrying a preformatted "this was too complex — retry simpler" note
+  /// (T-311). The "do not add a memory / change settings" clause keeps Claude
+  /// from trying to "fix" the permission surface instead of reformulating; the
+  /// user's own typed note, if any, is appended rather than discarded.
+  void _permDenySimplify() {
+    final user = _permNote();
+    final note = user == null ? _kDenySimplifyNote : '$_kDenySimplifyNote\n\nUser note: $user';
+    widget.onResolve(widget.prompt.promptId, DenyTool(note));
+  }
+
   (Color, String, List<Widget>) _permission(SurfaceTokens tokens) {
     final p = widget.prompt;
     final canRemember = p.permissionSuggestions.isNotEmpty;
@@ -245,6 +265,11 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
             ClideButton(label: '1. Allow', variant: ClideButtonVariant.primary, onPressed: () => _permAllow()),
             if (canRemember) ClideButton(label: "2. Allow & don't ask again", onPressed: () => _permAllow(remember: true)),
             ClideButton(label: '${canRemember ? '3' : '2'}. Deny', onPressed: _permDeny),
+            ClideButton(
+              label: '${canRemember ? '4' : '3'}. Deny & simplify',
+              tooltip: 'Deny and ask Claude to retry this action in a simpler format — complex interactions don\'t work well with the permission system.',
+              onPressed: _permDenySimplify,
+            ),
           ],
         ),
         const SizedBox(height: 10),
