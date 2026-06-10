@@ -3395,3 +3395,43 @@ SCOPE / DESIGN:
 Refs: lib/builtin/claude/src/activity_cluster.dart (groupConversation, _isFoldable, isDiffTool), lib/builtin/claude/src/conversation_view.dart (_ActivityCard at ~833, _toolUseCollapser ~615-657, _isAgentTool ~378). Related: T-230 (clustering), T-263, T-264, T-338.
 
 Tests: a groupConversation case asserting that two consecutive Agent tool-uses yield two separate cards (not one FoldedCluster), while two consecutive Bash calls still yield one Activity cluster.', NULL, '2026-06-10 15:27:01', '2026-06-10 15:27:01', '2026-06-10 15:27:01', NULL, '59b702a540ce65892ea2c6fce5d1a045', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB493JEW32CH0H3771TNHF7G', 'description', 'Filed 2026-06-10 from a user request: when the agent fans out multiple subagents (Task/Agent tool), each spawned subagent should get its OWN collapsing activity card. The space is worth it — a fan-out of N agents should read as N cards, not one lumped card.
+
+CURRENT BEHAVIOUR (confirmed): multiple Task/Agent spawns are MERGED into a single shared ''Activity / N steps'' cluster. groupConversation() in lib/builtin/claude/src/activity_cluster.dart:120-147 walks items and coalesces every consecutive _isFoldable item into one FoldedCluster. _isFoldable (:149-172, AssistantToolUse case at :161-164) only distinguishes diff tools (Edit/Write/MultiEdit/NotebookEdit/Update -> stay first-class) from everything else (Task/Agent/Bash/Read/... -> all foldable). The Task tool is treated identically to a Bash/Read call; there is NO subagent-aware grouping key (not toolUseId, not parent_tool_use_id). So 4 spawned agents render as one ''Activity 4 steps'' card.
+
+What recent work already does (do NOT redo): T-263 folds the subagent PROMPT into the Agent card; T-264 nests the subagent''s RUN items under the parent Agent card (the ''agent run'' collapser); T-338 routes sidechain items to their parent via parent_tool_use_id. All of that is about what shows INSIDE one agent''s card. This ticket is the complement: stop merging DISTINCT agent spawns into a shared cluster.
+
+SCOPE / DESIGN:
+- An AssistantToolUse where _isAgentTool(name) (Task/Agent) should break the current Activity cluster and render as its own first-class collapsing card (its own ClideCollapserCard with the prompt + nested ''agent run'' from T-263/T-264), rather than folding into the generic Activity cluster with sibling tool calls.
+- Decide grouping precisely in groupConversation/_isFoldable: an Agent tool-use is a cluster boundary (like a sticky item) OR emits its own single-item card. Adjacent non-agent foldables (Bash/Read/Grep) keep clustering into the normal Activity card as today.
+- Label each subagent card by its task/description (the Agent call''s label) so parallel fan-outs are distinguishable, not ''Activity N steps''.
+- Keep collapsed-by-default behaviour and the FoldLevel semantics; this changes the grouping boundary, not the fold mechanics.
+
+Refs: lib/builtin/claude/src/activity_cluster.dart (groupConversation, _isFoldable, isDiffTool), lib/builtin/claude/src/conversation_view.dart (_ActivityCard at ~833, _toolUseCollapser ~615-657, _isAgentTool ~378). Related: T-230 (clustering), T-263, T-264, T-338.
+
+Tests: a groupConversation case asserting that two consecutive Agent tool-uses yield two separate cards (not one FoldedCluster), while two consecutive Bash calls still yield one Activity cluster.', 'Filed 2026-06-10 from a user request: when the agent fans out multiple subagents (Task/Agent tool), each spawned subagent should get its OWN collapsing activity card. The space is worth it — a fan-out of N agents should read as N cards, not one lumped card.
+
+CURRENT BEHAVIOUR (confirmed): multiple Task/Agent spawns are MERGED into a single shared ''Activity / N steps'' cluster. groupConversation() in lib/builtin/claude/src/activity_cluster.dart:120-147 walks items and coalesces every consecutive _isFoldable item into one FoldedCluster. _isFoldable (:149-172, AssistantToolUse case at :161-164) only distinguishes diff tools (Edit/Write/MultiEdit/NotebookEdit/Update -> stay first-class) from everything else (Task/Agent/Bash/Read/... -> all foldable). The Task tool is treated identically to a Bash/Read call; there is NO subagent-aware grouping key (not toolUseId, not parent_tool_use_id). So 4 spawned agents render as one ''Activity 4 steps'' card.
+
+What recent work already does (do NOT redo): T-263 folds the subagent PROMPT into the Agent card; T-264 nests the subagent''s RUN items under the parent Agent card (the ''agent run'' collapser); T-338 routes sidechain items to their parent via parent_tool_use_id. All of that is about what shows INSIDE one agent''s card. This ticket is the complement: stop merging DISTINCT agent spawns into a shared cluster.
+
+SCOPE / DESIGN:
+- An AssistantToolUse where _isAgentTool(name) (Task/Agent) should break the current Activity cluster and render as its own first-class collapsing card (its own ClideCollapserCard with the prompt + nested ''agent run'' from T-263/T-264), rather than folding into the generic Activity cluster with sibling tool calls.
+- Decide grouping precisely in groupConversation/_isFoldable: an Agent tool-use is a cluster boundary (like a sticky item) OR emits its own single-item card. Adjacent non-agent foldables (Bash/Read/Grep) keep clustering into the normal Activity card as today.
+- Label each subagent card by its task/description (the Agent call''s label) so parallel fan-outs are distinguishable, not ''Activity N steps''.
+- Keep collapsed-by-default behaviour and the FoldLevel semantics; this changes the grouping boundary, not the fold mechanics.
+
+Refs: lib/builtin/claude/src/activity_cluster.dart (groupConversation, _isFoldable, isDiffTool), lib/builtin/claude/src/conversation_view.dart (_ActivityCard at ~833, _toolUseCollapser ~615-657, _isAgentTool ~378). Related: T-230 (clustering), T-263, T-264, T-338.
+
+Tests: a groupConversation case asserting that two consecutive Agent tool-uses yield two separate cards (not one FoldedCluster), while two consecutive Bash calls still yield one Activity cluster.
+
+SCOPE CLARIFICATION (2026-06-10, from user):
+
+1. RIGHT card, not just A card. Each per-agent card must pull in ALL of that agent''s nested run — the folded prompt (T-263) AND every nested response: prose, thinking, sidechain tool cards, and results (T-264) — attributed to the CORRECT agent even under a parallel fan-out where multiple agents'' sidechain items interleave in the stream. Reuse the existing _sidechainFold machinery (conversation_view.dart:188-256): runByToolUseId / promptsByToolUseId are already keyed by the owning Agent''s toolUseId, and resolveOwner''s direct route (conversation_view.dart:210-217) uses parent_tool_use_id (T-338) which disambiguates concurrent agents correctly. THE HAZARD: resolveOwner falls back to ''nearest'' = lastAgent (the most-recently-emitted Agent in stream order; conversation_view.dart:228, applied at :242). In a parallel fan-out any item that lacks parent_tool_use_id and a rooted parentUuid chain would mis-route to whichever agent was emitted last — landing in the WRONG card. Harden this: for the multi-agent case, drop or guard the nearest-lastAgent fallback so an unattributable item is rendered inline/orphaned (resolveOwner already returns null -> handled at :243) rather than mis-filed into a sibling agent''s card.
+
+2. PRESERVE the existing grouping. This ticket only adds an Agent-spawn cluster boundary; it must NOT regress the rest:
+   - Non-agent foldables (Bash/Read/Grep/LS/etc.) keep coalescing into the generic ''Activity / N steps'' cluster exactly as today (activity_cluster.dart groupConversation/_isFoldable).
+   - The intra-agent folding stays: prompt-into-call (T-263), run-nested-under-card (T-264), sidechain routing by parent_tool_use_id (T-338). Reuse them; do not rebuild.
+   - Net behaviour: a fan-out of N agents -> N distinct collapsed cards, each containing its own complete run; surrounding non-agent tool calls still group into their normal Activity card.
+
+Test additions: (a) two concurrent agents whose sidechain items interleave -> each agent''s run items land under its own card, none cross-attributed; (b) an unattributable sidechain item (no parent_tool_use_id, broken chain) is NOT swept into the nearest agent''s card; (c) regression: consecutive Bash/Read calls still form one Activity cluster.', NULL, '2026-06-10 15:28:52', '2026-06-10 15:28:52', '2026-06-10 15:28:52', NULL, '0352b24d88a4bf24ede628880fe9b502', 2) ON CONFLICT(hash) DO NOTHING;
