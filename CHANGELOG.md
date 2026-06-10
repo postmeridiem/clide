@@ -36,6 +36,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Run-status indicators no longer crash on rapid flips.** Switching status
+  back and forth within the 200ms cross-fade (e.g. running → success → running
+  across two bound Claude panes) tripped an AnimatedSwitcher duplicate-key
+  assertion and a cascade of follow-on errors. Each glyph now carries a key
+  unique per change, so an exiting and entering glyph never collide. (T-326)
 - **The activity-card run-status spinner is now legible.** At 12px the spinning
   logo mark read as a static speck; the run-status indicator on collapsible
   cards is bumped to a `clideIconHero` (26) so the running state is clear at a

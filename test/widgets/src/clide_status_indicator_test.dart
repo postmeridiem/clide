@@ -57,5 +57,37 @@ void main() {
       await tester.pumpAndSettle();
       expect(iconWith(CloseIcon), findsOneWidget);
     });
+
+    testWidgets('rapid status flips within the cross-fade do not collide (T-326)', (tester) async {
+      // Real animations (no disableAnimations) so the 200ms cross-fade overlaps
+      // exiting and entering glyphs — the condition that tripped a duplicate
+      // 'running' key. Pre-fix this threw "Duplicate keys found".
+      var status = ClideRunStatus.running;
+      late StateSetter set;
+      await tester.pumpWidget(harness(
+        f,
+        Center(
+          child: StatefulBuilder(builder: (ctx, s) {
+            set = s;
+            return ClideStatusIndicator(status: status);
+          }),
+        ),
+      ));
+
+      void flip(ClideRunStatus next) => set(() => status = next);
+
+      flip(ClideRunStatus.success);
+      await tester.pump(const Duration(milliseconds: 40));
+      flip(ClideRunStatus.running); // a 2nd 'running' while the 1st is still exiting
+      await tester.pump(const Duration(milliseconds: 40));
+      flip(ClideRunStatus.error);
+      await tester.pump(const Duration(milliseconds: 40));
+      flip(ClideRunStatus.success); // land on a static glyph
+      await tester.pump(const Duration(milliseconds: 40));
+
+      expect(tester.takeException(), isNull);
+      // Unmount so any in-flight spinner controller disposes (no pending timers).
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 }

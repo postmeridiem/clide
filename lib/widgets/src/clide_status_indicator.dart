@@ -17,19 +17,40 @@ import 'package:flutter/widgets.dart';
 
 enum ClideRunStatus { running, success, error }
 
-class ClideStatusIndicator extends StatelessWidget {
+class ClideStatusIndicator extends StatefulWidget {
   const ClideStatusIndicator({super.key, required this.status, this.size = 14});
 
   final ClideRunStatus status;
   final double size;
 
   @override
+  State<ClideStatusIndicator> createState() => _ClideStatusIndicatorState();
+}
+
+class _ClideStatusIndicatorState extends State<ClideStatusIndicator> {
+  /// Monotonic id bumped on every status change, folded into the child key. A
+  /// per-status-only key collides inside [AnimatedSwitcher]'s Stack when a
+  /// status re-appears (running → success → running within the cross-fade)
+  /// while its previous glyph is still animating out — the exiting and entering
+  /// children share `ValueKey('running')` and trip the duplicate-key assertion
+  /// (T-326). The sequence makes each appearance's key unique; a same-status
+  /// rebuild keeps the key, so it still doesn't re-animate.
+  int _seq = 0;
+
+  @override
+  void didUpdateWidget(ClideStatusIndicator old) {
+    super.didUpdateWidget(old);
+    if (old.status != widget.status) _seq++;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final (Widget glyph, String label) = switch (status) {
-      ClideRunStatus.running => (ClideSpinner(size: size, color: tokens.globalTextMuted, key: const ValueKey('running')), 'running'),
-      ClideRunStatus.success => (ClideIcon(const CheckIcon(), size: size, color: tokens.statusSuccess, key: const ValueKey('success')), 'succeeded'),
-      ClideRunStatus.error => (ClideIcon(const CloseIcon(), size: size, color: tokens.statusError, key: const ValueKey('error')), 'failed'),
+    final key = ValueKey('${widget.status.name}-$_seq');
+    final (Widget glyph, String label) = switch (widget.status) {
+      ClideRunStatus.running => (ClideSpinner(size: widget.size, color: tokens.globalTextMuted, key: key), 'running'),
+      ClideRunStatus.success => (ClideIcon(const CheckIcon(), size: widget.size, color: tokens.statusSuccess, key: key), 'succeeded'),
+      ClideRunStatus.error => (ClideIcon(const CloseIcon(), size: widget.size, color: tokens.statusError, key: key), 'failed'),
     };
     return Semantics(
       label: label,
