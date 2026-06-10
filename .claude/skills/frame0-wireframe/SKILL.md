@@ -32,8 +32,14 @@ Always check first:
 
 ## Core Workflow
 
+Wireframing is a **design conversation, not a batch job.** Produce **one screen
+at a time**, show it, and **stop for the user's reaction** before authoring the
+next. Each shown screen is a checkpoint — never fan out a whole set of
+wireframes unprompted, even if the user described several screens up front.
+
 1. **Health check** — verify Frame0 is running
-2. **Write wireframe JSON** — to `docs/design/wireframes/{category}/{name}.json`
+2. **Write wireframe JSON** — to `docs/design/wireframes/{category}/{name}.json`.
+   Author **one** screen.
 3. **Push to Frame0** — `frame0-sync.py push <file.json>`
 4. **Export PNG** — `frame0-sync.py export <file.json> <output.png>`
 5. **Show it inline** — surface the exported PNG in the conversation so the
@@ -45,7 +51,17 @@ Always check first:
      way to put an image in the clide conversation — a bare `Read` only shows
      it in the transcript, not in the UI the user is looking at.
    - **Otherwise**: `Read` the PNG so it renders inline in the transcript.
-6. **Clean up** — delete test/scratch pages from Frame0 when done
+6. **STOP and wait for approval** — after showing a screen, pause and ask the
+   user for feedback. Do **not** author, push, or export the next screen until
+   they give an explicit go-ahead. Iterate on the current screen until they're
+   happy, then proceed to the next one — looping back to step 2 for each.
+7. **Clean up** — delete test/scratch pages from Frame0 when done
+
+> **Multi-screen requests are still one-at-a-time.** If the user asks for
+> several screens, treat it as a queue: build the first, show it, get approval,
+> then move on. The only exception is an explicit, unambiguous instruction to
+> generate a batch without stopping (and even then prefer the batch-export
+> dry-run + approval flow below).
 
 ### Scripts
 
