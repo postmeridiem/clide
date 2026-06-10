@@ -44,6 +44,9 @@ class ClideTabBar extends StatelessWidget {
       explicitChildNodes: true,
       child: Container(
         height: height,
+        // A hairline of the surface behind, so the strip doesn't butt against
+        // the chrome directly above it (T-324).
+        margin: const EdgeInsets.only(top: 1),
         color: tokens.tabBarBackground,
         child: Row(
           children: [

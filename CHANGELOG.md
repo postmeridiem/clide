@@ -256,6 +256,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Tab strips get a hairline of breathing room.** The tab strip (Claude session
+  tabs, slot tabs) butted flush against the chrome above it, reading as cramped;
+  it now sits 1px below, the pane surface showing through the gap. (T-324)
 - **Re-showing an image after it changes on disk now refreshes.** Image cards,
   thumbnails, the lightbox, and `clide image show` keyed Flutter's image cache by
   path alone, so overwriting a file in place (e.g. re-exporting a wireframe PNG)

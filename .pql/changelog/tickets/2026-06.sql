@@ -2075,3 +2075,122 @@ The tab strip is ClideTabBar (lib/widgets/src/clide_tab_bar.dart) — a Containe
 Keep it a hairline (1px) so it relieves the cramping without shifting the layout noticeably. Watch the tabBarBackground vs the surface behind it so the 1px gap shows the intended color, not a seam.
 
 Acceptance: the tab strip has 1px of space above it; tabs no longer butt against the chrome edge; checked across the surfaces that use ClideTabBar.', 'backlog', 'low', NULL, NULL, NULL, '2026-06-10 11:26:07', '2026-06-10 11:26:07', NULL, '7b1fc03526ce721346981e261e130b8f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'task', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Native Phosphor glyph card — multi-icon list with optional labels/descriptions (previews + choice offers)', 'A conversation-pane card that renders one OR MANY Phosphor glyphs by name/codepoint, each with an optional label and an optional description line, so icons can be previewed and compared in the live pane — and so a set of candidate icons can be offered as a labelled choice list (e.g. picking settings-scope icons, T-302).
+
+## Why
+
+Picking icons needs to SEE real glyphs side by side with what each one means. Frame0 can''t render Phosphor (private-use codepoints, no font) and goldens render the font as Ahem boxes, so preview only works where the app has the font — a native card is the vehicle. Beyond a bare grid, real icon decisions are ''which of these N icons, for these N meanings'' — so each entry wants an optional label (what we''d call it) and an optional description (what it represents), turning the card into an offer/choice list.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a list/grid of entries, each entry = glyph + optional label + optional description, driven by the clide CLI (D-6 parity). Uses the bundled Phosphor.ttf via PhosphorIconPainter.
+
+### Multi-size rendering (per entry)
+
+Each icon is shown at SEVERAL sizes, not one: (1) a large hero rendering so the glyph''s detail is clearly legible, and (2) a sample at each font-size token the app actually uses inline, so you can judge how the glyph reads at real UI sizes. The relevant inline scale is in lib/widgets/src/typography.dart: clideFontBadge (11), clideFontSmall (12), clideFontMeta (13), clideFontCaption/clideFontMono (14), clideFontBody (15). Drive the inline samples off those tokens (not bare numbers) so the row tracks the scale if it changes. For the hero, REUSE the existing clideFontWelcomeBanner (52) token rather than adding a new constant — it''s already the app''s named oversized size; no new token needed. Lay the size samples out in a single row/strip per entry, smallest to largest, labelled with the token/px so a reviewer sees exactly where each size lands.
+
+### CLI shape + IPC wiring (mirror image.show exactly)
+
+Follow the image-card template (lib/src/daemon/image_commands.dart) end to end — it is the proven D-6 parity pattern:
+
+- REGISTRATION: a dotted `icon.show` command on DaemonDispatcher (invoked as `clide icon show`), declared with a CommandSchema — positional + per-arg ArgSpec — exactly like image.show''s `{positional: [''path''], args: {...}}`. Handler stays Flutter-free so it runs under `dart test`.
+- BARE PREVIEW (variadic): one or more icons as positionals via ArgType.stringList — `clide icon show gear folder gauge` — each a kebab-case name (resolved by PhosphorIcons.byName) or a 0xNNNN codepoint. stringList is already supported by the schema (lib/src/ipc/command_schema.dart) and the argv parser, so no new CLI plumbing.
+- LABELLED/DESCRIBED entries: a `--file <path.json>` flag whose value is a JSON array of `{"icon": "gear", "label": "Settings", "description": "global scope"}` (label, description optional); the handler reads and parses the file. NOTE: do NOT spec `--stdin` — clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals/flags/passthrough and has no stdin path, so a `--file` flag (or repeated flags) is the grounded choice unless we deliberately add stdin support as separate work.
+- RENDER PATH: validate + resolve icon names in the handler (inject a resolver the way image.show injects ImagePathResolver, so headless/dart-test stays filesystem-free), then publish on a dedicated MessageBus channel — e.g. `iconShowChannel = ''icon''`, peer of `imageShowChannel = ''image''` — captured post-boot in main.dart; the Claude extension subscribes to that literal and injects the card into the primary session''s conversation log. Honest failure (IpcError userError/notFound) on an unknown glyph name or a malformed/missing --file, and on no live UI bus (headless), mirroring image.show.
+- One card per invocation; entries render as rows (or a grid when label/description are absent).
+
+## Display-only card + interaction-zone selection (D-78 — decided)
+
+DECIDED: the display card is display-only; the SELECTION happens in the convo box (interaction zone), not on the card. The card renders the labelled icon options for the user to SEE; when a pick is needed, Claude offers a matching choice list in the interaction zone (AskUserQuestion-style options that replace the composer), and the user selects there. This keeps conversation widgets display-only per D-78 and the interaction-zone rule.
+
+The LABEL is the bridge between the two surfaces: Claude attaches a label to each icon on the display card, then offers the SAME labels as the options in the interaction-zone choice list — so ''I pick Settings'' in the convo box maps unambiguously back to the glyph the user saw on the card. That''s why per-entry labels are first-class here: they exist to facilitate this show-then-pick flow, with the description giving the extra context that doesn''t fit a one-word option. The card may still copy a codepoint/name on click (a convenience), but it never resolves the choice itself.
+
+## Notes / scope
+
+- Name->codepoint resolution ALREADY EXISTS: lib/widgets/src/icons/phosphor_glyphs.g.dart (generated, 1512 glyphs) + PhosphorIcons.byName. The earlier ''OPTIONAL: generate the full set'' caveat is resolved — every named glyph is already resolvable; the 49 curated consts in phosphor.dart remain curated sugar.
+- Every glyph already renders via PhosphorIconPainter(0xNNNN).
+- label and description are both optional per entry; an entry with neither degrades to the bare-preview look.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302); refined 2026-06-10 to cover multi-icon labelled offer/choice lists.
+
+## Acceptance
+
+- `icon.show` is registered on DaemonDispatcher with a CommandSchema and invoked as `clide icon show`, mirroring image.show; the handler is Flutter-free and publishes on an `icon` MessageBus channel injected by the Claude extension.
+- `clide icon show <name> [<name> ...]` accepts multiple icons (variadic stringList positionals) in one call and renders them in a single conversation card.
+- A `--file <path.json>` payload lets each icon carry an optional label and optional description, both rendered alongside the glyph (no --stdin — not supported by the CLI parser).
+- Each icon renders at multiple sizes: a hero at the existing clideFontWelcomeBanner (52) token plus one sample at each inline font-size token (badge 11 -> body 15), sized off the typography tokens and labelled so the reviewer sees legibility at real UI sizes.
+- The card is display-only (no inline selection); selection happens in the interaction zone (convo box) via a Claude-offered choice list whose options reuse the per-icon labels from the card.
+- Unknown/invalid icon names fail with a clear user error, not a blank glyph.
+
+FOLLOW-UPS: the piped-JSON (--stdin) variant is split out as T-315 (generic CLI stdin plumbing); image.show gets the same metadata/annotation treatment in T-316. T-313 ships with --file regardless of T-315.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-10 10:20:54', '2026-06-10 11:29:04', NULL, 'c09cb1299d29d33380f6f33d05528345', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2J2HWD66QAFDDRRWS5NM48', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Tab strip feels cramped against the chrome above — add 1px margin on top', 'The tab strip sits flush against the chrome/border directly above it, which reads as cramped (user screenshot: the ''primary'' / ''session 1'' tabs butting up against the top edge). Add ~1px of breathing room above the tab strip.
+
+The tab strip is ClideTabBar (lib/widgets/src/clide_tab_bar.dart) — a Container with a fixed height + tabBarBackground color, no top margin/padding. Options: add a 1px top margin on the ClideTabBar Container, or have the host that places it (e.g. multitab_pane.dart / the pane chrome) reserve 1px above. Prefer doing it where it won''t double-apply across the several surfaces that embed a tab bar (editor tabs, sidebar tabs, session tabs) — confirm it looks right in each, not just the Claude session host in the screenshot.
+
+Keep it a hairline (1px) so it relieves the cramping without shifting the layout noticeably. Watch the tabBarBackground vs the surface behind it so the 1px gap shows the intended color, not a seam.
+
+Acceptance: the tab strip has 1px of space above it; tabs no longer butt against the chrome edge; checked across the surfaces that use ClideTabBar.', 'ready', 'low', NULL, NULL, NULL, '2026-06-10 11:26:07', '2026-06-10 11:29:10', NULL, 'a41dd77ce4d26779d83e385a0701a2a8', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1XDWKQ594ET4GDYEFK5ZJ4', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Permission card: add ''Deny & simplify'' option that denies with a retry-simpler note', 'Add a fourth option to the Claude permission prompt card (lib/builtin/claude/src/prompt_card.dart) alongside Allow / Allow & don''t ask again / Deny.
+
+WHAT IT DOES
+A deny that carries a preformatted follow-up note telling Claude the action was too complex for the permission system and to retry in a simpler format. Implemented as a _permDeny variant that passes a fixed note into DenyTool (today _permDeny uses _permNote() ?? ''Denied by the user.'' at prompt_card.dart:202). The user''s own note field, if filled, should still be respected — append it to / combine with the preformatted text rather than discard it.
+
+LABEL: ''Deny & simplify'' (working label; placed after Deny).
+TOOLTIP: ClideButton already supports  (clide_button.dart:26) — add a mouseover explaining the behavior, e.g. ''Deny and ask Claude to retry this action in a simpler format — complex interactions don''t work well with the permission system.''
+
+PREFORMATTED DENY NOTE (workshop wording, starting point):
+"Denied — this action is too complex for the permission system to approve cleanly. Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not change permission settings — just reformulate and try again."
+The ''do not add a memory / do not change permission settings'' clause is deliberate: without it Claude tends to ''fix'' the permission system (writing memories, rewriting permission config), which means continuous fiddling with a surface we don''t want it touching.
+
+NUMBER-KEY SLOT
+_activateNumber (prompt_card.dart:161-164) maps 1=Allow, 2=Allow&remember (when canRemember), 3/2=Deny. Add the new option as the next index (4 when canRemember, else 3). Keep Deny as its own option; the new one is additive. Update the digit/numpad shortcut mapping accordingly (see also T-310 numpad parity).
+
+DESIGN NOTE — escalation behavior
+The deny note enters the conversation and stays in context, so repeated use within one session compounds (Claude leans progressively harder toward simpler formats). That''s largely the intended escalating pressure, but the note is phrased as a one-shot ''retry THIS action'' rather than a standing rule to limit over-correction. Worth watching in testing whether repeated denials over-bias toward trivial formats.
+
+ACCEPTANCE
+- A fourth button ''Deny & simplify'' appears on the permission card with a tooltip.
+- Activating it resolves the prompt as a deny whose note is the preformatted retry-simpler text (with the user''s typed note appended when present).
+- The note explicitly tells Claude not to add a memory or change permission settings.
+- Number-row and numpad digit shortcuts address the new option in the correct slot.
+- Widget test covers the new button resolving to a DenyTool with the expected note.
+
+CLARIFICATION (the TOOLTIP line above lost a word to shell escaping): ClideButton already exposes a tooltip parameter (clide_button.dart:17,26,42) — pass tooltip on the new button for the mouseover; no widget change needed.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 09:55:55', '2026-06-10 11:33:18', NULL, '99cabbaf7cef885905c6e3d44c8f9441', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1Q1Y3CYJHD7W5F68VDB6T4', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Surface Claude''s task list docked above the bottom input pane', 'Claude maintains a task/todo list during a session (the TodoWrite / TaskCreate checklist), but clide never shows it — it is completely invisible to the user. The transcript reader (lib/builtin/claude/src/transcript_reader.dart:205-212) skips the relevant event types and there is no model class for task items; the conversation view (conversation_view.dart) renders none. So the user has no view of what Claude is tracking or how far along a multi-step task is.
+
+Surface it as a compact, always-current task list DOCKED to the bottom input pane of the Claude conversation view. Per the Explore: the pane is a Column in claude_pane.dart (_ClaudePaneState.build, ~line 474-542) with ConversationView (Expanded) on top and the ToolPromptCard/ClaudeComposer at the bottom (~line 519-525); the task list should sit between them — directly above the composer (claude_composer.dart), non-expanded — so it stays pinned and visible as Claude works.
+
+Scope:
+- PARSE: model Claude''s task list from the transcript. Find the event type carrying the todo/task items (currently among the skipped types in transcript_reader.dart) and add a TaskList model + items (text + status: pending/in_progress/completed). Latest-write-wins — the list reflects the most recent todo state, not an append log.
+- RENDER: a docked task-list widget above the composer. Compact: collapsed/summary by default (e.g. ''N tasks · M done'' + current in_progress item), expandable to the full checklist. Per-item status glyph (pending/in-progress/done) using existing tokens + Phosphor icons (ui-design skill). Hide entirely when there are no tasks.
+- Keep it display-only and de-emphasised so it never competes with the composer for attention; honour D-78 (interaction zone) — this is a display surface, not an interactive control.
+- a11y: list semantics, status announced per item.
+
+Acceptance:
+1. When Claude has an active task list, it shows docked directly above the input pane and updates live as items change state.
+2. Empty/no-task sessions show nothing (no empty chrome).
+3. Collapsed by default with a one-line summary; expandable to the full list.
+4. Display-only; the composer keeps full function and focus behaviour.
+5. Tests: transcript_reader parses the task-list event into the model (incl. status transitions + latest-wins); widget renders states + collapse/expand + hidden-when-empty.
+
+Refs: conversation card patterns (conversation_card.dart), D-78 (interaction zone), ui-design skill (tokens/icons).', 'ready', 'medium', NULL, NULL, NULL, '2026-06-10 09:28:04', '2026-06-10 11:33:26', NULL, '72831c0e631550beddea279fa12f0657', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4KS233FGZE9H7ABWR', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Activity-card spinner too small to make out — enlarge it', 'The logo-mark spinner shown on in-progress activity/holder cards in the Claude conversation is too small to read as a spinner — it reads as a static speck. Enlarge it so the running state is legible at a glance.
+
+**Where**
+- `ClideSpinner` (lib/widgets/src/clide_spinner.dart) — defaults to size 14; renders the logo SVG at width/height = size.
+- `ClideStatusIndicator` (lib/widgets/src/clide_status_indicator.dart) — default size 14; maps running→ClideSpinner, success→check, error→cross at the same size.
+- Call sites: holder_card.dart:117 and :199 pass `size: 12` — the small value the user is seeing.
+
+**Direction (settle in review)**
+- Bump the spinner size on the activity cards (the `size: 12` call sites, and/or the indicator default) to something clearly legible — pull a concrete value from the ui-design control-geometry tokens rather than a magic number.
+- Keep the running spinner, success check, and error cross visually balanced at the new size (they share `size`), so the card doesn''t jump when the state settles.
+- Check the other ClideSpinner/StatusIndicator consumers (status surfaces) so the bump doesn''t bloat unrelated spots — may warrant sizing the cards explicitly rather than changing the shared default.
+
+**Acceptance**
+- The in-progress spinner on conversation activity cards is comfortably distinguishable as a spinning indicator; success/error glyphs stay aligned at the same footprint.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 21:22:28', '2026-06-10 11:33:35', NULL, 'a4e3c0840be6bc811fb82308051e6239', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2J2HWD66QAFDDRRWS5NM48', 'bug', '06FB0TNQM5TWC00GW0P3X02HZW', 'Tab strip feels cramped against the chrome above — add 1px margin on top', 'The tab strip sits flush against the chrome/border directly above it, which reads as cramped (user screenshot: the ''primary'' / ''session 1'' tabs butting up against the top edge). Add ~1px of breathing room above the tab strip.
+
+The tab strip is ClideTabBar (lib/widgets/src/clide_tab_bar.dart) — a Container with a fixed height + tabBarBackground color, no top margin/padding. Options: add a 1px top margin on the ClideTabBar Container, or have the host that places it (e.g. multitab_pane.dart / the pane chrome) reserve 1px above. Prefer doing it where it won''t double-apply across the several surfaces that embed a tab bar (editor tabs, sidebar tabs, session tabs) — confirm it looks right in each, not just the Claude session host in the screenshot.
+
+Keep it a hairline (1px) so it relieves the cramping without shifting the layout noticeably. Watch the tabBarBackground vs the surface behind it so the 1px gap shows the intended color, not a seam.
+
+Acceptance: the tab strip has 1px of space above it; tabs no longer butt against the chrome edge; checked across the surfaces that use ClideTabBar.', 'done', 'low', NULL, NULL, NULL, '2026-06-10 11:26:07', '2026-06-10 11:36:35', NULL, '06aaa8609442446ebb98cd83cf241450', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

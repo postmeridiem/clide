@@ -120,6 +120,9 @@ class _TabStrip<T> extends StatelessWidget {
 
     return Container(
       height: tabHeight,
+      // A hairline of the surface behind, so the strip doesn't butt against the
+      // chrome directly above it (T-324).
+      margin: const EdgeInsets.only(top: 1),
       decoration: BoxDecoration(
         color: tokens.tabBarBackground,
         border: Border(bottom: BorderSide(color: tokens.dividerColor)),
