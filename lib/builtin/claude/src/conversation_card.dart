@@ -246,7 +246,9 @@ class _ConversationCardState extends State<ConversationCard> {
     return Row(
       children: [
         if (widget.collapsible) _caret(tokens),
-        ClideText(widget.label, fontSize: clideFontSmall, color: widget.accent, fontFamily: clideMonoFamily),
+        // Header label size matches ClideCollapserCard (clideFontCaption) so
+        // neighbouring cards in the conversation stream align (T-344).
+        ClideText(widget.label, fontSize: clideFontCaption, color: widget.accent, fontFamily: clideMonoFamily),
         // While collapsed, show a one-line gist next to the label so the card
         // still says what it holds.
         if (_collapsed && summary != null) ...[

@@ -117,7 +117,9 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
           Expanded(
             child: ClideText(
               widget.collapsedSummary!,
-              fontSize: clideFontCaption,
+              // Summary one step below the label, matching ConversationCard so
+              // collapser + tool cards read consistently in the stream (T-344).
+              fontSize: clideFontMeta,
               fontFamily: clideMonoFamily,
               color: tokens.globalTextMuted,
               maxLines: 1,

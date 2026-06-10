@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Consistent card font sizes in the Claude conversation.** Tool/result cards
+  and the Activity/run collapser cards now share the same header-label (14) and
+  collapsed-summary (13) sizes, so neighbouring cards in the stream no longer
+  render 1–2px apart. (T-344)
 - **"Deny & simplify" no longer shows a loud red error.** A denial the user
   deliberately chose (Deny & simplify) folds into a muted, collapsed "denied"
   card instead of the prominent expanded-red block reserved for genuine tool
