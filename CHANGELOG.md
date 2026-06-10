@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-06-10
+
 ### Fixed
 
 - **Tools like `pql` resolve when clide is launched from the desktop on Linux.**
