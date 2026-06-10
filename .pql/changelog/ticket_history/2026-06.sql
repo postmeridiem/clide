@@ -3125,3 +3125,34 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB1Q1Y3CYJHD7W5F68VDB6T4', 'status', 'backlog', 'ready', NULL, '2026-06-10 11:33:26', '2026-06-10 11:33:26', '2026-06-10 11:33:26', NULL, 'f280d9b2793130900d5e470c4cb6c088', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4KS233FGZE9H7ABWR', 'status', 'backlog', 'ready', NULL, '2026-06-10 11:33:35', '2026-06-10 11:33:35', '2026-06-10 11:33:35', NULL, 'bb110c716ec26f37ed4ece36b582d4d5', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2J2HWD66QAFDDRRWS5NM48', 'status', 'ready', 'done', NULL, '2026-06-10 11:36:35', '2026-06-10 11:36:35', '2026-06-10 11:36:35', NULL, '376bbab713452158f399f02429870546', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4KS233FGZE9H7ABWR', 'description', 'The logo-mark spinner shown on in-progress activity/holder cards in the Claude conversation is too small to read as a spinner — it reads as a static speck. Enlarge it so the running state is legible at a glance.
+
+**Where**
+- `ClideSpinner` (lib/widgets/src/clide_spinner.dart) — defaults to size 14; renders the logo SVG at width/height = size.
+- `ClideStatusIndicator` (lib/widgets/src/clide_status_indicator.dart) — default size 14; maps running→ClideSpinner, success→check, error→cross at the same size.
+- Call sites: holder_card.dart:117 and :199 pass `size: 12` — the small value the user is seeing.
+
+**Direction (settle in review)**
+- Bump the spinner size on the activity cards (the `size: 12` call sites, and/or the indicator default) to something clearly legible — pull a concrete value from the ui-design control-geometry tokens rather than a magic number.
+- Keep the running spinner, success check, and error cross visually balanced at the new size (they share `size`), so the card doesn''t jump when the state settles.
+- Check the other ClideSpinner/StatusIndicator consumers (status surfaces) so the bump doesn''t bloat unrelated spots — may warrant sizing the cards explicitly rather than changing the shared default.
+
+**Acceptance**
+- The in-progress spinner on conversation activity cards is comfortably distinguishable as a spinning indicator; success/error glyphs stay aligned at the same footprint.', 'The logo-mark spinner shown on in-progress activity/holder cards in the Claude conversation is too small to read as a spinner — it reads as a static speck. Enlarge it so the running state is legible at a glance.
+
+**Where**
+- `ClideSpinner` (lib/widgets/src/clide_spinner.dart) — defaults to size 14; renders the logo SVG at width/height = size.
+- `ClideStatusIndicator` (lib/widgets/src/clide_status_indicator.dart) — default size 14; maps running→ClideSpinner, success→check, error→cross at the same size.
+- Call sites: holder_card.dart:117 and :199 pass `size: 12` — the small value the user is seeing.
+
+**Direction (settle in review)**
+- Bump the spinner size on the activity cards (the `size: 12` call sites, and/or the indicator default) to something clearly legible — pull a concrete value from the ui-design control-geometry tokens rather than a magic number.
+- Keep the running spinner, success check, and error cross visually balanced at the new size (they share `size`), so the card doesn''t jump when the state settles.
+- Check the other ClideSpinner/StatusIndicator consumers (status surfaces) so the bump doesn''t bloat unrelated spots — may warrant sizing the cards explicitly rather than changing the shared default.
+
+**Acceptance**
+- The in-progress spinner on conversation activity cards is comfortably distinguishable as a spinning indicator; success/error glyphs stay aligned at the same footprint.
+
+**Initial trial**
+- For the first cut, double the current size: the `size: 12` activity-card call sites go to `size: 24`. Trial that footprint, then settle the final value in review against the control-geometry tokens.', NULL, '2026-06-10 11:55:15', '2026-06-10 11:55:15', '2026-06-10 11:55:15', NULL, '3be7c3ff633afbc67c91dd3f97c27e6f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4KS233FGZE9H7ABWR', 'status', 'ready', 'done', NULL, '2026-06-10 12:05:17', '2026-06-10 12:05:17', '2026-06-10 12:05:17', NULL, 'a19ce81190caca50c2628a98835d41a3', 2) ON CONFLICT(hash) DO NOTHING;

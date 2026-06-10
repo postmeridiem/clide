@@ -85,5 +85,10 @@ const double clideIconHitTarget = 16;
 /// Emphatic icon (standalone affordances, primary action glyphs).
 const double clideIconEmphatic = 18;
 
+/// Hero icon — large enough to read at a glance, e.g. the activity-card run
+/// status where the spinner must be legible as motion, not a static speck
+/// (T-304). Success/error glyphs share it so the card doesn't jump on settle.
+const double clideIconHero = 24;
+
 /// Standard control height (tab, button, list row).
 const double clideControlHeight = 28;

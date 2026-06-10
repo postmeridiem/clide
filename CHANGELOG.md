@@ -16,6 +16,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The activity-card run-status spinner is now legible.** At 12px the spinning
+  logo mark read as a static speck; the run-status indicator on collapsible
+  cards is bumped to a `clideIconHero` (24) so the running state is clear at a
+  glance. The check / cross share the size, so the card doesn't jump on settle.
+  (T-304)
+
 ## [2.2.0] — 2026-06-10
 
 ### Added

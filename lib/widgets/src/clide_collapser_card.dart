@@ -31,6 +31,7 @@ import 'package:clide/widgets/src/clide_status_indicator.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/icons/chevron.dart';
+import 'package:clide/widgets/src/spacing.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
 
@@ -139,7 +140,7 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
         // Status — the icon hard against the right edge.
         if (widget.status != null) ...[
           const SizedBox(width: 8),
-          ClideStatusIndicator(status: widget.status!, size: 12),
+          ClideStatusIndicator(status: widget.status!, size: clideIconHero),
         ],
       ],
     );
