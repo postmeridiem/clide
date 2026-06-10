@@ -17,6 +17,7 @@ import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/icons/phosphor.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -61,6 +62,41 @@ class _ClideLightboxState extends State<ClideLightbox> {
 
   void _reset() => _tc.value = Matrix4.identity();
 
+  /// A single tap that lands on the dimmed canvas around the image dismisses,
+  /// matching Esc / the close button (T-309). A tap on the actual image pixels
+  /// (not the transparent letterbox that fills the viewer) does not — nor does a
+  /// drag/zoom, which the [InteractiveViewer] consumes so no tap fires.
+  void _onTapUp(TapUpDetails d) {
+    final rect = _imageRect();
+    if (rect != null && rect.contains(d.globalPosition)) return;
+    widget.onDismiss();
+  }
+
+  /// On-screen rect of the painted image (fit:contain, after any zoom/pan), or
+  /// null if there's no image to find (a non-image child → any tap dismisses).
+  Rect? _imageRect() {
+    final root = context.findRenderObject();
+    if (root == null) return null;
+    RenderImage? image;
+    void find(RenderObject o) {
+      if (image != null) return;
+      if (o is RenderImage) {
+        image = o;
+        return;
+      }
+      o.visitChildren(find);
+    }
+
+    root.visitChildren(find);
+    final ri = image;
+    final pixels = ri?.image;
+    if (ri == null || pixels == null) return null;
+    final natural = Size(pixels.width.toDouble(), pixels.height.toDouble());
+    final painted = applyBoxFit(BoxFit.contain, natural, ri.size).destination;
+    final local = Alignment.center.inscribe(painted, Offset.zero & ri.size);
+    return MatrixUtils.transformRect(ri.getTransformTo(null), local);
+  }
+
   void _onScroll(PointerSignalEvent e) {
     if (e is! PointerScrollEvent) return;
     final current = _tc.value.getMaxScaleOnAxis();
@@ -101,6 +137,7 @@ class _ClideLightboxState extends State<ClideLightbox> {
                 onPointerSignal: _onScroll,
                 child: GestureDetector(
                   onDoubleTap: _reset,
+                  onTapUp: _onTapUp,
                   child: InteractiveViewer(
                     transformationController: _tc,
                     minScale: widget.minScale,

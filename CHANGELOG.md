@@ -36,6 +36,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Clicking outside the image in the lightbox now closes it.** Previously only
+  the thin margin dismissed — a click on the dimmed canvas beside a letterboxed
+  image hit the viewer and did nothing. A single tap outside the painted image
+  now closes it (matching Esc / the × button); tapping, dragging, or zooming the
+  image still doesn't. (T-309)
 - **Run-status indicators no longer crash on rapid flips.** Switching status
   back and forth within the 200ms cross-fade (e.g. running → success → running
   across two bound Claude panes) tripped an AnimatedSwitcher duplicate-key
