@@ -150,4 +150,43 @@ void main() {
       }
     });
   });
+
+  group('PqlClient — transient retry (T-350)', () {
+    late Directory tmp;
+    setUp(() async => tmp = await Directory.systemTemp.createTemp('clide_fakepql_'));
+    tearDown(() async {
+      if (await tmp.exists()) await tmp.delete(recursive: true);
+    });
+
+    // A fake `pql` whose body is [body]; a fresh `$0.n` counter file per test
+    // lets a script "recover" after N invocations.
+    Future<PqlClient> fakePql(String body) async {
+      final f = File('${tmp.path}/pql');
+      await f.writeAsString('#!/bin/sh\n$body\n');
+      await Process.run('chmod', ['+x', f.path]);
+      return PqlClient(workDir: Directory.current, toolchain: ToolchainView.resolved(ResolvedPaths(pql: f.path)));
+    }
+
+    test('a genuine (non-busy) error surfaces immediately', () async {
+      final p = await fakePql('exit 2');
+      await expectLater(p.files(), throwsA(isA<PqlException>().having((e) => e.exitCode, 'exitCode', 2)));
+    });
+
+    test('a persistent db-busy (exit 69) throws after exhausting retries', () async {
+      final p = await fakePql('exit 69');
+      await expectLater(p.files(), throwsA(isA<PqlException>().having((e) => e.exitCode, 'exitCode', 69)));
+    });
+
+    test('a transient db-busy (exit 69) recovers on retry', () async {
+      final p = await fakePql(r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$c"; '
+          r'if [ "$n" -lt 3 ]; then exit 69; fi; echo "[]"');
+      expect(await p.files(), isEmpty); // retried through two busies to success
+    });
+
+    test('a "database is locked" stderr (non-69 exit) is also retried', () async {
+      final p = await fakePql(r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$c"; '
+          r'if [ "$n" -lt 3 ]; then echo "database is locked" >&2; exit 1; fi; echo "[]"');
+      expect(await p.files(), isEmpty);
+    });
+  });
 }

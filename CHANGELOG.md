@@ -16,6 +16,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **pql sidebar panes no longer stick on a transient startup error.** A
+  too-early or db-busy pql failure (the planning DB still settling, or a
+  SQLite lock under concurrent writes) is now retried a few times before
+  surfacing, instead of leaving the pane on "pql … failed" until a manual
+  refresh. (T-350)
+
 ## [2.3.0] — 2026-06-10
 
 ### Fixed

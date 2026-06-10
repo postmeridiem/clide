@@ -162,33 +162,59 @@ class PqlClient {
     return const {};
   }
 
+  /// pql's exit code for a locked / unavailable planning DB (EX_UNAVAILABLE) —
+  /// a transient SQLite-busy condition under concurrent access (T-350).
+  static const int _kBusyExitCode = 69;
+  static const int _kMaxAttempts = 4;
+
   Future<Object?> _run(List<String> args) async {
-    final ProcessResult r;
-    try {
-      r = await Process.run(
-        toolchain.pql,
-        args,
-        workingDirectory: workDir.path,
-      );
-    } on ProcessException catch (e) {
-      throw PqlException(
-        'pql ${args.first}: ${e.message}',
-        exitCode: e.errorCode,
-        stderr: e.toString(),
-      );
+    for (var attempt = 1; attempt <= _kMaxAttempts; attempt++) {
+      final ProcessResult r;
+      try {
+        r = await Process.run(
+          toolchain.pql,
+          args,
+          workingDirectory: workDir.path,
+        );
+      } on ProcessException catch (e) {
+        throw PqlException(
+          'pql ${args.first}: ${e.message}',
+          exitCode: e.errorCode,
+          stderr: e.toString(),
+        );
+      }
+      final stderr = (r.stderr as String).trim();
+      // pql 1.5+ returns exit 0 with an empty `[]` for zero matches, so any
+      // non-zero exit is a real error (older pql used exit 2 for empty).
+      if (r.exitCode != 0) {
+        // A transient db-busy / still-settling failure — a sidebar pane firing
+        // its one-shot fetch too early at startup, or contention from
+        // concurrent pql writes — would otherwise stick until a manual refresh.
+        // Retry a few times with short backoff first. Genuine errors aren't
+        // busy, so they still surface immediately. (T-350)
+        if (attempt < _kMaxAttempts && _isTransient(r.exitCode, stderr)) {
+          await Future<void>.delayed(Duration(milliseconds: 100 * attempt));
+          continue;
+        }
+        throw PqlException(
+          'pql ${args.first} failed',
+          exitCode: r.exitCode,
+          stderr: stderr,
+        );
+      }
+      final stdout = (r.stdout as String).trim();
+      if (stdout.isEmpty) return null;
+      return jsonDecode(stdout);
     }
-    final stderr = (r.stderr as String).trim();
-    // pql 1.5+ returns exit 0 with an empty `[]` for zero matches, so any
-    // non-zero exit is a real error (older pql used exit 2 for empty).
-    if (r.exitCode != 0) {
-      throw PqlException(
-        'pql ${args.first} failed',
-        exitCode: r.exitCode,
-        stderr: stderr,
-      );
-    }
-    final stdout = (r.stdout as String).trim();
-    if (stdout.isEmpty) return null;
-    return jsonDecode(stdout);
+    // Unreachable: the loop returns, continues, or throws on the final attempt.
+    throw StateError('pql retry loop exhausted without a result');
+  }
+
+  /// Whether a non-zero pql exit looks like a transient db-busy / not-yet-ready
+  /// condition worth retrying, vs. a genuine error to surface immediately.
+  static bool _isTransient(int exitCode, String stderr) {
+    if (exitCode == _kBusyExitCode) return true;
+    final s = stderr.toLowerCase();
+    return s.contains('database is locked') || s.contains('db busy') || s.contains('database busy') || s.contains('locked');
   }
 }
