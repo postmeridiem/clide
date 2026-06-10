@@ -41,15 +41,23 @@ dart test -r "$REPORTER" --concurrency=1 --tags pty test/pty/session_test.dart t
 # serial-tagged tests (concurrency-vulnerable — run in their own --concurrency=1
 # pass below). See dart_test.yaml + T-193.
 if [[ "$coverage" == 1 ]]; then
+  # Each pass writes its raw coverage into a per-run temp dir (via
+  # --coverage-path), never the shared coverage/lcov.info / lcov.parallel.info.
+  # So a concurrent `flutter test --coverage` — a second push gate, or a
+  # `make test` during a push — can't race or delete this run's intermediates
+  # (which crashed merge_lcov with FileNotFoundError). Only the final merged
+  # result lands in coverage/lcov.info, via an atomic rename within coverage/.
+  # (T-345)
+  COV_TMP="$(mktemp -d "${TMPDIR:-/tmp}/clide-cov.XXXXXX")"
+  trap 'rm -rf "$COV_TMP" "coverage/.lcov.$$.info"' EXIT
   echo "==> flutter test --coverage (parallel pool; excludes pty + serial)"
-  flutter test -r "$REPORTER" --coverage --exclude-tags "pty || serial" --timeout 60s
-  cp coverage/lcov.info coverage/lcov.parallel.info
+  flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/parallel.info" --exclude-tags "pty || serial" --timeout 60s
   echo "==> flutter test --coverage (serial-tagged; --concurrency=1)"
-  flutter test -r "$REPORTER" --coverage --tags serial --concurrency=1 --timeout 60s
+  flutter test -r "$REPORTER" --coverage --coverage-path "$COV_TMP/serial.info" --tags serial --concurrency=1 --timeout 60s
   echo "==> merge coverage (parallel + serial passes → coverage/lcov.info)"
-  python3 ci/merge_lcov.py coverage/lcov.parallel.info coverage/lcov.info > coverage/lcov.merged.info
-  mv coverage/lcov.merged.info coverage/lcov.info
-  rm -f coverage/lcov.parallel.info
+  mkdir -p coverage
+  python3 ci/merge_lcov.py "$COV_TMP/parallel.info" "$COV_TMP/serial.info" > "coverage/.lcov.$$.info"
+  mv -f "coverage/.lcov.$$.info" coverage/lcov.info
 else
   echo "==> flutter test (dev; parallel pool, excludes pty + serial)"
   flutter test -r "$REPORTER" --exclude-tags "pty || serial" --concurrency=12 --timeout 60s
