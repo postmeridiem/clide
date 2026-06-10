@@ -395,8 +395,7 @@ void _openUrl(BuildContext context, String url) {
 /// file, or null if it doesn't name a real repo file (T-300). Delegates the
 /// (pure, testable) path logic to [resolveWorkspaceFilePath] with the open
 /// project root.
-String? _resolveRepoFile(BuildContext context, String raw) =>
-    resolveWorkspaceFilePath(ClideKernel.of(context).project.current?.path, raw);
+String? _resolveRepoFile(BuildContext context, String raw) => resolveWorkspaceFilePath(ClideKernel.of(context).project.current?.path, raw);
 
 /// Resolve [raw] (a path-like token) against the workspace [root] to an absolute
 /// path, or null if it doesn't name a real file under the repo (T-300). The
