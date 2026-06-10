@@ -26,10 +26,12 @@ void main() {
   testWidgets('a bare repo path in prose is tappable and opens with no line', (tester) async {
     String? path;
     int? line = -1;
-    await tester.pumpWidget(harness(f, md('see lib/app.dart for the entry point', onOpen: (p, l) {
-      path = p;
-      line = l;
-    })));
+    await tester.pumpWidget(harness(
+        f,
+        md('see lib/app.dart for the entry point', onOpen: (p, l) {
+          path = p;
+          line = l;
+        })));
     await tester.pump();
 
     await tester.tap(find.text('lib/app.dart'));
@@ -41,10 +43,12 @@ void main() {
   testWidgets('a path:line ref opens at the line', (tester) async {
     String? path;
     int? line;
-    await tester.pumpWidget(harness(f, md('crash at lib/app.dart:42 today', onOpen: (p, l) {
-      path = p;
-      line = l;
-    })));
+    await tester.pumpWidget(harness(
+        f,
+        md('crash at lib/app.dart:42 today', onOpen: (p, l) {
+          path = p;
+          line = l;
+        })));
     await tester.pump();
 
     await tester.tap(find.text('lib/app.dart:42'));
@@ -66,10 +70,12 @@ void main() {
   testWidgets('a backticked path is clickable', (tester) async {
     String? path;
     int? line;
-    await tester.pumpWidget(harness(f, md('open `lib/app.dart:7`', onOpen: (p, l) {
-      path = p;
-      line = l;
-    })));
+    await tester.pumpWidget(harness(
+        f,
+        md('open `lib/app.dart:7`', onOpen: (p, l) {
+          path = p;
+          line = l;
+        })));
     await tester.pump();
 
     await tester.tap(find.text('lib/app.dart:7'));
