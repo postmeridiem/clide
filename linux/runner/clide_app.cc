@@ -113,7 +113,13 @@ static void clide_app_activate(GApplication* application) {
   // D-057: frameless custom chrome.
   gtk_window_set_decorated(window, FALSE);
   gtk_window_set_title(window, "clide");
+  // Run the decoration suppression on both realize (the X11 hint) and map. The
+  // Wayland server-decoration request needs a live wl_surface, which GTK only
+  // creates on map — at realize gdk_wayland_window_get_wl_surface() is still
+  // null and the request bails, leaving KWin (which defaults to server-side
+  // decorations on Wayland) to draw its own title bar (T-351).
   g_signal_connect(window, "realize", G_CALLBACK(on_window_realize), nullptr);
+  g_signal_connect(window, "map", G_CALLBACK(on_window_realize), nullptr);
 
   gtk_window_set_default_size(window, 1280, 720);
 

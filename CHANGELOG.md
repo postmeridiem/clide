@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Frameless window chrome works on KDE Plasma 6 / KWin 6.** The Wayland
+  server-decoration request fired on `realize`, before GTK created the
+  surface, so it bailed and KWin (which defaults to server-side decorations)
+  kept drawing its own title bar. It now also fires on `map`. (T-351)
 - **pql sidebar panes no longer stick on a transient startup error.** A
   too-early or db-busy pql failure (the planning DB still settling, or a
   SQLite lock under concurrent writes) is now retried a few times before
