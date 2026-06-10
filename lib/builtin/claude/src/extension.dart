@@ -378,7 +378,7 @@ class ClaudeExtension extends ClideExtension {
       _ctx?.dialog.show<Object>(
         (c, dismiss) => ClideLightbox(
           onDismiss: dismiss,
-          child: Image.file(File(path), fit: BoxFit.contain),
+          child: Image(image: ClideFileImage(path), fit: BoxFit.contain),
         ),
       );
       return;

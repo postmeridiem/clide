@@ -11,7 +11,6 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
@@ -499,8 +498,8 @@ class _ConversationTurn extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 360),
-                  child: Image.file(
-                    File(m.path),
+                  child: Image(
+                    image: ClideFileImage(m.path),
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
                     errorBuilder: (_, __, ___) => _imagePlaceholder(m.path),
@@ -522,8 +521,8 @@ class _ConversationTurn extends StatelessWidget {
     ClideKernel.of(context).dialog.show<Object>(
           (ctx, dismiss) => ClideLightbox(
             onDismiss: dismiss,
-            child: Image.file(
-              File(path),
+            child: Image(
+              image: ClideFileImage(path),
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => _imagePlaceholder(path),
             ),

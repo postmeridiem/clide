@@ -3,13 +3,12 @@
 /// A bounded, keyboard-activatable thumbnail that opens the full image in the
 /// shared lightbox (T-252) on tap. Used both for `@<path>` image tokens in the
 /// conversation log and for the composer's attachment chips, so the two stay
-/// visually consistent. Reads the file directly via `Image.file` (dart:io) —
-/// pasted temp files live outside the workspace, so this is not gated by the
-/// `files.read` allow-list (D-80); it's display-only. A missing/unreadable file
-/// degrades to a muted placeholder instead of throwing.
+/// visually consistent. Reads the file directly via [ClideFileImage] (which
+/// re-decodes when the file changes in place, T-312) — pasted temp files live
+/// outside the workspace, so this is not gated by the `files.read` allow-list
+/// (D-80); it's display-only. A missing/unreadable file degrades to a muted
+/// placeholder instead of throwing.
 library;
-
-import 'dart:io';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -20,8 +19,8 @@ void openImageLightbox(BuildContext context, String path) {
   ClideKernel.of(context).dialog.show<Object>(
         (ctx, dismiss) => ClideLightbox(
           onDismiss: dismiss,
-          child: Image.file(
-            File(path),
+          child: Image(
+            image: ClideFileImage(path),
             fit: BoxFit.contain,
             errorBuilder: (ctx, _, __) => _placeholder(ctx, 48),
           ),
@@ -65,8 +64,8 @@ class ImageThumbnail extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(radius),
-            child: Image.file(
-              File(path),
+            child: Image(
+              image: ClideFileImage(path),
               width: size,
               height: size,
               fit: BoxFit.cover,

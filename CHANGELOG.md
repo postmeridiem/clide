@@ -256,6 +256,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Re-showing an image after it changes on disk now refreshes.** Image cards,
+  thumbnails, the lightbox, and `clide image show` keyed Flutter's image cache by
+  path alone, so overwriting a file in place (e.g. re-exporting a wireframe PNG)
+  kept showing the stale render. A new `ClideFileImage` folds the file's mtime +
+  size into the cache key, so an in-place change re-decodes. (T-312)
 - **The `context` / `thinking` / agent-prompt blocks are now carded like the
   rest.** These muted meta blocks used to render frameless, reading as
   unfinished `> context …` rows wedged between the framed tool cards. They now
