@@ -3085,3 +3085,36 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'parent_id', 'T-276', 'T-317', NULL, '2026-06-10 11:11:10', '2026-06-10 11:11:10', '2026-06-10 11:11:10', NULL, '994f7c1bd8f3f205dc7183cccf7d4329', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ACSDBDZARV3NNGYD9NYYR', 'parent_id', 'T-276', 'T-317', NULL, '2026-06-10 11:11:10', '2026-06-10 11:11:10', '2026-06-10 11:11:10', NULL, 'e0ba90285dafac31357bb999d8e12c36', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB16YM1Y910T07Y1Y22MGTEM', 'status', 'ready', 'done', NULL, '2026-06-10 11:16:41', '2026-06-10 11:16:41', '2026-06-10 11:16:41', NULL, '9873b3f3b5d107be1146224ac48b9b45', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7162Z26FDWXG35VH0', 'description', 'Tier 5 of the build plan: bring the canvas pane (Obsidian-style spatial whiteboard) and the graph view (force-directed view of vault links) to feature parity.
+
+**Canvas pane (`builtin.canvas`):**
+- Render `.canvas` files (Obsidian-compatible JSON) — nodes (note, text, group, image), edges, layout state.
+- Pan/zoom via `InteractiveViewer`; node selection, drag, resize.
+- Edit affordances: add note from file picker, add text node, draw edge between nodes.
+- Persist layout back to the `.canvas` file on disk.
+
+**Graph view (`builtin.graph`):**
+- Force-directed layout of the current vault (or a filtered subset) — nodes are notes, edges are wikilinks.
+- Hover highlights connected subgraph; click opens the note in the editor.
+- Filter pane: tag include/exclude, file glob, depth-from-active.
+- pql provides the link data (`pql backlinks` / `pql outlinks`); rendering owned in-app.
+
+Both panes use the existing `MultitabPane` (T-83) for tab management once they ship. Each lives in its own slot per D-47 (canvas in workspace, graph in context panel).', 'Tier 5 of the build plan: bring the canvas pane (Obsidian-style spatial whiteboard) and the graph view (force-directed view of vault links) to feature parity.
+
+**Canvas pane (`builtin.canvas`):**
+- Render `.canvas` files (Obsidian-compatible JSON) — nodes (note, text, group, image), edges, layout state.
+- Pan/zoom via `InteractiveViewer`; node selection, drag, resize.
+- Edit affordances: add note from file picker, add text node, draw edge between nodes.
+- Persist layout back to the `.canvas` file on disk.
+
+**Graph view (`builtin.graph`):**
+- Force-directed layout of the current vault (or a filtered subset) — nodes are notes, edges are wikilinks.
+- Hover highlights connected subgraph; click opens the note in the editor.
+- Filter pane: tag include/exclude, file glob, depth-from-active.
+- pql provides the link data (`pql backlinks` / `pql outlinks`); rendering owned in-app.
+
+Both panes use the existing `MultitabPane` (T-83) for tab management once they ship. Each lives in its own slot per D-47 (canvas in workspace, graph in context panel).
+
+MERGED (2026-06-10) into the unified canvas epic T-317 (decision D-91). The canvas rendering work consolidates onto one clide-owned canvas renderer driven by JSON; .canvas becomes an import format converted into that JSON rather than a native schema. T-7''s scope is preserved as children of T-317: canvas pane -> T-322, graph view -> T-323. This epic is cancelled as superseded; track the work under T-317.', NULL, '2026-06-10 11:17:31', '2026-06-10 11:17:31', '2026-06-10 11:17:31', NULL, 'e7d70c5b631bd6109f1b83b55c857c20', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM67JSC5RKS6M9182KG', 'parent_id', 'T-7', 'T-276', NULL, '2026-06-10 11:18:12', '2026-06-10 11:18:12', '2026-06-10 11:18:12', NULL, 'df23887d88f2a45e8ad12a72a4b27407', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7162Z26FDWXG35VH0', 'status', 'backlog', 'cancelled', NULL, '2026-06-10 11:18:15', '2026-06-10 11:18:15', '2026-06-10 11:18:15', NULL, '64906dcc15f8f1b32034640a7e9aab82', 2) ON CONFLICT(hash) DO NOTHING;
