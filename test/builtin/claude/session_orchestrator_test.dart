@@ -60,6 +60,32 @@ void main() {
     expect(created, hasLength(1));
   });
 
+  // T-374: spawn() check-then-acts across awaits; without the in-flight
+  // map, two CONCURRENT spawns both passed the registry check and the
+  // loser's live claude process was orphaned.
+  test('two concurrent spawns for one id share one session and one process (T-374)', () async {
+    final (a, b) = await (orch.spawn(spec('primary')), orch.spawn(spec('primary'))).wait;
+    expect(identical(a, b), isTrue);
+    expect(created, hasLength(1));
+  });
+
+  test('a failed spawn clears the in-flight entry so a retry can proceed (T-374)', () async {
+    var calls = 0;
+    final flaky = ClaudeSessionOrchestrator(
+      processFactory: ({required sessionArgs, required cwd, env}) async {
+        calls++;
+        if (calls == 1) throw StateError('spawn blew up');
+        final p = _FakeProc();
+        created.add(p);
+        return p;
+      },
+    );
+    await expectLater(flaky.spawn(spec('primary')), throwsStateError);
+    final m = await flaky.spawn(spec('primary'));
+    expect(m.id, 'primary');
+    expect(calls, 2);
+  });
+
   test('hide keeps the process alive and in the registry; show restores it', () async {
     await orch.spawn(spec('primary'));
     orch.hide('primary');

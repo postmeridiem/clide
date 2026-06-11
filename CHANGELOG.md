@@ -94,6 +94,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   app process's working directory — `$HOME` for desktop launches, and the
   wrong repo after a project switch. (T-381)
 
+- **Two simultaneous spawns of the same Claude session no longer leak a
+  process.** Concurrent spawn calls for one pane id both passed the registry
+  check and the loser's live process was orphaned; spawns for an id are now
+  coalesced onto one in-flight future. (T-374)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

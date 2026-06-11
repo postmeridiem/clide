@@ -188,7 +188,28 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   /// (T-269): the existing session belongs to the old repo, so it is torn down
   /// and a fresh one spawned for the new repo — a pane must never inherit
   /// another workspace's conversation.
-  Future<ManagedSession> spawn(SpawnSpec spec) async {
+  Future<ManagedSession> spawn(SpawnSpec spec) {
+    // Serialize concurrent spawns per id (T-374): the body check-then-acts
+    // on _sessions across two awaits, so two racing callers would both
+    // pass the check and the loser's live claude process would be orphaned.
+    // The first caller installs the future synchronously; the rest await
+    // it. (A racing different-cwd spawn for the same id also coalesces —
+    // the workspace-switch flow is sequential, so that pair never races.)
+    final inFlight = _spawning[spec.id];
+    if (inFlight != null) return inFlight;
+    final f = _spawn(spec);
+    _spawning[spec.id] = f;
+    unawaited(
+      f.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
+        if (identical(_spawning[spec.id], f)) _spawning.remove(spec.id);
+      }),
+    );
+    return f;
+  }
+
+  final Map<String, Future<ManagedSession>> _spawning = {};
+
+  Future<ManagedSession> _spawn(SpawnSpec spec) async {
     final existing = _sessions[spec.id];
     if (existing != null) {
       if (existing.cwd == spec.cwd) return existing;
