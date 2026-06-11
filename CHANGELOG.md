@@ -73,6 +73,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   alive on every project switch, with stale watcher events leaking into the
   new workspace. (T-367)
 
+- **Expanded activity cards are readable by screen readers again.** The
+  collapser's summarized button semantics excluded the whole card, so
+  expanding a run announced nothing inside it; the exclusion is now scoped
+  to the header and the inner cards stay in the a11y tree. (T-370)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

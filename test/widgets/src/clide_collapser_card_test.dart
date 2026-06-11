@@ -155,6 +155,25 @@ void main() {
     );
   });
 
+  // T-370: the summarized button semantics used to wrap the WHOLE card with
+  // excludeSemantics, wiping every expanded child from the a11y tree — a
+  // screen-reader user could expand a run and hear nothing inside it.
+  testWidgets('expanded children are present in the semantics tree (T-370)', (tester) async {
+    final handle = tester.ensureSemantics();
+    await pump(tester, expanded: true);
+    expect(find.bySemanticsLabel('Edits, 3 edits, expanded'), findsOneWidget);
+    expect(find.bySemanticsLabel('item body'), findsOneWidget, reason: 'expanded content must be readable by AT');
+    handle.dispose();
+  });
+
+  testWidgets('collapsed children are absent from the semantics tree, header summarizes (T-370)', (tester) async {
+    final handle = tester.ensureSemantics();
+    await pump(tester);
+    expect(find.bySemanticsLabel('Edits, 3 edits, collapsed'), findsOneWidget);
+    expect(find.bySemanticsLabel('item body'), findsNothing);
+    handle.dispose();
+  });
+
   testWidgets('no counter + no status renders a bare ticker without error', (tester) async {
     await pump(tester, counter: null, status: null, summary: null);
     expect(find.text('Edits'), findsOneWidget);
