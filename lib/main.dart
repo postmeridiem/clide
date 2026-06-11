@@ -116,7 +116,11 @@ Future<void> main() async {
   McpServer? mcpServer;
   final ipcLog = Logger();
 
-  Future<void> swapIpcServer(DaemonDispatcher dispatcher, Directory workRoot) async {
+  // IPC-server swaps must run one-at-a-time — see the swapIpcServer wrapper
+  // below doSwapIpcServer for why. (T-352)
+  Future<void> swapChain = Future<void>.value();
+
+  Future<void> doSwapIpcServer(DaemonDispatcher dispatcher, Directory workRoot) async {
     if (kIsWeb) return;
     // Already serving this exact workspace? Reuse the live server.
     // The startup factory binds the launch CWD, then the project-open
@@ -171,6 +175,22 @@ Future<void> main() async {
     if (client != null) {
       await client.reconnectAt(server.socketPath);
     }
+  }
+
+  // Serialize IPC-server swaps. The boot factory fires a swap to the launch
+  // CWD with unawaited(); the project-open flow then fires another to the
+  // real repo. Unserialized, the two interleave and the late-finishing boot
+  // swap can clobber the repo bind — reconnecting the daemon client to the
+  // launch-CWD (HOME) socket, so pql/git/files run against the wrong
+  // workspace. That surfaced as the ticket/decision sidebars failing on first
+  // load (stale/global pql.db) yet working after a manual refresh. Chaining
+  // every swap makes them apply in call order; the repo swap is issued last
+  // and therefore wins. (T-352)
+  Future<void> swapIpcServer(DaemonDispatcher dispatcher, Directory workRoot) {
+    final next = swapChain.then((_) => doSwapIpcServer(dispatcher, workRoot));
+    // A failed swap must not break the chain for the next one.
+    swapChain = next.catchError((Object _) {});
+    return next;
   }
 
   DaemonDispatcher buildDispatcher(

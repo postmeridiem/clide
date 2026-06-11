@@ -16,6 +16,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Ticket and decision sidebars reliably load on first open (real fix).** The
+  2.3.1 re-fetch-on-open helped only when a project is picked *after* the window
+  is up; with sticky-startup the project opens during boot, before the panes
+  mount, so they never saw the event. The underlying cause was a race: the boot
+  IPC-server swap (to the launch CWD) and the project-open swap (to the repo)
+  ran concurrently, and the late-finishing boot swap could clobber the repo
+  bind — leaving the daemon's pql/git/files pointed at the launch directory
+  (HOME) and the sidebars erroring on a stale/global pql.db. Swaps are now
+  serialized so the repo bind always wins. (T-352)
+
 ## [2.3.1] — 2026-06-10
 
 ### Fixed
