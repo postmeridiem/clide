@@ -132,6 +132,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   warnings) accumulated in a list no surface rendered; they now raise
   toasts with matching severity. (T-382)
 
+- **Failed `clide claude.*` commands now exit non-zero.** Sixteen handlers
+  reported success with an error message buried in the payload, so scripts
+  could not detect failures like an unknown permission mode; they now
+  return proper error envelopes per the D-6 contract. (T-391)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
