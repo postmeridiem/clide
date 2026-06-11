@@ -23,6 +23,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   below the result — connected only while the card is expanded. Commands with no
   followable file show a muted "nothing to follow" note. (T-325)
 
+- **Double-tap-modifier shortcuts (e.g. double-Shift "Search Everywhere").**
+  The keymap can now bind a bare modifier and a double-tap sequence
+  (`shift shift`). All four presets (default, vim, vscode, jetbrains) map
+  double-Shift to the quick-open finder — JetBrains' "Search Everywhere"
+  gesture, aliased to clide's existing fuzzy file finder. (T-341)
+
 ### Changed
 
 - **Each spawned subagent gets its own collapsing activity card.** A fan-out of
@@ -68,13 +74,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   so the mode indicator and composer stayed stuck on "plan". The approval now
   syncs the tracked mode to `default`. (T-337)
 
-### Added
+### Security
 
-- **Double-tap-modifier shortcuts (e.g. double-Shift "Search Everywhere").**
-  The keymap can now bind a bare modifier and a double-tap sequence
-  (`shift shift`). All four presets (default, vim, vscode, jetbrains) map
-  double-Shift to the quick-open finder — JetBrains' "Search Everywhere"
-  gesture, aliased to clide's existing fuzzy file finder. (T-341)
+- **`editor.open` / `editor.save` are now workspace-confined.** Both verbs
+  accepted absolute paths and `..` traversal verbatim — an unconfined read
+  and write primitive over IPC. They now pass the same path-safety guard as
+  `files.read`, including a symlink re-check at save time. (T-363)
 
 ## [2.3.3] — 2026-06-11
 

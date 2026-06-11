@@ -9,6 +9,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import '../files/path_safety.dart';
 import '../ipc/envelope.dart';
 import '../panes/event_sink.dart';
 import 'buffer.dart';
@@ -212,10 +213,13 @@ class EditorRegistry {
     events.emit(IpcEvent(subsystem: 'editor', kind: kind, timestamp: DateTime.now().toUtc(), data: data));
   }
 
+  /// Resolve a buffer path to disk under the workspace root, with the
+  /// same traversal/symlink containment as files.* (T-363). A buffer is
+  /// a WRITE surface (save), so the D-80 extra read roots do not apply —
+  /// strictly workspace-confined. Throws [PathOutsideRoot] on escape.
   String _absolutePathOf(String repoRelative) {
-    if (repoRelative.startsWith('/')) return repoRelative;
     final sep = Platform.pathSeparator;
-    return '${workspaceRoot.absolute.path}$sep${repoRelative.replaceAll('/', sep)}';
+    return resolveUnderRootFollowingSymlinks(workspaceRoot, repoRelative.replaceAll('/', sep));
   }
 
   // Support JSON decode of Selection from IPC args.

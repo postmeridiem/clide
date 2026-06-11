@@ -13,6 +13,7 @@ import 'dart:io' show FileSystemException;
 
 import '../editor/buffer.dart' show Selection;
 import '../editor/registry.dart';
+import '../files/path_safety.dart' show PathOutsideRoot;
 import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/errno_mapping.dart';
@@ -84,6 +85,13 @@ Future<IpcResponse> _open(IpcRequest req, EditorRegistry r) async {
       r.setSelection(buf.id, Selection.collapsed(_offsetForLine(buf.content, line)));
     }
     return IpcResponse.ok(id: req.id, data: buf.toJson());
+  } on PathOutsideRoot {
+    // Same containment contract as files.read (T-363); a buffer is a
+    // write surface, so no D-80 extra-root widening here.
+    return IpcResponse.err(
+      id: req.id,
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'),
+    );
   } on FileSystemException catch (e) {
     final errno = e.osError?.errorCode;
     if (errno != null) {
@@ -190,7 +198,17 @@ Future<IpcResponse> _setContent(IpcRequest req, EditorRegistry r) async {
 Future<IpcResponse> _save(IpcRequest req, EditorRegistry r) async {
   final id = _resolveId(req, r);
   if (id == null) return _notFound(req.id, 'no active buffer');
-  final ok = await r.save(id);
+  final bool ok;
+  try {
+    ok = await r.save(id);
+  } on PathOutsideRoot {
+    // Defense in depth — open already validates, but a symlink can be
+    // swapped in under the buffer's path between open and save (T-363).
+    return IpcResponse.err(
+      id: req.id,
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace'),
+    );
+  }
   if (!ok) return _notFound(req.id, 'no such buffer: $id');
   return IpcResponse.ok(id: req.id, data: {'id': id, 'saved': true});
 }

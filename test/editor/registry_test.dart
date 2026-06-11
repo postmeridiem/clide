@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/src/editor/registry.dart';
+import 'package:clide/src/files/path_safety.dart' show PathOutsideRoot;
 import 'package:test/test.dart';
 
 void main() {
@@ -210,6 +211,48 @@ void main() {
       expect(readme.settings.indentSize, 4);
       final changed = sink.ofKind('editor.settings-changed');
       expect(changed.map((e) => e.data['id']), contains(readme.id));
+    });
+  });
+
+  // T-363: editor.open/save returned absolute paths verbatim and did no
+  // `..` normalization — an unconfined read AND write primitive over IPC
+  // while files.read was carefully guarded.
+  group('path confinement (T-363)', () {
+    test('open rejects .. traversal out of the workspace', () async {
+      final outside = await Directory.systemTemp.createTemp('clide-editor-outside-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      await File('${outside.path}/secret.txt').writeAsString('secret');
+      final escape = '../${outside.path.split('/').last}/secret.txt';
+      await expectLater(reg.open(escape), throwsA(isA<PathOutsideRoot>()));
+    });
+
+    test('open rejects absolute paths outside the workspace', () async {
+      await expectLater(reg.open('/etc/hostname'), throwsA(isA<PathOutsideRoot>()));
+    });
+
+    test('open accepts an absolute path inside the workspace', () async {
+      final buf = await reg.open('${sandbox.path}/README.md');
+      expect(buf.content, contains('Hello'));
+    });
+
+    test('open rejects a symlink pointing outside the workspace', () async {
+      final outside = await Directory.systemTemp.createTemp('clide-editor-outside-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      await File('${outside.path}/secret.txt').writeAsString('secret');
+      Link('${sandbox.path}/sneaky').createSync('${outside.path}/secret.txt');
+      await expectLater(reg.open('sneaky'), throwsA(isA<PathOutsideRoot>()));
+    });
+
+    test('save rejects a buffer whose path now symlinks outside', () async {
+      // Open a legitimate file, then swap a symlink in under its path.
+      final buf = await reg.open('victim.txt');
+      reg.setContent(buf.id, 'attacker-controlled');
+      final outside = await Directory.systemTemp.createTemp('clide-editor-outside-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      await File('${outside.path}/target.txt').writeAsString('original');
+      Link('${sandbox.path}/victim.txt').createSync('${outside.path}/target.txt');
+      await expectLater(reg.save(buf.id), throwsA(isA<PathOutsideRoot>()));
+      expect(await File('${outside.path}/target.txt').readAsString(), 'original');
     });
   });
 }
