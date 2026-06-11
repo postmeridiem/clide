@@ -533,6 +533,36 @@ void main() {
       expect(find.bySemanticsLabel('agent run, 2 steps, collapsed'), findsNothing);
     });
 
+    testWidgets('parallel agents: interleaved run items route by parentToolUseId to their own card (T-342)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'A'}),
+        AssistantToolUse(uuid: 'mB', timestamp: _t, isSidechain: false, toolUseId: 'tB', name: 'Task', input: const {'description': 'B'}),
+        // Sidechain prose for the two agents, interleaved + tagged with the
+        // owning agent's tool-use id (T-338 direct route).
+        AssistantTextMessage(uuid: 'rB', timestamp: _t, isSidechain: true, parentToolUseId: 'tB', text: 'FROM B'),
+        AssistantTextMessage(uuid: 'rA', timestamp: _t, isSidechain: true, parentToolUseId: 'tA', text: 'FROM A'),
+      ]);
+      // Each agent gets its own 1-step run, not one pooled 2-step run under the
+      // last-emitted agent — proof the interleaved items routed by their own
+      // parentToolUseId (pooling would show one "2 steps" run, zero "1 step").
+      expect(find.bySemanticsLabel('agent run, 1 step, collapsed'), findsNWidgets(2));
+      expect(find.bySemanticsLabel('agent run, 2 steps, collapsed'), findsNothing);
+    });
+
+    testWidgets('parallel agents: an unattributable sidechain item orphans, not swept into the last agent (T-342)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'A'}),
+        AssistantToolUse(uuid: 'mB', timestamp: _t, isSidechain: false, toolUseId: 'tB', name: 'Task', input: const {'description': 'B'}),
+        // No parentToolUseId and no rooted parentUuid chain — unattributable.
+        AssistantTextMessage(uuid: 'lost', timestamp: _t, isSidechain: true, text: 'UNROUTED PROSE'),
+      ]);
+      // With >1 agent the nearest-agent fallback is dropped, so this orphans and
+      // renders inline as "agent" prose instead of being filed under agent B.
+      expect(find.text('UNROUTED PROSE'), findsOneWidget); // visible inline, not hidden in a collapsed run
+      expect(find.text('agent'), findsOneWidget);
+      expect(find.bySemanticsLabel('agent run, 1 step, collapsed'), findsNothing); // neither agent gained a run from it
+    });
+
     testWidgets('a successful sidechain result folds into its run tool card, not a separate step (T-264)', (tester) async {
       await pumpWith(tester, [
         AssistantToolUse(uuid: 'mA', timestamp: _t, isSidechain: false, toolUseId: 'tA', name: 'Task', input: const {'description': 'x'}),

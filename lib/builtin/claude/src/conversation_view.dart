@@ -205,6 +205,15 @@ class _ConversationViewState extends State<ConversationView> {
       if (it is AssistantToolUse) toolUseIds.add(it.toolUseId);
     }
 
+    // With more than one agent in the turn (a parallel fan-out), the
+    // "nearest preceding agent" fallback is unsafe: an item with no
+    // parent_tool_use_id and no rooted parentUuid chain would mis-file into
+    // whichever agent was emitted last — landing in a SIBLING agent's card.
+    // Drop the fallback in that case so an unattributable item orphans
+    // (rendered inline) rather than cross-attributed (T-342). A single agent
+    // has only one possible owner, so the fallback stays safe there.
+    final multipleAgents = agentByToolUseId.length > 1;
+
     AssistantToolUse? resolveOwner(ConversationItem item, AssistantToolUse? nearest) {
       // Direct route: stream-json hands us the spawning Agent's tool-use id on
       // the item itself (T-338) — no chain to walk.
@@ -223,7 +232,7 @@ class _ConversationViewState extends State<ConversationView> {
         if (sidechainByUuid[parent] != true) break; // left the run's chain
         cur = parent;
       }
-      return nearest;
+      return multipleAgents ? null : nearest;
     }
 
     final owned = <String>{};
@@ -371,9 +380,9 @@ class _ConversationViewState extends State<ConversationView> {
 /// used for the "claude" message card's stripe + label.
 const claudeAccent = Color(0xFFD97757);
 
-/// The tool names that launch a sub-agent (sidechain). Claude Code emits
-/// `Task`; the Agent SDK surface uses `Agent` — accept both (T-263).
-bool _isAgentTool(String name) => name == 'Task' || name == 'Agent';
+/// The tool names that launch a sub-agent (sidechain) — shared with the
+/// grouping pass so "is this an agent spawn?" has one definition (T-342).
+bool _isAgentTool(String name) => isAgentTool(name);
 
 /// Open a governance/ticket record clicked in the conversation (T-279) in its
 /// context-pane reader, reusing the existing `selection` MessageBus addressing

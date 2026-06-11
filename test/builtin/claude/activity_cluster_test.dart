@@ -155,4 +155,34 @@ void main() {
       expect(out.map((g) => g.runtimeType.toString()), ['StickyItem', 'StickyItem', 'StickyItem']);
     });
   });
+
+  group('agent spawns are their own card (T-342)', () {
+    test('two consecutive Agent spawns yield two separate cards, not one cluster', () {
+      final groups = groupConversation([_tool('1', 'Task'), _tool('2', 'Task')], FoldLevel.tools);
+      expect(groups, hasLength(2));
+      expect(groups.every((g) => g is StickyItem), isTrue);
+    });
+
+    test('an agent spawn breaks an Activity cluster of sibling tools', () {
+      final groups = groupConversation([_tool('1', 'Bash'), _result('1'), _tool('2', 'Task'), _tool('3', 'Bash'), _result('3')], FoldLevel.tools);
+      expect(groups.map((g) => g.runtimeType.toString()), ['FoldedCluster', 'StickyItem', 'FoldedCluster']);
+      expect(((groups[1] as StickyItem).item as AssistantToolUse).name, 'Task');
+    });
+
+    test("the SDK 'Agent' tool is treated as an agent spawn too", () {
+      expect(groupConversation([_tool('1', 'Agent')], FoldLevel.tools).single, isA<StickyItem>());
+    });
+
+    test('agents stay first-class even at L3 (everything), so parallel agents never merge', () {
+      final groups = groupConversation([_tool('1', 'Task'), _tool('2', 'Task')], FoldLevel.everything);
+      expect(groups, hasLength(2));
+      expect(groups.every((g) => g is StickyItem), isTrue);
+    });
+
+    test('regression: consecutive Bash calls still form one Activity cluster', () {
+      final groups = groupConversation([_tool('1', 'Bash'), _result('1'), _tool('2', 'Bash'), _result('2')], FoldLevel.tools);
+      expect(groups, hasLength(1));
+      expect((groups.single as FoldedCluster).items, hasLength(4));
+    });
+  });
 }

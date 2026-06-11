@@ -74,6 +74,14 @@ final class EditRun extends RenderGroup {
 /// Tools whose result is a diff the user wants to keep first-class at L1/L2.
 bool isDiffTool(String name) => const {'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Update'}.contains(name);
 
+/// Tool names that spawn a sub-agent (sidechain): Claude Code emits `Task`,
+/// the Agent SDK surface uses `Agent`. An agent spawn is ALWAYS its own
+/// first-class collapsing card — it breaks the Activity cluster so a fan-out
+/// of N agents reads as N cards, never one merged "Activity / N steps" card
+/// (T-342). Each card carries its own folded prompt (T-263) + nested run
+/// (T-264); the fold mechanics are unchanged, only the grouping boundary.
+bool isAgentTool(String name) => name == 'Task' || name == 'Agent';
+
 /// The file an edit tool-use targets, or null if [it] isn't a same-file edit
 /// (used to group consecutive edits, T-296).
 String? editFilePath(ConversationItem it) {
@@ -159,6 +167,10 @@ bool _isFoldable(ConversationItem item, FoldLevel level, Map<String, String> too
     case AssistantThinkingMessage():
       return level != FoldLevel.tools;
     case AssistantToolUse(:final name):
+      // An Agent/Task spawn is always its own first-class card (T-342) — it
+      // breaks the cluster at every level, including L3, so parallel agents
+      // never merge into one Activity card.
+      if (isAgentTool(name)) return false;
       // The Edit/Write call stays first-class with its diff at L1/L2.
       if (level == FoldLevel.everything) return true;
       return !isDiffTool(name);

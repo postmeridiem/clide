@@ -16,6 +16,16 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Changed
+
+- **Each spawned subagent gets its own collapsing activity card.** A fan-out of
+  N agents (Task/Agent tool) used to merge into one shared "Activity / N steps"
+  cluster; now every agent spawn is its own first-class collapsing card with its
+  folded prompt and nested run, labelled by its task. Surrounding non-agent tool
+  calls (Bash/Read/Grep) still group into the normal Activity card. Under a
+  parallel fan-out, an item that can't be attributed to a specific agent now
+  renders inline rather than being mis-filed into a sibling agent's card. (T-342)
+
 ### Fixed
 
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
