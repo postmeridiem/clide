@@ -83,6 +83,22 @@ Future<void> main() async {
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
 
+  // Resolve the workspace to boot the daemon at. A desktop launch starts in
+  // HOME (not a git repo), so atCwd would point pql/git/files at HOME — where
+  // pql hits a stale ~/.pql/pql.db and the sidebars error on first load. Boot
+  // at the last project instead so the daemon targets the real repo from the
+  // first request. (T-352)
+  Directory startupWorkRoot = resolveWorkspaceRoot(Directory.current);
+  if (!kIsWeb) {
+    final bootSettings = SettingsStore(appDir: appDir);
+    await bootSettings.load();
+    startupWorkRoot = resolveStartupWorkspace(
+      cwdRoot: startupWorkRoot,
+      lastProject: bootSettings.get<String>('app.lastProject'),
+      isGitRepo: (d) => Directory('${d.path}/.git').existsSync(),
+    );
+  }
+
   // Resolve toolchain + boot daemon inline — same as Linux.
   // With proper signing (Developer ID), no sandbox or isolate needed.
   final toolchain = Toolchain();
@@ -297,7 +313,7 @@ Future<void> main() async {
             daemonBus = events;
             kernelArrangement = arrangement;
             kernelPanels = panels;
-            final workRoot = FilesService.atCwd(events: _BusEventSink(events)).root;
+            final workRoot = startupWorkRoot;
             final dispatcher = buildDispatcher(events, toolchain, workRoot, arrangement, panels);
             // Build the client at the workspace's socket path. The
             // server is started below (swapIpcServer) which the

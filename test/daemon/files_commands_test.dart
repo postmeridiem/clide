@@ -246,4 +246,32 @@ void main() {
       Directory.current = saved;
     }
   });
+
+  group('resolveStartupWorkspace (T-352)', () {
+    Directory dir(String p) => Directory(p);
+
+    test('uses the CWD when it is a git repo', () {
+      final root = resolveStartupWorkspace(cwdRoot: dir('/work/repo'), lastProject: '/home/user/other', isGitRepo: (d) => d.path == '/work/repo');
+      expect(root.path, '/work/repo');
+    });
+
+    test('falls back to lastProject when the CWD is not a repo (desktop launch in HOME)', () {
+      final root = resolveStartupWorkspace(
+        cwdRoot: dir('/home/user'),
+        lastProject: '/work/repo',
+        isGitRepo: (d) => d.path == '/work/repo', // HOME is not a repo
+      );
+      expect(root.path, '/work/repo');
+    });
+
+    test('keeps the CWD when neither it nor lastProject is a repo', () {
+      final root = resolveStartupWorkspace(cwdRoot: dir('/home/user'), lastProject: '/gone', isGitRepo: (_) => false);
+      expect(root.path, '/home/user');
+    });
+
+    test('keeps the CWD when lastProject is null/empty', () {
+      expect(resolveStartupWorkspace(cwdRoot: dir('/home/user'), lastProject: null, isGitRepo: (_) => false).path, '/home/user');
+      expect(resolveStartupWorkspace(cwdRoot: dir('/home/user'), lastProject: '', isGitRepo: (_) => false).path, '/home/user');
+    });
+  });
 }

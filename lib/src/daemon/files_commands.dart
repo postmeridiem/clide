@@ -33,7 +33,7 @@ class FilesService {
   /// Build from the current working directory, walking up to the git
   /// root if present. Falls back to CWD otherwise.
   factory FilesService.atCwd({required DaemonEventSink events}) {
-    final root = _resolveWorkspaceRoot(Directory.current);
+    final root = resolveWorkspaceRoot(Directory.current);
     return FilesService(root: root, events: events);
   }
 
@@ -148,7 +148,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
 
 // ---------------------------------------------------------------------------
 
-Directory _resolveWorkspaceRoot(Directory start) {
+Directory resolveWorkspaceRoot(Directory start) {
   Directory cur = start.absolute;
   for (var i = 0; i < 64; i++) {
     final g = Directory('${cur.path}/.git');
@@ -158,6 +158,24 @@ Directory _resolveWorkspaceRoot(Directory start) {
     cur = parent;
   }
   return start.absolute;
+}
+
+/// Pick the workspace root to boot the daemon at.
+///
+/// Prefer the launch CWD when it's inside a git repo. Otherwise — desktop
+/// launches start in HOME, which isn't a repo — fall back to the last opened
+/// project so pql/git/files target the real workspace from the very first
+/// request. Booting at HOME instead makes pql run there and hit a stale
+/// `~/.pql/pql.db`, so the ticket/decision sidebars error on first load and
+/// only recover once the project is (re)opened. Falls back to [cwdRoot] when
+/// there's no valid last project. (T-352)
+Directory resolveStartupWorkspace({required Directory cwdRoot, required String? lastProject, required bool Function(Directory) isGitRepo}) {
+  if (isGitRepo(cwdRoot)) return cwdRoot;
+  if (lastProject != null && lastProject.isNotEmpty) {
+    final dir = Directory(lastProject);
+    if (isGitRepo(dir)) return dir;
+  }
+  return cwdRoot;
 }
 
 /// Build the default IgnoreSet: clide's always-hide list layered under

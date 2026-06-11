@@ -16,6 +16,17 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Ticket/decision sidebars load on first open after a desktop launch.** A
+  desktop launch starts in HOME (not a git repo), and the daemon booted its
+  pql/git/files workspace there — so pql ran in HOME, hit a stale
+  `~/.pql/pql.db`, and the sidebars showed "pql … failed" until the project was
+  reopened (a manual refresh worked once the workspace had swapped to the repo).
+  The daemon now boots at the last opened project when the launch directory
+  isn't itself a repo, so pql targets the real workspace from the first request.
+  (T-352)
+
 ### Changed
 
 - **Minimum toolchain raised to honest values.** `pubspec.yaml` now declares
