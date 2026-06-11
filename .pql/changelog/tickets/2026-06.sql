@@ -3641,3 +3641,32 @@ Claude Code CLI executes every Bash tool itself; clide only ingests stream-json 
 - Expanding a Bash card whose command tails a file shows a live scrolling terminal sub-card that updates as the file grows; collapsing it tears the follower down.
 - A Bash card with no file-backed source shows a clear "nothing to follow" affordance, never a broken/empty terminal.
 - No follower process is spawned until the card is expanded.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 12:00:52', '2026-06-11 14:59:53', NULL, '2b485906c225f811862fb5ec97ae37cf', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2T11GCV1EV07DYD5BZENTM', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Live tail sub-card inside expanded Bash activity cards', 'Expanded Bash activity cards should be able to show a live, scrolling tail of a file-backed source the command is following, so the user can watch the same output Claude is tailing — connected lazily, only while the card is expanded.
+
+**Motivation**
+Long-running / tailing Bash steps render only a final result block once the command finishes (see screenshot in T-304 thread). The user can''t follow progress. We want an embedded scrolling terminal sub-card inside the expanded activity card for visibility.
+
+**Hard constraint (feasibility, established by investigation)**
+Claude Code CLI executes every Bash tool itself; clide only ingests stream-json events (stream_json_session.dart -> parseTranscriptChunk). A tool_result arrives as ONE complete block — clide never sees in-flight tool output, and the controller''s in-place upsert path is hardcoded for `partial-<msg_id>` prose deltas, not tool results (controller.dart). We cannot tap Claude''s subprocess fd. So a fully-general "mirror the running command''s stdout" is NOT possible.
+
+**Viable scope: independent file-tail on expand**
+- On card expand, parse the Bash command string (AssistantToolUse.input["command"], transcript_reader.dart) for a file-backed source: `tail -f X`, `tail -n N X`, `cat X`, `less X`, known log paths, or a background task writing to a file.
+- If found, clide opens its OWN read-only follower — a NativePty running `tail -f X` (native_pty.dart already exposes Stream<Uint8List>) or a Dart file-watcher — and renders it in an embedded scrolling terminal sub-card, reusing TerminalView.
+- Lazy lifecycle: connect on expand, disconnect/dispose on collapse. No connection until expanded.
+- Read-only & safe: clide observes the same file; it never re-runs or intercepts Claude''s command.
+- Graceful when there is no file-backed source (e.g. `git push ... | tail -25`, a pipe inside Claude''s process): show a muted "no independent source to follow" note rather than faking output.
+
+**Where**
+- Card body: conversation_card.dart / conversation_view.dart (_toolUseCollapser, the Bash tool card). Add an optional live-tail segment below the RESULT segment.
+- Key the live connection on AssistantToolUse.toolUseId.
+- Embedded terminal: reuse lib/src/terminal TerminalView + lib/src/pty NativePty.
+
+**Open questions (settle in review / may need a Q-record)**
+- Command-parsing surface: which commands/forms count as "tailable"? Keep it a small, explicit allowlist to avoid mis-following.
+- Security: only follow paths inside the workspace? How to handle absolute paths outside the repo.
+- Lifecycle when the underlying command has already finished (file static) vs still running.
+
+**Acceptance**
+- Expanding a Bash card whose command tails a file shows a live scrolling terminal sub-card that updates as the file grows; collapsing it tears the follower down.
+- A Bash card with no file-backed source shows a clear "nothing to follow" affordance, never a broken/empty terminal.
+- No follower process is spawned until the card is expanded.', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 12:00:52', '2026-06-11 17:09:12', NULL, '050a31bfe1ef9cf220f306ab3922f84c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
