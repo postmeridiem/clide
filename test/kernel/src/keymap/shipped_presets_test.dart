@@ -16,6 +16,7 @@ library;
 import 'dart:io';
 
 import 'package:clide/kernel/src/keymap/intents.dart';
+import 'package:clide/kernel/src/keymap/key_chord.dart';
 import 'package:clide/kernel/src/keymap/keymap.dart';
 import 'package:flutter/widgets.dart' show NextFocusIntent, PreviousFocusIntent;
 import 'package:flutter_test/flutter_test.dart';
@@ -49,4 +50,16 @@ void main() {
     expect(layer.bindings.any((b) => b.intent is NextFocusIntent), isTrue);
     expect(layer.bindings.any((b) => b.intent is PreviousFocusIntent), isTrue);
   });
+
+  // Every shipped preset aliases the double-Shift "Search Everywhere"
+  // gesture to quick-open (T-341).
+  final doubleShift = [KeyChord.bareModifier(KeyModifier.shift), KeyChord.bareModifier(KeyModifier.shift)];
+  for (final file in presets) {
+    final name = file.uri.pathSegments.last;
+    test('$name resolves `shift shift` (double-tap) to quick-open', () {
+      final km = Keymap([KeymapLayer.fromYaml(file.readAsStringSync())]);
+      final m = km.match(doubleShift, const {});
+      expect(m.exact, isA<QuickOpenIntent>(), reason: '$name should bind double-Shift to quickOpen.open');
+    });
+  }
 }

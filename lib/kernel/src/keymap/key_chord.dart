@@ -43,8 +43,33 @@ class KeyChord {
 
   const KeyChord._(this.modifiers, this.key);
 
+  /// A bare modifier press as a chord — no modifier set, the modifier key
+  /// itself as the base key. Lets a preset bind `shift` (and a double-tap
+  /// as the sequence `shift shift`, e.g. JetBrains "Search Everywhere").
+  /// (T-341)
+  factory KeyChord.bareModifier(KeyModifier m) => KeyChord(key: _modifierKey[m]!);
+
   final List<KeyModifier> modifiers;
   final LogicalKeyboardKey key;
+
+  /// The [KeyModifier] a bare modifier-key press maps to (left/right/generic
+  /// variants collapse to one), or null if [logical] isn't a modifier key.
+  /// Used by the global handler's double-tap detector. (T-341)
+  static KeyModifier? modifierForLogicalKey(LogicalKeyboardKey logical) {
+    if (logical == LogicalKeyboardKey.control || logical == LogicalKeyboardKey.controlLeft || logical == LogicalKeyboardKey.controlRight) {
+      return KeyModifier.ctrl;
+    }
+    if (logical == LogicalKeyboardKey.alt || logical == LogicalKeyboardKey.altLeft || logical == LogicalKeyboardKey.altRight) {
+      return KeyModifier.alt;
+    }
+    if (logical == LogicalKeyboardKey.shift || logical == LogicalKeyboardKey.shiftLeft || logical == LogicalKeyboardKey.shiftRight) {
+      return KeyModifier.shift;
+    }
+    if (logical == LogicalKeyboardKey.meta || logical == LogicalKeyboardKey.metaLeft || logical == LogicalKeyboardKey.metaRight) {
+      return KeyModifier.meta;
+    }
+    return null;
+  }
 
   /// Build from a Flutter [KeyEvent]. Returns null for non-down events
   /// or events whose logical key has no meaningful id (e.g. a bare
@@ -235,9 +260,30 @@ const List<LogicalKeyboardKey> _digitKeys = [
   LogicalKeyboardKey.digit9,
 ];
 
-LogicalKeyboardKey? _keyByName(String name) => _byName[name.toLowerCase()];
+/// Canonical logical key for each bare modifier (left/right variants
+/// collapse to the side-agnostic key). Drives [KeyChord.bareModifier] and
+/// the `shift` / `ctrl` / `alt` / `meta` base-key names. (T-341)
+const Map<KeyModifier, LogicalKeyboardKey> _modifierKey = {
+  KeyModifier.ctrl: LogicalKeyboardKey.control,
+  KeyModifier.alt: LogicalKeyboardKey.alt,
+  KeyModifier.shift: LogicalKeyboardKey.shift,
+  KeyModifier.meta: LogicalKeyboardKey.meta,
+};
+
+LogicalKeyboardKey? _keyByName(String name) {
+  final n = name.toLowerCase();
+  // A bare modifier name as the base key (`shift`, `ctrl`, `cmd`, …) — so
+  // `parseSequence('shift shift')` yields a double-tap binding. (T-341)
+  final mod = _modByName(n);
+  if (mod != null) return _modifierKey[mod];
+  return _byName[n];
+}
 
 String _keyName(LogicalKeyboardKey key) {
+  // Bare-modifier keys reverse to their canonical modifier name.
+  for (final entry in _modifierKey.entries) {
+    if (entry.value == key) return entry.key.yaml;
+  }
   // Reverse lookup; prefer the canonical (first) name for each key.
   for (final entry in _byName.entries) {
     if (entry.value == key) return entry.key;

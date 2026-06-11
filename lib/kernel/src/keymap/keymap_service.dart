@@ -157,6 +157,16 @@ class KeymapService extends ChangeNotifier {
     return km.resolve(chord, _scope);
   }
 
+  /// Resolve a complete chord [sequence] (e.g. a double-tapped modifier,
+  /// `[shift, shift]`) against the active keymap and current scope. Returns
+  /// the bound intent only on an exact full-sequence match, else null.
+  /// Used by the global handler's double-tap detector (T-341).
+  Intent? resolveSequence(List<KeyChord> sequence) {
+    final km = _active;
+    if (km == null) return null;
+    return km.match(sequence, _scope).exact;
+  }
+
   /// Set a named scope flag. Producers should call this when their
   /// state changes so when-clauses re-evaluate correctly. Notifies
   /// listeners when the value actually changes.

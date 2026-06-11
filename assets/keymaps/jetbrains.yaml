@@ -12,11 +12,12 @@
 # IntelliJ's editor-scoped contexts have no producer yet, so global chords
 # stay ungated (they're global in IntelliJ too).
 #
+# "Search Everywhere" (double-Shift) maps to clide's quick-open finder via
+# the `shift shift` double-tap gesture (T-341) — see the quick-open binding.
+#
 # Not bound — no clide command analogue (kept out of scope per the ticket):
 # Run (Shift+F10), Debug (Shift+F9), Rename/Refactor (Shift+F6), Settings
-# (Ctrl+Alt+S). And "Search Everywhere" (double-Shift) is not expressible by
-# the current chord matcher (bare/double modifiers unsupported) — tracked by
-# T-341; Go to File / Find Action below are the practical stand-ins.
+# (Ctrl+Alt+S).
 
 name: jetbrains
 
@@ -52,8 +53,10 @@ bindings:
   # -- Quick open: Go to File / Go to Class / Recent Files --------------
   # win/linux: Ctrl+Shift+N, Ctrl+N, Ctrl+E.  mac: Cmd+Shift+O, Cmd+O,
   # Cmd+E. clide has one fuzzy file finder, so all land on quick-open.
+  # `shift shift` (double-tap) is IntelliJ's "Search Everywhere"; clide
+  # aliases it to the quick-open finder (T-341).
   - intent: quickOpen.open
-    keys: [ctrl+shift+n, ctrl+n, ctrl+e, meta+shift+o, meta+o, meta+e]
+    keys: [ctrl+shift+n, ctrl+n, ctrl+e, meta+shift+o, meta+o, meta+e, shift shift]
     when: "!palette.open"
   - intent: quickOpen.selectNext
     keys: down

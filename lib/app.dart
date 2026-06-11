@@ -55,6 +55,10 @@ class _RootShell extends StatefulWidget {
 class _RootShellState extends State<_RootShell> {
   late final FocusNode _keyFocus;
   final MenuBarController _menuBar = MenuBarController();
+  // Detects double-tapped bare modifiers (e.g. double-Shift → quick-open,
+  // JetBrains "Search Everywhere"). Bare modifiers never resolve as a single
+  // chord, so this is the only path that handles them (T-341).
+  final ModifierTapTracker _modTap = ModifierTapTracker();
 
   @override
   void initState() {
@@ -183,12 +187,30 @@ class _RootShellState extends State<_RootShell> {
 
   void _onKey(KeyEvent event) {
     if (_handleMenuMnemonic(event)) return;
+    // Double-tapped bare modifier (e.g. double-Shift → quick-open). Handle
+    // it here because a bare modifier never forms a single chord — an
+    // intervening non-modifier key breaks the gesture (T-341).
+    if (event is KeyDownEvent) {
+      final mod = KeyChord.modifierForLogicalKey(event.logicalKey);
+      if (mod != null) {
+        if (_modTap.tap(mod, DateTime.now()) != null) {
+          final seq = [KeyChord.bareModifier(mod), KeyChord.bareModifier(mod)];
+          final tapIntent = widget.services.keymap.resolveSequence(seq);
+          if (tapIntent != null) _dispatchIntent(tapIntent);
+        }
+        return; // a bare modifier resolves nothing else
+      }
+      _modTap.reset();
+    }
     final intent = widget.services.keymap.resolveEvent(event, HardwareKeyboard.instance);
     if (intent == null) return;
-    // Dispatch the intent. Try the focused context first so feature
-    // widgets (palette, editor, …) get a chance to handle their own
-    // intents; fall back to the app root's Actions for global ones
-    // (text scale, generic command bridge).
+    _dispatchIntent(intent);
+  }
+
+  void _dispatchIntent(Intent intent) {
+    // Try the focused context first so feature widgets (palette, editor, …)
+    // get a chance to handle their own intents; fall back to the app root's
+    // Actions for global ones (text scale, generic command bridge).
     final ctx = FocusManager.instance.primaryFocus?.context ?? context;
     Actions.maybeInvoke(ctx, intent);
   }

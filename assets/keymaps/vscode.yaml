@@ -51,8 +51,9 @@ bindings:
     when: palette.open
 
   # -- Quick open / Go to File (Ctrl+P) ---------------------------------
+  # `shift shift` (double-tap) aliases to quick-open across presets (T-341).
   - intent: quickOpen.open
-    keys: [ctrl+p, meta+p]
+    keys: [ctrl+p, meta+p, shift shift]
     when: "!palette.open"
   - intent: quickOpen.selectNext
     keys: [down, ctrl+n]

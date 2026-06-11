@@ -58,8 +58,10 @@ bindings:
   # only claims ctrl+p for selectPrevious `when: palette.open`, so this
   # is conflict-free. Arrow/enter/escape inside the overlay are handled
   # locally by the widget.
+  # `shift shift` (double-tap) is the JetBrains "Search Everywhere" gesture;
+  # clide aliases it to the quick-open finder across all presets (T-341).
   - intent: quickOpen.open
-    keys: [ctrl+p, meta+p]
+    keys: [ctrl+p, meta+p, shift shift]
     when: "!palette.open"
   # Nav stays on arrows/ctrl+n (not ctrl+p — that's the open chord and
   # would collide while the overlay is up).

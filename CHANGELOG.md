@@ -16,6 +16,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- **Double-tap-modifier shortcuts (e.g. double-Shift "Search Everywhere").**
+  The keymap can now bind a bare modifier and a double-tap sequence
+  (`shift shift`). All four presets (default, vim, vscode, jetbrains) map
+  double-Shift to the quick-open finder — JetBrains' "Search Everywhere"
+  gesture, aliased to clide's existing fuzzy file finder. (T-341)
+
 ## [2.3.3] — 2026-06-11
 
 ### Fixed

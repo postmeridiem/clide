@@ -135,4 +135,51 @@ void main() {
       expect(chord.canonical, 'ctrl+alt+shift+meta+p');
     });
   });
+
+  group('KeyChord bare modifier (T-341)', () {
+    test('parse(modifier-name) yields a modifier-free chord on the modifier key', () {
+      final c = KeyChord.parse('shift');
+      expect(c.modifiers, isEmpty);
+      expect(c.key, LogicalKeyboardKey.shift);
+      expect(c.canonical, 'shift');
+    });
+
+    test('every modifier name (and its aliases) parses as a bare key', () {
+      expect(KeyChord.parse('ctrl').key, LogicalKeyboardKey.control);
+      expect(KeyChord.parse('control').key, LogicalKeyboardKey.control);
+      expect(KeyChord.parse('alt').key, LogicalKeyboardKey.alt);
+      expect(KeyChord.parse('option').key, LogicalKeyboardKey.alt);
+      expect(KeyChord.parse('meta').key, LogicalKeyboardKey.meta);
+      expect(KeyChord.parse('cmd').key, LogicalKeyboardKey.meta);
+    });
+
+    test('KeyChord.bareModifier equals the parsed form (lookup key for the double-tap)', () {
+      expect(KeyChord.bareModifier(KeyModifier.shift), KeyChord.parse('shift'));
+      expect(KeyChord.bareModifier(KeyModifier.meta), KeyChord.parse('cmd'));
+    });
+
+    test("parseSequence('shift shift') is a two-chord double-tap", () {
+      final seq = KeyChord.parseSequence('shift shift');
+      expect(seq, hasLength(2));
+      expect(seq[0], KeyChord.bareModifier(KeyModifier.shift));
+      expect(seq[1], KeyChord.bareModifier(KeyModifier.shift));
+    });
+
+    test('canonical round-trips through parse', () {
+      for (final m in KeyModifier.values) {
+        final c = KeyChord.bareModifier(m);
+        expect(KeyChord.parse(c.canonical), c, reason: m.name);
+      }
+    });
+
+    test('modifierForLogicalKey collapses left/right/generic variants', () {
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.shiftLeft), KeyModifier.shift);
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.shiftRight), KeyModifier.shift);
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.shift), KeyModifier.shift);
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.controlLeft), KeyModifier.ctrl);
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.altRight), KeyModifier.alt);
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.metaLeft), KeyModifier.meta);
+      expect(KeyChord.modifierForLogicalKey(LogicalKeyboardKey.keyA), isNull);
+    });
+  });
 }
