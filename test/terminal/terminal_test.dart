@@ -6,6 +6,8 @@
 /// dependency.
 library;
 
+import 'dart:convert' show utf8;
+
 import 'package:clide/src/terminal/src/core/buffer/cell_offset.dart';
 import 'package:clide/src/terminal/src/core/input/keys.dart';
 import 'package:clide/src/terminal/src/core/mouse/button.dart';
@@ -120,6 +122,29 @@ void main() {
       final t = _Recorder().build();
       t.write('\x1b[31mred'); // SGR red foreground
       expect(t.cursor.foreground, isNot(0)); // foreground was set
+    });
+
+    // T-373: byte consumers used to utf8.decode per chunk — a rune split
+    // across PTY reads rendered as U+FFFD garbage.
+    test('writeBytes joins a multi-byte rune split across two calls', () {
+      final t = _Recorder().build();
+      final euro = utf8.encode('€'); // 3 bytes: E2 82 AC
+      t.writeBytes(euro.sublist(0, 1));
+      t.writeBytes(euro.sublist(1));
+      expect(t.buffer.lines[0].getCodePoint(0), '€'.codeUnitAt(0));
+    });
+
+    test('writeBytes decodes consecutive whole chunks like write', () {
+      final t = _Recorder().build();
+      t.writeBytes(utf8.encode('héllo'));
+      final line = [for (var i = 0; i < 5; i++) t.buffer.lines[0].getCodePoint(i)];
+      expect(String.fromCharCodes(line), 'héllo');
+    });
+
+    test('writeBytes with an empty chunk is a no-op', () {
+      final t = _Recorder().build();
+      t.writeBytes(const []);
+      expect(t.buffer.cursorX, 0);
     });
   });
 

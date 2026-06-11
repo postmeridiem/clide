@@ -463,7 +463,9 @@ class _BashLiveTailState extends State<_BashLiveTail> {
     if (source == null) return; // no file-backed source → muted note in build
     final term = Terminal(maxLines: 1000);
     _terminal = term;
-    _follower = FileTailFollower(source, onData: (bytes) => term.write(utf8.decode(bytes, allowMalformed: true)));
+    // writeBytes: the follower's chunk boundaries are arbitrary (it can even
+    // start mid-rune by construction) — keep decode state across reads (T-373).
+    _follower = FileTailFollower(source, onData: term.writeBytes);
     unawaited(_follower!.start());
   }
 

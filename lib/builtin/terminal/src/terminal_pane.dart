@@ -114,8 +114,9 @@ class _TerminalPaneState extends State<TerminalPane> {
         case 'pane.output':
           final b64 = event.data['bytes_b64'];
           if (b64 is String) {
-            final bytes = base64Decode(b64);
-            _terminal.write(utf8.decode(bytes, allowMalformed: true));
+            // writeBytes keeps UTF-8 decode state across chunks — a rune
+            // split across PTY reads must not become U+FFFD (T-373).
+            _terminal.writeBytes(base64Decode(b64));
           }
         case 'pane.exit':
           setState(() => _error = 'Shell exited.');

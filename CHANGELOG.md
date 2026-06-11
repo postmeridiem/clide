@@ -137,6 +137,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   could not detect failures like an unknown permission mode; they now
   return proper error envelopes per the D-6 contract. (T-391)
 
+- **Terminal output no longer garbles multi-byte characters split across
+  reads.** PTY output and live-tail bytes were decoded per chunk, turning a
+  rune split across reads into replacement-character noise; the terminal
+  now ingests bytes through a persistent decoder. (T-373)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
