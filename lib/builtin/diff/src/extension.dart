@@ -24,16 +24,16 @@ class DiffExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'diff.view',
-          slot: Slots.workspace,
-          title: 'Diff',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: -70,
-          build: (_) => DiffView(controller: _controller),
-        ),
-      ];
+    TabContribution(
+      id: 'diff.view',
+      slot: Slots.workspace,
+      title: 'Diff',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: -70,
+      build: (_) => DiffView(controller: _controller),
+    ),
+  ];
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {

@@ -28,8 +28,17 @@ export '../editor/buffer.dart' show Selection;
 const _idArg = CommandSchema(positional: ['id'], args: {'id': ArgSpec()});
 
 void registerEditorCommands(DaemonDispatcher d, EditorRegistry registry) {
-  d.register('editor.open', (req) => _open(req, registry),
-      schema: const CommandSchema(positional: ['path', 'line'], args: {'path': ArgSpec(), 'line': ArgSpec(type: ArgType.number)}));
+  d.register(
+    'editor.open',
+    (req) => _open(req, registry),
+    schema: const CommandSchema(
+      positional: ['path', 'line'],
+      args: {
+        'path': ArgSpec(),
+        'line': ArgSpec(type: ArgType.number),
+      },
+    ),
+  );
   d.register('editor.active', (req) => _active(req, registry));
   d.register('editor.activate', (req) => _activate(req, registry), schema: _idArg);
   d.register('editor.list', (req) => _list(req, registry));
@@ -43,23 +52,14 @@ void registerEditorCommands(DaemonDispatcher d, EditorRegistry registry) {
 }
 
 IpcResponse _userErr(String id, String msg, {String? hint}) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: msg,
-        hint: hint,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: msg, hint: hint),
+);
 
 IpcResponse _notFound(String id, String msg) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.notFound,
-        kind: IpcErrorKind.notFound,
-        message: msg,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: msg),
+);
 
 String? _resolveId(IpcRequest req, EditorRegistry r) {
   final id = req.args['id'] as String?;
@@ -94,20 +94,12 @@ Future<IpcResponse> _open(IpcRequest req, EditorRegistry r) async {
     }
     return IpcResponse.err(
       id: req.id,
-      error: IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: 'editor.open failed: ${e.message}',
-      ),
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'editor.open failed: ${e.message}'),
     );
   } catch (e) {
     return IpcResponse.err(
       id: req.id,
-      error: IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: 'editor.open failed: $e',
-      ),
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'editor.open failed: $e'),
     );
   }
 }
@@ -145,7 +137,7 @@ Future<IpcResponse> _list(IpcRequest req, EditorRegistry r) async {
   return IpcResponse.ok(
     id: req.id,
     data: {
-      'buffers': [for (final b in r.buffers) b.toJson()]
+      'buffers': [for (final b in r.buffers) b.toJson()],
     },
   );
 }

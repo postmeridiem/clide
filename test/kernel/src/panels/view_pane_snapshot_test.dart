@@ -7,12 +7,7 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-TabContribution _tab(String id, SlotId slot) => TabContribution(
-      id: id,
-      slot: slot,
-      title: id.toUpperCase(),
-      build: (_) => const SizedBox.shrink(),
-    );
+TabContribution _tab(String id, SlotId slot) => TabContribution(id: id, slot: slot, title: id.toUpperCase(), build: (_) => const SizedBox.shrink());
 
 void main() {
   group('snapshotViewPanes', () {
@@ -42,11 +37,13 @@ void main() {
     });
 
     test('active follows the kernel activeTab; visible follows the arrangement', () {
-      arrangement.applyPreset(const LayoutPresetContribution(
-        id: 'test',
-        displayName: 'Test',
-        slots: [LayoutSlot(slot: Slots.workspace, position: SlotPosition.center, visible: true)],
-      ));
+      arrangement.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test',
+          displayName: 'Test',
+          slots: [LayoutSlot(slot: Slots.workspace, position: SlotPosition.center, visible: true)],
+        ),
+      );
       panels.contribute(_tab('claude', Slots.workspace));
       panels.contribute(_tab('editor', Slots.workspace));
       panels.activateTab(Slots.workspace, 'editor');

@@ -23,11 +23,7 @@ import 'when_clause.dart';
 /// to fire when the sequence matches and the when-clause is true.
 @immutable
 class KeymapBinding {
-  const KeymapBinding({
-    required this.sequence,
-    required this.intent,
-    this.when,
-  });
+  const KeymapBinding({required this.sequence, required this.intent, this.when});
 
   /// Convenience constructor for a single-chord binding.
   KeymapBinding.chord(KeyChord chord, {required this.intent, this.when}) : sequence = [chord];
@@ -204,9 +200,7 @@ class Keymap {
   /// must come first. We don't dedupe — a no-op match in a later layer
   /// just earns the first slot.
   static List<KeymapBinding> _flatten(List<KeymapLayer> layers) {
-    return [
-      for (final l in layers.reversed) ...l.bindings,
-    ];
+    return [for (final l in layers.reversed) ...l.bindings];
   }
 
   @override

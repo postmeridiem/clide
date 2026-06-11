@@ -18,14 +18,14 @@ class TerminalExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'terminal.pane',
-          slot: Slots.workspace,
-          title: 'Terminal',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: 100,
-          build: (_) => const TerminalPane(),
-        ),
-      ];
+    TabContribution(
+      id: 'terminal.pane',
+      slot: Slots.workspace,
+      title: 'Terminal',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: 100,
+      build: (_) => const TerminalPane(),
+    ),
+  ];
 }

@@ -27,7 +27,8 @@ const _kOther = '\u0000other';
 /// Preformatted note for the "Deny & simplify" permission option (T-311): deny
 /// THIS action and ask Claude to reformulate it more simply, explicitly without
 /// touching the permission surface (memories / settings).
-const _kDenySimplifyNote = 'Denied — this action is too complex for the permission system to approve cleanly. '
+const _kDenySimplifyNote =
+    'Denied — this action is too complex for the permission system to approve cleanly. '
     'Please retry with a simpler, more granular approach (break it into smaller steps or use a plainer command) '
     'to avoid this permission prompt. This is a one-off for THIS action only: do not add a memory and do not '
     'change permission settings — just reformulate and try again. Do not narrate or explain the change; '
@@ -295,11 +296,13 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
         [
           if (_q.isNotEmpty) _questionBody(tokens, 0),
           const SizedBox(height: 6),
-          Row(children: [
-            ClideButton(label: 'Submit', variant: ClideButtonVariant.primary, onPressed: (_q.isNotEmpty && _answer(0).isNotEmpty) ? _submit : null),
-            const Spacer(),
-            _chatInstead(tokens),
-          ]),
+          Row(
+            children: [
+              ClideButton(label: 'Submit', variant: ClideButtonVariant.primary, onPressed: (_q.isNotEmpty && _answer(0).isNotEmpty) ? _submit : null),
+              const Spacer(),
+              _chatInstead(tokens),
+            ],
+          ),
         ],
       );
     }
@@ -312,11 +315,13 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
           const SizedBox(height: 8),
           for (var i = 0; i < _q.length; i++) _reviewRow(tokens, i),
           const SizedBox(height: 6),
-          Row(children: [
-            ClideButton(label: '‹ Back', onPressed: () => setState(() => _step = _q.length - 1)),
-            const SizedBox(width: 8),
-            ClideButton(label: 'Submit answers', variant: ClideButtonVariant.primary, onPressed: _allAnswered ? _submit : null),
-          ]),
+          Row(
+            children: [
+              ClideButton(label: '‹ Back', onPressed: () => setState(() => _step = _q.length - 1)),
+              const SizedBox(width: 8),
+              ClideButton(label: 'Submit answers', variant: ClideButtonVariant.primary, onPressed: _allAnswered ? _submit : null),
+            ],
+          ),
         ],
       );
     }
@@ -330,19 +335,14 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
         const SizedBox(height: 10),
         _questionBody(tokens, _step),
         const SizedBox(height: 6),
-        Row(children: [
-          if (_step > 0) ...[
-            ClideButton(label: '‹ Back', onPressed: () => setState(() => _step--)),
-            const SizedBox(width: 8),
+        Row(
+          children: [
+            if (_step > 0) ...[ClideButton(label: '‹ Back', onPressed: () => setState(() => _step--)), const SizedBox(width: 8)],
+            ClideButton(label: last ? 'Review ›' : 'Next ›', variant: ClideButtonVariant.primary, onPressed: answered ? () => setState(() => _step++) : null),
+            const Spacer(),
+            _chatInstead(tokens),
           ],
-          ClideButton(
-            label: last ? 'Review ›' : 'Next ›',
-            variant: ClideButtonVariant.primary,
-            onPressed: answered ? () => setState(() => _step++) : null,
-          ),
-          const Spacer(),
-          _chatInstead(tokens),
-        ]),
+        ),
       ],
     );
   }
@@ -354,12 +354,17 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
       final done = _answer(i).isNotEmpty;
       final text = '${i + 1} · $head${done ? ' ✓' : ''}';
       if (i == _step) {
-        chips.add(Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-              color: tokens.globalFocus.withValues(alpha: 0.18), border: Border.all(color: tokens.statusInfo), borderRadius: BorderRadius.circular(4)),
-          child: ClideText(text, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground),
-        ));
+        chips.add(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: tokens.globalFocus.withValues(alpha: 0.18),
+              border: Border.all(color: tokens.statusInfo),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: ClideText(text, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground),
+          ),
+        );
       } else {
         chips.add(ClideText(text, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: done ? tokens.statusSuccess : tokens.globalTextMuted));
       }
@@ -376,8 +381,13 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 110, child: ClideText(head, fontSize: clideFontMeta, color: tokens.globalTextMuted)),
-          Expanded(child: ClideText('→ ${_answer(qi)}', fontSize: clideFontSmall, color: tokens.globalForeground)),
+          SizedBox(
+            width: 110,
+            child: ClideText(head, fontSize: clideFontMeta, color: tokens.globalTextMuted),
+          ),
+          Expanded(
+            child: ClideText('→ ${_answer(qi)}', fontSize: clideFontSmall, color: tokens.globalForeground),
+          ),
         ],
       ),
     );
@@ -403,10 +413,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
             _optButton(qi, _kOther, 'Other…', q.multiSelect, '', q.options.length + 1),
           ],
         ),
-        if (hasOther) ...[
-          const SizedBox(height: 8),
-          _NoteField(controller: _other[qi], placeholder: 'type your answer…'),
-        ],
+        if (hasOther) ...[const SizedBox(height: 8), _NoteField(controller: _other[qi], placeholder: 'type your answer…')],
         const SizedBox(height: 8),
         _NoteField(controller: _qnote[qi], placeholder: '+ note (optional)'),
       ],
@@ -499,10 +506,7 @@ Widget toolInputBody(SurfaceTokens tokens, String toolName, Map<String, dynamic>
 /// / timeout annotations.
 Widget toolBashBody(SurfaceTokens tokens, Map<String, dynamic> input) {
   final cmd = (input['command'] as String? ?? '').trimRight();
-  final notes = <String>[
-    if (input['run_in_background'] == true) 'background',
-    if (input['timeout'] is num) 'timeout ${input['timeout']}ms',
-  ];
+  final notes = <String>[if (input['run_in_background'] == true) 'background', if (input['timeout'] is num) 'timeout ${input['timeout']}ms'];
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     mainAxisSize: MainAxisSize.min,
@@ -564,19 +568,14 @@ Widget toolReadLikeBody(SurfaceTokens tokens, String toolName, Map<String, dynam
     if (pat != null && pat.isNotEmpty) extra.add('"$pat"');
   }
   final label = [path.toString(), ...extra].where((s) => s.isNotEmpty).join('  ');
-  return ClideText(
-    label.isNotEmpty ? label : toolName,
-    fontSize: clideFontMeta,
-    fontFamily: clideMonoFamily,
-    color: tokens.globalForeground,
-  );
+  return ClideText(label.isNotEmpty ? label : toolName, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground);
 }
 
 /// A muted file path line, shared across tool bodies.
 Widget toolPathLine(SurfaceTokens tokens, String path) => Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: ClideText(path, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
-    );
+  padding: const EdgeInsets.only(bottom: 6),
+  child: ClideText(path, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+);
 
 // -- shared note / free-text field -------------------------------------------
 
@@ -613,7 +612,7 @@ class _NoteFieldState extends State<_NoteField> {
         children: [
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: widget.controller,
-            builder: (_, v, __) => v.text.isEmpty ? ClideText(widget.placeholder, muted: true, fontSize: clideFontSmall) : const SizedBox.shrink(),
+            builder: (_, v, _) => v.text.isEmpty ? ClideText(widget.placeholder, muted: true, fontSize: clideFontSmall) : const SizedBox.shrink(),
           ),
           EditableText(
             controller: widget.controller,
@@ -652,14 +651,9 @@ List<_Question> _parseQuestions(Map<String, dynamic> input) {
   return [
     for (final q in raw)
       if (q is Map)
-        _Question(
-          q['question'] as String? ?? '',
-          q['header'] as String? ?? '',
-          q['multiSelect'] as bool? ?? false,
-          [
-            for (final o in (q['options'] as List? ?? const []))
-              if (o is Map) _Option(o['label'] as String? ?? '', o['description'] as String? ?? ''),
-          ],
-        ),
+        _Question(q['question'] as String? ?? '', q['header'] as String? ?? '', q['multiSelect'] as bool? ?? false, [
+          for (final o in (q['options'] as List? ?? const []))
+            if (o is Map) _Option(o['label'] as String? ?? '', o['description'] as String? ?? ''),
+        ]),
   ];
 }

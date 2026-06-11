@@ -95,18 +95,12 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
       return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
     }
     if (_content == null) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: ClideText('Select a .md file to preview it here.', muted: true),
-      );
+      return const Padding(padding: EdgeInsets.all(12), child: ClideText('Select a .md file to preview it here.', muted: true));
     }
     return ClidePaneChrome(
       title: _path ?? 'viewer',
       subtitle: '${_content!.split('\n').length} lines',
-      leading: ReaderPinButton(
-        pinned: _nav?.hasPinned ?? false,
-        onTap: _path != null ? _onPin : null,
-      ),
+      leading: ReaderPinButton(pinned: _nav?.hasPinned ?? false, onTap: _path != null ? _onPin : null),
       trailing: [
         ReaderActionBar(
           canGoBack: _nav?.canGoBack ?? false,

@@ -66,7 +66,9 @@ class _Kv extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(width: 90, child: ClideText(label, fontSize: 13, color: tokens.globalTextMuted)),
-          Expanded(child: ClideText(value, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(
+            child: ClideText(value, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
         ],
       ),
     );
@@ -89,7 +91,10 @@ class _Licenses extends StatelessWidget {
         final deps = snap.data!.dependencies;
         return Container(
           constraints: const BoxConstraints(maxHeight: 260),
-          decoration: BoxDecoration(border: Border.all(color: tokens.globalBorder), borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+            border: Border.all(color: tokens.globalBorder),
+            borderRadius: BorderRadius.circular(4),
+          ),
           child: ListView.builder(
             shrinkWrap: true,
             padding: const EdgeInsets.symmetric(vertical: 4),

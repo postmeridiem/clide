@@ -72,18 +72,11 @@ class MenuBar extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([controller, kernel.commands, kernel.project]),
       builder: (ctx, _) {
-        final menus = resolveMenus(
-          buildClideMenuTree(),
-          kernel.commands,
-          kernel,
-          bindingLabel: (id) => keymapBindingLabel(kernel.keymap, id),
-        );
+        final menus = resolveMenus(buildClideMenuTree(), kernel.commands, kernel, bindingLabel: (id) => keymapBindingLabel(kernel.keymap, id));
         controller.setMnemonics([for (final m in menus) m.title[m.mnemonic].toLowerCase()]);
         return Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < menus.length; i++) _TopMenuButton(index: i, menu: menus[i], controller: controller, kernel: kernel),
-          ],
+          children: [for (var i = 0; i < menus.length; i++) _TopMenuButton(index: i, menu: menus[i], controller: controller, kernel: kernel)],
         );
       },
     );
@@ -189,11 +182,7 @@ class _TopMenuButtonState extends State<_TopMenuButton> {
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: clideInsetStandard),
             color: open || hovered ? tokens.listItemHoverBackground : null,
-            child: ClideText(
-              widget.menu.title,
-              fontSize: 12,
-              color: open || hovered ? tokens.globalForeground : tokens.chromeForeground,
-            ),
+            child: ClideText(widget.menu.title, fontSize: 12, color: open || hovered ? tokens.globalForeground : tokens.chromeForeground),
           ),
         ),
       ),

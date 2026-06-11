@@ -128,11 +128,7 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
 
   d.register('pql.decisions.list', (req) async {
     try {
-      final results = await pql.decisionList(
-        type: req.args['type'] as String?,
-        domain: req.args['domain'] as String?,
-        status: req.args['status'] as String?,
-      );
+      final results = await pql.decisionList(type: req.args['type'] as String?, domain: req.args['domain'] as String?, status: req.args['status'] as String?);
       return IpcResponse.ok(id: req.id, data: {'decisions': results});
     } on PqlException catch (e) {
       return _pqlError(req.id, e);
@@ -158,11 +154,7 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
       return _userError(req.id, 'pql.decisions.show requires an id');
     }
     try {
-      final result = await pql.decisionShow(
-        id,
-        withRefs: req.args['withRefs'] as bool? ?? false,
-        withTickets: req.args['withTickets'] as bool? ?? false,
-      );
+      final result = await pql.decisionShow(id, withRefs: req.args['withRefs'] as bool? ?? false, withTickets: req.args['withTickets'] as bool? ?? false);
       return IpcResponse.ok(id: req.id, data: result);
     } on PqlException catch (e) {
       return _pqlError(req.id, e);
@@ -189,11 +181,7 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
       return _userError(req.id, 'pql.tickets.show requires an id');
     }
     try {
-      final result = await pql.ticketShow(
-        id,
-        withContext: req.args['withContext'] as bool? ?? false,
-        withBlockers: req.args['withBlockers'] as bool? ?? false,
-      );
+      final result = await pql.ticketShow(id, withContext: req.args['withContext'] as bool? ?? false, withBlockers: req.args['withBlockers'] as bool? ?? false);
       return IpcResponse.ok(id: req.id, data: result);
     } on PqlException catch (e) {
       return _pqlError(req.id, e);
@@ -205,8 +193,8 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
     final ids = rawIds is List
         ? rawIds.cast<String>()
         : rawIds is String
-            ? [rawIds]
-            : <String>[];
+        ? [rawIds]
+        : <String>[];
     final status = req.args['status'] as String?;
     if (ids.isEmpty || status == null || status.isEmpty) {
       return _userError(req.id, 'pql.tickets.status requires ids and status');
@@ -221,9 +209,7 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
 
   d.register('pql.tickets.board', (req) async {
     try {
-      final board = await pql.ticketBoard(
-        team: req.args['team'] as String?,
-      );
+      final board = await pql.ticketBoard(team: req.args['team'] as String?);
       return IpcResponse.ok(id: req.id, data: {'columns': board});
     } on PqlException catch (e) {
       return _pqlError(req.id, e);
@@ -243,22 +229,13 @@ void registerPqlCommands(DaemonDispatcher d, PqlClient pql) {
 IpcResponse _userError(String id, String message) {
   return IpcResponse.err(
     id: id,
-    error: IpcError(
-      code: IpcExitCode.userError,
-      kind: IpcErrorKind.userError,
-      message: message,
-    ),
+    error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message),
   );
 }
 
 IpcResponse _pqlError(String id, PqlException e) {
   return IpcResponse.err(
     id: id,
-    error: IpcError(
-      code: IpcExitCode.toolError,
-      kind: IpcErrorKind.toolError,
-      message: e.message,
-      hint: e.stderr.isNotEmpty ? e.stderr : null,
-    ),
+    error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: e.message, hint: e.stderr.isNotEmpty ? e.stderr : null),
   );
 }

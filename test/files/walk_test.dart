@@ -28,13 +28,7 @@ void main() {
   test('walks recursively, returns files sorted by path', () async {
     final r = await walkFiles(root: root, ignore: IgnoreSet([]));
     expect(r.truncated, isFalse);
-    expect(r.files.map((e) => e.path).toList(), [
-      'README.md',
-      'build/output.bin',
-      'lib/main.dart',
-      'lib/src/util.dart',
-      'pubspec.yaml',
-    ]);
+    expect(r.files.map((e) => e.path).toList(), ['README.md', 'build/output.bin', 'lib/main.dart', 'lib/src/util.dart', 'pubspec.yaml']);
   });
 
   test('prunes ignored directories (build/ via builtin ignore)', () async {

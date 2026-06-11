@@ -39,15 +39,17 @@ void main() {
   }
 
   testWidgets('copy button is always in the tree (Opacity 0 before hover)', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        accent: Color(0xFFFFFFFF),
-        label: 'you',
-        copyText: 'the raw message',
-        body: Text('the raw message', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          accent: Color(0xFFFFFFFF),
+          label: 'you',
+          copyText: 'the raw message',
+          body: Text('the raw message', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     // The text widget is in the tree (always), but the Opacity hides it.
@@ -56,15 +58,17 @@ void main() {
   });
 
   testWidgets('copy button (on hover) writes the copyText to the clipboard', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        accent: Color(0xFFFFFFFF),
-        label: 'you',
-        copyText: 'the raw message',
-        body: Text('the raw message', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          accent: Color(0xFFFFFFFF),
+          label: 'you',
+          copyText: 'the raw message',
+          body: Text('the raw message', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     await hoverCard(tester);
@@ -78,15 +82,17 @@ void main() {
 
   testWidgets('copy button: keyboard focus + ActivateIntent writes to clipboard without hovering', (tester) async {
     // T-174: actions must be keyboard-reachable even when the card is not hovered.
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        accent: Color(0xFFFFFFFF),
-        label: 'you',
-        copyText: 'keyboard written',
-        body: Text('keyboard written', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          accent: Color(0xFFFFFFFF),
+          label: 'you',
+          copyText: 'keyboard written',
+          body: Text('keyboard written', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     // Locate the ClideTappable whose FocusNode we want: the one wrapping the
@@ -96,9 +102,7 @@ void main() {
     expect(copyTextFinder, findsOneWidget);
 
     // Walk up to find the Focus that ClideTappable installed, then request focus.
-    final focusWidget = tester.widget<Focus>(
-      find.ancestor(of: copyTextFinder, matching: find.byType(Focus)).first,
-    );
+    final focusWidget = tester.widget<Focus>(find.ancestor(of: copyTextFinder, matching: find.byType(Focus)).first);
     focusWidget.focusNode!.requestFocus();
     await tester.pump(); // focus resolves; the focus listener calls setState
     await tester.pump(); // the scheduled rebuild paints the lifted opacity
@@ -117,15 +121,17 @@ void main() {
 
   testWidgets('copy button carries a Semantics button label', (tester) async {
     final handle = tester.ensureSemantics();
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        accent: Color(0xFFFFFFFF),
-        label: 'you',
-        copyText: 'msg',
-        body: Text('msg', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          accent: Color(0xFFFFFFFF),
+          label: 'you',
+          copyText: 'msg',
+          body: Text('msg', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     // Semantics label 'copy' must be present even before hover, so AT can
     // discover the button without the user mousing over first.
@@ -134,17 +140,19 @@ void main() {
   });
 
   testWidgets('collapsible card hides its body until expanded', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFFFFFFFF),
-        label: 'result',
-        collapsible: true,
-        collapsedByDefault: true,
-        body: Text('tool output here', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bordered,
+          accent: Color(0xFFFFFFFF),
+          label: 'result',
+          collapsible: true,
+          collapsedByDefault: true,
+          body: Text('tool output here', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.text('tool output here'), findsNothing); // collapsed
 
@@ -155,14 +163,16 @@ void main() {
   });
 
   testWidgets('a non-collapsible card always shows its body and no caret', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        accent: Color(0xFFFFFFFF),
-        label: 'claude',
-        body: Text('always visible', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          accent: Color(0xFFFFFFFF),
+          label: 'claude',
+          body: Text('always visible', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.text('always visible'), findsOneWidget);
     expect(find.bySemanticsLabel('Expand'), findsNothing);
@@ -170,15 +180,17 @@ void main() {
   });
 
   testWidgets('custom actions are always in the tree (Opacity 0 before hover)', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      ConversationCard(
-        accent: const Color(0xFFFFFFFF),
-        label: 'claude',
-        body: const Text('body', textDirection: TextDirection.ltr),
-        actions: [MessageAction(label: 'fork', onInvoke: () {})],
+    await tester.pumpWidget(
+      harness(
+        f,
+        ConversationCard(
+          accent: const Color(0xFFFFFFFF),
+          label: 'claude',
+          body: const Text('body', textDirection: TextDirection.ltr),
+          actions: [MessageAction(label: 'fork', onInvoke: () {})],
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     // 'fork' is in the tree (always), but the Opacity hides it.
@@ -188,15 +200,17 @@ void main() {
 
   testWidgets('custom actions appear on hover and invoke', (tester) async {
     var forked = false;
-    await tester.pumpWidget(harness(
-      f,
-      ConversationCard(
-        accent: const Color(0xFFFFFFFF),
-        label: 'claude',
-        body: const Text('body', textDirection: TextDirection.ltr),
-        actions: [MessageAction(label: 'fork', onInvoke: () => forked = true)],
+    await tester.pumpWidget(
+      harness(
+        f,
+        ConversationCard(
+          accent: const Color(0xFFFFFFFF),
+          label: 'claude',
+          body: const Text('body', textDirection: TextDirection.ltr),
+          actions: [MessageAction(label: 'fork', onInvoke: () => forked = true)],
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     await hoverCard(tester);
@@ -212,19 +226,21 @@ void main() {
     final showExtra = ValueNotifier<bool>(true);
     addTearDown(showExtra.dispose);
 
-    await tester.pumpWidget(harness(
-      f,
-      ValueListenableBuilder<bool>(
-        valueListenable: showExtra,
-        builder: (_, show, __) => ConversationCard(
-          accent: const Color(0xFFFFFFFF),
-          label: 'claude',
-          copyText: show ? 'text' : null,
-          body: const Text('body', textDirection: TextDirection.ltr),
-          actions: show ? [MessageAction(label: 'fork', onInvoke: () {})] : [],
+    await tester.pumpWidget(
+      harness(
+        f,
+        ValueListenableBuilder<bool>(
+          valueListenable: showExtra,
+          builder: (_, show, _) => ConversationCard(
+            accent: const Color(0xFFFFFFFF),
+            label: 'claude',
+            copyText: show ? 'text' : null,
+            body: const Text('body', textDirection: TextDirection.ltr),
+            actions: show ? [MessageAction(label: 'fork', onInvoke: () {})] : [],
+          ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     // Initially: copy + fork.
     expect(find.text('copy'), findsOneWidget);
@@ -243,17 +259,19 @@ void main() {
   testWidgets('collapsible card: Semantics.onTap on caret also toggles collapse', (tester) async {
     // The caret Semantics node has its own onTap (for accessibility-tree callers).
     // Invoke it via the Semantics.onTap callback directly.
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFFFFFFFF),
-        label: 'result',
-        collapsible: true,
-        collapsedByDefault: true,
-        body: Text('tool output here', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bordered,
+          accent: Color(0xFFFFFFFF),
+          label: 'result',
+          collapsible: true,
+          collapsedByDefault: true,
+          body: Text('tool output here', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.text('tool output here'), findsNothing); // collapsed
 
@@ -269,15 +287,17 @@ void main() {
   });
 
   testWidgets('bordered variant renders with a border container', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFFFF0000),
-        label: 'result',
-        body: Text('bordered body', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bordered,
+          accent: Color(0xFFFF0000),
+          label: 'result',
+          body: Text('bordered body', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.text('bordered body'), findsOneWidget);
     expect(find.text('result'), findsOneWidget);
@@ -285,16 +305,18 @@ void main() {
 
   testWidgets('status: success renders a "succeeded" semantics mark in the header (T-262)', (tester) async {
     final handle = tester.ensureSemantics();
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFFFFFFFF),
-        label: 'Bash',
-        status: ConversationCardStatus.success,
-        body: Text('body', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bordered,
+          accent: Color(0xFFFFFFFF),
+          label: 'Bash',
+          status: ConversationCardStatus.success,
+          body: Text('body', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.bySemanticsLabel('succeeded'), findsOneWidget);
     expect(find.bySemanticsLabel('failed'), findsNothing);
@@ -303,16 +325,18 @@ void main() {
 
   testWidgets('status: error renders a "failed" semantics mark; none renders nothing (T-262)', (tester) async {
     final handle = tester.ensureSemantics();
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFFFFFFFF),
-        label: 'Bash',
-        status: ConversationCardStatus.error,
-        body: Text('body', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bordered,
+          accent: Color(0xFFFFFFFF),
+          label: 'Bash',
+          status: ConversationCardStatus.error,
+          body: Text('body', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.bySemanticsLabel('failed'), findsOneWidget);
     expect(find.bySemanticsLabel('succeeded'), findsNothing);
@@ -320,18 +344,25 @@ void main() {
   });
 
   testWidgets('extraSegments render below the body with their sub-label when expanded (T-262)', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFFFFFFFF),
-        label: 'Read',
-        collapsible: true,
-        collapsedByDefault: true,
-        body: Text('the call', textDirection: TextDirection.ltr),
-        extraSegments: [CardSegment(label: 'result', child: Text('the output', textDirection: TextDirection.ltr))],
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bordered,
+          accent: Color(0xFFFFFFFF),
+          label: 'Read',
+          collapsible: true,
+          collapsedByDefault: true,
+          body: Text('the call', textDirection: TextDirection.ltr),
+          extraSegments: [
+            CardSegment(
+              label: 'result',
+              child: Text('the output', textDirection: TextDirection.ltr),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
     await tester.pump();
     // Collapsed: neither the body nor the segment shows.
     expect(find.text('the call'), findsNothing);
@@ -346,15 +377,17 @@ void main() {
   });
 
   testWidgets('bare variant renders content without frame decoration', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      const ConversationCard(
-        variant: ConversationCardVariant.bare,
-        accent: Color(0xFF00FF00),
-        label: 'bare',
-        body: Text('bare body', textDirection: TextDirection.ltr),
+    await tester.pumpWidget(
+      harness(
+        f,
+        const ConversationCard(
+          variant: ConversationCardVariant.bare,
+          accent: Color(0xFF00FF00),
+          label: 'bare',
+          body: Text('bare body', textDirection: TextDirection.ltr),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.text('bare body'), findsOneWidget);
   });

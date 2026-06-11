@@ -113,10 +113,10 @@ int? _posInt(String? v) {
 }
 
 bool? _bool(String? v) => switch (v) {
-      'true' => true,
-      'false' => false,
-      _ => null,
-    };
+  'true' => true,
+  'false' => false,
+  _ => null,
+};
 
 // ---------------------------------------------------------------------------
 // INI parsing

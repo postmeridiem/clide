@@ -9,23 +9,11 @@ void main() {
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-git-ops-test-');
     await Process.run('git', ['init'], workingDirectory: sandbox.path);
-    await Process.run(
-      'git',
-      ['config', 'user.email', 'test@test.com'],
-      workingDirectory: sandbox.path,
-    );
-    await Process.run(
-      'git',
-      ['config', 'user.name', 'Test'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
+    await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
     await File('${sandbox.path}/file.txt').writeAsString('hello\n');
     await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run(
-      'git',
-      ['commit', '-m', 'init'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
   });
 
   tearDown(() async {
@@ -35,11 +23,7 @@ void main() {
   test('gitStage stages a file', () async {
     await File('${sandbox.path}/new.txt').writeAsString('x');
     await gitStage(sandbox, ['new.txt']);
-    final r = await Process.run(
-      'git',
-      ['diff', '--cached', '--name-only'],
-      workingDirectory: sandbox.path,
-    );
+    final r = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
     expect((r.stdout as String).trim(), 'new.txt');
   });
 
@@ -47,11 +31,7 @@ void main() {
     await File('${sandbox.path}/new.txt').writeAsString('x');
     await gitStage(sandbox, ['new.txt']);
     await gitUnstage(sandbox, ['new.txt']);
-    final r = await Process.run(
-      'git',
-      ['diff', '--cached', '--name-only'],
-      workingDirectory: sandbox.path,
-    );
+    final r = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
     expect((r.stdout as String).trim(), isEmpty);
   });
 
@@ -60,19 +40,12 @@ void main() {
     await gitStage(sandbox, ['c.txt']);
     final hash = await gitCommit(sandbox, 'test commit');
     expect(hash, hasLength(40));
-    final r = await Process.run(
-      'git',
-      ['log', '-1', '--format=%s'],
-      workingDirectory: sandbox.path,
-    );
+    final r = await Process.run('git', ['log', '-1', '--format=%s'], workingDirectory: sandbox.path);
     expect((r.stdout as String).trim(), 'test commit');
   });
 
   test('gitCommit with nothing staged throws', () async {
-    expect(
-      () => gitCommit(sandbox, 'empty'),
-      throwsA(isA<GitException>()),
-    );
+    expect(() => gitCommit(sandbox, 'empty'), throwsA(isA<GitException>()));
   });
 
   test('gitLog returns entries', () async {
@@ -111,22 +84,9 @@ void main() {
   });
 
   test('GitLogEntry.toJson serialises every field (body omitted when empty)', () {
-    const a = GitLogEntry(
-      hash: 'h',
-      shortHash: 's',
-      subject: 'sub',
-      author: 'a',
-      date: 'd',
-    );
+    const a = GitLogEntry(hash: 'h', shortHash: 's', subject: 'sub', author: 'a', date: 'd');
     expect(a.toJson().containsKey('body'), isFalse);
-    const b = GitLogEntry(
-      hash: 'h',
-      shortHash: 's',
-      subject: 'sub',
-      author: 'a',
-      date: 'd',
-      body: 'bd',
-    );
+    const b = GitLogEntry(hash: 'h', shortHash: 's', subject: 'sub', author: 'a', date: 'd', body: 'bd');
     expect(b.toJson()['body'], 'bd');
   });
 
@@ -142,35 +102,19 @@ void main() {
     await File('${sandbox.path}/b.txt').writeAsString('y');
     await gitStage(sandbox, ['a.txt', 'b.txt']);
     await gitUnstage(sandbox, const []);
-    final r = await Process.run(
-      'git',
-      ['diff', '--cached', '--name-only'],
-      workingDirectory: sandbox.path,
-    );
+    final r = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
     expect((r.stdout as String).trim(), isEmpty);
   });
 
   test('gitStageHunk + gitUnstageHunk apply a patch via _applyPatch', () async {
     await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
-    final patchResult = await Process.run(
-      'git',
-      ['diff', '-U0'],
-      workingDirectory: sandbox.path,
-    );
+    final patchResult = await Process.run('git', ['diff', '-U0'], workingDirectory: sandbox.path);
     final patch = patchResult.stdout as String;
     await gitStageHunk(sandbox, patch);
-    final cached = await Process.run(
-      'git',
-      ['diff', '--cached', '--name-only'],
-      workingDirectory: sandbox.path,
-    );
+    final cached = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
     expect((cached.stdout as String).trim(), 'file.txt');
     await gitUnstageHunk(sandbox, patch);
-    final cleared = await Process.run(
-      'git',
-      ['diff', '--cached', '--name-only'],
-      workingDirectory: sandbox.path,
-    );
+    final cleared = await Process.run('git', ['diff', '--cached', '--name-only'], workingDirectory: sandbox.path);
     expect((cleared.stdout as String).trim(), isEmpty);
   });
 

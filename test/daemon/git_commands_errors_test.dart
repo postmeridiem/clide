@@ -40,8 +40,8 @@ void main() {
     (
       'git.stage',
       const {
-        'paths': ['file.txt']
-      }
+        'paths': ['file.txt'],
+      },
     ),
     ('git.stage-all', const <String, Object?>{}),
     ('git.unstage', const <String, Object?>{}),
@@ -53,8 +53,8 @@ void main() {
     (
       'git.discard',
       const {
-        'paths': ['file.txt']
-      }
+        'paths': ['file.txt'],
+      },
     ),
     ('git.commit', const {'message': 'hi'}),
     ('git.stash', const <String, Object?>{}),

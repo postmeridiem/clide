@@ -9,24 +9,12 @@ void main() {
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-git-status-test-');
     await Process.run('git', ['init'], workingDirectory: sandbox.path);
-    await Process.run(
-      'git',
-      ['config', 'user.email', 'test@test.com'],
-      workingDirectory: sandbox.path,
-    );
-    await Process.run(
-      'git',
-      ['config', 'user.name', 'Test'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
+    await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
     // Initial commit so HEAD exists.
     await File('${sandbox.path}/.gitkeep').writeAsString('');
     await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run(
-      'git',
-      ['commit', '-m', 'init'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
   });
 
   tearDown(() async {
@@ -48,11 +36,7 @@ void main() {
 
   test('staged file appears in staged', () async {
     await File('${sandbox.path}/staged.txt').writeAsString('x');
-    await Process.run(
-      'git',
-      ['add', 'staged.txt'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['add', 'staged.txt'], workingDirectory: sandbox.path);
     final status = await gitStatus(sandbox);
     expect(status.staged, hasLength(1));
     expect(status.staged.first.path, 'staged.txt');
@@ -75,11 +59,7 @@ void main() {
 
   test('file staged and then modified appears in both', () async {
     await File('${sandbox.path}/both.txt').writeAsString('v1');
-    await Process.run(
-      'git',
-      ['add', 'both.txt'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['add', 'both.txt'], workingDirectory: sandbox.path);
     await File('${sandbox.path}/both.txt').writeAsString('v2');
     final status = await gitStatus(sandbox);
     expect(status.staged.any((e) => e.path == 'both.txt'), isTrue);

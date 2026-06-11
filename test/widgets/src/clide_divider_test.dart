@@ -19,9 +19,7 @@ void main() {
     });
 
     testWidgets('vertical axis yields a width-constrained container', (tester) async {
-      await tester.pumpWidget(
-        harness(f, const ClideDivider(axis: Axis.vertical, thickness: 2)),
-      );
+      await tester.pumpWidget(harness(f, const ClideDivider(axis: Axis.vertical, thickness: 2)));
       final c = tester.widget<Container>(find.byType(Container));
       expect(c.constraints?.maxWidth, 2.0);
     });

@@ -28,12 +28,7 @@ class ThemeResolver {
     final semantic = _buildSemantic(palette, semanticOverride);
     final surface = <String, Color>{};
     for (final key in TokenKeys.all) {
-      surface[key] = _resolveSurface(
-        key: key,
-        palette: palette,
-        semantic: semantic,
-        surfaceOverride: surfaceOverride,
-      );
+      surface[key] = _resolveSurface(key: key, palette: palette, semantic: semantic, surfaceOverride: surfaceOverride);
     }
 
     // selectionBackground defaults to globalFocus at ~40 % opacity (0x66 alpha)
@@ -149,12 +144,7 @@ class ThemeResolver {
     return SemanticRoles(roles);
   }
 
-  Color _resolveSurface({
-    required String key,
-    required Palette palette,
-    required SemanticRoles semantic,
-    Map<String, String>? surfaceOverride,
-  }) {
+  Color _resolveSurface({required String key, required Palette palette, required SemanticRoles semantic, Map<String, String>? surfaceOverride}) {
     final override = surfaceOverride?[key];
     if (override != null) {
       final resolved = _resolveRef(override, palette, semantic);

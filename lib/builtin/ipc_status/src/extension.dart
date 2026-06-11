@@ -10,11 +10,5 @@ class IpcStatusExtension extends ClideExtension {
   String get version => '0.2.0';
 
   @override
-  List<ContributionPoint> get contributions => [
-        StatusItemContribution(
-          id: 'ipc-status.indicator',
-          priority: 100,
-          build: (_) => const ToolStatusItem(),
-        ),
-      ];
+  List<ContributionPoint> get contributions => [StatusItemContribution(id: 'ipc-status.indicator', priority: 100, build: (_) => const ToolStatusItem())];
 }

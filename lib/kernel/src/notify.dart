@@ -6,13 +6,8 @@ enum NotificationLevel { info, warning, error, success }
 
 @immutable
 class ClideNotification {
-  ClideNotification({
-    required this.id,
-    required this.level,
-    required this.message,
-    this.title,
-    this.duration = const Duration(seconds: 4),
-  }) : createdAt = DateTime.now().toUtc();
+  ClideNotification({required this.id, required this.level, required this.message, this.title, this.duration = const Duration(seconds: 4)})
+    : createdAt = DateTime.now().toUtc();
 
   final String id;
   final NotificationLevel level;
@@ -41,20 +36,9 @@ class Notifications extends ChangeNotifier {
     if (_active.length != before) notifyListeners();
   }
 
-  void _push(
-    NotificationLevel level,
-    String message, {
-    String? title,
-    Duration? duration,
-  }) {
+  void _push(NotificationLevel level, String message, {String? title, Duration? duration}) {
     final id = 'n${_seq++}';
-    final n = ClideNotification(
-      id: id,
-      level: level,
-      message: message,
-      title: title,
-      duration: duration ?? const Duration(seconds: 4),
-    );
+    final n = ClideNotification(id: id, level: level, message: message, title: title, duration: duration ?? const Duration(seconds: 4));
     _active.add(n);
     _timers[id] = Timer(n.duration, () => dismiss(id));
     notifyListeners();

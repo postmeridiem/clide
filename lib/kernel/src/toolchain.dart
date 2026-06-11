@@ -44,11 +44,7 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   bool get allOk => _resolved && missing.isEmpty;
 
   @override
-  List<String> get missing => [
-        if (_git == null) 'git',
-        if (_pql == null) 'pql',
-        if (_tmux == null) 'tmux',
-      ];
+  List<String> get missing => [if (_git == null) 'git', if (_pql == null) 'pql', if (_tmux == null) 'tmux'];
 
   /// Returns a Future that completes when resolution finishes.
   Future<void> waitForResolution() {

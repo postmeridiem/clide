@@ -27,24 +27,26 @@ void main() {
     Color? color,
     bool expanded = false,
   }) async {
-    await tester.pumpWidget(harness(
-      f,
-      Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: 400,
-          child: ClideCollapserCard(
-            label: label,
-            collapsedSummary: summary,
-            counter: counter,
-            status: status,
-            color: color,
-            initiallyExpanded: expanded,
-            children: children ?? const [Text('item body', textDirection: TextDirection.ltr)],
+    await tester.pumpWidget(
+      harness(
+        f,
+        Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 400,
+            child: ClideCollapserCard(
+              label: label,
+              collapsedSummary: summary,
+              counter: counter,
+              status: status,
+              color: color,
+              initiallyExpanded: expanded,
+              children: children ?? const [Text('item body', textDirection: TextDirection.ltr)],
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pump();
   }
 
@@ -70,7 +72,12 @@ void main() {
   });
 
   testWidgets('a single item still sits in the list (1-item collapser)', (tester) async {
-    await pump(tester, counter: '1 edit', children: const [Text('only item', textDirection: TextDirection.ltr)], expanded: true);
+    await pump(
+      tester,
+      counter: '1 edit',
+      children: const [Text('only item', textDirection: TextDirection.ltr)],
+      expanded: true,
+    );
     expect(find.text('only item'), findsOneWidget);
     expect(find.text('1 edit'), findsOneWidget);
   });
@@ -98,15 +105,19 @@ void main() {
 
   testWidgets('a deeper interactive control inside an item still fires (not swallowed)', (tester) async {
     var tapped = false;
-    await pump(tester, expanded: true, children: [
-      ClideTappable(
-        onTap: () => tapped = true,
-        builder: (_, __, ___) => const Padding(
-          padding: EdgeInsets.all(8),
-          child: Text('press me', textDirection: TextDirection.ltr),
+    await pump(
+      tester,
+      expanded: true,
+      children: [
+        ClideTappable(
+          onTap: () => tapped = true,
+          builder: (_, _, _) => const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text('press me', textDirection: TextDirection.ltr),
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
     await tester.tap(find.text('press me'));
     await tester.pump();
     expect(tapped, isTrue); // the item's own control won the hit
@@ -115,9 +126,7 @@ void main() {
 
   testWidgets('the ticker is keyboard-focusable and toggles on Activate (a11y)', (tester) async {
     await pump(tester);
-    final focusWidget = tester.widget<Focus>(
-      find.ancestor(of: find.text('clide_markdown.dart'), matching: find.byType(Focus)).first,
-    );
+    final focusWidget = tester.widget<Focus>(find.ancestor(of: find.text('clide_markdown.dart'), matching: find.byType(Focus)).first);
     focusWidget.focusNode!.requestFocus();
     await tester.pump();
     expect(focusWidget.focusNode!.hasFocus, isTrue);

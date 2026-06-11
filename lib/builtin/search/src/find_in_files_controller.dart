@@ -86,15 +86,18 @@ class FindInFilesController extends ChangeNotifier {
   /// results. Returns the number of files changed and matches replaced.
   /// Callers must gate on [isWorkingTreeClean] + user confirmation first.
   Future<({int files, int count})> applyReplace() async {
-    final r = await ipc.request('search.replace', args: {
-      'pattern': pattern,
-      'regex': regex,
-      'ignoreCase': ignoreCase,
-      'include': _split(includeGlobs),
-      'exclude': _split(excludeGlobs),
-      'replacement': replacement,
-      'apply': true,
-    });
+    final r = await ipc.request(
+      'search.replace',
+      args: {
+        'pattern': pattern,
+        'regex': regex,
+        'ignoreCase': ignoreCase,
+        'include': _split(includeGlobs),
+        'exclude': _split(excludeGlobs),
+        'replacement': replacement,
+        'apply': true,
+      },
+    );
     final files = (r.data['filesChanged'] as num?)?.toInt() ?? 0;
     final count = (r.data['totalCount'] as num?)?.toInt() ?? 0;
     await run(pattern); // refresh the match list against the new content
@@ -123,13 +126,10 @@ class FindInFilesController extends ChangeNotifier {
     _running = true;
     notifyListeners();
 
-    final resp = await ipc.request('search.grep', args: {
-      'pattern': pattern,
-      'regex': regex,
-      'ignoreCase': ignoreCase,
-      'include': _split(includeGlobs),
-      'exclude': _split(excludeGlobs),
-    });
+    final resp = await ipc.request(
+      'search.grep',
+      args: {'pattern': pattern, 'regex': regex, 'ignoreCase': ignoreCase, 'include': _split(includeGlobs), 'exclude': _split(excludeGlobs)},
+    );
     if (!resp.ok) {
       _error = resp.error?.message ?? 'search failed';
       _running = false;

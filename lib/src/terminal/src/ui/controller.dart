@@ -16,9 +16,9 @@ class TerminalController with ChangeNotifier {
     SelectionMode selectionMode = SelectionMode.line,
     PointerInputs pointerInputs = const PointerInputs({PointerInput.tap}),
     bool suspendPointerInput = false,
-  })  : _selectionMode = selectionMode,
-        _pointerInputs = pointerInputs,
-        _suspendPointerInputs = suspendPointerInput;
+  }) : _selectionMode = selectionMode,
+       _pointerInputs = pointerInputs,
+       _suspendPointerInputs = suspendPointerInput;
 
   CellAnchor? _selectionBase;
   CellAnchor? _selectionExtent;
@@ -123,17 +123,8 @@ class TerminalController with ChangeNotifier {
   /// Creates a new highlight on the terminal from [p1] to [p2] with the given
   /// [color]. The highlight will be removed when the returned object is
   /// disposed.
-  TerminalHighlight highlight({
-    required CellAnchor p1,
-    required CellAnchor p2,
-    required Color color,
-  }) {
-    final highlight = TerminalHighlight(
-      this,
-      p1: p1,
-      p2: p2,
-      color: color,
-    );
+  TerminalHighlight highlight({required CellAnchor p1, required CellAnchor p2, required Color color}) {
+    final highlight = TerminalHighlight(this, p1: p1, p2: p2, color: color);
 
     _highlights.add(highlight);
     notifyListeners();
@@ -156,12 +147,7 @@ class TerminalHighlight with Disposable {
 
   final Color color;
 
-  TerminalHighlight(
-    this.owner, {
-    required this.p1,
-    required this.p2,
-    required this.color,
-  });
+  TerminalHighlight(this.owner, {required this.p1, required this.p2, required this.color});
 
   /// Returns the range of the highlight. May be null if the anchors that
   /// define the highlight are not attached to the terminal.

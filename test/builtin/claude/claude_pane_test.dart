@@ -76,28 +76,28 @@ void main() {
   });
 
   Widget tree(ClaudePane pane) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: ClideKernel(
-          services: f.services,
-          child: ClideTheme(
-            controller: f.services.theme,
-            child: MediaQuery(
-              data: const MediaQueryData(),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: 900,
-                  height: 700,
-                  child: DialogHost(
-                    router: f.services.dialog,
-                    child: Overlay(initialEntries: [OverlayEntry(builder: (_) => pane)]),
-                  ),
-                ),
+    textDirection: TextDirection.ltr,
+    child: ClideKernel(
+      services: f.services,
+      child: ClideTheme(
+        controller: f.services.theme,
+        child: MediaQuery(
+          data: const MediaQueryData(),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 900,
+              height: 700,
+              child: DialogHost(
+                router: f.services.dialog,
+                child: Overlay(initialEntries: [OverlayEntry(builder: (_) => pane)]),
               ),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   // Pump the pane and release its project-wait gate so _spawn runs. The whole
   // chain (incl. the real transcript-probe I/O) runs in the real zone.
@@ -205,14 +205,9 @@ void main() {
     await mount(tester, const ClaudePane(showChrome: false));
     final proc = created.single;
     await act(
-        tester,
-        () => proc.feed({
-              'type': 'system',
-              'subtype': 'init',
-              'model': 'claude-opus-4-8',
-              'permissionMode': 'plan',
-              'session_id': primarySessionId('/repo-a'),
-            }));
+      tester,
+      () => proc.feed({'type': 'system', 'subtype': 'init', 'model': 'claude-opus-4-8', 'permissionMode': 'plan', 'session_id': primarySessionId('/repo-a')}),
+    );
     // The init event flows through the session into the pane's status path
     // (the rendered slot lives in the status bar, absent from this harness).
     expect(orch.byId('primary')!.session.status.permissionMode, 'plan');
@@ -223,17 +218,18 @@ void main() {
     await mount(tester, const ClaudePane(showChrome: false));
     final proc = created.single;
     await act(
-        tester,
-        () => proc.feed({
-              'type': 'control_request',
-              'request_id': 'req-1',
-              'request': {
-                'subtype': 'can_use_tool',
-                'tool_name': 'Bash',
-                'tool_use_id': 'tu-1',
-                'input': {'command': 'ls'},
-              },
-            }));
+      tester,
+      () => proc.feed({
+        'type': 'control_request',
+        'request_id': 'req-1',
+        'request': {
+          'subtype': 'can_use_tool',
+          'tool_name': 'Bash',
+          'tool_use_id': 'tu-1',
+          'input': {'command': 'ls'},
+        },
+      }),
+    );
     expect(find.byType(ClaudeComposer), findsNothing, reason: 'prompt takes the composer slot (D-78)');
   });
 

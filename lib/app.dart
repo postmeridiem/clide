@@ -38,10 +38,7 @@ class _AppRoot extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: clideName,
       color: const Color(0xFF000000),
-      pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) => PageRouteBuilder<T>(
-        settings: settings,
-        pageBuilder: (ctx, _, __) => builder(ctx),
-      ),
+      pageRouteBuilder: <T>(RouteSettings settings, WidgetBuilder builder) => PageRouteBuilder<T>(settings: settings, pageBuilder: (ctx, _, _) => builder(ctx)),
       home: _RootShell(services: services),
     );
   }
@@ -240,35 +237,19 @@ class RootLayout extends StatelessWidget {
               child: Row(
                 children: [
                   if (sidebarVisible && sidebarCollapsed)
-                    ClideSpine(
-                      label: _sidebarSpineLabel(kernel),
-                      side: SpineSide.left,
-                      onExpand: () => a.setCollapsed(Slots.sidebar, false),
-                    )
+                    ClideSpine(label: _sidebarSpineLabel(kernel), side: SpineSide.left, onExpand: () => a.setCollapsed(Slots.sidebar, false))
                   else if (sidebarVisible) ...[
                     SizedBox(
                       width: sidebarSize,
                       child: SlotHost(slot: Slots.sidebar),
                     ),
-                    DragResizeHandle(
-                      arrangement: a,
-                      slot: Slots.sidebar,
-                      axis: Axis.horizontal,
-                    ),
+                    DragResizeHandle(arrangement: a, slot: Slots.sidebar, axis: Axis.horizontal),
                   ],
                   const Expanded(child: SlotHost(slot: Slots.workspace)),
                   if (contextVisible && contextCollapsed)
-                    ClideSpine(
-                      label: 'context',
-                      side: SpineSide.right,
-                      onExpand: () => a.setCollapsed(Slots.contextPanel, false),
-                    )
+                    ClideSpine(label: 'context', side: SpineSide.right, onExpand: () => a.setCollapsed(Slots.contextPanel, false))
                   else if (contextVisible) ...[
-                    DragResizeHandle(
-                      arrangement: a,
-                      slot: Slots.contextPanel,
-                      axis: Axis.horizontal,
-                    ),
+                    DragResizeHandle(arrangement: a, slot: Slots.contextPanel, axis: Axis.horizontal),
                     SizedBox(
                       width: contextSize,
                       child: SlotHost(slot: Slots.contextPanel),
@@ -281,14 +262,18 @@ class RootLayout extends StatelessWidget {
               SizedBox(
                 height: dockHeight,
                 child: DecoratedBox(
-                  decoration: BoxDecoration(border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder))),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder)),
+                  ),
                   child: SlotHost(slot: Slots.dock),
                 ),
               ),
             if (statusVisible)
               Container(
                 height: statusHeight,
-                decoration: BoxDecoration(border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder))),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder)),
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -296,12 +281,18 @@ class RootLayout extends StatelessWidget {
                     // children) so they never shift when a pane collapses (T-294).
                     StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: sidebarCollapsed, visible: sidebarVisible),
                     if (sidebarVisible && !sidebarCollapsed)
-                      SizedBox(width: sidebarSize, child: _BottomRail(slot: Slots.sidebar))
+                      SizedBox(
+                        width: sidebarSize,
+                        child: _BottomRail(slot: Slots.sidebar),
+                      )
                     else if (sidebarVisible && sidebarCollapsed)
                       const SizedBox(width: ClideSpine.width),
                     const Expanded(child: StatusbarHost()),
                     if (contextVisible && !contextCollapsed)
-                      SizedBox(width: contextSize, child: _BottomRail(slot: Slots.contextPanel))
+                      SizedBox(
+                        width: contextSize,
+                        child: _BottomRail(slot: Slots.contextPanel),
+                      )
                     else if (contextVisible && contextCollapsed)
                       const SizedBox(width: ClideSpine.width),
                     StatusbarCollapseToggle(slot: Slots.contextPanel, collapsed: contextCollapsed, visible: contextVisible),
@@ -392,11 +383,13 @@ class _RightHatContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kIsWeb) return const SizedBox.shrink();
     if (!kIsWeb && Platform.isMacOS) return const SizedBox.shrink();
-    return Row(children: [
-      _WinBtn(icon: const PhosphorIconPainter(0xe32a), onTap: wc.minimize, tokens: tokens),
-      _WinBtn(icon: const PhosphorIconPainter(0xe45e), onTap: wc.toggleMaximize, tokens: tokens),
-      _WinBtn(icon: PhosphorIcons.byName('x'), onTap: wc.close, tokens: tokens, isClose: true),
-    ]);
+    return Row(
+      children: [
+        _WinBtn(icon: const PhosphorIconPainter(0xe32a), onTap: wc.minimize, tokens: tokens),
+        _WinBtn(icon: const PhosphorIconPainter(0xe45e), onTap: wc.toggleMaximize, tokens: tokens),
+        _WinBtn(icon: PhosphorIcons.byName('x'), onTap: wc.close, tokens: tokens, isClose: true),
+      ],
+    );
   }
 }
 
@@ -417,11 +410,7 @@ class _WinBtn extends StatelessWidget {
         height: hatHeight,
         color: hovered ? hoverBg : null,
         alignment: Alignment.center,
-        child: ClideIcon(
-          icon,
-          size: 14,
-          color: hovered && isClose ? tokens.windowControlCloseHoverForeground : tokens.chromeForeground,
-        ),
+        child: ClideIcon(icon, size: 14, color: hovered && isClose ? tokens.windowControlCloseHoverForeground : tokens.chromeForeground),
       ),
     );
   }
@@ -544,26 +533,29 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
                   itemCount: filtered.length,
-                  itemBuilder: (ctx, i) => _RecentProjectRow(
-                    project: filtered[i],
-                    tokens: tokens,
-                    onTap: () => _openProject(filtered[i].path),
-                  ),
+                  itemBuilder: (ctx, i) => _RecentProjectRow(project: filtered[i], tokens: tokens, onTap: () => _openProject(filtered[i].path)),
                 ),
               ),
             ] else
               const Padding(padding: EdgeInsets.all(12), child: ClideText('No recent projects.', muted: true)),
             Container(
-              decoration: BoxDecoration(border: Border(top: BorderSide(color: tokens.dividerColor))),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: tokens.dividerColor)),
+              ),
               child: Column(
                 children: [
                   _ActionRow(
-                      label: 'Open Local Project',
-                      shortcut: Platform.isMacOS ? '⌘O' : 'Ctrl+O',
-                      tokens: tokens,
-                      onTap: () => _runFileCommand('file.openFolder')),
+                    label: 'Open Local Project',
+                    shortcut: Platform.isMacOS ? '⌘O' : 'Ctrl+O',
+                    tokens: tokens,
+                    onTap: () => _runFileCommand('file.openFolder'),
+                  ),
                   _ActionRow(
-                      label: 'New Window', shortcut: Platform.isMacOS ? '⌘⇧N' : 'Ctrl+Shift+N', tokens: tokens, onTap: () => _runFileCommand('file.newWindow')),
+                    label: 'New Window',
+                    shortcut: Platform.isMacOS ? '⌘⇧N' : 'Ctrl+Shift+N',
+                    tokens: tokens,
+                    onTap: () => _runFileCommand('file.newWindow'),
+                  ),
                   if (widget.kernel.project.isOpen)
                     _ActionRow(label: 'Close Project', shortcut: '', tokens: tokens, onTap: () => _runFileCommand('file.closeWorkspace')),
                 ],
@@ -604,8 +596,14 @@ class _RecentProjectRow extends StatelessWidget {
                         // Elide a long path instead of overflowing the row
                         // (matches the welcome recents row; T-160 discipline).
                         Flexible(
-                          child: ClideText(project.relativePath,
-                              muted: true, fontSize: 12, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          child: ClideText(
+                            project.relativePath,
+                            muted: true,
+                            fontSize: 12,
+                            fontFamily: clideMonoFamily,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         ClideText('  ·  ', muted: true, fontSize: 12),
                         ClideIcon(PhosphorIcons.byName('git-branch'), size: 10, color: tokens.globalTextMuted),
@@ -706,10 +704,7 @@ class _SlotHostState extends State<SlotHost> {
               return Container(color: tokens.panelBackground);
             }
             final activeId = kernel.panels.activeTabIn(widget.slot) ?? tabs.first.id;
-            final active = tabs.firstWhere(
-              (t) => t.id == activeId,
-              orElse: () => tabs.first,
-            );
+            final active = tabs.firstWhere((t) => t.id == activeId, orElse: () => tabs.first);
             return _SlotBody(slot: widget.slot, tabs: tabs, active: active, activeId: activeId);
           },
         ),
@@ -731,21 +726,11 @@ class _SlotBody extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
 
     if (slot == Slots.sidebar) {
-      return _SidebarSlot(
-        tabs: tabs,
-        active: active,
-        activeId: activeId,
-        onSelect: (id) => kernel.panels.activateTab(slot, id),
-      );
+      return _SidebarSlot(tabs: tabs, active: active, activeId: activeId, onSelect: (id) => kernel.panels.activateTab(slot, id));
     }
 
     if (slot == Slots.contextPanel) {
-      return _ContextSlot(
-        tabs: tabs,
-        active: active,
-        activeId: activeId,
-        onSelect: (id) => kernel.panels.activateTab(slot, id),
-      );
+      return _ContextSlot(tabs: tabs, active: active, activeId: activeId, onSelect: (id) => kernel.panels.activateTab(slot, id));
     }
 
     if (slot == Slots.workspace) {
@@ -757,9 +742,7 @@ class _SlotBody extends StatelessWidget {
       child: Column(
         children: [
           ClideTabBar(
-            items: [
-              for (final t in tabs) ClideTabItem(id: t.id, title: _resolveTitle(context, t)),
-            ],
+            items: [for (final t in tabs) ClideTabItem(id: t.id, title: _resolveTitle(context, t))],
             activeId: active.id,
             onSelect: (id) => kernel.panels.activateTab(slot, id),
           ),
@@ -774,21 +757,12 @@ class _SlotBody extends StatelessWidget {
     final key = t.titleKey;
     final ns = t.i18nNamespace;
     if (key == null || ns == null) return t.title;
-    return ClideKernel.of(context).i18n.string(
-          key,
-          namespace: ns,
-          placeholder: t.title,
-        );
+    return ClideKernel.of(context).i18n.string(key, namespace: ns, placeholder: t.title);
   }
 }
 
 class _SidebarSlot extends StatelessWidget {
-  const _SidebarSlot({
-    required this.tabs,
-    required this.active,
-    required this.activeId,
-    required this.onSelect,
-  });
+  const _SidebarSlot({required this.tabs, required this.active, required this.activeId, required this.onSelect});
 
   final List<TabContribution> tabs;
   final TabContribution active;
@@ -863,10 +837,7 @@ class _WorkspaceSlot extends StatelessWidget {
                   SizedBox(
                     height: topHeight,
                     child: reveal != null
-                        ? _RevealedTab(
-                            tab: reveal,
-                            onClose: () => kernel.panels.activateTab(Slots.workspace, _claudeTabId),
-                          )
+                        ? _RevealedTab(tab: reveal, onClose: () => kernel.panels.activateTab(Slots.workspace, _claudeTabId))
                         : topTab.build(ctx),
                   ),
                   _EditorDragHandle(arrangement: kernel.arrangement, totalHeight: totalHeight),
@@ -903,12 +874,7 @@ class _RevealedTab extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: ClideText(
-                  _SlotBody._resolveTitle(context, tab),
-                  fontSize: clideFontCaption,
-                  color: tokens.panelHeaderForeground,
-                  maxLines: 1,
-                ),
+                child: ClideText(_SlotBody._resolveTitle(context, tab), fontSize: clideFontCaption, color: tokens.panelHeaderForeground, maxLines: 1),
               ),
               Semantics(
                 button: true,
@@ -918,7 +884,7 @@ class _RevealedTab extends StatelessWidget {
                 child: ClideTappable(
                   onTap: onClose,
                   tooltip: 'Close',
-                  builder: (_, hovered, __) => Padding(
+                  builder: (_, hovered, _) => Padding(
                     padding: const EdgeInsets.all(6),
                     child: ClideIcon(PhosphorIcons.byName('x'), size: 12, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
                   ),
@@ -1027,12 +993,7 @@ class _EditorBumpIntent extends Intent {
 }
 
 class _ContextSlot extends StatelessWidget {
-  const _ContextSlot({
-    required this.tabs,
-    required this.active,
-    required this.activeId,
-    required this.onSelect,
-  });
+  const _ContextSlot({required this.tabs, required this.active, required this.activeId, required this.onSelect});
 
   final List<TabContribution> tabs;
   final TabContribution active;
@@ -1042,12 +1003,7 @@ class _ContextSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    return Container(
-      color: tokens.panelBackground,
-      alignment: Alignment.topLeft,
-      padding: const EdgeInsets.only(right: 2),
-      child: active.build(context),
-    );
+    return Container(color: tokens.panelBackground, alignment: Alignment.topLeft, padding: const EdgeInsets.only(right: 2), child: active.build(context));
   }
 }
 
@@ -1068,14 +1024,7 @@ class _BottomRail extends StatelessWidget {
         return Container(
           color: tokens.chromeBackground,
           child: ClideIconRail(
-            items: [
-              for (final t in tabs)
-                ClideIconRailItem(
-                  id: t.id,
-                  icon: _iconFor(slot, t),
-                  tooltip: _SlotBody._resolveTitle(ctx, t),
-                ),
-            ],
+            items: [for (final t in tabs) ClideIconRailItem(id: t.id, icon: _iconFor(slot, t), tooltip: _SlotBody._resolveTitle(ctx, t))],
             activeId: activeId,
             onSelect: (id) => kernel.panels.activateTab(slot, id),
           ),
@@ -1209,10 +1158,7 @@ class _WelcomeOverlay extends StatelessWidget {
       builder: (ctx, _) {
         if (kernel.project.isOpen) return const SizedBox.shrink();
         final tokens = ClideTheme.of(ctx).surface;
-        return ColoredBox(
-          color: tokens.globalBackground,
-          child: const WelcomeView(),
-        );
+        return ColoredBox(color: tokens.globalBackground, child: const WelcomeView());
       },
     );
   }

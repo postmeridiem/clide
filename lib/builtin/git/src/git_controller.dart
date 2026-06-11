@@ -114,9 +114,7 @@ class GitController extends ChangeNotifier {
   }
 
   Future<bool> stash({String? message}) async {
-    final r = await ipc.request('git.stash', args: {
-      if (message != null) 'message': message,
-    });
+    final r = await ipc.request('git.stash', args: {'message': ?message});
     return r.ok;
   }
 

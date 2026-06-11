@@ -8,13 +8,7 @@ import '../../helpers/kernel_fixture.dart';
 
 /// Minimal no-op extension used as a test actor.
 class _Ext extends ClideExtension {
-  _Ext({
-    required this.id,
-    this.dependsOn = const [],
-    this.contributions = const [],
-    this.onActivate,
-    this.onDeactivate,
-  });
+  _Ext({required this.id, this.dependsOn = const [], this.contributions = const [], this.onActivate, this.onDeactivate});
 
   @override
   final String id;
@@ -56,53 +50,30 @@ void main() {
     test('register + activateAll runs extensions in dep order', () async {
       final order = <String>[];
       f.services.extensions
-        ..register(_Ext(
-          id: 'a',
-          onActivate: (_) async => order.add('a'),
-        ))
-        ..register(_Ext(
-          id: 'b',
-          dependsOn: const ['a'],
-          onActivate: (_) async => order.add('b'),
-        ))
-        ..register(_Ext(
-          id: 'c',
-          dependsOn: const ['b'],
-          onActivate: (_) async => order.add('c'),
-        ));
+        ..register(_Ext(id: 'a', onActivate: (_) async => order.add('a')))
+        ..register(_Ext(id: 'b', dependsOn: const ['a'], onActivate: (_) async => order.add('b')))
+        ..register(_Ext(id: 'c', dependsOn: const ['b'], onActivate: (_) async => order.add('c')));
       await f.services.extensions.activateAll();
       expect(order, ['a', 'b', 'c']);
     });
 
     test('missing dep skips the dependent with a warning', () async {
       final order = <String>[];
-      f.services.extensions.register(_Ext(
-        id: 'needs-missing',
-        dependsOn: const ['does.not.exist'],
-        onActivate: (_) async => order.add('needs-missing'),
-      ));
+      f.services.extensions.register(_Ext(id: 'needs-missing', dependsOn: const ['does.not.exist'], onActivate: (_) async => order.add('needs-missing')));
       await f.services.extensions.activateAll();
       expect(order, isEmpty);
       expect(f.services.extensions.isActivated('needs-missing'), false);
     });
 
     test('contribution points wire into panel registry on activate', () async {
-      f.services.extensions.register(_Ext(
-        id: 'with-tab',
-        contributions: [
-          TabContribution(
-            id: 'with-tab.view',
-            slot: Slots.workspace,
-            title: 'T',
-            build: (_) => const SizedBox.shrink(),
-          ),
-        ],
-      ));
-      await f.services.extensions.activateAll();
-      expect(
-        f.services.panels.tabsFor(Slots.workspace).map((t) => t.id),
-        ['with-tab.view'],
+      f.services.extensions.register(
+        _Ext(
+          id: 'with-tab',
+          contributions: [TabContribution(id: 'with-tab.view', slot: Slots.workspace, title: 'T', build: (_) => const SizedBox.shrink())],
+        ),
       );
+      await f.services.extensions.activateAll();
+      expect(f.services.panels.tabsFor(Slots.workspace).map((t) => t.id), ['with-tab.view']);
     });
 
     test('activating an extension auto-loads its localized tab namespace (T-155)', () async {
@@ -119,46 +90,37 @@ void main() {
       addTearDown(local.dispose);
 
       // Not registered yet → string() falls back to the placeholder.
-      expect(
-        local.services.i18n.string('tab.title', namespace: 'ext.localized', placeholder: 'fallback'),
-        'fallback',
-      );
+      expect(local.services.i18n.string('tab.title', namespace: 'ext.localized', placeholder: 'fallback'), 'fallback');
 
-      local.services.extensions.register(_Ext(
-        id: 'ext.localized',
-        contributions: [
-          TabContribution(
-            id: 'ext.localized.view',
-            slot: Slots.workspace,
-            title: 'Fallback',
-            titleKey: 'tab.title',
-            i18nNamespace: 'ext.localized',
-            build: (_) => const SizedBox.shrink(),
-          ),
-        ],
-      ));
+      local.services.extensions.register(
+        _Ext(
+          id: 'ext.localized',
+          contributions: [
+            TabContribution(
+              id: 'ext.localized.view',
+              slot: Slots.workspace,
+              title: 'Fallback',
+              titleKey: 'tab.title',
+              i18nNamespace: 'ext.localized',
+              build: (_) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      );
       await local.services.extensions.activateAll();
 
       // Activation auto-loaded the catalog → resolves, no "namespace not
       // registered" warning.
-      expect(
-        local.services.i18n.string('tab.title', namespace: 'ext.localized', placeholder: 'fallback'),
-        'Localized',
-      );
+      expect(local.services.i18n.string('tab.title', namespace: 'ext.localized', placeholder: 'fallback'), 'Localized');
     });
 
     test('deactivate removes contributions from the registry', () async {
-      f.services.extensions.register(_Ext(
-        id: 'ephemeral',
-        contributions: [
-          TabContribution(
-            id: 'ephemeral.view',
-            slot: Slots.workspace,
-            title: 'T',
-            build: (_) => const SizedBox.shrink(),
-          ),
-        ],
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'ephemeral',
+          contributions: [TabContribution(id: 'ephemeral.view', slot: Slots.workspace, title: 'T', build: (_) => const SizedBox.shrink())],
+        ),
+      );
       await f.services.extensions.activateAll();
       expect(f.services.panels.tabsFor(Slots.workspace), hasLength(1));
       await f.services.extensions.deactivate('ephemeral');
@@ -166,32 +128,27 @@ void main() {
     });
 
     test('CommandContribution registers + default binding is bound', () async {
-      f.services.extensions.register(_Ext(
-        id: 'has-cmd',
-        contributions: [
-          CommandContribution(
-            id: 'c',
-            command: 'test.cmd',
-            defaultBinding: 'ctrl+alt+k',
-            run: (_) async => IpcResponse.ok(id: '', data: const {}),
-          ),
-        ],
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'has-cmd',
+          contributions: [
+            CommandContribution(
+              id: 'c',
+              command: 'test.cmd',
+              defaultBinding: 'ctrl+alt+k',
+              run: (_) async => IpcResponse.ok(id: '', data: const {}),
+            ),
+          ],
+        ),
+      );
       await f.services.extensions.activateAll();
       expect(f.services.commands.get('test.cmd'), isNotNull);
-      expect(
-        f.services.keybindings.commandFor(Keybinding.parse('ctrl+alt+k')),
-        'test.cmd',
-      );
+      expect(f.services.keybindings.commandFor(Keybinding.parse('ctrl+alt+k')), 'test.cmd');
     });
 
     test('setEnabled=false deactivates; =true reactivates', () async {
       final order = <String>[];
-      f.services.extensions.register(_Ext(
-        id: 'toggle',
-        onActivate: (_) async => order.add('on'),
-        onDeactivate: () async => order.add('off'),
-      ));
+      f.services.extensions.register(_Ext(id: 'toggle', onActivate: (_) async => order.add('on'), onDeactivate: () async => order.add('off')));
       await f.services.extensions.activateAll();
       expect(order, ['on']);
       await f.services.extensions.setEnabled('toggle', false);
@@ -228,16 +185,12 @@ void main() {
     });
 
     test('TrayItemContribution lands in TrayRegistry; deactivate removes it', () async {
-      f.services.extensions.register(_Ext(
-        id: 'tray-ext',
-        contributions: [
-          const TrayItemContribution(
-            id: 'tray-ext.item',
-            label: 'Item',
-            onSelected: _noop,
-          ),
-        ],
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'tray-ext',
+          contributions: [const TrayItemContribution(id: 'tray-ext.item', label: 'Item', onSelected: _noop)],
+        ),
+      );
       await f.services.extensions.activateAll();
       expect(f.services.tray.items.map((i) => i.id), contains('tray-ext.item'));
       await f.services.extensions.deactivate('tray-ext');
@@ -245,21 +198,15 @@ void main() {
     });
 
     test('StatusItem + ToolbarButton contributions activate and deactivate cleanly', () async {
-      f.services.extensions.register(_Ext(
-        id: 'status-and-toolbar',
-        contributions: [
-          StatusItemContribution(
-            id: 'status-and-toolbar.status',
-            priority: 1,
-            build: (_) => const SizedBox.shrink(),
-          ),
-          ToolbarButtonContribution(
-            id: 'status-and-toolbar.btn',
-            label: 'B',
-            onPressed: () {},
-          ),
-        ],
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'status-and-toolbar',
+          contributions: [
+            StatusItemContribution(id: 'status-and-toolbar.status', priority: 1, build: (_) => const SizedBox.shrink()),
+            ToolbarButtonContribution(id: 'status-and-toolbar.btn', label: 'B', onPressed: () {}),
+          ],
+        ),
+      );
       await f.services.extensions.activateAll();
       // Both contributions register through PanelRegistry.contributionsFor.
       expect(f.services.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>(), hasLength(1));
@@ -271,16 +218,12 @@ void main() {
       // LayoutPresetContribution is consumed by the default-layout
       // extension's own activate(); the manager's add/remove just hit
       // the no-op case branch.
-      f.services.extensions.register(_Ext(
-        id: 'preset-only',
-        contributions: [
-          const LayoutPresetContribution(
-            id: 'preset-only.default',
-            displayName: 'Preset only',
-            slots: [],
-          ),
-        ],
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'preset-only',
+          contributions: [const LayoutPresetContribution(id: 'preset-only.default', displayName: 'Preset only', slots: [])],
+        ),
+      );
       await f.services.extensions.activateAll();
       await f.services.extensions.deactivate('preset-only');
     });
@@ -298,36 +241,32 @@ void main() {
     });
 
     test('activate failure is caught and logged (extension survives)', () async {
-      f.services.extensions.register(_Ext(
-        id: 'throws-on-activate',
-        onActivate: (_) async => throw StateError('kaboom'),
-      ));
+      f.services.extensions.register(_Ext(id: 'throws-on-activate', onActivate: (_) async => throw StateError('kaboom')));
       await f.services.extensions.activateAll();
       expect(f.services.extensions.isActivated('throws-on-activate'), isFalse);
     });
 
     test('deactivate failure is caught and logged', () async {
-      f.services.extensions.register(_Ext(
-        id: 'throws-on-deactivate',
-        onDeactivate: () async => throw StateError('kaboom'),
-      ));
+      f.services.extensions.register(_Ext(id: 'throws-on-deactivate', onDeactivate: () async => throw StateError('kaboom')));
       await f.services.extensions.activateAll();
       expect(f.services.extensions.isActivated('throws-on-deactivate'), isTrue);
       await f.services.extensions.deactivate('throws-on-deactivate');
     });
 
     test('deactivating a CommandContribution removes its keybinding', () async {
-      f.services.extensions.register(_Ext(
-        id: 'with-bound-cmd',
-        contributions: [
-          CommandContribution(
-            id: 'with-bound-cmd.cmd',
-            command: 'bound.cmd',
-            defaultBinding: 'ctrl+alt+j',
-            run: (_) async => IpcResponse.ok(id: '', data: const {}),
-          ),
-        ],
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'with-bound-cmd',
+          contributions: [
+            CommandContribution(
+              id: 'with-bound-cmd.cmd',
+              command: 'bound.cmd',
+              defaultBinding: 'ctrl+alt+j',
+              run: (_) async => IpcResponse.ok(id: '', data: const {}),
+            ),
+          ],
+        ),
+      );
       await f.services.extensions.activateAll();
       expect(f.services.keybindings.commandFor(Keybinding.parse('ctrl+alt+j')), 'bound.cmd');
       await f.services.extensions.deactivate('with-bound-cmd');
@@ -343,12 +282,14 @@ void main() {
 
     test('extension context exposes every kernel service via passthrough getters', () async {
       ClideExtensionContext? captured;
-      f.services.extensions.register(_Ext(
-        id: 'ctx-capture',
-        onActivate: (ctx) async {
-          captured = ctx;
-        },
-      ));
+      f.services.extensions.register(
+        _Ext(
+          id: 'ctx-capture',
+          onActivate: (ctx) async {
+            captured = ctx;
+          },
+        ),
+      );
       await f.services.extensions.activateAll();
       final ctx = captured!;
       expect(ctx.id, 'ctx-capture');

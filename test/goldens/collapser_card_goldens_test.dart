@@ -15,23 +15,29 @@ void main() {
   // A stand-in inner item card: content + its own per-item status mark (the
   // collapser carries the aggregate; items keep their own — T-305).
   Widget item(String label, ClideRunStatus status) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF393E48)),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(child: Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6A7280)), textDirection: TextDirection.ltr)),
-                ClideStatusIndicator(status: status, size: 12),
-              ],
+    padding: const EdgeInsets.only(bottom: 10),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF393E48)),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6A7280)),
+                textDirection: TextDirection.ltr,
+              ),
             ),
-          ),
+            ClideStatusIndicator(status: status, size: 12),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   goldenTest(
     'ClideCollapserCard (T-305): collapsed color variants + expanded inner canvas',
@@ -42,37 +48,43 @@ void main() {
         GoldenTestScenario(
           name: 'collapsed — default (muted)',
           child: _wrap(
-              f,
-              const ClideCollapserCard(
-                  label: 'Activity',
-                  collapsedSummary: 'Read  conversation_view.dart',
-                  counter: '3 steps',
-                  status: ClideRunStatus.success,
-                  children: [SizedBox.shrink()])),
+            f,
+            const ClideCollapserCard(
+              label: 'Activity',
+              collapsedSummary: 'Read  conversation_view.dart',
+              counter: '3 steps',
+              status: ClideRunStatus.success,
+              children: [SizedBox.shrink()],
+            ),
+          ),
         ),
         GoldenTestScenario(
           name: 'collapsed — edits (teal color)',
           child: _wrap(
-              f,
-              const ClideCollapserCard(
-                  label: 'Edits',
-                  color: Color(0xFF00AB9A),
-                  collapsedSummary: 'clide_markdown.dart',
-                  counter: '7 edits',
-                  status: ClideRunStatus.success,
-                  children: [SizedBox.shrink()])),
+            f,
+            const ClideCollapserCard(
+              label: 'Edits',
+              color: Color(0xFF00AB9A),
+              collapsedSummary: 'clide_markdown.dart',
+              counter: '7 edits',
+              status: ClideRunStatus.success,
+              children: [SizedBox.shrink()],
+            ),
+          ),
         ),
         GoldenTestScenario(
           name: 'collapsed — error (red color)',
           child: _wrap(
-              f,
-              const ClideCollapserCard(
-                  label: 'Bash',
-                  color: Color(0xFFF06C6F),
-                  collapsedSummary: 'npm test',
-                  counter: '1 step',
-                  status: ClideRunStatus.error,
-                  children: [SizedBox.shrink()])),
+            f,
+            const ClideCollapserCard(
+              label: 'Bash',
+              color: Color(0xFFF06C6F),
+              collapsedSummary: 'npm test',
+              counter: '1 step',
+              status: ClideRunStatus.error,
+              children: [SizedBox.shrink()],
+            ),
+          ),
         ),
         GoldenTestScenario(
           name: 'expanded — inner canvas of item cards',

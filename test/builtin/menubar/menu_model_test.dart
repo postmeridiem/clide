@@ -17,24 +17,30 @@ void main() {
   tearDown(() => f.dispose());
 
   void cmd(String id, {String? title, String? binding}) {
-    f.services.commands.register(CommandContribution(
-      id: id,
-      command: id,
-      title: title,
-      defaultBinding: binding,
-      run: (_) async => IpcResponse.ok(id: '', data: const {}),
-    ));
+    f.services.commands.register(
+      CommandContribution(
+        id: id,
+        command: id,
+        title: title,
+        defaultBinding: binding,
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ),
+    );
   }
 
   group('resolveMenus', () {
     test('curated order: strips "Category:" titles, separators pass through, defaultBinding shows', () {
       cmd('a.one', title: 'A: One', binding: 'ctrl+1');
       final tree = [
-        TopMenu(title: 'A', mnemonic: 0, nodes: const [
-          MenuCommandItem('a.one'),
-          MenuSeparator(),
-          MenuCommandItem('a.missing', fallbackTitle: 'Missing'),
-        ]),
+        TopMenu(
+          title: 'A',
+          mnemonic: 0,
+          nodes: const [
+            MenuCommandItem('a.one'),
+            MenuSeparator(),
+            MenuCommandItem('a.missing', fallbackTitle: 'Missing'),
+          ],
+        ),
       ];
       final items = resolveMenus(tree, f.services.commands, f.services).single.items;
 
@@ -55,11 +61,7 @@ void main() {
       cmd('view.beta', title: 'View: Beta');
       cmd('view.alpha', title: 'View: Alpha');
       final tree = [
-        TopMenu(title: 'View', mnemonic: 0, nodes: const [
-          MenuCommandItem('view.zoomIn'),
-          MenuSeparator(),
-          MenuAutoFill('view.'),
-        ]),
+        TopMenu(title: 'View', mnemonic: 0, nodes: const [MenuCommandItem('view.zoomIn'), MenuSeparator(), MenuAutoFill('view.')]),
       ];
       final items = resolveMenus(tree, f.services.commands, f.services).single.items.whereType<ResolvedItem>().toList();
       // zoomIn (placed) first; then auto-filled Alpha, Beta sorted by title;
@@ -71,7 +73,11 @@ void main() {
       cmd('x.cmd', title: 'X: Cmd');
       List<ResolvedItem> resolve(bool Function(KernelServices) when) {
         final tree = [
-          TopMenu(title: 'X', mnemonic: 0, nodes: [MenuCommandItem('x.cmd', enabledWhen: when)]),
+          TopMenu(
+            title: 'X',
+            mnemonic: 0,
+            nodes: [MenuCommandItem('x.cmd', enabledWhen: when)],
+          ),
         ];
         return resolveMenus(tree, f.services.commands, f.services).single.items.cast<ResolvedItem>();
       }
@@ -85,12 +91,8 @@ void main() {
       final tree = [
         TopMenu(title: 'K', mnemonic: 0, nodes: const [MenuCommandItem('k.cmd')]),
       ];
-      final item = resolveMenus(
-        tree,
-        f.services.commands,
-        f.services,
-        bindingLabel: (id) => id == 'k.cmd' ? 'Ctrl+K' : null,
-      ).single.items.first as ResolvedItem;
+      final item =
+          resolveMenus(tree, f.services.commands, f.services, bindingLabel: (id) => id == 'k.cmd' ? 'Ctrl+K' : null).single.items.first as ResolvedItem;
       expect(item.keybinding, 'Ctrl+K');
     });
   });

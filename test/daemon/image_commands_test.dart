@@ -17,19 +17,14 @@ void main() {
   void wire({bool liveUi = true, Set<String> found = const {'docs/diagram.png'}, bool withResolver = true}) {
     published = [];
     d = DaemonDispatcher();
-    registerImageCommands(
-      d,
-      () {
-        if (!liveUi) return null;
-        return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
-      },
-      resolve: withResolver ? (path) => found.contains(path) ? '/abs/$path' : null : null,
-    );
+    registerImageCommands(d, () {
+      if (!liveUi) return null;
+      return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
+    }, resolve: withResolver ? (path) => found.contains(path) ? '/abs/$path' : null : null);
   }
 
-  Future<IpcResponse> show(List<String> positional, {Map<String, Object?>? flags}) => d.dispatch(
-        IpcRequest(id: '1', cmd: 'image.show', args: {'positional': positional, if (flags != null) 'flags': flags}),
-      );
+  Future<IpcResponse> show(List<String> positional, {Map<String, Object?>? flags}) =>
+      d.dispatch(IpcRequest(id: '1', cmd: 'image.show', args: {'positional': positional, 'flags': ?flags}));
 
   test('resolves a workspace-relative path and publishes an image message', () async {
     wire();

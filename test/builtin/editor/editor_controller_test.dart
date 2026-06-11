@@ -15,12 +15,12 @@ IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data)
 Map<String, Object?> _buf(String id, String path, {bool dirty = false}) => {'id': id, 'path': path, 'dirty': dirty};
 
 Map<String, Object?> _read(String id, String path, String content, {bool dirty = false}) => {
-      'id': id,
-      'path': path,
-      'content': content,
-      'selection': {'start': 0, 'end': 0},
-      'dirty': dirty,
-    };
+  'id': id,
+  'path': path,
+  'content': content,
+  'selection': {'start': 0, 'end': 0},
+  'dirty': dirty,
+};
 
 void emitEditor(DaemonBus bus, String kind, Map<String, Object?> data) {
   bus.emit(DaemonEvent(subsystem: 'editor', kind: kind, data: data, ts: DateTime.now().toUtc()));
@@ -45,15 +45,17 @@ void main() {
   group('hydrate', () {
     test('populates the open-buffer list and loads the active buffer', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'lib/a.dart'), _buf('b_2', 'lib/b.dart', dirty: true)]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'lib/a.dart'), _buf('b_2', 'lib/b.dart', dirty: true)],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (a) async => _ok(_read('b_1', 'lib/a.dart', 'hello')));
 
       await c.hydrate();
@@ -66,10 +68,11 @@ void main() {
 
     test('with no active buffer leaves the list but no active content', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'lib/a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'lib/a.dart')],
+        }),
+      );
       ipc.stub('editor.active', (_) async => _ok(const {})); // no `active` key
 
       await c.hydrate();
@@ -93,15 +96,17 @@ void main() {
 
     test('activate is a no-op when the id is already active', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
       await c.hydrate();
 
@@ -129,15 +134,17 @@ void main() {
     test('editor.opened refreshes the list and loads the new active buffer', () async {
       var listVersion = 1;
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': listVersion == 1 ? [_buf('b_1', 'a.dart')] : [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': listVersion == 1 ? [_buf('b_1', 'a.dart')] : [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (a) async {
         final id = a['id'] as String;
         return _ok(_read(id, id == 'b_1' ? 'a.dart' : 'b.dart', 'content-$id'));
@@ -157,15 +164,17 @@ void main() {
     test('editor.closed refreshes the list and clears active when it was active', () async {
       var listVersion = 1;
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': listVersion == 1 ? [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')] : [_buf('b_2', 'b.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': listVersion == 1 ? [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')] : [_buf('b_2', 'b.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (a) async => _ok(_read(a['id'] as String, 'a.dart', 'x')));
       await c.hydrate();
       expect(c.buffers, hasLength(2));
@@ -180,15 +189,17 @@ void main() {
 
     test('editor.saved clears the dirty marker on the buffer', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart', dirty: true)]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart', dirty: true)],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x', dirty: true)));
       await c.hydrate();
       expect(c.buffers.single.dirty, isTrue);
@@ -202,15 +213,17 @@ void main() {
 
     test('editor.edited marks the right buffer dirty, leaving siblings alone', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (a) async => _ok(_read(a['id'] as String, 'a.dart', 'x')));
       await c.hydrate();
       expect(c.buffers.every((b) => !b.dirty), isTrue);
@@ -226,15 +239,17 @@ void main() {
 
     test('editor.active-changed to a different buffer loads its content', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart'), _buf('b_2', 'b.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (a) async {
         final id = a['id'] as String;
         return _ok(_read(id, id == 'b_1' ? 'a.dart' : 'b.dart', 'body-$id'));
@@ -253,15 +268,17 @@ void main() {
   group('local edits', () {
     test('pushLocalEdit marks the active buffer dirty and mirrors to IPC', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
       await c.hydrate();
 
@@ -281,15 +298,17 @@ void main() {
 
     test('save() issues editor.save for the active buffer', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
       await c.hydrate();
 
@@ -316,15 +335,17 @@ void main() {
   group('edge cases', () {
     test('editor.active-changed to null clears the active buffer', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
       await c.hydrate();
       expect(c.activeId, 'b_1');
@@ -358,15 +379,17 @@ void main() {
 
     test('editor.opened with no id clears the active buffer', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'x')));
       await c.hydrate();
       expect(c.activeId, 'b_1');
@@ -378,15 +401,17 @@ void main() {
 
     test('a failing editor.read surfaces the error', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub(
         'editor.read',
         (_) async => IpcResponse.err(
@@ -400,15 +425,17 @@ void main() {
 
     test('our own edit echo (editor.edited) is suppressed once, not reloaded', () async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'original')));
       ipc.stub('editor.set-content', (_) async => _ok(const {}));
       await c.hydrate();
@@ -433,15 +460,17 @@ void main() {
   group('editor settings (T-29)', () {
     Future<void> hydrateWith(Map<String, Object?> read) async {
       ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', 'lib/a.dart')]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'lib/a.dart')],
+        }),
+      );
       ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       ipc.stub('editor.read', (_) async => _ok(read));
       await c.hydrate();
     }

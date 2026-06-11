@@ -16,11 +16,7 @@ class Problem {
   final String message;
   final String? hint;
 
-  Map<String, Object?> toJson() => {
-        'source': source,
-        'message': message,
-        if (hint != null) 'hint': hint,
-      };
+  Map<String, Object?> toJson() => {'source': source, 'message': message, if (hint != null) 'hint': hint};
 }
 
 class ProblemsController extends ChangeNotifier {
@@ -47,11 +43,7 @@ class ProblemsController extends ChangeNotifier {
     if (doctor.ok) {
       final db = (doctor.data['db'] as Map?)?.cast<String, Object?>();
       if (db != null && db['exists'] == false) {
-        found.add(const Problem(
-          source: 'pql',
-          message: 'pql index database not found',
-          hint: 'Run pql to build the index.',
-        ));
+        found.add(const Problem(source: 'pql', message: 'pql index database not found', hint: 'Run pql to build the index.'));
       }
       final skill = (doctor.data['skill'] as Map?)?.cast<String, Object?>();
       if (skill != null) {
@@ -59,37 +51,21 @@ class ProblemsController extends ChangeNotifier {
         if (project != null) {
           final state = project['state'] as String?;
           if (state == 'stale') {
-            found.add(const Problem(
-              source: 'pql',
-              message: 'pql skill is stale — newer version available',
-              hint: 'Run: pql skill install',
-            ));
+            found.add(const Problem(source: 'pql', message: 'pql skill is stale — newer version available', hint: 'Run: pql skill install'));
           } else if (state == 'missing') {
-            found.add(const Problem(
-              source: 'pql',
-              message: 'pql skill not installed',
-              hint: 'Run: pql init --with-skill=yes',
-            ));
+            found.add(const Problem(source: 'pql', message: 'pql skill not installed', hint: 'Run: pql init --with-skill=yes'));
           }
         }
       }
     } else {
-      found.add(Problem(
-        source: 'pql',
-        message: 'pql doctor failed',
-        hint: doctor.error?.message,
-      ));
+      found.add(Problem(source: 'pql', message: 'pql doctor failed', hint: doctor.error?.message));
     }
 
     final sync = await ipc.request('pql.decisions.sync');
     if (sync.ok) {
       final broken = (sync.data['broken'] as num?)?.toInt() ?? 0;
       if (broken > 0) {
-        found.add(Problem(
-          source: 'decisions',
-          message: '$broken broken cross-reference(s) in governance/',
-          hint: 'Run: pql decisions validate',
-        ));
+        found.add(Problem(source: 'decisions', message: '$broken broken cross-reference(s) in governance/', hint: 'Run: pql decisions validate'));
       }
     }
 

@@ -10,11 +10,7 @@ import 'package:flutter/widgets.dart';
 /// (D-69); the shared `theme_families` helpers keep both surfaces in sync.
 /// Selecting a theme applies it live and dismisses; Cancel just closes.
 class SettingsView extends StatefulWidget {
-  const SettingsView({
-    super.key,
-    required this.controller,
-    required this.onDismiss,
-  });
+  const SettingsView({super.key, required this.controller, required this.onDismiss});
 
   final ThemeController controller;
   final void Function([String? selected]) onDismiss;
@@ -233,9 +229,7 @@ class _ThemeRow extends StatelessWidget {
                   )
                 else
                   const SizedBox(width: 20),
-                Expanded(
-                  child: ClideText(displayName, color: fg),
-                ),
+                Expanded(child: ClideText(displayName, color: fg)),
                 ClideText(name, color: tokens.globalTextMuted, fontSize: clideFontCaption),
               ],
             ),

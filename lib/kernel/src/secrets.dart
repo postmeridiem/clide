@@ -6,25 +6,15 @@
 class SecretsVault {
   final Map<String, String> _memory = {};
 
-  Future<void> write({
-    required String extensionId,
-    required String key,
-    required String value,
-  }) async {
+  Future<void> write({required String extensionId, required String key, required String value}) async {
     _memory['$extensionId/$key'] = value;
   }
 
-  Future<String?> read({
-    required String extensionId,
-    required String key,
-  }) async {
+  Future<String?> read({required String extensionId, required String key}) async {
     return _memory['$extensionId/$key'];
   }
 
-  Future<void> delete({
-    required String extensionId,
-    required String key,
-  }) async {
+  Future<void> delete({required String extensionId, required String key}) async {
     _memory.remove('$extensionId/$key');
   }
 

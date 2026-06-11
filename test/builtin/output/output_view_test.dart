@@ -71,10 +71,7 @@ void main() {
       await tester.pumpWidget(harness(f, OutputView(ring: _seeded())));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => _textIs(w, 'Level: debug')), findsOneWidget);
-      await tester.tap(find.ancestor(
-        of: find.byWidgetPredicate((w) => _textIs(w, 'Level: debug')),
-        matching: find.byType(GestureDetector),
-      ));
+      await tester.tap(find.ancestor(of: find.byWidgetPredicate((w) => _textIs(w, 'Level: debug')), matching: find.byType(GestureDetector)));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => _textIs(w, 'Level: info')), findsOneWidget);
     });
@@ -83,10 +80,7 @@ void main() {
       await tester.pumpWidget(harness(f, OutputView(ring: _seeded())));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => _textIs(w, 'Source: all')), findsOneWidget);
-      await tester.tap(find.ancestor(
-        of: find.byWidgetPredicate((w) => _textIs(w, 'Source: all')),
-        matching: find.byType(GestureDetector),
-      ));
+      await tester.tap(find.ancestor(of: find.byWidgetPredicate((w) => _textIs(w, 'Source: all')), matching: find.byType(GestureDetector)));
       await tester.pumpAndSettle();
       // First source alphabetically is 'extensions'.
       expect(find.byWidgetPredicate((w) => _textIs(w, 'Source: extensions')), findsOneWidget);
@@ -99,10 +93,7 @@ void main() {
       await tester.pumpWidget(harness(f, OutputView(ring: ring)));
       await tester.pumpAndSettle();
       // Cycle level debug → info, hiding the only (debug) record.
-      await tester.tap(find.ancestor(
-        of: find.byWidgetPredicate((w) => _textIs(w, 'Level: debug')),
-        matching: find.byType(GestureDetector),
-      ));
+      await tester.tap(find.ancestor(of: find.byWidgetPredicate((w) => _textIs(w, 'Level: debug')), matching: find.byType(GestureDetector)));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => _textIs(w, 'No output matches the filter.')), findsOneWidget);
     });
@@ -133,10 +124,7 @@ void main() {
     testWidgets('Clear empties the view', (tester) async {
       await tester.pumpWidget(harness(f, OutputView(ring: _seeded())));
       await tester.pumpAndSettle();
-      await tester.tap(find.ancestor(
-        of: find.byWidgetPredicate((w) => _textIs(w, 'Clear')),
-        matching: find.byType(GestureDetector),
-      ));
+      await tester.tap(find.ancestor(of: find.byWidgetPredicate((w) => _textIs(w, 'Clear')), matching: find.byType(GestureDetector)));
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => _textIs(w, 'alpha')), findsNothing);
       expect(find.byWidgetPredicate((w) => _textIs(w, 'No output yet.')), findsOneWidget);

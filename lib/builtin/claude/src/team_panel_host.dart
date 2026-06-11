@@ -51,10 +51,7 @@ class _TeamPanelHostState extends State<TeamPanelHost> {
   void _onJoined(TeamMemberJoined m) {
     if (_controllers.containsKey(m.agentId)) return;
     final kernel = ClideKernel.of(context);
-    _controllers[m.agentId] = ConversationController.fromBus(
-      messages: kernel.messages,
-      channel: ClaudeConversation.teammateChannel(m.agentId),
-    );
+    _controllers[m.agentId] = ConversationController.fromBus(messages: kernel.messages, channel: ClaudeConversation.teammateChannel(m.agentId));
     setState(() => _members.add(m));
   }
 
@@ -92,11 +89,7 @@ class _TeamPanelHostState extends State<TeamPanelHost> {
               }),
             ),
             Expanded(
-              child: _TeammateGrid(
-                members: _members,
-                controllers: _controllers,
-                tokens: tokens,
-              ),
+              child: _TeammateGrid(members: _members, controllers: _controllers, tokens: tokens),
             ),
           ],
         );
@@ -145,11 +138,7 @@ class _TeammateGrid extends StatelessWidget {
         children: [
           for (var r = 0; r < rows; r++)
             Expanded(
-              child: Row(
-                children: [
-                  for (var c = 0; c < cols; c++) Expanded(child: _cell(r * cols + c)),
-                ],
-              ),
+              child: Row(children: [for (var c = 0; c < cols; c++) Expanded(child: _cell(r * cols + c))]),
             ),
         ],
       ),

@@ -2,16 +2,7 @@
 
 import 'dart:math' show min;
 
-enum KeytabTokenType {
-  keyDefine,
-  keyboard,
-  keyName,
-  mode,
-  modeStatus,
-  colon,
-  input,
-  shortcut,
-}
+enum KeytabTokenType { keyDefine, keyboard, keyName, mode, modeStatus, colon, input, shortcut }
 
 class KeytabToken {
   KeytabToken(this.type, this.value);

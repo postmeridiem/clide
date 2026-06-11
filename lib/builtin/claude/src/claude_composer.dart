@@ -352,7 +352,12 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     }
   }
 
-  void _applyHistory(String text) => _applyValue(TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length)));
+  void _applyHistory(String text) => _applyValue(
+    TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    ),
+  );
 
   /// Set the controller without it being treated as a user edit (so the
   /// preview doesn't overwrite the persisted draft or exit navigation).
@@ -368,10 +373,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     final tokens = _attachments.map((a) => a.pathToken);
     if (text.trim().isEmpty && _attachments.isEmpty) return;
     // Typed text first, then the attachment @path references.
-    final message = [
-      if (text.trim().isNotEmpty) text,
-      ...tokens,
-    ].join(' ');
+    final message = [if (text.trim().isNotEmpty) text, ...tokens].join(' ');
     widget.onSubmit(message);
     _controller.clear();
     setState(() => _attachments.clear());
@@ -454,11 +456,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
               if (_attachments.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [for (final a in _attachments) _chip(theme, a)],
-                  ),
+                  child: Wrap(spacing: 6, runSpacing: 6, children: [for (final a in _attachments) _chip(theme, a)]),
                 ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -489,13 +487,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                           },
                           child: Stack(
                             children: [
-                              if (!hasText)
-                                Positioned(
-                                  left: 0,
-                                  top: 0,
-                                  right: 0,
-                                  child: ClideText(widget.hint, muted: true, fontSize: clideFontBody),
-                                ),
+                              if (!hasText) Positioned(left: 0, top: 0, right: 0, child: ClideText(widget.hint, muted: true, fontSize: clideFontBody)),
                               EditableText(
                                 controller: _controller,
                                 focusNode: _focus,
@@ -516,10 +508,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                     const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2),
-                      child: PermissionModeControl(
-                        mode: widget.permissionMode!,
-                        onSelect: widget.onSetPermissionMode!,
-                      ),
+                      child: PermissionModeControl(mode: widget.permissionMode!, onSelect: widget.onSetPermissionMode!),
                     ),
                   ],
                 ],
@@ -548,12 +537,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
           _chipLeading(theme, a),
           const SizedBox(width: 6),
           Flexible(
-            child: ClideText(
-              a.fileName,
-              fontSize: clideFontSmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: ClideText(a.fileName, fontSize: clideFontSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
           const SizedBox(width: 4),
           Semantics(

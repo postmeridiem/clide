@@ -13,9 +13,7 @@ import 'package:flutter/widgets.dart';
 /// into `==`/`hashCode` makes an overwrite a fresh key → a cache miss → a
 /// re-read of the current bytes; an unchanged file still hits the cache.
 class ClideFileImage extends FileImage {
-  ClideFileImage(String path, {double scale = 1.0})
-      : _stamp = _stampOf(path),
-        super(File(path), scale: scale);
+  ClideFileImage(String path, {double scale = 1.0}) : _stamp = _stampOf(path), super(File(path), scale: scale);
 
   /// mtime ⊕ size — changes on any in-place overwrite (a write bumps mtime; a
   /// different length bumps size even within one clock tick). 0 if the file

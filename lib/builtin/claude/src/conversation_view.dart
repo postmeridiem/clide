@@ -181,11 +181,9 @@ class _ConversationViewState extends State<ConversationView> {
   /// - [runByToolUseId]: the rest of the run — prose / thinking / tool cards —
   ///   nested in a holder UNDER the Agent card (T-264), with a successful
   ///   sidechain tool result left out (it folds into its own tool card).
-  ({
-    Set<String> ownedSidechainUuids,
-    Map<String, List<UserMessage>> promptsByToolUseId,
-    Map<String, List<ConversationItem>> runByToolUseId,
-  }) _sidechainFold(List<ConversationItem> items) {
+  ({Set<String> ownedSidechainUuids, Map<String, List<UserMessage>> promptsByToolUseId, Map<String, List<ConversationItem>> runByToolUseId}) _sidechainFold(
+    List<ConversationItem> items,
+  ) {
     final agentByMsgUuid = <String, AssistantToolUse>{
       for (final it in items)
         if (it is AssistantToolUse && _isAgentTool(it.name)) it.uuid: it,
@@ -308,39 +306,39 @@ class _ConversationViewState extends State<ConversationView> {
           // visible list don't reattach State to the wrong card (T-285).
           return switch (g) {
             StickyItem(:final item) => _ConversationTurn(
-                key: ValueKey('turn.${item.uuid}'),
-                item: item,
-                tokens: tokens,
-                collapseTools: true,
-                toolUseOutcomes: widget.toolUseOutcomes,
-                quietErrorToolUseIds: widget.quietErrorToolUseIds,
-                toolUseById: widget.controller.toolUseById,
-                resultByToolUseId: resultByToolUseId,
-                promptsByToolUseId: fold.promptsByToolUseId,
-                runByToolUseId: fold.runByToolUseId,
-              ),
+              key: ValueKey('turn.${item.uuid}'),
+              item: item,
+              tokens: tokens,
+              collapseTools: true,
+              toolUseOutcomes: widget.toolUseOutcomes,
+              quietErrorToolUseIds: widget.quietErrorToolUseIds,
+              toolUseById: widget.controller.toolUseById,
+              resultByToolUseId: resultByToolUseId,
+              promptsByToolUseId: fold.promptsByToolUseId,
+              runByToolUseId: fold.runByToolUseId,
+            ),
             FoldedCluster(:final items) => _ActivityCard(
-                key: ValueKey('cluster.${items.first.uuid}'),
-                items: items,
-                tokens: tokens,
-                toolUseOutcomes: widget.toolUseOutcomes,
-                quietErrorToolUseIds: widget.quietErrorToolUseIds,
-                toolUseById: widget.controller.toolUseById,
-                resultByToolUseId: resultByToolUseId,
-                promptsByToolUseId: fold.promptsByToolUseId,
-                runByToolUseId: fold.runByToolUseId,
-              ),
+              key: ValueKey('cluster.${items.first.uuid}'),
+              items: items,
+              tokens: tokens,
+              toolUseOutcomes: widget.toolUseOutcomes,
+              quietErrorToolUseIds: widget.quietErrorToolUseIds,
+              toolUseById: widget.controller.toolUseById,
+              resultByToolUseId: resultByToolUseId,
+              promptsByToolUseId: fold.promptsByToolUseId,
+              runByToolUseId: fold.runByToolUseId,
+            ),
             EditRun(:final edits) => _EditRunCard(
-                key: ValueKey('edits.${edits.first.uuid}'),
-                edits: edits,
-                tokens: tokens,
-                toolUseOutcomes: widget.toolUseOutcomes,
-                quietErrorToolUseIds: widget.quietErrorToolUseIds,
-                toolUseById: widget.controller.toolUseById,
-                resultByToolUseId: resultByToolUseId,
-                promptsByToolUseId: fold.promptsByToolUseId,
-                runByToolUseId: fold.runByToolUseId,
-              ),
+              key: ValueKey('edits.${edits.first.uuid}'),
+              edits: edits,
+              tokens: tokens,
+              toolUseOutcomes: widget.toolUseOutcomes,
+              quietErrorToolUseIds: widget.quietErrorToolUseIds,
+              toolUseById: widget.controller.toolUseById,
+              resultByToolUseId: resultByToolUseId,
+              promptsByToolUseId: fold.promptsByToolUseId,
+              runByToolUseId: fold.runByToolUseId,
+            ),
           };
         },
       ),
@@ -413,7 +411,7 @@ String? resolveWorkspaceFilePath(String? root, String raw) {
 /// Open a clicked workspace file reference in the editor, jumping to [line]
 /// when present — the Dart-side twin of `clide editor open <path>` (T-300, D-6).
 void _openFile(BuildContext context, String path, int? line) {
-  unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path, if (line != null) 'line': line}));
+  unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path, 'line': ?line}));
 }
 
 /// One conversation item, rendered by kind.
@@ -474,63 +472,63 @@ class _ConversationTurn extends StatelessWidget {
       // sidechain prompt here is an orphan one (its Agent card couldn't be
       // resolved) — folded prompts are suppressed upstream (T-263).
       UserMessage() when i.injected || i.isSidechain => ConversationCard(
-          // Framed like every other card (T-306) — just muted + collapsed, not
-          // the blue "you" accent (D-78); bare read as unfinished next to the
-          // carded tool calls.
-          variant: ConversationCardVariant.bordered,
-          accent: tokens.globalTextMuted,
-          label: i.isSidechain ? 'agent prompt' : 'context',
-          copyText: i.text,
-          collapsible: true,
-          collapsedByDefault: true,
-          collapsedSummary: _firstLine(i.text),
-          margin: _childMargin,
-          body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
-        ),
+        // Framed like every other card (T-306) — just muted + collapsed, not
+        // the blue "you" accent (D-78); bare read as unfinished next to the
+        // carded tool calls.
+        variant: ConversationCardVariant.bordered,
+        accent: tokens.globalTextMuted,
+        label: i.isSidechain ? 'agent prompt' : 'context',
+        copyText: i.text,
+        collapsible: true,
+        collapsedByDefault: true,
+        collapsedSummary: _firstLine(i.text),
+        margin: _childMargin,
+        body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
+      ),
       UserMessage() => ConversationCard(
-          accent: tokens.globalFocus,
-          label: 'you',
-          copyText: i.text,
-          margin: _childMargin,
-          // Pasted-image @path tokens render as inline thumbnails that open the
-          // lightbox (T-236/T-254); copyText keeps the original text verbatim.
-          body: ClideMarkdown(
-            i.text,
-            onRecordTap: (id) => _openRecord(context, id),
-            onImageToken: (path) => ImageThumbnail(path: path, size: 48),
-            onLinkTap: (url) => _openUrl(context, url),
-            resolveFileRef: (p) => _resolveRepoFile(context, p),
-            onOpenFile: (path, line) => _openFile(context, path, line),
-          ),
+        accent: tokens.globalFocus,
+        label: 'you',
+        copyText: i.text,
+        margin: _childMargin,
+        // Pasted-image @path tokens render as inline thumbnails that open the
+        // lightbox (T-236/T-254); copyText keeps the original text verbatim.
+        body: ClideMarkdown(
+          i.text,
+          onRecordTap: (id) => _openRecord(context, id),
+          onImageToken: (path) => ImageThumbnail(path: path, size: 48),
+          onLinkTap: (url) => _openUrl(context, url),
+          resolveFileRef: (p) => _resolveRepoFile(context, p),
+          onOpenFile: (path, line) => _openFile(context, path, line),
         ),
+      ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
       // agent with a muted accent, never the coral "claude" brand (T-265). The
       // coral claudeAccent is reserved for the real main-thread Claude.
       AssistantTextMessage() => ConversationCard(
-          accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
-          label: i.isSidechain ? 'agent' : 'claude',
-          copyText: i.text,
-          margin: _childMargin,
-          body: ClideMarkdown(
-            i.text,
-            onRecordTap: (id) => _openRecord(context, id),
-            onLinkTap: (url) => _openUrl(context, url),
-            resolveFileRef: (p) => _resolveRepoFile(context, p),
-            onOpenFile: (path, line) => _openFile(context, path, line),
-          ),
+        accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
+        label: i.isSidechain ? 'agent' : 'claude',
+        copyText: i.text,
+        margin: _childMargin,
+        body: ClideMarkdown(
+          i.text,
+          onRecordTap: (id) => _openRecord(context, id),
+          onLinkTap: (url) => _openUrl(context, url),
+          resolveFileRef: (p) => _resolveRepoFile(context, p),
+          onOpenFile: (path, line) => _openFile(context, path, line),
         ),
+      ),
       AssistantThinkingMessage() => ConversationCard(
-          // Framed + muted like the context card (T-306).
-          variant: ConversationCardVariant.bordered,
-          accent: tokens.globalTextMuted,
-          label: i.isSidechain ? 'agent thinking' : 'thinking',
-          copyText: i.thinking,
-          collapsible: true,
-          collapsedByDefault: true,
-          collapsedSummary: _firstLine(i.thinking),
-          margin: _childMargin,
-          body: ClideText(i.thinking, muted: true, fontSize: clideFontMeta),
-        ),
+        // Framed + muted like the context card (T-306).
+        variant: ConversationCardVariant.bordered,
+        accent: tokens.globalTextMuted,
+        label: i.isSidechain ? 'agent thinking' : 'thinking',
+        copyText: i.thinking,
+        collapsible: true,
+        collapsedByDefault: true,
+        collapsedSummary: _firstLine(i.thinking),
+        margin: _childMargin,
+        body: ClideText(i.thinking, muted: true, fontSize: clideFontMeta),
+      ),
       AssistantToolUse() => collapseTools ? _toolUseCollapser(i) : _toolContentCard(i),
       ToolResultMessage() => _toolResult(i),
       ImageMessage() => _image(context, i),
@@ -566,16 +564,13 @@ class _ConversationTurn extends StatelessWidget {
                     image: ClideFileImage(m.path),
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
-                    errorBuilder: (_, __, ___) => _imagePlaceholder(m.path),
+                    errorBuilder: (_, _, _) => _imagePlaceholder(m.path),
                   ),
                 ),
               ),
             ),
           ),
-          if (caption != null && caption.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            ClideText(caption, fontSize: clideFontMeta, color: tokens.globalTextMuted),
-          ],
+          if (caption != null && caption.isNotEmpty) ...[const SizedBox(height: 4), ClideText(caption, fontSize: clideFontMeta, color: tokens.globalTextMuted)],
         ],
       ),
     );
@@ -583,34 +578,30 @@ class _ConversationTurn extends StatelessWidget {
 
   void _openLightbox(BuildContext context, String path) {
     ClideKernel.of(context).dialog.show<Object>(
-          (ctx, dismiss) => ClideLightbox(
-            onDismiss: dismiss,
-            child: Image(
-              image: ClideFileImage(path),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => _imagePlaceholder(path),
-            ),
-          ),
-        );
+      (ctx, dismiss) => ClideLightbox(
+        onDismiss: dismiss,
+        child: Image(image: ClideFileImage(path), fit: BoxFit.contain, errorBuilder: (_, _, _) => _imagePlaceholder(path)),
+      ),
+    );
   }
 
   Widget _imagePlaceholder(String path) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: tokens.panelBorder),
-          borderRadius: BorderRadius.circular(4),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      border: Border.all(color: tokens.panelBorder),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClideIcon(PhosphorIcons.byName('image'), size: 16, color: tokens.globalTextMuted),
+        const SizedBox(width: 8),
+        Flexible(
+          child: ClideText('could not load $path', fontSize: clideFontMeta, color: tokens.globalTextMuted, maxLines: 1),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClideIcon(PhosphorIcons.byName('image'), size: 16, color: tokens.globalTextMuted),
-            const SizedBox(width: 8),
-            Flexible(
-              child: ClideText('could not load $path', fontSize: clideFontMeta, color: tokens.globalTextMuted, maxLines: 1),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   /// A standalone tool use (T-305): every tool use is a collapser over a
   /// one-item list. The collapser carries the echoed last line, the count, and
@@ -685,8 +676,15 @@ class _ConversationTurn extends StatelessWidget {
     // (note E): call input (body) → prompt → returned result.
     final segments = <CardSegment>[
       for (final p in promptsByToolUseId[t.toolUseId] ?? const <UserMessage>[])
-        CardSegment(label: 'prompt', child: ClideText(p.text, muted: true, fontSize: clideFontMeta)),
-      if (succeeded && !(isAgent && hasRun)) CardSegment(label: 'result', child: ClideCodeBlock(source: result.content, language: _resultLanguage(t))),
+        CardSegment(
+          label: 'prompt',
+          child: ClideText(p.text, muted: true, fontSize: clideFontMeta),
+        ),
+      if (succeeded && !(isAgent && hasRun))
+        CardSegment(
+          label: 'result',
+          child: ClideCodeBlock(source: result.content, language: _resultLanguage(t)),
+        ),
     ];
 
     // A resolved permission-prompted call is tinted green if approved / red if
@@ -757,12 +755,7 @@ class _ConversationTurn extends StatelessWidget {
         collapsible: quiet || multiline,
         collapsedByDefault: quiet, // genuine errors stay expanded; a denial folds
         collapsedSummary: (quiet || multiline) ? _firstLine(t.content) : null,
-        body: ClideText(
-          t.content,
-          fontSize: clideFontMeta,
-          fontFamily: clideMonoFamily,
-          color: quiet ? tokens.globalTextMuted : tokens.statusError,
-        ),
+        body: ClideText(t.content, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: quiet ? tokens.globalTextMuted : tokens.statusError),
       );
     }
 
@@ -783,12 +776,7 @@ class _ConversationTurn extends StatelessWidget {
       collapsedSummary: multiline ? _firstLine(t.content) : null,
       body: isOutputTool
           ? ClideCodeBlock(source: t.content, language: 'text')
-          : ClideText(
-              t.content,
-              fontSize: clideFontMeta,
-              fontFamily: clideMonoFamily,
-              color: tokens.globalForeground,
-            ),
+          : ClideText(t.content, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground),
     );
   }
 

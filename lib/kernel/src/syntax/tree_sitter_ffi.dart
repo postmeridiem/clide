@@ -124,28 +124,28 @@ typedef DWasmEngineDelete = void Function(Pointer<TSWasmEngine>);
 
 class TreeSitterLib {
   TreeSitterLib._(DynamicLibrary lib)
-      : parserNew = lib.lookupFunction<_TsParserNew, DTsParserNew>('ts_parser_new'),
-        parserDelete = lib.lookupFunction<_TsParserDelete, DTsParserDelete>('ts_parser_delete'),
-        parserSetLanguage = lib.lookupFunction<_TsParserSetLanguage, DTsParserSetLanguage>('ts_parser_set_language'),
-        parserSetWasmStore = lib.lookupFunction<_TsParserSetWasmStore, DTsParserSetWasmStore>('ts_parser_set_wasm_store'),
-        parserParseString = lib.lookupFunction<_TsParserParseString, DTsParserParseString>('ts_parser_parse_string'),
-        treeDelete = lib.lookupFunction<_TsTreeDelete, DTsTreeDelete>('ts_tree_delete'),
-        treeRootNode = lib.lookupFunction<_TsTreeRootNode, DTsTreeRootNode>('ts_tree_root_node'),
-        nodeStartByte = lib.lookupFunction<_TsNodeStartByte, DTsNodeStartByte>('ts_node_start_byte'),
-        nodeEndByte = lib.lookupFunction<_TsNodeEndByte, DTsNodeEndByte>('ts_node_end_byte'),
-        queryNew = lib.lookupFunction<_TsQueryNew, DTsQueryNew>('ts_query_new'),
-        queryDelete = lib.lookupFunction<_TsQueryDelete, DTsQueryDelete>('ts_query_delete'),
-        queryCaptureCount = lib.lookupFunction<_TsQueryCaptureCount, DTsQueryCaptureCount>('ts_query_capture_count'),
-        queryCaptureNameForId = lib.lookupFunction<_TsQueryCaptureNameForId, DTsQueryCaptureNameForId>('ts_query_capture_name_for_id'),
-        queryCursorNew = lib.lookupFunction<_TsQueryCursorNew, DTsQueryCursorNew>('ts_query_cursor_new'),
-        queryCursorDelete = lib.lookupFunction<_TsQueryCursorDelete, DTsQueryCursorDelete>('ts_query_cursor_delete'),
-        queryCursorExec = lib.lookupFunction<_TsQueryCursorExec, DTsQueryCursorExec>('ts_query_cursor_exec'),
-        queryCursorNextMatch = lib.lookupFunction<_TsQueryCursorNextMatch, DTsQueryCursorNextMatch>('ts_query_cursor_next_match'),
-        wasmStoreNew = lib.lookupFunction<_TsWasmStoreNew, DTsWasmStoreNew>('ts_wasm_store_new'),
-        wasmStoreDelete = lib.lookupFunction<_TsWasmStoreDelete, DTsWasmStoreDelete>('ts_wasm_store_delete'),
-        wasmStoreLoadLanguage = lib.lookupFunction<_TsWasmStoreLoadLanguage, DTsWasmStoreLoadLanguage>('ts_wasm_store_load_language'),
-        wasmEngineNew = lib.lookupFunction<_WasmEngineNew, DWasmEngineNew>('wasm_engine_new'),
-        wasmEngineDelete = lib.lookupFunction<_WasmEngineDelete, DWasmEngineDelete>('wasm_engine_delete');
+    : parserNew = lib.lookupFunction<_TsParserNew, DTsParserNew>('ts_parser_new'),
+      parserDelete = lib.lookupFunction<_TsParserDelete, DTsParserDelete>('ts_parser_delete'),
+      parserSetLanguage = lib.lookupFunction<_TsParserSetLanguage, DTsParserSetLanguage>('ts_parser_set_language'),
+      parserSetWasmStore = lib.lookupFunction<_TsParserSetWasmStore, DTsParserSetWasmStore>('ts_parser_set_wasm_store'),
+      parserParseString = lib.lookupFunction<_TsParserParseString, DTsParserParseString>('ts_parser_parse_string'),
+      treeDelete = lib.lookupFunction<_TsTreeDelete, DTsTreeDelete>('ts_tree_delete'),
+      treeRootNode = lib.lookupFunction<_TsTreeRootNode, DTsTreeRootNode>('ts_tree_root_node'),
+      nodeStartByte = lib.lookupFunction<_TsNodeStartByte, DTsNodeStartByte>('ts_node_start_byte'),
+      nodeEndByte = lib.lookupFunction<_TsNodeEndByte, DTsNodeEndByte>('ts_node_end_byte'),
+      queryNew = lib.lookupFunction<_TsQueryNew, DTsQueryNew>('ts_query_new'),
+      queryDelete = lib.lookupFunction<_TsQueryDelete, DTsQueryDelete>('ts_query_delete'),
+      queryCaptureCount = lib.lookupFunction<_TsQueryCaptureCount, DTsQueryCaptureCount>('ts_query_capture_count'),
+      queryCaptureNameForId = lib.lookupFunction<_TsQueryCaptureNameForId, DTsQueryCaptureNameForId>('ts_query_capture_name_for_id'),
+      queryCursorNew = lib.lookupFunction<_TsQueryCursorNew, DTsQueryCursorNew>('ts_query_cursor_new'),
+      queryCursorDelete = lib.lookupFunction<_TsQueryCursorDelete, DTsQueryCursorDelete>('ts_query_cursor_delete'),
+      queryCursorExec = lib.lookupFunction<_TsQueryCursorExec, DTsQueryCursorExec>('ts_query_cursor_exec'),
+      queryCursorNextMatch = lib.lookupFunction<_TsQueryCursorNextMatch, DTsQueryCursorNextMatch>('ts_query_cursor_next_match'),
+      wasmStoreNew = lib.lookupFunction<_TsWasmStoreNew, DTsWasmStoreNew>('ts_wasm_store_new'),
+      wasmStoreDelete = lib.lookupFunction<_TsWasmStoreDelete, DTsWasmStoreDelete>('ts_wasm_store_delete'),
+      wasmStoreLoadLanguage = lib.lookupFunction<_TsWasmStoreLoadLanguage, DTsWasmStoreLoadLanguage>('ts_wasm_store_load_language'),
+      wasmEngineNew = lib.lookupFunction<_WasmEngineNew, DWasmEngineNew>('wasm_engine_new'),
+      wasmEngineDelete = lib.lookupFunction<_WasmEngineDelete, DWasmEngineDelete>('wasm_engine_delete');
 
   /// Constructs a [TreeSitterLib] from caller-supplied Dart closures. Used by
   /// tests to substitute the FFI surface without dlopen'ing the real library;
@@ -176,30 +176,30 @@ class TreeSitterLib {
     DTsWasmStoreLoadLanguage? wasmStoreLoadLanguage,
     DWasmEngineNew? wasmEngineNew,
     DWasmEngineDelete? wasmEngineDelete,
-  })  : parserNew = parserNew ?? (() => nullptr),
-        parserDelete = parserDelete ?? ((_) {}),
-        parserSetLanguage = parserSetLanguage ?? ((_, __) => false),
-        parserSetWasmStore = parserSetWasmStore ?? ((_, __) {}),
-        parserParseString = parserParseString ?? ((_, __, ___, ____) => nullptr),
-        treeDelete = treeDelete ?? ((_) {}),
-        // Leaks a zeroed TSNode allocation — only hit when the test supplies
-        // a non-null parserParseString without also supplying treeRootNode.
-        treeRootNode = treeRootNode ?? ((_) => calloc<TSNode>().ref),
-        nodeStartByte = nodeStartByte ?? ((_) => 0),
-        nodeEndByte = nodeEndByte ?? ((_) => 0),
-        queryNew = queryNew ?? ((_, __, ___, ____, _____) => nullptr),
-        queryDelete = queryDelete ?? ((_) {}),
-        queryCaptureCount = queryCaptureCount ?? ((_) => 0),
-        queryCaptureNameForId = queryCaptureNameForId ?? ((_, __, ___) => nullptr),
-        queryCursorNew = queryCursorNew ?? (() => nullptr),
-        queryCursorDelete = queryCursorDelete ?? ((_) {}),
-        queryCursorExec = queryCursorExec ?? ((_, __, ___) {}),
-        queryCursorNextMatch = queryCursorNextMatch ?? ((_, __) => false),
-        wasmStoreNew = wasmStoreNew ?? ((_, __) => nullptr),
-        wasmStoreDelete = wasmStoreDelete ?? ((_) {}),
-        wasmStoreLoadLanguage = wasmStoreLoadLanguage ?? ((_, __, ___, ____, _____) => nullptr),
-        wasmEngineNew = wasmEngineNew ?? (() => nullptr),
-        wasmEngineDelete = wasmEngineDelete ?? ((_) {});
+  }) : parserNew = parserNew ?? (() => nullptr),
+       parserDelete = parserDelete ?? ((_) {}),
+       parserSetLanguage = parserSetLanguage ?? ((_, _) => false),
+       parserSetWasmStore = parserSetWasmStore ?? ((_, _) {}),
+       parserParseString = parserParseString ?? ((_, _, _, _) => nullptr),
+       treeDelete = treeDelete ?? ((_) {}),
+       // Leaks a zeroed TSNode allocation — only hit when the test supplies
+       // a non-null parserParseString without also supplying treeRootNode.
+       treeRootNode = treeRootNode ?? ((_) => calloc<TSNode>().ref),
+       nodeStartByte = nodeStartByte ?? ((_) => 0),
+       nodeEndByte = nodeEndByte ?? ((_) => 0),
+       queryNew = queryNew ?? ((_, _, _, _, _) => nullptr),
+       queryDelete = queryDelete ?? ((_) {}),
+       queryCaptureCount = queryCaptureCount ?? ((_) => 0),
+       queryCaptureNameForId = queryCaptureNameForId ?? ((_, _, _) => nullptr),
+       queryCursorNew = queryCursorNew ?? (() => nullptr),
+       queryCursorDelete = queryCursorDelete ?? ((_) {}),
+       queryCursorExec = queryCursorExec ?? ((_, _, _) {}),
+       queryCursorNextMatch = queryCursorNextMatch ?? ((_, _) => false),
+       wasmStoreNew = wasmStoreNew ?? ((_, _) => nullptr),
+       wasmStoreDelete = wasmStoreDelete ?? ((_) {}),
+       wasmStoreLoadLanguage = wasmStoreLoadLanguage ?? ((_, _, _, _, _) => nullptr),
+       wasmEngineNew = wasmEngineNew ?? (() => nullptr),
+       wasmEngineDelete = wasmEngineDelete ?? ((_) {});
 
   final DTsParserNew parserNew;
   final DTsParserDelete parserDelete;
@@ -256,10 +256,10 @@ class TreeSitterLib {
     final libName = Platform.isLinux
         ? 'libtree-sitter.so'
         : Platform.isMacOS
-            ? 'libtree-sitter.dylib'
-            : Platform.isWindows
-                ? 'tree-sitter.dll'
-                : null;
+        ? 'libtree-sitter.dylib'
+        : Platform.isWindows
+        ? 'tree-sitter.dll'
+        : null;
     if (libName == null) {
       lastOpenError = 'unsupported platform ${Platform.operatingSystem}';
       lastOpenErrorPath = null;

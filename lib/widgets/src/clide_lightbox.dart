@@ -22,13 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideLightbox extends StatefulWidget {
-  const ClideLightbox({
-    super.key,
-    required this.child,
-    required this.onDismiss,
-    this.minScale = 0.5,
-    this.maxScale = 8.0,
-  });
+  const ClideLightbox({super.key, required this.child, required this.onDismiss, this.minScale = 0.5, this.maxScale = 8.0});
 
   /// The content to zoom — constrained to the viewport on open (pass an image
   /// with `fit: BoxFit.contain` so it fits, then scales on zoom).
@@ -159,17 +153,10 @@ class _ClideLightboxState extends State<ClideLightbox> {
               right: 0,
               child: Center(
                 child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: tokens.panelHeader,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+                  decoration: BoxDecoration(color: tokens.panelHeader, borderRadius: BorderRadius.circular(4)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    child: ClideText(
-                      'scroll to zoom · double-click to reset · Esc to close',
-                      fontSize: clideFontMeta,
-                      color: tokens.globalTextMuted,
-                    ),
+                    child: ClideText('scroll to zoom · double-click to reset · Esc to close', fontSize: clideFontMeta, color: tokens.globalTextMuted),
                   ),
                 ),
               ),

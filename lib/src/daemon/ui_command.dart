@@ -47,27 +47,20 @@ const Set<String> _toastSeverities = {'success', 'warning', 'error', 'info'};
 /// nothing has reported a value for that address (or there is no live UI).
 typedef FilterValueSource = String? Function(String address);
 
-void registerUiCommands(
-  DaemonDispatcher d,
-  MessagePublisher? Function() publisher, {
-  FilterValueSource? filterValue,
-}) {
+void registerUiCommands(DaemonDispatcher d, MessagePublisher? Function() publisher, {FilterValueSource? filterValue}) {
   d.register('ui.open', (req) async => _open(req, publisher));
   d.register('ui.toast', (req) async => _toast(req, publisher));
   d.register(
     'ui.filter',
     (req) async => _filter(req, publisher, filterValue),
-    schema: const CommandSchema(
-      positional: ['address', 'query'],
-      args: {'address': ArgSpec(required: true), 'query': ArgSpec()},
-    ),
+    schema: const CommandSchema(positional: ['address', 'query'], args: {'address': ArgSpec(required: true), 'query': ArgSpec()}),
   );
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
-      id: id,
-      error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message, hint: hint),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message, hint: hint),
+);
 
 Future<IpcResponse> _open(IpcRequest req, MessagePublisher? Function() publisherSource) async {
   // Accept CLI positionals (`ui open <reader> <ref>`) or named args.
@@ -134,11 +127,7 @@ Future<IpcResponse> _toast(IpcRequest req, MessagePublisher? Function() publishe
     );
   }
   // Channel literal must match ToastService's `toastChannel`.
-  publish('cli', 'toast', {
-    'message': message,
-    'severity': severity,
-    if (durationMs != null) 'durationMs': durationMs,
-  });
+  publish('cli', 'toast', {'message': message, 'severity': severity, 'durationMs': ?durationMs});
   return IpcResponse.ok(id: req.id, data: {'message': message, 'severity': severity, 'shown': true});
 }
 
@@ -154,11 +143,7 @@ Future<IpcResponse> _toast(IpcRequest req, MessagePublisher? Function() publishe
 /// `address` is a pane/box id from `clide pane list`. With a `query` arg the
 /// verb *drives* — publishes a `filter.set` the box consumes. Without one it
 /// *observes* — reads the box's last reported value from the FilterStateCache.
-Future<IpcResponse> _filter(
-  IpcRequest req,
-  MessagePublisher? Function() publisherSource,
-  FilterValueSource? filterValue,
-) async {
+Future<IpcResponse> _filter(IpcRequest req, MessagePublisher? Function() publisherSource, FilterValueSource? filterValue) async {
   final address = req.args['address'] as String?;
   if (address == null || address.isEmpty) {
     return _userErr(req.id, 'an address is required', hint: 'a pane/box id from `clide pane list` (e.g. decisions.panel)');

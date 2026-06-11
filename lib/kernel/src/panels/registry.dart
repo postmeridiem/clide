@@ -4,13 +4,7 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class SlotDefinition {
-  const SlotDefinition({
-    required this.id,
-    required this.position,
-    this.defaultSize,
-    this.minSize,
-    this.maxSize,
-  });
+  const SlotDefinition({required this.id, required this.position, this.defaultSize, this.minSize, this.maxSize});
 
   final SlotId id;
   final SlotPosition position;

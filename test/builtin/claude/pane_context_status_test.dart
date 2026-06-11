@@ -24,30 +24,30 @@ import '../../helpers/widget_harness.dart';
 /// the minimum theme/kernel tree under a tight, [Align]ed [SizedBox] so the
 /// `Flexible` gets a real bounded width from the surrounding Row.
 Widget _narrowRow(KernelFixture f, double width, Widget child) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: ClideKernel(
-        services: f.services,
-        child: ClideTheme(
-          controller: f.services.theme,
-          child: MediaQuery(
-            data: const MediaQueryData(),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: width,
-                height: 24,
-                child: Row(
-                  children: [
-                    Flexible(flex: 1, fit: FlexFit.loose, child: child),
-                    const SizedBox(width: 20), // simulated right-side items
-                  ],
-                ),
-              ),
+  textDirection: TextDirection.ltr,
+  child: ClideKernel(
+    services: f.services,
+    child: ClideTheme(
+      controller: f.services.theme,
+      child: MediaQuery(
+        data: const MediaQueryData(),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: width,
+            height: 24,
+            child: Row(
+              children: [
+                Flexible(flex: 1, fit: FlexFit.loose, child: child),
+                const SizedBox(width: 20), // simulated right-side items
+              ],
             ),
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   late KernelFixture f;
@@ -76,11 +76,7 @@ void main() {
   testWidgets('no RenderFlex overflow at narrow width — ClideMarquee is bounded', (tester) async {
     // A long status line similar to what T-154 added:
     // "opus 4.7 · default · 21k ctx · 10 skills" — roughly 280 px of text.
-    const longStatus = Text(
-      'opus 4.7 · default · 21k ctx · 10 skills',
-      textDirection: TextDirection.ltr,
-      softWrap: false,
-    );
+    const longStatus = Text('opus 4.7 · default · 21k ctx · 10 skills', textDirection: TextDirection.ltr, softWrap: false);
 
     // Pump at 200 px wide — narrower than the status content so the marquee
     // must receive a bounded viewport < content width and start scrolling.

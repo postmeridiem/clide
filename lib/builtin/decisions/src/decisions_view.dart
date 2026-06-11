@@ -139,12 +139,14 @@ class _DecisionsViewState extends State<DecisionsView> {
     final hasFilter = lf.isNotEmpty;
     final filtered = hasFilter
         ? _decisions
-            .where((d) =>
-                d.id.toLowerCase().contains(lf) ||
-                d.title.toLowerCase().contains(lf) ||
-                (d.domain ?? '').toLowerCase().contains(lf) ||
-                (d.type ?? '').contains(lf))
-            .toList()
+              .where(
+                (d) =>
+                    d.id.toLowerCase().contains(lf) ||
+                    d.title.toLowerCase().contains(lf) ||
+                    (d.domain ?? '').toLowerCase().contains(lf) ||
+                    (d.type ?? '').contains(lf),
+              )
+              .toList()
         : _decisions;
 
     final confirmed = filtered.where((d) => d.type == 'confirmed').toList();
@@ -158,7 +160,9 @@ class _DecisionsViewState extends State<DecisionsView> {
       children: [
         Row(
           children: [
-            Expanded(child: ClideFilterBox(address: 'decisions.panel', hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v))),
+            Expanded(
+              child: ClideFilterBox(address: 'decisions.panel', hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v)),
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ClideTappable(
@@ -180,39 +184,66 @@ class _DecisionsViewState extends State<DecisionsView> {
                   ClideAccordion(
                     label: 'CONFIRMED',
                     count: confirmed.length,
-                    leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColors.confirmed, shape: BoxShape.circle)),
+                    leading: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(color: typeColors.confirmed, shape: BoxShape.circle),
+                    ),
                     expanded: hasFilter || _isSectionExpanded('confirmed'),
                     onToggle: () => _toggleSection('confirmed'),
                     children: [
                       for (final d in confirmed)
                         _DecisionCard(
-                            entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)
+                          entry: d,
+                          tokens: tokens,
+                          typeColors: typeColors,
+                          focused: d.id == _focusedId,
+                          focusKey: d.id == _focusedId ? _focusedKey : null,
+                        ),
                     ],
                   ),
                 if (questions.isNotEmpty)
                   ClideAccordion(
                     label: 'QUESTIONS',
                     count: questions.length,
-                    leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColors.question, shape: BoxShape.circle)),
+                    leading: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(color: typeColors.question, shape: BoxShape.circle),
+                    ),
                     expanded: hasFilter || _isSectionExpanded('question'),
                     onToggle: () => _toggleSection('question'),
                     children: [
                       for (final d in questions)
                         _DecisionCard(
-                            entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)
+                          entry: d,
+                          tokens: tokens,
+                          typeColors: typeColors,
+                          focused: d.id == _focusedId,
+                          focusKey: d.id == _focusedId ? _focusedKey : null,
+                        ),
                     ],
                   ),
                 if (rejected.isNotEmpty)
                   ClideAccordion(
                     label: 'REJECTED',
                     count: rejected.length,
-                    leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColors.rejected, shape: BoxShape.circle)),
+                    leading: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(color: typeColors.rejected, shape: BoxShape.circle),
+                    ),
                     expanded: hasFilter || _isSectionExpanded('rejected'),
                     onToggle: () => _toggleSection('rejected'),
                     children: [
                       for (final d in rejected)
                         _DecisionCard(
-                            entry: d, tokens: tokens, typeColors: typeColors, focused: d.id == _focusedId, focusKey: d.id == _focusedId ? _focusedKey : null)
+                          entry: d,
+                          tokens: tokens,
+                          typeColors: typeColors,
+                          focused: d.id == _focusedId,
+                          focusKey: d.id == _focusedId ? _focusedKey : null,
+                        ),
                     ],
                   ),
               ],
@@ -233,12 +264,12 @@ class _DecisionEntry {
   final String? status;
 
   factory _DecisionEntry.fromJson(Map<String, dynamic> json) => _DecisionEntry(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        type: json['type'] as String?,
-        domain: json['domain'] as String?,
-        status: json['status'] as String?,
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    type: json['type'] as String?,
+    domain: json['domain'] as String?,
+    status: json['status'] as String?,
+  );
 }
 
 class _DecisionCard extends StatelessWidget {
@@ -271,7 +302,11 @@ class _DecisionCard extends StatelessWidget {
                 children: [
                   ClideTooltip(
                     message: entry.type ?? 'confirmed',
-                    child: Container(width: 8, height: 8, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),

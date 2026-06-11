@@ -30,10 +30,7 @@ void main() {
     tearDown(() => registry.shutdown());
 
     test('spawn → emits pane.spawned and lists the pane', () async {
-      final pane = await registry.spawn(
-        kind: PaneKind.terminal,
-        argv: const ['/bin/echo', 'hi'],
-      );
+      final pane = await registry.spawn(kind: PaneKind.terminal, argv: const ['/bin/echo', 'hi']);
 
       expect(pane.id, startsWith('p_'));
       expect(pane.kind, PaneKind.terminal);
@@ -64,19 +61,13 @@ void main() {
         argv: const ['/bin/sh', '-c', 'printf hello-panes; sleep 0.25'],
       );
 
-      final decoded = await got.future.timeout(
-        ioTimeout,
-        onTimeout: () => fail('pane.output never carried "hello-panes" within ${ioTimeout.inSeconds}s'),
-      );
+      final decoded = await got.future.timeout(ioTimeout, onTimeout: () => fail('pane.output never carried "hello-panes" within ${ioTimeout.inSeconds}s'));
       expect(decoded, contains('hello-panes'));
       expect(sink.ofKind('pane.output'), isNotEmpty);
     });
 
     test('write + resize emit no spurious events, update state', () async {
-      final pane = await registry.spawn(
-        kind: PaneKind.terminal,
-        argv: const ['/bin/cat'],
-      );
+      final pane = await registry.spawn(kind: PaneKind.terminal, argv: const ['/bin/cat']);
 
       final writeCount = registry.write(pane.id, utf8.encode('abc'));
       expect(writeCount, greaterThan(0));
@@ -89,10 +80,7 @@ void main() {
     });
 
     test('close is idempotent + emits pane.closed once', () async {
-      final pane = await registry.spawn(
-        kind: PaneKind.terminal,
-        argv: const ['/bin/cat'],
-      );
+      final pane = await registry.spawn(kind: PaneKind.terminal, argv: const ['/bin/cat']);
 
       await registry.close(pane.id);
       await registry.close(pane.id); // second call: no-op
@@ -107,10 +95,7 @@ void main() {
     });
 
     test('claude kind round-trips on the wire', () async {
-      final pane = await registry.spawn(
-        kind: PaneKind.claude,
-        argv: const ['/bin/sh', '-c', 'exit 0'],
-      );
+      final pane = await registry.spawn(kind: PaneKind.claude, argv: const ['/bin/sh', '-c', 'exit 0']);
       expect(pane.kind, PaneKind.claude);
       expect(pane.toJson()['kind'], 'claude');
     });

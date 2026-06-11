@@ -79,11 +79,7 @@ class PqlClient {
     return _runObject(['decisions', 'validate']);
   }
 
-  Future<List<Map<String, Object?>>> decisionList({
-    String? type,
-    String? domain,
-    String? status,
-  }) async {
+  Future<List<Map<String, Object?>>> decisionList({String? type, String? domain, String? status}) async {
     final args = ['decisions', 'list'];
     if (type != null) args.addAll(['--type', type]);
     if (domain != null) args.addAll(['--domain', domain]);
@@ -91,11 +87,7 @@ class PqlClient {
     return _runList(args);
   }
 
-  Future<Map<String, Object?>> decisionShow(
-    String id, {
-    bool withRefs = false,
-    bool withTickets = false,
-  }) async {
+  Future<Map<String, Object?>> decisionShow(String id, {bool withRefs = false, bool withTickets = false}) async {
     final args = ['decisions', 'show', id];
     if (withRefs) args.add('--with-refs');
     if (withTickets) args.add('--with-tickets');
@@ -106,12 +98,7 @@ class PqlClient {
     return _runObject(['decisions', 'read', id]);
   }
 
-  Future<List<Map<String, Object?>>> ticketList({
-    String? status,
-    String? team,
-    String? assigned,
-    String? decision,
-  }) async {
+  Future<List<Map<String, Object?>>> ticketList({String? status, String? team, String? assigned, String? decision}) async {
     final args = ['ticket', 'list'];
     if (status != null) args.addAll(['--status', status]);
     if (team != null) args.addAll(['--team', team]);
@@ -120,11 +107,7 @@ class PqlClient {
     return _runList(args);
   }
 
-  Future<Map<String, Object?>> ticketShow(
-    String id, {
-    bool withContext = false,
-    bool withBlockers = false,
-  }) async {
+  Future<Map<String, Object?>> ticketShow(String id, {bool withContext = false, bool withBlockers = false}) async {
     final args = ['ticket', 'show', id];
     if (withContext) args.add('--with-context');
     if (withBlockers) args.add('--with-blockers');
@@ -171,17 +154,9 @@ class PqlClient {
     for (var attempt = 1; attempt <= _kMaxAttempts; attempt++) {
       final ProcessResult r;
       try {
-        r = await Process.run(
-          toolchain.pql,
-          args,
-          workingDirectory: workDir.path,
-        );
+        r = await Process.run(toolchain.pql, args, workingDirectory: workDir.path);
       } on ProcessException catch (e) {
-        throw PqlException(
-          'pql ${args.first}: ${e.message}',
-          exitCode: e.errorCode,
-          stderr: e.toString(),
-        );
+        throw PqlException('pql ${args.first}: ${e.message}', exitCode: e.errorCode, stderr: e.toString());
       }
       final stderr = (r.stderr as String).trim();
       // pql 1.5+ returns exit 0 with an empty `[]` for zero matches, so any
@@ -196,11 +171,7 @@ class PqlClient {
           await Future<void>.delayed(Duration(milliseconds: 100 * attempt));
           continue;
         }
-        throw PqlException(
-          'pql ${args.first} failed',
-          exitCode: r.exitCode,
-          stderr: stderr,
-        );
+        throw PqlException('pql ${args.first} failed', exitCode: r.exitCode, stderr: stderr);
       }
       final stdout = (r.stdout as String).trim();
       if (stdout.isEmpty) return null;

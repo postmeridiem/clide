@@ -147,13 +147,7 @@ class KernelServices {
     final settings = SettingsStore(appDir: appDir);
     await settings.load();
 
-    final i18n = I18n(
-      loader: i18nLoader,
-      log: log,
-      defaultLocale: defaultLocale,
-      initialLocale: initialLocale,
-      availableLocales: availableLocales,
-    );
+    final i18n = I18n(loader: i18nLoader, log: log, defaultLocale: defaultLocale, initialLocale: initialLocale, availableLocales: availableLocales);
     for (final ns in preloadNamespaces) {
       await i18n.ensureNamespaceLoaded(ns);
     }
@@ -193,7 +187,8 @@ class KernelServices {
       onProjectOpen: onProjectOpen,
       onValidateProject: onValidateProject,
     );
-    final ipc = isolateClient ??
+    final ipc =
+        isolateClient ??
         (daemonClientFactory != null
             ? daemonClientFactory(log, events, arrangement, panels)
             : DaemonClient(
@@ -309,11 +304,7 @@ class KernelServices {
 }
 
 class ClideKernel extends InheritedWidget {
-  const ClideKernel({
-    super.key,
-    required this.services,
-    required super.child,
-  });
+  const ClideKernel({super.key, required this.services, required super.child});
 
   final KernelServices services;
 

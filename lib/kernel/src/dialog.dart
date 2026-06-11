@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-typedef DialogBuilder<T> = Widget Function(
-  BuildContext context,
-  void Function([T? result]) dismiss,
-);
+typedef DialogBuilder<T> = Widget Function(BuildContext context, void Function([T? result]) dismiss);
 
 /// Single-at-a-time modal router.
 ///
@@ -70,12 +67,7 @@ class _Queued {
 /// Hosts the current dialog from [DialogRouter]. Place high in the tree
 /// (inside the WidgetsApp) so dialogs overlay every other surface.
 class DialogHost extends StatelessWidget {
-  const DialogHost({
-    super.key,
-    required this.router,
-    required this.child,
-    this.backdropColor = const Color(0xC0000000),
-  });
+  const DialogHost({super.key, required this.router, required this.child, this.backdropColor = const Color(0xC0000000)});
 
   final DialogRouter router;
   final Widget child;
@@ -98,10 +90,7 @@ class DialogHost extends StatelessWidget {
                 child: ColoredBox(
                   color: backdropColor,
                   child: Center(
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: b(ctx, router.dismiss),
-                    ),
+                    child: GestureDetector(onTap: () {}, child: b(ctx, router.dismiss)),
                   ),
                 ),
               ),

@@ -140,98 +140,87 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
           ),
         ],
         // Status — the icon hard against the right edge.
-        if (widget.status != null) ...[
-          const SizedBox(width: 8),
-          ClideStatusIndicator(status: widget.status!, size: clideIconHero),
-        ],
+        if (widget.status != null) ...[const SizedBox(width: 8), ClideStatusIndicator(status: widget.status!, size: clideIconHero)],
       ],
     );
   }
 
   /// Collapsed: the ticker row IS the toggle, focusable for keyboard/AT.
   Widget _tickerRow(SurfaceTokens tokens) => ClideTappable(
-        focusNode: _controlFocus,
-        onTap: _toggle,
-        tooltip: 'Expand',
-        builder: (context, hovered, focused) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
-          decoration: BoxDecoration(
-            color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
-            border: Border.all(color: widget.color ?? tokens.panelBorder),
-            borderRadius: BorderRadius.circular(kClideCardRadius),
-          ),
-          child: _headerContent(tokens, expanded: false),
-        ),
-      );
+    focusNode: _controlFocus,
+    onTap: _toggle,
+    tooltip: 'Expand',
+    builder: (context, hovered, focused) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
+      decoration: BoxDecoration(
+        color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
+        border: Border.all(color: widget.color ?? tokens.panelBorder),
+        borderRadius: BorderRadius.circular(kClideCardRadius),
+      ),
+      child: _headerContent(tokens, expanded: false),
+    ),
+  );
 
   /// Expanded: a framed inner canvas wrapping the item cards. The frame
   /// BACKGROUND is a gesture target behind the items that only fires for hits
   /// the items don't consume.
   Widget _expandedFrame(SurfaceTokens tokens) => DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: widget.color ?? tokens.panelBorder),
-          borderRadius: BorderRadius.circular(kClideCardRadius),
+    decoration: BoxDecoration(
+      border: Border.all(color: widget.color ?? tokens.panelBorder),
+      borderRadius: BorderRadius.circular(kClideCardRadius),
+    ),
+    child: Stack(
+      children: [
+        // Background toggle: behind the items, not a whole-card overlay, so
+        // item taps are never intercepted. Excluded from focus traversal —
+        // the header caret is the single keyboard stop.
+        Positioned.fill(
+          child: ExcludeFocus(
+            child: ClideTappable(onTap: _toggle, tooltip: 'Collapse', builder: (_, _, _) => const SizedBox.expand()),
+          ),
         ),
-        child: Stack(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Background toggle: behind the items, not a whole-card overlay, so
-            // item taps are never intercepted. Excluded from focus traversal —
-            // the header caret is the single keyboard stop.
-            Positioned.fill(
-              child: ExcludeFocus(
-                child: ClideTappable(
-                  onTap: _toggle,
-                  tooltip: 'Collapse',
-                  builder: (_, __, ___) => const SizedBox.expand(),
-                ),
+            _headerRow(tokens),
+            // Even padding around the inner item canvas (T-305): the sides +
+            // top match, and each inner item carries a matching bottom margin
+            // (so the last item's margin is the bottom inset and items in a
+            // multi-item run are evenly separated) — hence bottom 0 here.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kClideCardHeaderPadH, kClideCardHeaderPadH, kClideCardHeaderPadH, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final child in widget.children)
+                    // Each item opaquely consumes its full bounds so a body
+                    // tap interacts with that card (or does nothing), never
+                    // the collapser background. Deeper controls still win;
+                    // only taps are absorbed, so selection drags pass through.
+                    GestureDetector(behavior: HitTestBehavior.opaque, onTap: () {}, child: child),
+                ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _headerRow(tokens),
-                // Even padding around the inner item canvas (T-305): the sides +
-                // top match, and each inner item carries a matching bottom margin
-                // (so the last item's margin is the bottom inset and items in a
-                // multi-item run are evenly separated) — hence bottom 0 here.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(kClideCardHeaderPadH, kClideCardHeaderPadH, kClideCardHeaderPadH, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final child in widget.children)
-                        // Each item opaquely consumes its full bounds so a body
-                        // tap interacts with that card (or does nothing), never
-                        // the collapser background. Deeper controls still win;
-                        // only taps are absorbed, so selection drags pass through.
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {},
-                          child: child,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ],
         ),
-      );
+      ],
+    ),
+  );
 
   /// The explicit, focusable collapse control in the expanded header. A
   /// background tap alone is not keyboard/AT reachable, so this keeps the
   /// control on the Tab path and Enter/Space-activatable (D-78).
   Widget _headerRow(SurfaceTokens tokens) => ClideTappable(
-        focusNode: _controlFocus,
-        onTap: _toggle,
-        tooltip: 'Collapse',
-        builder: (context, hovered, focused) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
-          decoration: BoxDecoration(
-            color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
-            border: Border(bottom: BorderSide(color: widget.color ?? tokens.panelBorder)),
-          ),
-          child: _headerContent(tokens, expanded: true),
-        ),
-      );
+    focusNode: _controlFocus,
+    onTap: _toggle,
+    tooltip: 'Collapse',
+    builder: (context, hovered, focused) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
+      decoration: BoxDecoration(
+        color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
+        border: Border(bottom: BorderSide(color: widget.color ?? tokens.panelBorder)),
+      ),
+      child: _headerContent(tokens, expanded: true),
+    ),
+  );
 }

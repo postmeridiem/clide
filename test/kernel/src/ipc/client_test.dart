@@ -113,15 +113,8 @@ void main() {
       await daemon.waitForClient();
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final eventFuture = bus.stream.firstWhere(
-        (e) => e.event is DaemonEvent,
-      );
-      final ev = IpcEvent(
-        subsystem: 'pty',
-        kind: 'output',
-        data: {'bytes': 'aGVsbG8='},
-        timestamp: DateTime.now(),
-      );
+      final eventFuture = bus.stream.firstWhere((e) => e.event is DaemonEvent);
+      final ev = IpcEvent(subsystem: 'pty', kind: 'output', data: {'bytes': 'aGVsbG8='}, timestamp: DateTime.now());
       daemon.send(ev.encode());
       final received = await eventFuture.timeout(const Duration(seconds: 2));
       final daemonEvent = received.event as DaemonEvent;

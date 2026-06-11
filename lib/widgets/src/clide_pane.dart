@@ -16,13 +16,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 class ClidePane extends StatefulWidget {
-  const ClidePane({
-    super.key,
-    required this.contributionId,
-    required this.child,
-    this.statusWidget,
-    this.active = true,
-  });
+  const ClidePane({super.key, required this.contributionId, required this.child, this.statusWidget, this.active = true});
 
   /// The workspace contribution id this pane belongs to (what
   /// [FocusTracker.activeContributionId] reports when it's focused).

@@ -148,11 +148,14 @@ void main() {
     setUp(() async => f = await KernelFixture.create());
     tearDown(() => f.dispose());
 
-    Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items,
-        {Set<String> hiddenToolUseIds = const {},
-        Map<String, bool> toolUseOutcomes = const {},
-        Set<String> quietErrorToolUseIds = const {},
-        FoldLevel foldLevel = FoldLevel.none}) async {
+    Future<ConversationController> pumpWith(
+      WidgetTester tester,
+      List<ConversationItem> items, {
+      Set<String> hiddenToolUseIds = const {},
+      Map<String, bool> toolUseOutcomes = const {},
+      Set<String> quietErrorToolUseIds = const {},
+      FoldLevel foldLevel = FoldLevel.none,
+    }) async {
       tester.view.physicalSize = const Size(900, 700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -164,20 +167,23 @@ void main() {
       addTearDown(c.dispose);
       // Disable animations so an in-flight run's ClideSpinner (a perpetual
       // animation) renders static and pumpAndSettle can settle (T-296).
-      await tester.pumpWidget(harness(
-        f,
-        Builder(
-          builder: (ctx) => MediaQuery(
-            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
-            child: ConversationView(
+      await tester.pumpWidget(
+        harness(
+          f,
+          Builder(
+            builder: (ctx) => MediaQuery(
+              data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+              child: ConversationView(
                 controller: c,
                 hiddenToolUseIds: hiddenToolUseIds,
                 toolUseOutcomes: toolUseOutcomes,
                 quietErrorToolUseIds: quietErrorToolUseIds,
-                foldLevel: foldLevel),
+                foldLevel: foldLevel,
+              ),
+            ),
           ),
         ),
-      ));
+      );
       for (final it in items) {
         stream.add(it);
       }
@@ -198,17 +204,19 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Builder(
-          // The in-flight Bash collapser shows a live spinner (T-305); disable
-          // animations so it renders static and pumpAndSettle can settle.
-          builder: (ctx) => MediaQuery(
-            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
-            child: ConversationView(controller: c, foldLevel: FoldLevel.none),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Builder(
+            // The in-flight Bash collapser shows a live spinner (T-305); disable
+            // animations so it renders static and pumpAndSettle can settle.
+            builder: (ctx) => MediaQuery(
+              data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+              child: ConversationView(controller: c, foldLevel: FoldLevel.none),
+            ),
           ),
         ),
-      ));
+      );
       stream.add(AssistantToolUse(uuid: 'A', timestamp: _t, isSidechain: false, toolUseId: 'A', name: 'Bash', input: const {'command': 'echo a'}));
       stream.add(AssistantThinkingMessage(uuid: 'B', timestamp: _t, isSidechain: false, thinking: 'thinking body'));
       await tester.pumpAndSettle();
@@ -226,15 +234,17 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Builder(
-          builder: (ctx) => MediaQuery(
-            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
-            child: ConversationView(controller: c, foldLevel: FoldLevel.tools),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Builder(
+            builder: (ctx) => MediaQuery(
+              data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+              child: ConversationView(controller: c, foldLevel: FoldLevel.tools),
+            ),
           ),
         ),
-      ));
+      );
       stream.add(AssistantToolUse(uuid: 'A', timestamp: _t, isSidechain: false, toolUseId: 'A', name: 'Bash', input: const {'command': 'echo a'}));
       stream.add(AssistantToolUse(uuid: 'B', timestamp: _t, isSidechain: false, toolUseId: 'B', name: 'Read', input: const {'file_path': '/a'}));
       await tester.pumpAndSettle();
@@ -286,15 +296,7 @@ void main() {
       AssistantToolUse edit(String id, String path) =>
           AssistantToolUse(uuid: id, timestamp: _t, isSidechain: false, toolUseId: id, name: 'Edit', input: {'file_path': path});
       ToolResultMessage ok(String id) => ToolResultMessage(uuid: 'r$id', timestamp: _t, isSidechain: false, toolUseId: id, content: 'done', isError: false);
-      await pumpWith(
-          tester,
-          [
-            edit('e1', '/lib/x.dart'),
-            ok('e1'),
-            edit('e2', '/lib/x.dart'),
-            ok('e2'),
-          ],
-          foldLevel: FoldLevel.tools);
+      await pumpWith(tester, [edit('e1', '/lib/x.dart'), ok('e1'), edit('e2', '/lib/x.dart'), ok('e2')], foldLevel: FoldLevel.tools);
       // One bundled card labelled "2 edits" with an aggregate status indicator.
       expect(find.text('2 edits'), findsOneWidget);
       expect(find.byType(ClideStatusIndicator), findsOneWidget);
@@ -309,15 +311,12 @@ void main() {
     });
 
     testWidgets('meta items fold into a collapsed activity card; tap expands (T-230)', (tester) async {
-      await pumpWith(
-          tester,
-          [
-            _tool('Bash', const {'command': 'echo hi'}),
-            // A second, distinct in-flight tool call (T-262 folds a success
-            // result into its call card, so two *calls* are what make 2 steps).
-            AssistantToolUse(uuid: 'tu2', timestamp: _t, isSidechain: false, toolUseId: 'x2', name: 'Read', input: const {'file_path': '/a'}),
-          ],
-          foldLevel: FoldLevel.tools);
+      await pumpWith(tester, [
+        _tool('Bash', const {'command': 'echo hi'}),
+        // A second, distinct in-flight tool call (T-262 folds a success
+        // result into its call card, so two *calls* are what make 2 steps).
+        AssistantToolUse(uuid: 'tu2', timestamp: _t, isSidechain: false, toolUseId: 'x2', name: 'Read', input: const {'file_path': '/a'}),
+      ], foldLevel: FoldLevel.tools);
       // Collapsed by default: one card with a step count, not the raw rows.
       expect(find.text('2 steps'), findsOneWidget);
       expect(find.bySemanticsLabel('Activity, 2 steps, collapsed'), findsOneWidget);
@@ -328,13 +327,10 @@ void main() {
     });
 
     testWidgets('a folded success result is not a separate step — merged into its call (T-262 note D)', (tester) async {
-      await pumpWith(
-          tester,
-          [
-            _tool('Bash', const {'command': 'echo hi'}),
-            _result('hi there'),
-          ],
-          foldLevel: FoldLevel.tools);
+      await pumpWith(tester, [
+        _tool('Bash', const {'command': 'echo hi'}),
+        _result('hi there'),
+      ], foldLevel: FoldLevel.tools);
       // The call + its success result is ONE unit now: 1 step, not 2.
       expect(find.text('1 step'), findsOneWidget);
       expect(find.text('2 steps'), findsNothing);
@@ -360,13 +356,10 @@ void main() {
     });
 
     testWidgets('a failed result surfaces first-class, not folded (T-230)', (tester) async {
-      await pumpWith(
-          tester,
-          [
-            _tool('Bash', const {'command': 'boom'}),
-            _result('error output', isError: true),
-          ],
-          foldLevel: FoldLevel.tools);
+      await pumpWith(tester, [
+        _tool('Bash', const {'command': 'boom'}),
+        _result('error output', isError: true),
+      ], foldLevel: FoldLevel.tools);
       // The tool call folds (1 step); the error result is sticky → no 2-step card.
       expect(find.text('1 step'), findsOneWidget);
       expect(find.textContaining('error output'), findsWidgets);
@@ -376,13 +369,7 @@ void main() {
       final stream = StreamController<ConversationItem>.broadcast();
       final c = ConversationController(stream: stream.stream);
       addTearDown(c.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        ConversationView(
-          controller: c,
-          emptyState: const ClideText('CUSTOM EMPTY'),
-        ),
-      ));
+      await tester.pumpWidget(harness(f, ConversationView(controller: c, emptyState: const ClideText('CUSTOM EMPTY'))));
       expect(find.text('CUSTOM EMPTY'), findsOneWidget);
       expect(find.text('Waiting for Claude…'), findsNothing);
     });
@@ -421,7 +408,13 @@ void main() {
     testWidgets('a sidechain prompt folds into its Agent card; never labelled "you" (T-263)', (tester) async {
       await pumpWith(tester, [
         AssistantToolUse(
-            uuid: 'agt-msg', timestamp: _t, isSidechain: false, toolUseId: 'task1', name: 'Task', input: const {'description': 'explore the codebase'}),
+          uuid: 'agt-msg',
+          timestamp: _t,
+          isSidechain: false,
+          toolUseId: 'task1',
+          name: 'Task',
+          input: const {'description': 'explore the codebase'},
+        ),
         UserMessage(uuid: 'p1', timestamp: _t, isSidechain: true, text: 'find all the widgets'),
       ]);
       // Never the blue "you", and no standalone block (folded → suppressed).
@@ -458,9 +451,7 @@ void main() {
 
     testWidgets('an orphan sidechain prompt renders as muted "agent prompt", never "you" (T-263)', (tester) async {
       // No Agent tool-use to attach to → stays standalone, but relabelled.
-      await pumpWith(tester, [
-        UserMessage(uuid: 'orphan', timestamp: _t, isSidechain: true, text: 'orphaned agent instructions'),
-      ]);
+      await pumpWith(tester, [UserMessage(uuid: 'orphan', timestamp: _t, isSidechain: true, text: 'orphaned agent instructions')]);
       expect(find.text('you'), findsNothing);
       expect(find.text('agent prompt'), findsOneWidget);
     });
@@ -490,7 +481,14 @@ void main() {
         UserMessage(uuid: 'p', timestamp: _t, isSidechain: true, parentUuid: 'mA', text: 'go explore'),
         // A sidechain tool call — part of the run, chained off the prompt.
         AssistantToolUse(
-            uuid: 's1', timestamp: _t, isSidechain: true, parentUuid: 'p', toolUseId: 'sb', name: 'Bash', input: const {'command': 'grep widgets'}),
+          uuid: 's1',
+          timestamp: _t,
+          isSidechain: true,
+          parentUuid: 'p',
+          toolUseId: 'sb',
+          name: 'Bash',
+          input: const {'command': 'grep widgets'},
+        ),
       ]);
       expect(find.text('Task'), findsOneWidget);
       // The run is a nested holder titled "agent run", collapsed by default —
@@ -550,17 +548,13 @@ void main() {
     testWidgets('sidechain assistant prose is attributed to "agent", not "claude" (T-265)', (tester) async {
       // An orphan sidechain prose (no resolvable Agent) renders inline, still
       // attributed to the agent — never the main-thread coral "claude".
-      await pumpWith(tester, [
-        AssistantTextMessage(uuid: 's', timestamp: _t, isSidechain: true, text: 'sub-agent says hi'),
-      ]);
+      await pumpWith(tester, [AssistantTextMessage(uuid: 's', timestamp: _t, isSidechain: true, text: 'sub-agent says hi')]);
       expect(find.text('agent'), findsOneWidget);
       expect(find.text('claude'), findsNothing);
     });
 
     testWidgets('sidechain thinking is attributed to "agent thinking" (T-265)', (tester) async {
-      await pumpWith(tester, [
-        AssistantThinkingMessage(uuid: 's', timestamp: _t, isSidechain: true, thinking: 'hmm let me think'),
-      ]);
+      await pumpWith(tester, [AssistantThinkingMessage(uuid: 's', timestamp: _t, isSidechain: true, thinking: 'hmm let me think')]);
       expect(find.text('agent thinking'), findsOneWidget);
       expect(find.text('thinking'), findsNothing);
     });
@@ -578,7 +572,7 @@ void main() {
         tester,
         [
           _tool('Write', {'file_path': '/tmp/x'}),
-          _result('done')
+          _result('done'),
         ],
         hiddenToolUseIds: {'x1'}, // _tool + _result both use toolUseId 'x1'
       );
@@ -593,7 +587,7 @@ void main() {
         tester,
         [
           _tool('Write', {'file_path': '/tmp/x'}),
-          _result('done')
+          _result('done'),
         ],
         hiddenToolUseIds: {'x1'},
         toolUseOutcomes: {'x1': true}, // approved
@@ -619,7 +613,7 @@ void main() {
 
     testWidgets('tool-use body: Bash shows the command in the collapsed summary (T-168)', (tester) async {
       await pumpWith(tester, [
-        _tool('Bash', {'command': 'ls -la'})
+        _tool('Bash', {'command': 'ls -la'}),
       ]);
       // Collapser starts collapsed — the command appears as the echoed summary.
       expect(find.text('ls -la'), findsOneWidget);
@@ -632,7 +626,7 @@ void main() {
 
     testWidgets('tool-use body: Read/Grep/LS shows a compact path label (T-168)', (tester) async {
       await pumpWith(tester, [
-        _tool('Read', {'file_path': '/foo/bar.dart'})
+        _tool('Read', {'file_path': '/foo/bar.dart'}),
       ]);
       // The path label appears (collapsed summary or body).
       expect(find.text('/foo/bar.dart'), findsOneWidget);
@@ -665,7 +659,7 @@ void main() {
       final handle = tester.ensureSemantics();
       // In-flight: a call with no result yet → no check, no folded result.
       await pumpWith(tester, [
-        _tool('Bash', {'command': 'ls'})
+        _tool('Bash', {'command': 'ls'}),
       ]);
       expect(find.bySemanticsLabel('succeeded'), findsNothing);
       expect(find.bySemanticsLabel('failed'), findsNothing);
@@ -734,16 +728,7 @@ void main() {
 
     testWidgets('result without a paired tool_use uses plain "result" label (T-168)', (tester) async {
       // Orphan result (no matching tool_use in the controller).
-      await pumpWith(tester, [
-        ToolResultMessage(
-          uuid: 'r-orphan',
-          timestamp: _t,
-          isSidechain: false,
-          toolUseId: 'unknown-id',
-          content: 'ok',
-          isError: false,
-        ),
-      ]);
+      await pumpWith(tester, [ToolResultMessage(uuid: 'r-orphan', timestamp: _t, isSidechain: false, toolUseId: 'unknown-id', content: 'ok', isError: false)]);
       expect(find.text('result'), findsOneWidget);
     });
 
@@ -811,14 +796,7 @@ void main() {
     tearDown(() => f.dispose());
 
     testWidgets('shows role, workspace, status, and a hint', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        const ClaudeBanner(
-          role: 'primary',
-          workspace: '/work/space',
-          statusLine: 'tmux · clide-claude-x',
-        ),
-      ));
+      await tester.pumpWidget(harness(f, const ClaudeBanner(role: 'primary', workspace: '/work/space', statusLine: 'tmux · clide-claude-x')));
       await tester.pump();
       expect(find.text('Claude'), findsOneWidget);
       expect(find.text('primary'), findsOneWidget);

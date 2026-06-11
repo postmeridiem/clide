@@ -50,18 +50,12 @@ class DiffController extends ChangeNotifier {
   }
 
   /// Load diffs. Optionally filter to [paths] and toggle [staged].
-  Future<void> load({
-    bool staged = false,
-    List<String> paths = const [],
-  }) async {
+  Future<void> load({bool staged = false, List<String> paths = const []}) async {
     _staged = staged;
     _loading = true;
     notifyListeners();
 
-    final r = await ipc.request('git.diff', args: {
-      'staged': staged,
-      if (paths.isNotEmpty) 'paths': paths,
-    });
+    final r = await ipc.request('git.diff', args: {'staged': staged, if (paths.isNotEmpty) 'paths': paths});
 
     _loading = false;
     if (!r.ok) {

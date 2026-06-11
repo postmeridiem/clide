@@ -32,11 +32,7 @@ const _resumeTailBytes = 256 * 1024;
 
 /// Creates the subprocess for a session — production uses
 /// [ClaudeStreamJsonProcess.start]; tests inject a fake.
-typedef ProcessFactory = Future<StreamJsonProcess> Function({
-  required List<String> sessionArgs,
-  required String cwd,
-  Map<String, String>? env,
-});
+typedef ProcessFactory = Future<StreamJsonProcess> Function({required List<String> sessionArgs, required String cwd, Map<String, String>? env});
 
 /// What to spawn. [id] is the orchestrator's stable key (e.g. `primary`,
 /// `teammate:tyre`); [sessionId] is claude's `--session-id`.
@@ -150,10 +146,7 @@ ClaudeSessionOrchestrator? activeSessionOrchestrator;
 
 class ClaudeSessionOrchestrator extends ChangeNotifier {
   ClaudeSessionOrchestrator({ProcessFactory? processFactory}) : _factory = processFactory ?? _spawnClaude {
-    _chatModel = TeamChatModel(
-      broker: broker,
-      sessionResolver: (name) => byMemberName(name)?.session,
-    );
+    _chatModel = TeamChatModel(broker: broker, sessionResolver: (name) => byMemberName(name)?.session);
   }
 
   final ProcessFactory _factory;
@@ -181,9 +174,9 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
 
   /// Just the sessions a pane should currently render.
   List<ManagedSession> get visibleSessions => [
-        for (final m in _sessions.values)
-          if (m.visible) m,
-      ];
+    for (final m in _sessions.values)
+      if (m.visible) m,
+  ];
 
   ManagedSession? byId(String id) => _sessions[id];
 
@@ -224,18 +217,9 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       preambles.add(_teamSystemPrompt(name, spec.role));
     }
     final bootstrap = agentBootstrap(spec.cwd, base: spec.env);
-    sessionArgs = [
-      '--append-system-prompt',
-      preambles.join('\n\n'),
-      ...bootstrap.extraArgs,
-      ...sessionArgs,
-    ];
+    sessionArgs = ['--append-system-prompt', preambles.join('\n\n'), ...bootstrap.extraArgs, ...sessionArgs];
 
-    final proc = await _factory(
-      sessionArgs: sessionArgs,
-      cwd: spec.cwd,
-      env: bootstrap.envDelta,
-    );
+    final proc = await _factory(sessionArgs: sessionArgs, cwd: spec.cwd, env: bootstrap.envDelta);
     final session = StreamJsonSession(proc, mcpServers: mcpServers)..start();
     final seed = spec.resume && spec.transcriptPath != null ? await _readTranscriptTail(spec.transcriptPath!) : null;
     final conversation = ConversationController(stream: session.items, seed: seed, onDispose: session.dispose);
@@ -362,7 +346,8 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   }
 
   /// The team-awareness preamble injected via `--append-system-prompt` (T-170).
-  static String _teamSystemPrompt(String name, String role) => 'You are part of a clide-managed agent team. Your name is "$name" and your role is "$role". '
+  static String _teamSystemPrompt(String name, String role) =>
+      'You are part of a clide-managed agent team. Your name is "$name" and your role is "$role". '
       'Coordinate with teammates using the clide-team MCP tools: '
       'send_message(to, text) to message one teammate by name, broadcast(text) to message all, '
       'list_teammates() to see the roster, inbox() to read messages sent to you, and '

@@ -92,19 +92,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   late var _buffer = _mainBuffer;
 
-  late final _mainBuffer = Buffer(
-    this,
-    maxLines: maxLines,
-    isAltBuffer: false,
-    wordSeparators: wordSeparators,
-  );
+  late final _mainBuffer = Buffer(this, maxLines: maxLines, isAltBuffer: false, wordSeparators: wordSeparators);
 
-  late final _altBuffer = Buffer(
-    this,
-    maxLines: maxLines,
-    isAltBuffer: true,
-    wordSeparators: wordSeparators,
-  );
+  late final _altBuffer = Buffer(this, maxLines: maxLines, isAltBuffer: true, wordSeparators: wordSeparators);
 
   final _tabStops = TabStops();
 
@@ -236,22 +226,9 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [charInput]
   /// - [textInput]
   /// - [paste]
-  bool keyInput(
-    TerminalKey key, {
-    bool shift = false,
-    bool alt = false,
-    bool ctrl = false,
-  }) {
+  bool keyInput(TerminalKey key, {bool shift = false, bool alt = false, bool ctrl = false}) {
     final output = inputHandler?.call(
-      TerminalKeyboardEvent(
-        key: key,
-        shift: shift,
-        alt: alt,
-        ctrl: ctrl,
-        state: this,
-        altBuffer: isUsingAltBuffer,
-        platform: platform,
-      ),
+      TerminalKeyboardEvent(key: key, shift: shift, alt: alt, ctrl: ctrl, state: this, altBuffer: isUsingAltBuffer, platform: platform),
     );
 
     if (output != null) {
@@ -269,11 +246,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [keyInput]
   /// - [textInput]
   /// - [paste]
-  bool charInput(
-    int charCode, {
-    bool alt = false,
-    bool ctrl = false,
-  }) {
+  bool charInput(int charCode, {bool alt = false, bool ctrl = false}) {
     if (ctrl) {
       // a(97) ~ z(122)
       if (charCode >= Ascii.a && charCode <= Ascii.z) {
@@ -328,18 +301,8 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   }
 
   // Handle a mouse event and return true if it was handled.
-  bool mouseInput(
-    TerminalMouseButton button,
-    TerminalMouseButtonState buttonState,
-    CellOffset position,
-  ) {
-    final output = mouseHandler?.call(TerminalMouseEvent(
-      button: button,
-      buttonState: buttonState,
-      position: position,
-      state: this,
-      platform: platform,
-    ));
+  bool mouseInput(TerminalMouseButton button, TerminalMouseButtonState buttonState, CellOffset position) {
+    final output = mouseHandler?.call(TerminalMouseEvent(button: button, buttonState: buttonState, position: position, state: this, platform: platform));
     if (output != null) {
       onOutput?.call(output);
       return true;
@@ -351,12 +314,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// than 0. Text reflow is currently not implemented and will be avaliable in
   /// the future.
   @override
-  void resize(
-    int newWidth,
-    int newHeight, [
-    int? pixelWidth,
-    int? pixelHeight,
-  ]) {
+  void resize(int newWidth, int newHeight, [int? pixelWidth, int? pixelHeight]) {
     newWidth = max(newWidth, 1);
     newHeight = max(newHeight, 1);
 

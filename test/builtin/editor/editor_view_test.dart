@@ -21,13 +21,13 @@ IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data)
 Map<String, Object?> _buf(String id, String path, {bool dirty = false}) => {'id': id, 'path': path, 'dirty': dirty};
 
 Map<String, Object?> _read(String id, String path, {Map<String, Object?>? settings}) => {
-      'id': id,
-      'path': path,
-      'content': 'content of $path',
-      'selection': {'start': 0, 'end': 0},
-      'dirty': false,
-      if (settings != null) 'editorSettings': settings,
-    };
+  'id': id,
+  'path': path,
+  'content': 'content of $path',
+  'selection': {'start': 0, 'end': 0},
+  'dirty': false,
+  'editorSettings': ?settings,
+};
 
 Finder _ruler() => find.byWidgetPredicate((w) => w is CustomPaint && w.painter?.runtimeType.toString() == '_RulerPainter');
 
@@ -40,12 +40,13 @@ void main() {
     void stubBuffers(List<Map<String, Object?>> buffers, {String? active}) {
       f.ipc.stub('editor.list', (_) async => _ok({'buffers': buffers}));
       f.ipc.stub(
-          'editor.active',
-          (_) async => active == null
-              ? _ok(const {})
-              : _ok({
-                  'active': {'id': active}
-                }));
+        'editor.active',
+        (_) async => active == null
+            ? _ok(const {})
+            : _ok({
+                'active': {'id': active},
+              }),
+      );
       f.ipc.stub('editor.read', (a) async {
         final id = a['id'] as String;
         final b = buffers.firstWhere((b) => b['id'] == id);
@@ -147,15 +148,17 @@ void main() {
 
     void stubOne(String path, {Map<String, Object?>? settings}) {
       f.ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', path)]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', path)],
+        }),
+      );
       f.ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       f.ipc.stub('editor.read', (_) async => _ok(_read('b_1', path, settings: settings)));
     }
 
@@ -178,25 +181,28 @@ void main() {
 
     void stubReadContent(String path, String content, Map<String, Object?> settings) {
       f.ipc.stub(
-          'editor.list',
-          (_) async => _ok({
-                'buffers': [_buf('b_1', path)]
-              }));
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', path)],
+        }),
+      );
       f.ipc.stub(
-          'editor.active',
-          (_) async => _ok({
-                'active': {'id': 'b_1'}
-              }));
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
       f.ipc.stub(
-          'editor.read',
-          (_) async => _ok({
-                'id': 'b_1',
-                'path': path,
-                'content': content,
-                'selection': {'start': 0, 'end': 0},
-                'dirty': false,
-                'editorSettings': settings
-              }));
+        'editor.read',
+        (_) async => _ok({
+          'id': 'b_1',
+          'path': path,
+          'content': content,
+          'selection': {'start': 0, 'end': 0},
+          'dirty': false,
+          'editorSettings': settings,
+        }),
+      );
       f.ipc.stub('editor.set-content', (_) async => _ok(const {}));
     }
 

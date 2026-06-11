@@ -21,14 +21,7 @@ Widget harness(KernelFixture fixture, Widget child) {
         controller: fixture.services.theme,
         child: MediaQuery(
           data: const MediaQueryData(),
-          child: Overlay(
-            initialEntries: [
-              OverlayEntry(
-                canSizeOverlay: true,
-                builder: (_) => child,
-              ),
-            ],
-          ),
+          child: Overlay(initialEntries: [OverlayEntry(canSizeOverlay: true, builder: (_) => child)]),
         ),
       ),
     ),
@@ -45,12 +38,7 @@ Widget harness(KernelFixture fixture, Widget child) {
 /// with [child] (the trigger) placed at [alignment]. Set
 /// `tester.view.physicalSize = size` to match (the default 800×600 matches the
 /// default test view, so no setup is needed unless you change [size]).
-Widget anchoredHarness(
-  KernelFixture fixture,
-  Widget child, {
-  Size size = const Size(800, 600),
-  Alignment alignment = Alignment.topLeft,
-}) {
+Widget anchoredHarness(KernelFixture fixture, Widget child, {Size size = const Size(800, 600), Alignment alignment = Alignment.topLeft}) {
   return Directionality(
     textDirection: TextDirection.ltr,
     child: ClideKernel(
@@ -61,7 +49,9 @@ Widget anchoredHarness(
           data: MediaQueryData(size: size),
           child: Overlay(
             initialEntries: [
-              OverlayEntry(builder: (_) => Align(alignment: alignment, child: child)),
+              OverlayEntry(
+                builder: (_) => Align(alignment: alignment, child: child),
+              ),
             ],
           ),
         ),

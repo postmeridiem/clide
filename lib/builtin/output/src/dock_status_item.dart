@@ -60,8 +60,8 @@ class _DockStatusItemState extends State<DockStatusItem> {
         final (String badge, Color color) = errors > 0
             ? ('✕ $errors', tokens.statusError)
             : warns > 0
-                ? ('⚠ $warns', tokens.statusWarning)
-                : ('✓', tokens.statusSuccess);
+            ? ('⚠ $warns', tokens.statusWarning)
+            : ('✓', tokens.statusSuccess);
         return Semantics(
           button: true,
           label: 'toggle output dock',

@@ -177,9 +177,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                   color: tokens.dropdownBackground,
                   border: Border.all(color: tokens.dropdownBorder),
                   borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(color: tokens.shadowAmbient, blurRadius: 12, offset: const Offset(0, 4)),
-                  ],
+                  boxShadow: [BoxShadow(color: tokens.shadowAmbient, blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -189,11 +187,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                       child: EditableText(
                         controller: _input,
                         focusNode: _focus,
-                        style: TextStyle(
-                          fontFamily: clideMonoFamily,
-                          fontSize: clideFontMono,
-                          color: tokens.dropdownForeground,
-                        ),
+                        style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.dropdownForeground),
                         cursorColor: tokens.globalFocus,
                         backgroundCursorColor: tokens.globalFocus,
                         maxLines: 1,
@@ -246,18 +240,13 @@ class _Hint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: ClideText(text, fontSize: clideFontCaption, color: tokens.globalTextMuted),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    child: ClideText(text, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+  );
 }
 
 class _QuickOpenItem extends StatefulWidget {
-  const _QuickOpenItem({
-    super.key,
-    required this.path,
-    required this.highlighted,
-    required this.onTap,
-  });
+  const _QuickOpenItem({super.key, required this.path, required this.highlighted, required this.onTap});
 
   final String path;
   final bool highlighted;
@@ -288,15 +277,12 @@ class _QuickOpenItemState extends State<_QuickOpenItem> {
           color: selected
               ? tokens.listItemSelectedBackground
               : _hover
-                  ? tokens.listItemHoverBackground
-                  : null,
+              ? tokens.listItemHoverBackground
+              : null,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
-              ClideText(
-                name,
-                color: selected ? tokens.listItemSelectedForeground : tokens.listItemForeground,
-              ),
+              ClideText(name, color: selected ? tokens.listItemSelectedForeground : tokens.listItemForeground),
               const SizedBox(width: 8),
               Expanded(
                 child: ClideText(

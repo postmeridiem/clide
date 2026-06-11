@@ -33,10 +33,7 @@ void main() {
         columns: 80,
         rows: 24,
         workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
       );
       addTearDown(s.close);
 
@@ -51,10 +48,7 @@ void main() {
         columns: 80,
         rows: 24,
         workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
       );
       addTearDown(s.close);
 
@@ -68,10 +62,7 @@ void main() {
       });
       addTearDown(sub.cancel);
 
-      await firstByte.future.timeout(
-        ioTimeout,
-        onTimeout: () => fail('shell never produced its first byte within ${ioTimeout.inSeconds}s'),
-      );
+      await firstByte.future.timeout(ioTimeout, onTimeout: () => fail('shell never produced its first byte within ${ioTimeout.inSeconds}s'));
 
       s.write(utf8.encode('echo write-test-ok\n'));
 
@@ -86,20 +77,14 @@ void main() {
         columns: 80,
         rows: 24,
         workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
       );
 
       final done = Completer<void>();
       s.output.listen((_) {}, onDone: () => done.complete());
 
       await s.close();
-      await done.future.timeout(
-        ioTimeout,
-        onTimeout: () => fail('output stream did not close within ${ioTimeout.inSeconds}s after s.close()'),
-      );
+      await done.future.timeout(ioTimeout, onTimeout: () => fail('output stream did not close within ${ioTimeout.inSeconds}s after s.close()'));
       expect(s.isClosed, isTrue);
     });
 
@@ -111,10 +96,7 @@ void main() {
         columns: 80,
         rows: 24,
         workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
       );
       addTearDown(s.close);
 
@@ -133,10 +115,7 @@ void main() {
           columns: 80,
           rows: 24,
           workingDirectory: '/tmp/clide-no-such-dir-${DateTime.now().microsecondsSinceEpoch}',
-          environment: {
-            ...Platform.environment,
-            'TERM': 'xterm-256color',
-          },
+          environment: {...Platform.environment, 'TERM': 'xterm-256color'},
         ),
         throwsA(isA<PtyException>().having((e) => e.errno, 'errno', 2)),
       );
@@ -153,10 +132,7 @@ void main() {
           columns: 80,
           rows: 24,
           workingDirectory: '/',
-          environment: {
-            ...Platform.environment,
-            'TERM': 'xterm-256color',
-          },
+          environment: {...Platform.environment, 'TERM': 'xterm-256color'},
         ),
         throwsA(isA<PtyException>().having((e) => e.errno, 'errno', 2)),
       );
@@ -172,10 +148,7 @@ void main() {
         columns: 80,
         rows: 24,
         workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
       );
       addTearDown(s.close);
       expect(s.pid, greaterThan(0));
@@ -188,10 +161,7 @@ void main() {
         columns: 80,
         rows: 24,
         workingDirectory: '/',
-        environment: {
-          ...Platform.environment,
-          'TERM': 'xterm-256color',
-        },
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
       );
       addTearDown(s.close);
       s.resize(cols: 120, rows: 30);

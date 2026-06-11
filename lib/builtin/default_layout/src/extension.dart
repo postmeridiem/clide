@@ -15,101 +15,54 @@ class DefaultLayoutExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        _preset ?? classicPreset(),
-        CommandContribution(
-          id: 'layout.reset',
-          command: 'layout.reset',
-          title: 'Layout: Reset to Classic',
-          run: _reset,
-        ),
-        CommandContribution(
-          id: 'palette.toggle',
-          command: 'palette.toggle',
-          title: 'Command Palette',
-          defaultBinding: 'ctrl+shift+p',
-          run: _togglePalette,
-        ),
-        // Collapse toggles (D-051, D-054)
-        CommandContribution(
-          id: 'sidebar.collapse',
-          command: 'sidebar.collapse',
-          title: 'Toggle Sidebar Collapse',
-          defaultBinding: 'ctrl+shift+1',
-          run: _collapseSidebar,
-        ),
-        CommandContribution(
-          id: 'context.collapse',
-          command: 'context.collapse',
-          title: 'Toggle Context Panel Collapse',
-          defaultBinding: 'ctrl+shift+3',
-          run: _collapseContext,
-        ),
-        // Panel focus (D-054)
-        CommandContribution(
-          id: 'panel.focus.left',
-          command: 'panel.focus.left',
-          title: 'Focus Left Panel',
-          defaultBinding: 'ctrl+1',
-          run: _focusLeft,
-        ),
-        CommandContribution(
-          id: 'panel.focus.middle',
-          command: 'panel.focus.middle',
-          title: 'Focus Middle Panel',
-          defaultBinding: 'ctrl+2',
-          run: _focusMiddle,
-        ),
-        CommandContribution(
-          id: 'panel.focus.right',
-          command: 'panel.focus.right',
-          title: 'Focus Right Panel',
-          defaultBinding: 'ctrl+3',
-          run: _focusRight,
-        ),
-        // Focus mode (D-052, D-054)
-        CommandContribution(
-          id: 'panel.focusMode',
-          command: 'panel.focusMode',
-          title: 'Toggle Focus Mode',
-          defaultBinding: 'ctrl+.',
-          run: _toggleFocusMode,
-        ),
-        CommandContribution(
-          id: 'panel.focusMode.exit',
-          command: 'panel.focusMode.exit',
-          title: 'Exit Focus Mode',
-          defaultBinding: 'escape',
-          // Stand down in Vim insert/visual mode so Esc returns to normal
-          // mode instead of closing the editor (T-257). Symmetric with
-          // vim.yaml's `vim.mode.normal` (escape when vim.insert||vim.visual).
-          bindingWhen: '!vim.insert && !vim.visual',
-          run: _exitFocusMode,
-        ),
-        // Editor split (D-049, D-054)
-        CommandContribution(
-          id: 'editor.open',
-          command: 'editor.open',
-          title: 'Open Editor',
-          defaultBinding: 'ctrl+e',
-          run: _openEditor,
-        ),
-        CommandContribution(
-          id: 'editor.close',
-          command: 'editor.close',
-          title: 'Close Editor',
-          defaultBinding: 'ctrl+w',
-          run: _closeEditor,
-        ),
-        // Sidebar section switching (D-054): alt+1 through alt+5
-        for (var i = 0; i < 5; i++)
-          CommandContribution(
-            id: 'sidebar.section.${i + 1}',
-            command: 'sidebar.section.${i + 1}',
-            title: 'Sidebar: Section ${i + 1}',
-            defaultBinding: 'alt+${i + 1}',
-            run: (args) => _switchSidebarSection(i),
-          ),
-      ];
+    _preset ?? classicPreset(),
+    CommandContribution(id: 'layout.reset', command: 'layout.reset', title: 'Layout: Reset to Classic', run: _reset),
+    CommandContribution(id: 'palette.toggle', command: 'palette.toggle', title: 'Command Palette', defaultBinding: 'ctrl+shift+p', run: _togglePalette),
+    // Collapse toggles (D-051, D-054)
+    CommandContribution(
+      id: 'sidebar.collapse',
+      command: 'sidebar.collapse',
+      title: 'Toggle Sidebar Collapse',
+      defaultBinding: 'ctrl+shift+1',
+      run: _collapseSidebar,
+    ),
+    CommandContribution(
+      id: 'context.collapse',
+      command: 'context.collapse',
+      title: 'Toggle Context Panel Collapse',
+      defaultBinding: 'ctrl+shift+3',
+      run: _collapseContext,
+    ),
+    // Panel focus (D-054)
+    CommandContribution(id: 'panel.focus.left', command: 'panel.focus.left', title: 'Focus Left Panel', defaultBinding: 'ctrl+1', run: _focusLeft),
+    CommandContribution(id: 'panel.focus.middle', command: 'panel.focus.middle', title: 'Focus Middle Panel', defaultBinding: 'ctrl+2', run: _focusMiddle),
+    CommandContribution(id: 'panel.focus.right', command: 'panel.focus.right', title: 'Focus Right Panel', defaultBinding: 'ctrl+3', run: _focusRight),
+    // Focus mode (D-052, D-054)
+    CommandContribution(id: 'panel.focusMode', command: 'panel.focusMode', title: 'Toggle Focus Mode', defaultBinding: 'ctrl+.', run: _toggleFocusMode),
+    CommandContribution(
+      id: 'panel.focusMode.exit',
+      command: 'panel.focusMode.exit',
+      title: 'Exit Focus Mode',
+      defaultBinding: 'escape',
+      // Stand down in Vim insert/visual mode so Esc returns to normal
+      // mode instead of closing the editor (T-257). Symmetric with
+      // vim.yaml's `vim.mode.normal` (escape when vim.insert||vim.visual).
+      bindingWhen: '!vim.insert && !vim.visual',
+      run: _exitFocusMode,
+    ),
+    // Editor split (D-049, D-054)
+    CommandContribution(id: 'editor.open', command: 'editor.open', title: 'Open Editor', defaultBinding: 'ctrl+e', run: _openEditor),
+    CommandContribution(id: 'editor.close', command: 'editor.close', title: 'Close Editor', defaultBinding: 'ctrl+w', run: _closeEditor),
+    // Sidebar section switching (D-054): alt+1 through alt+5
+    for (var i = 0; i < 5; i++)
+      CommandContribution(
+        id: 'sidebar.section.${i + 1}',
+        command: 'sidebar.section.${i + 1}',
+        title: 'Sidebar: Section ${i + 1}',
+        defaultBinding: 'alt+${i + 1}',
+        run: (args) => _switchSidebarSection(i),
+      ),
+  ];
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {
@@ -313,11 +266,7 @@ class DefaultLayoutExtension extends ClideExtension {
   }
 
   static IpcResponse _notActivated() => IpcResponse.err(
-        id: '',
-        error: IpcError(
-          code: IpcExitCode.toolError,
-          kind: IpcErrorKind.toolError,
-          message: 'not activated',
-        ),
-      );
+    id: '',
+    error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'not activated'),
+  );
 }

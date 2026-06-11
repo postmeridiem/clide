@@ -13,27 +13,17 @@ enum ToastSeverity { success, warning, error, info }
 const String toastChannel = 'toast';
 
 ToastSeverity _severityFromName(Object? name) => switch (name) {
-      'success' => ToastSeverity.success,
-      'warning' => ToastSeverity.warning,
-      'error' => ToastSeverity.error,
-      _ => ToastSeverity.info,
-    };
+  'success' => ToastSeverity.success,
+  'warning' => ToastSeverity.warning,
+  'error' => ToastSeverity.error,
+  _ => ToastSeverity.info,
+};
 
 /// Raise a toast by publishing to the MessageBus — the decoupled path:
 /// emitters depend only on the bus, never on the [ToastService]. [publisher]
 /// is the emitter id (e.g. `builtin.git`), kept for provenance/filtering.
-void publishToast(
-  MessageBus messages,
-  String publisher,
-  String message, {
-  ToastSeverity severity = ToastSeverity.info,
-  Duration? duration,
-}) {
-  messages.publish(publisher, toastChannel, {
-    'message': message,
-    'severity': severity.name,
-    if (duration != null) 'durationMs': duration.inMilliseconds,
-  });
+void publishToast(MessageBus messages, String publisher, String message, {ToastSeverity severity = ToastSeverity.info, Duration? duration}) {
+  messages.publish(publisher, toastChannel, {'message': message, 'severity': severity.name, if (duration != null) 'durationMs': duration.inMilliseconds});
 }
 
 /// One live toast. Immutable; the [ToastService] owns the list.

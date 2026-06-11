@@ -28,12 +28,7 @@ const int _gitPathsMaxCount = 256;
 /// handler; the leading-dash guard stops argv injection at the
 /// dispatcher (mirrors [validateGitRef], kept below as
 /// defense-in-depth since the git client is also UI-reachable).
-const CommandSchema _checkoutSchema = CommandSchema(
-  positional: ['branch'],
-  args: {
-    'branch': ArgSpec(required: true, rejectLeadingDash: true),
-  },
-);
+const CommandSchema _checkoutSchema = CommandSchema(positional: ['branch'], args: {'branch': ArgSpec(required: true, rejectLeadingDash: true)});
 
 /// Schema for `git.push` (D-74). `clide git push <remote> <branch>`.
 /// Both refs optional (bare `git.push` is valid); leading-dash
@@ -47,11 +42,7 @@ const CommandSchema _pushSchema = CommandSchema(
   },
 );
 
-void registerGitCommands(
-  DaemonDispatcher d,
-  GitClient git,
-  DaemonEventSink events,
-) {
+void registerGitCommands(DaemonDispatcher d, GitClient git, DaemonEventSink events) {
   d.register('git.status', (req) async {
     try {
       final status = await git.status();
@@ -68,10 +59,13 @@ void registerGitCommands(
       final tooMany = _tooManyPaths(req.id, paths);
       if (tooMany != null) return tooMany;
       final diffs = await git.diff(staged: staged, paths: paths);
-      return IpcResponse.ok(id: req.id, data: {
-        'staged': staged,
-        'diffs': [for (final d in diffs) d.toJson()],
-      });
+      return IpcResponse.ok(
+        id: req.id,
+        data: {
+          'staged': staged,
+          'diffs': [for (final d in diffs) d.toJson()],
+        },
+      );
     } on GitException catch (e) {
       return _gitError(req.id, e);
     }
@@ -82,12 +76,7 @@ void registerGitCommands(
     if (paths.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.stage requires paths',
-          hint: 'pass {paths: ["file.txt"]}',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.stage requires paths', hint: 'pass {paths: ["file.txt"]}'),
       );
     }
     final tooMany = _tooManyPaths(req.id, paths);
@@ -127,11 +116,7 @@ void registerGitCommands(
     if (patch == null || patch.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.stage-hunk requires a patch',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.stage-hunk requires a patch'),
       );
     }
     try {
@@ -148,11 +133,7 @@ void registerGitCommands(
     if (patch == null || patch.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.unstage-hunk requires a patch',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.unstage-hunk requires a patch'),
       );
     }
     try {
@@ -169,11 +150,7 @@ void registerGitCommands(
     if (paths.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.discard requires paths',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.discard requires paths'),
       );
     }
     try {
@@ -190,11 +167,7 @@ void registerGitCommands(
     if (message == null || message.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.commit requires a message',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.commit requires a message'),
       );
     }
     try {
@@ -233,18 +206,17 @@ void registerGitCommands(
     if (count > _gitLogMaxCount) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.log count $count exceeds cap $_gitLogMaxCount',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.log count $count exceeds cap $_gitLogMaxCount'),
       );
     }
     try {
       final entries = await git.log(count: count);
-      return IpcResponse.ok(id: req.id, data: {
-        'entries': [for (final e in entries) e.toJson()],
-      });
+      return IpcResponse.ok(
+        id: req.id,
+        data: {
+          'entries': [for (final e in entries) e.toJson()],
+        },
+      );
     } on GitException catch (e) {
       return _gitError(req.id, e);
     }
@@ -275,11 +247,14 @@ void registerGitCommands(
   d.register('git.branches', (req) async {
     try {
       final b = await git.branches();
-      return IpcResponse.ok(id: req.id, data: {
-        'branches': [
-          for (final e in b) {'name': e.name, 'current': e.current}
-        ],
-      });
+      return IpcResponse.ok(
+        id: req.id,
+        data: {
+          'branches': [
+            for (final e in b) {'name': e.name, 'current': e.current},
+          ],
+        },
+      );
     } on GitException catch (e) {
       return _gitError(req.id, e);
     }
@@ -290,11 +265,7 @@ void registerGitCommands(
     if (branch == null || branch.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'git.checkout requires a branch',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'git.checkout requires a branch'),
       );
     }
     try {
@@ -317,31 +288,17 @@ IpcResponse? _tooManyPaths(String id, List<String> paths) {
   if (paths.length <= _gitPathsMaxCount) return null;
   return IpcResponse.err(
     id: id,
-    error: IpcError(
-      code: IpcExitCode.userError,
-      kind: IpcErrorKind.userError,
-      message: 'paths length ${paths.length} exceeds cap $_gitPathsMaxCount',
-    ),
+    error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'paths length ${paths.length} exceeds cap $_gitPathsMaxCount'),
   );
 }
 
 void _emitChanged(DaemonEventSink events) {
-  events.emit(IpcEvent(
-    subsystem: 'git',
-    kind: 'git.changed',
-    timestamp: DateTime.now().toUtc(),
-    data: const {},
-  ));
+  events.emit(IpcEvent(subsystem: 'git', kind: 'git.changed', timestamp: DateTime.now().toUtc(), data: const {}));
 }
 
 IpcResponse _gitError(String id, GitException e) {
   return IpcResponse.err(
     id: id,
-    error: IpcError(
-      code: IpcExitCode.toolError,
-      kind: IpcErrorKind.toolError,
-      message: e.message,
-      hint: e.stderr.isNotEmpty ? e.stderr : null,
-    ),
+    error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: e.message, hint: e.stderr.isNotEmpty ? e.stderr : null),
   );
 }

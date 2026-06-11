@@ -4,12 +4,7 @@ import 'package:clide/extension/extension.dart';
 /// and a handle to the Lua state; contributions are proxied to
 /// callbacks registered by `clide.contribute(...)` from the Lua side.
 class LuaExtension extends ClideExtension {
-  LuaExtension({
-    required this.id,
-    required this.title,
-    required this.version,
-    this.dependsOn = const [],
-  });
+  LuaExtension({required this.id, required this.title, required this.version, this.dependsOn = const []});
 
   @override
   final String id;

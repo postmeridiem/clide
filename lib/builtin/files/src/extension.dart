@@ -19,15 +19,15 @@ class FilesExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'files.tree',
-          slot: Slots.sidebar,
-          title: 'Files',
-          icon: PhosphorIcons.byName('folder'),
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: -100,
-          build: (_) => const FileTreeView(),
-        ),
-      ];
+    TabContribution(
+      id: 'files.tree',
+      slot: Slots.sidebar,
+      title: 'Files',
+      icon: PhosphorIcons.byName('folder'),
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: -100,
+      build: (_) => const FileTreeView(),
+    ),
+  ];
 }

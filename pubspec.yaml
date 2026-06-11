@@ -37,8 +37,12 @@ coverage_floor: 95
 # flutter_channel: stable
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
-  flutter: ">=3.19.0"
+  # Honest minimums (not aspirational floors). Drivers: alchemist 0.12 needs
+  # Flutter >=3.32; markdown 7.3.1 needs Dart ^3.9.0, and Dart 3.9 first ships
+  # in Flutter 3.35 — so 3.35 is the binding floor. Exact toolchain is pinned
+  # in .fvmrc (T-353).
+  sdk: ">=3.9.0 <4.0.0"
+  flutter: ">=3.35.0"
 
 dependencies:
   flutter:

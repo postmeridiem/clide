@@ -117,11 +117,7 @@ class _WinButton extends StatelessWidget {
         height: hatHeight,
         color: hovered ? hoverBg : null,
         alignment: Alignment.center,
-        child: ClideIcon(
-          icon,
-          size: 14,
-          color: hovered && isClose ? tokens.windowControlCloseHoverForeground : tokens.globalTextMuted,
-        ),
+        child: ClideIcon(icon, size: 14, color: hovered && isClose ? tokens.windowControlCloseHoverForeground : tokens.globalTextMuted),
       ),
     );
   }

@@ -36,10 +36,13 @@ Future<bool> applyTicketPickUp(
   final id = data['id'] as String?;
   final status = data['status'] as String?;
   if (id != null && id.isNotEmpty && kPickUpStartableStatuses.contains(status)) {
-    final resp = await ipc.request('pql.tickets.status', args: {
-      'ids': [id],
-      'status': 'in_progress',
-    });
+    final resp = await ipc.request(
+      'pql.tickets.status',
+      args: {
+        'ids': [id],
+        'status': 'in_progress',
+      },
+    );
     if (resp.ok) messages.publish('builtin.tickets', 'changed', {'id': id});
   }
   return true;

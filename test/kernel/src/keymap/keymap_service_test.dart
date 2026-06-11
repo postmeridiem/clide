@@ -33,9 +33,7 @@ void main() {
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n',
-        }),
+        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n'}),
       );
       await svc.load();
       expect(svc.keymap, isNotNull);
@@ -47,9 +45,7 @@ void main() {
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/vscode.yaml': 'name: vscode\nbindings:\n  - intent: palette.open\n    keys: ctrl+shift+p\n',
-        }),
+        bundle: _bundle({'assets/keymaps/vscode.yaml': 'name: vscode\nbindings:\n  - intent: palette.open\n    keys: ctrl+shift+p\n'}),
       );
       await svc.load();
       expect(svc.keymap!.resolve(KeyChord.parse('ctrl+shift+p'), const {}), isA<PaletteOpenIntent>());
@@ -63,33 +59,25 @@ void main() {
     });
 
     test('layers a user file on top of the preset', () async {
-      await File('${appDir.path}/keybindings.yaml').writeAsString(
-        'name: user\nbindings:\n  - intent: activate\n    keys: ctrl+p\n',
-      );
+      await File('${appDir.path}/keybindings.yaml').writeAsString('name: user\nbindings:\n  - intent: activate\n    keys: ctrl+p\n');
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: palette.open\n    keys: ctrl+p\n',
-        }),
+        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: palette.open\n    keys: ctrl+p\n'}),
       );
       await svc.load();
       expect(svc.keymap!.resolve(KeyChord.parse('ctrl+p'), const {}), isA<ActivateIntent>());
     });
 
     test('layers a settings overlay above the user file', () async {
-      await File('${appDir.path}/keybindings.yaml').writeAsString(
-        'name: user\nbindings:\n  - intent: activate\n    keys: ctrl+p\n',
-      );
+      await File('${appDir.path}/keybindings.yaml').writeAsString('name: user\nbindings:\n  - intent: activate\n    keys: ctrl+p\n');
       await settings.set<List<Object?>>(kKeymapOverridesSetting, [
         {'intent': 'dismiss', 'keys': 'ctrl+p'},
       ]);
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: palette.open\n    keys: ctrl+p\n',
-        }),
+        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: palette.open\n    keys: ctrl+p\n'}),
       );
       await svc.load();
       expect(svc.keymap!.resolve(KeyChord.parse('ctrl+p'), const {}), isA<DismissIntent>());
@@ -100,9 +88,7 @@ void main() {
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n',
-        }),
+        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n'}),
       );
       await svc.load();
       expect(svc.keymap!.resolve(KeyChord.parse('escape'), const {}), isA<DismissIntent>());
@@ -115,9 +101,7 @@ void main() {
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n',
-        }),
+        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n'}),
       );
       await svc.load();
       expect(svc.keymap!.resolve(KeyChord.parse('escape'), const {}), isA<DismissIntent>());
@@ -126,11 +110,7 @@ void main() {
 
   group('registerCommandBinding / unregisterCommandBindings', () {
     test('adds an InvokeCommandIntent that resolves after load', () async {
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       svc.registerCommandBinding('ctrl+shift+g', 'git.commit');
       final intent = svc.keymap!.resolve(KeyChord.parse('ctrl+shift+g'), const {});
@@ -140,11 +120,7 @@ void main() {
     });
 
     test('honours a when-clause on the contribution', () async {
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       svc.registerCommandBinding('ctrl+s', 'editor.save', when: 'editor.focused');
       expect(svc.keymap!.resolve(KeyChord.parse('ctrl+s'), const {}), isNull);
@@ -152,25 +128,15 @@ void main() {
     });
 
     test('user file overrides a contributed binding for the same chord', () async {
-      await File('${appDir.path}/keybindings.yaml').writeAsString(
-        'name: user\nbindings:\n  - intent: dismiss\n    keys: ctrl+x\n',
-      );
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      await File('${appDir.path}/keybindings.yaml').writeAsString('name: user\nbindings:\n  - intent: dismiss\n    keys: ctrl+x\n');
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       svc.registerCommandBinding('ctrl+x', 'editor.cut');
       expect(svc.keymap!.resolve(KeyChord.parse('ctrl+x'), const {}), isA<DismissIntent>());
     });
 
     test('unregisterCommandBindings removes prior contributions', () async {
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       svc.registerCommandBinding('ctrl+x', 'editor.cut');
       expect(svc.keymap!.resolve(KeyChord.parse('ctrl+x'), const {}), isA<InvokeCommandIntent>());
@@ -179,11 +145,7 @@ void main() {
     });
 
     test('unregister of an unknown command is a no-op', () async {
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       svc.unregisterCommandBindings('nothing-registered'); // doesn't throw
     });
@@ -191,11 +153,7 @@ void main() {
 
   group('scope flags', () {
     test('setScopeFlag updates the context; notifies listeners on change', () async {
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       var notified = 0;
       svc.addListener(() => notified++);
@@ -209,11 +167,7 @@ void main() {
     });
 
     test('clearScopeFlag removes the entry; no-op when absent', () async {
-      final svc = KeymapService(
-        settings: settings,
-        appDir: appDir,
-        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}),
-      );
+      final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings: []\n'}));
       await svc.load();
       svc.setScopeFlag('foo', true);
       svc.clearScopeFlag('foo');
@@ -243,11 +197,7 @@ void main() {
   group('resolveEvent', () {
     test('returns null before load()', () {
       final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle(const {}));
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.escape,
-        logicalKey: LogicalKeyboardKey.escape,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.escape, logicalKey: LogicalKeyboardKey.escape, timeStamp: Duration.zero);
       expect(svc.resolveEvent(down, HardwareKeyboard.instance), isNull);
     });
 
@@ -255,16 +205,10 @@ void main() {
       final svc = KeymapService(
         settings: settings,
         appDir: appDir,
-        bundle: _bundle({
-          'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n',
-        }),
+        bundle: _bundle({'assets/keymaps/default.yaml': 'name: default\nbindings:\n  - intent: dismiss\n    keys: escape\n'}),
       );
       await svc.load();
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.escape,
-        logicalKey: LogicalKeyboardKey.escape,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.escape, logicalKey: LogicalKeyboardKey.escape, timeStamp: Duration.zero);
       expect(svc.resolveEvent(down, HardwareKeyboard.instance), isA<DismissIntent>());
     });
   });

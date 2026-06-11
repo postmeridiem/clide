@@ -74,10 +74,7 @@ void main() {
   });
 
   test('invalid regex throws FormatException', () async {
-    expect(
-      () => run(const SearchQuery(pattern: '(unclosed', regex: true)),
-      throwsA(isA<FormatException>()),
-    );
+    expect(() => run(const SearchQuery(pattern: '(unclosed', regex: true)), throwsA(isA<FormatException>()));
   });
 
   test('include glob restricts to matching files', () async {

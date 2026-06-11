@@ -15,29 +15,29 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/kernel_fixture.dart';
 
 Widget _host(KernelFixture f, Key key) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: ClideKernel(
-        services: f.services,
-        child: ClideTheme(
-          controller: f.services.theme,
-          child: MediaQuery(
-            data: const MediaQueryData(),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                // Bounded size so the reorderable tab strip's Draggable has a
-                // real width and the Overlay below isn't asked to self-size.
-                width: 800,
-                height: 600,
-                child: Overlay(
-                  initialEntries: [OverlayEntry(builder: (_) => ClaudeSessionHost(key: key))],
-                ),
-              ),
+  textDirection: TextDirection.ltr,
+  child: ClideKernel(
+    services: f.services,
+    child: ClideTheme(
+      controller: f.services.theme,
+      child: MediaQuery(
+        data: const MediaQueryData(),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            // Bounded size so the reorderable tab strip's Draggable has a
+            // real width and the Overlay below isn't asked to self-size.
+            width: 800,
+            height: 600,
+            child: Overlay(
+              initialEntries: [OverlayEntry(builder: (_) => ClaudeSessionHost(key: key))],
             ),
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   late KernelFixture f;

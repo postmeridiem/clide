@@ -28,24 +28,19 @@ class KeybindingsUiExtension extends ClideExtension {
 
   /// Presets that ship today, each exposed as a `keymap.preset.<name>`
   /// command that activates it.
-  static const _presets = <String, String>{
-    'default': 'Keymap: Default',
-    'vim': 'Keymap: Vim',
-    'vscode': 'Keymap: VS Code',
-    'jetbrains': 'Keymap: JetBrains',
-  };
+  static const _presets = <String, String>{'default': 'Keymap: Default', 'vim': 'Keymap: Vim', 'vscode': 'Keymap: VS Code', 'jetbrains': 'Keymap: JetBrains'};
 
   @override
   List<ContributionPoint> get contributions => [
-        for (final entry in _presets.entries)
-          CommandContribution(
-            id: 'keymap.preset.${entry.key}',
-            command: 'keymap.preset.${entry.key}',
-            title: entry.value,
-            run: (_) async {
-              await _keymap?.setPreset(entry.key);
-              return IpcResponse.ok(id: '', data: {'preset': entry.key});
-            },
-          ),
-      ];
+    for (final entry in _presets.entries)
+      CommandContribution(
+        id: 'keymap.preset.${entry.key}',
+        command: 'keymap.preset.${entry.key}',
+        title: entry.value,
+        run: (_) async {
+          await _keymap?.setPreset(entry.key);
+          return IpcResponse.ok(id: '', data: {'preset': entry.key});
+        },
+      ),
+  ];
 }

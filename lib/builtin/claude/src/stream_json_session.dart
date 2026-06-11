@@ -40,11 +40,7 @@ class ClaudeStreamJsonProcess implements StreamJsonProcess {
 
   /// Spawn `claude` in stream-json mode. [sessionArgs] is `['--session-id', id]`
   /// for a new session or `['--resume', id]` to resume an existing one (T-161).
-  static Future<ClaudeStreamJsonProcess> start({
-    required List<String> sessionArgs,
-    required String cwd,
-    Map<String, String>? env,
-  }) async {
+  static Future<ClaudeStreamJsonProcess> start({required List<String> sessionArgs, required String cwd, Map<String, String>? env}) async {
     final proc = await Process.start(
       'claude',
       [
@@ -176,10 +172,10 @@ final class AllowTool extends ToolDecision {
   final String? followUpNote;
   @override
   Map<String, dynamic> toJson() => {
-        'behavior': 'allow',
-        'updatedInput': updatedInput,
-        if (updatedPermissions != null && updatedPermissions!.isNotEmpty) 'updatedPermissions': updatedPermissions,
-      };
+    'behavior': 'allow',
+    'updatedInput': updatedInput,
+    if (updatedPermissions != null && updatedPermissions!.isNotEmpty) 'updatedPermissions': updatedPermissions,
+  };
 }
 
 /// Deny the tool with a user-facing [message] (required by the protocol).
@@ -310,15 +306,17 @@ class StreamJsonSession {
     // makes claude drive their JSON-RPC over `mcp_message` (T-170). Only sent
     // when we actually host a server, so a plain session is unchanged.
     if (_mcpServers.isNotEmpty) {
-      _proc.writeLine(jsonEncode({
-        'type': 'control_request',
-        'request_id': 'init-${_localSeq++}',
-        'request': {
-          'subtype': 'initialize',
-          'hooks': <String, dynamic>{},
-          'sdkMcpServers': [for (final s in _mcpServers) s.name],
-        },
-      }));
+      _proc.writeLine(
+        jsonEncode({
+          'type': 'control_request',
+          'request_id': 'init-${_localSeq++}',
+          'request': {
+            'subtype': 'initialize',
+            'hooks': <String, dynamic>{},
+            'sdkMcpServers': [for (final s in _mcpServers) s.name],
+          },
+        }),
+      );
     }
   }
 
@@ -448,15 +446,17 @@ class StreamJsonSession {
       final input = (request['input'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
       final tuid = request['tool_use_id'] as String? ?? '';
       if (tuid.isNotEmpty) _promptedToolUses.add(tuid);
-      _queue.add(ToolPrompt(
-        promptId: rid,
-        toolName: toolName,
-        displayName: request['display_name'] as String? ?? toolName,
-        description: request['description'] as String?,
-        toolUseId: request['tool_use_id'] as String? ?? '',
-        input: input,
-        permissionSuggestions: (request['permission_suggestions'] as List?) ?? const [],
-      ));
+      _queue.add(
+        ToolPrompt(
+          promptId: rid,
+          toolName: toolName,
+          displayName: request['display_name'] as String? ?? toolName,
+          description: request['description'] as String?,
+          toolUseId: request['tool_use_id'] as String? ?? '',
+          input: input,
+          permissionSuggestions: (request['permission_suggestions'] as List?) ?? const [],
+        ),
+      );
       _pendingCtl.add(pendingPrompt);
       return; // awaits resolvePrompt
     }
@@ -465,10 +465,12 @@ class StreamJsonSession {
       unawaited(_handleMcpMessage(rid, request.cast<String, dynamic>()));
       return;
     }
-    _proc.writeLine(jsonEncode({
-      'type': 'control_response',
-      'response': {'subtype': 'error', 'request_id': rid, 'error': 'Unsupported control request subtype: ${request['subtype']}'},
-    }));
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_response',
+        'response': {'subtype': 'error', 'request_id': rid, 'error': 'Unsupported control request subtype: ${request['subtype']}'},
+      }),
+    );
   }
 
   /// Answer an `mcp_message` control_request: dispatch its JSON-RPC to the named
@@ -489,14 +491,16 @@ class StreamJsonSession {
     } else {
       mcpResponse = await _dispatchMcp(server, message);
     }
-    _proc.writeLine(jsonEncode({
-      'type': 'control_response',
-      'response': {
-        'subtype': 'success',
-        'request_id': rid,
-        'response': {'mcp_response': mcpResponse}
-      },
-    }));
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_response',
+        'response': {
+          'subtype': 'success',
+          'request_id': rid,
+          'response': {'mcp_response': mcpResponse},
+        },
+      }),
+    );
   }
 
   McpServer? _mcpServerNamed(String? name) {
@@ -559,10 +563,12 @@ class StreamJsonSession {
       _toolUseOutcome[prompt.toolUseId] = decision is AllowTool;
       if (decision is DenyTool && decision.quiet) _quietErrorToolUses.add(prompt.toolUseId);
     }
-    _proc.writeLine(jsonEncode({
-      'type': 'control_response',
-      'response': {'subtype': 'success', 'request_id': promptId, 'response': decision.toJson()},
-    }));
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_response',
+        'response': {'subtype': 'success', 'request_id': promptId, 'response': decision.toJson()},
+      }),
+    );
     if (decision is AllowTool) {
       // The prompt card is ephemeral (it vanishes once resolved), so leave a
       // compact record of an answered question in the conversation log (D-78).
@@ -652,16 +658,13 @@ class StreamJsonSession {
   /// so it renders immediately (stream-json doesn't replay stdin without
   /// `--replay-user-messages`).
   void send(String text) {
-    _proc.writeLine(jsonEncode({
-      'type': 'user',
-      'message': {'role': 'user', 'content': text},
-    }));
-    _items.add(UserMessage(
-      uuid: 'local-${_localSeq++}',
-      timestamp: DateTime.now(),
-      isSidechain: false,
-      text: text,
-    ));
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'user',
+        'message': {'role': 'user', 'content': text},
+      }),
+    );
+    _items.add(UserMessage(uuid: 'local-${_localSeq++}', timestamp: DateTime.now(), isSidechain: false, text: text));
     _setBusy(true);
   }
 
@@ -669,11 +672,13 @@ class StreamJsonSession {
   /// the `interrupt` control_request; claude cancels the current turn and ends
   /// it with a `result`, which clears [busy]. Safe to call when idle.
   void interrupt() {
-    _proc.writeLine(jsonEncode({
-      'type': 'control_request',
-      'request_id': 'interrupt-${_localSeq++}',
-      'request': {'subtype': 'interrupt'},
-    }));
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': 'interrupt-${_localSeq++}',
+        'request': {'subtype': 'interrupt'},
+      }),
+    );
   }
 
   /// Set the session's permission mode (T-181, D-77). Sends a
@@ -685,11 +690,13 @@ class StreamJsonSession {
   /// cockpit badge's plain click; bypassPermissions is reachable only via a
   /// confirmed shift-click (T-181).
   void setPermissionMode(String mode) {
-    _proc.writeLine(jsonEncode({
-      'type': 'control_request',
-      'request_id': 'set-perm-${_localSeq++}',
-      'request': {'subtype': 'set_permission_mode', 'mode': mode},
-    }));
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': 'set-perm-${_localSeq++}',
+        'request': {'subtype': 'set_permission_mode', 'mode': mode},
+      }),
+    );
     // Optimistically reflect the change so the badge / status line update
     // immediately (T-250) — the control_request emits no status event, and a
     // fresh system/init only arrives later. The next init reconciles if the

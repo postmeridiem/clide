@@ -84,10 +84,7 @@ class _OutputViewState extends State<OutputView> {
                 child: rows.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(12),
-                        child: ClideText(
-                          widget.ring.isEmpty ? 'No output yet.' : 'No output matches the filter.',
-                          muted: true,
-                        ),
+                        child: ClideText(widget.ring.isEmpty ? 'No output yet.' : 'No output matches the filter.', muted: true),
                       )
                     : Stack(
                         children: [
@@ -100,12 +97,7 @@ class _OutputViewState extends State<OutputView> {
                               children: [for (final r in rows) _LogRow(record: r)],
                             ),
                           ),
-                          if (!_following)
-                            Positioned(
-                              right: 12,
-                              bottom: 8,
-                              child: _JumpPill(onTap: _jumpToLatest),
-                            ),
+                          if (!_following) Positioned(right: 12, bottom: 8, child: _JumpPill(onTap: _jumpToLatest)),
                         ],
                       ),
               ),
@@ -128,15 +120,9 @@ class _OutputViewState extends State<OutputView> {
             child: ClideFilterBox(address: 'output.panel', hint: 'Filter…', onChanged: _c.setText),
           ),
           const SizedBox(width: 8),
-          _Chip(
-            label: 'Level: ${_c.minLevel.name}',
-            onTap: () => _c.setMinLevel(LogLevel.values[(_c.minLevel.index + 1) % LogLevel.values.length]),
-          ),
+          _Chip(label: 'Level: ${_c.minLevel.name}', onTap: () => _c.setMinLevel(LogLevel.values[(_c.minLevel.index + 1) % LogLevel.values.length])),
           const SizedBox(width: 6),
-          _Chip(
-            label: 'Source: ${_c.source ?? 'all'}',
-            onTap: _cycleSource,
-          ),
+          _Chip(label: 'Source: ${_c.source ?? 'all'}', onTap: _cycleSource),
           const SizedBox(width: 6),
           _Chip(label: 'Clear', onTap: _c.clear),
         ],
@@ -235,8 +221,14 @@ class _LogRow extends StatelessWidget {
           const SizedBox(width: 8),
           SizedBox(
             width: 92,
-            child: ClideText(record.source,
-                fontSize: clideFontMono, color: tokens.globalTextMuted, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.clip),
+            child: ClideText(
+              record.source,
+              fontSize: clideFontMono,
+              color: tokens.globalTextMuted,
+              fontFamily: clideMonoFamily,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -248,9 +240,9 @@ class _LogRow extends StatelessWidget {
   }
 
   Color _levelColor(LogLevel level, SurfaceTokens tokens) => switch (level) {
-        LogLevel.error => tokens.statusError,
-        LogLevel.warn => tokens.statusWarning,
-        LogLevel.info => tokens.globalForeground,
-        LogLevel.debug || LogLevel.trace => tokens.globalTextMuted,
-      };
+    LogLevel.error => tokens.statusError,
+    LogLevel.warn => tokens.statusWarning,
+    LogLevel.info => tokens.globalForeground,
+    LogLevel.debug || LogLevel.trace => tokens.globalTextMuted,
+  };
 }

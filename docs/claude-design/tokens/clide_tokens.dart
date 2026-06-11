@@ -10,13 +10,7 @@
 import 'dart:ui' show Color;
 
 class ClideTheme {
-  const ClideTheme({
-    required this.name,
-    required this.dark,
-    required this.subtitle,
-    required this.palette,
-    required this.syntax,
-  });
+  const ClideTheme({required this.name, required this.dark, required this.subtitle, required this.palette, required this.syntax});
   final String name;
   final bool dark;
   final String subtitle;

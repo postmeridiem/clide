@@ -9,13 +9,10 @@ import 'package:clide/src/terminal/terminal.dart';
 
 /// Encapsulates the logic for painting various terminal elements.
 class TerminalPainter {
-  TerminalPainter({
-    required TerminalTheme theme,
-    required TerminalStyle textStyle,
-    required TextScaler textScaler,
-  })  : _textStyle = textStyle,
-        _theme = theme,
-        _textScaler = textScaler;
+  TerminalPainter({required TerminalTheme theme, required TerminalStyle textStyle, required TextScaler textScaler})
+    : _textStyle = textStyle,
+      _theme = theme,
+      _textScaler = textScaler;
 
   /// A lookup table from terminal colors to Flutter colors.
   late var _colorPalette = PaletteBuilder(_theme).build();
@@ -60,18 +57,13 @@ class TerminalPainter {
 
     final textStyle = _textStyle.toTextStyle();
     final builder = ParagraphBuilder(textStyle.getParagraphStyle());
-    builder.pushStyle(
-      textStyle.getTextStyle(textScaler: _textScaler),
-    );
+    builder.pushStyle(textStyle.getTextStyle(textScaler: _textScaler));
     builder.addText(test);
 
     final paragraph = builder.build();
     paragraph.layout(ParagraphConstraints(width: double.infinity));
 
-    final result = Size(
-      paragraph.maxIntrinsicWidth / test.length,
-      paragraph.height,
-    );
+    final result = Size(paragraph.maxIntrinsicWidth / test.length, paragraph.height);
 
     paragraph.dispose();
     return result;
@@ -88,12 +80,7 @@ class TerminalPainter {
   }
 
   /// Paints the cursor based on the current cursor type.
-  void paintCursor(
-    Canvas canvas,
-    Offset offset, {
-    required TerminalCursorType cursorType,
-    bool hasFocus = true,
-  }) {
+  void paintCursor(Canvas canvas, Offset offset, {required TerminalCursorType cursorType, bool hasFocus = true}) {
     final paint = Paint()
       ..color = _theme.cursor
       ..strokeWidth = 1;
@@ -110,17 +97,9 @@ class TerminalPainter {
         canvas.drawRect(offset & _cellSize, paint);
         return;
       case TerminalCursorType.underline:
-        return canvas.drawLine(
-          Offset(offset.dx, _cellSize.height - 1),
-          Offset(offset.dx + _cellSize.width, _cellSize.height - 1),
-          paint,
-        );
+        return canvas.drawLine(Offset(offset.dx, _cellSize.height - 1), Offset(offset.dx + _cellSize.width, _cellSize.height - 1), paint);
       case TerminalCursorType.verticalBar:
-        return canvas.drawLine(
-          Offset(offset.dx, 0),
-          Offset(offset.dx, _cellSize.height),
-          paint,
-        );
+        return canvas.drawLine(Offset(offset.dx, 0), Offset(offset.dx, _cellSize.height), paint);
     }
   }
 
@@ -132,19 +111,12 @@ class TerminalPainter {
       ..color = color
       ..strokeWidth = 1;
 
-    canvas.drawRect(
-      Rect.fromPoints(offset, endOffset),
-      paint,
-    );
+    canvas.drawRect(Rect.fromPoints(offset, endOffset), paint);
   }
 
   /// Paints [line] to [canvas] at [offset]. The x offset of [offset] is usually
   /// 0, and the y offset is the top of the line.
-  void paintLine(
-    Canvas canvas,
-    Offset offset,
-    BufferLine line,
-  ) {
+  void paintLine(Canvas canvas, Offset offset, BufferLine line) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
 
@@ -205,12 +177,7 @@ class TerminalPainter {
         char = String.fromCharCode(0xA0);
       }
 
-      paragraph = _paragraphCache.performAndCacheLayout(
-        char,
-        style,
-        _textScaler,
-        cacheKey,
-      );
+      paragraph = _paragraphCache.performAndCacheLayout(char, style, _textScaler, cacheKey);
     }
 
     canvas.drawParagraph(paragraph, offset);

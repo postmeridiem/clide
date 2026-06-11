@@ -41,26 +41,30 @@ void main() {
 
     /// Pump a themed context, run [body] with a controller already
     /// given tokens from the active theme.
-    Future<void> withController(
-      WidgetTester tester,
-      SyntaxTextController c,
-      Future<void> Function(BuildContext ctx) body,
-    ) async {
+    Future<void> withController(WidgetTester tester, SyntaxTextController c, Future<void> Function(BuildContext ctx) body) async {
       late BuildContext ctx;
-      await tester.pumpWidget(harness(f, Builder(builder: (context) {
-        ctx = context;
-        return const SizedBox();
-      })));
+      await tester.pumpWidget(
+        harness(
+          f,
+          Builder(
+            builder: (context) {
+              ctx = context;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
       c.tokens = ClideTheme.of(ctx).surface;
       await body(ctx);
     }
 
     testWidgets('renders highlighted spans as styled TextSpan children', (tester) async {
       final c = SyntaxTextController(
-          syntax: _FakeSyntax(const [
-        SyntaxSpan(start: 0, end: 5, role: 'keyword'), // "class"
-        SyntaxSpan(start: 6, end: 9, role: 'type'), // "Foo"
-      ]));
+        syntax: _FakeSyntax(const [
+          SyntaxSpan(start: 0, end: 5, role: 'keyword'), // "class"
+          SyntaxSpan(start: 6, end: 9, role: 'type'), // "Foo"
+        ]),
+      );
       await withController(tester, c, (ctx) async {
         c.text = 'class Foo {}';
         c.updatePath('a.dart');
@@ -76,9 +80,10 @@ void main() {
       // '😀' is a surrogate pair (4 UTF-8 bytes). A span after it must
       // still land on the right character offset.
       final c = SyntaxTextController(
-          syntax: _FakeSyntax(const [
-        SyntaxSpan(start: 5, end: 8, role: 'type'), // "Foo" after "😀 "
-      ]));
+        syntax: _FakeSyntax(const [
+          SyntaxSpan(start: 5, end: 8, role: 'type'), // "Foo" after "😀 "
+        ]),
+      );
       await withController(tester, c, (ctx) async {
         c.text = '😀 Foo';
         c.updatePath('a.dart');

@@ -24,19 +24,12 @@ class FakeDaemonClient extends DaemonClient {
   }
 
   @override
-  Future<IpcResponse> request(
-    String cmd, {
-    Map<String, Object?> args = const {},
-  }) async {
+  Future<IpcResponse> request(String cmd, {Map<String, Object?> args = const {}}) async {
     final stub = _stubs[cmd];
     if (stub != null) return stub(args);
     return IpcResponse.err(
       id: '',
-      error: IpcError(
-        code: IpcExitCode.notFound,
-        kind: IpcErrorKind.notFound,
-        message: 'no stub for $cmd',
-      ),
+      error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'no stub for $cmd'),
     );
   }
 
@@ -46,10 +39,7 @@ class FakeDaemonClient extends DaemonClient {
     notifyListeners();
   }
 
-  void stub(
-    String cmd,
-    Future<IpcResponse> Function(Map<String, Object?>) handler,
-  ) {
+  void stub(String cmd, Future<IpcResponse> Function(Map<String, Object?>) handler) {
     _stubs[cmd] = handler;
   }
 }

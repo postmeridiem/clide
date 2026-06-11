@@ -50,17 +50,11 @@ class _FileTreeViewState extends State<FileTreeView> {
       listenable: c,
       builder: (context, _) {
         if (c.error != null && c.rootPath == null) {
-          return Padding(
-            padding: const EdgeInsets.all(12),
-            child: ClideText(c.error!, muted: true),
-          );
+          return Padding(padding: const EdgeInsets.all(12), child: ClideText(c.error!, muted: true));
         }
         final root = c.rootPath;
         if (root == null) {
-          return const Padding(
-            padding: EdgeInsets.all(12),
-            child: ClideText('Loading…', muted: true),
-          );
+          return const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true));
         }
         final rootName = root.split(Platform.pathSeparator).last;
         return Column(
@@ -98,18 +92,12 @@ class _FileTreeViewState extends State<FileTreeView> {
     final matches = c.allLoadedEntries().where((e) {
       return e.path.toLowerCase().contains(lowerFilter) || e.name.toLowerCase().contains(lowerFilter);
     }).toList();
-    return [
-      for (final e in matches) _FilteredFileRow(entry: e),
-    ];
+    return [for (final e in matches) _FilteredFileRow(entry: e)];
   }
 }
 
 class _Children extends StatelessWidget {
-  const _Children({
-    required this.path,
-    required this.controller,
-    required this.depth,
-  });
+  const _Children({required this.path, required this.controller, required this.depth});
 
   final String path;
   final FileTreeController controller;
@@ -129,33 +117,19 @@ class _Children extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _DirRow(
-                  name: e.name,
-                  path: e.path,
-                  controller: controller,
-                  depth: depth,
-                ),
+                _DirRow(name: e.name, path: e.path, controller: controller, depth: depth),
                 if (controller.isExpanded(e.path)) _Children(path: e.path, controller: controller, depth: depth + 1),
               ],
             )
           else
-            _FileRow(
-              name: e.name,
-              path: e.path,
-              depth: depth,
-            ),
+            _FileRow(name: e.name, path: e.path, depth: depth),
       ],
     );
   }
 }
 
 class _DirRow extends StatelessWidget {
-  const _DirRow({
-    required this.name,
-    required this.path,
-    required this.controller,
-    required this.depth,
-  });
+  const _DirRow({required this.name, required this.path, required this.controller, required this.depth});
 
   final String name;
   final String path;
@@ -173,11 +147,7 @@ class _DirRow extends StatelessWidget {
       child: _Row(
         depth: depth,
         onTap: () => controller.toggle(path),
-        leading: ClideIcon(
-          const ChevronRightIcon(),
-          size: 10,
-          color: tokens.sidebarForeground,
-        ),
+        leading: ClideIcon(const ChevronRightIcon(), size: 10, color: tokens.sidebarForeground),
         label: name,
         rotateLeading: expanded,
       ),
@@ -186,11 +156,7 @@ class _DirRow extends StatelessWidget {
 }
 
 class _FileRow extends StatelessWidget {
-  const _FileRow({
-    required this.name,
-    required this.path,
-    required this.depth,
-  });
+  const _FileRow({required this.name, required this.path, required this.depth});
 
   final String name;
   final String path;
@@ -202,11 +168,7 @@ class _FileRow extends StatelessWidget {
       button: true,
       label: 'Open $name',
       onTap: () => _openFile(context, path),
-      child: _Row(
-        depth: depth,
-        onTap: () => _openFile(context, path),
-        label: name,
-      ),
+      child: _Row(depth: depth, onTap: () => _openFile(context, path), label: name),
     );
   }
 
@@ -218,13 +180,7 @@ class _FileRow extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({
-    required this.depth,
-    required this.onTap,
-    required this.label,
-    this.leading,
-    this.rotateLeading = false,
-  });
+  const _Row({required this.depth, required this.onTap, required this.label, this.leading, this.rotateLeading = false});
 
   final int depth;
   final VoidCallback onTap;
@@ -252,12 +208,7 @@ class _Row extends StatelessWidget {
             ] else
               const SizedBox(width: 16),
             Expanded(
-              child: ClideText(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                color: tokens.sidebarForeground,
-              ),
+              child: ClideText(label, maxLines: 1, overflow: TextOverflow.ellipsis, color: tokens.sidebarForeground),
             ),
           ],
         ),

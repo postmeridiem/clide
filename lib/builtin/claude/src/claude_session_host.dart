@@ -85,11 +85,13 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
   /// Public entry point used by the `claude.new-secondary` command.
   void addSecondary() {
     final index = _nextSecondary++;
-    _controller.add(MultitabEntry<_Session>(
-      id: 'secondary-$index',
-      title: 'session $index',
-      payload: _Session(isPrimary: false, secondaryIndex: index),
-    ));
+    _controller.add(
+      MultitabEntry<_Session>(
+        id: 'secondary-$index',
+        title: 'session $index',
+        payload: _Session(isPrimary: false, secondaryIndex: index),
+      ),
+    );
   }
 
   /// Open a new pane as a fork of [sourceClaudeSessionId] (T-172).
@@ -99,11 +101,13 @@ class ClaudeSessionHostState extends State<ClaudeSessionHost> {
   /// without touching the original.
   void addFork(String sourceClaudeSessionId) {
     final index = _nextSecondary++;
-    _controller.add(MultitabEntry<_Session>(
-      id: 'secondary-$index',
-      title: 'fork $index',
-      payload: _Session(isPrimary: false, secondaryIndex: index, forkSourceId: sourceClaudeSessionId),
-    ));
+    _controller.add(
+      MultitabEntry<_Session>(
+        id: 'secondary-$index',
+        title: 'fork $index',
+        payload: _Session(isPrimary: false, secondaryIndex: index, forkSourceId: sourceClaudeSessionId),
+      ),
+    );
   }
 
   @override

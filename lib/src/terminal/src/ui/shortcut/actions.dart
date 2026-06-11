@@ -7,12 +7,7 @@ import 'package:clide/src/terminal/src/ui/controller.dart';
 import 'package:clide/src/terminal/src/ui/selection_mode.dart';
 
 class TerminalActions extends StatelessWidget {
-  const TerminalActions({
-    super.key,
-    required this.terminal,
-    required this.controller,
-    required this.child,
-  });
+  const TerminalActions({super.key, required this.terminal, required this.controller, required this.child});
 
   final Terminal terminal;
 
@@ -53,14 +48,8 @@ class TerminalActions extends StatelessWidget {
         SelectAllTextIntent: CallbackAction<SelectAllTextIntent>(
           onInvoke: (intent) {
             controller.setSelection(
-              terminal.buffer.createAnchor(
-                0,
-                terminal.buffer.height - terminal.viewHeight,
-              ),
-              terminal.buffer.createAnchor(
-                terminal.viewWidth,
-                terminal.buffer.height - 1,
-              ),
+              terminal.buffer.createAnchor(0, terminal.buffer.height - terminal.viewHeight),
+              terminal.buffer.createAnchor(terminal.viewWidth, terminal.buffer.height - 1),
               mode: SelectionMode.line,
             );
             return null;

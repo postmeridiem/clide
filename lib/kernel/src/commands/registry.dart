@@ -17,19 +17,12 @@ class CommandRegistry extends ChangeNotifier {
   Iterable<CommandContribution> get all => _byCommand.values;
   CommandContribution? get(String command) => _byCommand[command];
 
-  Future<IpcResponse> execute(
-    String command, {
-    List<String> args = const [],
-  }) async {
+  Future<IpcResponse> execute(String command, {List<String> args = const []}) async {
     final c = _byCommand[command];
     if (c == null) {
       return IpcResponse.err(
         id: '',
-        error: IpcError(
-          code: IpcExitCode.notFound,
-          kind: IpcErrorKind.notFound,
-          message: 'no such command: $command',
-        ),
+        error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'no such command: $command'),
       );
     }
     return c.run(args);

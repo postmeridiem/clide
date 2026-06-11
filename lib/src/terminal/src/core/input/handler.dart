@@ -95,11 +95,7 @@ class CascadeInputHandler implements TerminalInputHandler {
 ///
 /// See also:
 ///  * [CascadeInputHandler]
-const defaultInputHandler = CascadeInputHandler([
-  KeytabInputHandler(),
-  CtrlInputHandler(),
-  AltInputHandler(),
-]);
+const defaultInputHandler = CascadeInputHandler([KeytabInputHandler(), CtrlInputHandler(), AltInputHandler()]);
 
 /// A [TerminalInputHandler] that translates key events according to a keytab
 /// file. If no keytab is provided, [Keytab.defaultKeytab] is used.

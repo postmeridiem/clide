@@ -25,12 +25,7 @@ String _buildExpandedPath() {
   final base = Platform.environment['PATH'] ?? '';
   if (!Platform.isMacOS) return base;
   final home = Platform.environment['HOME'] ?? '';
-  final extras = <String>[
-    if (home.isNotEmpty) '$home/.local/bin',
-    '/opt/homebrew/bin',
-    '/opt/homebrew/sbin',
-    '/usr/local/bin',
-  ];
+  final extras = <String>[if (home.isNotEmpty) '$home/.local/bin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin'];
   final existing = base.split(':').toSet();
   final missing = extras.where((p) => !existing.contains(p));
   if (missing.isEmpty) return base;
@@ -53,13 +48,6 @@ const Map<String, String> clidePtyEnvDefaults = {
 
 /// Merge [base] onto the process environment; clide defaults override
 /// user env where they overlap. Explicit [overrides] win over both.
-Map<String, String> mergePtyEnv({
-  required Map<String, String> processEnv,
-  Map<String, String>? overrides,
-}) {
-  return {
-    ...processEnv,
-    ...clidePtyEnvDefaults,
-    if (overrides != null) ...overrides,
-  };
+Map<String, String> mergePtyEnv({required Map<String, String> processEnv, Map<String, String>? overrides}) {
+  return {...processEnv, ...clidePtyEnvDefaults, ...?overrides};
 }

@@ -79,18 +79,17 @@ class _ClideToastState extends State<ClideToast> {
                 children: [
                   ClideIcon(style.icon, size: clideIconStandard, color: style.color),
                   const SizedBox(width: clideGapStandard),
-                  Flexible(child: ClideText(widget.entry.message, fontSize: clideFontBody, maxLines: 3, overflow: TextOverflow.ellipsis)),
+                  Flexible(
+                    child: ClideText(widget.entry.message, fontSize: clideFontBody, maxLines: 3, overflow: TextOverflow.ellipsis),
+                  ),
                   const SizedBox(width: clideGapStandard),
                   Semantics(
                     button: true,
                     label: 'Dismiss notification',
                     child: ClideTappable(
                       onTap: widget.onDismiss,
-                      builder: (ctx, hovered, _) => ClideIcon(
-                        PhosphorIcons.byName('x'),
-                        size: clideIconStandard,
-                        color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
-                      ),
+                      builder: (ctx, hovered, _) =>
+                          ClideIcon(PhosphorIcons.byName('x'), size: clideIconStandard, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
                     ),
                   ),
                 ],

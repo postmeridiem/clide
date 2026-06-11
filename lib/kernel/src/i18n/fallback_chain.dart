@@ -14,22 +14,14 @@ import 'package:flutter/foundation.dart';
 /// canonicalized by omitting it (not empty string) so equality works.
 @immutable
 class FallbackChain {
-  const FallbackChain({
-    required this.current,
-    required this.defaultLocale,
-  });
+  const FallbackChain({required this.current, required this.defaultLocale});
 
   final Locale current;
   final Locale defaultLocale;
 
   List<Locale> resolve() {
     final out = <Locale>[];
-    for (final l in [
-      current,
-      Locale(current.languageCode),
-      defaultLocale,
-      Locale(defaultLocale.languageCode),
-    ]) {
+    for (final l in [current, Locale(current.languageCode), defaultLocale, Locale(defaultLocale.languageCode)]) {
       final canon = _canon(l);
       if (!out.any((e) => _canon(e) == canon)) {
         out.add(l);

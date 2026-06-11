@@ -48,12 +48,7 @@ void main() {
 
     test('DaemonEvent merges ts into payload', () {
       final ts = DateTime.utc(2026, 5, 11, 12, 0, 0);
-      final e = DaemonEvent(
-        subsystem: 'pty',
-        kind: 'output',
-        data: {'bytes': 'aGVsbG8='},
-        ts: ts,
-      );
+      final e = DaemonEvent(subsystem: 'pty', kind: 'output', data: {'bytes': 'aGVsbG8='}, ts: ts);
       expect(e.subsystem, 'pty');
       expect(e.kind, 'output');
       expect(e.payload()['ts'], ts.toIso8601String());
@@ -63,22 +58,10 @@ void main() {
 
   group('Team events', () {
     test('TeamMemberJoined includes only the set optional fields in payload', () {
-      const minimal = TeamMemberJoined(
-        team: 'alpha',
-        agentId: 'bob@alpha',
-        name: 'bob',
-        agentType: 'reviewer',
-        paneId: '%3',
-      );
+      const minimal = TeamMemberJoined(team: 'alpha', agentId: 'bob@alpha', name: 'bob', agentType: 'reviewer', paneId: '%3');
       expect(minimal.subsystem, 'team');
       expect(minimal.kind, 'member-joined');
-      expect(minimal.payload(), {
-        'team': 'alpha',
-        'agentId': 'bob@alpha',
-        'name': 'bob',
-        'agentType': 'reviewer',
-        'paneId': '%3',
-      });
+      expect(minimal.payload(), {'team': 'alpha', 'agentId': 'bob@alpha', 'name': 'bob', 'agentType': 'reviewer', 'paneId': '%3'});
 
       const full = TeamMemberJoined(
         team: 'alpha',

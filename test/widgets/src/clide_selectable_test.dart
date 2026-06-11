@@ -137,12 +137,20 @@ void main() {
       // Both the paragraph text and the code text should appear in the
       // clipboard. SelectableRegion concatenates selectables with newlines.
       final copied = clipboard.text ?? '';
-      expect(copied, contains(paraText),
-          reason: 'paragraph text must be selectable via SelectableRegion after '
-              'converting ClideMarkdown from RichText to Text.rich');
-      expect(copied, contains(codeText),
-          reason: 'code block text must be selectable via SelectableRegion after '
-              'converting ClideCodeBlock from RichText to Text.rich');
+      expect(
+        copied,
+        contains(paraText),
+        reason:
+            'paragraph text must be selectable via SelectableRegion after '
+            'converting ClideMarkdown from RichText to Text.rich',
+      );
+      expect(
+        copied,
+        contains(codeText),
+        reason:
+            'code block text must be selectable via SelectableRegion after '
+            'converting ClideCodeBlock from RichText to Text.rich',
+      );
     });
 
     testWidgets('Text.rich nodes are owned by Text widgets, registering with SelectableRegion', (tester) async {
@@ -185,13 +193,14 @@ void main() {
       // what Text.rich builds. A bare RichText(...) has no Text parent.
       final richTexts = find.byType(RichText);
       for (final el in richTexts.evaluate()) {
-        final textAncestor = find.ancestor(
-          of: find.byElementPredicate((e) => e == el),
-          matching: find.byType(Text),
+        final textAncestor = find.ancestor(of: find.byElementPredicate((e) => e == el), matching: find.byType(Text));
+        expect(
+          textAncestor,
+          findsAtLeastNWidgets(1),
+          reason:
+              'RichText for "${(el.widget as RichText).text.toPlainText()}" '
+              'should be owned by a Text (built via Text.rich, not bare RichText)',
         );
-        expect(textAncestor, findsAtLeastNWidgets(1),
-            reason: 'RichText for "${(el.widget as RichText).text.toPlainText()}" '
-                'should be owned by a Text (built via Text.rich, not bare RichText)');
       }
     });
   });

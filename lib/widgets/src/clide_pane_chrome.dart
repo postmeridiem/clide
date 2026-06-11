@@ -13,15 +13,7 @@ import 'typography.dart';
 /// underneath. `ClidePtyView`, diff views, canvas tabs, graph tabs —
 /// everything with a "pane header" surface reuses this.
 class ClidePaneChrome extends StatelessWidget {
-  const ClidePaneChrome({
-    super.key,
-    required this.title,
-    required this.child,
-    this.subtitle,
-    this.leading,
-    this.onClose,
-    this.trailing,
-  });
+  const ClidePaneChrome({super.key, required this.title, required this.child, this.subtitle, this.leading, this.onClose, this.trailing});
 
   /// Primary label in the header — typically the pane kind + an
   /// abbreviated path / session name (`terminal — ~/clide`).
@@ -52,13 +44,7 @@ class ClidePaneChrome extends StatelessWidget {
       color: tokens.panelBackground,
       child: Column(
         children: [
-          _Header(
-            title: title,
-            subtitle: subtitle,
-            leading: leading,
-            onClose: onClose,
-            trailing: trailing,
-          ),
+          _Header(title: title, subtitle: subtitle, leading: leading, onClose: onClose, trailing: trailing),
           const ClideDivider(),
           Expanded(child: child),
         ],
@@ -85,14 +71,8 @@ class _CloseButton extends StatelessWidget {
           width: 20,
           height: 20,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: hovered ? tokens.tabCloseHover : null,
-          ),
-          child: ClideIcon(
-            const CloseIcon(),
-            size: 10,
-            color: tokens.panelHeaderForeground,
-          ),
+          decoration: BoxDecoration(color: hovered ? tokens.tabCloseHover : null),
+          child: ClideIcon(const CloseIcon(), size: 10, color: tokens.panelHeaderForeground),
         ),
       ),
     );
@@ -100,13 +80,7 @@ class _CloseButton extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.title,
-    required this.subtitle,
-    required this.leading,
-    required this.onClose,
-    required this.trailing,
-  });
+  const _Header({required this.title, required this.subtitle, required this.leading, required this.onClose, required this.trailing});
 
   final String title;
   final String? subtitle;
@@ -133,31 +107,12 @@ class _Header extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ClideText(
-                      title,
-                      fontSize: clideFontCaption,
-                      color: tokens.panelHeaderForeground,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (subtitle != null)
-                      ClideText(
-                        subtitle!,
-                        fontSize: clideFontCaption,
-                        muted: true,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    ClideText(title, fontSize: clideFontCaption, color: tokens.panelHeaderForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (subtitle != null) ClideText(subtitle!, fontSize: clideFontCaption, muted: true, maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
-              if (trailing != null)
-                ...trailing!.map(
-                  (w) => Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: w,
-                  ),
-                ),
+              if (trailing != null) ...trailing!.map((w) => Padding(padding: const EdgeInsets.only(left: 6), child: w)),
               if (onClose != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 6),

@@ -15,9 +15,7 @@ class ClideSvgView extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget child;
     if (assetPath != null) {
-      child = ScalableImageWidget.fromSISource(
-        si: ScalableImageSource.fromSvg(rootBundle, assetPath!),
-      );
+      child = ScalableImageWidget.fromSISource(si: ScalableImageSource.fromSvg(rootBundle, assetPath!));
     } else if (svgString != null) {
       final si = ScalableImage.fromSvgString(svgString!);
       child = ScalableImageWidget(si: si);

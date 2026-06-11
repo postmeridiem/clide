@@ -4,11 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('IpcRequest', () {
     test('encodes and decodes round-trip', () {
-      final req = IpcRequest(
-        id: '42',
-        cmd: 'git.status',
-        args: const {'path': '.'},
-      );
+      final req = IpcRequest(id: '42', cmd: 'git.status', args: const {'path': '.'});
       final line = req.encode();
       final decoded = IpcMessage.decode(line);
       expect(decoded, isA<IpcRequest>());
@@ -49,32 +45,18 @@ void main() {
     test('encodes with error payload, no data', () {
       final r = IpcResponse.err(
         id: '9',
-        error: IpcError(
-          code: IpcExitCode.notFound,
-          kind: IpcErrorKind.notFound,
-          message: 'missing',
-          hint: 'try --help',
-        ),
+        error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'missing', hint: 'try --help'),
       );
       final json = r.toJson();
       expect(json['ok'], false);
-      expect(json['error'], {
-        'code': 3,
-        'kind': 'not_found',
-        'message': 'missing',
-        'hint': 'try --help',
-      });
+      expect(json['error'], {'code': 3, 'kind': 'not_found', 'message': 'missing', 'hint': 'try --help'});
       expect(json.containsKey('data'), isFalse);
     });
 
     test('decode preserves error fields', () {
       final original = IpcResponse.err(
         id: '9',
-        error: IpcError(
-          code: IpcExitCode.conflict,
-          kind: IpcErrorKind.conflict,
-          message: 'race',
-        ),
+        error: IpcError(code: IpcExitCode.conflict, kind: IpcErrorKind.conflict, message: 'race'),
       );
       final r = IpcMessage.decode(original.encode()) as IpcResponse;
       expect(r.ok, false);
@@ -89,12 +71,7 @@ void main() {
   group('IpcEvent', () {
     test('serializes subsystem + kind + ts + data', () {
       final ts = DateTime.utc(2026, 4, 21, 12, 0, 0);
-      final e = IpcEvent(
-        subsystem: 'git',
-        kind: 'status-changed',
-        timestamp: ts,
-        data: const {'staged': 3},
-      );
+      final e = IpcEvent(subsystem: 'git', kind: 'status-changed', timestamp: ts, data: const {'staged': 3});
       final json = e.toJson();
       expect(json['type'], 'event');
       expect(json['subsystem'], 'git');
@@ -110,10 +87,7 @@ void main() {
     });
 
     test('throws on unknown type', () {
-      expect(
-        () => IpcMessage.decode('{"type":"bogus","id":"1"}'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => IpcMessage.decode('{"type":"bogus","id":"1"}'), throwsA(isA<FormatException>()));
     });
 
     test('throws on malformed JSON', () {

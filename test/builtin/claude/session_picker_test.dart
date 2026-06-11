@@ -27,16 +27,13 @@ void main() {
     tearDown(() => f.dispose());
 
     List<SessionSummary> two() => [
-          SessionSummary(id: 'aaa', modified: DateTime.now(), firstUser: 'first a', lastUser: 'last a'),
-          SessionSummary(id: 'bbb', modified: DateTime.now(), firstUser: 'first b', lastUser: 'last b'),
-        ];
+      SessionSummary(id: 'aaa', modified: DateTime.now(), firstUser: 'first a', lastUser: 'last a'),
+      SessionSummary(id: 'bbb', modified: DateTime.now(), firstUser: 'first b', lastUser: 'last b'),
+    ];
 
     testWidgets('renders first … last labels and picks with arrow + Enter', (tester) async {
       String? picked;
-      await tester.pumpWidget(harness(
-        f,
-        SessionPickerDialog(sessions: two(), onPick: (id) => picked = id, onCancel: () {}),
-      ));
+      await tester.pumpWidget(harness(f, SessionPickerDialog(sessions: two(), onPick: (id) => picked = id, onCancel: () {})));
       await tester.pump();
       expect(find.text('first a … last a'), findsOneWidget);
       expect(find.text('first b … last b'), findsOneWidget);
@@ -49,10 +46,7 @@ void main() {
 
     testWidgets('Escape cancels', (tester) async {
       var cancelled = false;
-      await tester.pumpWidget(harness(
-        f,
-        SessionPickerDialog(sessions: two(), onPick: (_) {}, onCancel: () => cancelled = true),
-      ));
+      await tester.pumpWidget(harness(f, SessionPickerDialog(sessions: two(), onPick: (_) {}, onCancel: () => cancelled = true)));
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       expect(cancelled, isTrue);
@@ -60,20 +54,14 @@ void main() {
 
     testWidgets('tap picks a row', (tester) async {
       String? picked;
-      await tester.pumpWidget(harness(
-        f,
-        SessionPickerDialog(sessions: two(), onPick: (id) => picked = id, onCancel: () {}),
-      ));
+      await tester.pumpWidget(harness(f, SessionPickerDialog(sessions: two(), onPick: (id) => picked = id, onCancel: () {})));
       await tester.pump();
       await tester.tap(find.text('first b … last b'));
       expect(picked, 'bbb');
     });
 
     testWidgets('empty list shows a message', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        SessionPickerDialog(sessions: const [], onPick: (_) {}, onCancel: () {}),
-      ));
+      await tester.pumpWidget(harness(f, SessionPickerDialog(sessions: const [], onPick: (_) {}, onCancel: () {})));
       await tester.pump();
       expect(find.text('No sessions found for this workspace.'), findsOneWidget);
     });

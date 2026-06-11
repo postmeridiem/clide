@@ -118,11 +118,7 @@ class ClideMarkdown extends StatelessWidget {
       onOpenFile: onOpenFile,
     );
     final widgets = _buildNodes(nodes, tokens, hooks);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: widgets,
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: widgets);
   }
 
   static const _inlineTags = {'strong', 'em', 'code', 'a', 'del', 'br', 'img', 'span'};
@@ -147,19 +143,21 @@ class ClideMarkdown extends StatelessWidget {
           spans.add(_inlineElementSpan(n, tokens, hooks));
         }
       }
-      out.add(Text.rich(
-        TextSpan(
-          style: TextStyle(
-            fontFamily: clideUiFamily,
-            fontFamilyFallback: clideUiFamilyFallback,
-            fontWeight: clideUiDefaultWeight,
-            color: tokens.globalForeground,
-            fontSize: _fontSize,
-            height: _lineHeight,
+      out.add(
+        Text.rich(
+          TextSpan(
+            style: TextStyle(
+              fontFamily: clideUiFamily,
+              fontFamilyFallback: clideUiFamilyFallback,
+              fontWeight: clideUiDefaultWeight,
+              color: tokens.globalForeground,
+              fontSize: _fontSize,
+              height: _lineHeight,
+            ),
+            children: spans,
           ),
-          children: spans,
         ),
-      ));
+      );
       inlineRun.clear();
     }
 
@@ -202,10 +200,7 @@ class ClideMarkdown extends StatelessWidget {
           child: _inlineText(el, tokens, hooks, fontSize: clideFontBody, fontWeight: FontWeight.w600),
         );
       case 'p':
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: _inlineRichText(el, tokens, hooks),
-        );
+        return Padding(padding: const EdgeInsets.only(bottom: 14), child: _inlineRichText(el, tokens, hooks));
       case 'ul':
         return Padding(
           padding: const EdgeInsets.only(left: 2, bottom: 14),
@@ -214,7 +209,7 @@ class ClideMarkdown extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final c in el.children ?? const [])
-                if (c is md.Element) _buildListItem(c, tokens, hooks, ordered: false)
+                if (c is md.Element) _buildListItem(c, tokens, hooks, ordered: false),
             ],
           ),
         );
@@ -234,7 +229,9 @@ class ClideMarkdown extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.only(left: 6),
-          decoration: BoxDecoration(border: Border(left: BorderSide(color: tokens.globalTextMuted, width: 3))),
+          decoration: BoxDecoration(
+            border: Border(left: BorderSide(color: tokens.globalTextMuted, width: 3)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -256,10 +253,7 @@ class ClideMarkdown extends StatelessWidget {
       case 'hr':
         return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: ClideDivider());
       case 'table':
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: _buildTable(el, tokens, hooks),
-        );
+        return Padding(padding: const EdgeInsets.only(bottom: 8), child: _buildTable(el, tokens, hooks));
       default:
         return _inlineRichText(el, tokens, hooks);
     }
@@ -295,16 +289,24 @@ class ClideMarkdown extends StatelessWidget {
         final isHeader = row.tag == 'tr' && (child.tag == 'thead');
         for (final cell in row.children ?? const []) {
           if (cell is! md.Element) continue;
-          cells.add(Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            child: _inlineText(cell, tokens, hooks, fontWeight: isHeader ? FontWeight.w600 : null),
-          ));
+          cells.add(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              child: _inlineText(cell, tokens, hooks, fontWeight: isHeader ? FontWeight.w600 : null),
+            ),
+          );
         }
         if (cells.isNotEmpty) {
-          rows.add(TableRow(
-            decoration: isHeader ? BoxDecoration(border: Border(bottom: BorderSide(color: tokens.dividerColor))) : null,
-            children: cells,
-          ));
+          rows.add(
+            TableRow(
+              decoration: isHeader
+                  ? BoxDecoration(
+                      border: Border(bottom: BorderSide(color: tokens.dividerColor)),
+                    )
+                  : null,
+              children: cells,
+            ),
+          );
         }
       }
     }
@@ -353,7 +355,7 @@ class ClideMarkdown extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w700),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, hooks) else if (c is md.Element) _inlineElementSpan(c, tokens, hooks)
+              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, hooks) else if (c is md.Element) _inlineElementSpan(c, tokens, hooks),
           ],
         );
       case 'em':
@@ -361,7 +363,7 @@ class ClideMarkdown extends StatelessWidget {
           style: const TextStyle(fontStyle: FontStyle.italic),
           children: [
             for (final c in el.children ?? const [])
-              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, hooks) else if (c is md.Element) _inlineElementSpan(c, tokens, hooks)
+              if (c is md.Text) ..._linkifyText(_unescapeHtml(c.text), tokens, hooks) else if (c is md.Element) _inlineElementSpan(c, tokens, hooks),
           ],
         );
       case 'code':
@@ -420,10 +422,12 @@ class ClideMarkdown extends StatelessWidget {
       var last = 0;
       for (final m in _imageTokenPattern.allMatches(text)) {
         if (m.start > last) spans.addAll(_linkifyProse(text.substring(last, m.start), tokens, hooks));
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: hooks.onImageToken!(m.group(1)!)),
-        ));
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: hooks.onImageToken!(m.group(1)!)),
+          ),
+        );
         last = m.end;
       }
       if (last < text.length) spans.addAll(_linkifyProse(text.substring(last), tokens, hooks));
@@ -503,7 +507,7 @@ class ClideMarkdown extends StatelessWidget {
       baseline: TextBaseline.alphabetic,
       child: ClideTappable(
         onTap: () => onRecordTap(id),
-        builder: (_, hovered, __) => Text(
+        builder: (_, hovered, _) => Text(
           id,
           style: TextStyle(
             color: tokens.globalFocus,
@@ -534,7 +538,7 @@ class ClideMarkdown extends StatelessWidget {
       child: ClideTappable(
         onTap: () => onOpenFile(absPath, line),
         tooltip: 'Open in editor',
-        builder: (_, hovered, __) => Text(
+        builder: (_, hovered, _) => Text(
           display,
           style: TextStyle(
             color: tokens.globalFocus,
@@ -560,7 +564,7 @@ class ClideMarkdown extends StatelessWidget {
       child: ClideTappable(
         onTap: () => onLinkTap(href),
         tooltip: href,
-        builder: (_, hovered, __) => Text(
+        builder: (_, hovered, _) => Text(
           text,
           style: TextStyle(
             color: tokens.globalFocus,

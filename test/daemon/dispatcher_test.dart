@@ -122,7 +122,10 @@ void main() {
       d.register(
         'git.checkout',
         (req) async => IpcResponse.ok(id: req.id, data: const {}),
-        schema: CommandSchema(positional: const ['ref'], args: {'ref': ArgSpec(pattern: RegExp(r'^\w+$'))}),
+        schema: CommandSchema(
+          positional: const ['ref'],
+          args: {'ref': ArgSpec(pattern: RegExp(r'^\w+$'))},
+        ),
       );
 
       final tools = d.mcpTools();

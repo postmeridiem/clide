@@ -10,13 +10,7 @@ import 'package:clide/kernel/src/log.dart';
 import 'package:flutter/foundation.dart';
 
 class DaemonClient extends ChangeNotifier {
-  DaemonClient({
-    required String socketPath,
-    required Logger log,
-    required DaemonBus events,
-  })  : _socketPath = socketPath,
-        _log = log,
-        _events = events;
+  DaemonClient({required String socketPath, required Logger log, required DaemonBus events}) : _socketPath = socketPath, _log = log, _events = events;
 
   String _socketPath;
   String get socketPath => _socketPath;
@@ -85,10 +79,7 @@ class DaemonClient extends ChangeNotifier {
     await _connect();
   }
 
-  Future<IpcResponse> request(
-    String cmd, {
-    Map<String, Object?> args = const {},
-  }) async {
+  Future<IpcResponse> request(String cmd, {Map<String, Object?> args = const {}}) async {
     if (!_connected || _socket == null) {
       // A connection attempt is in flight (startup or reconnect) — wait
       // for it rather than failing instantly, so queries issued during
@@ -100,11 +91,7 @@ class DaemonClient extends ChangeNotifier {
       if (!_connected || _socket == null) {
         return IpcResponse.err(
           id: '',
-          error: IpcError(
-            code: IpcExitCode.toolError,
-            kind: IpcErrorKind.toolError,
-            message: 'daemon not connected',
-          ),
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'daemon not connected'),
         );
       }
     }
@@ -150,15 +137,19 @@ class DaemonClient extends ChangeNotifier {
       _backoff = const Duration(milliseconds: 200);
       _setConnected(true);
       _log.info('ipc', 'connected to $_socketPath');
-      socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).listen(
-        _handleLine,
-        onDone: _handleDisconnect,
-        onError: (Object e) {
-          _log.warn('ipc', 'socket error', error: e);
-          _handleDisconnect();
-        },
-        cancelOnError: true,
-      );
+      socket
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen(
+            _handleLine,
+            onDone: _handleDisconnect,
+            onError: (Object e) {
+              _log.warn('ipc', 'socket error', error: e);
+              _handleDisconnect();
+            },
+            cancelOnError: true,
+          );
     } catch (e) {
       _log.debug('ipc', 'connect failed ($e); retry in ${_backoff.inMilliseconds}ms');
       _scheduleReconnect();
@@ -174,12 +165,7 @@ class DaemonClient extends ChangeNotifier {
           final c = _pending.remove(r.id);
           if (c != null && !c.isCompleted) c.complete(r);
         case IpcEvent e:
-          _events.emit(DaemonEvent(
-            subsystem: e.subsystem,
-            kind: e.kind,
-            data: e.data,
-            ts: e.timestamp,
-          ));
+          _events.emit(DaemonEvent(subsystem: e.subsystem, kind: e.kind, data: e.data, ts: e.timestamp));
         case IpcRequest _:
           _log.warn('ipc', 'daemon sent a request — unexpected');
       }
@@ -196,11 +182,7 @@ class DaemonClient extends ChangeNotifier {
   }
 
   void _failPending(String reason) {
-    final err = IpcError(
-      code: IpcExitCode.toolError,
-      kind: IpcErrorKind.toolError,
-      message: reason,
-    );
+    final err = IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: reason);
     for (final entry in _pending.entries) {
       if (!entry.value.isCompleted) {
         entry.value.complete(IpcResponse.err(id: entry.key, error: err));
@@ -213,9 +195,7 @@ class DaemonClient extends ChangeNotifier {
     if (_disposed) return;
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(_backoff, _connect);
-    _backoff = Duration(
-      milliseconds: math.min(_backoff.inMilliseconds * 2, 5000),
-    );
+    _backoff = Duration(milliseconds: math.min(_backoff.inMilliseconds * 2, 5000));
   }
 
   void _setConnected(bool v) {

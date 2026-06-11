@@ -17,22 +17,26 @@ void main() {
   tearDown(() async => f.dispose());
 
   Widget host(Widget child) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: ClideKernel(
-          services: f.services,
-          child: ClideTheme(
-            controller: f.services.theme,
-            child: Align(alignment: Alignment.topLeft, child: child),
-          ),
-        ),
-      );
+    textDirection: TextDirection.ltr,
+    child: ClideKernel(
+      services: f.services,
+      child: ClideTheme(
+        controller: f.services.theme,
+        child: Align(alignment: Alignment.topLeft, child: child),
+      ),
+    ),
+  );
 
   testWidgets('renders the message and calls onDismiss when the × is tapped', (tester) async {
     var dismissed = false;
-    await tester.pumpWidget(host(ClideToast(
-      entry: const ToastEntry(id: 1, message: 'Pushed to origin/main', severity: ToastSeverity.success),
-      onDismiss: () => dismissed = true,
-    )));
+    await tester.pumpWidget(
+      host(
+        ClideToast(
+          entry: const ToastEntry(id: 1, message: 'Pushed to origin/main', severity: ToastSeverity.success),
+          onDismiss: () => dismissed = true,
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 300)); // settle entrance
 
     expect(find.text('Pushed to origin/main'), findsOneWidget);
@@ -43,26 +47,23 @@ void main() {
   });
 
   testWidgets('exposes the message as a live region (a11y)', (tester) async {
-    await tester.pumpWidget(host(ClideToast(
-      entry: const ToastEntry(id: 1, message: 'Heads up', severity: ToastSeverity.warning),
-      onDismiss: () {},
-    )));
+    await tester.pumpWidget(
+      host(
+        ClideToast(
+          entry: const ToastEntry(id: 1, message: 'Heads up', severity: ToastSeverity.warning),
+          onDismiss: () {},
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 300));
 
     // The message is wrapped in a live-region Semantics so screen readers
     // announce it when it appears.
-    expect(
-      find.byWidgetPredicate((w) => w is Semantics && w.properties.liveRegion == true && w.properties.label == 'Heads up'),
-      findsOneWidget,
-    );
+    expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.liveRegion == true && w.properties.label == 'Heads up'), findsOneWidget);
   });
 
   testWidgets('overlay renders a card per queued toast and dismiss removes one', (tester) async {
-    await tester.pumpWidget(host(const SizedBox(
-      width: 800,
-      height: 600,
-      child: Stack(children: [ToastOverlay()]),
-    )));
+    await tester.pumpWidget(host(const SizedBox(width: 800, height: 600, child: Stack(children: [ToastOverlay()]))));
     await tester.pump();
     expect(find.byType(ClideToast), findsNothing);
 

@@ -81,14 +81,8 @@ class BufferRangeBlock extends BufferRange {
     // Otherwise normalize the block and push the borders outside up to
     // the position to which the block has to extended.
     final normal = normalized;
-    final extendBegin = CellOffset(
-      min(normal.begin.x, position.x),
-      min(normal.begin.y, position.y),
-    );
-    final extendEnd = CellOffset(
-      max(normal.end.x, position.x),
-      max(normal.end.y, position.y),
-    );
+    final extendBegin = CellOffset(min(normal.begin.x, position.x), min(normal.begin.y, position.y));
+    final extendEnd = CellOffset(max(normal.end.x, position.x), max(normal.end.y, position.y));
     return BufferRangeBlock(extendBegin, extendEnd);
   }
 

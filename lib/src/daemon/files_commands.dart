@@ -28,12 +28,7 @@ const int _filesReadMaxBytes = 10 * 1024 * 1024;
 /// Daemon-side state for the `files` subsystem. Holds one
 /// [FileWatcher] rooted at the workspace and a resolved [IgnoreSet].
 class FilesService {
-  FilesService({
-    required this.root,
-    required this.events,
-    IgnoreSet? ignore,
-    this.extraReadRoots = const [],
-  }) : ignore = ignore ?? _defaultIgnore(root);
+  FilesService({required this.root, required this.events, IgnoreSet? ignore, this.extraReadRoots = const []}) : ignore = ignore ?? _defaultIgnore(root);
 
   /// Build from the current working directory, walking up to the git
   /// root if present. Falls back to CWD otherwise.
@@ -58,12 +53,7 @@ class FilesService {
     _watcher = w;
     await w.start();
     w.stream.listen((change) {
-      events.emit(IpcEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        timestamp: DateTime.now().toUtc(),
-        data: change.toJson(),
-      ));
+      events.emit(IpcEvent(subsystem: 'files', kind: 'files.changed', timestamp: DateTime.now().toUtc(), data: change.toJson()));
     });
   }
 
@@ -74,20 +64,15 @@ class FilesService {
 }
 
 void registerFilesCommands(DaemonDispatcher d, FilesService files) {
-  d.register(
-      'files.root',
-      (req) async => IpcResponse.ok(
-            id: req.id,
-            data: {
-              'path': files.root.absolute.path,
-              'ignorePatterns': files.ignore.length,
-            },
-          ));
+  d.register('files.root', (req) async => IpcResponse.ok(id: req.id, data: {'path': files.root.absolute.path, 'ignorePatterns': files.ignore.length}));
 
   d.register('files.read', (req) async {
     final path = req.args['path'] as String?;
     if (path == null || path.isEmpty) {
-      return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.read requires a path'));
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'files.read requires a path'),
+      );
     }
     final String absPath;
     try {
@@ -96,11 +81,17 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
       // the trusted extra read roots (Claude config dirs, D-80).
       absPath = resolveUnderRootsFollowingSymlinks(files.root, files.extraReadRoots, path);
     } on PathOutsideRoot {
-      return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'));
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $path'),
+      );
     }
     final file = File(absPath);
     if (!file.existsSync()) {
-      return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file not found: $path'));
+      return IpcResponse.err(
+        id: req.id,
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file not found: $path'),
+      );
     }
     // Cap response size so a single IPC call can't OOM the UI on a
     // multi-gigabyte log file. Caller can paginate / stream via a
@@ -109,11 +100,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
     if (length > _filesReadMaxBytes) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.toolError,
-          kind: IpcErrorKind.toolError,
-          message: 'file too large: $path ($length bytes; cap $_filesReadMaxBytes)',
-        ),
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'file too large: $path ($length bytes; cap $_filesReadMaxBytes)'),
       );
     }
     final content = file.readAsStringSync();
@@ -126,14 +113,13 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
       try {
         resolveUnderRootFollowingSymlinks(files.root, dir);
       } on PathOutsideRoot {
-        return IpcResponse.err(id: req.id, error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $dir'));
+        return IpcResponse.err(
+          id: req.id,
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'path outside workspace: $dir'),
+        );
       }
     }
-    final entries = await listDir(
-      root: files.root,
-      dir: dir,
-      ignore: files.ignore,
-    );
+    final entries = await listDir(root: files.root, dir: dir, ignore: files.ignore);
     return IpcResponse.ok(
       id: req.id,
       data: {
@@ -156,10 +142,7 @@ void registerFilesCommands(DaemonDispatcher d, FilesService files) {
 
   d.register('files.watch', (req) async {
     await files.startWatching();
-    return IpcResponse.ok(
-      id: req.id,
-      data: const {'subscribed': true},
-    );
+    return IpcResponse.ok(id: req.id, data: const {'subscribed': true});
   });
 }
 
@@ -192,8 +175,5 @@ IgnoreSet _defaultIgnore(Directory root) {
   // Merge: built-in patterns first, user patterns last. "Last match
   // wins" semantics give the user the ability to un-ignore via `!`
   // in a future extension of the matcher.
-  return IgnoreSet([
-    ...IgnoreSet.builtin().patterns,
-    ...user.patterns,
-  ]);
+  return IgnoreSet([...IgnoreSet.builtin().patterns, ...user.patterns]);
 }

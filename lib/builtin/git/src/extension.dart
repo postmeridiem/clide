@@ -16,20 +16,16 @@ class GitExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'git.panel',
-          slot: Slots.sidebar,
-          title: 'Git',
-          icon: PhosphorIcons.byName('git-branch'),
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: -80,
-          build: (_) => const GitPanelView(),
-        ),
-        StatusItemContribution(
-          id: 'git.branch',
-          priority: 10,
-          build: (_) => const GitStatusItem(),
-        ),
-      ];
+    TabContribution(
+      id: 'git.panel',
+      slot: Slots.sidebar,
+      title: 'Git',
+      icon: PhosphorIcons.byName('git-branch'),
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: -80,
+      build: (_) => const GitPanelView(),
+    ),
+    StatusItemContribution(id: 'git.branch', priority: 10, build: (_) => const GitStatusItem()),
+  ];
 }

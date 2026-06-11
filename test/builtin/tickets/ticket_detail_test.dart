@@ -16,16 +16,19 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart';
 
-IpcResponse _ticket(String id) => IpcResponse.ok(id: '', data: {
-      'id': id,
-      'title': 'Ticket $id',
-      'type': 'task',
-      'status': 'backlog',
-      'priority': 'medium',
-      'description': 'Body of $id',
-      'ancestors': <Object?>[],
-      'decisions': <Object?>[],
-    });
+IpcResponse _ticket(String id) => IpcResponse.ok(
+  id: '',
+  data: {
+    'id': id,
+    'title': 'Ticket $id',
+    'type': 'task',
+    'status': 'backlog',
+    'priority': 'medium',
+    'description': 'Body of $id',
+    'ancestors': <Object?>[],
+    'decisions': <Object?>[],
+  },
+);
 
 void main() {
   group('TicketDetailController — loads on load (T-199)', () {
@@ -61,11 +64,13 @@ void main() {
     setUp(() async {
       f = await KernelFixture.create();
       f.services.panels.registerSlot(const SlotDefinition(id: Slots.contextPanel, position: SlotPosition.right));
-      f.services.arrangement.applyPreset(const LayoutPresetContribution(
-        id: 'test',
-        displayName: 'test',
-        slots: [LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, visible: false)],
-      ));
+      f.services.arrangement.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test',
+          displayName: 'test',
+          slots: [LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, visible: false)],
+        ),
+      );
       f.services.extensions.register(TicketsExtension());
       await f.services.extensions.activate('builtin.tickets');
     });
@@ -131,22 +136,26 @@ void main() {
     testWidgets('renders parents, decisions, assignee, and applies a status change', (tester) async {
       Map<String, Object?>? statusArgs;
       f.ipc.stub(
-          'pql.tickets.show',
-          (args) async => IpcResponse.ok(id: '', data: {
-                'id': 'T-1',
-                'title': 'Rich ticket',
-                'type': 'task',
-                'status': 'backlog',
-                'priority': 'high',
-                'assigned_to': 'alice',
-                'description': 'body',
-                'ancestors': [
-                  {'id': 'T-9', 'title': 'Parent epic', 'type': 'epic'},
-                ],
-                'decisions': [
-                  {'id': 'D-1', 'title': 'Decision one', 'type': 'confirmed', 'domain': 'architecture'},
-                ],
-              }));
+        'pql.tickets.show',
+        (args) async => IpcResponse.ok(
+          id: '',
+          data: {
+            'id': 'T-1',
+            'title': 'Rich ticket',
+            'type': 'task',
+            'status': 'backlog',
+            'priority': 'high',
+            'assigned_to': 'alice',
+            'description': 'body',
+            'ancestors': [
+              {'id': 'T-9', 'title': 'Parent epic', 'type': 'epic'},
+            ],
+            'decisions': [
+              {'id': 'D-1', 'title': 'Decision one', 'type': 'confirmed', 'domain': 'architecture'},
+            ],
+          },
+        ),
+      );
       f.ipc.stub('pql.tickets.status', (args) async {
         statusArgs = args;
         return IpcResponse.ok(id: '', data: const {});

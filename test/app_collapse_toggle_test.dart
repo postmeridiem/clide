@@ -16,18 +16,21 @@ import 'helpers/kernel_fixture.dart';
 Finder _icon(PhosphorIconPainter p) => find.byWidgetPredicate((w) => w is ClideIcon && w.painter == p);
 
 Widget _host(KernelFixture f, Widget child) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: ClideKernel(
-        services: f.services,
-        child: ClideTheme(
-          controller: f.services.theme,
-          child: MediaQuery(
-            data: const MediaQueryData(size: Size(800, 200)),
-            child: Align(alignment: Alignment.topLeft, child: SizedBox(height: 26, child: child)),
-          ),
+  textDirection: TextDirection.ltr,
+  child: ClideKernel(
+    services: f.services,
+    child: ClideTheme(
+      controller: f.services.theme,
+      child: MediaQuery(
+        data: const MediaQueryData(size: Size(800, 200)),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(height: 26, child: child),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   late KernelFixture f;
@@ -54,13 +57,17 @@ void main() {
   testWidgets('the chevron flips live when the collapsed state changes', (tester) async {
     var collapsed = false;
     late StateSetter setOuter;
-    await tester.pumpWidget(_host(
-      f,
-      StatefulBuilder(builder: (ctx, setState) {
-        setOuter = setState;
-        return StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: collapsed, visible: true);
-      }),
-    ));
+    await tester.pumpWidget(
+      _host(
+        f,
+        StatefulBuilder(
+          builder: (ctx, setState) {
+            setOuter = setState;
+            return StatusbarCollapseToggle(slot: Slots.sidebar, collapsed: collapsed, visible: true);
+          },
+        ),
+      ),
+    );
     await tester.pump();
     expect(_icon(PhosphorIcons.byName('caret-line-left')), findsOneWidget);
 
@@ -78,11 +85,13 @@ void main() {
   });
 
   testWidgets('tapping fires the matching collapse command', (tester) async {
-    f.services.arrangement.applyPreset(const LayoutPresetContribution(
-      id: 'test',
-      displayName: 'test',
-      slots: [LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, visible: true)],
-    ));
+    f.services.arrangement.applyPreset(
+      const LayoutPresetContribution(
+        id: 'test',
+        displayName: 'test',
+        slots: [LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, visible: true)],
+      ),
+    );
     f.services.extensions.register(DefaultLayoutExtension());
     await f.services.extensions.activate('builtin.default-layout');
 

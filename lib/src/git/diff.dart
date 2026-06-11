@@ -12,12 +12,7 @@ import 'operations.dart' show gitBin;
 enum DiffLineKind { context, addition, removal, header }
 
 class DiffLine {
-  const DiffLine({
-    required this.kind,
-    required this.text,
-    this.oldLineNo,
-    this.newLineNo,
-  });
+  const DiffLine({required this.kind, required this.text, this.oldLineNo, this.newLineNo});
 
   final DiffLineKind kind;
   final String text;
@@ -25,22 +20,15 @@ class DiffLine {
   final int? newLineNo;
 
   Map<String, Object?> toJson() => {
-        'kind': kind.name,
-        'text': text,
-        if (oldLineNo != null) 'oldLineNo': oldLineNo,
-        if (newLineNo != null) 'newLineNo': newLineNo,
-      };
+    'kind': kind.name,
+    'text': text,
+    if (oldLineNo != null) 'oldLineNo': oldLineNo,
+    if (newLineNo != null) 'newLineNo': newLineNo,
+  };
 }
 
 class GitHunk {
-  const GitHunk({
-    required this.header,
-    required this.oldStart,
-    required this.oldCount,
-    required this.newStart,
-    required this.newCount,
-    required this.lines,
-  });
+  const GitHunk({required this.header, required this.oldStart, required this.oldCount, required this.newStart, required this.newCount, required this.lines});
 
   final String header;
   final int oldStart;
@@ -70,15 +58,15 @@ class GitHunk {
   }
 
   Map<String, Object?> toJson() => {
-        'header': header,
-        'oldStart': oldStart,
-        'oldCount': oldCount,
-        'newStart': newStart,
-        'newCount': newCount,
-        'additions': additions,
-        'removals': removals,
-        'lines': [for (final l in lines) l.toJson()],
-      };
+    'header': header,
+    'oldStart': oldStart,
+    'oldCount': oldCount,
+    'newStart': newStart,
+    'newCount': newCount,
+    'additions': additions,
+    'removals': removals,
+    'lines': [for (final l in lines) l.toJson()],
+  };
 }
 
 class GitDiff {
@@ -104,37 +92,29 @@ class GitDiff {
   int get removals => hunks.fold(0, (s, h) => s + h.removals);
 
   Map<String, Object?> toJson() => {
-        'path': path,
-        if (oldPath != null) 'oldPath': oldPath,
-        'binary': isBinary,
-        'new': isNew,
-        'deleted': isDeleted,
-        'renamed': isRenamed,
-        'additions': additions,
-        'removals': removals,
-        'hunks': [for (final h in hunks) h.toJson()],
-      };
+    'path': path,
+    if (oldPath != null) 'oldPath': oldPath,
+    'binary': isBinary,
+    'new': isNew,
+    'deleted': isDeleted,
+    'renamed': isRenamed,
+    'additions': additions,
+    'removals': removals,
+    'hunks': [for (final h in hunks) h.toJson()],
+  };
 }
 
 /// Run `git diff` and parse the result.
 ///
 /// [staged] controls `--cached`. [paths] narrows to specific files.
-Future<List<GitDiff>> gitDiff(
-  Directory workDir, {
-  bool staged = false,
-  List<String> paths = const [],
-}) async {
+Future<List<GitDiff>> gitDiff(Directory workDir, {bool staged = false, List<String> paths = const []}) async {
   final args = ['diff', '--unified=3'];
   if (staged) args.add('--cached');
   if (paths.isNotEmpty) {
     args.add('--');
     args.addAll(paths);
   }
-  final result = await Process.run(
-    gitBin,
-    args,
-    workingDirectory: workDir.path,
-  );
+  final result = await Process.run(gitBin, args, workingDirectory: workDir.path);
   if (result.exitCode != 0) return const [];
   return parseDiffOutput(result.stdout as String);
 }
@@ -210,15 +190,9 @@ List<GitDiff> parseDiffOutput(String output) {
       }
     }
 
-    diffs.add(GitDiff(
-      path: path,
-      oldPath: isRenamed ? oldPath : null,
-      hunks: hunks,
-      isBinary: isBinary,
-      isNew: isNew,
-      isDeleted: isDeleted,
-      isRenamed: isRenamed,
-    ));
+    diffs.add(
+      GitDiff(path: path, oldPath: isRenamed ? oldPath : null, hunks: hunks, isBinary: isBinary, isNew: isNew, isDeleted: isDeleted, isRenamed: isRenamed),
+    );
   }
   return diffs;
 }
@@ -251,48 +225,22 @@ _HunkParseResult? _parseHunk(List<String> lines, int start) {
     if (line.startsWith('diff --git ') || line.startsWith('@@')) break;
 
     if (line.startsWith('+')) {
-      hunkLines.add(DiffLine(
-        kind: DiffLineKind.addition,
-        text: line.substring(1),
-        newLineNo: newLine,
-      ));
+      hunkLines.add(DiffLine(kind: DiffLineKind.addition, text: line.substring(1), newLineNo: newLine));
       newLine++;
     } else if (line.startsWith('-')) {
-      hunkLines.add(DiffLine(
-        kind: DiffLineKind.removal,
-        text: line.substring(1),
-        oldLineNo: oldLine,
-      ));
+      hunkLines.add(DiffLine(kind: DiffLineKind.removal, text: line.substring(1), oldLineNo: oldLine));
       oldLine++;
     } else if (line.startsWith(' ')) {
-      hunkLines.add(DiffLine(
-        kind: DiffLineKind.context,
-        text: line.substring(1),
-        oldLineNo: oldLine,
-        newLineNo: newLine,
-      ));
+      hunkLines.add(DiffLine(kind: DiffLineKind.context, text: line.substring(1), oldLineNo: oldLine, newLineNo: newLine));
       oldLine++;
       newLine++;
     } else if (line == r'\ No newline at end of file') {
-      hunkLines.add(DiffLine(
-        kind: DiffLineKind.header,
-        text: line,
-      ));
+      hunkLines.add(DiffLine(kind: DiffLineKind.header, text: line));
     } else {
       break;
     }
     i++;
   }
 
-  return _HunkParseResult(
-    GitHunk(
-      header: header,
-      oldStart: oldStart,
-      oldCount: oldCount,
-      newStart: newStart,
-      newCount: newCount,
-      lines: hunkLines,
-    ),
-    i,
-  );
+  return _HunkParseResult(GitHunk(header: header, oldStart: oldStart, oldCount: oldCount, newStart: newStart, newCount: newCount, lines: hunkLines), i);
 }

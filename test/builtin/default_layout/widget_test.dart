@@ -40,10 +40,7 @@ void main() {
 
     test('declares a layout preset contribution', () {
       final ext = DefaultLayoutExtension();
-      expect(
-        ext.contributions.whereType<LayoutPresetContribution>(),
-        hasLength(1),
-      );
+      expect(ext.contributions.whereType<LayoutPresetContribution>(), hasLength(1));
     });
 
     test('all commands return not-activated errors before activate', () async {

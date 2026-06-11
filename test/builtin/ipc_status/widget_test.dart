@@ -39,12 +39,7 @@ void main() {
     });
 
     testWidgets('all-tools-resolved shows a single "application ok" chip', (tester) async {
-      f.services.toolchain.applyResolved(const ResolvedPaths(
-        git: '/usr/bin/git',
-        pql: '/usr/bin/pql',
-        tmux: '/usr/bin/tmux',
-        shell: '/bin/bash',
-      ));
+      f.services.toolchain.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', tmux: '/usr/bin/tmux', shell: '/bin/bash'));
       await tester.pumpWidget(harness(f, const ToolStatusItem()));
       await tester.pumpAndSettle();
       expect(find.text('application ok'), findsOneWidget);
@@ -52,10 +47,7 @@ void main() {
 
     testWidgets('missing tools render a warning chip per missing tool', (tester) async {
       // git + tmux missing, pql resolved.
-      f.services.toolchain.applyResolved(const ResolvedPaths(
-        pql: '/usr/bin/pql',
-        shell: '/bin/bash',
-      ));
+      f.services.toolchain.applyResolved(const ResolvedPaths(pql: '/usr/bin/pql', shell: '/bin/bash'));
       await tester.pumpWidget(harness(f, const ToolStatusItem()));
       await tester.pumpAndSettle();
       expect(find.text('git not found'), findsOneWidget);
@@ -69,13 +61,17 @@ void main() {
       final item = f.services.panels.contributionsFor(Slots.statusbar).whereType<StatusItemContribution>().first;
       // Pump a Builder so we have a real BuildContext to hand to .build.
       late Widget produced;
-      await tester.pumpWidget(harness(
-        f,
-        Builder(builder: (ctx) {
-          produced = item.build(ctx);
-          return const SizedBox.shrink();
-        }),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          Builder(
+            builder: (ctx) {
+              produced = item.build(ctx);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
       expect(produced, isA<ToolStatusItem>());
     });
   });

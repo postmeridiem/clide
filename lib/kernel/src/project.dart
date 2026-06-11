@@ -9,13 +9,7 @@ import 'package:clide/kernel/src/toolchain.dart';
 import 'package:flutter/foundation.dart';
 
 class RecentProject {
-  const RecentProject({
-    required this.path,
-    required this.name,
-    this.branch,
-    required this.lastOpened,
-    this.startupSticky = false,
-  });
+  const RecentProject({required this.path, required this.name, this.branch, required this.lastOpened, this.startupSticky = false});
 
   final String path;
   final String name;
@@ -28,28 +22,28 @@ class RecentProject {
   final bool startupSticky;
 
   RecentProject copyWith({bool? startupSticky, DateTime? lastOpened, String? branch}) => RecentProject(
-        path: path,
-        name: name,
-        branch: branch ?? this.branch,
-        lastOpened: lastOpened ?? this.lastOpened,
-        startupSticky: startupSticky ?? this.startupSticky,
-      );
+    path: path,
+    name: name,
+    branch: branch ?? this.branch,
+    lastOpened: lastOpened ?? this.lastOpened,
+    startupSticky: startupSticky ?? this.startupSticky,
+  );
 
   Map<String, dynamic> toJson() => {
-        'path': path,
-        'name': name,
-        'branch': branch,
-        'lastOpened': lastOpened.toIso8601String(),
-        if (startupSticky) 'startupSticky': true,
-      };
+    'path': path,
+    'name': name,
+    'branch': branch,
+    'lastOpened': lastOpened.toIso8601String(),
+    if (startupSticky) 'startupSticky': true,
+  };
 
   factory RecentProject.fromJson(Map<String, dynamic> json) => RecentProject(
-        path: json['path'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        branch: json['branch'] as String?,
-        lastOpened: DateTime.tryParse(json['lastOpened'] as String? ?? '') ?? DateTime.now(),
-        startupSticky: json['startupSticky'] as bool? ?? false,
-      );
+    path: json['path'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    branch: json['branch'] as String?,
+    lastOpened: DateTime.tryParse(json['lastOpened'] as String? ?? '') ?? DateTime.now(),
+    startupSticky: json['startupSticky'] as bool? ?? false,
+  );
 
   String get relativePath {
     final home = Platform.environment['HOME'] ?? '';
@@ -77,12 +71,12 @@ class ProjectManager extends ChangeNotifier {
     required Toolchain toolchain,
     Future<void> Function(String path)? onProjectOpen,
     Future<String?> Function(String path)? onValidateProject,
-  })  : _log = log,
-        _events = events,
-        _settings = settings,
-        _toolchain = toolchain,
-        _onProjectOpen = onProjectOpen,
-        _onValidateProject = onValidateProject;
+  }) : _log = log,
+       _events = events,
+       _settings = settings,
+       _toolchain = toolchain,
+       _onProjectOpen = onProjectOpen,
+       _onValidateProject = onValidateProject;
 
   final Logger _log;
   final DaemonBus _events;
@@ -137,10 +131,7 @@ class ProjectManager extends ChangeNotifier {
     // project (T-115).
     final wasSticky = isStickyStartup(root);
     _recents.removeWhere((r) => r.path == root);
-    _recents.insert(
-      0,
-      RecentProject(path: root, name: name, branch: branch, lastOpened: DateTime.now(), startupSticky: wasSticky),
-    );
+    _recents.insert(0, RecentProject(path: root, name: name, branch: branch, lastOpened: DateTime.now(), startupSticky: wasSticky));
     if (_recents.length > 10) _recents = _recents.sublist(0, 10);
     await _settings.set<String>('app.recentProjects', jsonEncode(_recents.map((r) => r.toJson()).toList()));
 

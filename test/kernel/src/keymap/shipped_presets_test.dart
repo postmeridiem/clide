@@ -45,9 +45,7 @@ void main() {
   });
 
   test('default.yaml binds Tab / Shift+Tab to focus traversal', () {
-    final layer = KeymapLayer.fromYaml(
-      File('assets/keymaps/default.yaml').readAsStringSync(),
-    );
+    final layer = KeymapLayer.fromYaml(File('assets/keymaps/default.yaml').readAsStringSync());
     expect(layer.bindings.any((b) => b.intent is NextFocusIntent), isTrue);
     expect(layer.bindings.any((b) => b.intent is PreviousFocusIntent), isTrue);
   });

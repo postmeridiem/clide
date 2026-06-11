@@ -17,10 +17,7 @@ void main() {
     late _FakeResizer resizer;
 
     setUp(() {
-      resizer = _FakeResizer(
-        slots: {'sidebar': 200, 'context': 240, 'workspace': 800},
-        editorRatio: 0.35,
-      );
+      resizer = _FakeResizer(slots: {'sidebar': 200, 'context': 240, 'workspace': 800}, editorRatio: 0.35);
       dispatcher = DaemonDispatcher();
       registerPanelCommands(dispatcher, resizer);
     });

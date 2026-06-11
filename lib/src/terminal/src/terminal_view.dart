@@ -181,9 +181,7 @@ class TerminalViewState extends State<TerminalView> {
   void initState() {
     _focusNode = widget.focusNode ?? FocusNode();
     _controller = widget.controller ?? TerminalController();
-    _shortcutManager = ShortcutManager(
-      shortcuts: widget.shortcuts ?? defaultTerminalShortcuts,
-    );
+    _shortcutManager = ShortcutManager(shortcuts: widget.shortcuts ?? defaultTerminalShortcuts);
     super.initState();
   }
 
@@ -268,11 +266,7 @@ class TerminalViewState extends State<TerminalView> {
       );
     }
 
-    child = TerminalActions(
-      terminal: widget.terminal,
-      controller: _controller,
-      child: child,
-    );
+    child = TerminalActions(terminal: widget.terminal, controller: _controller, child: child);
 
     child = TerminalGestureHandler(
       terminalView: this,
@@ -285,10 +279,7 @@ class TerminalViewState extends State<TerminalView> {
       child: child,
     );
 
-    child = MouseRegion(
-      cursor: widget.mouseCursor,
-      child: child,
-    );
+    child = MouseRegion(cursor: widget.mouseCursor, child: child);
 
     child = Container(
       color: widget.theme.background.withValues(alpha: widget.backgroundOpacity),
@@ -296,10 +287,7 @@ class TerminalViewState extends State<TerminalView> {
       child: child,
     );
 
-    return Listener(
-      onPointerSignal: _onPointerSignal,
-      child: child,
-    );
+    return Listener(onPointerSignal: _onPointerSignal, child: child);
   }
 
   void requestKeyboard() {
@@ -380,10 +368,7 @@ class TerminalViewState extends State<TerminalView> {
     // ancestor. Wrapping in a Shortcuts widget would invert that.
     // T-107 approved leaving this suppression with an inline reason.
     // ignore: invalid_use_of_protected_member
-    final shortcutResult = _shortcutManager.handleKeypress(
-      focusNode.context!,
-      event,
-    );
+    final shortcutResult = _shortcutManager.handleKeypress(focusNode.context!, event);
 
     if (shortcutResult != KeyEventResult.ignored) {
       return shortcutResult;

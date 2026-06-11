@@ -19,21 +19,23 @@ void main() {
       var picked = '';
       List<String> sugg = ['alice', 'bob'];
       late StateSetter setOuter;
-      await tester.pumpWidget(anchoredHarness(
-        f,
-        StatefulBuilder(
-          builder: (ctx, setState) {
-            setOuter = setState;
-            return ClideTypeahead(
-              suggestions: sugg,
-              onSelect: (v) => picked = v,
-              formatLabel: (n) => '@$n',
-              child: const SizedBox(width: 200, height: 24, child: ClideText('field')),
-            );
-          },
+      await tester.pumpWidget(
+        anchoredHarness(
+          f,
+          StatefulBuilder(
+            builder: (ctx, setState) {
+              setOuter = setState;
+              return ClideTypeahead(
+                suggestions: sugg,
+                onSelect: (v) => picked = v,
+                formatLabel: (n) => '@$n',
+                child: const SizedBox(width: 200, height: 24, child: ClideText('field')),
+              );
+            },
+          ),
+          alignment: Alignment.topLeft,
         ),
-        alignment: Alignment.topLeft,
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('@alice'), findsOneWidget);
       expect(find.text('@bob'), findsOneWidget);

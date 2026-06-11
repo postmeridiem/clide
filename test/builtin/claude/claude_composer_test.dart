@@ -21,10 +21,7 @@ void main() {
     });
 
     test('multi-line input is wrapped in bracketed-paste markers', () {
-      expect(
-        encodeClaudeInput('line one\nline two'),
-        '\x1b[200~line one\nline two\x1b[201~\r',
-      );
+      expect(encodeClaudeInput('line one\nline two'), '\x1b[200~line one\nline two\x1b[201~\r');
     });
   });
 
@@ -35,10 +32,7 @@ void main() {
 
     Future<List<String>> pump(WidgetTester tester, {bool enabled = true}) async {
       final submitted = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(enabled: enabled, onSubmit: submitted.add),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(enabled: enabled, onSubmit: submitted.add)));
       return submitted;
     }
 
@@ -96,15 +90,17 @@ void main() {
       // WidgetsApp provides DefaultTextEditingShortcuts in the real app;
       // the bare harness doesn't, so wrap explicitly to map Ctrl+V ->
       // PasteTextIntent, which the composer's Actions override intercepts.
-      await tester.pumpWidget(harness(
-        f,
-        DefaultTextEditingShortcuts(
-          child: ClaudeComposer(
-            onSubmit: (_) {},
-            pasteResolver: () async => const [ComposerAttachment(path: '/tmp/notes.txt', isImage: false)],
+      await tester.pumpWidget(
+        harness(
+          f,
+          DefaultTextEditingShortcuts(
+            child: ClaudeComposer(
+              onSubmit: (_) {},
+              pasteResolver: () async => const [ComposerAttachment(path: '/tmp/notes.txt', isImage: false)],
+            ),
           ),
         ),
-      ));
+      );
       await pasteAttachment(tester);
 
       expect(find.text('notes.txt'), findsOneWidget);
@@ -113,15 +109,17 @@ void main() {
 
     testWidgets('submit appends attachment @path tokens to the message', (tester) async {
       final submitted = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        DefaultTextEditingShortcuts(
-          child: ClaudeComposer(
-            onSubmit: submitted.add,
-            pasteResolver: () async => const [ComposerAttachment(path: '/tmp/notes.txt', isImage: false)],
+      await tester.pumpWidget(
+        harness(
+          f,
+          DefaultTextEditingShortcuts(
+            child: ClaudeComposer(
+              onSubmit: submitted.add,
+              pasteResolver: () async => const [ComposerAttachment(path: '/tmp/notes.txt', isImage: false)],
+            ),
           ),
         ),
-      ));
+      );
       await tester.enterText(find.byType(EditableText), 'look at this');
       await pasteAttachment(tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -132,18 +130,9 @@ void main() {
       expect(find.text('notes.txt'), findsNothing);
     });
 
-    Future<List<String>> pumpWithCommands(
-      WidgetTester tester,
-      List<String> commands,
-    ) async {
+    Future<List<String>> pumpWithCommands(WidgetTester tester, List<String> commands) async {
       final submitted = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(
-          onSubmit: submitted.add,
-          slashCommandsResolver: () => commands,
-        ),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: submitted.add, slashCommandsResolver: () => commands)));
       return submitted;
     }
 
@@ -239,15 +228,17 @@ void main() {
 
     testWidgets('remove × cancels the attachment before send', (tester) async {
       final submitted = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        DefaultTextEditingShortcuts(
-          child: ClaudeComposer(
-            onSubmit: submitted.add,
-            pasteResolver: () async => const [ComposerAttachment(path: '/tmp/notes.txt', isImage: false)],
+      await tester.pumpWidget(
+        harness(
+          f,
+          DefaultTextEditingShortcuts(
+            child: ClaudeComposer(
+              onSubmit: submitted.add,
+              pasteResolver: () async => const [ComposerAttachment(path: '/tmp/notes.txt', isImage: false)],
+            ),
           ),
         ),
-      ));
+      );
       await pasteAttachment(tester);
       expect(find.text('notes.txt'), findsOneWidget);
 
@@ -263,10 +254,7 @@ void main() {
 
     testWidgets('Escape interrupts when the typeahead is closed', (tester) async {
       var interrupts = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, onInterrupt: () => interrupts++),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onInterrupt: () => interrupts++)));
       tester.widget<EditableText>(find.byType(EditableText)).focusNode.requestFocus();
       await tester.pump();
 
@@ -277,14 +265,7 @@ void main() {
 
     testWidgets('Escape closes the typeahead before it interrupts', (tester) async {
       var interrupts = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(
-          onSubmit: (_) {},
-          onInterrupt: () => interrupts++,
-          slashCommandsResolver: () => ['model'],
-        ),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onInterrupt: () => interrupts++, slashCommandsResolver: () => ['model'])));
       await tester.enterText(find.byType(EditableText), '/mo');
       await tester.pump();
       await tester.pump(); // ClideTypeahead inserts the popover post-frame
@@ -305,10 +286,7 @@ void main() {
 
     testWidgets('the Stop button shows when busy and interrupts on tap', (tester) async {
       var interrupts = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, busy: true, onInterrupt: () => interrupts++),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, busy: true, onInterrupt: () => interrupts++)));
       expect(find.text('Stop  ⎋'), findsOneWidget);
 
       await tester.tap(find.text('Stop  ⎋'));
@@ -317,10 +295,7 @@ void main() {
     });
 
     testWidgets('no Stop button when idle', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, onInterrupt: () {}),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onInterrupt: () {})));
       expect(find.text('Stop  ⎋'), findsNothing);
     });
 
@@ -353,10 +328,7 @@ void main() {
     testWidgets('clide-owned commands are reachable via the default resolver', (tester) async {
       // No slashCommandsResolver → default path; kClideOwnedCommands must be included.
       final submitted = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: submitted.add),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: submitted.add)));
       await tester.enterText(find.byType(EditableText), '/fo');
       await tester.pump();
       await tester.pump(); // ClideTypeahead inserts the popover post-frame
@@ -375,10 +347,7 @@ void main() {
 
     testWidgets('Ctrl+M fires onCycleMode and is consumed', (tester) async {
       var cycles = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => cycles++),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => cycles++)));
       await tester.tap(find.byType(EditableText));
       await tester.pump();
 
@@ -394,10 +363,7 @@ void main() {
 
     testWidgets('plain m types normally (no modifier, no cycle)', (tester) async {
       var cycles = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => cycles++),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => cycles++)));
       await tester.enterText(find.byType(EditableText), 'm');
       await tester.pump();
       expect(cycles, 0);
@@ -425,10 +391,7 @@ void main() {
       final submitted = <String>[];
       final node = FocusNode();
       addTearDown(node.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: submitted.add, focusNode: node),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: submitted.add, focusNode: node)));
       await tester.enterText(find.byType(EditableText), 'via external node');
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -444,15 +407,8 @@ void main() {
 
     String text(WidgetTester tester) => tester.widget<EditableText>(find.byType(EditableText)).controller.text;
 
-    Future<void> pumpWithHistory(
-      WidgetTester tester, {
-      required List<String> history,
-      ValueChanged<TextEditingValue>? onDraftChanged,
-    }) async {
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, history: history, onDraftChanged: onDraftChanged),
-      ));
+    Future<void> pumpWithHistory(WidgetTester tester, {required List<String> history, ValueChanged<TextEditingValue>? onDraftChanged}) async {
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, history: history, onDraftChanged: onDraftChanged)));
       await tester.tap(find.byType(EditableText));
       await tester.pump();
     }
@@ -528,16 +484,15 @@ void main() {
     tearDown(() => f.dispose());
 
     testWidgets('seeds the field from initialValue on mount', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(
-          onSubmit: (_) {},
-          initialValue: const TextEditingValue(
-            text: 'half-typed',
-            selection: TextSelection.collapsed(offset: 4),
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClaudeComposer(
+            onSubmit: (_) {},
+            initialValue: const TextEditingValue(text: 'half-typed', selection: TextSelection.collapsed(offset: 4)),
           ),
         ),
-      ));
+      );
       final controller = tester.widget<EditableText>(find.byType(EditableText)).controller;
       expect(controller.text, 'half-typed');
       expect(controller.selection.baseOffset, 4); // caret restored too
@@ -545,10 +500,7 @@ void main() {
 
     testWidgets('reports draft changes (text + caret) via onDraftChanged', (tester) async {
       final drafts = <TextEditingValue>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, onDraftChanged: drafts.add),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onDraftChanged: drafts.add)));
       await tester.enterText(find.byType(EditableText), 'draft text');
       await tester.pump();
 
@@ -557,10 +509,7 @@ void main() {
 
     testWidgets('reports an empty draft when submitting clears the field', (tester) async {
       final drafts = <TextEditingValue>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(onSubmit: (_) {}, onDraftChanged: drafts.add),
-      ));
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onDraftChanged: drafts.add)));
       await tester.enterText(find.byType(EditableText), 'send me');
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -589,10 +538,7 @@ void main() {
       // Prompt resolved — composer remounts and restores the draft.
       showPrompt.value = false;
       await tester.pump();
-      expect(
-        tester.widget<EditableText>(find.byType(EditableText)).controller.text,
-        'survived the prompt',
-      );
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, 'survived the prompt');
     });
   });
 }
@@ -614,13 +560,8 @@ class _DraftSwapHostState extends State<_DraftSwapHost> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: widget.showPrompt,
-      builder: (context, prompt, _) => prompt
-          ? const SizedBox.shrink()
-          : ClaudeComposer(
-              onSubmit: (_) {},
-              initialValue: _draft,
-              onDraftChanged: (v) => _draft = v,
-            ),
+      builder: (context, prompt, _) =>
+          prompt ? const SizedBox.shrink() : ClaudeComposer(onSubmit: (_) {}, initialValue: _draft, onDraftChanged: (v) => _draft = v),
     );
   }
 }

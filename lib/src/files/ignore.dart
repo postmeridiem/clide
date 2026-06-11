@@ -18,13 +18,7 @@ library;
 
 /// A single parsed gitignore pattern.
 class IgnorePattern {
-  IgnorePattern._({
-    required this.source,
-    required this.negated,
-    required this.directoryOnly,
-    required this.anchored,
-    required this.regex,
-  });
+  IgnorePattern._({required this.source, required this.negated, required this.directoryOnly, required this.anchored, required this.regex});
 
   /// The raw line from the file (for diagnostics).
   final String source;
@@ -168,7 +162,5 @@ class IgnoreSet {
   /// ignore files. Matches D-004's "walker magic: none except
   /// `.git/`" — but the tree-view UI benefits from hiding `.pql/` and
   /// `.dart_tool/` too since users never edit those by hand.
-  static IgnoreSet builtin() => IgnoreSet.parse(const [
-        '.git/\n.pql/\n.clide/\n.dart_tool/\nbuild/\nnode_modules/\n',
-      ]);
+  static IgnoreSet builtin() => IgnoreSet.parse(const ['.git/\n.pql/\n.clide/\n.dart_tool/\nbuild/\nnode_modules/\n']);
 }

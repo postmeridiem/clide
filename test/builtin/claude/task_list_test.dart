@@ -19,7 +19,7 @@ void main() {
         {'content': 'a', 'status': 'pending'},
         {'content': 'b', 'status': 'in_progress'},
         {'content': 'c', 'status': 'completed'},
-      ])
+      ]),
     ]);
     expect(tasks, const [
       TaskItem(text: 'a', status: TaskStatus.pending),
@@ -31,10 +31,10 @@ void main() {
   test('the latest TodoWrite wins — a snapshot, not an append log', () {
     final tasks = taskListFrom([
       _todo([
-        {'content': 'old', 'status': 'pending'}
+        {'content': 'old', 'status': 'pending'},
       ], id: '1'),
       _todo([
-        {'content': 'new', 'status': 'in_progress'}
+        {'content': 'new', 'status': 'in_progress'},
       ], id: '2'),
     ]);
     expect(tasks, const [TaskItem(text: 'new', status: TaskStatus.inProgress)]);
@@ -45,7 +45,7 @@ void main() {
       _todo([
         {'activeForm': 'doing it', 'status': 'in_progress'},
         {'status': 'weird'},
-      ])
+      ]),
     ]);
     expect(tasks[0].text, 'doing it');
     expect(tasks[1].text, '');
@@ -56,7 +56,7 @@ void main() {
     expect(taskListFrom(const []), isEmpty);
     expect(
       taskListFrom([
-        AssistantToolUse(uuid: 'b', timestamp: _t, isSidechain: false, toolUseId: 'b', name: 'Bash', input: const {'command': 'ls'})
+        AssistantToolUse(uuid: 'b', timestamp: _t, isSidechain: false, toolUseId: 'b', name: 'Bash', input: const {'command': 'ls'}),
       ]),
       isEmpty,
     );

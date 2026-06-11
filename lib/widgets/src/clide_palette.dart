@@ -61,7 +61,10 @@ class _ClidePaletteState extends State<ClidePalette> {
   void _syncFromController() {
     final f = _palette?.filter ?? '';
     if (_input.text != f) {
-      _input.value = TextEditingValue(text: f, selection: TextSelection.collapsed(offset: f.length));
+      _input.value = TextEditingValue(
+        text: f,
+        selection: TextSelection.collapsed(offset: f.length),
+      );
     }
   }
 
@@ -126,13 +129,7 @@ class _ClidePaletteState extends State<ClidePalette> {
                   color: tokens.dropdownBackground,
                   border: Border.all(color: tokens.dropdownBorder),
                   borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: tokens.shadowAmbient,
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(color: tokens.shadowAmbient, blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -142,11 +139,7 @@ class _ClidePaletteState extends State<ClidePalette> {
                       child: EditableText(
                         controller: _input,
                         focusNode: _focus,
-                        style: TextStyle(
-                          fontFamily: clideMonoFamily,
-                          fontSize: clideFontMono,
-                          color: tokens.dropdownForeground,
-                        ),
+                        style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.dropdownForeground),
                         cursorColor: tokens.globalFocus,
                         backgroundCursorColor: tokens.globalFocus,
                         maxLines: 1,
@@ -194,14 +187,7 @@ class _ClidePaletteState extends State<ClidePalette> {
 }
 
 class _PaletteItem extends StatefulWidget {
-  const _PaletteItem({
-    super.key,
-    required this.title,
-    required this.command,
-    required this.onTap,
-    required this.highlighted,
-    this.binding,
-  });
+  const _PaletteItem({super.key, required this.title, required this.command, required this.onTap, required this.highlighted, this.binding});
 
   final String title;
   final String command;
@@ -230,24 +216,13 @@ class _PaletteItemState extends State<_PaletteItem> {
           color: selected
               ? tokens.listItemSelectedBackground
               : _hover
-                  ? tokens.listItemHoverBackground
-                  : null,
+              ? tokens.listItemHoverBackground
+              : null,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
-              Expanded(
-                child: ClideText(
-                  widget.title,
-                  color: selected ? tokens.listItemSelectedForeground : tokens.listItemForeground,
-                ),
-              ),
-              if (widget.binding != null)
-                ClideText(
-                  widget.binding!,
-                  fontSize: clideFontCaption,
-                  fontFamily: clideMonoFamily,
-                  color: tokens.globalTextMuted,
-                ),
+              Expanded(child: ClideText(widget.title, color: selected ? tokens.listItemSelectedForeground : tokens.listItemForeground)),
+              if (widget.binding != null) ClideText(widget.binding!, fontSize: clideFontCaption, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
             ],
           ),
         ),

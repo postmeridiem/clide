@@ -39,21 +39,21 @@ class TicketsExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'tickets.panel',
-          slot: Slots.sidebar,
-          title: 'Tickets',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          icon: PhosphorIcons.byName('ticket'),
-          build: (_) => const TicketsView(),
-        ),
-        TabContribution(
-          id: 'tickets.detail',
-          slot: Slots.contextPanel,
-          title: 'Ticket',
-          icon: PhosphorIcons.byName('ticket'),
-          build: (_) => const TicketDetailView(),
-        ),
-      ];
+    TabContribution(
+      id: 'tickets.panel',
+      slot: Slots.sidebar,
+      title: 'Tickets',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      icon: PhosphorIcons.byName('ticket'),
+      build: (_) => const TicketsView(),
+    ),
+    TabContribution(
+      id: 'tickets.detail',
+      slot: Slots.contextPanel,
+      title: 'Ticket',
+      icon: PhosphorIcons.byName('ticket'),
+      build: (_) => const TicketDetailView(),
+    ),
+  ];
 }

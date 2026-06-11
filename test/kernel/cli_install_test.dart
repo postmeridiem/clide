@@ -25,37 +25,19 @@ void main() {
     return f;
   }
 
-  CliInstaller installer({
-    required String resolvedExecutable,
-    required Map<String, String> env,
-    List<String>? candidates,
-    String? installDir,
-  }) =>
-      CliInstaller(
-        resolvedExecutable: resolvedExecutable,
-        env: env,
-        bundledClientCandidates: candidates,
-        installDir: installDir,
-      );
+  CliInstaller installer({required String resolvedExecutable, required Map<String, String> env, List<String>? candidates, String? installDir}) =>
+      CliInstaller(resolvedExecutable: resolvedExecutable, env: env, bundledClientCandidates: candidates, installDir: installDir);
 
   group('findBundledClient', () {
     test('returns the first candidate that exists', () {
       final present = '${tmp.path}/clide-cli';
       touchExec(present);
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/clide',
-        env: {'PATH': ''},
-        candidates: ['${tmp.path}/missing', present],
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/clide', env: {'PATH': ''}, candidates: ['${tmp.path}/missing', present]);
       expect(i.findBundledClient(), present);
     });
 
     test('returns null when no candidate exists', () {
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/clide',
-        env: {'PATH': ''},
-        candidates: ['${tmp.path}/nope'],
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/clide', env: {'PATH': ''}, candidates: ['${tmp.path}/nope']);
       expect(i.findBundledClient(), isNull);
     });
   });
@@ -63,20 +45,14 @@ void main() {
   group('inspect', () {
     test('missing when no clide on PATH', () {
       final binDir = Directory('${tmp.path}/bin')..createSync();
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': binDir.path},
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': binDir.path});
       expect(i.inspect().state, CliInstallState.missing);
     });
 
     test('installed when clide is a plain non-GUI binary', () {
       final binDir = Directory('${tmp.path}/bin')..createSync();
       touchExec('${binDir.path}/clide');
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': binDir.path},
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': binDir.path});
       final s = i.inspect();
       expect(s.state, CliInstallState.installed);
       expect(s.pathEntry, '${binDir.path}/clide');
@@ -86,10 +62,7 @@ void main() {
       final gui = touchExec('${tmp.path}/gui/clide').path;
       final binDir = Directory('${tmp.path}/bin')..createSync();
       Link('${binDir.path}/clide').createSync(gui);
-      final i = installer(
-        resolvedExecutable: gui,
-        env: {'PATH': binDir.path},
-      );
+      final i = installer(resolvedExecutable: gui, env: {'PATH': binDir.path});
       final s = i.inspect();
       expect(s.state, CliInstallState.staleGui);
       expect(s.needsInstall, isTrue);
@@ -113,10 +86,7 @@ void main() {
       final dev = touchExec('${tmp.path}/native/linux-x64/clide').path;
       final binDir = Directory('${tmp.path}/bin')..createSync();
       Link('${binDir.path}/clide').createSync(dev);
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': binDir.path},
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': binDir.path});
       final s = i.inspect();
       expect(s.state, CliInstallState.devTree);
       // A dev build is intentional — it doesn't prompt a reinstall.
@@ -140,20 +110,14 @@ void main() {
 
   group('defaults', () {
     test('install dir and bundled candidates derive from env + exe dir', () {
-      final i = CliInstaller(
-        resolvedExecutable: '/opt/clide/bundle/clide',
-        env: const {'HOME': '/home/dev', 'CLIDE_CLI_BIN': '/dev/tree/clide'},
-      );
+      final i = CliInstaller(resolvedExecutable: '/opt/clide/bundle/clide', env: const {'HOME': '/home/dev', 'CLIDE_CLI_BIN': '/dev/tree/clide'});
       expect(i.installDir, '/home/dev/.local/bin');
       // CLIDE_CLI_BIN override first, then the in-bundle path.
       expect(i.bundledClientCandidates, ['/dev/tree/clide', '/opt/clide/bundle/clide-cli']);
     });
 
     test('omits the CLIDE_CLI_BIN candidate when unset', () {
-      final i = CliInstaller(
-        resolvedExecutable: '/opt/clide/bundle/clide',
-        env: const {'HOME': '/home/dev'},
-      );
+      final i = CliInstaller(resolvedExecutable: '/opt/clide/bundle/clide', env: const {'HOME': '/home/dev'});
       expect(i.bundledClientCandidates, ['/opt/clide/bundle/clide-cli']);
     });
 
@@ -186,12 +150,7 @@ void main() {
 
   group('install', () {
     test('fails clearly when no bundled client is present', () {
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': ''},
-        candidates: ['${tmp.path}/none'],
-        installDir: '${tmp.path}/bin',
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': ''}, candidates: ['${tmp.path}/none'], installDir: '${tmp.path}/bin');
       final r = i.install();
       expect(r.ok, isFalse);
       expect(r.message, contains('No bundled clide client'));
@@ -200,12 +159,7 @@ void main() {
     test('copies the client, marks it executable, reports onPath', () {
       final src = touchExec('${tmp.path}/bundle/clide-cli', contents: '#!/bin/sh\necho hi\n');
       final binDir = '${tmp.path}/bin';
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': binDir},
-        candidates: [src.path],
-        installDir: binDir,
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': binDir}, candidates: [src.path], installDir: binDir);
       final r = i.install();
       expect(r.ok, isTrue);
       expect(r.onPath, isTrue);
@@ -222,12 +176,7 @@ void main() {
     test('flags fromDevTree when the source is a dev-tree build (T-256)', () {
       final src = touchExec('${tmp.path}/native/linux-x64/clide');
       final binDir = '${tmp.path}/bin';
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': binDir},
-        candidates: [src.path],
-        installDir: binDir,
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': binDir}, candidates: [src.path], installDir: binDir);
       final r = i.install();
       expect(r.ok, isTrue);
       expect(r.fromDevTree, isTrue);
@@ -237,12 +186,7 @@ void main() {
     test('a bundled (non-dev) source is not flagged fromDevTree', () {
       final src = touchExec('${tmp.path}/bundle/clide-cli');
       final binDir = '${tmp.path}/bin';
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': binDir},
-        candidates: [src.path],
-        installDir: binDir,
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': binDir}, candidates: [src.path], installDir: binDir);
       expect(i.install().fromDevTree, isFalse);
     });
 
@@ -252,12 +196,7 @@ void main() {
       final binDir = '${tmp.path}/bin';
       Directory(binDir).createSync();
       Link('$binDir/clide').createSync(gui); // stale symlink into the GUI
-      final i = installer(
-        resolvedExecutable: gui,
-        env: {'PATH': binDir},
-        candidates: [src.path],
-        installDir: binDir,
-      );
+      final i = installer(resolvedExecutable: gui, env: {'PATH': binDir}, candidates: [src.path], installDir: binDir);
       expect(i.install().ok, isTrue);
       // The GUI binary must be untouched; the bin entry is now a real file.
       expect(File(gui).readAsStringSync(), 'GUI');
@@ -270,12 +209,7 @@ void main() {
       // installDir path is occupied by a regular file → createSync throws.
       final blocker = '${tmp.path}/blocked';
       File(blocker).writeAsStringSync('not a dir');
-      final i = installer(
-        resolvedExecutable: '${tmp.path}/gui/clide',
-        env: {'PATH': ''},
-        candidates: [src.path],
-        installDir: blocker,
-      );
+      final i = installer(resolvedExecutable: '${tmp.path}/gui/clide', env: {'PATH': ''}, candidates: [src.path], installDir: blocker);
       final r = i.install();
       expect(r.ok, isFalse);
       expect(r.message, contains('Install failed'));

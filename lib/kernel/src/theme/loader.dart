@@ -70,10 +70,7 @@ class ThemeLoader {
     final surface = doc['surface'];
     final extension = doc['extension'];
 
-    final mergedSurface = <String, String>{
-      ...syntaxSurface,
-      if (surface is Map) ..._parseRefMap(surface),
-    };
+    final mergedSurface = <String, String>{...syntaxSurface, if (surface is Map) ..._parseRefMap(surface)};
 
     return ThemeDefinition(
       name: name,

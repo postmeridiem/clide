@@ -61,30 +61,23 @@ class CliInstallExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        CommandContribution(
-          id: 'clide.installCli',
-          command: 'clide.installCli',
-          title: "clide: Install 'clide' command in PATH",
-          run: (_) async {
-            final r = _resolved.install();
-            final ctx = _ctx;
-            if (r.ok) {
-              ctx?.notify.success(r.message, title: 'clide CLI installed');
-              return IpcResponse.ok(id: '', data: {
-                'installed': r.installedPath,
-                'onPath': r.onPath,
-              });
-            }
-            ctx?.notify.error(r.message, title: 'clide CLI install failed');
-            return IpcResponse.err(
-              id: '',
-              error: IpcError(
-                code: IpcExitCode.toolError,
-                kind: IpcErrorKind.toolError,
-                message: r.message,
-              ),
-            );
-          },
-        ),
-      ];
+    CommandContribution(
+      id: 'clide.installCli',
+      command: 'clide.installCli',
+      title: "clide: Install 'clide' command in PATH",
+      run: (_) async {
+        final r = _resolved.install();
+        final ctx = _ctx;
+        if (r.ok) {
+          ctx?.notify.success(r.message, title: 'clide CLI installed');
+          return IpcResponse.ok(id: '', data: {'installed': r.installedPath, 'onPath': r.onPath});
+        }
+        ctx?.notify.error(r.message, title: 'clide CLI install failed');
+        return IpcResponse.err(
+          id: '',
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: r.message),
+        );
+      },
+    ),
+  ];
 }

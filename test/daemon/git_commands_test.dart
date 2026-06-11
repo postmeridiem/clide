@@ -13,23 +13,11 @@ void main() {
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-git-cmd-test-');
     await Process.run('git', ['init'], workingDirectory: sandbox.path);
-    await Process.run(
-      'git',
-      ['config', 'user.email', 'test@test.com'],
-      workingDirectory: sandbox.path,
-    );
-    await Process.run(
-      'git',
-      ['config', 'user.name', 'Test'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
+    await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
     await File('${sandbox.path}/file.txt').writeAsString('hello\n');
     await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-    await Process.run(
-      'git',
-      ['commit', '-m', 'init'],
-      workingDirectory: sandbox.path,
-    );
+    await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
 
     sink = RecordingEventSink();
     dispatcher = DaemonDispatcher();
@@ -64,7 +52,7 @@ void main() {
   test('git.stage + git.status shows staged file', () async {
     await File('${sandbox.path}/new.txt').writeAsString('x');
     final stage = await call('git.stage', {
-      'paths': ['new.txt']
+      'paths': ['new.txt'],
     });
     expect(stage.ok, isTrue);
 
@@ -82,10 +70,10 @@ void main() {
   test('git.unstage removes from staging', () async {
     await File('${sandbox.path}/new.txt').writeAsString('x');
     await call('git.stage', {
-      'paths': ['new.txt']
+      'paths': ['new.txt'],
     });
     final unstage = await call('git.unstage', {
-      'paths': ['new.txt']
+      'paths': ['new.txt'],
     });
     expect(unstage.ok, isTrue);
 
@@ -97,7 +85,7 @@ void main() {
   test('git.commit creates a commit', () async {
     await File('${sandbox.path}/c.txt').writeAsString('x');
     await call('git.stage', {
-      'paths': ['c.txt']
+      'paths': ['c.txt'],
     });
     final r = await call('git.commit', {'message': 'test commit'});
     expect(r.ok, isTrue);
@@ -121,7 +109,7 @@ void main() {
   test('git.diff --staged returns staged diffs', () async {
     await File('${sandbox.path}/file.txt').writeAsString('modified\n');
     await call('git.stage', {
-      'paths': ['file.txt']
+      'paths': ['file.txt'],
     });
     final r = await call('git.diff', {'staged': true});
     expect(r.ok, isTrue);
@@ -139,7 +127,7 @@ void main() {
   test('git.discard restores a file', () async {
     await File('${sandbox.path}/file.txt').writeAsString('changed');
     final r = await call('git.discard', {
-      'paths': ['file.txt']
+      'paths': ['file.txt'],
     });
     expect(r.ok, isTrue);
     final content = await File('${sandbox.path}/file.txt').readAsString();
@@ -155,12 +143,9 @@ void main() {
   test('mutations emit git.changed events', () async {
     await File('${sandbox.path}/e.txt').writeAsString('x');
     await call('git.stage', {
-      'paths': ['e.txt']
+      'paths': ['e.txt'],
     });
-    expect(
-      sink.events,
-      contains(predicate<IpcEvent>((e) => e.kind == 'git.changed')),
-    );
+    expect(sink.events, contains(predicate<IpcEvent>((e) => e.kind == 'git.changed')));
   });
 
   test('git.stage-all stages everything', () async {
@@ -192,7 +177,7 @@ void main() {
     await File('${sandbox.path}/file.txt').writeAsString('hello\nworld\n');
     await File('${sandbox.path}/other.txt').writeAsString('o');
     final r = await call('git.diff', {
-      'paths': ['file.txt']
+      'paths': ['file.txt'],
     });
     expect(r.ok, isTrue);
     final diffs = r.data['diffs'] as List;

@@ -26,28 +26,17 @@ import '../../helpers/widget_harness.dart';
 IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data);
 
 IpcResponse _err(String msg) => IpcResponse.err(
-      id: '',
-      error: IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: msg,
-      ),
-    );
+  id: '',
+  error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: msg),
+);
 
-Map<String, Object?> _decision({
-  required String id,
-  required String title,
-  String type = 'confirmed',
-  String domain = 'architecture',
-  String? status,
-}) =>
-    {
-      'id': id,
-      'title': title,
-      'type': type,
-      'domain': domain,
-      if (status != null) 'status': status,
-    };
+Map<String, Object?> _decision({required String id, required String title, String type = 'confirmed', String domain = 'architecture', String? status}) => {
+  'id': id,
+  'title': title,
+  'type': type,
+  'domain': domain,
+  'status': ?status,
+};
 
 /// Register both sync and list stubs, returning the provided list of decisions.
 void _stubDecisions(KernelFixture f, List<Map<String, Object?>> decisions) {
@@ -122,11 +111,7 @@ void main() {
         'pql.decisions.list',
         (_) async => IpcResponse.err(
           id: '',
-          error: IpcError(
-            code: IpcExitCode.toolError,
-            kind: IpcErrorKind.toolError,
-            message: 'failed to load decisions',
-          ),
+          error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'failed to load decisions'),
         ),
       );
 
@@ -155,9 +140,7 @@ void main() {
 
   group('DecisionsView — grouping into sections', () {
     testWidgets('confirmed decisions appear in CONFIRMED accordion', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'Architecture choice'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'Architecture choice')]);
       await pumpView(tester);
 
       // Accordion label renders as 'CONFIRMED · N'.
@@ -168,9 +151,7 @@ void main() {
     });
 
     testWidgets('question decisions appear in QUESTIONS accordion header', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'Q-1', title: 'Open question', type: 'question', domain: 'tooling'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'Q-1', title: 'Open question', type: 'question', domain: 'tooling')]);
       await pumpView(tester);
 
       // The header always renders even when the section is collapsed.
@@ -183,9 +164,7 @@ void main() {
     });
 
     testWidgets('rejected decisions appear in REJECTED accordion header', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'R-1', title: 'Rejected idea', type: 'rejected', domain: 'ui'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'R-1', title: 'Rejected idea', type: 'rejected', domain: 'ui')]);
       await pumpView(tester);
 
       expect(find.textContaining('REJECTED'), findsOneWidget);
@@ -212,9 +191,7 @@ void main() {
     testWidgets('card with resolved status shows resolved badge (via filter)', (tester) async {
       // Use a confirmed decision with resolved status so the card is
       // visible without needing to expand the section manually.
-      _stubDecisions(f, [
-        _decision(id: 'D-2', title: 'Resolved decision', type: 'confirmed', domain: 'arch', status: 'resolved'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-2', title: 'Resolved decision', type: 'confirmed', domain: 'arch', status: 'resolved')]);
       await pumpView(tester);
 
       // CONFIRMED is pinned-expanded; card is visible.
@@ -222,9 +199,7 @@ void main() {
     });
 
     testWidgets('domain label is shown on card', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-5', title: 'Some D', domain: 'architecture'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-5', title: 'Some D', domain: 'architecture')]);
       await pumpView(tester);
 
       expect(find.text('architecture'), findsOneWidget);
@@ -233,9 +208,7 @@ void main() {
 
   group('DecisionsView — card tap publishes selection', () {
     testWidgets('tapping a confirmed card publishes builtin.decisions/selection', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-3', title: 'Click me'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-3', title: 'Click me')]);
       await pumpView(tester);
 
       final received = <Message>[];
@@ -250,9 +223,7 @@ void main() {
     });
 
     testWidgets('tapping a question card publishes the correct id', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'Q-4', title: 'Q card', type: 'question', domain: 'tooling'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'Q-4', title: 'Q card', type: 'question', domain: 'tooling')]);
       await pumpView(tester);
 
       // QUESTIONS section is collapsed by default — tap header to expand it.
@@ -273,10 +244,7 @@ void main() {
 
   group('DecisionsView — filter', () {
     testWidgets('filter box narrows results by id', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'Architecture choice'),
-        _decision(id: 'D-2', title: 'Build tool selection'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'Architecture choice'), _decision(id: 'D-2', title: 'Build tool selection')]);
       await pumpView(tester);
 
       expect(find.text('D-1'), findsOneWidget);
@@ -295,10 +263,7 @@ void main() {
     });
 
     testWidgets('filter box narrows results by title', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'Architecture choice'),
-        _decision(id: 'D-2', title: 'Build tool selection'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'Architecture choice'), _decision(id: 'D-2', title: 'Build tool selection')]);
       await pumpView(tester);
 
       final filterBox = find.byWidgetPredicate((w) => w is EditableText);
@@ -311,10 +276,7 @@ void main() {
     });
 
     testWidgets('filter by domain shows matching card', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'Arch', domain: 'architecture'),
-        _decision(id: 'D-2', title: 'Tool', domain: 'tooling'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'Arch', domain: 'architecture'), _decision(id: 'D-2', title: 'Tool', domain: 'tooling')]);
       await pumpView(tester);
 
       final filterBox = find.byWidgetPredicate((w) => w is EditableText);
@@ -327,9 +289,7 @@ void main() {
     });
 
     testWidgets('filter with no matches yields empty sections', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'Something'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'Something')]);
       await pumpView(tester);
 
       final filterBox = find.byWidgetPredicate((w) => w is EditableText);
@@ -344,9 +304,7 @@ void main() {
 
   group('DecisionsView — section toggle', () {
     testWidgets('toggling confirmed section removes confirmed from pinned', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'Arch choice'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'Arch choice')]);
       await pumpView(tester);
 
       // CONFIRMED is pinned by default and should be expanded (D-1 visible).
@@ -362,9 +320,7 @@ void main() {
     });
 
     testWidgets('toggling a non-pinned section expands it', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'R-1', title: 'Rejected one', type: 'rejected', domain: 'ui'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'R-1', title: 'Rejected one', type: 'rejected', domain: 'ui')]);
       await pumpView(tester);
 
       // REJECTED starts unexpanded (not in _pinned).
@@ -381,10 +337,7 @@ void main() {
 
   group('DecisionsView — focus message', () {
     testWidgets('receiving a focus message updates _focusedId and rebuilds', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'First'),
-        _decision(id: 'D-2', title: 'Second'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'First'), _decision(id: 'D-2', title: 'Second')]);
       await pumpView(tester);
 
       // Both cards visible.
@@ -400,9 +353,7 @@ void main() {
     });
 
     testWidgets('focus message with null id is ignored', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'First'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'First')]);
       await pumpView(tester);
 
       f.services.messages.publish('builtin.decisions', 'focus', {'id': null});
@@ -412,9 +363,7 @@ void main() {
     });
 
     testWidgets('focus message with same id as already focused is ignored', (tester) async {
-      _stubDecisions(f, [
-        _decision(id: 'D-1', title: 'First'),
-      ]);
+      _stubDecisions(f, [_decision(id: 'D-1', title: 'First')]);
       await pumpView(tester);
 
       f.services.messages.publish('builtin.decisions', 'focus', {'id': 'D-1'});
@@ -435,9 +384,7 @@ void main() {
       f.ipc.stub('pql.decisions.list', (_) async {
         listCallCount++;
         return _ok({
-          'decisions': [
-            _decision(id: 'D-$listCallCount', title: 'Call $listCallCount'),
-          ],
+          'decisions': [_decision(id: 'D-$listCallCount', title: 'Call $listCallCount')],
         });
       });
 
@@ -446,9 +393,7 @@ void main() {
 
       // Tap the refresh icon button — it has tooltip 'Refresh decisions'.
       // Find ClideTappable widgets and tap the one with the refresh tooltip.
-      final refreshTappable = find.byWidgetPredicate(
-        (w) => w is ClideTappable && w.tooltip == 'Refresh decisions',
-      );
+      final refreshTappable = find.byWidgetPredicate((w) => w is ClideTappable && w.tooltip == 'Refresh decisions');
       await tester.tap(refreshTappable);
       await pumpAsync(tester);
 
@@ -463,9 +408,7 @@ void main() {
       f.ipc.stub('pql.decisions.list', (_) async {
         listCallCount++;
         return _ok({
-          'decisions': [
-            _decision(id: 'D-$listCallCount', title: 'Version $listCallCount'),
-          ],
+          'decisions': [_decision(id: 'D-$listCallCount', title: 'Version $listCallCount')],
         });
       });
 
@@ -473,12 +416,7 @@ void main() {
       expect(listCallCount, 1);
 
       // Emit a files.changed event for a decisions path.
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': 'decisions/architecture.md'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'decisions/architecture.md'}, ts: DateTime.now().toUtc()));
       await pumpAsync(tester);
 
       expect(listCallCount, greaterThanOrEqualTo(2));
@@ -495,12 +433,7 @@ void main() {
       await pumpView(tester);
       final countAfterLoad = listCallCount;
 
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': 'lib/main.dart'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'lib/main.dart'}, ts: DateTime.now().toUtc()));
       await pumpAsync(tester);
 
       // Count must not have incremented.

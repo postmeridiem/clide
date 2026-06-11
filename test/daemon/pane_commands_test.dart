@@ -75,10 +75,7 @@ void main() {
       expect(viaText.ok, isTrue);
       expect(viaText.data['written'], greaterThan(0));
 
-      final viaBase64 = await call('pane.write', {
-        'id': id,
-        'bytes_b64': base64Encode(utf8.encode('def')),
-      });
+      final viaBase64 = await call('pane.write', {'id': id, 'bytes_b64': base64Encode(utf8.encode('def'))});
       expect(viaBase64.ok, isTrue);
     });
 
@@ -115,7 +112,7 @@ void main() {
 
     test('pane.spawn rejects non-string argv entries', () async {
       final r = await call('pane.spawn', const {
-        'argv': ['/bin/sh', 42]
+        'argv': ['/bin/sh', 42],
       });
       expect(r.ok, isFalse);
       expect(r.error!.message, contains('strings'));
@@ -262,7 +259,7 @@ void main() {
 
     test('merges PTY panes and UI tabs in one list', () async {
       await call('pane.spawn', {
-        'argv': const ['/bin/cat']
+        'argv': const ['/bin/cat'],
       });
       final r = await call('pane.list', const {});
       final panes = (r.data['panes'] as List).cast<Map>();

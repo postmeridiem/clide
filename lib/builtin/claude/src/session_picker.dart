@@ -12,12 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 class SessionPickerDialog extends StatefulWidget {
-  const SessionPickerDialog({
-    super.key,
-    required this.sessions,
-    required this.onPick,
-    required this.onCancel,
-  });
+  const SessionPickerDialog({super.key, required this.sessions, required this.onPick, required this.onCancel});
 
   final List<SessionSummary> sessions;
   final void Function(String id) onPick;
@@ -92,11 +87,7 @@ class _SessionPickerDialogState extends State<SessionPickerDialog> {
               )
             else
               Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: widget.sessions.length,
-                  itemBuilder: (ctx, i) => _row(theme, i),
-                ),
+                child: ListView.builder(shrinkWrap: true, itemCount: widget.sessions.length, itemBuilder: (ctx, i) => _row(theme, i)),
               ),
           ],
         ),
@@ -117,13 +108,7 @@ class _SessionPickerDialogState extends State<SessionPickerDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClideText(
-                s.label,
-                fontSize: clideFontSmall,
-                color: theme.globalForeground,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ClideText(s.label, fontSize: clideFontSmall, color: theme.globalForeground, maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
               ClideText(relativeTime(s.modified), muted: true, fontSize: clideFontSmall),
             ],

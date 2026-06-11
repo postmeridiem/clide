@@ -54,13 +54,7 @@ class CliInstallStatus {
 
 /// Result of [CliInstaller.install].
 class CliInstallResult {
-  const CliInstallResult({
-    required this.ok,
-    required this.message,
-    this.installedPath,
-    this.onPath = true,
-    this.fromDevTree = false,
-  });
+  const CliInstallResult({required this.ok, required this.message, this.installedPath, this.onPath = true, this.fromDevTree = false});
 
   final bool ok;
   final String message;
@@ -80,14 +74,10 @@ class CliInstallResult {
 /// environment, candidate client locations, the target dir) is injectable so
 /// the logic is unit-testable without a real install.
 class CliInstaller {
-  CliInstaller({
-    required this.resolvedExecutable,
-    Map<String, String>? env,
-    List<String>? bundledClientCandidates,
-    String? installDir,
-  })  : env = env ?? Platform.environment,
-        bundledClientCandidates = bundledClientCandidates ?? _defaultBundledCandidates(resolvedExecutable, env ?? Platform.environment),
-        installDir = installDir ?? _defaultInstallDir(env ?? Platform.environment);
+  CliInstaller({required this.resolvedExecutable, Map<String, String>? env, List<String>? bundledClientCandidates, String? installDir})
+    : env = env ?? Platform.environment,
+      bundledClientCandidates = bundledClientCandidates ?? _defaultBundledCandidates(resolvedExecutable, env ?? Platform.environment),
+      installDir = installDir ?? _defaultInstallDir(env ?? Platform.environment);
 
   /// Path to the running Flutter GUI executable
   /// (`Platform.resolvedExecutable`).
@@ -132,7 +122,8 @@ class CliInstaller {
     if (src == null) {
       return const CliInstallResult(
         ok: false,
-        message: 'No bundled clide client found to install. Build with '
+        message:
+            'No bundled clide client found to install. Build with '
             '`make build` so the C client ships inside the app bundle.',
       );
     }
@@ -203,11 +194,7 @@ class CliInstaller {
     return null;
   }
 
-  String _expandedPath() => expandedPath(
-        env['PATH'] ?? '',
-        macOS: Platform.isMacOS,
-        home: env['HOME'] ?? '',
-      );
+  String _expandedPath() => expandedPath(env['PATH'] ?? '', macOS: Platform.isMacOS, home: env['HOME'] ?? '');
 
   static String _defaultInstallDir(Map<String, String> env) => '${env['HOME'] ?? ''}/.local/bin';
 
@@ -217,10 +204,7 @@ class CliInstaller {
   /// `Contents/MacOS/` on macOS).
   static List<String> _defaultBundledCandidates(String resolvedExecutable, Map<String, String> env) {
     final exeDir = File(resolvedExecutable).parent.path;
-    return [
-      if ((env['CLIDE_CLI_BIN'] ?? '').isNotEmpty) env['CLIDE_CLI_BIN']!,
-      '$exeDir/clide-cli',
-    ];
+    return [if ((env['CLIDE_CLI_BIN'] ?? '').isNotEmpty) env['CLIDE_CLI_BIN']!, '$exeDir/clide-cli'];
   }
 }
 
@@ -239,12 +223,7 @@ bool isDevTreeClient(String path) => _devTreeClient.hasMatch(path);
 /// platform-parameterized function so both branches are testable off-platform.
 String expandedPath(String base, {required bool macOS, String home = ''}) {
   if (!macOS) return base;
-  final extras = <String>[
-    if (home.isNotEmpty) '$home/.local/bin',
-    '/opt/homebrew/bin',
-    '/opt/homebrew/sbin',
-    '/usr/local/bin',
-  ];
+  final extras = <String>[if (home.isNotEmpty) '$home/.local/bin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin'];
   final existing = base.split(':').toSet();
   final missing = extras.where((p) => !existing.contains(p));
   if (missing.isEmpty) return base;

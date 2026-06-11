@@ -25,22 +25,13 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final themes = [
-      await const ThemeLoader().fromAsset(
-        rootBundle,
-        'lib/kernel/src/theme/themes/summer-night.yaml',
-      ),
-    ];
+    final themes = [await const ThemeLoader().fromAsset(rootBundle, 'lib/kernel/src/theme/themes/summer-night.yaml')];
     final services = await KernelServices.boot(
       appDir: await Directory.systemTemp.createTemp('clide_lc_'),
       bundledThemes: themes,
       i18nLoader: AssetCatalogLoader(bundle: rootBundle),
-      preloadNamespaces: const [
-        'builtin.welcome',
-        'builtin.ipc-status',
-        'builtin.default-layout',
-      ],
-      daemonClientFactory: (log, events, _, __) => FakeDaemonClient(log: log, events: events),
+      preloadNamespaces: const ['builtin.welcome', 'builtin.ipc-status', 'builtin.default-layout'],
+      daemonClientFactory: (log, events, _, _) => FakeDaemonClient(log: log, events: events),
       autoStartDaemonClient: false,
     );
     services.extensions

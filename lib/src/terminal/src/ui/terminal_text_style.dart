@@ -50,13 +50,7 @@ class TerminalStyle {
 
   final List<String> fontFamilyFallback;
 
-  TextStyle toTextStyle({
-    Color? color,
-    Color? backgroundColor,
-    bool bold = false,
-    bool italic = false,
-    bool underline = false,
-  }) {
+  TextStyle toTextStyle({Color? color, Color? backgroundColor, bool bold = false, bool italic = false, bool underline = false}) {
     return TextStyle(
       fontSize: fontSize,
       height: height,
@@ -70,12 +64,7 @@ class TerminalStyle {
     );
   }
 
-  TerminalStyle copyWith({
-    double? fontSize,
-    double? height,
-    String? fontFamily,
-    List<String>? fontFamilyFallback,
-  }) {
+  TerminalStyle copyWith({double? fontSize, double? height, String? fontFamily, List<String>? fontFamilyFallback}) {
     return TerminalStyle(
       fontSize: fontSize ?? this.fontSize,
       height: height ?? this.height,

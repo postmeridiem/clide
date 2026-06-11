@@ -35,20 +35,12 @@ class ClaudeBanner extends StatelessWidget {
         children: [
           const ClideSvgView.asset('assets/logo/logo.svg', width: 60, height: 60),
           const SizedBox(height: 18),
-          ClideText(
-            'Claude',
-            fontSize: clideFontDialogTitle,
-            color: claudeAccent,
-            fontWeight: FontWeight.w500,
-          ),
+          ClideText('Claude', fontSize: clideFontDialogTitle, color: claudeAccent, fontWeight: FontWeight.w500),
           const SizedBox(height: 2),
           ClideText(role, fontSize: clideFontSmall, muted: true, fontFamily: clideMonoFamily),
           const SizedBox(height: 16),
           if (ws != null) ClideText(ws, fontSize: clideFontCaption, muted: true),
-          if (statusLine != null) ...[
-            const SizedBox(height: 2),
-            ClideText(statusLine!, fontSize: clideFontSmall, muted: true, fontFamily: clideMonoFamily),
-          ],
+          if (statusLine != null) ...[const SizedBox(height: 2), ClideText(statusLine!, fontSize: clideFontSmall, muted: true, fontFamily: clideMonoFamily)],
           const SizedBox(height: 16),
           const ClideText('Warming up — your conversation will appear here.', fontSize: clideFontSmall, muted: true),
         ],

@@ -19,13 +19,13 @@ class SearchExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'search.findInFiles',
-          slot: Slots.sidebar,
-          title: 'Search',
-          icon: PhosphorIcons.byName('magnifying-glass'),
-          priority: -90,
-          build: (_) => const SearchPanelView(),
-        ),
-      ];
+    TabContribution(
+      id: 'search.findInFiles',
+      slot: Slots.sidebar,
+      title: 'Search',
+      icon: PhosphorIcons.byName('magnifying-glass'),
+      priority: -90,
+      build: (_) => const SearchPanelView(),
+    ),
+  ];
 }

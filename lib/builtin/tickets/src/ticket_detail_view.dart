@@ -73,10 +73,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
         return ClidePaneChrome(
           title: d.id,
           subtitle: d.title,
-          leading: ReaderPinButton(
-            pinned: _nav?.hasPinned ?? false,
-            onTap: _onPin,
-          ),
+          leading: ReaderPinButton(pinned: _nav?.hasPinned ?? false, onTap: _onPin),
           trailing: [
             ReaderActionBar(
               canGoBack: _nav?.canGoBack ?? false,
@@ -104,13 +101,7 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                   const SizedBox(height: 16),
                   _SectionLabel(label: 'PARENT TREE', tokens: tokens),
                   const SizedBox(height: 6),
-                  for (var i = 0; i < d.parents.length; i++)
-                    _CompactCard(
-                      data: d.parents[i],
-                      tokens: tokens,
-                      typeColors: typeColors,
-                      indent: i,
-                    ),
+                  for (var i = 0; i < d.parents.length; i++) _CompactCard(data: d.parents[i], tokens: tokens, typeColors: typeColors, indent: i),
                 ],
                 if (d.decisions.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -150,7 +141,11 @@ class _TicketHeader extends StatelessWidget {
             children: [
               ClideTooltip(
                 message: detail.type ?? 'task',
-                child: Container(width: 10, height: 10, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+                ),
               ),
               const SizedBox(width: 8),
               ClideText(detail.id, fontSize: clideFontSmall, color: typeColor, fontFamily: clideMonoFamily),
@@ -188,10 +183,13 @@ class _StatusControls extends StatelessWidget {
               onTap: detail.status == s
                   ? null
                   : () async {
-                      final resp = await controller.ipc.request('pql.tickets.status', args: {
-                        'ids': [detail.id],
-                        'status': s
-                      });
+                      final resp = await controller.ipc.request(
+                        'pql.tickets.status',
+                        args: {
+                          'ids': [detail.id],
+                          'status': s,
+                        },
+                      );
                       if (resp.ok) {
                         controller.messages.publish('builtin.tickets', 'changed', {'id': detail.id});
                         await controller.load(detail.id);
@@ -220,13 +218,13 @@ class _StatusControls extends StatelessWidget {
   }
 
   static String _shortLabel(String s) => switch (s) {
-        'backlog' => 'BACKLOG',
-        'ready' => 'READY',
-        'in_progress' => 'WIP',
-        'review' => 'REVIEW',
-        'done' => 'DONE',
-        _ => s.toUpperCase(),
-      };
+    'backlog' => 'BACKLOG',
+    'ready' => 'READY',
+    'in_progress' => 'WIP',
+    'review' => 'REVIEW',
+    'done' => 'DONE',
+    _ => s.toUpperCase(),
+  };
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -266,7 +264,11 @@ class _CompactCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(width: 6, height: 6, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+              ),
               const SizedBox(width: 6),
               ClideText(id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
               const SizedBox(width: 8),
@@ -312,7 +314,11 @@ class _DecisionRefCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
                   const SizedBox(width: 6),
                   ClideText(id, fontSize: clideFontSmall, color: color, fontFamily: clideMonoFamily),
                   const Spacer(),

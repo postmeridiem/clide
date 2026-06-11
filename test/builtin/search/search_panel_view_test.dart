@@ -28,17 +28,19 @@ void main() {
   tearDown(() => f.dispose());
 
   void emitMatches() {
-    f.services.events.emit(DaemonEvent(
-      subsystem: 'search',
-      kind: 'search.match',
-      data: const {
-        'searchId': 's1',
-        'matches': [
-          {'path': 'lib/a.dart', 'line': 12, 'matchStart': 6, 'matchEnd': 9, 'preview': 'final foo = 1;'},
-        ],
-      },
-      ts: DateTime.now().toUtc(),
-    ));
+    f.services.events.emit(
+      DaemonEvent(
+        subsystem: 'search',
+        kind: 'search.match',
+        data: const {
+          'searchId': 's1',
+          'matches': [
+            {'path': 'lib/a.dart', 'line': 12, 'matchStart': 6, 'matchEnd': 9, 'preview': 'final foo = 1;'},
+          ],
+        },
+        ts: DateTime.now().toUtc(),
+      ),
+    );
   }
 
   testWidgets('search renders matches grouped by file', (tester) async {
@@ -79,12 +81,9 @@ void main() {
     await tester.enterText(find.byType(EditableText).first, 'foo');
     await tester.pump(const Duration(milliseconds: 250));
     await pumpAsync(tester);
-    f.services.events.emit(DaemonEvent(
-      subsystem: 'search',
-      kind: 'search.done',
-      data: const {'searchId': 's1', 'cancelled': false},
-      ts: DateTime.now().toUtc(),
-    ));
+    f.services.events.emit(
+      DaemonEvent(subsystem: 'search', kind: 'search.done', data: const {'searchId': 's1', 'cancelled': false}, ts: DateTime.now().toUtc()),
+    );
     await pumpAsync(tester);
     expect(find.text('No results'), findsOneWidget);
   });
@@ -94,12 +93,9 @@ void main() {
     await tester.enterText(find.byType(EditableText).first, '(bad');
     await tester.pump(const Duration(milliseconds: 250));
     await pumpAsync(tester);
-    f.services.events.emit(DaemonEvent(
-      subsystem: 'search',
-      kind: 'search.error',
-      data: const {'searchId': 's1', 'message': 'invalid regex: boom'},
-      ts: DateTime.now().toUtc(),
-    ));
+    f.services.events.emit(
+      DaemonEvent(subsystem: 'search', kind: 'search.error', data: const {'searchId': 's1', 'message': 'invalid regex: boom'}, ts: DateTime.now().toUtc()),
+    );
     await pumpAsync(tester);
     expect(find.textContaining('invalid regex'), findsOneWidget);
   });
@@ -136,10 +132,7 @@ void main() {
     await seedReplace(tester);
     // The emitted match line is 'final foo = 1;' → preview shows the after
     // (rendered as a RichText span, so match on the plain text).
-    expect(
-      find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText() == 'final bar = 1;'),
-      findsOneWidget,
-    );
+    expect(find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText() == 'final bar = 1;'), findsOneWidget);
   });
 
   testWidgets('Replace all on a dirty tree shows a guard dialog, no apply', (tester) async {
@@ -226,12 +219,13 @@ void main() {
 
   testWidgets('Markdown mode lists markdown files on switch', (tester) async {
     f.ipc.stub(
-        'pql.files',
-        (_) async => _ok({
-              'files': [
-                {'path': 'docs/initial-plan.md'},
-              ],
-            }));
+      'pql.files',
+      (_) async => _ok({
+        'files': [
+          {'path': 'docs/initial-plan.md'},
+        ],
+      }),
+    );
     await tester.pumpWidget(harness(f, const SearchPanelView()));
     await pumpAsync(tester);
 
@@ -243,11 +237,12 @@ void main() {
 
   testWidgets('Vault mode surfaces a pql search error', (tester) async {
     f.ipc.stub(
-        'pql.search',
-        (_) async => IpcResponse.err(
-              id: '',
-              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'pql down'),
-            ));
+      'pql.search',
+      (_) async => IpcResponse.err(
+        id: '',
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'pql down'),
+      ),
+    );
     await tester.pumpWidget(harness(f, const SearchPanelView()));
     await pumpAsync(tester);
     await tester.tap(find.text('Vault'));

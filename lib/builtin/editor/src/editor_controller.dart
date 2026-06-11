@@ -99,12 +99,7 @@ class EditorController extends ChangeNotifier {
     if (raw is! List) return;
     _buffers = [
       for (final b in raw)
-        if (b is Map)
-          (
-            id: b['id']! as String,
-            path: b['path']! as String,
-            dirty: (b['dirty'] as bool?) ?? false,
-          ),
+        if (b is Map) (id: b['id']! as String, path: b['path']! as String, dirty: (b['dirty'] as bool?) ?? false),
     ];
     notifyListeners();
   }
@@ -143,10 +138,7 @@ class EditorController extends ChangeNotifier {
   }
 
   /// Called by the widget on every local text edit.
-  void pushLocalEdit({
-    required String newContent,
-    required Selection newSelection,
-  }) {
+  void pushLocalEdit({required String newContent, required Selection newSelection}) {
     final id = _activeId;
     if (id == null) return;
 
@@ -162,11 +154,7 @@ class EditorController extends ChangeNotifier {
     // large buffers, so event broadcasts stay small.
     _pendingLocalEdits++;
     _suppressNextRemoteEdit = true;
-    ipc.request('editor.set-content', args: {
-      'id': id,
-      'text': newContent,
-      'selection': newSelection.toJson(),
-    }).whenComplete(() => _pendingLocalEdits--);
+    ipc.request('editor.set-content', args: {'id': id, 'text': newContent, 'selection': newSelection.toJson()}).whenComplete(() => _pendingLocalEdits--);
   }
 
   Future<void> save() async {

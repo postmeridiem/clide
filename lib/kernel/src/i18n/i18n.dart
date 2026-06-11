@@ -26,9 +26,9 @@ class I18n extends ChangeNotifier {
     required Locale defaultLocale,
     Locale? initialLocale,
     List<Locale> availableLocales = const [Locale('en', 'US')],
-  })  : _defaultLocale = defaultLocale,
-        _current = initialLocale ?? defaultLocale,
-        _available = List<Locale>.unmodifiable(availableLocales);
+  }) : _defaultLocale = defaultLocale,
+       _current = initialLocale ?? defaultLocale,
+       _available = List<Locale>.unmodifiable(availableLocales);
 
   final CatalogLoader loader;
   final Logger log;
@@ -50,11 +50,7 @@ class I18n extends ChangeNotifier {
 
   /// Register a catalog that was loaded outside of [loader] — e.g. by the
   /// ExtensionManager when a third-party extension activates.
-  void registerCatalog(
-    String namespace,
-    Locale locale,
-    Map<String, Object?> catalog,
-  ) {
+  void registerCatalog(String namespace, Locale locale, Map<String, Object?> catalog) {
     _cache.putIfAbsent(namespace, () => <Locale, Map<String, Object?>>{})[locale] = catalog;
     notifyListeners();
   }
@@ -85,14 +81,8 @@ class I18n extends ChangeNotifier {
   }
 
   Future<void> _ensureLoaded(String namespace) async {
-    final byLocale = _cache.putIfAbsent(
-      namespace,
-      () => <Locale, Map<String, Object?>>{},
-    );
-    final chain = FallbackChain(
-      current: _current,
-      defaultLocale: _defaultLocale,
-    ).resolve();
+    final byLocale = _cache.putIfAbsent(namespace, () => <Locale, Map<String, Object?>>{});
+    final chain = FallbackChain(current: _current, defaultLocale: _defaultLocale).resolve();
     for (final l in chain) {
       if (byLocale.containsKey(l)) continue;
       byLocale[l] = await loader.load(namespace, l);
@@ -102,24 +92,14 @@ class I18n extends ChangeNotifier {
   /// Look up a key, walking the locale fallback chain. Returns the
   /// placeholder if nothing hits; returns the key itself when placeholder
   /// is null (developer fallback — keys are more useful than blanks).
-  String string(
-    String key, {
-    required String namespace,
-    String? placeholder,
-  }) {
+  String string(String key, {required String namespace, String? placeholder}) {
     final byLocale = _cache[namespace];
     if (byLocale == null) {
-      _warnOnce(
-        '$namespace::MISSING_NAMESPACE::$key',
-        'i18n: namespace not registered: $namespace (key: $key)',
-      );
+      _warnOnce('$namespace::MISSING_NAMESPACE::$key', 'i18n: namespace not registered: $namespace (key: $key)');
       return placeholder ?? key;
     }
 
-    final chain = FallbackChain(
-      current: _current,
-      defaultLocale: _defaultLocale,
-    ).resolve();
+    final chain = FallbackChain(current: _current, defaultLocale: _defaultLocale).resolve();
 
     for (final locale in chain) {
       final catalog = byLocale[locale];
@@ -128,22 +108,14 @@ class I18n extends ChangeNotifier {
       if (hit != null) return hit;
     }
 
-    _warnOnce(
-      '$namespace::${_current.languageCode}::$key',
-      'i18n: missing key "$key" in namespace "$namespace" (locale ${_current.toString()})',
-    );
+    _warnOnce('$namespace::${_current.languageCode}::$key', 'i18n: missing key "$key" in namespace "$namespace" (locale ${_current.toString()})');
     return placeholder ?? key;
   }
 
   /// [string] + naive `replaceAll` interpolation per replacer.
   /// Matches fframe: replacers whose [I18nReplacer.from] isn't present
   /// are silent no-ops.
-  String interpolated(
-    String key, {
-    required String namespace,
-    String? placeholder,
-    List<I18nReplacer> replacers = const [],
-  }) {
+  String interpolated(String key, {required String namespace, String? placeholder, List<I18nReplacer> replacers = const []}) {
     var out = string(key, namespace: namespace, placeholder: placeholder);
     for (final r in replacers) {
       out = out.replaceAll(r.from, r.replace);

@@ -26,9 +26,12 @@ class _GraphViewState extends State<GraphView> {
 
   Future<void> _load() async {
     final kernel = ClideKernel.of(context);
-    final resp = await kernel.ipc.request('pql.exec', args: {
-      'argv': ['search', '--connections', '--limit', '50'],
-    });
+    final resp = await kernel.ipc.request(
+      'pql.exec',
+      args: {
+        'argv': ['search', '--connections', '--limit', '50'],
+      },
+    );
     if (!mounted) return;
     if (!resp.ok) {
       setState(() {
@@ -62,10 +65,7 @@ class _GraphViewState extends State<GraphView> {
       return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
     }
     if (_nodes.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: ClideText('No linked files found.\nAdd wikilinks to your markdown files.', muted: true),
-      );
+      return const Padding(padding: EdgeInsets.all(12), child: ClideText('No linked files found.\nAdd wikilinks to your markdown files.', muted: true));
     }
     return ListView.builder(
       itemCount: _nodes.length,
@@ -84,10 +84,10 @@ class _GraphNode {
   final int outbound;
 
   factory _GraphNode.fromJson(Map<String, dynamic> json) => _GraphNode(
-        path: json['path'] as String? ?? json['relative_path'] as String? ?? '',
-        inbound: (json['inbound_count'] as num?)?.toInt() ?? 0,
-        outbound: (json['outbound_count'] as num?)?.toInt() ?? 0,
-      );
+    path: json['path'] as String? ?? json['relative_path'] as String? ?? '',
+    inbound: (json['inbound_count'] as num?)?.toInt() ?? 0,
+    outbound: (json['outbound_count'] as num?)?.toInt() ?? 0,
+  );
 }
 
 class _NodeRow extends StatelessWidget {

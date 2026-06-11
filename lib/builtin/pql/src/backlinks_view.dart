@@ -42,13 +42,7 @@ class _BacklinksViewState extends State<BacklinksView> {
       builder: (context, _) {
         final tokens = ClideTheme.of(context).surface;
         if (c.activePath == null) {
-          return const Padding(
-            padding: EdgeInsets.all(12),
-            child: ClideText(
-              'Open a file to see its links.',
-              muted: true,
-            ),
-          );
+          return const Padding(padding: EdgeInsets.all(12), child: ClideText('Open a file to see its links.', muted: true));
         }
         return Semantics(
           label: 'backlinks for ${c.activePath}',
@@ -62,35 +56,16 @@ class _BacklinksViewState extends State<BacklinksView> {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  child: ClideText(
-                    c.activePath!.split('/').last,
-                    color: tokens.globalForeground,
-                  ),
+                  child: ClideText(c.activePath!.split('/').last, color: tokens.globalForeground),
                 ),
                 if (c.error != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    child: ClideText(
-                      c.error!,
-                      color: tokens.statusError,
-                      fontSize: clideFontCaption,
-                    ),
+                    child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption),
                   ),
-                if (c.loading)
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: ClideText('Loading…', muted: true),
-                  ),
-                _LinkGroup(
-                  label: 'Backlinks',
-                  links: c.backlinks,
-                  pathKey: 'source',
-                ),
-                _LinkGroup(
-                  label: 'Outlinks',
-                  links: c.outlinks,
-                  pathKey: 'target',
-                ),
+                if (c.loading) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+                _LinkGroup(label: 'Backlinks', links: c.backlinks, pathKey: 'source'),
+                _LinkGroup(label: 'Outlinks', links: c.outlinks, pathKey: 'target'),
               ],
             ),
           ),
@@ -101,11 +76,7 @@ class _BacklinksViewState extends State<BacklinksView> {
 }
 
 class _LinkGroup extends StatelessWidget {
-  const _LinkGroup({
-    required this.label,
-    required this.links,
-    required this.pathKey,
-  });
+  const _LinkGroup({required this.label, required this.links, required this.pathKey});
 
   final String label;
   final List<Map<String, Object?>> links;
@@ -119,11 +90,7 @@ class _LinkGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
-          child: ClideText(
-            '$label (${links.length})',
-            fontSize: clideFontCaption,
-            muted: true,
-          ),
+          child: ClideText('$label (${links.length})', fontSize: clideFontCaption, muted: true),
         ),
         if (links.isEmpty)
           const Padding(

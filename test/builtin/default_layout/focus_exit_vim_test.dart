@@ -37,13 +37,16 @@ void main() {
       // Real layering: vim.yaml preset (low) under a contributions layer
       // carrying the extension's actual focusMode.exit escape binding.
       final preset = KeymapLayer.fromYaml(File('assets/keymaps/vim.yaml').readAsStringSync());
-      final contributions = KeymapLayer(name: 'contributions', bindings: [
-        KeymapBinding.chord(
-          KeyChord.parse(exitCmd.defaultBinding!),
-          intent: InvokeCommandIntent(exitCmd.command),
-          when: WhenExpr.tryParse(exitCmd.bindingWhen),
-        ),
-      ]);
+      final contributions = KeymapLayer(
+        name: 'contributions',
+        bindings: [
+          KeymapBinding.chord(
+            KeyChord.parse(exitCmd.defaultBinding!),
+            intent: InvokeCommandIntent(exitCmd.command),
+            when: WhenExpr.tryParse(exitCmd.bindingWhen),
+          ),
+        ],
+      );
       // Keymap flattens layers in reverse, so contributions outrank preset —
       // matching KeymapService._rebuildActive's ordering.
       km = Keymap([preset, contributions]);

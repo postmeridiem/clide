@@ -19,13 +19,7 @@ class LayoutArrangement extends ChangeNotifier {
     _focusModeSnapshot = null;
     _focusModeSlot = null;
     for (final slot in preset.slots) {
-      _state[slot.slot] = _SlotState(
-        position: slot.position,
-        size: slot.defaultSize,
-        minSize: slot.minSize,
-        maxSize: slot.maxSize,
-        visible: slot.visible,
-      );
+      _state[slot.slot] = _SlotState(position: slot.position, size: slot.defaultSize, minSize: slot.minSize, maxSize: slot.maxSize, visible: slot.visible);
     }
     notifyListeners();
   }
@@ -131,26 +125,15 @@ class LayoutArrangement extends ChangeNotifier {
 
   void registerSlotsInto(PanelRegistry registry, LayoutPresetContribution preset) {
     for (final slot in preset.slots) {
-      registry.registerSlot(SlotDefinition(
-        id: slot.slot,
-        position: slot.position,
-        defaultSize: slot.defaultSize,
-        minSize: slot.minSize,
-        maxSize: slot.maxSize,
-      ));
+      registry.registerSlot(
+        SlotDefinition(id: slot.slot, position: slot.position, defaultSize: slot.defaultSize, minSize: slot.minSize, maxSize: slot.maxSize),
+      );
     }
   }
 }
 
 class _SlotState {
-  const _SlotState({
-    required this.position,
-    this.size,
-    this.minSize,
-    this.maxSize,
-    this.visible = true,
-    this.collapsed = false,
-  });
+  const _SlotState({required this.position, this.size, this.minSize, this.maxSize, this.visible = true, this.collapsed = false});
 
   final SlotPosition position;
   final double? size;
@@ -159,14 +142,7 @@ class _SlotState {
   final bool visible;
   final bool collapsed;
 
-  _SlotState copyWith({
-    SlotPosition? position,
-    double? size,
-    double? minSize,
-    double? maxSize,
-    bool? visible,
-    bool? collapsed,
-  }) {
+  _SlotState copyWith({SlotPosition? position, double? size, double? minSize, double? maxSize, bool? visible, bool? collapsed}) {
     return _SlotState(
       position: position ?? this.position,
       size: size ?? this.size,

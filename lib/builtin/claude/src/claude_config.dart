@@ -94,13 +94,7 @@ class ClaudePermissions {
 /// + plugin + MCP), the skill names, the default model and permission mode.
 @immutable
 class ClaudeProbe {
-  const ClaudeProbe({
-    required this.version,
-    required this.slashCommands,
-    required this.skills,
-    this.model,
-    this.permissionMode,
-  });
+  const ClaudeProbe({required this.version, required this.slashCommands, required this.skills, this.model, this.permissionMode});
 
   final String version;
   final List<String> slashCommands;
@@ -109,12 +103,12 @@ class ClaudeProbe {
   final String? permissionMode;
 
   Map<String, Object?> toJson() => {
-        'version': version,
-        'slash_commands': slashCommands,
-        'skills': skills,
-        if (model != null) 'model': model,
-        if (permissionMode != null) 'permission_mode': permissionMode,
-      };
+    'version': version,
+    'slash_commands': slashCommands,
+    'skills': skills,
+    if (model != null) 'model': model,
+    if (permissionMode != null) 'permission_mode': permissionMode,
+  };
 
   /// Build from a stream-json `init` event object. Returns null if it doesn't
   /// look like an init event (no version field).
@@ -130,12 +124,12 @@ class ClaudeProbe {
   }
 
   static ClaudeProbe fromCache(Map<String, Object?> j) => ClaudeProbe(
-        version: (j['version'] as String?) ?? '',
-        slashCommands: _stringList(j['slash_commands']),
-        skills: _stringList(j['skills']),
-        model: j['model'] as String?,
-        permissionMode: j['permission_mode'] as String?,
-      );
+    version: (j['version'] as String?) ?? '',
+    slashCommands: _stringList(j['slash_commands']),
+    skills: _stringList(j['skills']),
+    model: j['model'] as String?,
+    permissionMode: j['permission_mode'] as String?,
+  );
 }
 
 List<String> _stringList(Object? v) => v is List ? v.whereType<String>().toList(growable: false) : const [];
@@ -184,13 +178,13 @@ class ClaudeConfig extends ChangeNotifier {
     ClaudeInitProbe? initProbe,
     ClaudeConfigWatch? watch,
     Duration debounce = const Duration(milliseconds: 150),
-  })  : _globalDir = globalDir,
-        _cacheDir = cacheDir,
-        _projectDir = projectDir,
-        _versionRunner = versionRunner ?? _defaultVersionRunner,
-        _initProbe = initProbe ?? _defaultInitProbe,
-        _watch = watch,
-        _debounceFor = debounce;
+  }) : _globalDir = globalDir,
+       _cacheDir = cacheDir,
+       _projectDir = projectDir,
+       _versionRunner = versionRunner ?? _defaultVersionRunner,
+       _initProbe = initProbe ?? _defaultInitProbe,
+       _watch = watch,
+       _debounceFor = debounce;
 
   final Directory _globalDir;
   final Directory _cacheDir;
@@ -400,10 +394,7 @@ class ClaudeConfig extends ChangeNotifier {
   /// Global first so that local entries, added later, win on collisions.
   List<(ConfigScope, Directory)> _scopeDirs() {
     final pd = _projectDir;
-    return [
-      (ConfigScope.global, _globalDir),
-      if (pd != null) (ConfigScope.local, Directory('${pd.path}/.claude')),
-    ];
+    return [(ConfigScope.global, _globalDir), if (pd != null) (ConfigScope.local, Directory('${pd.path}/.claude'))];
   }
 
   Future<List<ClaudeSkill>> _loadSkills(Directory scopeDir, ConfigScope scope) async {
@@ -415,12 +406,7 @@ class ClaudeConfig extends ChangeNotifier {
       final manifest = File('${entry.path}/SKILL.md');
       if (!await manifest.exists()) continue;
       final fm = _parseFrontmatter(await manifest.readAsString());
-      out.add(ClaudeSkill(
-        name: fm.name ?? _basename(entry.path),
-        description: fm.description,
-        scope: scope,
-        path: manifest.path,
-      ));
+      out.add(ClaudeSkill(name: fm.name ?? _basename(entry.path), description: fm.description, scope: scope, path: manifest.path));
     }
     return out;
   }
@@ -432,11 +418,7 @@ class ClaudeConfig extends ChangeNotifier {
     await for (final entry in dir.list()) {
       if (entry is! File || !entry.path.endsWith('.md')) continue;
       final base = _basename(entry.path);
-      out.add(ClaudeCommand(
-        name: base.substring(0, base.length - 3),
-        scope: scope,
-        path: entry.path,
-      ));
+      out.add(ClaudeCommand(name: base.substring(0, base.length - 3), scope: scope, path: entry.path));
     }
     return out;
   }
@@ -449,11 +431,7 @@ class ClaudeConfig extends ChangeNotifier {
     await for (final entry in dir.list()) {
       if (entry is! File || !entry.path.endsWith('.md')) continue;
       final base = _basename(entry.path);
-      out.add(ClaudeAgent(
-        name: base.substring(0, base.length - 3),
-        scope: scope,
-        path: entry.path,
-      ));
+      out.add(ClaudeAgent(name: base.substring(0, base.length - 3), scope: scope, path: entry.path));
     }
     return out;
   }
@@ -472,11 +450,7 @@ class ClaudeConfig extends ChangeNotifier {
   ClaudePermissions _permissionsOf(Map<String, Object?> settings) {
     final p = settings['permissions'];
     if (p is! Map) return const ClaudePermissions();
-    return ClaudePermissions(
-      allow: _stringList(p['allow']),
-      deny: _stringList(p['deny']),
-      ask: _stringList(p['ask']),
-    );
+    return ClaudePermissions(allow: _stringList(p['allow']), deny: _stringList(p['deny']), ask: _stringList(p['ask']));
   }
 
   // ---- Watching -----------------------------------------------------------
@@ -573,9 +547,7 @@ class ClaudeConfig extends ChangeNotifier {
   /// Claude's `mcpServers` is a `Map<String, {...config}>` keyed on server name.
   static List<ClaudeMcpServer> _parseMcpServers(Object? raw) {
     if (raw is! Map) return const [];
-    return [
-      for (final key in raw.keys) ClaudeMcpServer(name: '$key'),
-    ];
+    return [for (final key in raw.keys) ClaudeMcpServer(name: '$key')];
   }
 
   static List<T> _dedupeByName<T>(List<T> all, String Function(T) nameOf) {
@@ -608,14 +580,7 @@ Future<String?> _defaultVersionRunner() async {
 
 Future<String?> _defaultInitProbe() async {
   try {
-    final r = await Process.run('claude', [
-      '-p',
-      '.',
-      '--no-session-persistence',
-      '--output-format',
-      'stream-json',
-      '--verbose',
-    ]);
+    final r = await Process.run('claude', ['-p', '.', '--no-session-persistence', '--output-format', 'stream-json', '--verbose']);
     return r.stdout as String?;
   } catch (_) {
     return null;

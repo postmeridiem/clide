@@ -33,18 +33,9 @@ enum SeqOutcome {
 
 @immutable
 class SeqResult {
-  const SeqResult.fired(Intent this.intent, this.count)
-      : outcome = SeqOutcome.fired,
-        passKey = null;
-  const SeqResult.pending()
-      : outcome = SeqOutcome.pending,
-        intent = null,
-        count = 1,
-        passKey = null;
-  const SeqResult.unmatched(this.passKey)
-      : outcome = SeqOutcome.unmatched,
-        intent = null,
-        count = 1;
+  const SeqResult.fired(Intent this.intent, this.count) : outcome = SeqOutcome.fired, passKey = null;
+  const SeqResult.pending() : outcome = SeqOutcome.pending, intent = null, count = 1, passKey = null;
+  const SeqResult.unmatched(this.passKey) : outcome = SeqOutcome.unmatched, intent = null, count = 1;
 
   final SeqOutcome outcome;
   final Intent? intent;
@@ -53,12 +44,9 @@ class SeqResult {
 }
 
 class SequenceMatcher {
-  SequenceMatcher({
-    required Keymap Function() keymap,
-    required Map<String, bool> Function() context,
-    this.captureCounts = true,
-  })  : _keymap = keymap,
-        _context = context;
+  SequenceMatcher({required Keymap Function() keymap, required Map<String, bool> Function() context, this.captureCounts = true})
+    : _keymap = keymap,
+      _context = context;
 
   final Keymap Function() _keymap;
   final Map<String, bool> Function() _context;

@@ -181,11 +181,7 @@ void main() {
   });
 
   test('pql.decisions.show forwards withRefs / withTickets', () async {
-    final r = await call('pql.decisions.show', {
-      'id': 'D-1',
-      'withRefs': true,
-      'withTickets': true,
-    });
+    final r = await call('pql.decisions.show', {'id': 'D-1', 'withRefs': true, 'withTickets': true});
     expect(r.ok, isTrue);
     expect(r.data['id'], 'D-1');
   });
@@ -198,12 +194,7 @@ void main() {
   });
 
   test('pql.tickets.list with filters narrows + shows status', () async {
-    final r = await call('pql.tickets.list', {
-      'status': 'done',
-      'team': 'whatever',
-      'assigned': 'no-one',
-      'decision': 'D-1',
-    });
+    final r = await call('pql.tickets.list', {'status': 'done', 'team': 'whatever', 'assigned': 'no-one', 'decision': 'D-1'});
     expect(r.ok, isTrue);
     expect(r.data['tickets'], isA<List>());
   });
@@ -212,11 +203,7 @@ void main() {
     final missing = await call('pql.tickets.show');
     expect(missing.ok, isFalse);
     expect(missing.error!.kind, 'user_error');
-    final ok = await call('pql.tickets.show', {
-      'id': 'T-1',
-      'withContext': true,
-      'withBlockers': true,
-    });
+    final ok = await call('pql.tickets.show', {'id': 'T-1', 'withContext': true, 'withBlockers': true});
     expect(ok.ok, isTrue);
   });
 

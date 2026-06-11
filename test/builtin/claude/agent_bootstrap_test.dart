@@ -37,43 +37,23 @@ void main() {
 
   group('agentEnvDelta (T-215)', () {
     test('always exports CLIDE_SOCK + CLIDE_WORKSPACE', () {
-      final d = agentEnvDelta(
-        workspaceRoot: '/repo',
-        socketPath: '/run/clide/abc.sock',
-        currentPath: '/usr/bin',
-        clideCliDir: null,
-      );
+      final d = agentEnvDelta(workspaceRoot: '/repo', socketPath: '/run/clide/abc.sock', currentPath: '/usr/bin', clideCliDir: null);
       expect(d['CLIDE_WORKSPACE'], '/repo');
       expect(d['CLIDE_SOCK'], '/run/clide/abc.sock');
     });
 
     test('leaves PATH untouched when clide is already resolvable (clideCliDir null)', () {
-      final d = agentEnvDelta(
-        workspaceRoot: '/repo',
-        socketPath: '/s.sock',
-        currentPath: '/usr/bin',
-        clideCliDir: null,
-      );
+      final d = agentEnvDelta(workspaceRoot: '/repo', socketPath: '/s.sock', currentPath: '/usr/bin', clideCliDir: null);
       expect(d.containsKey('PATH'), isFalse);
     });
 
     test('prepends the cli dir to PATH when given', () {
-      final d = agentEnvDelta(
-        workspaceRoot: '/repo',
-        socketPath: '/s.sock',
-        currentPath: '/usr/bin:/bin',
-        clideCliDir: '/home/dev/.local/bin',
-      );
+      final d = agentEnvDelta(workspaceRoot: '/repo', socketPath: '/s.sock', currentPath: '/usr/bin:/bin', clideCliDir: '/home/dev/.local/bin');
       expect(d['PATH'], '/home/dev/.local/bin:/usr/bin:/bin');
     });
 
     test('sets PATH to just the cli dir when there is no current PATH', () {
-      final d = agentEnvDelta(
-        workspaceRoot: '/repo',
-        socketPath: '/s.sock',
-        currentPath: null,
-        clideCliDir: '/opt/clide/bin',
-      );
+      final d = agentEnvDelta(workspaceRoot: '/repo', socketPath: '/s.sock', currentPath: null, clideCliDir: '/opt/clide/bin');
       expect(d['PATH'], '/opt/clide/bin');
     });
   });
@@ -98,11 +78,7 @@ void main() {
     });
 
     test('returns null when nothing holds clide', () {
-      final dir = resolveClideCliDir(
-        currentPath: '/usr/bin',
-        candidateDirs: const ['/a', '/b'],
-        isExecutableFile: (_) => false,
-      );
+      final dir = resolveClideCliDir(currentPath: '/usr/bin', candidateDirs: const ['/a', '/b'], isExecutableFile: (_) => false);
       expect(dir, isNull);
     });
   });

@@ -49,8 +49,9 @@ class _ProblemsViewState extends State<ProblemsView> {
           explicitChildNodes: true,
           child: () {
             final lf = _filter.toLowerCase();
-            final filtered =
-                lf.isEmpty ? c.problems : c.problems.where((p) => p.message.toLowerCase().contains(lf) || p.source.toLowerCase().contains(lf)).toList();
+            final filtered = lf.isEmpty
+                ? c.problems
+                : c.problems.where((p) => p.message.toLowerCase().contains(lf) || p.source.toLowerCase().contains(lf)).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -59,14 +60,18 @@ class _ProblemsViewState extends State<ProblemsView> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                   child: Row(
                     children: [
-                      Expanded(child: ClideText('Problems (${filtered.length})', fontSize: clideFontCaption, color: tokens.sidebarForeground)),
+                      Expanded(
+                        child: ClideText('Problems (${filtered.length})', fontSize: clideFontCaption, color: tokens.sidebarForeground),
+                      ),
                       Semantics(
                         button: true,
                         label: 'refresh problems',
                         child: GestureDetector(
                           onTap: () => unawaited(c.refresh()),
                           child: MouseRegion(
-                              cursor: SystemMouseCursors.click, child: ClideText('Refresh', fontSize: clideFontCaption, color: tokens.sidebarForeground)),
+                            cursor: SystemMouseCursors.click,
+                            child: ClideText('Refresh', fontSize: clideFontCaption, color: tokens.sidebarForeground),
+                          ),
                         ),
                       ),
                     ],
@@ -108,31 +113,15 @@ class _ProblemRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              ClideText(
-                problem.source,
-                fontSize: clideFontMono,
-                color: tokens.statusWarning,
-                fontFamily: clideMonoFamily,
-              ),
+              ClideText(problem.source, fontSize: clideFontMono, color: tokens.statusWarning, fontFamily: clideMonoFamily),
               const SizedBox(width: 6),
-              Expanded(
-                child: ClideText(
-                  problem.message,
-                  color: tokens.sidebarForeground,
-                  maxLines: 2,
-                ),
-              ),
+              Expanded(child: ClideText(problem.message, color: tokens.sidebarForeground, maxLines: 2)),
             ],
           ),
           if (problem.hint != null)
             Padding(
               padding: const EdgeInsets.only(left: 44, top: 2),
-              child: ClideText(
-                problem.hint!,
-                fontSize: clideFontMono,
-                muted: true,
-                fontFamily: clideMonoFamily,
-              ),
+              child: ClideText(problem.hint!, fontSize: clideFontMono, muted: true, fontFamily: clideMonoFamily),
             ),
         ],
       ),

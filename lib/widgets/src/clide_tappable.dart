@@ -95,10 +95,7 @@ class _ClideTappableState extends State<ClideTappable> {
     child = DecoratedBox(
       position: DecorationPosition.foreground,
       decoration: BoxDecoration(
-        border: Border.all(
-          color: _focused ? tokens.globalFocus : const Color(0x00000000),
-          width: 2,
-        ),
+        border: Border.all(color: _focused ? tokens.globalFocus : const Color(0x00000000), width: 2),
         borderRadius: BorderRadius.circular(3),
       ),
       child: child,
@@ -109,16 +106,8 @@ class _ClideTappableState extends State<ClideTappable> {
     // provider. The reverse nesting would leave Actions as a descendant
     // of the focused context — unreachable.
     child = Actions(
-      actions: <Type, Action<Intent>>{
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: _activate),
-      },
-      child: Focus(
-        focusNode: _effectiveFocus,
-        canRequestFocus: enabled,
-        autofocus: widget.autofocus,
-        onFocusChange: _setFocused,
-        child: child,
-      ),
+      actions: <Type, Action<Intent>>{ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: _activate)},
+      child: Focus(focusNode: _effectiveFocus, canRequestFocus: enabled, autofocus: widget.autofocus, onFocusChange: _setFocused, child: child),
     );
 
     if (widget.tooltip != null) {

@@ -20,11 +20,7 @@ typedef GrammarBytesLoader = Future<Uint8List> Function(String language);
 typedef GrammarQueryLoader = Future<String?> Function(String language);
 
 class SyntaxSpan {
-  const SyntaxSpan({
-    required this.start,
-    required this.end,
-    required this.role,
-  });
+  const SyntaxSpan({required this.start, required this.end, required this.role});
 
   final int start;
   final int end;
@@ -39,11 +35,7 @@ class SyntaxResult {
 }
 
 class _LoadedGrammar {
-  _LoadedGrammar({
-    required this.language,
-    required this.query,
-    required this.captureNames,
-  });
+  _LoadedGrammar({required this.language, required this.query, required this.captureNames});
 
   final Pointer<Void> language;
   final Pointer<TSQuery> query;
@@ -56,13 +48,10 @@ class TreeSitterService {
   /// Production constructor: uses the dlopen'd [TreeSitterLib.instance] and
   /// the Flutter [rootBundle]. Tests pass [lib] / [grammarBytes] /
   /// [grammarQuery] to substitute a fake FFI surface and in-memory assets.
-  TreeSitterService({
-    TreeSitterLib? lib,
-    GrammarBytesLoader? grammarBytes,
-    GrammarQueryLoader? grammarQuery,
-  })  : _injectedLib = lib,
-        _grammarBytes = grammarBytes ?? _defaultGrammarBytes,
-        _grammarQuery = grammarQuery ?? _defaultGrammarQuery;
+  TreeSitterService({TreeSitterLib? lib, GrammarBytesLoader? grammarBytes, GrammarQueryLoader? grammarQuery})
+    : _injectedLib = lib,
+      _grammarBytes = grammarBytes ?? _defaultGrammarBytes,
+      _grammarQuery = grammarQuery ?? _defaultGrammarQuery;
 
   final TreeSitterLib? _injectedLib;
   final GrammarBytesLoader _grammarBytes;
@@ -142,13 +131,7 @@ class TreeSitterService {
       wasmNative.asTypedList(wasmBytes.length).setAll(0, wasmBytes);
       final error = calloc<TSWasmError>();
 
-      final lang = lib.wasmStoreLoadLanguage(
-        _store!,
-        nameNative.cast(),
-        wasmNative,
-        wasmBytes.length,
-        error,
-      );
+      final lang = lib.wasmStoreLoadLanguage(_store!, nameNative.cast(), wasmNative, wasmBytes.length, error);
 
       calloc.free(wasmNative);
       calloc.free(nameNative);
@@ -174,13 +157,7 @@ class TreeSitterService {
         final errorOffset = calloc<Uint32>();
         final errorType = calloc<Int32>();
 
-        query = lib.queryNew(
-          lang,
-          queryNative.cast(),
-          queryLen,
-          errorOffset,
-          errorType,
-        );
+        query = lib.queryNew(lang, queryNative.cast(), queryLen, errorOffset, errorType);
 
         calloc.free(queryNative);
         calloc.free(errorOffset);
@@ -198,11 +175,7 @@ class TreeSitterService {
         }
       }
 
-      final grammar = _LoadedGrammar(
-        language: lang,
-        query: query,
-        captureNames: captureNames,
-      );
+      final grammar = _LoadedGrammar(language: lang, query: query, captureNames: captureNames);
       _grammars[language] = grammar;
       return grammar;
     } catch (_) {
@@ -244,12 +217,7 @@ class TreeSitterService {
     // Parse source.
     final sourceNative = source.toNativeUtf8();
     final sourceLen = utf8.encode(source).length;
-    final tree = lib.parserParseString(
-      parser,
-      nullptr,
-      sourceNative.cast(),
-      sourceLen,
-    );
+    final tree = lib.parserParseString(parser, nullptr, sourceNative.cast(), sourceLen);
 
     if (tree == nullptr) {
       calloc.free(sourceNative);
@@ -270,11 +238,7 @@ class TreeSitterService {
         final cap = m.captures[i];
         final captureIndex = cap.index;
         if (captureIndex < grammar.captureNames.length) {
-          spans.add(SyntaxSpan(
-            start: lib.nodeStartByte(cap.node),
-            end: lib.nodeEndByte(cap.node),
-            role: grammar.captureNames[captureIndex],
-          ));
+          spans.add(SyntaxSpan(start: lib.nodeStartByte(cap.node), end: lib.nodeEndByte(cap.node), role: grammar.captureNames[captureIndex]));
         }
       }
     }

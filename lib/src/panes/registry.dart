@@ -52,36 +52,17 @@ class PaneRegistry {
       'COLORTERM': 'truecolor',
       'LANG': 'en_US.UTF-8',
       'LC_ALL': 'en_US.UTF-8',
-      if (env != null) ...env,
+      ...?env,
     };
 
-    final session = NativePty.start(
-      executable: executable,
-      arguments: arguments,
-      columns: cols,
-      rows: rows,
-      workingDirectory: cwd,
-      environment: fullEnv,
-    );
-    final pane = Pane(
-      id: id,
-      kind: kind,
-      pid: session.pid,
-      argv: argv,
-      cwd: cwd,
-      title: title,
-    );
+    final session = NativePty.start(executable: executable, arguments: arguments, columns: cols, rows: rows, workingDirectory: cwd, environment: fullEnv);
+    final pane = Pane(id: id, kind: kind, pid: session.pid, argv: argv, cwd: cwd, title: title);
     _panes[id] = pane;
     _sessions[id] = session;
 
     _emit('pane.spawned', id, pane.toJson());
 
-    _subs[id] = session.output.listen(
-      (bytes) => _emit('pane.output', id, {
-        'bytes_b64': base64Encode(bytes),
-      }),
-      onDone: () => _onExit(pane),
-    );
+    _subs[id] = session.output.listen((bytes) => _emit('pane.output', id, {'bytes_b64': base64Encode(bytes)}), onDone: () => _onExit(pane));
 
     return pane;
   }
@@ -136,11 +117,6 @@ class PaneRegistry {
   }
 
   void _emit(String kind, String id, Map<String, Object?> data) {
-    events.emit(IpcEvent(
-      subsystem: 'pane',
-      kind: kind,
-      timestamp: DateTime.now().toUtc(),
-      data: {'id': id, ...data},
-    ));
+    events.emit(IpcEvent(subsystem: 'pane', kind: kind, timestamp: DateTime.now().toUtc(), data: {'id': id, ...data}));
   }
 }

@@ -13,23 +13,20 @@ class WelcomeExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'welcome.view',
-          slot: Slots.workspace,
-          title: 'Welcome',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: -100, // anchor at the far left of the workspace tabs
-          build: (_) => const WelcomeView(),
-        ),
-        CommandContribution(
-          id: 'workspace.open-project',
-          command: 'workspace.open-project',
-          title: 'Workspace: Open project…',
-          run: (_) async => IpcResponse.ok(
-            id: '',
-            data: const {'note': 'project picker lands in a later tier'},
-          ),
-        ),
-      ];
+    TabContribution(
+      id: 'welcome.view',
+      slot: Slots.workspace,
+      title: 'Welcome',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: -100, // anchor at the far left of the workspace tabs
+      build: (_) => const WelcomeView(),
+    ),
+    CommandContribution(
+      id: 'workspace.open-project',
+      command: 'workspace.open-project',
+      title: 'Workspace: Open project…',
+      run: (_) async => IpcResponse.ok(id: '', data: const {'note': 'project picker lands in a later tier'}),
+    ),
+  ];
 }

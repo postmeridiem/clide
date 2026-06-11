@@ -29,14 +29,7 @@ void main() {
         ])
           GoldenTestScenario(
             name: pair.$1,
-            child: harness(
-              f,
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: ClideIcon(pair.$2, size: 24),
-              ),
-            ),
+            child: harness(f, SizedBox(width: 24, height: 24, child: ClideIcon(pair.$2, size: 24))),
           ),
       ],
     ),

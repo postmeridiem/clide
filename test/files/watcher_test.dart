@@ -15,12 +15,12 @@ void main() {
     test('fromEvent maps every FileSystemEvent.type to a wire kind', () {
       final dir = Directory.systemTemp;
       FileSystemEvent ev(int type) => switch (type) {
-            FileSystemEvent.create => FileSystemCreateEvent('${dir.path}/f', false),
-            FileSystemEvent.delete => FileSystemDeleteEvent('${dir.path}/f', false),
-            FileSystemEvent.modify => FileSystemModifyEvent('${dir.path}/f', false, false),
-            FileSystemEvent.move => FileSystemMoveEvent('${dir.path}/f', false, '${dir.path}/g'),
-            _ => FileSystemModifyEvent('${dir.path}/f', false, false),
-          };
+        FileSystemEvent.create => FileSystemCreateEvent('${dir.path}/f', false),
+        FileSystemEvent.delete => FileSystemDeleteEvent('${dir.path}/f', false),
+        FileSystemEvent.modify => FileSystemModifyEvent('${dir.path}/f', false, false),
+        FileSystemEvent.move => FileSystemMoveEvent('${dir.path}/f', false, '${dir.path}/g'),
+        _ => FileSystemModifyEvent('${dir.path}/f', false, false),
+      };
       expect(FileChangeKind.fromEvent(ev(FileSystemEvent.create)), FileChangeKind.created);
       expect(FileChangeKind.fromEvent(ev(FileSystemEvent.delete)), FileChangeKind.deleted);
       expect(FileChangeKind.fromEvent(ev(FileSystemEvent.modify)), FileChangeKind.modified);
@@ -65,15 +65,9 @@ void main() {
       // amount. firstWhere completes on the first matching event;
       // the timeout fails the test with a clear message if inotify
       // never delivers (instead of asserting on an empty list).
-      final saw = watcher.stream.firstWhere(
-        (c) => c.path == 'new.txt',
-        orElse: () => throw StateError('stream closed before new.txt arrived'),
-      );
+      final saw = watcher.stream.firstWhere((c) => c.path == 'new.txt', orElse: () => throw StateError('stream closed before new.txt arrived'));
       await File('${sandbox.path}/new.txt').writeAsString('hi');
-      final change = await saw.timeout(
-        ioTimeout,
-        onTimeout: () => fail('no `new.txt` event within ${ioTimeout.inSeconds}s'),
-      );
+      final change = await saw.timeout(ioTimeout, onTimeout: () => fail('no `new.txt` event within ${ioTimeout.inSeconds}s'));
       expect(change.path, 'new.txt');
     });
 

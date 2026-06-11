@@ -35,17 +35,14 @@ void main() {
 
     testWidgets('writePlain + readPlain go through the platform clipboard channel', (tester) async {
       String? last;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.setData') {
-            last = (call.arguments as Map)['text'] as String?;
-          } else if (call.method == 'Clipboard.getData') {
-            return <String, dynamic>{'text': last};
-          }
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          last = (call.arguments as Map)['text'] as String?;
+        } else if (call.method == 'Clipboard.getData') {
+          return <String, dynamic>{'text': last};
+        }
+        return null;
+      });
       final c = ClideClipboard();
       await c.writePlain('hello');
       expect(last, 'hello');
@@ -56,15 +53,12 @@ void main() {
 
     testWidgets('write with toPlain syncs to the OS clipboard', (tester) async {
       String? last;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.setData') {
-            last = (call.arguments as Map)['text'] as String?;
-          }
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          last = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      });
       final c = ClideClipboard();
       await c.write<int>(7, toPlain: (n) => 'n=$n');
       expect(last, 'n=7');
@@ -260,12 +254,7 @@ void main() {
       n.error('e');
       n.success('s', duration: const Duration(seconds: 1));
       expect(n.active, hasLength(4));
-      expect(n.active.map((x) => x.level), [
-        NotificationLevel.info,
-        NotificationLevel.warning,
-        NotificationLevel.error,
-        NotificationLevel.success,
-      ]);
+      expect(n.active.map((x) => x.level), [NotificationLevel.info, NotificationLevel.warning, NotificationLevel.error, NotificationLevel.success]);
       n.dispose();
     });
 

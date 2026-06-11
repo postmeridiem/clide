@@ -24,14 +24,8 @@ void main() {
     });
 
     test('scope key validation — rejects non-standard prefixes', () async {
-      expect(
-        () => store.get<String>('nothing.here'),
-        throwsA(isA<ArgumentError>()),
-      );
-      expect(
-        () => store.set('notascope.key', 'v'),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => store.get<String>('nothing.here'), throwsA(isA<ArgumentError>()));
+      expect(() => store.set('notascope.key', 'v'), throwsA(isA<ArgumentError>()));
     });
 
     test('app.* scope round-trips via YAML on disk', () async {
@@ -56,10 +50,7 @@ void main() {
     });
 
     test('setting a project.* key without an open project throws', () async {
-      expect(
-        () => store.set('project.thing', 'x'),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => store.set('project.thing', 'x'), throwsA(isA<StateError>()));
     });
 
     test('project scope is isolated from app scope', () async {
@@ -106,10 +97,7 @@ void main() {
     });
 
     test('setting a project-scoped key without a project throws StateError', () async {
-      expect(
-        () async => store.set<int>('project.unset', 1),
-        throwsA(isA<StateError>()),
-      );
+      expect(() async => store.set<int>('project.unset', 1), throwsA(isA<StateError>()));
     });
 
     test('ext.* keys default to app scope; project overrides app for the same key', () async {

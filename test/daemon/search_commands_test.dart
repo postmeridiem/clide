@@ -17,12 +17,7 @@ void main() {
     File('${dir.path}/a.dart').writeAsStringSync('final answer = 42;\n');
     File('${dir.path}/b.dart').writeAsStringSync('// no hits here\n');
     sink = RecordingEventSink();
-    final service = SearchService(
-      root: dir,
-      ignore: IgnoreSet([]),
-      events: sink,
-      useIsolates: false,
-    );
+    final service = SearchService(root: dir, ignore: IgnoreSet([]), events: sink, useIsolates: false);
     d = DaemonDispatcher();
     registerSearchCommands(d, service);
   });

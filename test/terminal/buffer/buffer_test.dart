@@ -14,14 +14,7 @@ import 'package:clide/src/terminal/src/core/state.dart';
 import 'package:test/test.dart';
 
 class _State implements TerminalState {
-  _State({
-    this.viewWidth = 10,
-    this.viewHeight = 5,
-    this.autoWrapMode = true,
-    this.lineFeedMode = false,
-    this.originMode = false,
-    this.reflowEnabled = false,
-  });
+  _State({this.viewWidth = 10, this.viewHeight = 5, this.autoWrapMode = true, this.lineFeedMode = false, this.originMode = false, this.reflowEnabled = false});
 
   @override
   int viewWidth;
@@ -83,12 +76,7 @@ Buffer _newBuffer({
     originMode: originMode,
     reflowEnabled: reflowEnabled,
   );
-  return Buffer(
-    state,
-    maxLines: maxLines,
-    isAltBuffer: isAltBuffer,
-    wordSeparators: wordSeparators,
-  );
+  return Buffer(state, maxLines: maxLines, isAltBuffer: isAltBuffer, wordSeparators: wordSeparators);
 }
 
 void main() {

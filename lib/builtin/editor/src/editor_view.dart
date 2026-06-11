@@ -65,10 +65,7 @@ class _EditorViewState extends State<EditorView> {
     final kernel = ClideKernel.of(context);
     _controller = EditorController(ipc: kernel.ipc, events: kernel.events)..addListener(_onControllerChanged);
     _keymap = kernel.keymap;
-    _matcher = SequenceMatcher(
-      keymap: () => kernel.keymap.keymap ?? Keymap(const []),
-      context: () => kernel.keymap.scope,
-    );
+    _matcher = SequenceMatcher(keymap: () => kernel.keymap.keymap ?? Keymap(const []), context: () => kernel.keymap.scope);
     // Rebuild when the Vim mode flips so the editor toggles read-only.
     kernel.keymap.addListener(_onModeChanged);
     unawaited(_controller!.hydrate());
@@ -105,10 +102,7 @@ class _EditorViewState extends State<EditorView> {
     _text.updatePath(c.activePath);
     if (c.content != _lastRemoteContent) {
       _lastRemoteContent = c.content;
-      final sel = TextSelection(
-        baseOffset: c.selection.start.clamp(0, c.content.length),
-        extentOffset: c.selection.end.clamp(0, c.content.length),
-      );
+      final sel = TextSelection(baseOffset: c.selection.start.clamp(0, c.content.length), extentOffset: c.selection.end.clamp(0, c.content.length));
       _text.removeListener(_onTextChanged);
       _text.value = TextEditingValue(text: c.content, selection: sel);
       _text.addListener(_onTextChanged);
@@ -306,9 +300,7 @@ class _EditorViewState extends State<EditorView> {
           return ClidePaneChrome(
             title: 'editor',
             subtitle: 'no buffer · use `clide open <path>` or pick a file in the tree',
-            child: const Center(
-              child: ClideText('Open a file to begin editing.', muted: true),
-            ),
+            child: const Center(child: ClideText('Open a file to begin editing.', muted: true)),
           );
         }
         return MultitabPane<String>(
@@ -357,12 +349,7 @@ class _TextBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(
-      color: foreground,
-      fontSize: clideFontMono,
-      fontFamily: clideMonoFamily,
-      fontFamilyFallback: clideMonoFamilyFallback,
-    );
+    final style = TextStyle(color: foreground, fontSize: clideFontMono, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback);
     final editable = EditableText(
       controller: controller,
       focusNode: focus,
@@ -398,7 +385,10 @@ class _TextBody extends StatelessWidget {
 
   /// Advance width of one monospace glyph in [style].
   static double _charWidth(TextStyle style) {
-    final tp = TextPainter(text: TextSpan(text: '0', style: style), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(
+      text: TextSpan(text: '0', style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
     return tp.width;
   }
 }
@@ -413,11 +403,12 @@ class _RulerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        Paint()
-          ..color = color
-          ..strokeWidth = 1);
+      Offset(x, 0),
+      Offset(x, size.height),
+      Paint()
+        ..color = color
+        ..strokeWidth = 1,
+    );
   }
 
   @override

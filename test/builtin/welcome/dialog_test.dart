@@ -16,10 +16,7 @@ import '../../helpers/widget_harness.dart';
 /// Wraps [harness] in a DialogHost rooted on the fixture's dialog
 /// router so kernel.dialog.show(...) calls render into the tree.
 Widget _harness(KernelFixture f, Widget child) {
-  return harness(
-    f,
-    DialogHost(router: f.services.dialog, child: child),
-  );
+  return harness(f, DialogHost(router: f.services.dialog, child: child));
 }
 
 void main() {
@@ -43,15 +40,12 @@ void main() {
     tearDown(() async => f.dispose());
 
     testWidgets('MissingPluginException path renders the OpenProjectDialog', (tester) async {
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('clide/window'),
-        (call) async {
-          if (call.method == 'pickDirectory') {
-            throw MissingPluginException();
-          }
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async {
+        if (call.method == 'pickDirectory') {
+          throw MissingPluginException();
+        }
+        return null;
+      });
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -67,10 +61,7 @@ void main() {
     });
 
     testWidgets('OpenProjectDialog Cancel dismisses the modal', (tester) async {
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('clide/window'),
-        (call) async => throw MissingPluginException(),
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async => throw MissingPluginException());
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -85,10 +76,7 @@ void main() {
     });
 
     testWidgets('OpenProjectDialog Open with empty path is a no-op', (tester) async {
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('clide/window'),
-        (call) async => throw MissingPluginException(),
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async => throw MissingPluginException());
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -105,10 +93,7 @@ void main() {
     });
 
     testWidgets('OpenProjectDialog Open with a non-repo path keeps the dialog (project.open returns false)', (tester) async {
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('clide/window'),
-        (call) async => throw MissingPluginException(),
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async => throw MissingPluginException());
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

@@ -6,12 +6,7 @@ import 'package:clide/src/terminal/src/core/mouse/button.dart';
 import 'package:clide/src/terminal/src/core/mouse/button_state.dart';
 
 abstract class MouseReporter {
-  static String report(
-    TerminalMouseButton button,
-    TerminalMouseButtonState state,
-    CellOffset position,
-    MouseReportMode reportMode,
-  ) {
+  static String report(TerminalMouseButton button, TerminalMouseButtonState state, CellOffset position, MouseReportMode reportMode) {
     // x and y offsets have to be incremented by 1 as the offset if 0-based,
     // The position has to be reported using 1-based coordinates.
     final x = position.x + 1;
@@ -28,8 +23,9 @@ abstract class MouseReporter {
         // supports positions up to 2015. Both modes send a null byte if the
         // position exceeds that limit.
         final col = (reportMode == MouseReportMode.normal && x > 223) || (reportMode == MouseReportMode.utf && x > 2015) ? '\x00' : String.fromCharCode(32 + x);
-        final row =
-            (reportMode == MouseReportMode.normal && y > 223) || (reportMode == MouseReportMode.utf && y > 2015) ? '\x00' : String.fromCharCode(32 + y + 1);
+        final row = (reportMode == MouseReportMode.normal && y > 223) || (reportMode == MouseReportMode.utf && y > 2015)
+            ? '\x00'
+            : String.fromCharCode(32 + y + 1);
         return "\x1b[M$btn$col$row";
       case MouseReportMode.sgr:
         final buttonID = button.id;

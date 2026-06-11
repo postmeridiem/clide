@@ -47,7 +47,7 @@ List<TaskItem> taskListFrom(List<ConversationItem> items) {
 }
 
 TaskStatus _statusFrom(Object? raw) => switch (raw) {
-      'in_progress' => TaskStatus.inProgress,
-      'completed' => TaskStatus.completed,
-      _ => TaskStatus.pending,
-    };
+  'in_progress' => TaskStatus.inProgress,
+  'completed' => TaskStatus.completed,
+  _ => TaskStatus.pending,
+};

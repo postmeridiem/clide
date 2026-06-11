@@ -39,10 +39,7 @@ void main() {
 
     test('toString shape is the documented debug format', () {
       final c = CellData(foreground: 1, background: 2, flags: 4, content: 8);
-      expect(
-        c.toString(),
-        'CellData{foreground: 1, background: 2, flags: 4, content: 8}',
-      );
+      expect(c.toString(), 'CellData{foreground: 1, background: 2, flags: 4, content: 8}');
     });
   });
 
@@ -374,10 +371,14 @@ void main() {
       final src = line(12, 'short');
       final endAnchor = src.createAnchor(12); // viewWidth, past trimmedLength
       final out = reflow(ring([src]), 12, 4);
-      expect(out.contains(endAnchor.line), isTrue,
-          reason: 'end anchor must land on a line that survives '
-              'lines.replaceWith — otherwise selection.attached is false '
-              'and the selection silently vanishes after resize.');
+      expect(
+        out.contains(endAnchor.line),
+        isTrue,
+        reason:
+            'end anchor must land on a line that survives '
+            'lines.replaceWith — otherwise selection.attached is false '
+            'and the selection silently vanishes after resize.',
+      );
     });
 
     test('inner wide-char clamp during _addPart leaves the wide cell to the next iteration', () {

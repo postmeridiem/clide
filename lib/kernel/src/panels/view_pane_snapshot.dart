@@ -20,13 +20,7 @@ List<ViewPane> snapshotViewPanes(PanelRegistry panels, LayoutArrangement arrange
     final activeId = panels.activeTabIn(slot.id);
     final visible = arrangement.isVisible(slot.id);
     for (final tab in panels.tabsFor(slot.id)) {
-      out.add(ViewPane(
-        id: tab.id,
-        slot: slot.id.value,
-        title: tab.title,
-        active: tab.id == activeId,
-        visible: visible,
-      ));
+      out.add(ViewPane(id: tab.id, slot: slot.id.value, title: tab.title, active: tab.id == activeId, visible: visible));
     }
   }
   return out;

@@ -30,34 +30,34 @@ class OutputExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'output.panel',
-          slot: Slots.dock,
-          title: 'Output',
-          priority: -100, // sort before Problems in the dock tab bar
-          build: (ctx) => OutputView(ring: ClideKernel.of(ctx).logRing),
-        ),
-        StatusItemContribution(
-          id: 'output.dock-toggle',
-          priority: 100, // right group, replacing the old app-status item
-          build: (_) => const DockStatusItem(),
-        ),
-        CommandContribution(
-          id: 'dock.toggle',
-          command: 'dock.toggle',
-          title: 'Toggle output dock',
-          defaultBinding: 'ctrl+j',
-          run: (_) async {
-            final ctx = _ctx;
-            if (ctx == null) return IpcResponse.ok(id: '', data: const {});
-            final a = ctx.arrangement;
-            final opening = !a.isVisible(Slots.dock);
-            a.setVisible(Slots.dock, opening);
-            if (opening && ctx.panels.activeTabIn(Slots.dock) == null) {
-              ctx.panels.activateTab(Slots.dock, 'output.panel');
-            }
-            return IpcResponse.ok(id: '', data: {'dock': opening});
-          },
-        ),
-      ];
+    TabContribution(
+      id: 'output.panel',
+      slot: Slots.dock,
+      title: 'Output',
+      priority: -100, // sort before Problems in the dock tab bar
+      build: (ctx) => OutputView(ring: ClideKernel.of(ctx).logRing),
+    ),
+    StatusItemContribution(
+      id: 'output.dock-toggle',
+      priority: 100, // right group, replacing the old app-status item
+      build: (_) => const DockStatusItem(),
+    ),
+    CommandContribution(
+      id: 'dock.toggle',
+      command: 'dock.toggle',
+      title: 'Toggle output dock',
+      defaultBinding: 'ctrl+j',
+      run: (_) async {
+        final ctx = _ctx;
+        if (ctx == null) return IpcResponse.ok(id: '', data: const {});
+        final a = ctx.arrangement;
+        final opening = !a.isVisible(Slots.dock);
+        a.setVisible(Slots.dock, opening);
+        if (opening && ctx.panels.activeTabIn(Slots.dock) == null) {
+          ctx.panels.activateTab(Slots.dock, 'output.panel');
+        }
+        return IpcResponse.ok(id: '', data: {'dock': opening});
+      },
+    ),
+  ];
 }

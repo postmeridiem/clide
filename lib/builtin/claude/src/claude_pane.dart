@@ -197,9 +197,12 @@ class _ClaudePaneState extends State<ClaudePane> {
         sub.cancel();
         if (!c.isCompleted) c.complete();
       });
-      await c.future.timeout(const Duration(seconds: 10), onTimeout: () {
-        sub.cancel();
-      });
+      await c.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          sub.cancel();
+        },
+      );
       if (!mounted) return;
     }
     return _spawn();
@@ -267,13 +270,9 @@ class _ClaudePaneState extends State<ClaudePane> {
       // assigned by `--fork-session` and arrives in the init event (T-172).
       _sessionId ??= freshSessionId();
       try {
-        managed = await orch.spawn(SpawnSpec(
-          id: _orchId,
-          role: 'fork ${widget.secondaryIndex}',
-          sessionId: _sessionId!,
-          cwd: repoRoot,
-          forkSourceSessionId: forkSource,
-        ));
+        managed = await orch.spawn(
+          SpawnSpec(id: _orchId, role: 'fork ${widget.secondaryIndex}', sessionId: _sessionId!, cwd: repoRoot, forkSourceSessionId: forkSource),
+        );
       } catch (e) {
         if (mounted) setState(() => _error = 'Could not start fork: $e');
         return;
@@ -291,14 +290,16 @@ class _ClaudePaneState extends State<ClaudePane> {
       final resume = await File(transcriptFile).exists();
 
       try {
-        managed = await orch.spawn(SpawnSpec(
-          id: _orchId,
-          role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
-          sessionId: _sessionId!,
-          cwd: repoRoot,
-          resume: resume,
-          transcriptPath: resume ? transcriptFile : null,
-        ));
+        managed = await orch.spawn(
+          SpawnSpec(
+            id: _orchId,
+            role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
+            sessionId: _sessionId!,
+            cwd: repoRoot,
+            resume: resume,
+            transcriptPath: resume ? transcriptFile : null,
+          ),
+        );
       } catch (e) {
         if (mounted) setState(() => _error = 'Could not start claude: $e');
         return;
@@ -314,10 +315,10 @@ class _ClaudePaneState extends State<ClaudePane> {
     // from the transcript/sidecar). Surfaces the resume path in `make run`.
     final seeded = _conversation?.items.length ?? 0;
     _kernel()?.log.info(
-          'claude',
-          'pane $_orchId bound session ${_sessionId ?? '?'} in $repoRoot — '
-              '${seeded > 0 ? 'connected to history ($seeded seeded item(s))' : 'fresh session (no history)'}',
-        );
+      'claude',
+      'pane $_orchId bound session ${_sessionId ?? '?'} in $repoRoot — '
+          '${seeded > 0 ? 'connected to history ($seeded seeded item(s))' : 'fresh session (no history)'}',
+    );
     _statusSub = managed.session.statusStream.listen((s) {
       if (!mounted) return;
       setState(() => _status = s);
@@ -426,13 +427,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     final dir = Directory(claudeProjectDir(root));
     final sessions = await listSessions(dir);
     if (!mounted) return;
-    final picked = await dialog.show<String>(
-      (ctx, dismiss) => SessionPickerDialog(
-        sessions: sessions,
-        onPick: (id) => dismiss(id),
-        onCancel: dismiss,
-      ),
-    );
+    final picked = await dialog.show<String>((ctx, dismiss) => SessionPickerDialog(sessions: sessions, onPick: (id) => dismiss(id), onCancel: dismiss));
     if (picked == null || !mounted) return;
     setState(() => _statusLine = 'resuming…');
     await _respawnWithSession(picked);
@@ -479,10 +474,7 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     final Widget body;
     if (_error != null) {
-      body = Padding(
-        padding: const EdgeInsets.all(16),
-        child: ClideText(_error!, muted: true),
-      );
+      body = Padding(padding: const EdgeInsets.all(16), child: ClideText(_error!, muted: true));
     } else if (_conversation != null) {
       // Rebuild conversation + composer zone together on each prompt change so
       // the view hides a prompted tool-use card the moment its prompt appears
@@ -520,7 +512,7 @@ class _ClaudePaneState extends State<ClaudePane> {
               // with the conversation; renders nothing when there are no tasks.
               ListenableBuilder(
                 listenable: _conversation!,
-                builder: (_, __) => ClaudeTaskDock(tasks: taskListFrom(_conversation!.items)),
+                builder: (_, _) => ClaudeTaskDock(tasks: taskListFrom(_conversation!.items)),
               ),
               // An open prompt takes the composer's space and hides the text
               // input until it's answered, so interaction stays out of the
@@ -557,22 +549,11 @@ class _ClaudePaneState extends State<ClaudePane> {
       body = const Center(child: ClideText('starting…', muted: true));
     }
 
-    final content = widget.showChrome
-        ? ClidePaneChrome(
-            title: title,
-            subtitle: _error ?? _statusLine,
-            child: body,
-          )
-        : body;
+    final content = widget.showChrome ? ClidePaneChrome(title: title, subtitle: _error ?? _statusLine, child: body) : body;
 
     // Surface this pane's status to the bottom status-bar slot while it's
     // the focused pane (T-150).
-    return ClidePane(
-      contributionId: widget.contributionId,
-      active: widget.active,
-      statusWidget: _statusWidget(tokens),
-      child: content,
-    );
+    return ClidePane(contributionId: widget.contributionId, active: widget.active, statusWidget: _statusWidget(tokens), child: content);
   }
 }
 
@@ -590,13 +571,7 @@ class _ModeBadge extends StatelessWidget {
     return Semantics(
       label: 'permission mode: ${permissionModeLabel(mode)}',
       excludeSemantics: true,
-      child: ClideText(
-        permissionModeLabel(mode),
-        fontSize: clideFontSmall,
-        fontFamily: clideMonoFamily,
-        color: permissionModeColor(mode, tokens),
-        maxLines: 1,
-      ),
+      child: ClideText(permissionModeLabel(mode), fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: permissionModeColor(mode, tokens), maxLines: 1),
     );
   }
 }

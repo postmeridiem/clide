@@ -44,9 +44,9 @@ void main() {
     return TreeSitterLib.testing(
       wasmEngineNew: engineHandle,
       wasmEngineDelete: (_) {},
-      wasmStoreNew: (_, __) => storeHandle(),
+      wasmStoreNew: (_, _) => storeHandle(),
       parserNew: parserHandle,
-      parserSetWasmStore: (_, __) {},
+      parserSetWasmStore: (_, _) {},
       queryCursorNew: cursorHandle,
       wasmStoreLoadLanguage: wasmStoreLoadLanguage,
       queryNew: queryNew,
@@ -61,7 +61,7 @@ void main() {
       parserDelete: parserDelete,
       wasmStoreDelete: wasmStoreDelete,
       queryCursorDelete: queryCursorDelete,
-      parserSetLanguage: parserSetLanguage ?? ((_, __) => true),
+      parserSetLanguage: parserSetLanguage ?? ((_, _) => true),
     );
   }
 
@@ -71,11 +71,7 @@ void main() {
 
   group('TreeSitterService._init — FFI failure branches', () {
     test('wasmEngineNew returning nullptr → hasGrammar(.dart) is false', () async {
-      final svc = TreeSitterService(
-        lib: TreeSitterLib.testing(),
-        grammarBytes: okBytes,
-        grammarQuery: noQuery,
-      );
+      final svc = TreeSitterService(lib: TreeSitterLib.testing(), grammarBytes: okBytes, grammarQuery: noQuery);
       expect(await svc.hasGrammar('foo.dart'), isFalse);
     });
 
@@ -93,7 +89,7 @@ void main() {
       final lib = TreeSitterLib.testing(
         wasmEngineNew: engineHandle,
         wasmEngineDelete: (_) {},
-        wasmStoreNew: (_, __) => storeHandle(),
+        wasmStoreNew: (_, _) => storeHandle(),
         // parserNew default → nullptr
       );
       final svc = TreeSitterService(lib: lib, grammarBytes: okBytes, grammarQuery: noQuery);
@@ -119,7 +115,7 @@ void main() {
   group('TreeSitterService._loadGrammar — branches', () {
     test('grammarBytes throwing is caught → grammar marked unavailable', () async {
       final svc = TreeSitterService(
-        lib: initOkLib(wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle()),
+        lib: initOkLib(wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle()),
         grammarBytes: (_) async => throw StateError('bundle missing'),
         grammarQuery: noQuery,
       );
@@ -127,11 +123,7 @@ void main() {
     });
 
     test('wasmStoreLoadLanguage returning nullptr → grammar marked unavailable', () async {
-      final svc = TreeSitterService(
-        lib: initOkLib(),
-        grammarBytes: okBytes,
-        grammarQuery: noQuery,
-      );
+      final svc = TreeSitterService(lib: initOkLib(), grammarBytes: okBytes, grammarQuery: noQuery);
       expect(await svc.hasGrammar('foo.dart'), isFalse);
       // Once marked unavailable, languageFor also returns null.
       expect(await svc.languageFor('foo.dart'), isNull);
@@ -139,9 +131,7 @@ void main() {
 
     test('grammarQuery returning null → grammar loads with query=nullptr', () async {
       final svc = TreeSitterService(
-        lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-        ),
+        lib: initOkLib(wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle()),
         grammarBytes: okBytes,
         grammarQuery: noQuery,
       );
@@ -158,7 +148,7 @@ void main() {
     test('grammarQuery loads + queryNew fails → grammar still cached with query=nullptr', () async {
       final svc = TreeSitterService(
         lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
+          wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
           // queryNew default → nullptr; capture reflection block skipped.
         ),
         grammarBytes: okBytes,
@@ -174,10 +164,10 @@ void main() {
       final nameNative = 'keyword'.toNativeUtf8();
       final svc = TreeSitterService(
         lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-          queryNew: (_, __, ___, ____, _____) => queryHandle(),
+          wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
+          queryNew: (_, _, _, _, _) => queryHandle(),
           queryCaptureCount: (_) => 1,
-          queryCaptureNameForId: (_, __, lenOut) {
+          queryCaptureNameForId: (_, _, lenOut) {
             lenOut.value = nameNative.length;
             return nameNative;
           },
@@ -192,9 +182,7 @@ void main() {
     test('a second call for the same language returns the cached grammar', () async {
       var byteLoads = 0;
       final svc = TreeSitterService(
-        lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-        ),
+        lib: initOkLib(wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle()),
         grammarBytes: (lang) async {
           byteLoads++;
           return Uint8List.fromList(const [0, 1, 2]);
@@ -226,8 +214,8 @@ void main() {
     test('parserParseString returning nullptr → empty spans', () async {
       final svc = TreeSitterService(
         lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-          queryNew: (_, __, ___, ____, _____) => queryHandle(),
+          wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
+          queryNew: (_, _, _, _, _) => queryHandle(),
           // parserParseString default → nullptr
         ),
         grammarBytes: okBytes,
@@ -250,14 +238,14 @@ void main() {
       var matchCalls = 0;
       final svc = TreeSitterService(
         lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-          queryNew: (_, __, ___, ____, _____) => queryHandle(),
+          wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
+          queryNew: (_, _, _, _, _) => queryHandle(),
           queryCaptureCount: (_) => 1,
-          queryCaptureNameForId: (_, __, lenOut) {
+          queryCaptureNameForId: (_, _, lenOut) {
             lenOut.value = nameNative.length;
             return nameNative;
           },
-          parserParseString: (_, __, ___, ____) => treeHandle(),
+          parserParseString: (_, _, _, _) => treeHandle(),
           treeRootNode: (_) => rootNode.ref,
           queryCursorNextMatch: (_, match) {
             if (matchCalls > 0) return false;
@@ -291,14 +279,14 @@ void main() {
       var matchCalls = 0;
       final svc = TreeSitterService(
         lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-          queryNew: (_, __, ___, ____, _____) => queryHandle(),
+          wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
+          queryNew: (_, _, _, _, _) => queryHandle(),
           queryCaptureCount: (_) => 1,
-          queryCaptureNameForId: (_, __, lenOut) {
+          queryCaptureNameForId: (_, _, lenOut) {
             lenOut.value = nameNative.length;
             return nameNative;
           },
-          parserParseString: (_, __, ___, ____) => treeHandle(),
+          parserParseString: (_, _, _, _) => treeHandle(),
           treeRootNode: (_) => rootNode.ref,
           queryCursorNextMatch: (_, match) {
             if (matchCalls > 0) return false;
@@ -325,8 +313,8 @@ void main() {
       var cursorDeletes = 0;
       final svc = TreeSitterService(
         lib: initOkLib(
-          wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
-          queryNew: (_, __, ___, ____, _____) => queryHandle(),
+          wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
+          queryNew: (_, _, _, _, _) => queryHandle(),
           queryDelete: (_) => queryDeletes++,
           parserDelete: (_) => parserDeletes++,
           wasmStoreDelete: (_) => storeDeletes++,
@@ -360,11 +348,11 @@ void main() {
           return engineHandle();
         },
         wasmEngineDelete: (_) {},
-        wasmStoreNew: (_, __) => storeHandle(),
+        wasmStoreNew: (_, _) => storeHandle(),
         parserNew: parserHandle,
-        parserSetWasmStore: (_, __) {},
+        parserSetWasmStore: (_, _) {},
         queryCursorNew: cursorHandle,
-        wasmStoreLoadLanguage: (_, __, ___, ____, _____) => languageHandle(),
+        wasmStoreLoadLanguage: (_, _, _, _, _) => languageHandle(),
       );
       final svc = TreeSitterService(lib: lib, grammarBytes: okBytes, grammarQuery: noQuery);
       await svc.hasGrammar('foo.dart');

@@ -16,13 +16,7 @@ import 'package:clide/widgets/src/clide_svg_view.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideSpinner extends StatefulWidget {
-  const ClideSpinner({
-    super.key,
-    this.size = 14,
-    this.color,
-    this.period = const Duration(milliseconds: 1500),
-    this.semanticLabel,
-  });
+  const ClideSpinner({super.key, this.size = 14, this.color, this.period = const Duration(milliseconds: 1500), this.semanticLabel});
 
   final double size;
 

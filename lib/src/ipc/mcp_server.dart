@@ -63,14 +63,7 @@ class _McpSession {
 /// HTTP + SSE MCP server. Lifecycle mirrors [IpcServer]: `start()`
 /// binds + writes the discovery file; `stop()` unbinds + removes it.
 class McpServer {
-  McpServer({
-    required this.workspaceRoot,
-    required this.log,
-    this.dispatcher,
-    this.discoveryDirOverride,
-    this.bindHost = '127.0.0.1',
-    this.bindPort = 0,
-  });
+  McpServer({required this.workspaceRoot, required this.log, this.dispatcher, this.discoveryDirOverride, this.bindHost = '127.0.0.1', this.bindPort = 0});
 
   /// Workspace root reported in the discovery file. Helps Claude
   /// Code show "which clide is this" when multiple are running.
@@ -109,9 +102,12 @@ class McpServer {
     _http = server;
     _port = server.port;
     _lockFile = await _writeDiscoveryFile();
-    server.listen(_route, onError: (Object e, StackTrace st) {
-      log.warn('mcp', 'http error: $e');
-    });
+    server.listen(
+      _route,
+      onError: (Object e, StackTrace st) {
+        log.warn('mcp', 'http error: $e');
+      },
+    );
     log.info('mcp', 'MCP/SSE listening at http://$bindHost:${server.port} (workspace: $workspaceRoot)');
   }
 
@@ -331,12 +327,7 @@ class McpServer {
       dirHandle.createSync(recursive: true);
     }
     final path = '$dir/$pid.lock';
-    final body = jsonEncode({
-      'pid': pid,
-      'workspace': workspaceRoot,
-      'transport': 'sse',
-      'url': 'http://$bindHost:$_port/sse',
-    });
+    final body = jsonEncode({'pid': pid, 'workspace': workspaceRoot, 'transport': 'sse', 'url': 'http://$bindHost:$_port/sse'});
     File(path).writeAsStringSync(body);
     return path;
   }

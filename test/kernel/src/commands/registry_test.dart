@@ -3,12 +3,8 @@ import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-CommandContribution _cmd(String name, Future<IpcResponse> Function() run) => CommandContribution(
-      id: name,
-      command: name,
-      title: 'cmd $name',
-      run: (_) => run(),
-    );
+CommandContribution _cmd(String name, Future<IpcResponse> Function() run) =>
+    CommandContribution(id: name, command: name, title: 'cmd $name', run: (_) => run());
 
 void main() {
   group('CommandRegistry', () {
@@ -22,12 +18,7 @@ void main() {
 
     test('execute returns the handler response', () async {
       final r = CommandRegistry();
-      r.register(
-        _cmd(
-          'ping',
-          () async => IpcResponse.ok(id: '', data: const {'pong': true}),
-        ),
-      );
+      r.register(_cmd('ping', () async => IpcResponse.ok(id: '', data: const {'pong': true})));
       final resp = await r.execute('ping');
       expect(resp.ok, true);
       expect(resp.data['pong'], true);

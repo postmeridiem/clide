@@ -99,16 +99,10 @@ String pasteCacheDir() {
 /// written to [tempDir] (default [pasteCacheDir]) and attached by its
 /// path. Returns an empty list when the clipboard holds neither, so the
 /// composer pastes text instead.
-Future<List<ComposerAttachment>> resolveClipboardAttachment(
-  ClipboardSource source, {
-  Directory? tempDir,
-  DateTime Function() now = DateTime.now,
-}) async {
+Future<List<ComposerAttachment>> resolveClipboardAttachment(ClipboardSource source, {Directory? tempDir, DateTime Function() now = DateTime.now}) async {
   final files = await source.readFiles();
   if (files.isNotEmpty) {
-    return [
-      for (final p in files) ComposerAttachment(path: p, isImage: _looksLikeImage(p)),
-    ];
+    return [for (final p in files) ComposerAttachment(path: p, isImage: _looksLikeImage(p))];
   }
 
   final image = await source.readImage();

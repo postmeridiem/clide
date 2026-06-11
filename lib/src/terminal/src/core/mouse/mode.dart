@@ -10,8 +10,7 @@ enum MouseMode {
 
   upDownScrollDrag(reportScroll: true),
 
-  upDownScrollMove(reportScroll: true),
-  ;
+  upDownScrollMove(reportScroll: true);
 
   const MouseMode({this.reportScroll = false});
 

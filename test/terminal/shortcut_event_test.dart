@@ -49,12 +49,7 @@ void main() {
     tearDown(() => debugDefaultTargetPlatformOverride = null);
 
     test('Linux/Windows/Android/Fuchsia use Ctrl-modified bindings', () {
-      for (final p in [
-        TargetPlatform.linux,
-        TargetPlatform.windows,
-        TargetPlatform.android,
-        TargetPlatform.fuchsia,
-      ]) {
+      for (final p in [TargetPlatform.linux, TargetPlatform.windows, TargetPlatform.android, TargetPlatform.fuchsia]) {
         debugDefaultTargetPlatformOverride = p;
         final map = defaultTerminalShortcuts;
         // Three entries: copy / paste / select-all.
@@ -83,10 +78,7 @@ void main() {
   });
 
   group('TerminalActions', () {
-    Widget host(Widget child) => Directionality(
-          textDirection: TextDirection.ltr,
-          child: child,
-        );
+    Widget host(Widget child) => Directionality(textDirection: TextDirection.ltr, child: child);
 
     testWidgets('CopySelectionTextIntent writes selection text to the clipboard', (tester) async {
       final outputs = <String>[];
@@ -95,32 +87,32 @@ void main() {
       final controller = TerminalController();
       addTearDown(controller.dispose);
       // Set a selection covering 'hello'.
-      controller.setSelection(
-        terminal.buffer.createAnchor(0, 0),
-        terminal.buffer.createAnchor(5, 0),
-      );
+      controller.setSelection(terminal.buffer.createAnchor(0, 0), terminal.buffer.createAnchor(5, 0));
 
       String? clipboardText;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.setData') {
-            final args = call.arguments as Map;
-            clipboardText = args['text'] as String?;
-          }
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          final args = call.arguments as Map;
+          clipboardText = args['text'] as String?;
+        }
+        return null;
+      });
 
       late BuildContext capturedContext;
-      await tester.pumpWidget(host(TerminalActions(
-        terminal: terminal,
-        controller: controller,
-        child: Builder(builder: (context) {
-          capturedContext = context;
-          return const SizedBox();
-        }),
-      )));
+      await tester.pumpWidget(
+        host(
+          TerminalActions(
+            terminal: terminal,
+            controller: controller,
+            child: Builder(
+              builder: (context) {
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
 
       Actions.invoke(capturedContext, CopySelectionTextIntent.copy);
       await tester.pump();
@@ -132,23 +124,26 @@ void main() {
       final controller = TerminalController();
       addTearDown(controller.dispose);
       var setDataCalls = 0;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.setData') setDataCalls++;
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') setDataCalls++;
+        return null;
+      });
 
       late BuildContext ctx;
-      await tester.pumpWidget(host(TerminalActions(
-        terminal: terminal,
-        controller: controller,
-        child: Builder(builder: (c) {
-          ctx = c;
-          return const SizedBox();
-        }),
-      )));
+      await tester.pumpWidget(
+        host(
+          TerminalActions(
+            terminal: terminal,
+            controller: controller,
+            child: Builder(
+              builder: (c) {
+                ctx = c;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
 
       Actions.invoke(ctx, CopySelectionTextIntent.copy);
       await tester.pump();
@@ -160,31 +155,31 @@ void main() {
       final terminal = Terminal(maxLines: 100, onOutput: outputs.add);
       final controller = TerminalController();
       addTearDown(controller.dispose);
-      controller.setSelection(
-        terminal.buffer.createAnchor(0, 0),
-        terminal.buffer.createAnchor(2, 0),
-      );
+      controller.setSelection(terminal.buffer.createAnchor(0, 0), terminal.buffer.createAnchor(2, 0));
       expect(controller.selection, isNotNull);
 
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.getData') {
-            return <String, dynamic>{'text': 'pasted-payload'};
-          }
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return <String, dynamic>{'text': 'pasted-payload'};
+        }
+        return null;
+      });
 
       late BuildContext ctx;
-      await tester.pumpWidget(host(TerminalActions(
-        terminal: terminal,
-        controller: controller,
-        child: Builder(builder: (c) {
-          ctx = c;
-          return const SizedBox();
-        }),
-      )));
+      await tester.pumpWidget(
+        host(
+          TerminalActions(
+            terminal: terminal,
+            controller: controller,
+            child: Builder(
+              builder: (c) {
+                ctx = c;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
 
       Actions.invoke(ctx, const PasteTextIntent(SelectionChangedCause.keyboard));
       await tester.pumpAndSettle();
@@ -201,14 +196,20 @@ void main() {
       expect(controller.selection, isNull);
 
       late BuildContext ctx;
-      await tester.pumpWidget(host(TerminalActions(
-        terminal: terminal,
-        controller: controller,
-        child: Builder(builder: (c) {
-          ctx = c;
-          return const SizedBox();
-        }),
-      )));
+      await tester.pumpWidget(
+        host(
+          TerminalActions(
+            terminal: terminal,
+            controller: controller,
+            child: Builder(
+              builder: (c) {
+                ctx = c;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
 
       Actions.invoke(ctx, const SelectAllTextIntent(SelectionChangedCause.keyboard));
       await tester.pump();

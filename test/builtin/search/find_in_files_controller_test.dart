@@ -31,12 +31,7 @@ void main() {
   FindInFilesController make() => ctrl = FindInFilesController(ipc: f.ipc, events: f.services.events);
 
   void emitMatch(String id, List<Map<String, Object?>> matches) {
-    f.services.events.emit(DaemonEvent(
-      subsystem: 'search',
-      kind: 'search.match',
-      data: {'searchId': id, 'matches': matches},
-      ts: DateTime.now().toUtc(),
-    ));
+    f.services.events.emit(DaemonEvent(subsystem: 'search', kind: 'search.match', data: {'searchId': id, 'matches': matches}, ts: DateTime.now().toUtc()));
   }
 
   Map<String, Object?> m(String path, int line) => {'path': path, 'line': line, 'matchStart': 0, 'matchEnd': 3, 'preview': 'foo bar'};
@@ -93,12 +88,9 @@ void main() {
   test('search.done clears running', () async {
     final c = make();
     await c.run('foo');
-    f.services.events.emit(DaemonEvent(
-      subsystem: 'search',
-      kind: 'search.done',
-      data: const {'searchId': 's1', 'cancelled': false},
-      ts: DateTime.now().toUtc(),
-    ));
+    f.services.events.emit(
+      DaemonEvent(subsystem: 'search', kind: 'search.done', data: const {'searchId': 's1', 'cancelled': false}, ts: DateTime.now().toUtc()),
+    );
     await Future<void>.delayed(Duration.zero);
     expect(c.running, isFalse);
     expect(c.done, isTrue);
@@ -107,12 +99,9 @@ void main() {
   test('search.error surfaces the message', () async {
     final c = make();
     await c.run('(bad');
-    f.services.events.emit(DaemonEvent(
-      subsystem: 'search',
-      kind: 'search.error',
-      data: const {'searchId': 's1', 'message': 'invalid regex: x'},
-      ts: DateTime.now().toUtc(),
-    ));
+    f.services.events.emit(
+      DaemonEvent(subsystem: 'search', kind: 'search.error', data: const {'searchId': 's1', 'message': 'invalid regex: x'}, ts: DateTime.now().toUtc()),
+    );
     await Future<void>.delayed(Duration.zero);
     expect(c.error, contains('invalid regex'));
     expect(c.running, isFalse);
@@ -151,11 +140,12 @@ void main() {
 
   test('a failed search.grep surfaces the error', () async {
     f.ipc.stub(
-        'search.grep',
-        (_) async => IpcResponse.err(
-              id: '',
-              error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'nope'),
-            ));
+      'search.grep',
+      (_) async => IpcResponse.err(
+        id: '',
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'nope'),
+      ),
+    );
     final c = make();
     await c.run('foo');
     expect(c.error, 'nope');

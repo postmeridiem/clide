@@ -59,17 +59,19 @@ void main() {
     testWidgets('renders items + separator; tapping an item fires onSelect + onClose', (tester) async {
       var picked = '';
       var closed = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClideMenu(
-          onClose: () => closed++,
-          entries: [
-            ClideMenuItem(label: 'Alpha', onSelect: () => picked = 'Alpha'),
-            const ClideMenuSeparator(),
-            ClideMenuItem(label: 'Beta', onSelect: () => picked = 'Beta'),
-          ],
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideMenu(
+            onClose: () => closed++,
+            entries: [
+              ClideMenuItem(label: 'Alpha', onSelect: () => picked = 'Alpha'),
+              const ClideMenuSeparator(),
+              ClideMenuItem(label: 'Beta', onSelect: () => picked = 'Beta'),
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('Alpha'), findsOneWidget);
       expect(find.text('Beta'), findsOneWidget);
@@ -81,16 +83,18 @@ void main() {
 
     testWidgets('arrow-down then Enter activates the highlighted item', (tester) async {
       var picked = '';
-      await tester.pumpWidget(harness(
-        f,
-        ClideMenu(
-          onClose: () {},
-          entries: [
-            ClideMenuItem(label: 'One', onSelect: () => picked = 'One'),
-            ClideMenuItem(label: 'Two', onSelect: () => picked = 'Two'),
-          ],
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideMenu(
+            onClose: () {},
+            entries: [
+              ClideMenuItem(label: 'One', onSelect: () => picked = 'One'),
+              ClideMenuItem(label: 'Two', onSelect: () => picked = 'Two'),
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -101,17 +105,19 @@ void main() {
 
     testWidgets('disabled item is inert and skipped by arrows', (tester) async {
       var picked = '';
-      await tester.pumpWidget(harness(
-        f,
-        ClideMenu(
-          onClose: () {},
-          entries: [
-            ClideMenuItem(label: 'Able', onSelect: () => picked = 'Able'),
-            ClideMenuItem(label: 'Off', enabled: false, onSelect: () => picked = 'Off'),
-            ClideMenuItem(label: 'Last', onSelect: () => picked = 'Last'),
-          ],
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideMenu(
+            onClose: () {},
+            entries: [
+              ClideMenuItem(label: 'Able', onSelect: () => picked = 'Able'),
+              ClideMenuItem(label: 'Off', enabled: false, onSelect: () => picked = 'Off'),
+              ClideMenuItem(label: 'Last', onSelect: () => picked = 'Last'),
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.tap(find.text('Off'));
       await tester.pump();
@@ -125,7 +131,15 @@ void main() {
 
     testWidgets('Escape calls onClose', (tester) async {
       var closed = 0;
-      await tester.pumpWidget(harness(f, ClideMenu(onClose: () => closed++, entries: [ClideMenuItem(label: 'X', onSelect: () {})])));
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideMenu(
+            onClose: () => closed++,
+            entries: [ClideMenuItem(label: 'X', onSelect: () {})],
+          ),
+        ),
+      );
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
@@ -135,13 +149,15 @@ void main() {
     testWidgets('keepOpenOnSelect item fires onSelect but not onClose', (tester) async {
       var picked = 0;
       var closed = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClideMenu(
-          onClose: () => closed++,
-          entries: [ClideMenuItem(label: 'Toggle', keepOpenOnSelect: true, onSelect: () => picked++)],
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideMenu(
+            onClose: () => closed++,
+            entries: [ClideMenuItem(label: 'Toggle', keepOpenOnSelect: true, onSelect: () => picked++)],
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.tap(find.text('Toggle'));
       await tester.pump();

@@ -24,11 +24,7 @@ class _Recorder {
   String? lastOscPs;
   List<String>? lastOscArgs;
 
-  Terminal build({
-    int maxLines = 100,
-    TerminalTargetPlatform platform = TerminalTargetPlatform.linux,
-    bool reflow = true,
-  }) {
+  Terminal build({int maxLines = 100, TerminalTargetPlatform platform = TerminalTargetPlatform.linux, bool reflow = true}) {
     return Terminal(
       maxLines: maxLines,
       platform: platform,

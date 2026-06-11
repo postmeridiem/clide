@@ -94,10 +94,7 @@ void main() {
     test('malformed JSON line surfaces a userError', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
-      final c = await Socket.connect(
-        InternetAddress(server.socketPath, type: InternetAddressType.unix),
-        0,
-      );
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       c.write('{not json\n');
       await c.flush();
       final line = await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 2));
@@ -175,10 +172,7 @@ void main() {
     test('stop closes an in-flight client connection', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
-      final c = await Socket.connect(
-        InternetAddress(server.socketPath, type: InternetAddressType.unix),
-        0,
-      );
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       c.write('${IpcRequest(id: 'q', cmd: 'ping').encode()}\n');
       await c.flush();
       await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first;
@@ -192,10 +186,7 @@ void main() {
     test('multiple sequential requests on the same connection each get a reply', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
-      final c = await Socket.connect(
-        InternetAddress(server.socketPath, type: InternetAddressType.unix),
-        0,
-      );
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       final replies = c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
       final iter = StreamIterator(replies);
       for (var i = 0; i < 3; i++) {
@@ -239,10 +230,7 @@ void main() {
     test('a non-request message (e.g. event) surfaces a userError', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
-      final c = await Socket.connect(
-        InternetAddress(server.socketPath, type: InternetAddressType.unix),
-        0,
-      );
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
       final evt = IpcEvent(subsystem: 'test', kind: 'wrong-shape', timestamp: DateTime.now().toUtc());
       c.write('${evt.encode()}\n');
       await c.flush();
@@ -258,10 +246,7 @@ void main() {
 Logger _silentLog() => Logger(minLevel: LogLevel.error, sinks: const []);
 
 Future<IpcResponse> _roundTrip(String socketPath, IpcRequest req) async {
-  final c = await Socket.connect(
-    InternetAddress(socketPath, type: InternetAddressType.unix),
-    0,
-  );
+  final c = await Socket.connect(InternetAddress(socketPath, type: InternetAddressType.unix), 0);
   c.write('${req.encode()}\n');
   await c.flush();
   final line = await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 2));

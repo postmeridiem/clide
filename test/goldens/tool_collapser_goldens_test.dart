@@ -17,16 +17,26 @@ void main() {
   tearDown(() async => f.dispose());
 
   Widget bashContent() => const ConversationCard(
-        variant: ConversationCardVariant.bordered,
-        accent: Color(0xFF4C9AFF),
-        label: 'Bash',
-        status: ConversationCardStatus.success,
-        body: Text('npm test', style: TextStyle(fontSize: 12, color: Color(0xFF9DA5B4)), textDirection: TextDirection.ltr),
-        extraSegments: [
-          CardSegment(
-              label: 'result', child: Text('All 42 tests passed', style: TextStyle(fontSize: 12, color: Color(0xFF9DA5B4)), textDirection: TextDirection.ltr)),
-        ],
-      );
+    variant: ConversationCardVariant.bordered,
+    accent: Color(0xFF4C9AFF),
+    label: 'Bash',
+    status: ConversationCardStatus.success,
+    body: Text(
+      'npm test',
+      style: TextStyle(fontSize: 12, color: Color(0xFF9DA5B4)),
+      textDirection: TextDirection.ltr,
+    ),
+    extraSegments: [
+      CardSegment(
+        label: 'result',
+        child: Text(
+          'All 42 tests passed',
+          style: TextStyle(fontSize: 12, color: Color(0xFF9DA5B4)),
+          textDirection: TextDirection.ltr,
+        ),
+      ),
+    ],
+  );
 
   goldenTest(
     'single tool collapser (T-305): collapsed ticker + expanded inner card',

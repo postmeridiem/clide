@@ -183,20 +183,13 @@ class _ConversationCardState extends State<ConversationCard> {
         if (!_collapsed) ...[
           const SizedBox(height: 4),
           widget.body,
-          for (final seg in widget.extraSegments) ...[
-            _segmentLabel(tokens, seg.label),
-            seg.child,
-          ],
+          for (final seg in widget.extraSegments) ...[_segmentLabel(tokens, seg.label), seg.child],
         ],
       ],
     );
     return Padding(
       padding: widget.margin,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: _frame(tokens, content),
-      ),
+      child: MouseRegion(onEnter: (_) => setState(() => _hover = true), onExit: (_) => setState(() => _hover = false), child: _frame(tokens, content)),
     );
   }
 
@@ -289,11 +282,7 @@ class _ConversationCardState extends State<ConversationCard> {
         onTap: () => setState(() => _collapsed = !_collapsed),
         builder: (_, hovered, pressed) => Padding(
           padding: const EdgeInsets.only(right: 6),
-          child: ClideIcon(
-            _collapsed ? PhosphorIcons.byName('caret-right') : PhosphorIcons.byName('caret-down'),
-            size: 12,
-            color: tokens.globalTextMuted,
-          ),
+          child: ClideIcon(_collapsed ? PhosphorIcons.byName('caret-right') : PhosphorIcons.byName('caret-down'), size: 12, color: tokens.globalTextMuted),
         ),
       ),
     );
@@ -330,15 +319,15 @@ class _ConversationCardState extends State<ConversationCard> {
   /// A muted sub-label + hairline divider introducing an [CardSegment] below
   /// the primary body (T-262), so CALL/PROMPT/RESULT read as distinct parts.
   Widget _segmentLabel(SurfaceTokens tokens, String label) => Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 4),
-        child: Row(
-          children: [
-            ClideText(label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 1, color: tokens.panelBorder)),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.only(top: 8, bottom: 4),
+    child: Row(
+      children: [
+        ClideText(label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+        const SizedBox(width: 8),
+        Expanded(child: Container(height: 1, color: tokens.panelBorder)),
+      ],
+    ),
+  );
 
   List<Widget> _actions(SurfaceTokens tokens) {
     final items = <_ActionItem>[];
@@ -360,12 +349,7 @@ class _ConversationCardState extends State<ConversationCard> {
             onTap: items[i].onTap,
             builder: (_, hovered, pressed) => Padding(
               padding: const EdgeInsets.only(left: 10),
-              child: ClideText(
-                items[i].label,
-                fontSize: clideFontMeta,
-                color: tokens.globalTextMuted,
-                fontFamily: clideMonoFamily,
-              ),
+              child: ClideText(items[i].label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
             ),
           ),
         ),

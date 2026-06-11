@@ -45,14 +45,7 @@ void main() {
         },
       );
       addTearDown(f.dispose);
-      expect(
-        f.services.i18n.string(
-          'title',
-          namespace: 'builtin.welcome',
-          placeholder: '-',
-        ),
-        'clide',
-      );
+      expect(f.services.i18n.string('title', namespace: 'builtin.welcome', placeholder: '-'), 'clide');
     });
 
     test('dispose shuts down IPC + notifiers without throwing', () async {
@@ -62,17 +55,21 @@ void main() {
 
     testWidgets('ClideKernel.of throws a FlutterError when no ancestor exists', (tester) async {
       late Object captured;
-      await tester.pumpWidget(Directionality(
-        textDirection: TextDirection.ltr,
-        child: Builder(builder: (ctx) {
-          try {
-            ClideKernel.of(ctx);
-          } catch (e) {
-            captured = e;
-          }
-          return const SizedBox();
-        }),
-      ));
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (ctx) {
+              try {
+                ClideKernel.of(ctx);
+              } catch (e) {
+                captured = e;
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
       expect(captured, isA<FlutterError>());
     });
   });

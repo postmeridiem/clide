@@ -45,25 +45,22 @@ void main() {
   });
 
   Widget harness(Widget child) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: ClideKernel(
-          services: f.services,
-          child: ClideTheme(
-            controller: f.services.theme,
-            child: MediaQuery(
-              data: const MediaQueryData(),
-              child: Align(alignment: Alignment.topLeft, child: child),
-            ),
-          ),
+    textDirection: TextDirection.ltr,
+    child: ClideKernel(
+      services: f.services,
+      child: ClideTheme(
+        controller: f.services.theme,
+        child: MediaQuery(
+          data: const MediaQueryData(),
+          child: Align(alignment: Alignment.topLeft, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
   testWidgets('OpenFolderDialog submits the typed path via onOpen', (tester) async {
     String? opened;
-    await tester.pumpWidget(harness(OpenFolderDialog(
-      onOpen: (p) async => opened = p,
-      onCancel: () {},
-    )));
+    await tester.pumpWidget(harness(OpenFolderDialog(onOpen: (p) async => opened = p, onCancel: () {})));
     await tester.enterText(find.byType(EditableText), '/some/repo');
     await tester.tap(find.text('Open'));
     await tester.pump();
@@ -71,10 +68,7 @@ void main() {
   });
 
   testWidgets('OpenFolderDialog surfaces an error when onOpen throws', (tester) async {
-    await tester.pumpWidget(harness(OpenFolderDialog(
-      onOpen: (_) async => throw StateError('not a repo'),
-      onCancel: () {},
-    )));
+    await tester.pumpWidget(harness(OpenFolderDialog(onOpen: (_) async => throw StateError('not a repo'), onCancel: () {})));
     await tester.enterText(find.byType(EditableText), '/bad');
     await tester.tap(find.text('Open'));
     await tester.pump();

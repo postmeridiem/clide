@@ -65,34 +65,34 @@ class TerminalTheme {
   );
 
   static ThemeData get data => ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: _bg,
-        canvasColor: _bg,
-        colorScheme: const ColorScheme.dark(
-          primary: _accent,
-          onPrimary: Color(0xFF000000),
-          secondary: _info,
-          onSecondary: Color(0xFF000000),
-          surface: _surface,
-          onSurface: _textHi,
-          surfaceContainerHighest: _surfaceHi,
-          outline: _border,
-          outlineVariant: _borderHi,
-          error: _err,
-          onError: Color(0xFF000000),
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 48, color: _textHi),
-          displayMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 34, color: _textHi),
-          headlineSmall: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 20, color: _textHi),
-          titleMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 14, color: _text),
-          // Terminal mockups go full-mono even for display.
-          labelSmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w500, fontSize: 10, letterSpacing: 1.0, color: _textMute),
-          bodyMedium: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 12, height: 1.45, color: _textHi),
-          bodySmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 11, color: _text),
-        ),
-        dividerTheme: const DividerThemeData(color: _border, thickness: 1, space: 1),
-        iconTheme: const IconThemeData(color: _textDim, size: 14),
-      );
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: _bg,
+    canvasColor: _bg,
+    colorScheme: const ColorScheme.dark(
+      primary: _accent,
+      onPrimary: Color(0xFF000000),
+      secondary: _info,
+      onSecondary: Color(0xFF000000),
+      surface: _surface,
+      onSurface: _textHi,
+      surfaceContainerHighest: _surfaceHi,
+      outline: _border,
+      outlineVariant: _borderHi,
+      error: _err,
+      onError: Color(0xFF000000),
+    ),
+    textTheme: const TextTheme(
+      displayLarge: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 48, color: _textHi),
+      displayMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 34, color: _textHi),
+      headlineSmall: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 20, color: _textHi),
+      titleMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 14, color: _text),
+      // Terminal mockups go full-mono even for display.
+      labelSmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w500, fontSize: 10, letterSpacing: 1.0, color: _textMute),
+      bodyMedium: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 12, height: 1.45, color: _textHi),
+      bodySmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 11, color: _text),
+    ),
+    dividerTheme: const DividerThemeData(color: _border, thickness: 1, space: 1),
+    iconTheme: const IconThemeData(color: _textDim, size: 14),
+  );
 }

@@ -25,7 +25,10 @@ IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data)
 void _stubRead(KernelFixture f, String path, String content) {
   f.ipc.stub('files.read', (args) async {
     if ((args['path'] as String?) == path) return _ok({'content': content});
-    return IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'not found'));
+    return IpcResponse.err(
+      id: '',
+      error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'not found'),
+    );
   });
 }
 
@@ -34,7 +37,10 @@ void _stubReadMap(KernelFixture f, Map<String, String> paths) {
   f.ipc.stub('files.read', (args) async {
     final path = args['path'] as String? ?? '';
     if (paths.containsKey(path)) return _ok({'content': paths[path]!});
-    return IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'not found'));
+    return IpcResponse.err(
+      id: '',
+      error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: 'not found'),
+    );
   });
 }
 
@@ -187,12 +193,7 @@ void main() {
 
       // Back should be disabled — the button is in a disabled state (no back entry).
       // We verify via the action-bar semantics label.
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == 'Back' && w.properties.enabled == false,
-        ),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Back' && w.properties.enabled == false), findsOneWidget);
     });
 
     testWidgets('back enabled after loading two files', (tester) async {
@@ -202,12 +203,7 @@ void main() {
       await loadFile(tester, f, 'b.md');
 
       // Back should be enabled.
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
-        ),
-        findsWidgets,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true)), findsWidgets);
     });
 
     testWidgets('back navigates to previous file', (tester) async {
@@ -220,9 +216,7 @@ void main() {
       expect(find.text('b.md'), findsOneWidget);
 
       // Tap Back.
-      final backButton = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
-      );
+      final backButton = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true));
       await tester.tap(backButton.first);
       await pumpAsync(tester);
 
@@ -236,12 +230,7 @@ void main() {
       await loadFile(tester, f, 'a.md');
       await loadFile(tester, f, 'b.md');
 
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false,
-        ),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false), findsOneWidget);
     });
 
     testWidgets('forward enabled after going back', (tester) async {
@@ -251,19 +240,12 @@ void main() {
       await loadFile(tester, f, 'b.md');
 
       // Go back.
-      final backButton = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
-      );
+      final backButton = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true));
       await tester.tap(backButton.first);
       await pumpAsync(tester);
 
       // Forward should now be enabled.
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true),
-        ),
-        findsWidgets,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true)), findsWidgets);
     });
 
     testWidgets('forward navigates to next file after back', (tester) async {
@@ -273,17 +255,13 @@ void main() {
       await loadFile(tester, f, 'b.md');
 
       // Go back to a.md.
-      final backButton = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
-      );
+      final backButton = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true));
       await tester.tap(backButton.first);
       await pumpAsync(tester);
       expect(find.text('a.md'), findsOneWidget);
 
       // Go forward to b.md.
-      final fwdButton = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true),
-      );
+      final fwdButton = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Forward' && (w.properties.enabled ?? true));
       await tester.tap(fwdButton.first);
       await pumpAsync(tester);
       expect(find.text('b.md'), findsOneWidget);
@@ -296,9 +274,7 @@ void main() {
       await loadFile(tester, f, 'b.md');
 
       // Go back to a.md.
-      final backButton = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true),
-      );
+      final backButton = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Back' && (w.properties.enabled ?? true));
       await tester.tap(backButton.first);
       await pumpAsync(tester);
 
@@ -306,12 +282,7 @@ void main() {
       await loadFile(tester, f, 'c.md');
 
       // Forward should now be disabled (b.md was truncated).
-      expect(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false,
-        ),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Forward' && w.properties.enabled == false), findsOneWidget);
     });
   });
 
@@ -325,10 +296,7 @@ void main() {
       await pumpView(tester, f);
       await loadFile(tester, f, 'a.md');
 
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && (w.properties.label == 'Pin' || w.properties.label == 'Unpin')),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && (w.properties.label == 'Pin' || w.properties.label == 'Unpin')), findsOneWidget);
     });
 
     testWidgets('pin jump affordance not visible before pin is set', (tester) async {
@@ -336,10 +304,7 @@ void main() {
       await pumpView(tester, f);
       await loadFile(tester, f, 'a.md');
 
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
-        findsNothing,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'), findsNothing);
     });
 
     testWidgets('pin current shows jump-to-pin affordance', (tester) async {
@@ -348,18 +313,11 @@ void main() {
       await loadFile(tester, f, 'a.md');
 
       // Tap Pin current.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin',
-          )
-          .first);
+      await tester.tap(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Pin').first);
       await pumpAsync(tester);
 
       // Jump-to-pin affordance should now be visible.
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'), findsOneWidget);
     });
 
     testWidgets('jump to pin loads the pinned file', (tester) async {
@@ -368,11 +326,7 @@ void main() {
       await loadFile(tester, f, 'a.md');
 
       // Pin a.md.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin',
-          )
-          .first);
+      await tester.tap(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Pin').first);
       await pumpAsync(tester);
 
       // Navigate to b.md.
@@ -380,11 +334,7 @@ void main() {
       expect(find.text('b.md'), findsOneWidget);
 
       // Jump to pin.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Jump to pin',
-          )
-          .first);
+      await tester.tap(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin').first);
       await pumpAsync(tester);
 
       // Should be back at a.md.
@@ -397,28 +347,14 @@ void main() {
       await loadFile(tester, f, 'a.md');
 
       // Pin a.md → jump-to-pin appears.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Pin',
-          )
-          .first);
+      await tester.tap(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Pin').first);
       await pumpAsync(tester);
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'), findsOneWidget);
 
       // Tap the toggle again (now 'Unpin') → pin cleared.
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Unpin',
-          )
-          .first);
+      await tester.tap(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Unpin').first);
       await pumpAsync(tester);
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'),
-        findsNothing,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Jump to pin'), findsNothing);
     });
   });
 
@@ -430,10 +366,7 @@ void main() {
     testWidgets('edit pencil not visible before a file is loaded', (tester) async {
       await pumpView(tester, f);
       // No file loaded — placeholder shown, no chrome.
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
-        findsNothing,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'), findsNothing);
     });
 
     testWidgets('edit pencil fires editor.open with current path', (tester) async {
@@ -449,16 +382,9 @@ void main() {
       await pumpView(tester, f);
       await loadFile(tester, f, path);
 
-      expect(
-        find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'),
-        findsOneWidget,
-      );
+      expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor'), findsOneWidget);
 
-      await tester.tap(find
-          .byWidgetPredicate(
-            (w) => w is Semantics && w.properties.label == 'Edit in editor',
-          )
-          .first);
+      await tester.tap(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor').first);
       await pumpAsync(tester);
 
       expect(editorOpenArgs, hasLength(1));

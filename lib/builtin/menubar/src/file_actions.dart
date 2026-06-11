@@ -143,10 +143,7 @@ class _OpenFolderDialogState extends State<OpenFolderDialog> {
               onSubmitted: (_) => unawaited(_submit()),
             ),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            ClideText(_error!, color: tokens.statusError, fontSize: 12),
-          ],
+          if (_error != null) ...[const SizedBox(height: 8), ClideText(_error!, color: tokens.statusError, fontSize: 12)],
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -188,17 +185,11 @@ class NotARepoDialog extends StatelessWidget {
           const SizedBox(height: 8),
           ClideText(path, muted: true, fontSize: 13),
           const SizedBox(height: 8),
-          const ClideText(
-            'A clide project root requires a git repository.',
-            muted: true,
-            fontSize: 13,
-          ),
+          const ClideText('A clide project root requires a git repository.', muted: true, fontSize: 13),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ClideButton(label: 'OK', onPressed: () => onDismiss()),
-            ],
+            children: [ClideButton(label: 'OK', onPressed: () => onDismiss())],
           ),
         ],
       ),

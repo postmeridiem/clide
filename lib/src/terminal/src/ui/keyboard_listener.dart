@@ -41,11 +41,6 @@ class CustomKeyboardListener extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: focusNode,
-      autofocus: autofocus,
-      onKeyEvent: _onKeyEvent,
-      child: child,
-    );
+    return Focus(focusNode: focusNode, autofocus: autofocus, onKeyEvent: _onKeyEvent, child: child);
   }
 }

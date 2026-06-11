@@ -211,10 +211,6 @@ class SchemaResult {
 
 /// Build the standard `userError` response for a schema violation.
 IpcResponse schemaError(String id, String message) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: message,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message),
+);

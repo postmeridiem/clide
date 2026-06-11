@@ -5,12 +5,7 @@ import 'package:flutter/widgets.dart';
 
 @immutable
 class ClideThemeData {
-  const ClideThemeData({
-    required this.name,
-    required this.displayName,
-    required this.dark,
-    required this.surface,
-  });
+  const ClideThemeData({required this.name, required this.displayName, required this.dark, required this.surface});
 
   final String name;
   final String displayName;
@@ -19,12 +14,9 @@ class ClideThemeData {
 }
 
 class ThemeController extends ChangeNotifier {
-  ThemeController({
-    required List<ThemeDefinition> bundled,
-    ThemeResolver resolver = const ThemeResolver(),
-    String? initialName,
-  })  : _resolver = resolver,
-        _defs = Map.fromEntries(bundled.map((d) => MapEntry(d.name, d))) {
+  ThemeController({required List<ThemeDefinition> bundled, ThemeResolver resolver = const ThemeResolver(), String? initialName})
+    : _resolver = resolver,
+      _defs = Map.fromEntries(bundled.map((d) => MapEntry(d.name, d))) {
     final first = initialName != null && _defs.containsKey(initialName) ? initialName : bundled.first.name;
     _currentName = first;
     _current = _build(first);
@@ -68,21 +60,12 @@ class ThemeController extends ChangeNotifier {
       surfaceOverride: def.surfaceOverride,
       extensionOverride: def.extensionOverride,
     );
-    return ClideThemeData(
-      name: def.name,
-      displayName: def.displayName,
-      dark: def.dark,
-      surface: tokens,
-    );
+    return ClideThemeData(name: def.name, displayName: def.displayName, dark: def.dark, surface: tokens);
   }
 }
 
 class ClideTheme extends InheritedNotifier<ThemeController> {
-  const ClideTheme({
-    super.key,
-    required ThemeController controller,
-    required super.child,
-  }) : super(notifier: controller);
+  const ClideTheme({super.key, required ThemeController controller, required super.child}) : super(notifier: controller);
 
   static ClideThemeData of(BuildContext context) {
     final w = context.dependOnInheritedWidgetOfExactType<ClideTheme>();

@@ -125,7 +125,11 @@ void main() {
     });
 
     test('ReplacementEdit + FileReplacement round-trip JSON', () {
-      const fr = FileReplacement(path: 'a.dart', count: 1, edits: [ReplacementEdit(line: 2, before: 'a', after: 'b')]);
+      const fr = FileReplacement(
+        path: 'a.dart',
+        count: 1,
+        edits: [ReplacementEdit(line: 2, before: 'a', after: 'b')],
+      );
       final back = FileReplacement.fromJson(fr.toJson());
       expect(back.path, 'a.dart');
       expect(back.count, 1);

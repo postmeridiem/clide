@@ -5,13 +5,7 @@ import 'package:flutter/foundation.dart';
 /// an editor buffer ref).
 @immutable
 class MultitabEntry<T> {
-  const MultitabEntry({
-    required this.id,
-    required this.title,
-    required this.payload,
-    this.closeable = true,
-    this.reorderable = true,
-  });
+  const MultitabEntry({required this.id, required this.title, required this.payload, this.closeable = true, this.reorderable = true});
 
   /// Stable id for this tab. Must be unique within the controller.
   final String id;
@@ -31,12 +25,7 @@ class MultitabEntry<T> {
   /// reorderable tabs cannot move past a pinned tab on either side.
   final bool reorderable;
 
-  MultitabEntry<T> copyWith({
-    String? title,
-    T? payload,
-    bool? closeable,
-    bool? reorderable,
-  }) {
+  MultitabEntry<T> copyWith({String? title, T? payload, bool? closeable, bool? reorderable}) {
     return MultitabEntry<T>(
       id: id,
       title: title ?? this.title,

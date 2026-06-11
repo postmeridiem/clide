@@ -45,14 +45,7 @@ class ExtensionManifest {
         if (d is String) deps.add(d);
       }
     }
-    return ExtensionManifest(
-      id: id,
-      title: title,
-      version: version,
-      dependsOn: deps,
-      entry: entry,
-      schemaVersion: schemaVersion,
-    );
+    return ExtensionManifest(id: id, title: title, version: version, dependsOn: deps, entry: entry, schemaVersion: schemaVersion);
   }
 
   static Future<ExtensionManifest> fromFile(File f) async => ExtensionManifest.fromYamlString(await f.readAsString());

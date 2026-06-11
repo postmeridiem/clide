@@ -15,17 +15,11 @@ void main() {
     });
 
     test('is deterministic for the same input', () {
-      expect(
-        workspaceSocketPath('/home/me/repo'),
-        workspaceSocketPath('/home/me/repo'),
-      );
+      expect(workspaceSocketPath('/home/me/repo'), workspaceSocketPath('/home/me/repo'));
     });
 
     test('different workspace roots hash to different paths', () {
-      expect(
-        workspaceSocketPath('/home/me/repo-a'),
-        isNot(workspaceSocketPath('/home/me/repo-b')),
-      );
+      expect(workspaceSocketPath('/home/me/repo-a'), isNot(workspaceSocketPath('/home/me/repo-b')));
     });
 
     test('socketDirectory uses XDG_RUNTIME_DIR on Linux when set', () {

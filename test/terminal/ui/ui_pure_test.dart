@@ -142,9 +142,7 @@ void main() {
     });
 
     test('fromTextStyle picks fontSize / height / fontFamilyFallback through to TerminalStyle', () {
-      final s = TerminalStyle.fromTextStyle(
-        const TextStyle(fontSize: 18, height: 1.5, fontFamilyFallback: ['Mono']),
-      );
+      final s = TerminalStyle.fromTextStyle(const TextStyle(fontSize: 18, height: 1.5, fontFamilyFallback: ['Mono']));
       expect(s.fontSize, 18);
       expect(s.height, 1.5);
       expect(s.fontFamilyFallback, ['Mono']);
@@ -152,12 +150,7 @@ void main() {
 
     test('toTextStyle threads attribute flags into the resulting TextStyle', () {
       const s = TerminalStyle(fontSize: 16);
-      final t = s.toTextStyle(
-        color: const Color(0xFF112233),
-        bold: true,
-        italic: true,
-        underline: true,
-      );
+      final t = s.toTextStyle(color: const Color(0xFF112233), bold: true, italic: true, underline: true);
       expect(t.fontSize, 16);
       expect(t.fontWeight, FontWeight.bold);
       expect(t.fontStyle, FontStyle.italic);
@@ -244,11 +237,7 @@ void main() {
   group('SelectionMode + TerminalCursorType enums', () {
     test('all enum values exist and are distinct', () {
       expect(SelectionMode.values, [SelectionMode.line, SelectionMode.block]);
-      expect(TerminalCursorType.values, [
-        TerminalCursorType.block,
-        TerminalCursorType.underline,
-        TerminalCursorType.verticalBar,
-      ]);
+      expect(TerminalCursorType.values, [TerminalCursorType.block, TerminalCursorType.underline, TerminalCursorType.verticalBar]);
     });
   });
 

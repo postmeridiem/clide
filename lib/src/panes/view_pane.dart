@@ -11,13 +11,7 @@
 library;
 
 class ViewPane {
-  const ViewPane({
-    required this.id,
-    required this.slot,
-    required this.title,
-    required this.active,
-    required this.visible,
-  });
+  const ViewPane({required this.id, required this.slot, required this.title, required this.active, required this.visible});
 
   /// Stable contribution id (e.g. `claude`, `files`, `editor`) — the same id
   /// `pane.focus` would target.
@@ -36,13 +30,5 @@ class ViewPane {
   /// Whether the tab's slot is currently visible (not collapsed/hidden).
   final bool visible;
 
-  Map<String, Object?> toJson() => {
-        'id': id,
-        'kind': 'view',
-        'slot': slot,
-        'title': title,
-        'active': active,
-        'visible': visible,
-        'source': 'ui',
-      };
+  Map<String, Object?> toJson() => {'id': id, 'kind': 'view', 'slot': slot, 'title': title, 'active': active, 'visible': visible, 'source': 'ui'};
 }

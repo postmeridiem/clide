@@ -9,16 +9,13 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/widget_harness.dart';
 
 Widget _boxed(double width, Widget child) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: Center(
-        child: SizedBox(width: width, height: 16, child: child),
-      ),
-    );
+  textDirection: TextDirection.ltr,
+  child: Center(
+    child: SizedBox(width: width, height: 16, child: child),
+  ),
+);
 
-Widget _reducedMotion(double width, Widget child) => MediaQuery(
-      data: const MediaQueryData(disableAnimations: true),
-      child: _boxed(width, child),
-    );
+Widget _reducedMotion(double width, Widget child) => MediaQuery(data: const MediaQueryData(disableAnimations: true), child: _boxed(width, child));
 
 void main() {
   testWidgets('shows the child statically when it fits', (tester) async {

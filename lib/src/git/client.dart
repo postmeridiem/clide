@@ -61,13 +61,7 @@ class GitClient {
       return GitStatus(branch: branch, upstream: upstream, ahead: ahead, behind: behind, entries: const []);
     }
 
-    return GitStatus(
-      branch: branch,
-      upstream: upstream,
-      ahead: ahead,
-      behind: behind,
-      entries: parsePorcelainV1(result.stdout as String),
-    );
+    return GitStatus(branch: branch, upstream: upstream, ahead: ahead, behind: behind, entries: parsePorcelainV1(result.stdout as String));
   }
 
   Future<List<GitDiff>> diff({bool staged = false, List<String> paths = const []}) async {
@@ -83,12 +77,7 @@ class GitClient {
   }
 
   Future<List<GitLogEntry>> log({int count = 20}) async {
-    final r = await _run([
-      'log',
-      '--format=%H%x00%h%x00%s%x00%an%x00%aI%x00%b%x01',
-      '-n',
-      '$count',
-    ]);
+    final r = await _run(['log', '--format=%H%x00%h%x00%s%x00%an%x00%aI%x00%b%x01', '-n', '$count']);
     if (r.exitCode != 0) return const [];
     return parseLog(r.stdout as String);
   }
@@ -115,11 +104,7 @@ class GitClient {
   /// Resolve a path to its git repo root. Returns null if not a git repo.
   Future<String?> repoRoot(String path) async {
     try {
-      final r = await Process.run(
-        toolchain.git,
-        ['rev-parse', '--show-toplevel'],
-        workingDirectory: path,
-      );
+      final r = await Process.run(toolchain.git, ['rev-parse', '--show-toplevel'], workingDirectory: path);
       if (r.exitCode != 0) return null;
       final out = (r.stdout as String).trim();
       return out.isEmpty ? null : out;
@@ -252,14 +237,16 @@ List<GitLogEntry> parseLog(String output) {
     if (trimmed.isEmpty) continue;
     final fields = trimmed.split('\x00');
     if (fields.length < 5) continue;
-    entries.add(GitLogEntry(
-      hash: fields[0],
-      shortHash: fields[1],
-      subject: fields[2],
-      author: fields[3],
-      date: fields[4],
-      body: fields.length > 5 ? fields[5].trim() : '',
-    ));
+    entries.add(
+      GitLogEntry(
+        hash: fields[0],
+        shortHash: fields[1],
+        subject: fields[2],
+        author: fields[3],
+        date: fields[4],
+        body: fields.length > 5 ? fields[5].trim() : '',
+      ),
+    );
   }
   return entries;
 }

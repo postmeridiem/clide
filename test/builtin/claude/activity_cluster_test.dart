@@ -57,12 +57,7 @@ void main() {
     });
 
     test('a failed result surfaces (sticky) and breaks the cluster', () {
-      final groups = groupConversation([
-        _tool('1', 'Bash'),
-        _result('1', isError: true),
-        _tool('2', 'Bash'),
-        _result('2'),
-      ], FoldLevel.tools);
+      final groups = groupConversation([_tool('1', 'Bash'), _result('1', isError: true), _tool('2', 'Bash'), _result('2')], FoldLevel.tools);
       // [Folded([tool1]), Sticky(errorResult), Folded([tool2,result2])]
       expect(groups, hasLength(3));
       expect((groups[0] as FoldedCluster).items, hasLength(1));

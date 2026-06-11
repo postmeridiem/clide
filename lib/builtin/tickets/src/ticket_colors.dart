@@ -1,13 +1,7 @@
 import 'dart:ui' show Color;
 
 class TicketTypeColors {
-  const TicketTypeColors({
-    required this.initiative,
-    required this.epic,
-    required this.story,
-    required this.task,
-    required this.bug,
-  });
+  const TicketTypeColors({required this.initiative, required this.epic, required this.story, required this.task, required this.bug});
 
   final Color initiative;
   final Color epic;
@@ -16,13 +10,13 @@ class TicketTypeColors {
   final Color bug;
 
   Color forType(String? type) => switch (type) {
-        'initiative' => initiative,
-        'epic' => epic,
-        'story' => story,
-        'task' => task,
-        'bug' => bug,
-        _ => task,
-      };
+    'initiative' => initiative,
+    'epic' => epic,
+    'story' => story,
+    'task' => task,
+    'bug' => bug,
+    _ => task,
+  };
 
   static const dark = TicketTypeColors(
     initiative: Color(0xFFC792EA),

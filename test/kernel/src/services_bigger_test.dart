@@ -65,22 +65,21 @@ void main() {
 
     testWidgets('DialogHost renders the child + the dialog over a backdrop', (tester) async {
       final r = DialogRouter();
-      await tester.pumpWidget(Directionality(
-        textDirection: TextDirection.ltr,
-        child: DialogHost(
-          router: r,
-          child: const ColoredBox(color: Color(0xFF111111), child: SizedBox.expand()),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: DialogHost(
+            router: r,
+            child: const ColoredBox(color: Color(0xFF111111), child: SizedBox.expand()),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       // No dialog open yet — backdrop + modal not present.
       expect(find.byType(GestureDetector), findsNothing);
       // Open one.
       final future = r.show<String>((ctx, dismiss) {
-        return GestureDetector(
-          onTap: () => dismiss('inner'),
-          child: const SizedBox(width: 100, height: 100),
-        );
+        return GestureDetector(onTap: () => dismiss('inner'), child: const SizedBox(width: 100, height: 100));
       });
       await tester.pump();
       // Backdrop + inner-wrapper + my own each add a GestureDetector.
@@ -129,7 +128,10 @@ void main() {
 
     test('fire emits an OsLifecycleEvent on the bus', () async {
       final bus = DaemonBus();
-      final bridge = OsBridge(log: Logger(minLevel: LogLevel.error), events: bus);
+      final bridge = OsBridge(
+        log: Logger(minLevel: LogLevel.error),
+        events: bus,
+      );
       final got = bus.on<OsLifecycleEvent>().first;
       bridge.fire('resumed');
       final e = await got.timeout(const Duration(seconds: 1));
@@ -154,10 +156,7 @@ void main() {
       final wc = WindowControls();
       // Pre-register a handler that throws MissingPluginException for
       // every call, exercising each method's catch clause.
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('clide/window'),
-        (call) async => throw MissingPluginException(),
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async => throw MissingPluginException());
       await wc.startResize(ResizeEdge.bottomRight);
       await wc.startDrag();
       await wc.minimize();

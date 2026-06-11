@@ -13,10 +13,7 @@ import 'package:clide/src/terminal/src/core/state.dart';
 import 'package:test/test.dart';
 
 class _State implements TerminalState {
-  _State({
-    this.mouseMode = MouseMode.none,
-    this.mouseReportMode = MouseReportMode.normal,
-  });
+  _State({this.mouseMode = MouseMode.none, this.mouseReportMode = MouseReportMode.normal});
 
   @override
   MouseMode mouseMode;
@@ -91,12 +88,7 @@ void main() {
       expect(TerminalMouseButton.wheelDown.id, 64 + 5);
       expect(TerminalMouseButton.wheelLeft.id, 64 + 6);
       expect(TerminalMouseButton.wheelRight.id, 64 + 7);
-      for (final b in [
-        TerminalMouseButton.wheelUp,
-        TerminalMouseButton.wheelDown,
-        TerminalMouseButton.wheelLeft,
-        TerminalMouseButton.wheelRight,
-      ]) {
+      for (final b in [TerminalMouseButton.wheelUp, TerminalMouseButton.wheelDown, TerminalMouseButton.wheelLeft, TerminalMouseButton.wheelRight]) {
         expect(b.isWheel, isTrue, reason: '$b');
       }
     });
@@ -134,14 +126,8 @@ void main() {
 
   group('MouseReporter (sgr mode)', () {
     test('M for press, m for release, with raw 1-based coords', () {
-      expect(
-        MouseReporter.report(TerminalMouseButton.middle, TerminalMouseButtonState.down, const CellOffset(10, 20), MouseReportMode.sgr),
-        '\x1b[<1;11;21M',
-      );
-      expect(
-        MouseReporter.report(TerminalMouseButton.middle, TerminalMouseButtonState.up, const CellOffset(10, 20), MouseReportMode.sgr),
-        '\x1b[<1;11;21m',
-      );
+      expect(MouseReporter.report(TerminalMouseButton.middle, TerminalMouseButtonState.down, const CellOffset(10, 20), MouseReportMode.sgr), '\x1b[<1;11;21M');
+      expect(MouseReporter.report(TerminalMouseButton.middle, TerminalMouseButtonState.up, const CellOffset(10, 20), MouseReportMode.sgr), '\x1b[<1;11;21m');
     });
   });
 
@@ -171,21 +157,11 @@ void main() {
 
   group('CascadeMouseHandler', () {
     test('returns the first non-null result; null when all return null', () {
-      const cascade = CascadeMouseHandler([
-        _NullHandler(),
-        _ConstHandler('first'),
-        _ConstHandler('second'),
-      ]);
-      expect(
-        cascade(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down)),
-        'first',
-      );
+      const cascade = CascadeMouseHandler([_NullHandler(), _ConstHandler('first'), _ConstHandler('second')]);
+      expect(cascade(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down)), 'first');
 
       const allNull = CascadeMouseHandler([_NullHandler(), _NullHandler()]);
-      expect(
-        allNull(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down)),
-        isNull,
-      );
+      expect(allNull(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down)), isNull);
     });
   });
 
@@ -198,31 +174,16 @@ void main() {
     });
 
     test('clickOnly mode + up → null (only down events report)', () {
-      expect(
-        h(_evt(TerminalMouseButton.middle, TerminalMouseButtonState.up, mode: MouseMode.clickOnly)),
-        isNull,
-      );
+      expect(h(_evt(TerminalMouseButton.middle, TerminalMouseButtonState.up, mode: MouseMode.clickOnly)), isNull);
     });
 
     test('clickOnly mode + button id >= 3 (wheel) → null', () {
-      expect(
-        h(_evt(TerminalMouseButton.wheelUp, TerminalMouseButtonState.down, mode: MouseMode.clickOnly)),
-        isNull,
-      );
+      expect(h(_evt(TerminalMouseButton.wheelUp, TerminalMouseButtonState.down, mode: MouseMode.clickOnly)), isNull);
     });
 
     test('non-clickOnly modes always return null', () {
-      for (final m in [
-        MouseMode.none,
-        MouseMode.upDownScroll,
-        MouseMode.upDownScrollDrag,
-        MouseMode.upDownScrollMove,
-      ]) {
-        expect(
-          h(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: m)),
-          isNull,
-          reason: '$m',
-        );
+      for (final m in [MouseMode.none, MouseMode.upDownScroll, MouseMode.upDownScrollDrag, MouseMode.upDownScrollMove]) {
+        expect(h(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: m)), isNull, reason: '$m');
       }
     });
   });
@@ -232,39 +193,22 @@ void main() {
 
     test('none / clickOnly modes return null', () {
       for (final m in [MouseMode.none, MouseMode.clickOnly]) {
-        expect(
-          h(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: m)),
-          isNull,
-        );
+        expect(h(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: m)), isNull);
       }
     });
 
     test('upDownScroll modes report regular button events', () {
-      for (final m in [
-        MouseMode.upDownScroll,
-        MouseMode.upDownScrollDrag,
-        MouseMode.upDownScrollMove,
-      ]) {
-        expect(
-          h(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: m)),
-          isNotNull,
-          reason: '$m',
-        );
+      for (final m in [MouseMode.upDownScroll, MouseMode.upDownScrollDrag, MouseMode.upDownScrollMove]) {
+        expect(h(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: m)), isNotNull, reason: '$m');
       }
     });
 
     test('wheel up events are silently dropped (no report on wheel release)', () {
-      expect(
-        h(_evt(TerminalMouseButton.wheelUp, TerminalMouseButtonState.up, mode: MouseMode.upDownScroll)),
-        isNull,
-      );
+      expect(h(_evt(TerminalMouseButton.wheelUp, TerminalMouseButtonState.up, mode: MouseMode.upDownScroll)), isNull);
     });
 
     test('wheel down events do report (one click per scroll tick)', () {
-      expect(
-        h(_evt(TerminalMouseButton.wheelDown, TerminalMouseButtonState.down, mode: MouseMode.upDownScroll)),
-        isNotNull,
-      );
+      expect(h(_evt(TerminalMouseButton.wheelDown, TerminalMouseButtonState.down, mode: MouseMode.upDownScroll)), isNotNull);
     });
   });
 
@@ -280,12 +224,7 @@ void main() {
     });
 
     test('mode=none produces null (no handler reports)', () {
-      expect(
-        defaultMouseHandler(
-          _evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: MouseMode.none),
-        ),
-        isNull,
-      );
+      expect(defaultMouseHandler(_evt(TerminalMouseButton.left, TerminalMouseButtonState.down, mode: MouseMode.none)), isNull);
     });
   });
 }

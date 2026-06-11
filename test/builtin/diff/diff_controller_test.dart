@@ -81,7 +81,13 @@ void main() {
   });
 
   test('a git.diff error surfaces on the controller', () async {
-    ipc.stub('git.diff', (_) async => IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom')));
+    ipc.stub(
+      'git.diff',
+      (_) async => IpcResponse.err(
+        id: '',
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+      ),
+    );
     await c.load();
     expect(c.error, 'boom');
   });

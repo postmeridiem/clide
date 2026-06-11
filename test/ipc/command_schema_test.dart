@@ -109,7 +109,10 @@ void main() {
   group('normalize (argv shape → named args)', () {
     const schema = CommandSchema(
       positional: ['slot'],
-      args: {'slot': ArgSpec(), 'to': ArgSpec(type: ArgType.number)},
+      args: {
+        'slot': ArgSpec(),
+        'to': ArgSpec(type: ArgType.number),
+      },
     );
 
     test('positional[i] maps to the i-th declared name', () {

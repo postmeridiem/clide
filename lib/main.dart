@@ -147,12 +147,7 @@ Future<void> main() async {
     } catch (e) {
       ipcLog.warn('mcp', 'stop failed during swap: $e');
     }
-    final server = IpcServer(
-      dispatcher: dispatcher,
-      workspaceRoot: workRoot.path,
-      log: ipcLog,
-      events: daemonBus,
-    );
+    final server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot.path, log: ipcLog, events: daemonBus);
     ipcServer = server;
     try {
       await server.start();
@@ -193,24 +188,14 @@ Future<void> main() async {
     return next;
   }
 
-  DaemonDispatcher buildDispatcher(
-    DaemonBus events,
-    Toolchain tc,
-    Directory workRoot,
-    LayoutArrangement arrangement,
-    PanelRegistry panels,
-  ) {
+  DaemonDispatcher buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot, LayoutArrangement arrangement, PanelRegistry panels) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
     final paneRegistry = PaneRegistry(events: eventSink);
     // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
-    registerPaneCommands(
-      dispatcher,
-      paneRegistry,
-      viewPanes: () => snapshotViewPanes(panels, arrangement),
-    );
+    registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement));
     // Trusted read-only roots beyond the workspace: the global Claude
     // config dir (~/.claude), so the reader can open user-scope skill /
     // agent / command markdown the Config tab surfaces (D-80, T-195).
@@ -225,11 +210,7 @@ Future<void> main() async {
     registerFilesCommands(dispatcher, filesService);
     // Search reuses the files service's resolved ignore set so the
     // grep honours the same ignore_files: layering (D-4 / D-79).
-    final searchService = SearchService(
-      root: workRoot,
-      ignore: filesService.ignore,
-      events: eventSink,
-    );
+    final searchService = SearchService(root: workRoot, ignore: filesService.ignore, events: eventSink);
     registerSearchCommands(dispatcher, searchService);
     final editorRegistry = EditorRegistry(events: eventSink, workspaceRoot: workRoot);
     registerEditorCommands(dispatcher, editorRegistry);
@@ -241,11 +222,7 @@ Future<void> main() async {
     // `clide ui open <reader> <id|path>` — drive the GUI readers from the CLI
     // (T-231, drive-half of D-6). Publishes a 'selection' to the kernel
     // MessageBus, captured post-boot; null in headless contexts.
-    registerUiCommands(
-      dispatcher,
-      () => kernelMessages?.publish,
-      filterValue: (address) => kernelFilterStates?.get(address),
-    );
+    registerUiCommands(dispatcher, () => kernelMessages?.publish, filterValue: (address) => kernelFilterStates?.get(address));
     // `clide image show <path>` — drive an image card into the Claude
     // conversation log (T-249, drive-half of D-6). Resolves the path
     // (workspace-relative → absolute, must exist) here where workRoot is in
@@ -273,12 +250,7 @@ Future<void> main() async {
           'behind': git.behind,
           'clean': git.isClean,
           'hasConflicts': git.hasConflicts,
-          'counts': {
-            'staged': git.staged.length,
-            'unstaged': git.unstaged.length,
-            'untracked': git.untracked.length,
-            'conflicted': git.conflicted.length,
-          },
+          'counts': {'staged': git.staged.length, 'unstaged': git.unstaged.length, 'untracked': git.untracked.length, 'conflicted': git.conflicted.length},
         };
       } catch (_) {
         gitJson = null; // never sink the snapshot on a git hiccup
@@ -289,12 +261,7 @@ Future<void> main() async {
         'git': gitJson,
         'editor': editorActive == null
             ? null
-            : {
-                'id': editorActive.id,
-                'path': editorActive.path,
-                'selection': editorActive.selection.toJson(),
-                'dirty': editorActive.dirty,
-              },
+            : {'id': editorActive.id, 'path': editorActive.path, 'selection': editorActive.selection.toJson(), 'dirty': editorActive.dirty},
         'readers': kernelReaderNav?.currentByReader ?? const <String, String>{},
         'focusedFile': editorActive?.path,
         'panes': [for (final v in snapshotViewPanes(panels, arrangement)) v.toJson()],
@@ -337,11 +304,7 @@ Future<void> main() async {
             // client will then auto-connect to via its reconnect
             // loop. autoStartDaemonClient:false means we own the
             // lifecycle here.
-            final client = DaemonClient(
-              socketPath: workspaceSocketPath(workRoot.path),
-              log: log,
-              events: events,
-            );
+            final client = DaemonClient(socketPath: workspaceSocketPath(workRoot.path), log: log, events: events);
             ipcClient = client;
             // start() synchronously marks the client "connecting" (so
             // requests issued during the startup window park for the
@@ -436,12 +399,7 @@ class _BusEventSink implements DaemonEventSink {
 
   @override
   void emit(IpcEvent event) {
-    _bus.emit(DaemonEvent(
-      subsystem: event.subsystem,
-      kind: event.kind,
-      data: event.data,
-      ts: DateTime.now(),
-    ));
+    _bus.emit(DaemonEvent(subsystem: event.subsystem, kind: event.kind, data: event.data, ts: DateTime.now()));
   }
 }
 

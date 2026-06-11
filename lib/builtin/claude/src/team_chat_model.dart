@@ -29,11 +29,7 @@ typedef SessionResolver = StreamJsonSession? Function(String memberName);
 /// Lifetime matches the orchestrator: created once, subscribed to the broker,
 /// disposed when the orchestrator is torn down.
 class TeamChatModel {
-  TeamChatModel({
-    required TeamBroker broker,
-    SessionResolver? sessionResolver,
-  })  : _broker = broker,
-        _sessionResolver = sessionResolver {
+  TeamChatModel({required TeamBroker broker, SessionResolver? sessionResolver}) : _broker = broker, _sessionResolver = sessionResolver {
     _sub = broker.messages.listen(_onMessage);
   }
 

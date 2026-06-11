@@ -16,27 +16,18 @@ import 'package:test/test.dart';
 
 /// Write [lines] to [file], each JSON-encoded, newline-terminated.
 void writeLines(File file, List<Map<String, dynamic>> lines) {
-  file.writeAsStringSync(
-    '${lines.map(jsonEncode).join('\n')}\n',
-    mode: FileMode.writeOnly,
-  );
+  file.writeAsStringSync('${lines.map(jsonEncode).join('\n')}\n', mode: FileMode.writeOnly);
 }
 
 /// Append [lines] to [file].
 void appendLines(File file, List<Map<String, dynamic>> lines) {
-  file.writeAsStringSync(
-    '${lines.map(jsonEncode).join('\n')}\n',
-    mode: FileMode.append,
-  );
+  file.writeAsStringSync('${lines.map(jsonEncode).join('\n')}\n', mode: FileMode.append);
 }
 
 /// Poll [ready] until it returns true or [timeout] elapses. Streaming
 /// assertions use this instead of a fixed delay so they don't flake under
 /// load (the reader polls on a timer and may parse off-isolate).
-Future<void> pumpUntil(
-  bool Function() ready, {
-  Duration timeout = const Duration(seconds: 5),
-}) async {
+Future<void> pumpUntil(bool Function() ready, {Duration timeout = const Duration(seconds: 5)}) async {
   final deadline = DateTime.now().add(timeout);
   while (!ready() && DateTime.now().isBefore(deadline)) {
     await Future<void>.delayed(const Duration(milliseconds: 10));
@@ -53,24 +44,12 @@ Map<String, dynamic> envelope({
   String version = '2.1.143',
   String timestamp = '2026-05-16T08:53:06.708Z',
 }) {
-  return {
-    'type': type,
-    'uuid': uuid,
-    'parentUuid': parentUuid,
-    'isSidechain': isSidechain,
-    'version': version,
-    'timestamp': timestamp,
-    if (message != null) 'message': message,
-  };
+  return {'type': type, 'uuid': uuid, 'parentUuid': parentUuid, 'isSidechain': isSidechain, 'version': version, 'timestamp': timestamp, 'message': ?message};
 }
 
 /// Build a `user` envelope whose content is a plain string.
 Map<String, dynamic> userText(String uuid, String text) {
-  return envelope(
-    type: 'user',
-    uuid: uuid,
-    message: {'role': 'user', 'content': text},
-  );
+  return envelope(type: 'user', uuid: uuid, message: {'role': 'user', 'content': text});
 }
 
 /// Build a `user` envelope whose content is an array of text parts.
@@ -81,43 +60,28 @@ Map<String, dynamic> userTextArray(String uuid, List<String> parts) {
     message: {
       'role': 'user',
       'content': [
-        for (final p in parts) {'type': 'text', 'text': p}
+        for (final p in parts) {'type': 'text', 'text': p},
       ],
     },
   );
 }
 
 /// Build a `user` envelope containing a tool_result.
-Map<String, dynamic> userToolResult(
-  String uuid, {
-  required String toolUseId,
-  required String content,
-  bool isError = false,
-}) {
+Map<String, dynamic> userToolResult(String uuid, {required String toolUseId, required String content, bool isError = false}) {
   return envelope(
     type: 'user',
     uuid: uuid,
     message: {
       'role': 'user',
       'content': [
-        {
-          'type': 'tool_result',
-          'tool_use_id': toolUseId,
-          'content': content,
-          'is_error': isError,
-        }
+        {'type': 'tool_result', 'tool_use_id': toolUseId, 'content': content, 'is_error': isError},
       ],
     },
   );
 }
 
 /// Build an `assistant` envelope with a tool_use content block.
-Map<String, dynamic> assistantToolUse(
-  String uuid, {
-  required String id,
-  required String name,
-  required Map<String, dynamic> input,
-}) {
+Map<String, dynamic> assistantToolUse(String uuid, {required String id, required String name, required Map<String, dynamic> input}) {
   return envelope(
     type: 'assistant',
     uuid: uuid,
@@ -169,10 +133,7 @@ Map<String, dynamic> skipRecord(String type, String uuid) {
 
 /// Parses [lines] synchronously via the real [TranscriptReader.parseLine] and
 /// returns every emitted [ConversationItem].
-List<ConversationItem> parseAll(
-  List<Map<String, dynamic>> lines, {
-  void Function(String)? onWarn,
-}) {
+List<ConversationItem> parseAll(List<Map<String, dynamic>> lines, {void Function(String)? onWarn}) {
   final reader = TranscriptReader('/fake', onWarn: onWarn);
   return [for (final l in lines) ...reader.parseLine(jsonEncode(l))];
 }
@@ -185,12 +146,7 @@ void main() {
   // -------------------------------------------------------------------------
   group('ConversationItem model', () {
     test('UserMessage holds text and metadata', () {
-      final item = UserMessage(
-        uuid: 'u1',
-        timestamp: _epoch,
-        isSidechain: false,
-        text: 'hello',
-      );
+      final item = UserMessage(uuid: 'u1', timestamp: _epoch, isSidechain: false, text: 'hello');
       expect(item.uuid, 'u1');
       expect(item.text, 'hello');
       expect(item.isSidechain, isFalse);
@@ -198,48 +154,24 @@ void main() {
     });
 
     test('AssistantTextMessage holds text', () {
-      final item = AssistantTextMessage(
-        uuid: 'a1',
-        timestamp: _epoch,
-        isSidechain: false,
-        text: 'world',
-      );
+      final item = AssistantTextMessage(uuid: 'a1', timestamp: _epoch, isSidechain: false, text: 'world');
       expect(item.text, 'world');
     });
 
     test('AssistantThinkingMessage holds thinking', () {
-      final item = AssistantThinkingMessage(
-        uuid: 't1',
-        timestamp: _epoch,
-        isSidechain: false,
-        thinking: 'pondering',
-      );
+      final item = AssistantThinkingMessage(uuid: 't1', timestamp: _epoch, isSidechain: false, thinking: 'pondering');
       expect(item.thinking, 'pondering');
     });
 
     test('AssistantToolUse holds name and input', () {
-      final item = AssistantToolUse(
-        uuid: 'tu1',
-        timestamp: _epoch,
-        isSidechain: false,
-        toolUseId: 'toolu_001',
-        name: 'Bash',
-        input: const {'command': 'ls'},
-      );
+      final item = AssistantToolUse(uuid: 'tu1', timestamp: _epoch, isSidechain: false, toolUseId: 'toolu_001', name: 'Bash', input: const {'command': 'ls'});
       expect(item.name, 'Bash');
       expect(item.input['command'], 'ls');
       expect(item.toString(), contains('Bash'));
     });
 
     test('ToolResultMessage holds content and error flag', () {
-      final item = ToolResultMessage(
-        uuid: 'r1',
-        timestamp: _epoch,
-        isSidechain: false,
-        toolUseId: 'toolu_001',
-        content: 'ok',
-        isError: false,
-      );
+      final item = ToolResultMessage(uuid: 'r1', timestamp: _epoch, isSidechain: false, toolUseId: 'toolu_001', content: 'ok', isError: false);
       expect(item.content, 'ok');
       expect(item.isError, isFalse);
     });
@@ -264,14 +196,7 @@ void main() {
   // -------------------------------------------------------------------------
   group('TranscriptReader — parse: skip types', () {
     test('skips attachment, system, last-prompt, permission-mode, file-history-snapshot, queue-operation', () {
-      final skipTypes = [
-        'attachment',
-        'system',
-        'last-prompt',
-        'permission-mode',
-        'file-history-snapshot',
-        'queue-operation',
-      ];
+      final skipTypes = ['attachment', 'system', 'last-prompt', 'permission-mode', 'file-history-snapshot', 'queue-operation'];
       for (final t in skipTypes) {
         final items = parseAll([skipRecord(t, 'skip-$t')]);
         expect(items, isEmpty, reason: 'type "$t" should be skipped');
@@ -290,7 +215,7 @@ void main() {
 
     test('array content with text parts emits joined UserMessage', () {
       final items = parseAll([
-        userTextArray('u2', ['foo', 'bar'])
+        userTextArray('u2', ['foo', 'bar']),
       ]);
       expect(items, hasLength(1));
       final msg = items.first as UserMessage;
@@ -298,9 +223,7 @@ void main() {
     });
 
     test('array content with tool_result emits ToolResultMessage', () {
-      final items = parseAll([
-        userToolResult('u3', toolUseId: 'toolu_abc', content: '{"ok":true}'),
-      ]);
+      final items = parseAll([userToolResult('u3', toolUseId: 'toolu_abc', content: '{"ok":true}')]);
       expect(items, hasLength(1));
       final res = items.first as ToolResultMessage;
       expect(res.toolUseId, 'toolu_abc');
@@ -309,9 +232,7 @@ void main() {
     });
 
     test('tool_result with is_error=true sets isError', () {
-      final items = parseAll([
-        userToolResult('u4', toolUseId: 'toolu_xyz', content: 'boom', isError: true),
-      ]);
+      final items = parseAll([userToolResult('u4', toolUseId: 'toolu_xyz', content: 'boom', isError: true)]);
       final res = items.first as ToolResultMessage;
       expect(res.isError, isTrue);
     });
@@ -324,12 +245,7 @@ void main() {
           'role': 'user',
           'content': [
             {'type': 'text', 'text': 'see result'},
-            {
-              'type': 'tool_result',
-              'tool_use_id': 'toolu_mixed',
-              'content': 'done',
-              'is_error': false,
-            },
+            {'type': 'tool_result', 'tool_use_id': 'toolu_mixed', 'content': 'done', 'is_error': false},
           ],
         },
       );
@@ -352,23 +268,13 @@ void main() {
     });
 
     test('isSidechain flag is preserved', () {
-      final raw = envelope(
-        type: 'user',
-        uuid: 'u7',
-        isSidechain: true,
-        message: {'role': 'user', 'content': 'side'},
-      );
+      final raw = envelope(type: 'user', uuid: 'u7', isSidechain: true, message: {'role': 'user', 'content': 'side'});
       final items = parseAll([raw]);
       expect(items.first.isSidechain, isTrue);
     });
 
     test('parentUuid is parsed; empty parentUuid normalises to null (T-263)', () {
-      final withParent = envelope(
-        type: 'user',
-        uuid: 'u8',
-        parentUuid: 'msg-A',
-        message: {'role': 'user', 'content': 'a sidechain prompt'},
-      );
+      final withParent = envelope(type: 'user', uuid: 'u8', parentUuid: 'msg-A', message: {'role': 'user', 'content': 'a sidechain prompt'});
       final withoutParent = envelope(
         type: 'user',
         uuid: 'u9',
@@ -382,22 +288,14 @@ void main() {
     test('stream-json parent_tool_use_id marks a sidechain message (T-338)', () {
       // The stream-json wire tags sub-agent messages with parent_tool_use_id and
       // NO isSidechain flag — we must treat it as a sidechain item anyway.
-      final raw = envelope(
-        type: 'user',
-        uuid: 'sp',
-        message: {'role': 'user', 'content': 'go explore the codebase'},
-      )..['parent_tool_use_id'] = 'toolu_task1';
+      final raw = envelope(type: 'user', uuid: 'sp', message: {'role': 'user', 'content': 'go explore the codebase'})..['parent_tool_use_id'] = 'toolu_task1';
       final items = parseAll([raw]);
       expect(items.first.isSidechain, isTrue);
       expect(items.first.parentToolUseId, 'toolu_task1');
     });
 
     test('empty parent_tool_use_id normalises to null and stays main-thread (T-338)', () {
-      final raw = envelope(
-        type: 'user',
-        uuid: 'mt',
-        message: {'role': 'user', 'content': 'a normal turn'},
-      )..['parent_tool_use_id'] = '';
+      final raw = envelope(type: 'user', uuid: 'mt', message: {'role': 'user', 'content': 'a normal turn'})..['parent_tool_use_id'] = '';
       final items = parseAll([raw]);
       expect(items.first.isSidechain, isFalse);
       expect(items.first.parentToolUseId, isNull);
@@ -436,12 +334,7 @@ void main() {
 
     test('tool_use block emits AssistantToolUse', () {
       final items = parseAll([
-        assistantToolUse(
-          'a4',
-          id: 'toolu_001',
-          name: 'Bash',
-          input: {'command': 'ls -la', 'description': 'List files'},
-        ),
+        assistantToolUse('a4', id: 'toolu_001', name: 'Bash', input: {'command': 'ls -la', 'description': 'List files'}),
       ]);
       expect(items, hasLength(1));
       final tu = items.first as AssistantToolUse;
@@ -463,7 +356,7 @@ void main() {
               'type': 'tool_use',
               'id': 'toolu_002',
               'name': 'Read',
-              'input': {'file_path': '/foo'}
+              'input': {'file_path': '/foo'},
             },
           ],
         },
@@ -519,21 +412,13 @@ void main() {
   group('TranscriptReader — version drift-guard', () {
     test('known versions (1.x, 2.x) produce no warning', () {
       final warnings = <String>[];
-      parseAll(
-        [userText('u1', 'hello'), assistantText('a1', 'world')],
-        onWarn: warnings.add,
-      );
+      parseAll([userText('u1', 'hello'), assistantText('a1', 'world')], onWarn: warnings.add);
       expect(warnings, isEmpty);
     });
 
     test('unknown major version warns and still emits parseable items', () {
       final warnings = <String>[];
-      final raw = envelope(
-        type: 'user',
-        uuid: 'u1',
-        version: '99.0.1',
-        message: {'role': 'user', 'content': 'future format'},
-      );
+      final raw = envelope(type: 'user', uuid: 'u1', version: '99.0.1', message: {'role': 'user', 'content': 'future format'});
       final items = parseAll([raw], onWarn: warnings.add);
       expect(warnings, hasLength(1));
       expect(warnings.first, contains('99'));
@@ -567,10 +452,7 @@ void main() {
     });
 
     test('malformed JSON line is skipped without throwing', () {
-      expect(
-        TranscriptReader('/fake').parseLine('not json!!!'),
-        isEmpty,
-      );
+      expect(TranscriptReader('/fake').parseLine('not json!!!'), isEmpty);
     });
   });
 
@@ -588,14 +470,9 @@ void main() {
             'role': 'assistant',
             'model': 'claude-opus-4-7',
             'content': [
-              {'type': 'text', 'text': 'hi'}
+              {'type': 'text', 'text': 'hi'},
             ],
-            'usage': {
-              'input_tokens': 2,
-              'cache_read_input_tokens': 1000,
-              'cache_creation_input_tokens': 500,
-              'output_tokens': 99,
-            },
+            'usage': {'input_tokens': 2, 'cache_read_input_tokens': 1000, 'cache_creation_input_tokens': 500, 'output_tokens': 99},
           },
         }),
       ].join('\n');
@@ -672,16 +549,9 @@ void main() {
       await projectDir.create(recursive: true);
       final sessionFile = File('${projectDir.path}/session-abc.jsonl');
 
-      writeLines(sessionFile, [
-        userText('u1', 'first message'),
-        assistantText('a1', 'first reply'),
-      ]);
+      writeLines(sessionFile, [userText('u1', 'first message'), assistantText('a1', 'first reply')]);
 
-      final reader = TranscriptReader(
-        workspace,
-        projectsBase: tempBase.path,
-        pollInterval: const Duration(milliseconds: 20),
-      );
+      final reader = TranscriptReader(workspace, projectsBase: tempBase.path, pollInterval: const Duration(milliseconds: 20));
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -701,11 +571,7 @@ void main() {
 
       writeLines(sessionFile, [userText('u1', 'initial')]);
 
-      final reader = TranscriptReader(
-        workspace,
-        projectsBase: tempBase.path,
-        pollInterval: const Duration(milliseconds: 20),
-      );
+      final reader = TranscriptReader(workspace, projectsBase: tempBase.path, pollInterval: const Duration(milliseconds: 20));
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -740,11 +606,7 @@ void main() {
       writeLines(sessionFile, [userText('u1', 'old session')]);
       await sessionFile.setLastModified(DateTime.utc(2020));
 
-      final reader = TranscriptReader(
-        workspace,
-        projectsBase: tempBase.path,
-        pollInterval: const Duration(milliseconds: 20),
-      );
+      final reader = TranscriptReader(workspace, projectsBase: tempBase.path, pollInterval: const Duration(milliseconds: 20));
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -778,11 +640,7 @@ void main() {
         skipRecord('system', 'skip3'),
       ]);
 
-      final reader = TranscriptReader(
-        workspace,
-        projectsBase: tempBase.path,
-        pollInterval: const Duration(milliseconds: 20),
-      );
+      final reader = TranscriptReader(workspace, projectsBase: tempBase.path, pollInterval: const Duration(milliseconds: 20));
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -802,18 +660,11 @@ void main() {
 
       // A long pre-existing transcript — the kind that froze the UI when
       // parsed in full on attach.
-      writeLines(sessionFile, [
-        for (var i = 0; i < 200; i++) assistantText('a$i', 'reply number $i'),
-      ]);
+      writeLines(sessionFile, [for (var i = 0; i < 200; i++) assistantText('a$i', 'reply number $i')]);
 
       // Cap the initial read well below the file size so only the last
       // records are within the tail window.
-      final reader = TranscriptReader(
-        workspace,
-        projectsBase: tempBase.path,
-        pollInterval: const Duration(milliseconds: 20),
-        initialTailBytes: 256,
-      );
+      final reader = TranscriptReader(workspace, projectsBase: tempBase.path, pollInterval: const Duration(milliseconds: 20), initialTailBytes: 256);
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -826,10 +677,7 @@ void main() {
       expect(collected, isNotEmpty);
       expect(collected.length, lessThan(200));
       // The most recent record is always intact at the end of the file.
-      expect(
-        collected.whereType<AssistantTextMessage>().last.text,
-        'reply number 199',
-      );
+      expect(collected.whereType<AssistantTextMessage>().last.text, 'reply number 199');
     });
 
     test('explicit file: tails that exact file, ignoring newest-discovery', () async {
@@ -840,12 +688,7 @@ void main() {
       final target = File('${dir.path}/agent-abc.jsonl');
       writeLines(target, [assistantText('a1', 'from the explicit file')]);
 
-      final reader = TranscriptReader(
-        '/unused/workspace',
-        projectsBase: '/nonexistent',
-        pollInterval: const Duration(milliseconds: 20),
-        file: target.path,
-      );
+      final reader = TranscriptReader('/unused/workspace', projectsBase: '/nonexistent', pollInterval: const Duration(milliseconds: 20), file: target.path);
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -864,12 +707,7 @@ void main() {
       addTearDown(() => dir.delete(recursive: true));
       final target = File('${dir.path}/agent-late.jsonl');
 
-      final reader = TranscriptReader(
-        '/unused',
-        projectsBase: '/nonexistent',
-        pollInterval: const Duration(milliseconds: 20),
-        file: target.path,
-      );
+      final reader = TranscriptReader('/unused', projectsBase: '/nonexistent', pollInterval: const Duration(milliseconds: 20), file: target.path);
       final collected = <ConversationItem>[];
       final sub = reader.stream.listen(collected.add);
 
@@ -901,7 +739,7 @@ void main() {
               'role': 'assistant',
               'model': 'claude-sonnet-4-6',
               'content': [
-                {'type': 'text', 'text': 'hi'}
+                {'type': 'text', 'text': 'hi'},
               ],
               'usage': {'input_tokens': 5, 'cache_read_input_tokens': 200, 'cache_creation_input_tokens': 0, 'output_tokens': 10},
             },
@@ -955,18 +793,14 @@ List<Map<String, dynamic>> _snapshotFixture() {
             'type': 'tool_use',
             'id': toolUseId,
             'name': 'Bash',
-            'input': {'command': 'ls -la'}
+            'input': {'command': 'ls -la'},
           },
         ],
       },
     ),
 
     // tool result (user turn)
-    userToolResult(
-      'u-002',
-      toolUseId: toolUseId,
-      content: 'total 4\n-rw-r--r-- file.dart',
-    ),
+    userToolResult('u-002', toolUseId: toolUseId, content: 'total 4\n-rw-r--r-- file.dart'),
 
     // assistant text reply
     assistantText('a-002', 'The directory contains file.dart.'),

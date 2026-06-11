@@ -67,9 +67,7 @@ void main() {
   test('files.ls into a subdirectory returns its contents', () async {
     final r = await call('files.ls', const {'path': 'lib'});
     expect(r.ok, isTrue);
-    final names = [
-      for (final e in (r.data['entries'] as List).cast<Map>()) e['name'],
-    ];
+    final names = [for (final e in (r.data['entries'] as List).cast<Map>()) e['name']];
     expect(names, ['main.dart']);
   });
 

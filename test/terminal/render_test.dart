@@ -15,12 +15,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _host(Widget child) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: MediaQuery(
-        data: const MediaQueryData(),
-        child: Center(child: SizedBox(width: 400, height: 200, child: child)),
-      ),
-    );
+  textDirection: TextDirection.ltr,
+  child: MediaQuery(
+    data: const MediaQueryData(),
+    child: Center(child: SizedBox(width: 400, height: 200, child: child)),
+  ),
+);
 
 void main() {
   group('RenderTerminal — TerminalView-driven setter updates', () {
@@ -31,16 +31,20 @@ void main() {
       // Pump again with a different value for every TerminalView-exposed
       // prop that maps to a RenderTerminal setter — exercises the
       // "value != current" branch on each.
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        theme: TerminalThemes.whiteOnBlack,
-        textStyle: const TerminalStyle(fontSize: 18),
-        textScaler: const TextScaler.linear(1.2),
-        padding: const EdgeInsets.all(4),
-        autoResize: false,
-        cursorType: TerminalCursorType.underline,
-        alwaysShowCursor: true,
-      )));
+      await tester.pumpWidget(
+        _host(
+          TerminalView(
+            t,
+            theme: TerminalThemes.whiteOnBlack,
+            textStyle: const TerminalStyle(fontSize: 18),
+            textScaler: const TextScaler.linear(1.2),
+            padding: const EdgeInsets.all(4),
+            autoResize: false,
+            cursorType: TerminalCursorType.underline,
+            alwaysShowCursor: true,
+          ),
+        ),
+      );
       await tester.pump();
       final state = tester.state<TerminalViewState>(find.byType(TerminalView));
       expect(state.renderTerminal, isNotNull);
@@ -160,7 +164,7 @@ void main() {
       await tester.pump();
       final state = tester.state<TerminalViewState>(find.byType(TerminalView));
       var callbackFired = 0;
-      state.renderTerminal.onEditableRect = (_, __) => callbackFired++;
+      state.renderTerminal.onEditableRect = (_, _) => callbackFired++;
       // Triggering a layout-affecting change should drive
       // _notifyEditableRect on the next layout pump.
       t.write('layout-trigger');

@@ -9,34 +9,12 @@ import 'dart:io';
 
 import 'operations.dart' show gitBin;
 
-enum GitFileState {
-  added,
-  modified,
-  deleted,
-  renamed,
-  copied,
-  untracked,
-  ignored,
-}
+enum GitFileState { added, modified, deleted, renamed, copied, untracked, ignored }
 
-enum GitConflictType {
-  bothModified,
-  bothAdded,
-  addedByUs,
-  addedByThem,
-  deletedByUs,
-  deletedByThem,
-  bothDeleted,
-}
+enum GitConflictType { bothModified, bothAdded, addedByUs, addedByThem, deletedByUs, deletedByThem, bothDeleted }
 
 class GitFileStatus {
-  const GitFileStatus({
-    required this.path,
-    required this.indexState,
-    required this.workTreeState,
-    this.origPath,
-    this.conflictType,
-  });
+  const GitFileStatus({required this.path, required this.indexState, required this.workTreeState, this.origPath, this.conflictType});
 
   final String path;
   final GitFileState? indexState;
@@ -50,26 +28,20 @@ class GitFileStatus {
   bool get isConflicted => conflictType != null;
 
   Map<String, Object?> toJson() => {
-        'path': path,
-        if (indexState != null) 'indexState': indexState!.name,
-        if (workTreeState != null) 'workTreeState': workTreeState!.name,
-        if (origPath != null) 'origPath': origPath,
-        if (conflictType != null) 'conflictType': conflictType!.name,
-        'staged': isStaged,
-        'unstaged': isUnstaged,
-        'untracked': isUntracked,
-        'conflicted': isConflicted,
-      };
+    'path': path,
+    if (indexState != null) 'indexState': indexState!.name,
+    if (workTreeState != null) 'workTreeState': workTreeState!.name,
+    if (origPath != null) 'origPath': origPath,
+    if (conflictType != null) 'conflictType': conflictType!.name,
+    'staged': isStaged,
+    'unstaged': isUnstaged,
+    'untracked': isUntracked,
+    'conflicted': isConflicted,
+  };
 }
 
 class GitStatus {
-  const GitStatus({
-    required this.branch,
-    required this.entries,
-    this.upstream,
-    this.ahead = 0,
-    this.behind = 0,
-  });
+  const GitStatus({required this.branch, required this.entries, this.upstream, this.ahead = 0, this.behind = 0});
 
   final String? branch;
   final String? upstream;
@@ -86,28 +58,24 @@ class GitStatus {
   bool get hasConflicts => entries.any((e) => e.isConflicted);
 
   Map<String, Object?> toJson() => {
-        'branch': branch,
-        if (upstream != null) 'upstream': upstream,
-        'ahead': ahead,
-        'behind': behind,
-        'clean': isClean,
-        'hasConflicts': hasConflicts,
-        'staged': [for (final e in staged) e.toJson()],
-        'unstaged': [for (final e in unstaged) e.toJson()],
-        'untracked': [for (final e in untracked) e.toJson()],
-        'conflicted': [for (final e in conflicted) e.toJson()],
-      };
+    'branch': branch,
+    if (upstream != null) 'upstream': upstream,
+    'ahead': ahead,
+    'behind': behind,
+    'clean': isClean,
+    'hasConflicts': hasConflicts,
+    'staged': [for (final e in staged) e.toJson()],
+    'unstaged': [for (final e in unstaged) e.toJson()],
+    'untracked': [for (final e in untracked) e.toJson()],
+    'conflicted': [for (final e in conflicted) e.toJson()],
+  };
 }
 
 /// Run `git status` and parse the result.
 Future<GitStatus> gitStatus(Directory workDir) async {
   final ProcessResult branchResult;
   try {
-    branchResult = await Process.run(
-      gitBin,
-      ['status', '--porcelain=v2', '--branch', '-z'],
-      workingDirectory: workDir.path,
-    );
+    branchResult = await Process.run(gitBin, ['status', '--porcelain=v2', '--branch', '-z'], workingDirectory: workDir.path);
   } on ProcessException {
     return const GitStatus(branch: null, entries: []);
   }
@@ -136,33 +104,17 @@ Future<GitStatus> gitStatus(Directory workDir) async {
 
   final ProcessResult result;
   try {
-    result = await Process.run(
-      gitBin,
-      ['status', '--porcelain=v1', '-z'],
-      workingDirectory: workDir.path,
-    );
+    result = await Process.run(gitBin, ['status', '--porcelain=v1', '-z'], workingDirectory: workDir.path);
   } on ProcessException {
     return GitStatus(branch: branch, entries: const [], upstream: upstream, ahead: ahead, behind: behind);
   }
 
   if (result.exitCode != 0) {
-    return GitStatus(
-      branch: branch,
-      upstream: upstream,
-      ahead: ahead,
-      behind: behind,
-      entries: const [],
-    );
+    return GitStatus(branch: branch, upstream: upstream, ahead: ahead, behind: behind, entries: const []);
   }
 
   final entries = parsePorcelainV1(result.stdout as String);
-  return GitStatus(
-    branch: branch,
-    upstream: upstream,
-    ahead: ahead,
-    behind: behind,
-    entries: entries,
-  );
+  return GitStatus(branch: branch, upstream: upstream, ahead: ahead, behind: behind, entries: entries);
 }
 
 List<GitFileStatus> parsePorcelainV1(String output) {
@@ -193,13 +145,15 @@ List<GitFileStatus> parsePorcelainV1(String output) {
     }
 
     final conflict = _conflictType(x, y);
-    entries.add(GitFileStatus(
-      path: path,
-      indexState: conflict != null ? null : _parseState(x),
-      workTreeState: conflict != null ? null : _parseState(y),
-      origPath: origPath,
-      conflictType: conflict,
-    ));
+    entries.add(
+      GitFileStatus(
+        path: path,
+        indexState: conflict != null ? null : _parseState(x),
+        workTreeState: conflict != null ? null : _parseState(y),
+        origPath: origPath,
+        conflictType: conflict,
+      ),
+    );
     i++;
   }
   return entries;

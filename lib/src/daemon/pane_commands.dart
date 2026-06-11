@@ -36,10 +36,23 @@ void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSo
   d.register('pane.spawn', (req) => _spawn(req, registry));
   d.register('pane.list', (req) => _list(req, registry, viewPanes));
   d.register('pane.close', (req) => _close(req, registry), schema: idArg);
-  d.register('pane.write', (req) => _write(req, registry), schema: const CommandSchema(positional: ['id', 'text'], args: {'id': ArgSpec(), 'text': ArgSpec()}));
-  d.register('pane.resize', (req) => _resize(req, registry),
-      schema: const CommandSchema(
-          positional: ['id', 'cols', 'rows'], args: {'id': ArgSpec(), 'cols': ArgSpec(type: ArgType.number), 'rows': ArgSpec(type: ArgType.number)}));
+  d.register(
+    'pane.write',
+    (req) => _write(req, registry),
+    schema: const CommandSchema(positional: ['id', 'text'], args: {'id': ArgSpec(), 'text': ArgSpec()}),
+  );
+  d.register(
+    'pane.resize',
+    (req) => _resize(req, registry),
+    schema: const CommandSchema(
+      positional: ['id', 'cols', 'rows'],
+      args: {
+        'id': ArgSpec(),
+        'cols': ArgSpec(type: ArgType.number),
+        'rows': ArgSpec(type: ArgType.number),
+      },
+    ),
+  );
   d.register('pane.focus', (req) => _focus(req, registry), schema: idArg);
   // pane.tail is a streaming/no-op verb (events arrive via the tail stream),
   // a poor request/response MCP tool — keep it off the MCP surface (D-86).
@@ -47,23 +60,14 @@ void registerPaneCommands(DaemonDispatcher d, PaneRegistry registry, {ViewPaneSo
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: message,
-        hint: hint,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message, hint: hint),
+);
 
 IpcResponse _notFound(String id, String message) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.notFound,
-        kind: IpcErrorKind.notFound,
-        message: message,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: message),
+);
 
 Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
   final args = req.args;
@@ -87,9 +91,7 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
   final envArg = args['env'];
   Map<String, String>? env;
   if (envArg is Map) {
-    env = {
-      for (final e in envArg.entries) '${e.key}': '${e.value}',
-    };
+    env = {for (final e in envArg.entries) '${e.key}': '${e.value}'};
   }
 
   try {
@@ -108,29 +110,17 @@ Future<IpcResponse> _spawn(IpcRequest req, PaneRegistry registry) async {
     if (errno != null) {
       return IpcResponse.err(
         id: req.id,
-        error: errnoToIpcError(
-          errno: errno,
-          op: 'pane.spawn',
-          target: argv.isNotEmpty ? argv.first : null,
-        ),
+        error: errnoToIpcError(errno: errno, op: 'pane.spawn', target: argv.isNotEmpty ? argv.first : null),
       );
     }
     return IpcResponse.err(
       id: req.id,
-      error: IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: 'pane.spawn failed: ${e.message}',
-      ),
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'pane.spawn failed: ${e.message}'),
     );
   } catch (e) {
     return IpcResponse.err(
       id: req.id,
-      error: IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: 'pane.spawn failed: $e',
-      ),
+      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'pane.spawn failed: $e'),
     );
   }
 }
@@ -143,7 +133,7 @@ Future<IpcResponse> _list(IpcRequest req, PaneRegistry registry, ViewPaneSource?
         for (final p in registry.panes) p.toJson(),
         if (viewPanes != null)
           for (final v in viewPanes()) v.toJson(),
-      ]
+      ],
     },
   );
 }
@@ -198,12 +188,7 @@ Future<IpcResponse> _focus(IpcRequest req, PaneRegistry registry) async {
   if (registry.get(id) == null) return _notFound(req.id, 'no such pane: $id');
   // Focus is advisory on the daemon side — UIs track their own focus
   // state. We just emit the event so subscribers know what changed.
-  registry.events.emit(IpcEvent(
-    subsystem: 'pane',
-    kind: 'pane.focused',
-    timestamp: DateTime.now().toUtc(),
-    data: {'id': id},
-  ));
+  registry.events.emit(IpcEvent(subsystem: 'pane', kind: 'pane.focused', timestamp: DateTime.now().toUtc(), data: {'id': id}));
   return IpcResponse.ok(id: req.id, data: {'id': id});
 }
 

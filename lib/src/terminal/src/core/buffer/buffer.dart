@@ -24,12 +24,7 @@ class Buffer {
   /// defaults to [defaultWordSeparators].
   final Set<int>? wordSeparators;
 
-  Buffer(
-    this.terminal, {
-    required this.maxLines,
-    required this.isAltBuffer,
-    this.wordSeparators,
-  }) {
+  Buffer(this.terminal, {required this.maxLines, required this.isAltBuffer, this.wordSeparators}) {
     for (int i = 0; i < terminal.viewHeight; i++) {
       lines.push(_newEmptyLine());
     }
@@ -549,19 +544,13 @@ class Buffer {
       return null;
     }
 
-    return BufferRangeLine(
-      CellOffset(start, position.y),
-      CellOffset(end, position.y),
-    );
+    return BufferRangeLine(CellOffset(start, position.y), CellOffset(end, position.y));
   }
 
   /// Get the plain text content of the buffer including the scrollback.
   /// Accepts an optional [range] to get a specific part of the buffer.
   String getText([BufferRange? range]) {
-    range ??= BufferRangeLine(
-      CellOffset(0, 0),
-      CellOffset(viewWidth - 1, height - 1),
-    );
+    range ??= BufferRangeLine(CellOffset(0, 0), CellOffset(viewWidth - 1, height - 1));
 
     range = range.normalized;
 

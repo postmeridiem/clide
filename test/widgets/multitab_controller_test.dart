@@ -2,13 +2,7 @@ import 'package:clide/widgets/src/multitab_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 MultitabEntry<String> entry(String id, {bool closeable = true, bool reorderable = true}) {
-  return MultitabEntry<String>(
-    id: id,
-    title: id,
-    payload: id,
-    closeable: closeable,
-    reorderable: reorderable,
-  );
+  return MultitabEntry<String>(id: id, title: id, payload: id, closeable: closeable, reorderable: reorderable);
 }
 
 void main() {
@@ -94,31 +88,20 @@ void main() {
     });
 
     test('reorder no-ops on non-reorderable entries', () {
-      final c = MultitabController<String>(initial: [
-        entry('p', reorderable: false),
-        entry('a'),
-      ]);
+      final c = MultitabController<String>(initial: [entry('p', reorderable: false), entry('a')]);
       c.reorder('p', 1);
       expect(c.entries.map((e) => e.id), ['p', 'a']);
     });
 
     test('reorder cannot move a tab past a pinned barrier', () {
-      final c = MultitabController<String>(initial: [
-        entry('p', reorderable: false),
-        entry('a'),
-        entry('b'),
-      ]);
+      final c = MultitabController<String>(initial: [entry('p', reorderable: false), entry('a'), entry('b')]);
       // 'a' tries to land at index 0 — blocked by pinned 'p'.
       c.reorder('a', 0);
       expect(c.entries.map((e) => e.id), ['p', 'a', 'b']);
     });
 
     test('reorder respects barriers on the right', () {
-      final c = MultitabController<String>(initial: [
-        entry('a'),
-        entry('b'),
-        entry('p', reorderable: false),
-      ]);
+      final c = MultitabController<String>(initial: [entry('a'), entry('b'), entry('p', reorderable: false)]);
       // 'a' tries to land past pinned 'p' — clamped to before it.
       c.reorder('a', 2);
       expect(c.entries.map((e) => e.id), ['b', 'a', 'p']);
@@ -146,10 +129,7 @@ void main() {
 
     test('replace rejects id changes', () {
       final c = MultitabController<String>(initial: [entry('a')]);
-      expect(
-        () => c.replace('a', MultitabEntry<String>(id: 'b', title: 'b', payload: 'b')),
-        throwsStateError,
-      );
+      expect(() => c.replace('a', MultitabEntry<String>(id: 'b', title: 'b', payload: 'b')), throwsStateError);
     });
 
     test('notifies listeners on every mutation', () {

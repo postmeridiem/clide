@@ -43,12 +43,7 @@ class ClideText extends StatelessWidget {
       maxLines: maxLines,
       overflow: overflow,
       textAlign: textAlign,
-      style: TextStyle(
-        color: resolved,
-        fontSize: fontSize,
-        fontFamily: fontFamily,
-        fontWeight: fontWeight,
-      ),
+      style: TextStyle(color: resolved, fontSize: fontSize, fontFamily: fontFamily, fontWeight: fontWeight),
     );
   }
 }

@@ -254,9 +254,7 @@ class _ClideMenuState extends State<ClideMenu> {
     final col = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < widget.entries.length; i++) _row(i, widget.entries[i], t),
-      ],
+      children: [for (var i = 0; i < widget.entries.length; i++) _row(i, widget.entries[i], t)],
     );
     return Focus(
       focusNode: _focus,
@@ -264,11 +262,7 @@ class _ClideMenuState extends State<ClideMenu> {
       onKeyEvent: _onKey,
       child: IntrinsicWidth(
         child: Container(
-          constraints: BoxConstraints(
-            minWidth: widget.minWidth,
-            maxWidth: widget.maxWidth,
-            maxHeight: widget.maxHeight ?? double.infinity,
-          ),
+          constraints: BoxConstraints(minWidth: widget.minWidth, maxWidth: widget.maxWidth, maxHeight: widget.maxHeight ?? double.infinity),
           decoration: BoxDecoration(
             color: t.dropdownBackground,
             border: Border.all(color: t.dropdownBorder),
@@ -285,9 +279,9 @@ class _ClideMenuState extends State<ClideMenu> {
   Widget _row(int index, ClideMenuEntry entry, SurfaceTokens t) {
     return switch (entry) {
       ClideMenuSeparator() => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Container(height: 1, color: t.dividerColor),
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Container(height: 1, color: t.dividerColor),
+      ),
       ClideMenuItem() => _itemRow(index, entry, t),
     };
   }
@@ -310,11 +304,10 @@ class _ClideMenuState extends State<ClideMenu> {
             color: highlighted || (hovered && item.enabled) ? t.listItemHoverBackground : null,
             child: Row(
               children: [
-                if (item.leading != null) ...[
-                  ClideIcon(item.leading!, size: 14, color: fg),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(child: ClideText(item.label, fontSize: clideFontSmall, color: fg, maxLines: 1)),
+                if (item.leading != null) ...[ClideIcon(item.leading!, size: 14, color: fg), const SizedBox(width: 8)],
+                Expanded(
+                  child: ClideText(item.label, fontSize: clideFontSmall, color: fg, maxLines: 1),
+                ),
                 if (item.trailing != null)
                   item.trailing!
                 else if (item.active) ...[

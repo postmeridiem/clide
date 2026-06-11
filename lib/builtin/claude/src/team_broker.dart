@@ -35,13 +35,7 @@ class TeamMemberRef {
 
 /// A message left for a member, in arrival order.
 class TeamMessage {
-  const TeamMessage({
-    required this.from,
-    required this.text,
-    required this.at,
-    this.to,
-    this.broadcast = false,
-  });
+  const TeamMessage({required this.from, required this.text, required this.at, this.to, this.broadcast = false});
   final String from;
 
   /// Recipient name: a single member's display name (direct message), `null`
@@ -52,13 +46,7 @@ class TeamMessage {
   final DateTime at;
   final bool broadcast;
 
-  Map<String, dynamic> toJson() => {
-        'from': from,
-        if (to != null) 'to': to,
-        'text': text,
-        'at': at.toIso8601String(),
-        if (broadcast) 'broadcast': true,
-      };
+  Map<String, dynamic> toJson() => {'from': from, if (to != null) 'to': to, 'text': text, 'at': at.toIso8601String(), if (broadcast) 'broadcast': true};
 }
 
 /// A shared task. Status is one of `open` / `claimed` / `done`.
@@ -69,12 +57,7 @@ class TeamTask {
   String status;
   String? owner;
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'status': status,
-        if (owner != null) 'owner': owner,
-      };
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'status': status, if (owner != null) 'owner': owner};
 }
 
 /// Pushes [text] into the member identified by [toMemberId] as a user message
@@ -304,7 +287,7 @@ class TeamBroker {
       return {'ok': true, 'task': t.toJson()};
     }
     return {
-      'tasks': [for (final t in _tasks.values) t.toJson()]
+      'tasks': [for (final t in _tasks.values) t.toJson()],
     };
   }
 
@@ -362,25 +345,26 @@ class TeamMcpServer implements McpServer {
         return _result(broker.claimTask(memberId, id: arguments['id'] as String?, title: arguments['title'] as String?));
       case 'task_status':
         return _result(
-            broker.taskStatus(memberId, id: arguments['id'] as String?, status: arguments['status'] as String?, title: arguments['title'] as String?));
+          broker.taskStatus(memberId, id: arguments['id'] as String?, status: arguments['status'] as String?, title: arguments['title'] as String?),
+        );
       default:
         return _error('Unknown team tool: $name');
     }
   }
 
   Map<String, dynamic> _result(Map<String, dynamic> value) => {
-        'content': [
-          {'type': 'text', 'text': jsonEncode(value)},
-        ],
-        'isError': value['ok'] == false,
-      };
+    'content': [
+      {'type': 'text', 'text': jsonEncode(value)},
+    ],
+    'isError': value['ok'] == false,
+  };
 
   Map<String, dynamic> _error(String message) => {
-        'content': [
-          {'type': 'text', 'text': message},
-        ],
-        'isError': true,
-      };
+    'content': [
+      {'type': 'text', 'text': message},
+    ],
+    'isError': true,
+  };
 }
 
 const _toolDefs = <Map<String, dynamic>>[

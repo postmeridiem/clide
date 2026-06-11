@@ -18,9 +18,9 @@ void main() {
   tearDown(() => f.dispose());
 
   Widget box(VoidCallback onDismiss) => MediaQuery(
-        data: const MediaQueryData(size: Size(800, 600)),
-        child: ClideLightbox(onDismiss: onDismiss, child: const SizedBox(width: 200, height: 150)),
-      );
+    data: const MediaQueryData(size: Size(800, 600)),
+    child: ClideLightbox(onDismiss: onDismiss, child: const SizedBox(width: 200, height: 150)),
+  );
 
   testWidgets('renders the zoom hint and an InteractiveViewer', (tester) async {
     await tester.pumpWidget(harness(f, box(() {})));
@@ -63,13 +63,18 @@ void main() {
   testWidgets('a tap on the dimmed canvas dismisses; a tap on the image does not (T-309)', (tester) async {
     final img = (await tester.runAsync(() => createTestImage(width: 100, height: 100)))!; // 1:1; real async
     var dismissed = false;
-    await tester.pumpWidget(harness(
-      f,
-      MediaQuery(
-        data: const MediaQueryData(size: Size(800, 600)),
-        child: ClideLightbox(onDismiss: () => dismissed = true, child: RawImage(image: img, fit: BoxFit.contain)),
+    await tester.pumpWidget(
+      harness(
+        f,
+        MediaQuery(
+          data: const MediaQueryData(size: Size(800, 600)),
+          child: ClideLightbox(
+            onDismiss: () => dismissed = true,
+            child: RawImage(image: img, fit: BoxFit.contain),
+          ),
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
 
     // The 94% box is ~752×564; a 1:1 image fits to 564×564 centred, leaving

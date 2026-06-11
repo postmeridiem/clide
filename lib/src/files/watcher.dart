@@ -38,11 +38,7 @@ enum FileChangeKind {
 }
 
 class FileChange {
-  const FileChange({
-    required this.kind,
-    required this.path,
-    required this.isDirectory,
-  });
+  const FileChange({required this.kind, required this.path, required this.isDirectory});
 
   final FileChangeKind kind;
 
@@ -50,11 +46,7 @@ class FileChange {
   final String path;
   final bool isDirectory;
 
-  Map<String, Object?> toJson() => {
-        'kind': kind.wire,
-        'path': path,
-        'isDirectory': isDirectory,
-      };
+  Map<String, Object?> toJson() => {'kind': kind.wire, 'path': path, 'isDirectory': isDirectory};
 }
 
 class FileWatcher {
@@ -70,10 +62,7 @@ class FileWatcher {
 
   Future<void> start() async {
     if (_sub != null) return;
-    _sub = root.watch(recursive: true).listen(
-          _onEvent,
-          onError: (Object e, StackTrace _) => _controller.addError(e),
-        );
+    _sub = root.watch(recursive: true).listen(_onEvent, onError: (Object e, StackTrace _) => _controller.addError(e));
   }
 
   Future<void> stop() async {
@@ -87,11 +76,7 @@ class FileWatcher {
     if (rel == null) return;
     final isDir = e.isDirectory;
     if (_ignored(rel, isDir)) return;
-    _controller.add(FileChange(
-      kind: FileChangeKind.fromEvent(e),
-      path: rel,
-      isDirectory: isDir,
-    ));
+    _controller.add(FileChange(kind: FileChangeKind.fromEvent(e), path: rel, isDirectory: isDir));
   }
 
   /// True if `rel` is ignored, or sits inside an ignored directory.

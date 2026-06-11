@@ -50,14 +50,14 @@ class EditorExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'editor.active',
-          slot: Slots.workspace,
-          title: 'Editor',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: 80, // between Claude (90) and welcome (-100)
-          build: (_) => const EditorView(),
-        ),
-      ];
+    TabContribution(
+      id: 'editor.active',
+      slot: Slots.workspace,
+      title: 'Editor',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: 80, // between Claude (90) and welcome (-100)
+      build: (_) => const EditorView(),
+    ),
+  ];
 }

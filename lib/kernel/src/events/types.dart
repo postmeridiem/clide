@@ -13,13 +13,7 @@ class ClideEventEnvelope {
   final ClideEvent event;
   final DateTime timestamp;
 
-  Map<String, Object?> toJson() => {
-        'v': 1,
-        'subsystem': event.subsystem,
-        'kind': event.kind,
-        'ts': timestamp.toIso8601String(),
-        'data': event.payload(),
-      };
+  Map<String, Object?> toJson() => {'v': 1, 'subsystem': event.subsystem, 'kind': event.kind, 'ts': timestamp.toIso8601String(), 'data': event.payload()};
 }
 
 class DaemonConnectionChanged extends ClideEvent {
@@ -89,12 +83,7 @@ class ExtensionDeactivated extends ClideEvent {
 /// narrow by subsystem+kind, or register a converter that emits a typed
 /// `ClideEvent` subclass into the bus.
 class DaemonEvent extends ClideEvent {
-  const DaemonEvent({
-    required this.subsystem,
-    required this.kind,
-    required this.data,
-    required this.ts,
-  });
+  const DaemonEvent({required this.subsystem, required this.kind, required this.data, required this.ts});
 
   @override
   final String subsystem;
@@ -145,26 +134,22 @@ class TeamMemberJoined extends ClideEvent {
   String get kind => 'member-joined';
   @override
   Map<String, Object?> payload() => {
-        'team': team,
-        'agentId': agentId,
-        'name': name,
-        'agentType': agentType,
-        'paneId': paneId,
-        if (model != null) 'model': model,
-        if (color != null) 'color': color,
-        if (cwd != null) 'cwd': cwd,
-        if (transcriptPath != null) 'transcriptPath': transcriptPath,
-      };
+    'team': team,
+    'agentId': agentId,
+    'name': name,
+    'agentType': agentType,
+    'paneId': paneId,
+    if (model != null) 'model': model,
+    if (color != null) 'color': color,
+    if (cwd != null) 'cwd': cwd,
+    if (transcriptPath != null) 'transcriptPath': transcriptPath,
+  };
 }
 
 /// A Claude Code tmux teammate's pane went away (it exited or the team
 /// dissolved) — T-139.
 class TeamMemberLeft extends ClideEvent {
-  const TeamMemberLeft({
-    required this.team,
-    required this.agentId,
-    required this.paneId,
-  });
+  const TeamMemberLeft({required this.team, required this.agentId, required this.paneId});
 
   final String team;
   final String agentId;

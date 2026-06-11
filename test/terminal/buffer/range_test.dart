@@ -126,14 +126,8 @@ void main() {
     });
 
     test('toString shape — bounded and unbounded', () {
-      expect(
-        const BufferSegment(_dummyRange, 4, 2, 8).toString(),
-        'Segment(4, 2 -> 8)',
-      );
-      expect(
-        const BufferSegment(_dummyRange, 0, null, null).toString(),
-        'Segment(0, start -> end)',
-      );
+      expect(const BufferSegment(_dummyRange, 4, 2, 8).toString(), 'Segment(4, 2 -> 8)');
+      expect(const BufferSegment(_dummyRange, 0, null, null).toString(), 'Segment(0, start -> end)');
     });
   });
 

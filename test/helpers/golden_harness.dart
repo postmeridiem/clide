@@ -9,11 +9,7 @@ import 'package:alchemist/alchemist.dart';
 AlchemistConfig clideGoldenConfig() {
   return const AlchemistConfig(
     theme: null, // we're not using Material ThemeData
-    platformGoldensConfig: PlatformGoldensConfig(
-      enabled: true,
-    ),
-    ciGoldensConfig: CiGoldensConfig(
-      enabled: false,
-    ),
+    platformGoldensConfig: PlatformGoldensConfig(enabled: true),
+    ciGoldensConfig: CiGoldensConfig(enabled: false),
   );
 }

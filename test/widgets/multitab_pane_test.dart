@@ -5,18 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/kernel_fixture.dart';
 import '../helpers/widget_harness.dart';
 
-Finder _closeIcons() => find.byWidgetPredicate(
-      (w) => w is ClideIcon && w.painter is CloseIcon,
-    );
+Finder _closeIcons() => find.byWidgetPredicate((w) => w is ClideIcon && w.painter is CloseIcon);
 
 MultitabEntry<String> entry(String id, {bool closeable = true, bool reorderable = true}) {
-  return MultitabEntry<String>(
-    id: id,
-    title: id,
-    payload: id,
-    closeable: closeable,
-    reorderable: reorderable,
-  );
+  return MultitabEntry<String>(id: id, title: id, payload: id, closeable: closeable, reorderable: reorderable);
 }
 
 Widget body(BuildContext _, MultitabEntry<String> e) => SizedBox(key: ValueKey('body-${e.id}'), child: Text('body:${e.payload}'));
@@ -39,12 +31,7 @@ class _CountingBodyState extends State<_CountingBody> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      key: ValueKey('counting-${widget.id}'),
-      behavior: HitTestBehavior.opaque,
-      onTap: _bump,
-      child: const SizedBox.expand(),
-    );
+    return GestureDetector(key: ValueKey('counting-${widget.id}'), behavior: HitTestBehavior.opaque, onTap: _bump, child: const SizedBox.expand());
   }
 }
 
@@ -55,12 +42,8 @@ void main() {
     tearDown(() => f.dispose());
 
     testWidgets('renders one tab per entry and the active body', (tester) async {
-      final c = MultitabController<String>(
-        initial: [entry('primary', closeable: false), entry('s1'), entry('s2')],
-      );
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      final c = MultitabController<String>(initial: [entry('primary', closeable: false), entry('s1'), entry('s2')]);
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
 
       expect(find.text('primary'), findsOneWidget);
       expect(find.text('s1'), findsOneWidget);
@@ -72,9 +55,7 @@ void main() {
 
     testWidgets('tapping a tab activates it and swaps the body', (tester) async {
       final c = MultitabController<String>(initial: [entry('a'), entry('b')]);
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
       expect(find.byKey(const ValueKey('body-a')), findsOneWidget);
 
       await tester.tap(find.text('b'));
@@ -88,16 +69,7 @@ void main() {
     testWidgets('add button calls onAddRequested when set', (tester) async {
       final c = MultitabController<String>(initial: [entry('a')]);
       var added = 0;
-      await tester.pumpWidget(
-        harness(
-          f,
-          MultitabPane<String>(
-            controller: c,
-            bodyBuilder: body,
-            onAddRequested: () => added++,
-          ),
-        ),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body, onAddRequested: () => added++)));
 
       await tester.tap(find.bySemanticsLabel('New tab'));
       await tester.pumpAndSettle();
@@ -106,19 +78,13 @@ void main() {
 
     testWidgets('add button is absent when onAddRequested is null', (tester) async {
       final c = MultitabController<String>(initial: [entry('a')]);
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
       expect(find.bySemanticsLabel('New tab'), findsNothing);
     });
 
     testWidgets('non-closeable tabs do not render a close glyph', (tester) async {
-      final c = MultitabController<String>(
-        initial: [entry('p', closeable: false), entry('s')],
-      );
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      final c = MultitabController<String>(initial: [entry('p', closeable: false), entry('s')]);
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
       // A pinned tab has no close target; a closeable one does (it's
       // hidden via Opacity until hover, but still in the tree).
       // Two tabs total, one × glyph for 's'.
@@ -126,12 +92,8 @@ void main() {
     });
 
     testWidgets('default close behavior removes the entry', (tester) async {
-      final c = MultitabController<String>(
-        initial: [entry('p', closeable: false), entry('s')],
-      );
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      final c = MultitabController<String>(initial: [entry('p', closeable: false), entry('s')]);
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
 
       await tester.tap(_closeIcons());
       await tester.pumpAndSettle();
@@ -142,16 +104,7 @@ void main() {
     testWidgets('onCloseRequested overrides default removal', (tester) async {
       final c = MultitabController<String>(initial: [entry('a'), entry('b')]);
       MultitabEntry<String>? closed;
-      await tester.pumpWidget(
-        harness(
-          f,
-          MultitabPane<String>(
-            controller: c,
-            bodyBuilder: body,
-            onCloseRequested: (e) => closed = e,
-          ),
-        ),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body, onCloseRequested: (e) => closed = e)));
 
       // Both tabs are closeable; tap the first × encountered.
       await tester.tap(_closeIcons().first);
@@ -164,9 +117,7 @@ void main() {
 
     testWidgets('rebuilds when the controller notifies', (tester) async {
       final c = MultitabController<String>(initial: [entry('a')]);
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
       expect(find.bySemanticsLabel('b'), findsNothing);
 
       c.add(entry('b'));
@@ -176,17 +127,13 @@ void main() {
 
     testWidgets('empty controller renders no body', (tester) async {
       final c = MultitabController<String>();
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
       expect(find.byKey(const ValueKey('body-a')), findsNothing);
     });
 
     testWidgets('drag a tab onto another to reorder', (tester) async {
       final c = MultitabController<String>(initial: [entry('a'), entry('b'), entry('c')]);
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
 
       // Drag tab 'a' to where tab 'c' sits.
       final from = tester.getCenter(find.text('a'));
@@ -202,14 +149,8 @@ void main() {
     });
 
     testWidgets('drag respects pinned barrier', (tester) async {
-      final c = MultitabController<String>(initial: [
-        entry('p', reorderable: false),
-        entry('a'),
-        entry('b'),
-      ]);
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      final c = MultitabController<String>(initial: [entry('p', reorderable: false), entry('a'), entry('b')]);
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
 
       // Try to drag 'a' before pinned 'p' — controller's barrier
       // logic should reject and the order stays.
@@ -226,13 +167,8 @@ void main() {
     });
 
     testWidgets('pinned tabs are not draggable', (tester) async {
-      final c = MultitabController<String>(initial: [
-        entry('p', reorderable: false),
-        entry('a'),
-      ]);
-      await tester.pumpWidget(
-        harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)),
-      );
+      final c = MultitabController<String>(initial: [entry('p', reorderable: false), entry('a')]);
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body)));
 
       // Attempt to drag pinned 'p' to position of 'a'.
       final from = tester.getCenter(find.text('p'));
@@ -302,16 +238,7 @@ void main() {
 
     testWidgets('allowReorder=false disables drag entirely', (tester) async {
       final c = MultitabController<String>(initial: [entry('a'), entry('b')]);
-      await tester.pumpWidget(
-        harness(
-          f,
-          MultitabPane<String>(
-            controller: c,
-            bodyBuilder: body,
-            allowReorder: false,
-          ),
-        ),
-      );
+      await tester.pumpWidget(harness(f, MultitabPane<String>(controller: c, bodyBuilder: body, allowReorder: false)));
 
       final from = tester.getCenter(find.text('a'));
       final to = tester.getCenter(find.text('b'));

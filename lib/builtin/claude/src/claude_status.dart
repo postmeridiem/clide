@@ -62,10 +62,7 @@ String nextSafePermissionMode(String current) {
     if (s.cost != null) '\$${s.cost!.toStringAsFixed(2)}',
     if (s.rateLimitInfo != null) s.rateLimitInfo!,
   ].join('  ·  ');
-  return (
-    leading: s.model != null ? shortModelLabel(s.model!) : null,
-    trailing: trailing.isEmpty ? null : trailing,
-  );
+  return (leading: s.model != null ? shortModelLabel(s.model!) : null, trailing: trailing.isEmpty ? null : trailing);
 }
 
 /// Friendly label for Claude's permission modes.

@@ -171,13 +171,7 @@ final class AssistantToolUse extends ConversationItem {
 /// driver has already resolved (workspace-relative paths are resolved before
 /// injection); [caption] is an optional one-line label.
 final class ImageMessage extends ConversationItem {
-  const ImageMessage({
-    required super.uuid,
-    required super.timestamp,
-    required super.isSidechain,
-    required this.path,
-    this.caption,
-  });
+  const ImageMessage({required super.uuid, required super.timestamp, required super.isSidechain, required this.path, this.caption});
 
   /// Absolute path to the image file on disk.
   final String path;
@@ -215,14 +209,7 @@ const _isolateParseThreshold = 64 * 1024;
 const _knownMajorVersions = {1, 2};
 
 /// Record types to skip (do not emit as conversation items).
-const _skipTypes = {
-  'attachment',
-  'system',
-  'last-prompt',
-  'permission-mode',
-  'file-history-snapshot',
-  'queue-operation',
-};
+const _skipTypes = {'attachment', 'system', 'last-prompt', 'permission-mode', 'file-history-snapshot', 'queue-operation'};
 
 /// Tails Claude Code's transcript JSONL and emits [ConversationItem]s.
 ///
@@ -242,11 +229,11 @@ class TranscriptReader {
     String? projectsBase,
     int? initialTailBytes,
     String? file,
-  })  : _pollInterval = pollInterval,
-        _onWarn = onWarn ?? _defaultWarn,
-        _projectsBase = projectsBase ?? _defaultProjectsBase(),
-        _initialTailBytes = initialTailBytes ?? _defaultInitialTailBytes,
-        _explicitFile = file;
+  }) : _pollInterval = pollInterval,
+       _onWarn = onWarn ?? _defaultWarn,
+       _projectsBase = projectsBase ?? _defaultProjectsBase(),
+       _initialTailBytes = initialTailBytes ?? _defaultInitialTailBytes,
+       _explicitFile = file;
 
   final String workspacePath;
   final Duration _pollInterval;
@@ -439,14 +426,7 @@ class TranscriptReader {
 /// (T-145, T-168). All fields nullable — a chunk only carries what it saw,
 /// and the reader [merge]s deltas into a running status.
 class SessionStatus {
-  const SessionStatus({
-    this.model,
-    this.permissionMode,
-    this.contextTokens,
-    this.cost,
-    this.contextWindow,
-    this.rateLimitInfo,
-  });
+  const SessionStatus({this.model, this.permissionMode, this.contextTokens, this.cost, this.contextWindow, this.rateLimitInfo});
 
   /// Assistant `message.model`, e.g. `claude-opus-4-7`.
   final String? model;
@@ -475,13 +455,13 @@ class SessionStatus {
 
   /// Overlay [other]'s non-null fields onto this one.
   SessionStatus merge(SessionStatus other) => SessionStatus(
-        model: other.model ?? model,
-        permissionMode: other.permissionMode ?? permissionMode,
-        contextTokens: other.contextTokens ?? contextTokens,
-        cost: other.cost ?? cost,
-        contextWindow: other.contextWindow ?? contextWindow,
-        rateLimitInfo: other.rateLimitInfo ?? rateLimitInfo,
-      );
+    model: other.model ?? model,
+    permissionMode: other.permissionMode ?? permissionMode,
+    contextTokens: other.contextTokens ?? contextTokens,
+    cost: other.cost ?? cost,
+    contextWindow: other.contextWindow ?? contextWindow,
+    rateLimitInfo: other.rateLimitInfo ?? rateLimitInfo,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -509,13 +489,13 @@ class _StatusAcc {
   int? contextWindow;
   String? rateLimitInfo;
   SessionStatus toStatus() => SessionStatus(
-        model: model,
-        permissionMode: permissionMode,
-        contextTokens: contextTokens,
-        cost: cost,
-        contextWindow: contextWindow,
-        rateLimitInfo: rateLimitInfo,
-      );
+    model: model,
+    permissionMode: permissionMode,
+    contextTokens: contextTokens,
+    cost: cost,
+    contextWindow: contextWindow,
+    rateLimitInfo: rateLimitInfo,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -550,8 +530,10 @@ void _parseLineInto(String line, List<ConversationItem> out, List<String> warnin
     final majorStr = dotIdx > 0 ? rawVersion.substring(0, dotIdx) : rawVersion;
     final major = int.tryParse(majorStr);
     if (major != null && !_knownMajorVersions.contains(major)) {
-      warnings.add('unfamiliar transcript version "$rawVersion" (major=$major); '
-          'parsing will degrade gracefully');
+      warnings.add(
+        'unfamiliar transcript version "$rawVersion" (major=$major); '
+        'parsing will degrade gracefully',
+      );
     }
   }
 
@@ -628,14 +610,17 @@ void _parseUserInto(
 
   if (content is String) {
     if (content.isNotEmpty) {
-      out.add(UserMessage(
+      out.add(
+        UserMessage(
           uuid: uuid,
           timestamp: timestamp,
           isSidechain: isSidechain,
           parentUuid: parentUuid,
           parentToolUseId: parentToolUseId,
           text: content,
-          injected: injected));
+          injected: injected,
+        ),
+      );
     }
     return;
   }
@@ -650,16 +635,18 @@ void _parseUserInto(
         if (text.isNotEmpty) textParts.add(text);
       case 'tool_result':
         final rawContent = item['content'];
-        out.add(ToolResultMessage(
-          uuid: uuid,
-          timestamp: timestamp,
-          isSidechain: isSidechain,
-          parentUuid: parentUuid,
-          parentToolUseId: parentToolUseId,
-          toolUseId: item['tool_use_id'] as String? ?? '',
-          content: rawContent is String ? rawContent : jsonEncode(rawContent),
-          isError: item['is_error'] as bool? ?? false,
-        ));
+        out.add(
+          ToolResultMessage(
+            uuid: uuid,
+            timestamp: timestamp,
+            isSidechain: isSidechain,
+            parentUuid: parentUuid,
+            parentToolUseId: parentToolUseId,
+            toolUseId: item['tool_use_id'] as String? ?? '',
+            content: rawContent is String ? rawContent : jsonEncode(rawContent),
+            isError: item['is_error'] as bool? ?? false,
+          ),
+        );
       default:
         break;
     }
@@ -689,27 +676,45 @@ void _parseAssistantInto(
       case 'text':
         final text = item['text'] as String? ?? '';
         if (text.isNotEmpty) {
-          out.add(AssistantTextMessage(
-              uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, parentToolUseId: parentToolUseId, text: text));
+          out.add(
+            AssistantTextMessage(
+              uuid: uuid,
+              timestamp: timestamp,
+              isSidechain: isSidechain,
+              parentUuid: parentUuid,
+              parentToolUseId: parentToolUseId,
+              text: text,
+            ),
+          );
         }
       case 'thinking':
         final thinking = item['thinking'] as String? ?? '';
         if (thinking.isNotEmpty) {
-          out.add(AssistantThinkingMessage(
-              uuid: uuid, timestamp: timestamp, isSidechain: isSidechain, parentUuid: parentUuid, parentToolUseId: parentToolUseId, thinking: thinking));
+          out.add(
+            AssistantThinkingMessage(
+              uuid: uuid,
+              timestamp: timestamp,
+              isSidechain: isSidechain,
+              parentUuid: parentUuid,
+              parentToolUseId: parentToolUseId,
+              thinking: thinking,
+            ),
+          );
         }
       case 'tool_use':
         final rawInput = item['input'];
-        out.add(AssistantToolUse(
-          uuid: uuid,
-          timestamp: timestamp,
-          isSidechain: isSidechain,
-          parentUuid: parentUuid,
-          parentToolUseId: parentToolUseId,
-          toolUseId: item['id'] as String? ?? '',
-          name: item['name'] as String? ?? '',
-          input: rawInput is Map ? rawInput.cast<String, dynamic>() : <String, dynamic>{},
-        ));
+        out.add(
+          AssistantToolUse(
+            uuid: uuid,
+            timestamp: timestamp,
+            isSidechain: isSidechain,
+            parentUuid: parentUuid,
+            parentToolUseId: parentToolUseId,
+            toolUseId: item['id'] as String? ?? '',
+            name: item['name'] as String? ?? '',
+            input: rawInput is Map ? rawInput.cast<String, dynamic>() : <String, dynamic>{},
+          ),
+        );
       default:
         break;
     }

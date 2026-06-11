@@ -37,32 +37,40 @@ void main() {
       );
       addTearDown(controller.dispose);
       late ClideThemeData captured;
-      await tester.pumpWidget(Directionality(
-        textDirection: TextDirection.ltr,
-        child: ClideTheme(
-          controller: controller,
-          child: Builder(builder: (ctx) {
-            captured = ClideTheme.of(ctx);
-            return const SizedBox();
-          }),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: ClideTheme(
+            controller: controller,
+            child: Builder(
+              builder: (ctx) {
+                captured = ClideTheme.of(ctx);
+                return const SizedBox();
+              },
+            ),
+          ),
         ),
-      ));
+      );
       expect(captured, isNotNull);
     });
 
     testWidgets('of() throws when no ClideTheme ancestor', (tester) async {
       late Object captured;
-      await tester.pumpWidget(Directionality(
-        textDirection: TextDirection.ltr,
-        child: Builder(builder: (ctx) {
-          try {
-            ClideTheme.of(ctx);
-          } catch (e) {
-            captured = e;
-          }
-          return const SizedBox();
-        }),
-      ));
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (ctx) {
+              try {
+                ClideTheme.of(ctx);
+              } catch (e) {
+                captured = e;
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
       expect(captured, isA<FlutterError>());
     });
 
@@ -90,32 +98,40 @@ void main() {
       );
       addTearDown(controller.dispose);
       late ThemeController captured;
-      await tester.pumpWidget(Directionality(
-        textDirection: TextDirection.ltr,
-        child: ClideTheme(
-          controller: controller,
-          child: Builder(builder: (ctx) {
-            captured = ClideTheme.controllerOf(ctx);
-            return const SizedBox();
-          }),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: ClideTheme(
+            controller: controller,
+            child: Builder(
+              builder: (ctx) {
+                captured = ClideTheme.controllerOf(ctx);
+                return const SizedBox();
+              },
+            ),
+          ),
         ),
-      ));
+      );
       expect(captured, same(controller));
     });
 
     testWidgets('controllerOf() throws when no ClideTheme ancestor', (tester) async {
       late Object captured;
-      await tester.pumpWidget(Directionality(
-        textDirection: TextDirection.ltr,
-        child: Builder(builder: (ctx) {
-          try {
-            ClideTheme.controllerOf(ctx);
-          } catch (e) {
-            captured = e;
-          }
-          return const SizedBox();
-        }),
-      ));
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (ctx) {
+              try {
+                ClideTheme.controllerOf(ctx);
+              } catch (e) {
+                captured = e;
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
       expect(captured, isA<FlutterError>());
     });
   });
@@ -133,11 +149,7 @@ void main() {
 
     test('ContrastFailure.toString embeds the pair name, ratio, and minimum', () {
       const failure = ContrastFailure(
-        pair: ContrastPair(
-          name: 'global.text_on_background',
-          foreground: Color(0xFF888888),
-          background: Color(0xFF7F7F7F),
-        ),
+        pair: ContrastPair(name: 'global.text_on_background', foreground: Color(0xFF888888), background: Color(0xFF7F7F7F)),
         ratio: 1.23,
         minimum: 4.5,
       );
@@ -150,16 +162,11 @@ void main() {
 
   group('ThemeLoader error + file paths', () {
     test('fromYamlString throws when the root is not a map', () {
-      expect(
-        () => const ThemeLoader().fromYamlString('- this\n- is\n- a list'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => const ThemeLoader().fromYamlString('- this\n- is\n- a list'), throwsA(isA<FormatException>()));
     });
 
     test('fromFile loads the same content as fromYamlString', () async {
-      final tmp = await File.fromUri(
-        Uri.file('${Directory.systemTemp.path}/clide-theme-${DateTime.now().microsecondsSinceEpoch}.yaml'),
-      ).create();
+      final tmp = await File.fromUri(Uri.file('${Directory.systemTemp.path}/clide-theme-${DateTime.now().microsecondsSinceEpoch}.yaml')).create();
       addTearDown(() async {
         if (tmp.existsSync()) await tmp.delete();
       });
@@ -184,18 +191,12 @@ palette:
 
   group('Palette / SemanticRoles iterables', () {
     test('Palette.names yields every registered colour key', () {
-      final p = Palette(const {
-        'primary': Color(0xFF000000),
-        'accent': Color(0xFFFFFFFF),
-      });
+      final p = Palette(const {'primary': Color(0xFF000000), 'accent': Color(0xFFFFFFFF)});
       expect(p.names, containsAll(['primary', 'accent']));
     });
 
     test('SemanticRoles.roles yields every registered role key', () {
-      final s = SemanticRoles(const {
-        'text': Color(0xFFFFFFFF),
-        'background': Color(0xFF000000),
-      });
+      final s = SemanticRoles(const {'text': Color(0xFFFFFFFF), 'background': Color(0xFF000000)});
       expect(s.roles, containsAll(['text', 'background']));
     });
   });

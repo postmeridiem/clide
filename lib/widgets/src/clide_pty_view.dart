@@ -14,14 +14,7 @@ import 'package:clide/src/terminal/terminal.dart';
 /// `terminal.write()` is the consumer's job (typically a builtin
 /// extension — see `builtin.terminal` / `builtin.claude`).
 class ClidePtyView extends StatelessWidget {
-  const ClidePtyView({
-    super.key,
-    required this.terminal,
-    this.label,
-    this.focusNode,
-    this.autofocus = false,
-    this.fontSize = clideFontMono,
-  });
+  const ClidePtyView({super.key, required this.terminal, this.label, this.focusNode, this.autofocus = false, this.fontSize = clideFontMono});
 
   final Terminal terminal;
 
@@ -49,11 +42,7 @@ class ClidePtyView extends StatelessWidget {
           focusNode: focusNode,
           autofocus: autofocus,
           theme: _buildTheme(tokens),
-          textStyle: TerminalStyle(
-            fontSize: fontSize,
-            fontFamily: clideMonoFamily,
-            fontFamilyFallback: clideMonoFamilyFallback,
-          ),
+          textStyle: TerminalStyle(fontSize: fontSize, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
           padding: const EdgeInsets.all(2),
           backgroundOpacity: 1,
           cursorType: TerminalCursorType.block,

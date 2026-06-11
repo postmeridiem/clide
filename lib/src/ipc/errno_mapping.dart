@@ -33,20 +33,11 @@ abstract class PosixErrno {
 /// (e.g. `pane.spawn`, `editor.open`) on optional [target] (a path,
 /// command name, etc.). The returned error uses `notFound`,
 /// `userError`, or `toolError` based on what's actionable.
-IpcError errnoToIpcError({
-  required int errno,
-  required String op,
-  String? target,
-  String? raw,
-}) {
+IpcError errnoToIpcError({required int errno, required String op, String? target, String? raw}) {
   final what = target != null ? ' ($target)' : '';
   switch (errno) {
     case PosixErrno.enoent:
-      return IpcError(
-        code: IpcExitCode.notFound,
-        kind: IpcErrorKind.notFound,
-        message: '$op: not found$what',
-      );
+      return IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: '$op: not found$what');
     case PosixErrno.eacces:
     case PosixErrno.eperm:
       return IpcError(
@@ -56,23 +47,11 @@ IpcError errnoToIpcError({
         hint: 'check file permissions or run with appropriate access',
       );
     case PosixErrno.eisdir:
-      return IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: '$op: is a directory$what',
-      );
+      return IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: '$op: is a directory$what');
     case PosixErrno.enotdir:
-      return IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: '$op: not a directory$what',
-      );
+      return IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: '$op: not a directory$what');
     case PosixErrno.eexist:
-      return IpcError(
-        code: IpcExitCode.conflict,
-        kind: IpcErrorKind.conflict,
-        message: '$op: already exists$what',
-      );
+      return IpcError(code: IpcExitCode.conflict, kind: IpcErrorKind.conflict, message: '$op: already exists$what');
     case PosixErrno.emfile:
     case PosixErrno.enfile:
       return IpcError(
@@ -82,23 +61,10 @@ IpcError errnoToIpcError({
         hint: 'system or per-process file descriptor limit reached',
       );
     case PosixErrno.enomem:
-      return IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: '$op: out of memory',
-      );
+      return IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: '$op: out of memory');
     case PosixErrno.eagain:
-      return IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: '$op: resource temporarily unavailable',
-        hint: 'retry may succeed',
-      );
+      return IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: '$op: resource temporarily unavailable', hint: 'retry may succeed');
     default:
-      return IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: '$op failed${raw != null ? ': $raw' : ' (errno=$errno)'}',
-      );
+      return IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: '$op failed${raw != null ? ': $raw' : ' (errno=$errno)'}');
   }
 }

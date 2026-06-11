@@ -99,16 +99,15 @@ class _TerminalGestureDetectorState extends State<TerminalGestureDetector> {
   Widget build(BuildContext context) {
     final gestures = <Type, GestureRecognizerFactory>{};
 
-    gestures[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-      () => TapGestureRecognizer(debugOwner: this),
-      (TapGestureRecognizer instance) {
-        instance
-          ..onTapDown = _handleTapDown
-          ..onTapUp = _handleTapUp
-          ..onSecondaryTapDown = widget.onSecondaryTapDown
-          ..onSecondaryTapUp = widget.onSecondaryTapUp;
-      },
-    );
+    gestures[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(() => TapGestureRecognizer(debugOwner: this), (
+      TapGestureRecognizer instance,
+    ) {
+      instance
+        ..onTapDown = _handleTapDown
+        ..onTapUp = _handleTapUp
+        ..onSecondaryTapDown = widget.onSecondaryTapDown
+        ..onSecondaryTapUp = widget.onSecondaryTapUp;
+    });
 
     gestures[LongPressGestureRecognizer] = GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
       () => LongPressGestureRecognizer(
@@ -127,10 +126,7 @@ class _TerminalGestureDetectorState extends State<TerminalGestureDetector> {
     );
 
     gestures[PanGestureRecognizer] = GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-      () => PanGestureRecognizer(
-        debugOwner: this,
-        supportedDevices: <PointerDeviceKind>{PointerDeviceKind.mouse},
-      ),
+      () => PanGestureRecognizer(debugOwner: this, supportedDevices: <PointerDeviceKind>{PointerDeviceKind.mouse}),
       (PanGestureRecognizer instance) {
         instance
           ..dragStartBehavior = DragStartBehavior.down
@@ -139,10 +135,6 @@ class _TerminalGestureDetectorState extends State<TerminalGestureDetector> {
       },
     );
 
-    return RawGestureDetector(
-      gestures: gestures,
-      excludeFromSemantics: true,
-      child: widget.child,
-    );
+    return RawGestureDetector(gestures: gestures, excludeFromSemantics: true, child: widget.child);
   }
 }

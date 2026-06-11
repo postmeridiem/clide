@@ -110,10 +110,7 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
     return ClidePaneChrome(
       title: id,
       subtitle: title,
-      leading: ReaderPinButton(
-        pinned: _nav?.hasPinned ?? false,
-        onTap: _decision != null ? _onPin : null,
-      ),
+      leading: ReaderPinButton(pinned: _nav?.hasPinned ?? false, onTap: _decision != null ? _onPin : null),
       trailing: [
         ReaderActionBar(
           canGoBack: _nav?.canGoBack ?? false,
@@ -144,7 +141,11 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
                     children: [
                       ClideTooltip(
                         message: type ?? 'confirmed',
-                        child: Container(width: 10, height: 10, decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle)),
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       ClideText(id, fontSize: clideFontSmall, color: typeColor, fontFamily: clideMonoFamily),
@@ -159,21 +160,12 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
                   ),
                   const SizedBox(height: 8),
                   ClideText(title, fontSize: 15, fontWeight: FontWeight.w500),
-                  if (date != null) ...[
-                    const SizedBox(height: 6),
-                    ClideText(date, muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
-                  ],
-                  if (status != null && status != 'active') ...[
-                    const SizedBox(height: 8),
-                    _StatusBadge(status: status, tokens: tokens),
-                  ],
+                  if (date != null) ...[const SizedBox(height: 6), ClideText(date, muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily)],
+                  if (status != null && status != 'active') ...[const SizedBox(height: 8), _StatusBadge(status: status, tokens: tokens)],
                 ],
               ),
             ),
-            if (body != null && body.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ClideMarkdown(body, onRecordTap: (id) => _navigateToRecord(context, id)),
-            ],
+            if (body != null && body.isNotEmpty) ...[const SizedBox(height: 12), ClideMarkdown(body, onRecordTap: (id) => _navigateToRecord(context, id))],
             if (refs.isNotEmpty) ...[
               const SizedBox(height: 16),
               ClideText('CROSS-REFERENCES', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),

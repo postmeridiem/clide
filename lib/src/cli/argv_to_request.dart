@@ -73,11 +73,7 @@ ArgvParseResult parseArgv(List<String> argv, {required String requestId}) {
     if (parsed is _TailError) {
       return ArgvError(_err(requestId, parsed.message));
     }
-    return ArgvParsed(IpcRequest(
-      id: requestId,
-      cmd: first,
-      args: (parsed as _TailOk).toArgs(),
-    ));
+    return ArgvParsed(IpcRequest(id: requestId, cmd: first, args: (parsed as _TailOk).toArgs()));
   }
 
   // Subsystem.verb form: need at least two tokens.
@@ -97,11 +93,7 @@ ArgvParseResult parseArgv(List<String> argv, {required String requestId}) {
   if (parsed is _TailError) {
     return ArgvError(_err(requestId, parsed.message));
   }
-  return ArgvParsed(IpcRequest(
-    id: requestId,
-    cmd: '$subsystem.$verb',
-    args: (parsed as _TailOk).toArgs(),
-  ));
+  return ArgvParsed(IpcRequest(id: requestId, cmd: '$subsystem.$verb', args: (parsed as _TailOk).toArgs()));
 }
 
 /// Route a `clide://` deep link to the `deeplink.invoke` command (T-56). A
@@ -109,9 +101,15 @@ ArgvParseResult parseArgv(List<String> argv, {required String requestId}) {
 /// it is NOT translated into a command here. The raw URL is handed to the
 /// deeplink handler, which validates it against a paranoid (default-deny)
 /// allowlist and prompts the user before doing anything (D-90).
-ArgvParseResult _deepLinkToRequest(String url, String requestId) => ArgvParsed(IpcRequest(id: requestId, cmd: 'deeplink.invoke', args: {
-      'positional': [url]
-    }));
+ArgvParseResult _deepLinkToRequest(String url, String requestId) => ArgvParsed(
+  IpcRequest(
+    id: requestId,
+    cmd: 'deeplink.invoke',
+    args: {
+      'positional': [url],
+    },
+  ),
+);
 
 // -- internals --------------------------------------------------------------
 
@@ -126,10 +124,10 @@ class _TailOk extends _TailParseResult {
   final List<String> passthrough;
 
   Map<String, Object?> toArgs() => {
-        if (positional.isNotEmpty) 'positional': positional,
-        if (flags.isNotEmpty) 'flags': flags,
-        if (passthrough.isNotEmpty) 'passthrough': passthrough,
-      };
+    if (positional.isNotEmpty) 'positional': positional,
+    if (flags.isNotEmpty) 'flags': flags,
+    if (passthrough.isNotEmpty) 'passthrough': passthrough,
+  };
 }
 
 class _TailError extends _TailParseResult {
@@ -221,10 +219,6 @@ bool _isValidIdentifier(String s) {
 bool _isValidFlagName(String s) => _isValidIdentifier(s);
 
 IpcResponse _err(String id, String message) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: message,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message),
+);

@@ -104,10 +104,7 @@ void main() {
       final link = Link('${root.path}/leak')..createSync(secret.path);
       expect(link.existsSync(), isTrue);
 
-      expect(
-        () => resolveUnderRootFollowingSymlinks(root, 'leak'),
-        throwsA(isA<PathOutsideRoot>()),
-      );
+      expect(() => resolveUnderRootFollowingSymlinks(root, 'leak'), throwsA(isA<PathOutsideRoot>()));
     });
 
     test('tolerates symlinks in the workspace root path itself', () {
@@ -130,10 +127,7 @@ void main() {
       Link('${root.path}/b').createSync(secret.path);
       Link('${root.path}/a').createSync('${root.path}/b');
 
-      expect(
-        () => resolveUnderRootFollowingSymlinks(root, 'a'),
-        throwsA(isA<PathOutsideRoot>()),
-      );
+      expect(() => resolveUnderRootFollowingSymlinks(root, 'a'), throwsA(isA<PathOutsideRoot>()));
     });
   });
 
@@ -171,10 +165,7 @@ void main() {
       addTearDown(() => outside.existsSync() ? outside.deleteSync(recursive: true) : null);
       File('${outside.path}/secret.txt').writeAsStringSync('payload');
       Link('${extra.path}/leak').createSync('${outside.path}/secret.txt');
-      expect(
-        () => resolveUnderRootsFollowingSymlinks(root, [extra], '${extra.absolute.path}/leak'),
-        throwsA(isA<PathOutsideRoot>()),
-      );
+      expect(() => resolveUnderRootsFollowingSymlinks(root, [extra], '${extra.absolute.path}/leak'), throwsA(isA<PathOutsideRoot>()));
     });
   });
 }

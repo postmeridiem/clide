@@ -76,23 +76,14 @@ class MultitabPane<T> extends StatelessWidget {
     if (!keepAlive) {
       // Single-body mode: rebuild on every active change. Key by id
       // so a stable body widget tree gets a fresh State on switch.
-      return KeyedSubtree(
-        key: ValueKey('multitab-body-${active.id}'),
-        child: bodyBuilder(context, active),
-      );
+      return KeyedSubtree(key: ValueKey('multitab-body-${active.id}'), child: bodyBuilder(context, active));
     }
     // Keep-alive mode: every body stays mounted; switching is just
     // an IndexedStack index change. Bodies preserve their State.
     final activeIndex = entries.indexWhere((e) => e.id == active.id);
     return IndexedStack(
       index: activeIndex < 0 ? 0 : activeIndex,
-      children: [
-        for (final entry in entries)
-          KeyedSubtree(
-            key: ValueKey('multitab-body-${entry.id}'),
-            child: bodyBuilder(context, entry),
-          ),
-      ],
+      children: [for (final entry in entries) KeyedSubtree(key: ValueKey('multitab-body-${entry.id}'), child: bodyBuilder(context, entry))],
     );
   }
 }
@@ -196,13 +187,7 @@ class _ReorderableTabState<T> extends State<_ReorderableTab<T>> {
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
 
-    final tabContent = _Tab<T>(
-      entry: widget.entry,
-      active: widget.active,
-      onSelect: widget.onSelect,
-      onClose: widget.onClose,
-      tabHeight: widget.tabHeight,
-    );
+    final tabContent = _Tab<T>(entry: widget.entry, active: widget.active, onSelect: widget.onSelect, onClose: widget.onClose, tabHeight: widget.tabHeight);
 
     Widget result = DragTarget<String>(
       onWillAcceptWithDetails: (d) {
@@ -219,15 +204,13 @@ class _ReorderableTabState<T> extends State<_ReorderableTab<T>> {
         setState(() => _isDropTarget = false);
         widget.onReorderTo(d.data);
       },
-      builder: (context, _, __) => Row(
+      builder: (context, _, _) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             width: 2,
             height: widget.tabHeight,
-            child: ColoredBox(
-              color: _isDropTarget ? tokens.panelActiveBorder : const Color(0x00000000),
-            ),
+            child: ColoredBox(color: _isDropTarget ? tokens.panelActiveBorder : const Color(0x00000000)),
           ),
           tabContent,
         ],
@@ -238,10 +221,7 @@ class _ReorderableTabState<T> extends State<_ReorderableTab<T>> {
       result = Draggable<String>(
         data: widget.entry.id,
         axis: Axis.horizontal,
-        feedback: _DragFeedback(
-          title: widget.entry.title,
-          tabHeight: widget.tabHeight,
-        ),
+        feedback: _DragFeedback(title: widget.entry.title, tabHeight: widget.tabHeight),
         childWhenDragging: Opacity(opacity: 0.4, child: tabContent),
         child: result,
       );
@@ -268,25 +248,13 @@ class _DragFeedback extends StatelessWidget {
         color: tokens.panelHeader,
         border: Border.all(color: tokens.panelActiveBorder),
       ),
-      child: ClideText(
-        title,
-        fontSize: 12,
-        color: tokens.tabActiveForeground,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
+      child: ClideText(title, fontSize: 12, color: tokens.tabActiveForeground, overflow: TextOverflow.ellipsis, maxLines: 1),
     );
   }
 }
 
 class _Tab<T> extends StatefulWidget {
-  const _Tab({
-    required this.entry,
-    required this.active,
-    required this.onSelect,
-    required this.onClose,
-    required this.tabHeight,
-  });
+  const _Tab({required this.entry, required this.active, required this.onSelect, required this.onClose, required this.tabHeight});
 
   final MultitabEntry<T> entry;
   final bool active;
@@ -320,17 +288,14 @@ class _TabState<T> extends State<_Tab<T>> {
         excludeSemantics: true,
         child: ClideTappable(
           onTap: widget.onSelect,
-          builder: (context, _, __) => Container(
+          builder: (context, _, _) => Container(
             constraints: BoxConstraints(minWidth: 96, maxWidth: 200),
             height: widget.tabHeight,
             // Left: text inset (title breathing room).
             // Right: when there's a close button, match its uniform
             // icon margin so top/bottom/right are equal — see the
             // ui-design `geometry.md` "no double-edge padding" rule.
-            padding: EdgeInsets.only(
-              left: clideInsetText,
-              right: widget.onClose != null ? clideInsetIcon : clideInsetText,
-            ),
+            padding: EdgeInsets.only(left: clideInsetText, right: widget.onClose != null ? clideInsetIcon : clideInsetText),
             decoration: BoxDecoration(
               color: bg,
               border: Border(
@@ -343,13 +308,7 @@ class _TabState<T> extends State<_Tab<T>> {
               children: [
                 // Left column: title, takes all remaining space.
                 Expanded(
-                  child: ClideText(
-                    widget.entry.title,
-                    fontSize: 12,
-                    color: fg,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
+                  child: ClideText(widget.entry.title, fontSize: 12, color: fg, overflow: TextOverflow.ellipsis, maxLines: 1),
                 ),
                 // Right column: close icon, fixed natural width.
                 if (widget.onClose != null) ...[
@@ -362,15 +321,8 @@ class _TabState<T> extends State<_Tab<T>> {
                         width: clideIconHitTarget,
                         height: clideIconHitTarget,
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: hovered ? tokens.listItemHoverBackground : null,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: ClideIcon(
-                          const CloseIcon(),
-                          size: clideIconMicro,
-                          color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
-                        ),
+                        decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(2)),
+                        child: ClideIcon(const CloseIcon(), size: clideIconMicro, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
                       ),
                     ),
                   ),
@@ -402,9 +354,7 @@ class _AddButton extends StatelessWidget {
           width: clideControlHeight,
           height: tabHeight,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: hovered ? tokens.listItemHoverBackground : null,
-          ),
+          decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null),
           child: ClideText('+', fontSize: clideIconStandard, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
         ),
       ),

@@ -26,11 +26,13 @@ void main() {
 
   setUp(() {
     created = [];
-    orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async {
-      final p = _FakeProc();
-      created.add(p);
-      return p;
-    });
+    orch = ClaudeSessionOrchestrator(
+      processFactory: ({required sessionArgs, required cwd, env}) async {
+        final p = _FakeProc();
+        created.add(p);
+        return p;
+      },
+    );
   });
 
   SpawnSpec spec(String id, {bool visible = true}) => SpawnSpec(id: id, role: id, sessionId: '$id-uuid', cwd: '/repo', visible: visible);
@@ -44,21 +46,9 @@ void main() {
   });
 
   test('folds the real claude session id from the init event into the session (T-185)', () async {
-    final m = await orch.spawn(SpawnSpec(
-      id: 'fork-x',
-      role: 'teammate',
-      sessionId: 'placeholder-uuid',
-      cwd: '/repo',
-      forkSourceSessionId: 'source-uuid',
-    ));
+    final m = await orch.spawn(SpawnSpec(id: 'fork-x', role: 'teammate', sessionId: 'placeholder-uuid', cwd: '/repo', forkSourceSessionId: 'source-uuid'));
     expect(m.sessionId, 'placeholder-uuid'); // starts as the placeholder
-    created.last.emit(jsonEncode({
-      'type': 'system',
-      'subtype': 'init',
-      'session_id': 'real-fork-id',
-      'model': 'claude-opus-4-8',
-      'permissionMode': 'default',
-    }));
+    created.last.emit(jsonEncode({'type': 'system', 'subtype': 'init', 'session_id': 'real-fork-id', 'model': 'claude-opus-4-8', 'permissionMode': 'default'}));
     await Future<void>.delayed(Duration.zero);
     expect(m.sessionId, 'real-fork-id'); // updated to the branch's real id
   });
@@ -161,14 +151,9 @@ void main() {
         '{"type":"assistant","uuid":"a1","timestamp":"2026-05-26T00:00:01Z","isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"hi back"}]}}\n',
       );
 
-      final managed = await orch.spawn(SpawnSpec(
-        id: 'primary',
-        role: 'primary',
-        sessionId: 'primary-uuid',
-        cwd: '/repo',
-        resume: true,
-        transcriptPath: file.path,
-      ));
+      final managed = await orch.spawn(
+        SpawnSpec(id: 'primary', role: 'primary', sessionId: 'primary-uuid', cwd: '/repo', resume: true, transcriptPath: file.path),
+      );
       final items = managed.conversation.items;
       expect(items, hasLength(2));
       expect(items.first, isA<UserMessage>());
@@ -179,26 +164,23 @@ void main() {
     });
 
     test('non-resume spawn does not read the transcript', () async {
-      final managed = await orch.spawn(SpawnSpec(
-        id: 'primary',
-        role: 'primary',
-        sessionId: 'primary-uuid',
-        cwd: '/repo',
-        // resume:false → transcriptPath ignored even if set
-        transcriptPath: '/does/not/exist.jsonl',
-      ));
+      final managed = await orch.spawn(
+        SpawnSpec(
+          id: 'primary',
+          role: 'primary',
+          sessionId: 'primary-uuid',
+          cwd: '/repo',
+          // resume:false → transcriptPath ignored even if set
+          transcriptPath: '/does/not/exist.jsonl',
+        ),
+      );
       expect(managed.conversation.items, isEmpty);
     });
 
     test('missing transcript file is tolerated (best-effort hydration)', () async {
-      final managed = await orch.spawn(SpawnSpec(
-        id: 'primary',
-        role: 'primary',
-        sessionId: 'primary-uuid',
-        cwd: '/repo',
-        resume: true,
-        transcriptPath: '/does/not/exist.jsonl',
-      ));
+      final managed = await orch.spawn(
+        SpawnSpec(id: 'primary', role: 'primary', sessionId: 'primary-uuid', cwd: '/repo', resume: true, transcriptPath: '/does/not/exist.jsonl'),
+      );
       expect(managed.conversation.items, isEmpty);
     });
   });
@@ -218,13 +200,8 @@ void main() {
       );
     });
 
-    SpawnSpec forkSpec(String id, String sourceSessionId) => SpawnSpec(
-          id: id,
-          role: 'fork',
-          sessionId: '$id-placeholder',
-          cwd: '/repo',
-          forkSourceSessionId: sourceSessionId,
-        );
+    SpawnSpec forkSpec(String id, String sourceSessionId) =>
+        SpawnSpec(id: id, role: 'fork', sessionId: '$id-placeholder', cwd: '/repo', forkSourceSessionId: sourceSessionId);
 
     test('fork spawn passes --resume <source> --fork-session instead of --session-id', () async {
       const sourceId = 'bbbb2222-2222-4222-8222-222222222222';
@@ -288,12 +265,7 @@ void main() {
     });
 
     test('ManagedSession.cwd reflects the spec cwd', () async {
-      final managed = await orch.spawn(SpawnSpec(
-        id: 'primary',
-        role: 'primary',
-        sessionId: 'primary-uuid',
-        cwd: '/my/project',
-      ));
+      final managed = await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'primary-uuid', cwd: '/my/project'));
       expect(managed.cwd, '/my/project');
     });
   });

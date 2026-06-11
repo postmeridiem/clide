@@ -138,9 +138,7 @@ void main() {
     await call('editor.open', {'path': 'a.md'});
     await call('editor.open', {'path': 'b.md'});
     final r = await call('editor.list');
-    final names = [
-      for (final b in (r.data['buffers'] as List).cast<Map>()) b['path'],
-    ];
+    final names = [for (final b in (r.data['buffers'] as List).cast<Map>()) b['path']];
     expect(names, containsAll(['a.md', 'b.md']));
   });
 
@@ -204,14 +202,14 @@ void main() {
   test('editor.set-selection clamps and applies', () async {
     await call('editor.open', {'path': 'doc.md'});
     final r = await call('editor.set-selection', {
-      'selection': {'start': 0, 'end': 3}
+      'selection': {'start': 0, 'end': 3},
     });
     expect(r.ok, isTrue);
   });
 
   test('editor.set-selection without an id or active buffer returns not-found', () async {
     final r = await call('editor.set-selection', {
-      'selection': {'start': 0, 'end': 1}
+      'selection': {'start': 0, 'end': 1},
     });
     expect(r.ok, isFalse);
     expect(r.error!.kind, 'not_found');
@@ -226,7 +224,7 @@ void main() {
     expect(read1.data['content'], 'replaced');
     final r2 = await call('editor.set-content', {
       'text': 'short',
-      'selection': {'start': 1, 'end': 99}
+      'selection': {'start': 1, 'end': 99},
     });
     expect(r2.ok, isTrue);
   });

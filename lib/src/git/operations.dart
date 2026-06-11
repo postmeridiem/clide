@@ -53,14 +53,7 @@ void validateGitRef(String? value, {required String kind}) {
 }
 
 class GitLogEntry {
-  const GitLogEntry({
-    required this.hash,
-    required this.shortHash,
-    required this.subject,
-    required this.author,
-    required this.date,
-    this.body = '',
-  });
+  const GitLogEntry({required this.hash, required this.shortHash, required this.subject, required this.author, required this.date, this.body = ''});
 
   final String hash;
   final String shortHash;
@@ -70,13 +63,13 @@ class GitLogEntry {
   final String body;
 
   Map<String, Object?> toJson() => {
-        'hash': hash,
-        'shortHash': shortHash,
-        'subject': subject,
-        'author': author,
-        'date': date,
-        if (body.isNotEmpty) 'body': body,
-      };
+    'hash': hash,
+    'shortHash': shortHash,
+    'subject': subject,
+    'author': author,
+    'date': date,
+    if (body.isNotEmpty) 'body': body,
+  };
 }
 
 /// Stage files. Empty [paths] means stage all (`git add -A`).
@@ -120,22 +113,14 @@ Future<void> gitUnstageHunk(Directory workDir, String patch) async {
 /// Discard unstaged changes for [paths]. Uses `git checkout -- <paths>`.
 Future<void> gitDiscard(Directory workDir, List<String> paths) async {
   if (paths.isEmpty) return;
-  final r = await Process.run(
-    gitBin,
-    ['checkout', '--', ...paths],
-    workingDirectory: workDir.path,
-  );
+  final r = await Process.run(gitBin, ['checkout', '--', ...paths], workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git checkout failed', stderr: r.stderr as String);
   }
 }
 
 /// Commit staged changes.
-Future<String> gitCommit(
-  Directory workDir,
-  String message, {
-  bool amend = false,
-}) async {
+Future<String> gitCommit(Directory workDir, String message, {bool amend = false}) async {
   final args = ['commit', '-m', message];
   if (amend) args.add('--amend');
   final r = await Process.run(gitBin, args, workingDirectory: workDir.path);
@@ -143,20 +128,12 @@ Future<String> gitCommit(
     throw GitException('git commit failed', stderr: r.stderr as String);
   }
   // Return the new commit hash.
-  final hashResult = await Process.run(
-    gitBin,
-    ['rev-parse', 'HEAD'],
-    workingDirectory: workDir.path,
-  );
+  final hashResult = await Process.run(gitBin, ['rev-parse', 'HEAD'], workingDirectory: workDir.path);
   return (hashResult.stdout as String).trim();
 }
 
 /// Stash working changes.
-Future<void> gitStash(
-  Directory workDir, {
-  String? message,
-  bool includeUntracked = false,
-}) async {
+Future<void> gitStash(Directory workDir, {String? message, bool includeUntracked = false}) async {
   final args = ['stash', 'push'];
   if (message != null) {
     args.addAll(['-m', message]);
@@ -170,42 +147,22 @@ Future<void> gitStash(
 
 /// Pop the top stash entry.
 Future<void> gitStashPop(Directory workDir) async {
-  final r = await Process.run(
-    gitBin,
-    ['stash', 'pop'],
-    workingDirectory: workDir.path,
-  );
+  final r = await Process.run(gitBin, ['stash', 'pop'], workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git stash pop failed', stderr: r.stderr as String);
   }
 }
 
 /// Git log. Returns the most recent [count] entries.
-Future<List<GitLogEntry>> gitLog(
-  Directory workDir, {
-  int count = 20,
-}) async {
-  final r = await Process.run(
-    gitBin,
-    [
-      'log',
-      '--format=%H%x00%h%x00%s%x00%an%x00%aI%x00%b%x01',
-      '-n',
-      '$count',
-    ],
-    workingDirectory: workDir.path,
-  );
+Future<List<GitLogEntry>> gitLog(Directory workDir, {int count = 20}) async {
+  final r = await Process.run(gitBin, ['log', '--format=%H%x00%h%x00%s%x00%an%x00%aI%x00%b%x01', '-n', '$count'], workingDirectory: workDir.path);
   if (r.exitCode != 0) return const [];
   return _parseLog(r.stdout as String);
 }
 
 /// Pull from remote.
 Future<String> gitPull(Directory workDir) async {
-  final r = await Process.run(
-    gitBin,
-    ['pull'],
-    workingDirectory: workDir.path,
-  );
+  final r = await Process.run(gitBin, ['pull'], workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git pull failed', stderr: r.stderr as String);
   }
@@ -213,12 +170,7 @@ Future<String> gitPull(Directory workDir) async {
 }
 
 /// Push to remote.
-Future<String> gitPush(
-  Directory workDir, {
-  String? remote,
-  String? branch,
-  bool setUpstream = false,
-}) async {
+Future<String> gitPush(Directory workDir, {String? remote, String? branch, bool setUpstream = false}) async {
   if (remote != null) validateGitRef(remote, kind: 'remote');
   if (branch != null) validateGitRef(branch, kind: 'branch');
   final args = ['push'];
@@ -238,11 +190,7 @@ Future<String> gitPush(
 
 /// List local branches. Returns (name, isCurrent) pairs.
 Future<List<({String name, bool current})>> gitBranches(Directory workDir) async {
-  final r = await Process.run(
-    gitBin,
-    ['branch', '--format=%(refname:short)|%(HEAD)'],
-    workingDirectory: workDir.path,
-  );
+  final r = await Process.run(gitBin, ['branch', '--format=%(refname:short)|%(HEAD)'], workingDirectory: workDir.path);
   if (r.exitCode != 0) return const [];
   final out = <({String name, bool current})>[];
   for (final line in (r.stdout as String).split('\n')) {
@@ -265,11 +213,7 @@ Future<List<({String name, bool current})>> gitBranches(Directory workDir) async
 /// argv-injection defence here. Use `gitSwitch` if/when we adopt it.
 Future<void> gitCheckout(Directory workDir, String branch) async {
   validateGitRef(branch, kind: 'branch');
-  final r = await Process.run(
-    gitBin,
-    ['checkout', branch],
-    workingDirectory: workDir.path,
-  );
+  final r = await Process.run(gitBin, ['checkout', branch], workingDirectory: workDir.path);
   if (r.exitCode != 0) {
     throw GitException('git checkout failed', stderr: r.stderr as String);
   }
@@ -277,11 +221,7 @@ Future<void> gitCheckout(Directory workDir, String branch) async {
 
 /// Get the current branch name.
 Future<String?> gitCurrentBranch(Directory workDir) async {
-  final r = await Process.run(
-    gitBin,
-    ['symbolic-ref', '--short', 'HEAD'],
-    workingDirectory: workDir.path,
-  );
+  final r = await Process.run(gitBin, ['symbolic-ref', '--short', 'HEAD'], workingDirectory: workDir.path);
   if (r.exitCode != 0) return null;
   return (r.stdout as String).trim();
 }
@@ -297,43 +237,33 @@ List<GitLogEntry> _parseLog(String output) {
     if (trimmed.isEmpty) continue;
     final fields = trimmed.split('\x00');
     if (fields.length < 5) continue;
-    entries.add(GitLogEntry(
-      hash: fields[0],
-      shortHash: fields[1],
-      subject: fields[2],
-      author: fields[3],
-      date: fields[4],
-      body: fields.length > 5 ? fields[5].trim() : '',
-    ));
+    entries.add(
+      GitLogEntry(
+        hash: fields[0],
+        shortHash: fields[1],
+        subject: fields[2],
+        author: fields[3],
+        date: fields[4],
+        body: fields.length > 5 ? fields[5].trim() : '',
+      ),
+    );
   }
   return entries;
 }
 
-Future<void> _applyPatch(
-  Directory workDir,
-  String patch, {
-  bool cached = false,
-  bool reverse = false,
-}) async {
+Future<void> _applyPatch(Directory workDir, String patch, {bool cached = false, bool reverse = false}) async {
   final args = ['apply'];
   if (cached) args.add('--cached');
   if (reverse) args.add('--reverse');
   args.add('--unidiff-zero');
   args.add('-');
 
-  final proc = await Process.start(
-    'git',
-    args,
-    workingDirectory: workDir.path,
-  );
+  final proc = await Process.start('git', args, workingDirectory: workDir.path);
   proc.stdin.write(patch);
   await proc.stdin.close();
   final exitCode = await proc.exitCode;
   if (exitCode != 0) {
     final stderr = await proc.stderr.transform(const SystemEncoding().decoder).join();
-    throw GitException(
-      'git apply failed',
-      stderr: stderr,
-    );
+    throw GitException('git apply failed', stderr: stderr);
   }
 }

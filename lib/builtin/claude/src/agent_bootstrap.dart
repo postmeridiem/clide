@@ -42,7 +42,8 @@ const List<String> clideAllowedToolsArgs = ['--allowedTools', clideBashAllowRule
 /// the orient-snapshot (`clide status`) and live pane/editor reflection
 /// arrive with Epic C (T-218..T-221) and are deliberately left out so the
 /// note never points the agent at a command that returns nothing yet.
-String clideContextNote(String workspaceRoot) => 'You are running inside clide, an IDE that is hosting this session. clide exposes its IDE '
+String clideContextNote(String workspaceRoot) =>
+    'You are running inside clide, an IDE that is hosting this session. clide exposes its IDE '
     'surface as a `clide` command on your PATH; drive it with `clide <subsystem> <verb>`. '
     'Subsystems that respond today: `files` (workspace tree — `clide files root`, `files list`), '
     '`editor` (`clide editor open <path>`, `editor active`), `git` (`clide git status`), '
@@ -61,16 +62,8 @@ String clideContextNote(String workspaceRoot) => 'You are running inside clide, 
 ///   * `CLIDE_WORKSPACE` — the workspace root.
 ///   * `PATH` — prepended with [clideCliDir] when it is non-null (i.e. `clide`
 ///     is not already resolvable), otherwise left untouched.
-Map<String, String> agentEnvDelta({
-  required String workspaceRoot,
-  required String socketPath,
-  required String? currentPath,
-  required String? clideCliDir,
-}) {
-  final delta = <String, String>{
-    'CLIDE_SOCK': socketPath,
-    'CLIDE_WORKSPACE': workspaceRoot,
-  };
+Map<String, String> agentEnvDelta({required String workspaceRoot, required String socketPath, required String? currentPath, required String? clideCliDir}) {
+  final delta = <String, String>{'CLIDE_SOCK': socketPath, 'CLIDE_WORKSPACE': workspaceRoot};
   if (clideCliDir != null && clideCliDir.isNotEmpty) {
     delta['PATH'] = (currentPath == null || currentPath.isEmpty) ? clideCliDir : '$clideCliDir:$currentPath';
   }
@@ -85,11 +78,7 @@ Map<String, String> agentEnvDelta({
 ///
 /// [candidateDirs] is an ordered fallback list; [isExecutableFile] probes
 /// `<dir>/clide`. Both are injected so the resolver is pure and testable.
-String? resolveClideCliDir({
-  required String? currentPath,
-  required List<String> candidateDirs,
-  required bool Function(String path) isExecutableFile,
-}) {
+String? resolveClideCliDir({required String? currentPath, required List<String> candidateDirs, required bool Function(String path) isExecutableFile}) {
   if (currentPath != null) {
     for (final dir in currentPath.split(':')) {
       if (dir.isNotEmpty && isExecutableFile('$dir/clide')) return null;
@@ -142,21 +131,9 @@ AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base})
     '$workspaceRoot/native/${nativeClideDirName()}',
     File(Platform.resolvedExecutable).parent.path,
   ];
-  final cliDir = resolveClideCliDir(
-    currentPath: currentPath,
-    candidateDirs: candidates,
-    isExecutableFile: _isExecutableFile,
-  );
-  final delta = agentEnvDelta(
-    workspaceRoot: workspaceRoot,
-    socketPath: workspaceSocketPath(workspaceRoot),
-    currentPath: currentPath,
-    clideCliDir: cliDir,
-  );
-  return AgentBootstrap(
-    envDelta: {...?base, ...delta},
-    extraArgs: ['--allowedTools', clideBashAllowRule],
-  );
+  final cliDir = resolveClideCliDir(currentPath: currentPath, candidateDirs: candidates, isExecutableFile: _isExecutableFile);
+  final delta = agentEnvDelta(workspaceRoot: workspaceRoot, socketPath: workspaceSocketPath(workspaceRoot), currentPath: currentPath, clideCliDir: cliDir);
+  return AgentBootstrap(envDelta: {...?base, ...delta}, extraArgs: ['--allowedTools', clideBashAllowRule]);
 }
 
 bool _isExecutableFile(String path) {

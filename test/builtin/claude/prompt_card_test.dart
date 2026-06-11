@@ -9,60 +9,60 @@ import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart';
 
 ToolPrompt permissionPrompt({List<dynamic> suggestions = const []}) => ToolPrompt(
-      promptId: 'req-1',
-      toolName: 'Write',
-      displayName: 'Write',
-      description: 'banana.txt',
-      input: const {'file_path': '/tmp/banana.txt', 'content': 'banana'},
-      permissionSuggestions: suggestions,
-    );
+  promptId: 'req-1',
+  toolName: 'Write',
+  displayName: 'Write',
+  description: 'banana.txt',
+  input: const {'file_path': '/tmp/banana.txt', 'content': 'banana'},
+  permissionSuggestions: suggestions,
+);
 
 ToolPrompt questionPrompt({bool multi = false}) => ToolPrompt(
-      promptId: 'req-q',
-      toolName: 'AskUserQuestion',
-      displayName: 'AskUserQuestion',
-      input: {
-        'questions': [
-          {
-            'question': 'Do you prefer cats or dogs?',
-            'header': 'Pet',
-            'multiSelect': multi,
-            'options': [
-              {'label': 'Cats', 'description': 'cat person'},
-              {'label': 'Dogs', 'description': 'dog person'},
-            ],
-          },
+  promptId: 'req-q',
+  toolName: 'AskUserQuestion',
+  displayName: 'AskUserQuestion',
+  input: {
+    'questions': [
+      {
+        'question': 'Do you prefer cats or dogs?',
+        'header': 'Pet',
+        'multiSelect': multi,
+        'options': [
+          {'label': 'Cats', 'description': 'cat person'},
+          {'label': 'Dogs', 'description': 'dog person'},
         ],
       },
-    );
+    ],
+  },
+);
 
 ToolPrompt twoQuestionPrompt() => const ToolPrompt(
-      promptId: 'req-2q',
-      toolName: 'AskUserQuestion',
-      displayName: 'AskUserQuestion',
-      input: {
-        'questions': [
-          {
-            'question': 'Which pet?',
-            'header': 'Pet',
-            'multiSelect': false,
-            'options': [
-              {'label': 'Cats', 'description': ''},
-              {'label': 'Dogs', 'description': ''},
-            ],
-          },
-          {
-            'question': 'How eaten?',
-            'header': 'Eaten',
-            'multiSelect': false,
-            'options': [
-              {'label': 'Fresh', 'description': ''},
-              {'label': 'Smoothie', 'description': ''},
-            ],
-          },
+  promptId: 'req-2q',
+  toolName: 'AskUserQuestion',
+  displayName: 'AskUserQuestion',
+  input: {
+    'questions': [
+      {
+        'question': 'Which pet?',
+        'header': 'Pet',
+        'multiSelect': false,
+        'options': [
+          {'label': 'Cats', 'description': ''},
+          {'label': 'Dogs', 'description': ''},
         ],
       },
-    );
+      {
+        'question': 'How eaten?',
+        'header': 'Eaten',
+        'multiSelect': false,
+        'options': [
+          {'label': 'Fresh', 'description': ''},
+          {'label': 'Smoothie', 'description': ''},
+        ],
+      },
+    ],
+  },
+);
 
 void main() {
   late KernelFixture f;
@@ -72,16 +72,18 @@ void main() {
   testWidgets('permission card: Allow returns AllowTool echoing the input', (tester) async {
     ToolDecision? decision;
     String? id;
-    await tester.pumpWidget(harness(
-      f,
-      ToolPromptCard(
-        prompt: permissionPrompt(),
-        onResolve: (p, d) {
-          id = p;
-          decision = d;
-        },
+    await tester.pumpWidget(
+      harness(
+        f,
+        ToolPromptCard(
+          prompt: permissionPrompt(),
+          onResolve: (p, d) {
+            id = p;
+            decision = d;
+          },
+        ),
       ),
-    ));
+    );
     await tester.pump();
 
     expect(find.text('permission · Write'), findsOneWidget);
@@ -97,7 +99,7 @@ void main() {
   });
 
   testWidgets('permission card shows the command being permitted', (tester) async {
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, __) {})));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, _) {})));
     await tester.pump();
     expect(find.byType(ClideCodeBlock), findsOneWidget);
   });
@@ -110,7 +112,7 @@ void main() {
       description: 'Read IDE lock files',
       input: {'command': 'cat ~/.claude/ide/97632.lock', 'description': 'Read IDE lock files'},
     );
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
     await tester.pump();
 
     final block = tester.widget<ClideCodeBlock>(find.byType(ClideCodeBlock));
@@ -129,7 +131,7 @@ void main() {
       description: 'long task',
       input: {'command': 'sleep 30', 'run_in_background': true, 'timeout': 60000},
     );
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
     await tester.pump();
     expect(find.text('background · timeout 60000ms'), findsOneWidget);
   });
@@ -145,7 +147,7 @@ void main() {
       description: '/tmp/clide-ux-test.txt',
       input: {'file_path': '/tmp/clide-ux-test.txt', 'content': 'hello'},
     );
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
     await tester.pump();
 
     // The path should appear exactly once (in _pathLine, inside the body).
@@ -160,7 +162,7 @@ void main() {
       description: 'banana.txt',
       input: {'file_path': '/tmp/banana.txt', 'content': 'banana'},
     );
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
     await tester.pump();
 
     expect(find.text('banana.txt'), findsOneWidget);
@@ -168,13 +170,8 @@ void main() {
   });
 
   testWidgets('permission card: unknown tool falls back to JSON', (tester) async {
-    const prompt = ToolPrompt(
-      promptId: 'req-x',
-      toolName: 'NovelTool',
-      displayName: 'NovelTool',
-      input: {'foo': 'bar'},
-    );
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+    const prompt = ToolPrompt(promptId: 'req-x', toolName: 'NovelTool', displayName: 'NovelTool', input: {'foo': 'bar'});
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
     await tester.pump();
     final block = tester.widget<ClideCodeBlock>(find.byType(ClideCodeBlock));
     expect(block.language, 'json');
@@ -183,10 +180,7 @@ void main() {
 
   testWidgets('permission card: Deny returns DenyTool with a message', (tester) async {
     ToolDecision? decision;
-    await tester.pumpWidget(harness(
-      f,
-      ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d),
-    ));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, d) => decision = d)));
     await tester.pump();
 
     await tester.tap(find.text('2. Deny'));
@@ -197,7 +191,7 @@ void main() {
   });
 
   testWidgets('permission: no "don\'t ask again" button without a suggestion', (tester) async {
-    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, __) {})));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: permissionPrompt(), onResolve: (_, _) {})));
     await tester.pump();
     expect(find.text("2. Allow & don't ask again"), findsNothing);
   });
@@ -205,12 +199,17 @@ void main() {
   testWidgets('permission: "don\'t ask again" shows with a suggestion and returns updatedPermissions', (tester) async {
     ToolDecision? decision;
     const sugg = [
-      {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'}
+      {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'},
     ];
-    await tester.pumpWidget(harness(
-      f,
-      ToolPromptCard(prompt: permissionPrompt(suggestions: sugg), onResolve: (_, d) => decision = d),
-    ));
+    await tester.pumpWidget(
+      harness(
+        f,
+        ToolPromptCard(
+          prompt: permissionPrompt(suggestions: sugg),
+          onResolve: (_, d) => decision = d,
+        ),
+      ),
+    );
     await tester.pump();
 
     expect(find.text("2. Allow & don't ask again"), findsOneWidget);
@@ -272,10 +271,7 @@ void main() {
 
   testWidgets('question card: Submit is gated until an option is picked, then returns answers', (tester) async {
     ToolDecision? decision;
-    await tester.pumpWidget(harness(
-      f,
-      ToolPromptCard(prompt: questionPrompt(), onResolve: (_, d) => decision = d),
-    ));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(), onResolve: (_, d) => decision = d)));
     await tester.pump();
 
     expect(find.text('Do you prefer cats or dogs?'), findsOneWidget);
@@ -297,10 +293,7 @@ void main() {
 
   testWidgets('question card: multi-select joins chosen labels comma-separated', (tester) async {
     ToolDecision? decision;
-    await tester.pumpWidget(harness(
-      f,
-      ToolPromptCard(prompt: questionPrompt(multi: true), onResolve: (_, d) => decision = d),
-    ));
+    await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(multi: true), onResolve: (_, d) => decision = d)));
     await tester.pump();
 
     await tester.tap(find.textContaining('Cats'));
@@ -396,13 +389,9 @@ void main() {
         promptId: 'req-e',
         toolName: 'Edit',
         displayName: 'Edit',
-        input: {
-          'file_path': '/tmp/foo.dart',
-          'old_string': 'void main() {}',
-          'new_string': 'void main() => run();',
-        },
+        input: {'file_path': '/tmp/foo.dart', 'old_string': 'void main() {}', 'new_string': 'void main() => run();'},
       );
-      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
       await tester.pump();
       // Two code blocks: before + after.
       expect(find.byType(ClideCodeBlock), findsNWidgets(2));
@@ -413,13 +402,8 @@ void main() {
 
   group('permission card: Read/Grep show compact path via shared helper', () {
     testWidgets('Read shows the file path label', (tester) async {
-      const prompt = ToolPrompt(
-        promptId: 'req-r',
-        toolName: 'Read',
-        displayName: 'Read',
-        input: {'file_path': '/docs/readme.md'},
-      );
-      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+      const prompt = ToolPrompt(promptId: 'req-r', toolName: 'Read', displayName: 'Read', input: {'file_path': '/docs/readme.md'});
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
       await tester.pump();
       expect(find.text('/docs/readme.md'), findsOneWidget);
       // No code blocks — just a text label for Read.
@@ -428,13 +412,8 @@ void main() {
 
     testWidgets('Grep shows pattern quoted alongside any path', (tester) async {
       // Grep with both path and pattern: the label shows file_path + quoted pattern.
-      const prompt = ToolPrompt(
-        promptId: 'req-grep',
-        toolName: 'Grep',
-        displayName: 'Grep',
-        input: {'pattern': 'TODO', 'path': '/src'},
-      );
-      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, __) {})));
+      const prompt = ToolPrompt(promptId: 'req-grep', toolName: 'Grep', displayName: 'Grep', input: {'pattern': 'TODO', 'path': '/src'});
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: prompt, onResolve: (_, _) {})));
       await tester.pump();
       // The combined label contains both the path and the quoted pattern.
       expect(find.textContaining('"TODO"'), findsOneWidget);
@@ -449,13 +428,15 @@ void main() {
       final notifier = ValueNotifier<ToolPrompt>(questionPrompt());
       addTearDown(notifier.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        ValueListenableBuilder<ToolPrompt>(
-          valueListenable: notifier,
-          builder: (_, p, __) => ToolPromptCard(prompt: p, onResolve: (_, d) => decision = d),
+      await tester.pumpWidget(
+        harness(
+          f,
+          ValueListenableBuilder<ToolPrompt>(
+            valueListenable: notifier,
+            builder: (_, p, _) => ToolPromptCard(prompt: p, onResolve: (_, d) => decision = d),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('Do you prefer cats or dogs?'), findsOneWidget);
 
@@ -530,7 +511,7 @@ void main() {
     });
 
     const sugg = [
-      {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'}
+      {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'},
     ];
 
     testWidgets('with a remember suggestion: 2 = Allow & remember', (tester) async {

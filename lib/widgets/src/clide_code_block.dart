@@ -50,12 +50,7 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final style = TextStyle(
-      fontFamily: clideMonoFamily,
-      fontFamilyFallback: clideMonoFamilyFallback,
-      fontSize: clideFontMono,
-      color: tokens.globalForeground,
-    );
+    final style = TextStyle(fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback, fontSize: clideFontMono, color: tokens.globalForeground);
 
     final spans = _spans;
     TextSpan textSpan;
@@ -74,10 +69,7 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: tokens.panelBorder),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Text.rich(textSpan),
-      ),
+      child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Text.rich(textSpan)),
     );
   }
 
@@ -114,7 +106,12 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
       }
       if (eChar > clippedStart) {
         final color = TreeSitterService.colorForRole(span.role, tokens);
-        children.add(TextSpan(text: source.substring(clippedStart, eChar), style: base.copyWith(color: color)));
+        children.add(
+          TextSpan(
+            text: source.substring(clippedStart, eChar),
+            style: base.copyWith(color: color),
+          ),
+        );
       }
       if (eChar > lastChar) lastChar = eChar;
     }

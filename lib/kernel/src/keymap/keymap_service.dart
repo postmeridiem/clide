@@ -41,13 +41,10 @@ const String kKeymapOverridesSetting = 'app.keymap.overrides';
 const String kKeymapUserFile = 'keybindings.yaml';
 
 class KeymapService extends ChangeNotifier {
-  KeymapService({
-    required SettingsStore settings,
-    required Directory appDir,
-    AssetBundle? bundle,
-  })  : _settings = settings,
-        _appDir = appDir,
-        _bundle = bundle ?? rootBundle;
+  KeymapService({required SettingsStore settings, required Directory appDir, AssetBundle? bundle})
+    : _settings = settings,
+      _appDir = appDir,
+      _bundle = bundle ?? rootBundle;
 
   final SettingsStore _settings;
   final Directory _appDir;
@@ -127,11 +124,7 @@ class KeymapService extends ChangeNotifier {
   /// defaults, the user can override either via the user file or
   /// settings overlay.
   void registerCommandBinding(String chordSpec, String commandId, {String? when}) {
-    _contributions.add(KeymapBinding(
-      sequence: KeyChord.parseSequence(chordSpec),
-      intent: InvokeCommandIntent(commandId),
-      when: WhenExpr.tryParse(when),
-    ));
+    _contributions.add(KeymapBinding(sequence: KeyChord.parseSequence(chordSpec), intent: InvokeCommandIntent(commandId), when: WhenExpr.tryParse(when)));
     _rebuildActive();
   }
 
@@ -149,12 +142,7 @@ class KeymapService extends ChangeNotifier {
   }
 
   void _rebuildActive() {
-    final layers = <KeymapLayer>[
-      if (_preset != null) _preset!,
-      KeymapLayer(name: 'contributions', bindings: List.unmodifiable(_contributions)),
-      if (_userFile != null) _userFile!,
-      if (_settingsOverlay != null) _settingsOverlay!,
-    ];
+    final layers = <KeymapLayer>[?_preset, KeymapLayer(name: 'contributions', bindings: List.unmodifiable(_contributions)), ?_userFile, ?_settingsOverlay];
     _active = Keymap(layers);
     notifyListeners();
   }

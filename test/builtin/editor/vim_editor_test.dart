@@ -22,26 +22,29 @@ void main() {
 
   void stubOneBuffer(String content) {
     f.ipc.stub(
-        'editor.list',
-        (_) async => _ok({
-              'buffers': [
-                {'id': 'b_1', 'path': 'lib/a.dart', 'dirty': false}
-              ]
-            }));
+      'editor.list',
+      (_) async => _ok({
+        'buffers': [
+          {'id': 'b_1', 'path': 'lib/a.dart', 'dirty': false},
+        ],
+      }),
+    );
     f.ipc.stub(
-        'editor.active',
-        (_) async => _ok({
-              'active': {'id': 'b_1'}
-            }));
+      'editor.active',
+      (_) async => _ok({
+        'active': {'id': 'b_1'},
+      }),
+    );
     f.ipc.stub(
-        'editor.read',
-        (_) async => _ok({
-              'id': 'b_1',
-              'path': 'lib/a.dart',
-              'content': content,
-              'selection': {'start': 0, 'end': 0},
-              'dirty': false,
-            }));
+      'editor.read',
+      (_) async => _ok({
+        'id': 'b_1',
+        'path': 'lib/a.dart',
+        'content': content,
+        'selection': {'start': 0, 'end': 0},
+        'dirty': false,
+      }),
+    );
   }
 
   Future<void> pumpEditor(WidgetTester tester) async {

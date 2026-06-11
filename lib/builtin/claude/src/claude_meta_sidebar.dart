@@ -218,14 +218,18 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     final managed = orch.byMemberName(memberName);
     if (managed == null) return;
     final forkId = 'fork:$memberName-${DateTime.now().millisecondsSinceEpoch}';
-    unawaited(orch.spawn(SpawnSpec(
-      id: forkId,
-      role: 'fork of $memberName',
-      // sessionId is a placeholder; real claude session id arrives via init.
-      sessionId: forkId,
-      cwd: managed.cwd,
-      forkSourceSessionId: managed.sessionId,
-    )));
+    unawaited(
+      orch.spawn(
+        SpawnSpec(
+          id: forkId,
+          role: 'fork of $memberName',
+          // sessionId is a placeholder; real claude session id arrives via init.
+          sessionId: forkId,
+          cwd: managed.cwd,
+          forkSourceSessionId: managed.sessionId,
+        ),
+      ),
+    );
   }
 
   Future<void> _refreshStats() async {
@@ -276,11 +280,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
           _MetaRow('sessions', '${latest.sessionCount}'),
           _MetaRow('tool calls', '${latest.toolCallCount}'),
         ]),
-      if (latest != null)
-        _MetaSection('LIFETIME', [
-          _MetaRow('messages', '${_stats.lifetimeMessages}'),
-          _MetaRow('sessions', '${_stats.lifetimeSessions}'),
-        ]),
+      if (latest != null) _MetaSection('LIFETIME', [_MetaRow('messages', '${_stats.lifetimeMessages}'), _MetaRow('sessions', '${_stats.lifetimeSessions}')]),
       ..._runtimeSection(tokens),
     ];
     if (sections.isEmpty) {
@@ -357,17 +357,10 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     final broker = _orchestrator?.broker;
     if (chatModel != null && broker != null) {
       children.add(const SizedBox(height: 12));
-      children.add(TeamChatSidebar(
-        model: chatModel,
-        broker: broker,
-        onPopOut: _openChatPane,
-      ));
+      children.add(TeamChatSidebar(model: chatModel, broker: broker, onPopOut: _openChatPane));
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: children,
-    );
+    return ListView(padding: const EdgeInsets.all(12), children: children);
   }
 
   Widget _taskSection(SurfaceTokens tokens) {
@@ -420,18 +413,11 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
       // Footer hint.
       Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: ClideText(
-          'expand a list to see all · click a skill/agent/command → opens its .md',
-          muted: true,
-          fontSize: clideFontSmall,
-        ),
+        child: ClideText('expand a list to see all · click a skill/agent/command → opens its .md', muted: true, fontSize: clideFontSmall),
       ),
     ];
 
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: children,
-    );
+    return ListView(padding: const EdgeInsets.all(12), children: children);
   }
 
   /// One key→value row in the pinned SETTINGS table.
@@ -454,22 +440,22 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   }
 
   String _configSectionLabel(_ConfigSection section) => switch (section) {
-        _ConfigSection.skills => 'SKILLS',
-        _ConfigSection.agents => 'AGENTS',
-        _ConfigSection.commands => 'COMMANDS',
-        _ConfigSection.hooks => 'HOOKS',
-        _ConfigSection.permissions => 'PERMISSIONS',
-        _ConfigSection.mcpServers => 'MCP SERVERS',
-      };
+    _ConfigSection.skills => 'SKILLS',
+    _ConfigSection.agents => 'AGENTS',
+    _ConfigSection.commands => 'COMMANDS',
+    _ConfigSection.hooks => 'HOOKS',
+    _ConfigSection.permissions => 'PERMISSIONS',
+    _ConfigSection.mcpServers => 'MCP SERVERS',
+  };
 
   int _configSectionCount(ClaudeConfig config, _ConfigSection section) => switch (section) {
-        _ConfigSection.skills => config.skills.length,
-        _ConfigSection.agents => config.agents.length,
-        _ConfigSection.commands => config.commands.length,
-        _ConfigSection.hooks => config.hooks.length,
-        _ConfigSection.permissions => config.permissions.allow.length + config.permissions.deny.length + config.permissions.ask.length,
-        _ConfigSection.mcpServers => config.mcpServers.length,
-      };
+    _ConfigSection.skills => config.skills.length,
+    _ConfigSection.agents => config.agents.length,
+    _ConfigSection.commands => config.commands.length,
+    _ConfigSection.hooks => config.hooks.length,
+    _ConfigSection.permissions => config.permissions.allow.length + config.permissions.deny.length + config.permissions.ask.length,
+    _ConfigSection.mcpServers => config.mcpServers.length,
+  };
 
   Widget _configAccordion(SurfaceTokens tokens, ClaudeConfig config, _ConfigSection section) {
     final expanded = _expanded.contains(section);
@@ -492,17 +478,11 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   List<Widget> _configSectionChildren(SurfaceTokens tokens, ClaudeConfig config, _ConfigSection section) {
     switch (section) {
       case _ConfigSection.skills:
-        return [
-          for (final skill in config.skills) _configFileRow(tokens, skill.name, skill.path),
-        ];
+        return [for (final skill in config.skills) _configFileRow(tokens, skill.name, skill.path)];
       case _ConfigSection.agents:
-        return [
-          for (final agent in config.agents) _configFileRow(tokens, agent.name, agent.path),
-        ];
+        return [for (final agent in config.agents) _configFileRow(tokens, agent.name, agent.path)];
       case _ConfigSection.commands:
-        return [
-          for (final cmd in config.commands) _configFileRow(tokens, cmd.name, cmd.path),
-        ];
+        return [for (final cmd in config.commands) _configFileRow(tokens, cmd.name, cmd.path)];
       case _ConfigSection.hooks:
         return [
           for (final hook in config.hooks)
@@ -540,11 +520,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   Widget _configFileRow(SurfaceTokens tokens, String name, String? path) {
     final row = Padding(
       padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-      child: ClideText(
-        name,
-        fontSize: clideFontSmall,
-        color: path != null ? tokens.globalFocus : tokens.globalForeground,
-      ),
+      child: ClideText(name, fontSize: clideFontSmall, color: path != null ? tokens.globalFocus : tokens.globalForeground),
     );
     if (path == null) return row;
     void openMarkdown() => ClideKernel.of(context).messages.publish('builtin.markdown', 'selection', {'path': path});
@@ -558,11 +534,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
         onTap: openMarkdown,
         builder: (ctx, hovered, _) => Padding(
           padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-          child: ClideText(
-            name,
-            fontSize: clideFontSmall,
-            color: hovered ? tokens.globalForeground : tokens.globalFocus,
-          ),
+          child: ClideText(name, fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalFocus),
         ),
       ),
     );
@@ -576,22 +548,18 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
 
     // allow → statusSuccess, ask → statusWarning, deny → statusError
     Color kindColor(_ConfigPermKind k) => switch (k) {
-          _ConfigPermKind.allow => tokens.statusSuccess,
-          _ConfigPermKind.ask => tokens.statusWarning,
-          _ConfigPermKind.deny => tokens.statusError,
-        };
+      _ConfigPermKind.allow => tokens.statusSuccess,
+      _ConfigPermKind.ask => tokens.statusWarning,
+      _ConfigPermKind.deny => tokens.statusError,
+    };
 
     String kindLabel(_ConfigPermKind k) => switch (k) {
-          _ConfigPermKind.allow => kindAllow,
-          _ConfigPermKind.ask => kindAsk,
-          _ConfigPermKind.deny => kindDeny,
-        };
+      _ConfigPermKind.allow => kindAllow,
+      _ConfigPermKind.ask => kindAsk,
+      _ConfigPermKind.deny => kindDeny,
+    };
 
-    final groups = [
-      (_ConfigPermKind.allow, perms.allow),
-      (_ConfigPermKind.ask, perms.ask),
-      (_ConfigPermKind.deny, perms.deny),
-    ];
+    final groups = [(_ConfigPermKind.allow, perms.allow), (_ConfigPermKind.ask, perms.ask), (_ConfigPermKind.deny, perms.deny)];
 
     final rows = <Widget>[];
     for (final (kind, rules) in groups) {
@@ -631,44 +599,41 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   // --- Shared rendering -----------------------------------------------------
 
   Widget _placeholder(String text) => Padding(
-        padding: const EdgeInsets.all(12),
-        child: ClideText(text, muted: true, fontSize: clideFontSmall),
-      );
+    padding: const EdgeInsets.all(12),
+    child: ClideText(text, muted: true, fontSize: clideFontSmall),
+  );
 
   Widget _metaTable(SurfaceTokens tokens, List<_MetaSection> sections) {
     final children = <Widget>[];
     for (var i = 0; i < sections.length; i++) {
       final s = sections[i];
-      children.add(Padding(
-        padding: EdgeInsets.only(top: i == 0 ? 0 : 16, bottom: 6),
-        child: ClideText(s.header, fontSize: clideFontSmall, color: tokens.globalTextMuted),
-      ));
+      children.add(
+        Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : 16, bottom: 6),
+          child: ClideText(s.header, fontSize: clideFontSmall, color: tokens.globalTextMuted),
+        ),
+      );
       for (final r in s.rows) {
-        children.add(Padding(
-          padding: const EdgeInsets.symmetric(vertical: _rowPitch),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: _labelColumnWidth,
-                child: ClideText(r.label, muted: true, fontSize: clideFontSmall),
-              ),
-              Expanded(
-                child: ClideText(
-                  r.value,
-                  fontSize: clideFontSmall,
-                  color: r.valueColor ?? tokens.globalForeground,
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: _rowPitch),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: _labelColumnWidth,
+                  child: ClideText(r.label, muted: true, fontSize: clideFontSmall),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ClideText(r.value, fontSize: clideFontSmall, color: r.valueColor ?? tokens.globalForeground),
+                ),
+              ],
+            ),
           ),
-        ));
+        );
       }
     }
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: children,
-    );
+    return ListView(padding: const EdgeInsets.all(12), children: children);
   }
 }
 
@@ -788,7 +753,11 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
               // Color dot
               Padding(
                 padding: const EdgeInsets.only(top: 3),
-                child: Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
               ),
               const SizedBox(width: 8),
               // Name + status
@@ -840,11 +809,7 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
       child: Row(
         children: [
           Expanded(
-            child: ClideText(
-              'Enable bypassPermissions? All tool calls will be auto-allowed.',
-              fontSize: clideFontSmall,
-              color: tokens.globalTextMuted,
-            ),
+            child: ClideText('Enable bypassPermissions? All tool calls will be auto-allowed.', fontSize: clideFontSmall, color: tokens.globalTextMuted),
           ),
           const SizedBox(width: 4),
           // Confirm
@@ -889,14 +854,7 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
     );
   }
 
-  Widget _buildControls(
-    BuildContext context,
-    SurfaceTokens tokens,
-    ManagedSession managed,
-    bool isVisible,
-    bool isMuted,
-    bool isInjecting,
-  ) {
+  Widget _buildControls(BuildContext context, SurfaceTokens tokens, ManagedSession managed, bool isVisible, bool isMuted, bool isInjecting) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -975,11 +933,11 @@ class _AgentRosterRowState extends State<_AgentRosterRow> {
 
 /// Maps a permission-mode string to a single-letter badge label.
 String _permissionModeBadge(String mode) => switch (mode) {
-      'acceptEdits' => 'A',
-      'plan' => 'P',
-      'bypassPermissions' => 'B',
-      _ => 'D', // default
-    };
+  'acceptEdits' => 'A',
+  'plan' => 'P',
+  'bypassPermissions' => 'B',
+  _ => 'D', // default
+};
 
 /// Clickable permission-mode badge shown in each roster row (T-181).
 ///
@@ -990,12 +948,7 @@ String _permissionModeBadge(String mode) => switch (mode) {
 /// It is a custom painted label (no Material), consistent with the rendering
 /// stack rules (D-7, CLAUDE.md guardrails).
 class _PermissionModeBadge extends StatelessWidget {
-  const _PermissionModeBadge({
-    required this.mode,
-    required this.tokens,
-    required this.onCycle,
-    required this.onBypass,
-  });
+  const _PermissionModeBadge({required this.mode, required this.tokens, required this.onCycle, required this.onBypass});
 
   final String mode;
   final SurfaceTokens tokens;
@@ -1012,7 +965,8 @@ class _PermissionModeBadge extends StatelessWidget {
     final isBypass = mode == 'bypassPermissions';
     final badgeColor = isBypass ? const Color(0xFFF06C6F) : tokens.globalFocus;
 
-    final tooltip = 'Permission mode: ${permissionModeLabel(mode)}. '
+    final tooltip =
+        'Permission mode: ${permissionModeLabel(mode)}. '
         'Click to cycle default/acceptEdits/plan; Shift-click for bypassPermissions.';
 
     return Padding(
@@ -1046,11 +1000,7 @@ class _PermissionModeBadge extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
               border: Border.all(color: badgeColor.withAlpha(hovered ? 180 : 100), width: 1),
             ),
-            child: ClideText(
-              label,
-              fontSize: 9,
-              color: badgeColor,
-            ),
+            child: ClideText(label, fontSize: 9, color: badgeColor),
           ),
         ),
       ),
@@ -1060,12 +1010,7 @@ class _PermissionModeBadge extends StatelessWidget {
 
 /// A single icon-button used in the roster row controls.
 class _IconButton extends StatelessWidget {
-  const _IconButton({
-    required this.painter,
-    required this.tooltip,
-    required this.color,
-    required this.onTap,
-  });
+  const _IconButton({required this.painter, required this.tooltip, required this.color, required this.onTap});
 
   final ClideIconPainter painter;
   final String tooltip;
@@ -1096,11 +1041,7 @@ class _IconButton extends StatelessWidget {
 /// Inline text input for injecting a message into a session (T-171).
 /// Submits on Enter; Cancel is handled by the parent via [_IconButton].
 class _InjectTextField extends StatelessWidget {
-  const _InjectTextField({
-    required this.controller,
-    required this.tokens,
-    required this.onSubmit,
-  });
+  const _InjectTextField({required this.controller, required this.tokens, required this.onSubmit});
 
   final TextEditingController controller;
   final SurfaceTokens tokens;
@@ -1119,12 +1060,7 @@ class _InjectTextField extends StatelessWidget {
       child: EditableText(
         controller: controller,
         focusNode: FocusNode(debugLabel: 'inject-${controller.hashCode}')..requestFocus(),
-        style: TextStyle(
-          fontFamily: 'JetBrains Mono',
-          fontSize: clideFontSmall,
-          color: tokens.globalForeground,
-          height: 1.4,
-        ),
+        style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: clideFontSmall, color: tokens.globalForeground, height: 1.4),
         cursorColor: tokens.globalFocus,
         backgroundCursorColor: tokens.globalTextMuted,
         onSubmitted: onSubmit,
@@ -1139,11 +1075,7 @@ class _InjectTextField extends StatelessWidget {
 
 /// One row in the TASKS section: status marker + title + owner + reassign.
 class _TaskRow extends StatelessWidget {
-  const _TaskRow({
-    required this.task,
-    required this.members,
-    required this.broker,
-  });
+  const _TaskRow({required this.task, required this.members, required this.broker});
 
   final TeamTask task;
   final List<TeamMemberJoined> members;
@@ -1240,18 +1172,9 @@ class _TabStrip extends StatelessWidget {
                   builder: (ctx, hovered, _) => Container(
                     padding: const EdgeInsets.only(bottom: 3),
                     decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: t == current ? tokens.globalFocus : const Color(0x00000000),
-                          width: 2,
-                        ),
-                      ),
+                      border: Border(bottom: BorderSide(color: t == current ? tokens.globalFocus : const Color(0x00000000), width: 2)),
                     ),
-                    child: ClideText(
-                      _label(t),
-                      fontSize: clideFontSmall,
-                      color: t == current || hovered ? tokens.globalForeground : tokens.globalTextMuted,
-                    ),
+                    child: ClideText(_label(t), fontSize: clideFontSmall, color: t == current || hovered ? tokens.globalForeground : tokens.globalTextMuted),
                   ),
                 ),
               ),
@@ -1262,8 +1185,8 @@ class _TabStrip extends StatelessWidget {
   }
 
   String _label(SidebarTab t) => switch (t) {
-        SidebarTab.activity => 'Activity',
-        SidebarTab.team => memberCount == 0 ? 'Team' : 'Team · $memberCount',
-        SidebarTab.config => 'Config',
-      };
+    SidebarTab.activity => 'Activity',
+    SidebarTab.team => memberCount == 0 ? 'Team' : 'Team · $memberCount',
+    SidebarTab.config => 'Config',
+  };
 }

@@ -112,12 +112,7 @@ void main() {
 
       // The Positioned ancestor of the tooltip uses `bottom:` (above-mode),
       // not `top:`, when there isn't enough room below.
-      final positioned = tester.widget<Positioned>(
-        find.ancestor(
-          of: find.text('above'),
-          matching: find.byType(Positioned),
-        ),
-      );
+      final positioned = tester.widget<Positioned>(find.ancestor(of: find.text('above'), matching: find.byType(Positioned)));
       expect(positioned.bottom, isNotNull);
       expect(positioned.top, isNull);
     });

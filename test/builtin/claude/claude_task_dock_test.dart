@@ -24,10 +24,15 @@ void main() {
   ];
 
   Future<void> pump(WidgetTester tester, List<TaskItem> items) async {
-    await tester.pumpWidget(harness(
-      f,
-      Align(alignment: Alignment.topLeft, child: SizedBox(width: 400, child: ClaudeTaskDock(tasks: items))),
-    ));
+    await tester.pumpWidget(
+      harness(
+        f,
+        Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 400, child: ClaudeTaskDock(tasks: items)),
+        ),
+      ),
+    );
     await tester.pump();
   }
 

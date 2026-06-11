@@ -47,14 +47,8 @@ ClaudeSessionOrchestrator _orch(List<_FakeProc> created) {
   );
 }
 
-SpawnSpec _spec(String id, {bool resume = false, String? transcriptPath, String cwd = '/repo'}) => SpawnSpec(
-      id: id,
-      role: id,
-      sessionId: '$id-uuid',
-      cwd: cwd,
-      resume: resume,
-      transcriptPath: transcriptPath,
-    );
+SpawnSpec _spec(String id, {bool resume = false, String? transcriptPath, String cwd = '/repo'}) =>
+    SpawnSpec(id: id, role: id, sessionId: '$id-uuid', cwd: cwd, resume: resume, transcriptPath: transcriptPath);
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -195,11 +189,7 @@ void main() {
         '"message":{"role":"user","content":"hello from the past"}}\n',
       );
 
-      final managed = await orch.spawn(_spec(
-        'primary',
-        resume: true,
-        transcriptPath: file.path,
-      ));
+      final managed = await orch.spawn(_spec('primary', resume: true, transcriptPath: file.path));
 
       expect(managed.conversation.items, hasLength(1));
       await tmp.delete(recursive: true);
@@ -210,13 +200,7 @@ void main() {
       await orch.close('primary');
 
       // /resume picked a past session id; re-spawn with resume:true.
-      final picked = SpawnSpec(
-        id: 'primary',
-        role: 'primary',
-        sessionId: 'picked-past-uuid',
-        cwd: '/repo',
-        resume: true,
-      );
+      final picked = SpawnSpec(id: 'primary', role: 'primary', sessionId: 'picked-past-uuid', cwd: '/repo', resume: true);
       final managed = await orch.spawn(picked);
       expect(managed.sessionId, 'picked-past-uuid');
       expect(created, hasLength(2));
@@ -278,22 +262,8 @@ void main() {
     });
 
     test('kill-all includes team sessions', () async {
-      await orch.spawn(SpawnSpec(
-        id: 'primary',
-        role: 'lead',
-        sessionId: 'primary-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: 'lead',
-      ));
-      await orch.spawn(SpawnSpec(
-        id: 'teammate:tyre',
-        role: 'teammate',
-        sessionId: 'tyre-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: 'tyre',
-      ));
+      await orch.spawn(SpawnSpec(id: 'primary', role: 'lead', sessionId: 'primary-uuid', cwd: '/repo', team: true, memberName: 'lead'));
+      await orch.spawn(SpawnSpec(id: 'teammate:tyre', role: 'teammate', sessionId: 'tyre-uuid', cwd: '/repo', team: true, memberName: 'tyre'));
       expect(orch.sessions, hasLength(2));
       // Broker has 2 agent members + 1 virtual 'user' member (T-180).
       final agentMembers = orch.broker.members.where((m) => m.id != 'user');

@@ -26,13 +26,7 @@ class _TicketsViewState extends State<TicketsView> {
   /// ticket type; all on by default. An empty set never persists — toggling off
   /// the last one snaps all back on, so the list is never mysteriously blank.
   static const _allTypes = {'initiative', 'epic', 'story', 'task', 'bug'};
-  static const _typeOrder = [
-    ('initiative', 'Initiative'),
-    ('epic', 'Epic'),
-    ('story', 'Story'),
-    ('task', 'Task'),
-    ('bug', 'Bug'),
-  ];
+  static const _typeOrder = [('initiative', 'Initiative'), ('epic', 'Epic'), ('story', 'Story'), ('task', 'Task'), ('bug', 'Bug')];
   final Set<String> _enabledTypes = {..._allTypes};
   StreamSubscription<Message>? _focusSub;
   StreamSubscription<SchedulerTick>? _schedulerSub;
@@ -107,9 +101,11 @@ class _TicketsViewState extends State<TicketsView> {
       _focusSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'focus').listen(_onFocus);
       _changedSub = kernel.messages.subscribe(publisher: 'builtin.tickets', channel: 'changed').listen((msg) {
         final id = msg.data['id'] as String?;
-        unawaited(_refresh().then((_) {
-          if (id != null && mounted) _scrollToFocused(id);
-        }));
+        unawaited(
+          _refresh().then((_) {
+            if (id != null && mounted) _scrollToFocused(id);
+          }),
+        );
       });
       _schedulerSub = kernel.events.on<SchedulerTick>().where((e) => e.tier == SchedulerTier.oneMinute).listen((_) => _refresh());
       // The first load can fire before the project's workspace is wired into
@@ -208,7 +204,9 @@ class _TicketsViewState extends State<TicketsView> {
       children: [
         Row(
           children: [
-            Expanded(child: ClideFilterBox(address: 'tickets.panel', hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v))),
+            Expanded(
+              child: ClideFilterBox(address: 'tickets.panel', hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v)),
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ClideTappable(
@@ -277,14 +275,7 @@ class _TicketsViewState extends State<TicketsView> {
 /// type; double-click isolates it (chart-legend solo). One [GestureDetector]
 /// owns both so Flutter disambiguates single vs double.
 class _TypeChip extends StatelessWidget {
-  const _TypeChip({
-    required this.label,
-    required this.color,
-    required this.active,
-    required this.onToggle,
-    required this.onSolo,
-    required this.tokens,
-  });
+  const _TypeChip({required this.label, required this.color, required this.active, required this.onToggle, required this.onSolo, required this.tokens});
 
   final String label;
   final Color color;
@@ -317,7 +308,11 @@ class _TypeChip extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+                  ),
                   const SizedBox(width: 6),
                   ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: active ? tokens.globalForeground : tokens.globalTextMuted),
                 ],
@@ -340,13 +335,13 @@ class _TicketEntry {
   final String? parentId;
 
   factory _TicketEntry.fromJson(Map<String, dynamic> json) => _TicketEntry(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        type: json['type'] as String?,
-        status: json['status'] as String?,
-        priority: json['priority'] as String?,
-        parentId: json['parent_id'] as String?,
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    type: json['type'] as String?,
+    status: json['status'] as String?,
+    priority: json['priority'] as String?,
+    parentId: json['parent_id'] as String?,
+  );
 }
 
 class _TicketCard extends StatelessWidget {
@@ -412,15 +407,17 @@ class _TicketCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   ClideText(entry.title, fontSize: clideFontCaption),
-                  if (statusLabel != null) ...[
-                    const SizedBox(height: 6),
-                    _StatusBadge(label: statusLabel, tokens: tokens, status: entry.status),
-                  ],
+                  if (statusLabel != null) ...[const SizedBox(height: 6), _StatusBadge(label: statusLabel, tokens: tokens, status: entry.status)],
                 ],
               ),
               // Hover affordance (T-327): hand the full ticket to the focused
               // Claude pane via the message bus.
-              if (hovered) Positioned(top: 0, right: 0, child: _PickUpAction(id: entry.id, tokens: tokens)),
+              if (hovered)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: _PickUpAction(id: entry.id, tokens: tokens),
+                ),
             ],
           ),
         ),
@@ -429,11 +426,11 @@ class _TicketCard extends StatelessWidget {
   }
 
   static String? _statusLabel(String? status) => switch (status) {
-        'in_progress' => 'WIP',
-        'review' => 'REVIEW',
-        'cancelled' => 'CANCELLED',
-        _ => null,
-      };
+    'in_progress' => 'WIP',
+    'review' => 'REVIEW',
+    'cancelled' => 'CANCELLED',
+    _ => null,
+  };
 }
 
 /// The hover "pick up" run-icon (T-327): fetches the full ticket and publishes
@@ -482,10 +479,7 @@ class _StatusBadge extends StatelessWidget {
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(0x30),
-        borderRadius: BorderRadius.circular(3),
-      ),
+      decoration: BoxDecoration(color: color.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
       child: ClideText(label, fontSize: clideFontBadge, color: color, fontFamily: clideMonoFamily),
     );
   }

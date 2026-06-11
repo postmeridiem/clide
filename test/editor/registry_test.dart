@@ -138,10 +138,7 @@ void main() {
 
   test('contentFromArgs decodes content_b64 when text is absent', () {
     expect(EditorRegistry.contentFromArgs({'text': 'plain'}), 'plain');
-    expect(
-      EditorRegistry.contentFromArgs({'content_b64': 'aGVsbG8='}),
-      'hello',
-    );
+    expect(EditorRegistry.contentFromArgs({'content_b64': 'aGVsbG8='}), 'hello');
     expect(EditorRegistry.contentFromArgs(const {}), '');
   });
 

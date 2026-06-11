@@ -831,7 +831,6 @@ enum TerminalKey {
   control,
 
   // Missing flutter keys.
-
   backtab,
   returnKey,
 }

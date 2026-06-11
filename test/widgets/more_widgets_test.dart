@@ -72,10 +72,7 @@ After.
     testWidgets('record-id link fires onRecordTap callback', (tester) async {
       var tapped = '';
       const src = 'See [D-1](#anchor) for details.';
-      await tester.pumpWidget(harness(
-        f,
-        ClideMarkdown(src, onRecordTap: (id) => tapped = id),
-      ));
+      await tester.pumpWidget(harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)));
       await tester.pumpAndSettle();
       // The record-link path matches D-1 / Q-N / R-N / T-N and produces
       // a tappable span. We can't easily simulate a TextSpan tap from
@@ -88,9 +85,7 @@ After.
     testWidgets('record-id link tap actually invokes onRecordTap', (tester) async {
       var tapped = '';
       const src = '[D-1](#anchor)';
-      await tester.pumpWidget(
-        harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)),
-      );
+      await tester.pumpWidget(harness(f, ClideMarkdown(src, onRecordTap: (id) => tapped = id)));
       await tester.pumpAndSettle();
       // The link renders as a ClideTappable embedded in a WidgetSpan.
       await tester.tap(find.text('D-1'));
@@ -200,10 +195,7 @@ After.
     });
 
     testWidgets('handles a language whose grammar is unavailable (falls back to plain text)', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        const ClideCodeBlock(source: 'fn main() {}', language: 'rust'),
-      ));
+      await tester.pumpWidget(harness(f, const ClideCodeBlock(source: 'fn main() {}', language: 'rust')));
       await tester.pumpAndSettle();
       // TreeSitterService can't load the grammar in tests → falls back
       // to plain rendering.
@@ -226,16 +218,12 @@ After.
 
     testWidgets('collapsed accordion does not render children; tap toggles', (tester) async {
       var toggled = 0;
-      await tester.pumpWidget(harness(
-        f,
-        ClideAccordion(
-          label: 'Group',
-          count: 2,
-          expanded: false,
-          onToggle: () => toggled++,
-          children: const [Text('child-one'), Text('child-two')],
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideAccordion(label: 'Group', count: 2, expanded: false, onToggle: () => toggled++, children: const [Text('child-one'), Text('child-two')]),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('Group · 2'), findsOneWidget);
       expect(find.text('child-one'), findsNothing);
@@ -244,17 +232,9 @@ After.
     });
 
     testWidgets('expanded accordion shows children; leading widget renders', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        ClideAccordion(
-          label: 'Open',
-          count: 1,
-          expanded: true,
-          onToggle: () {},
-          leading: const Text('LEAD'),
-          children: const [Text('only-child')],
-        ),
-      ));
+      await tester.pumpWidget(
+        harness(f, ClideAccordion(label: 'Open', count: 1, expanded: true, onToggle: () {}, leading: const Text('LEAD'), children: const [Text('only-child')])),
+      );
       await tester.pumpAndSettle();
       expect(find.text('only-child'), findsOneWidget);
       expect(find.text('LEAD'), findsOneWidget);
@@ -269,36 +249,25 @@ After.
     testWidgets('wraps a Scrollable child and exposes ScrollbarTheme', (tester) async {
       final controller = ScrollController();
       addTearDown(controller.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(
-          height: 100,
-          child: ClideScrollbar(
-            controller: controller,
-            child: SingleChildScrollView(
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            height: 100,
+            child: ClideScrollbar(
               controller: controller,
-              child: const SizedBox(height: 1000),
+              child: SingleChildScrollView(controller: controller, child: const SizedBox(height: 1000)),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.byType(ClideScrollbar), findsOneWidget);
     });
 
     test('ScrollbarTheme.updateShouldNotify detects colour changes', () {
-      const a = ScrollbarTheme(
-        slider: Color(0xFF000000),
-        sliderHover: Color(0xFF111111),
-        track: Color(0xFF222222),
-        child: SizedBox.shrink(),
-      );
-      const b = ScrollbarTheme(
-        slider: Color(0xFFFFFFFF),
-        sliderHover: Color(0xFF111111),
-        track: Color(0xFF222222),
-        child: SizedBox.shrink(),
-      );
+      const a = ScrollbarTheme(slider: Color(0xFF000000), sliderHover: Color(0xFF111111), track: Color(0xFF222222), child: SizedBox.shrink());
+      const b = ScrollbarTheme(slider: Color(0xFFFFFFFF), sliderHover: Color(0xFF111111), track: Color(0xFF222222), child: SizedBox.shrink());
       expect(a.updateShouldNotify(b), isTrue);
       expect(a.updateShouldNotify(a), isFalse);
     });
@@ -311,10 +280,16 @@ After.
 
     testWidgets('renders Semantics live region wrapping a TerminalView', (tester) async {
       final terminal = Terminal(maxLines: 100, onOutput: (_) {});
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 400, height: 200, child: ClidePtyView(terminal: terminal, label: 'test-pane')),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 400,
+            height: 200,
+            child: ClidePtyView(terminal: terminal, label: 'test-pane'),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(ClidePtyView), findsOneWidget);
       // The TerminalView inside renders the actual viewport.

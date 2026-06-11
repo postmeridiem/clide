@@ -5,13 +5,7 @@ import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideSpine extends StatelessWidget {
-  const ClideSpine({
-    super.key,
-    required this.label,
-    required this.onExpand,
-    this.side = SpineSide.left,
-    this.badgeCount = 0,
-  });
+  const ClideSpine({super.key, required this.label, required this.onExpand, this.side = SpineSide.left, this.badgeCount = 0});
 
   final String label;
   final VoidCallback onExpand;
@@ -34,10 +28,7 @@ class ClideSpine extends StatelessWidget {
           width: ClideSpine.width,
           decoration: BoxDecoration(
             color: hovered ? tokens.sidebarItemHover : tokens.chromeBackground,
-            border: Border(
-              left: side == SpineSide.right ? borderSide : BorderSide.none,
-              right: side == SpineSide.left ? borderSide : BorderSide.none,
-            ),
+            border: Border(left: side == SpineSide.right ? borderSide : BorderSide.none, right: side == SpineSide.left ? borderSide : BorderSide.none),
           ),
           child: Stack(
             children: [
@@ -46,11 +37,7 @@ class ClideSpine extends StatelessWidget {
                   angle: side == SpineSide.left ? -math.pi / 2 : math.pi / 2,
                   child: Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: tokens.globalTextMuted,
-                      letterSpacing: 0.5,
-                    ),
+                    style: TextStyle(fontSize: 9, color: tokens.globalTextMuted, letterSpacing: 0.5),
                     maxLines: 1,
                     overflow: TextOverflow.clip,
                   ),
@@ -65,10 +52,7 @@ class ClideSpine extends StatelessWidget {
                     child: Container(
                       width: 6,
                       height: 6,
-                      decoration: BoxDecoration(
-                        color: tokens.statusInfo,
-                        shape: BoxShape.circle,
-                      ),
+                      decoration: BoxDecoration(color: tokens.statusInfo, shape: BoxShape.circle),
                     ),
                   ),
                 ),

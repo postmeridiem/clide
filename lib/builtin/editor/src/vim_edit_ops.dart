@@ -79,13 +79,7 @@ class VimResult {
 /// Apply [action] to [v]. [count] repeats motions/line-edits; [visual]
 /// selects between collapse-to-caret (normal) and extend-from-anchor
 /// (visual) for motions, and enables the `visual*` range ops.
-VimResult applyVim(
-  String action,
-  TextEditingValue v, {
-  VimRegister register = VimRegister.empty,
-  bool visual = false,
-  int count = 1,
-}) {
+VimResult applyVim(String action, TextEditingValue v, {VimRegister register = VimRegister.empty, bool visual = false, int count = 1}) {
   final t = v.text;
   final caret = v.selection.extentOffset.clamp(0, t.length);
   final anchor = v.selection.baseOffset.clamp(0, t.length);
@@ -226,7 +220,8 @@ int _up(String t, int off) {
 int _cls(String ch) {
   if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') return 0;
   final c = ch.codeUnitAt(0);
-  final isWord = (c >= 0x30 && c <= 0x39) || // 0-9
+  final isWord =
+      (c >= 0x30 && c <= 0x39) || // 0-9
       (c >= 0x41 && c <= 0x5A) || // A-Z
       (c >= 0x61 && c <= 0x7A) || // a-z
       c == 0x5F; // _
@@ -279,13 +274,19 @@ int _wordEnd(String t, int off) {
 // -- Edit helpers -----------------------------------------------------------
 
 VimResult _collapsed(String text, int caret) => VimResult(
-      TextEditingValue(text: text, selection: TextSelection.collapsed(offset: _clamp(caret, 0, text.length))),
-    );
+  TextEditingValue(
+    text: text,
+    selection: TextSelection.collapsed(offset: _clamp(caret, 0, text.length)),
+  ),
+);
 
 VimResult _insertAt(String t, int caret) => VimResult(
-      TextEditingValue(text: t, selection: TextSelection.collapsed(offset: _clamp(caret, 0, t.length))),
-      enterInsert: true,
-    );
+  TextEditingValue(
+    text: t,
+    selection: TextSelection.collapsed(offset: _clamp(caret, 0, t.length)),
+  ),
+  enterInsert: true,
+);
 
 VimResult _deleteChar(String t, int caret, int count) {
   final le = _lineEnd(t, caret);
@@ -298,7 +299,10 @@ VimResult _deleteChar(String t, int caret, int count) {
   final nle = _lineEnd(nt, caret);
   final ncaret = _clamp(caret, nls, nle > nls ? nle - 1 : nls);
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: ncaret)),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: ncaret),
+    ),
     register: VimRegister(removed),
   );
 }
@@ -324,7 +328,10 @@ VimResult _deleteLines(String t, int caret, int count) {
     caretLineStart = ls;
   }
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: _firstNonBlank(nt, caretLineStart))),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: _firstNonBlank(nt, caretLineStart)),
+    ),
     register: reg,
   );
 }
@@ -337,7 +344,10 @@ VimResult _deleteToEnd(String t, int caret) {
   final ls = _lineStart(nt, caret);
   final nle = _lineEnd(nt, caret);
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: _clamp(caret, ls, nle > ls ? nle - 1 : ls))),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: _clamp(caret, ls, nle > ls ? nle - 1 : ls)),
+    ),
     register: VimRegister(removed),
   );
 }
@@ -349,7 +359,10 @@ VimResult _deleteToOffset(String t, int caret, int target, {bool insert = false}
   final removed = t.substring(lo, hi);
   final nt = t.replaceRange(lo, hi, '');
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: lo)),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: lo),
+    ),
     register: VimRegister(removed),
     enterInsert: insert,
   );
@@ -366,7 +379,10 @@ VimResult _changeLine(String t, int caret, int count) {
   final removed = t.substring(ls, end);
   final nt = t.replaceRange(ls, end, '');
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: ls)),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: ls),
+    ),
     register: VimRegister(removed.endsWith('\n') ? removed : '$removed\n', linewise: true),
     enterInsert: true,
   );
@@ -382,7 +398,10 @@ VimResult _yankLines(String t, int caret, int count) {
   }
   final yanked = t.substring(ls, end);
   return VimResult(
-    TextEditingValue(text: t, selection: TextSelection.collapsed(offset: caret)),
+    TextEditingValue(
+      text: t,
+      selection: TextSelection.collapsed(offset: caret),
+    ),
     register: VimRegister(yanked.endsWith('\n') ? yanked : '$yanked\n', linewise: true),
   );
 }
@@ -394,7 +413,12 @@ VimResult _paste(String t, int caret, VimRegister reg, {required bool before}) {
     if (before) {
       final ls = _lineStart(t, caret);
       final nt = t.replaceRange(ls, ls, body);
-      return VimResult(TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: _firstNonBlank(nt, ls))));
+      return VimResult(
+        TextEditingValue(
+          text: nt,
+          selection: TextSelection.collapsed(offset: _firstNonBlank(nt, ls)),
+        ),
+      );
     }
     final le = _lineEnd(t, caret);
     final insertAt = le < t.length ? le + 1 : t.length;
@@ -402,12 +426,22 @@ VimResult _paste(String t, int caret, VimRegister reg, {required bool before}) {
     final chunk = le < t.length ? body : '\n${body.substring(0, body.length - 1)}';
     final nt = t.replaceRange(insertAt, insertAt, chunk);
     final caretLine = le < t.length ? insertAt : insertAt + 1;
-    return VimResult(TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: _firstNonBlank(nt, caretLine))));
+    return VimResult(
+      TextEditingValue(
+        text: nt,
+        selection: TextSelection.collapsed(offset: _firstNonBlank(nt, caretLine)),
+      ),
+    );
   }
   // Charwise: p pastes after the caret, P at the caret.
   final at = before ? caret : _clamp(caret + 1, 0, t.length);
   final nt = t.replaceRange(at, at, reg.text);
-  return VimResult(TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: at + reg.text.length - 1)));
+  return VimResult(
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: at + reg.text.length - 1),
+    ),
+  );
 }
 
 VimResult _openLine(String t, int caret, {required bool below}) {
@@ -415,14 +449,20 @@ VimResult _openLine(String t, int caret, {required bool below}) {
     final le = _lineEnd(t, caret);
     final nt = t.replaceRange(le, le, '\n');
     return VimResult(
-      TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: le + 1)),
+      TextEditingValue(
+        text: nt,
+        selection: TextSelection.collapsed(offset: le + 1),
+      ),
       enterInsert: true,
     );
   }
   final ls = _lineStart(t, caret);
   final nt = t.replaceRange(ls, ls, '\n');
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: ls)),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: ls),
+    ),
     enterInsert: true,
   );
 }
@@ -435,7 +475,10 @@ VimResult _deleteRange(String t, int anchor, int caret, {required bool insert}) 
   final removed = t.substring(lo, hi);
   final nt = t.replaceRange(lo, hi, '');
   return VimResult(
-    TextEditingValue(text: nt, selection: TextSelection.collapsed(offset: lo)),
+    TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: lo),
+    ),
     register: VimRegister(removed),
     enterInsert: insert,
   );
@@ -445,7 +488,10 @@ VimResult _yankRange(String t, int anchor, int caret) {
   final lo = anchor < caret ? anchor : caret;
   final hi = _clamp((anchor < caret ? caret : anchor) + 1, 0, t.length);
   return VimResult(
-    TextEditingValue(text: t, selection: TextSelection.collapsed(offset: lo)),
+    TextEditingValue(
+      text: t,
+      selection: TextSelection.collapsed(offset: lo),
+    ),
     register: VimRegister(t.substring(lo, hi)),
   );
 }

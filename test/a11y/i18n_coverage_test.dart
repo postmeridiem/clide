@@ -16,29 +16,10 @@ void main() {
   /// (namespace, key) pairs referenced by Tier-0 built-ins. Extend when
   /// new keys land.
   const referenced = <String, List<String>>{
-    'builtin.welcome': [
-      'title',
-      'subtitle',
-      'open-project',
-      'open-project.hint',
-      'tab.title',
-    ],
-    'builtin.ipc-status': [
-      'connected',
-      'connected.hint',
-      'disconnected',
-      'disconnected.hint',
-    ],
-    'builtin.theme-picker': [
-      'modal.title',
-      'modal.cancel',
-      'modal.cancel.hint',
-      'row.select.hint',
-    ],
-    'builtin.default-layout': [
-      'command.reset',
-      'preset.classic',
-    ],
+    'builtin.welcome': ['title', 'subtitle', 'open-project', 'open-project.hint', 'tab.title'],
+    'builtin.ipc-status': ['connected', 'connected.hint', 'disconnected', 'disconnected.hint'],
+    'builtin.theme-picker': ['modal.title', 'modal.cancel', 'modal.cancel.hint', 'row.select.hint'],
+    'builtin.default-layout': ['command.reset', 'preset.classic'],
   };
 
   group('i18n coverage (Tier 0)', () {
@@ -47,17 +28,9 @@ void main() {
       test('$ns catalog contains every referenced key', () async {
         final loader = AssetCatalogLoader(bundle: rootBundle);
         final catalog = await loader.load(ns, const Locale('en', 'US'));
-        expect(
-          catalog,
-          isNotEmpty,
-          reason: 'catalog for "$ns" failed to load (asset path wrong?)',
-        );
+        expect(catalog, isNotEmpty, reason: 'catalog for "$ns" failed to load (asset path wrong?)');
         for (final key in entry.value) {
-          expect(
-            catalog.containsKey(key),
-            isTrue,
-            reason: 'namespace "$ns" catalog is missing key "$key"',
-          );
+          expect(catalog.containsKey(key), isTrue, reason: 'namespace "$ns" catalog is missing key "$key"');
         }
       });
     }

@@ -102,29 +102,17 @@ void main() {
     tearDown(() => kb.clearState());
 
     test('returns null for non-KeyDown / non-Repeat events', () {
-      final up = KeyUpEvent(
-        physicalKey: PhysicalKeyboardKey.keyA,
-        logicalKey: LogicalKeyboardKey.keyA,
-        timeStamp: Duration.zero,
-      );
+      final up = KeyUpEvent(physicalKey: PhysicalKeyboardKey.keyA, logicalKey: LogicalKeyboardKey.keyA, timeStamp: Duration.zero);
       expect(KeyChord.fromKeyEvent(up, kb), isNull);
     });
 
     test('returns null for a bare modifier press', () {
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.controlLeft,
-        logicalKey: LogicalKeyboardKey.controlLeft,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.controlLeft, logicalKey: LogicalKeyboardKey.controlLeft, timeStamp: Duration.zero);
       expect(KeyChord.fromKeyEvent(down, kb), isNull);
     });
 
     test('maps a plain key down to a modifier-free chord', () {
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.keyA,
-        logicalKey: LogicalKeyboardKey.keyA,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.keyA, logicalKey: LogicalKeyboardKey.keyA, timeStamp: Duration.zero);
       final chord = KeyChord.fromKeyEvent(down, kb)!;
       expect(chord.modifiers, isEmpty);
       expect(chord.key, LogicalKeyboardKey.keyA);
@@ -140,11 +128,7 @@ void main() {
       ]) {
         kb.handleKeyEvent(KeyDownEvent(physicalKey: m.$1, logicalKey: m.$2, timeStamp: Duration.zero));
       }
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.keyP,
-        logicalKey: LogicalKeyboardKey.keyP,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.keyP, logicalKey: LogicalKeyboardKey.keyP, timeStamp: Duration.zero);
       final chord = KeyChord.fromKeyEvent(down, kb)!;
       expect(chord.key, LogicalKeyboardKey.keyP);
       expect(chord.modifiers.toSet(), {KeyModifier.ctrl, KeyModifier.alt, KeyModifier.shift, KeyModifier.meta});

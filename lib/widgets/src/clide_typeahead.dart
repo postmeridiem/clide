@@ -112,9 +112,7 @@ class _ClideTypeaheadState extends State<ClideTypeahead> {
           controller: widget.navController,
           minWidth: 0,
           maxWidth: widget.maxWidth,
-          entries: [
-            for (final s in items) ClideMenuItem(label: widget.formatLabel?.call(s) ?? s, onSelect: () => widget.onSelect(s)),
-          ],
+          entries: [for (final s in items) ClideMenuItem(label: widget.formatLabel?.call(s) ?? s, onSelect: () => widget.onSelect(s))],
         ),
       ),
     );

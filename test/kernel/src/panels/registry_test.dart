@@ -3,18 +3,8 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-TabContribution _tab({
-  required String id,
-  required SlotId slot,
-  int priority = 0,
-}) =>
-    TabContribution(
-      id: id,
-      slot: slot,
-      title: id,
-      priority: priority,
-      build: (_) => const SizedBox.shrink(),
-    );
+TabContribution _tab({required String id, required SlotId slot, int priority = 0}) =>
+    TabContribution(id: id, slot: slot, title: id, priority: priority, build: (_) => const SizedBox.shrink());
 
 void main() {
   group('PanelRegistry', () {
@@ -23,10 +13,7 @@ void main() {
     setUp(() => r = PanelRegistry());
 
     test('registerSlot creates an empty mount list', () {
-      r.registerSlot(const SlotDefinition(
-        id: Slots.sidebar,
-        position: SlotPosition.left,
-      ));
+      r.registerSlot(const SlotDefinition(id: Slots.sidebar, position: SlotPosition.left));
       expect(r.definitionFor(Slots.sidebar)!.position, SlotPosition.left);
       expect(r.contributionsFor(Slots.sidebar), isEmpty);
     });
@@ -65,11 +52,7 @@ void main() {
     });
 
     test('contributing a non-slot contribution is a no-op for slots', () {
-      r.contribute(CommandContribution(
-        id: 'c',
-        command: 'c',
-        run: (_) async => throw UnimplementedError(),
-      ));
+      r.contribute(CommandContribution(id: 'c', command: 'c', run: (_) async => throw UnimplementedError()));
       expect(r.tabsFor(Slots.sidebar), isEmpty);
     });
 

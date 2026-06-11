@@ -238,15 +238,8 @@ void main() {
     test('writes printable chars one-by-one to writeChar', () {
       final f = _newParser();
       f.parser.write('Hi!');
-      expect(
-        f.h.calls.map((c) => c.name).toList(),
-        ['writeChar', 'writeChar', 'writeChar'],
-      );
-      expect(f.h.calls.map((c) => c.args.first).toList(), [
-        'H'.codeUnitAt(0),
-        'i'.codeUnitAt(0),
-        '!'.codeUnitAt(0),
-      ]);
+      expect(f.h.calls.map((c) => c.name).toList(), ['writeChar', 'writeChar', 'writeChar']);
+      expect(f.h.calls.map((c) => c.args.first).toList(), ['H'.codeUnitAt(0), 'i'.codeUnitAt(0), '!'.codeUnitAt(0)]);
     });
 
     test('chars beyond the SBC table go straight to writeChar', () {
@@ -289,21 +282,13 @@ void main() {
     test('ESC 7 / ESC 8 → save / restore cursor', () {
       final f = _newParser();
       f.parser.write('\x1b7\x1b8');
-      expect(f.h.calls.map((c) => c.name).toList(), [
-        'saveCursor',
-        'restoreCursor',
-      ]);
+      expect(f.h.calls.map((c) => c.name).toList(), ['saveCursor', 'restoreCursor']);
     });
 
     test('ESC D / E / H / M', () {
       final f = _newParser();
       f.parser.write('\x1bD\x1bE\x1bH\x1bM');
-      expect(f.h.calls.map((c) => c.name).toList(), [
-        'index',
-        'nextLine',
-        'setTapStop',
-        'reverseIndex',
-      ]);
+      expect(f.h.calls.map((c) => c.name).toList(), ['index', 'nextLine', 'setTapStop', 'reverseIndex']);
     });
 
     test('ESC ( / ESC ) designate G0 / G1 charset', () {
@@ -320,10 +305,7 @@ void main() {
       final f = _newParser();
       // ESC = enables app keypad mode, ESC > disables it.
       f.parser.write('\x1b=\x1b>');
-      expect(
-        f.h.named('setAppKeypadMode').map((c) => c.args.first).toList(),
-        [true, false],
-      );
+      expect(f.h.named('setAppKeypadMode').map((c) => c.args.first).toList(), [true, false]);
     });
 
     test('unknown ESC byte → unkownEscape', () {
@@ -354,12 +336,7 @@ void main() {
     test('A / B / C / D — default amount = 1, missing param uses default', () {
       final f = _newParser();
       f.parser.write('\x1b[A\x1b[B\x1b[C\x1b[D');
-      expect(f.h.calls.map((c) => '${c.name}/${c.args}').toList(), [
-        'moveCursorY/[-1]',
-        'moveCursorY/[1]',
-        'moveCursorX/[1]',
-        'moveCursorX/[-1]',
-      ]);
+      expect(f.h.calls.map((c) => '${c.name}/${c.args}').toList(), ['moveCursorY/[-1]', 'moveCursorY/[1]', 'moveCursorX/[1]', 'moveCursorX/[-1]']);
     });
 
     test('A / B / C / D — explicit amount + 0-as-1 fallback', () {
@@ -412,12 +389,7 @@ void main() {
     test('J 0/1/2/3 → erase display below/above/all/scrollback', () {
       final f = _newParser();
       f.parser.write('\x1b[J\x1b[1J\x1b[2J\x1b[3J');
-      expect(f.h.calls.map((c) => c.name).toList(), [
-        'eraseDisplayBelow',
-        'eraseDisplayAbove',
-        'eraseDisplay',
-        'eraseScrollbackOnly',
-      ]);
+      expect(f.h.calls.map((c) => c.name).toList(), ['eraseDisplayBelow', 'eraseDisplayAbove', 'eraseDisplay', 'eraseScrollbackOnly']);
     });
 
     test('K 0/1/2 → erase line right / left / all', () {
@@ -483,11 +455,7 @@ void main() {
     test('c / >c / =c — primary, secondary, tertiary device attributes', () {
       final f = _newParser();
       f.parser.write('\x1b[c\x1b[>c\x1b[=c');
-      expect(f.h.calls.map((c) => c.name).toList(), [
-        'sendPrimaryDeviceAttributes',
-        'sendSecondaryDeviceAttributes',
-        'sendTertiaryDeviceAttributes',
-      ]);
+      expect(f.h.calls.map((c) => c.name).toList(), ['sendPrimaryDeviceAttributes', 'sendSecondaryDeviceAttributes', 'sendTertiaryDeviceAttributes']);
     });
 
     test('n 5 → operating status; n 6 → cursor position', () {
@@ -595,12 +563,7 @@ void main() {
       final f = _newParser();
       f.parser.write('\x1b[?9h\x1b[?1000h\x1b[?1002h\x1b[?1003h');
       final modes = f.h.named('setMouseMode').map((c) => c.args.first).toList();
-      expect(modes, [
-        MouseMode.clickOnly,
-        MouseMode.upDownScroll,
-        MouseMode.upDownScrollDrag,
-        MouseMode.upDownScrollMove,
-      ]);
+      expect(modes, [MouseMode.clickOnly, MouseMode.upDownScroll, MouseMode.upDownScrollDrag, MouseMode.upDownScrollMove]);
     });
 
     test('CSI ?9 / ?1000 disabled → setMouseMode(none)', () {
@@ -614,12 +577,7 @@ void main() {
       final f = _newParser();
       f.parser.write('\x1b[?1005h\x1b[?1006h\x1b[?1015h\x1b[?1006l');
       final modes = f.h.named('setMouseReportMode').map((c) => c.args.first).toList();
-      expect(modes, [
-        MouseReportMode.utf,
-        MouseReportMode.sgr,
-        MouseReportMode.urxvt,
-        MouseReportMode.normal,
-      ]);
+      expect(modes, [MouseReportMode.utf, MouseReportMode.sgr, MouseReportMode.urxvt, MouseReportMode.normal]);
     });
 
     test('CSI ?3 / ?5 / ?6 / ?12 / ?66 / ?1004 / ?1007 — column/reverse/origin/blink/keypad/focus/altScroll', () {

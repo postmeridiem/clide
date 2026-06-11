@@ -10,12 +10,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideMarquee extends StatefulWidget {
-  const ClideMarquee({
-    super.key,
-    required this.child,
-    this.pxPerSecond = 28,
-    this.gap = 48,
-  });
+  const ClideMarquee({super.key, required this.child, this.pxPerSecond = 28, this.gap = 48});
 
   final Widget child;
 

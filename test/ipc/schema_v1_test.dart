@@ -16,12 +16,7 @@ void main() {
     });
 
     test('error kinds are unique strings', () {
-      final kinds = <String>{
-        IpcErrorKind.userError,
-        IpcErrorKind.toolError,
-        IpcErrorKind.notFound,
-        IpcErrorKind.conflict,
-      };
+      final kinds = <String>{IpcErrorKind.userError, IpcErrorKind.toolError, IpcErrorKind.notFound, IpcErrorKind.conflict};
       expect(kinds.length, 4);
     });
   });

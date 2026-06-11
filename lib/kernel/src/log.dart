@@ -4,14 +4,7 @@ import 'dart:io';
 enum LogLevel { trace, debug, info, warn, error }
 
 class LogRecord {
-  LogRecord({
-    required this.level,
-    required this.source,
-    required this.message,
-    required this.timestamp,
-    this.error,
-    this.stackTrace,
-  });
+  LogRecord({required this.level, required this.source, required this.message, required this.timestamp, this.error, this.stackTrace});
 
   final LogLevel level;
   final String source;
@@ -51,14 +44,7 @@ class Logger {
 
   void _emit(LogLevel level, String source, String message, {Object? error, StackTrace? stackTrace}) {
     if (level.index < minLevel.index) return;
-    final rec = LogRecord(
-      level: level,
-      source: source,
-      message: message,
-      timestamp: DateTime.now().toUtc(),
-      error: error,
-      stackTrace: stackTrace,
-    );
+    final rec = LogRecord(level: level, source: source, message: message, timestamp: DateTime.now().toUtc(), error: error, stackTrace: stackTrace);
     for (final sink in _sinks) {
       try {
         sink(rec);

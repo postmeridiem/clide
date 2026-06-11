@@ -30,11 +30,7 @@ void main() {
     }
 
     test('locale getters reflect constructor arguments', () {
-      final i = build(
-        catalogs: const {},
-        initial: const Locale('nl', 'NL'),
-        defaultLocale: const Locale('en', 'US'),
-      );
+      final i = build(catalogs: const {}, initial: const Locale('nl', 'NL'), defaultLocale: const Locale('en', 'US'));
       expect(i.currentLocale, const Locale('nl', 'NL'));
       expect(i.defaultLocale, const Locale('en', 'US'));
       expect(i.availableLocales, [const Locale('en', 'US'), const Locale('nl', 'NL')]);
@@ -43,10 +39,7 @@ void main() {
     test('missing key with placeholder returns placeholder', () async {
       final i = build(catalogs: const {});
       await i.ensureNamespaceLoaded('builtin.x');
-      expect(
-        i.string('missing', namespace: 'builtin.x', placeholder: 'fallback'),
-        'fallback',
-      );
+      expect(i.string('missing', namespace: 'builtin.x', placeholder: 'fallback'), 'fallback');
     });
 
     test('missing key with null placeholder returns the key', () async {
@@ -57,68 +50,66 @@ void main() {
 
     test('unknown namespace still returns placeholder (no crash)', () {
       final i = build(catalogs: const {});
-      expect(
-        i.string('k', namespace: 'not.registered', placeholder: 'fb'),
-        'fb',
-      );
+      expect(i.string('k', namespace: 'not.registered', placeholder: 'fb'), 'fb');
     });
 
     test('exact locale hit beats fallback', () async {
-      final i = build(catalogs: {
-        'builtin.x': {
-          const Locale('en', 'US'): {
-            'greet': {'translation': 'Hello'},
-          },
-          const Locale('en'): {
-            'greet': {'translation': 'Hi'},
+      final i = build(
+        catalogs: {
+          'builtin.x': {
+            const Locale('en', 'US'): {
+              'greet': {'translation': 'Hello'},
+            },
+            const Locale('en'): {
+              'greet': {'translation': 'Hi'},
+            },
           },
         },
-      });
-      await i.ensureNamespaceLoaded('builtin.x');
-      expect(
-        i.string('greet', namespace: 'builtin.x', placeholder: 'fb'),
-        'Hello',
       );
+      await i.ensureNamespaceLoaded('builtin.x');
+      expect(i.string('greet', namespace: 'builtin.x', placeholder: 'fb'), 'Hello');
     });
 
     test('language-only locale hit falls through from exact', () async {
-      final i = build(catalogs: {
-        'builtin.x': {
-          const Locale('nl'): {
-            'greet': {'translation': 'Hoi'},
+      final i = build(
+        catalogs: {
+          'builtin.x': {
+            const Locale('nl'): {
+              'greet': {'translation': 'Hoi'},
+            },
           },
         },
-      }, initial: const Locale('nl', 'NL'));
-      await i.ensureNamespaceLoaded('builtin.x');
-      expect(
-        i.string('greet', namespace: 'builtin.x', placeholder: 'fb'),
-        'Hoi',
+        initial: const Locale('nl', 'NL'),
       );
+      await i.ensureNamespaceLoaded('builtin.x');
+      expect(i.string('greet', namespace: 'builtin.x', placeholder: 'fb'), 'Hoi');
     });
 
     test('falls through to default-locale when current locale is empty', () async {
-      final i = build(catalogs: {
-        'builtin.x': {
-          const Locale('en', 'US'): {
-            'greet': {'translation': 'Hello'},
+      final i = build(
+        catalogs: {
+          'builtin.x': {
+            const Locale('en', 'US'): {
+              'greet': {'translation': 'Hello'},
+            },
           },
         },
-      }, initial: const Locale('nl', 'NL'));
-      await i.ensureNamespaceLoaded('builtin.x');
-      expect(
-        i.string('greet', namespace: 'builtin.x', placeholder: 'fb'),
-        'Hello',
+        initial: const Locale('nl', 'NL'),
       );
+      await i.ensureNamespaceLoaded('builtin.x');
+      expect(i.string('greet', namespace: 'builtin.x', placeholder: 'fb'), 'Hello');
     });
 
     test('interpolation replaces all replacers; missing ones silent', () async {
-      final i = build(catalogs: {
-        'builtin.x': {
-          const Locale('en', 'US'): {
-            'welcome': {'translation': 'Hi {name} at {path}'},
+      final i = build(
+        catalogs: {
+          'builtin.x': {
+            const Locale('en', 'US'): {
+              'welcome': {'translation': 'Hi {name} at {path}'},
+            },
           },
         },
-      });
+      );
       await i.ensureNamespaceLoaded('builtin.x');
       expect(
         i.interpolated(
@@ -135,18 +126,20 @@ void main() {
     });
 
     test('namespace isolation — same key, different values', () async {
-      final i = build(catalogs: {
-        'a': {
-          const Locale('en', 'US'): {
-            'k': {'translation': 'A'},
+      final i = build(
+        catalogs: {
+          'a': {
+            const Locale('en', 'US'): {
+              'k': {'translation': 'A'},
+            },
+          },
+          'b': {
+            const Locale('en', 'US'): {
+              'k': {'translation': 'B'},
+            },
           },
         },
-        'b': {
-          const Locale('en', 'US'): {
-            'k': {'translation': 'B'},
-          },
-        },
-      });
+      );
       await i.ensureNamespaceLoaded('a');
       await i.ensureNamespaceLoaded('b');
       expect(i.string('k', namespace: 'a', placeholder: '-'), 'A');
@@ -154,16 +147,18 @@ void main() {
     });
 
     test('setLocale refreshes cached namespaces and notifies listeners', () async {
-      final i = build(catalogs: {
-        'x': {
-          const Locale('en', 'US'): {
-            'k': {'translation': 'Hello'},
-          },
-          const Locale('nl'): {
-            'k': {'translation': 'Hallo'},
+      final i = build(
+        catalogs: {
+          'x': {
+            const Locale('en', 'US'): {
+              'k': {'translation': 'Hello'},
+            },
+            const Locale('nl'): {
+              'k': {'translation': 'Hallo'},
+            },
           },
         },
-      });
+      );
       await i.ensureNamespaceLoaded('x');
       var notified = 0;
       i.addListener(() => notified++);
@@ -177,10 +172,7 @@ void main() {
       i.registerCatalog('ext.linear', const Locale('en', 'US'), const {
         'issue.title': {'translation': 'Issues'},
       });
-      expect(
-        i.string('issue.title', namespace: 'ext.linear', placeholder: '-'),
-        'Issues',
-      );
+      expect(i.string('issue.title', namespace: 'ext.linear', placeholder: '-'), 'Issues');
     });
 
     test('unregisterCatalog forgets a namespace', () async {
@@ -196,11 +188,13 @@ void main() {
     test('plain-string shape (no nested translation) is accepted', () async {
       // Forward-compat: if a catalog later switches to `"k": "v"`
       // instead of `"k": {"translation": "v"}`, lookup still works.
-      final i = build(catalogs: {
-        'x': {
-          const Locale('en', 'US'): {'k': 'direct'},
+      final i = build(
+        catalogs: {
+          'x': {
+            const Locale('en', 'US'): {'k': 'direct'},
+          },
         },
-      });
+      );
       await i.ensureNamespaceLoaded('x');
       expect(i.string('k', namespace: 'x', placeholder: '-'), 'direct');
     });
@@ -208,23 +202,12 @@ void main() {
 
   group('FallbackChain.resolve', () {
     test('ordering: exact, lang, default, default-lang', () {
-      final chain = const FallbackChain(
-        current: Locale('nl', 'NL'),
-        defaultLocale: Locale('en', 'US'),
-      ).resolve();
-      expect(chain.map((l) => l.toString()).toList(), [
-        'nl_NL',
-        'nl',
-        'en_US',
-        'en',
-      ]);
+      final chain = const FallbackChain(current: Locale('nl', 'NL'), defaultLocale: Locale('en', 'US')).resolve();
+      expect(chain.map((l) => l.toString()).toList(), ['nl_NL', 'nl', 'en_US', 'en']);
     });
 
     test('deduplicates when current == default', () {
-      final chain = const FallbackChain(
-        current: Locale('en', 'US'),
-        defaultLocale: Locale('en', 'US'),
-      ).resolve();
+      final chain = const FallbackChain(current: Locale('en', 'US'), defaultLocale: Locale('en', 'US')).resolve();
       expect(chain, ['en_US', 'en'].map((_) => isA<Locale>()));
       expect(chain.length, 2);
     });

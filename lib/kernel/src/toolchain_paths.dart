@@ -12,13 +12,7 @@ import 'dart:io';
 
 /// Serializable result of tool resolution (crosses isolate boundary).
 class ResolvedPaths {
-  const ResolvedPaths({
-    this.git,
-    this.pql,
-    this.tmux,
-    this.shell,
-    this.gitEnv,
-  });
+  const ResolvedPaths({this.git, this.pql, this.tmux, this.shell, this.gitEnv});
 
   final String? git;
   final String? pql;
@@ -66,11 +60,7 @@ class _StaticToolchain implements ToolchainView {
   @override
   bool get allOk => missing.isEmpty;
   @override
-  List<String> get missing => [
-        if (_paths.git == null) 'git',
-        if (_paths.pql == null) 'pql',
-        if (_paths.tmux == null) 'tmux',
-      ];
+  List<String> get missing => [if (_paths.git == null) 'git', if (_paths.pql == null) 'pql', if (_paths.tmux == null) 'tmux'];
 }
 
 /// Top-level function for compute/isolate use. Returns a plain-data
@@ -88,10 +78,7 @@ ResolvedPaths resolveToolchainPaths() {
   if (dugiteGit != null) {
     git = dugiteGit;
     final dugiteRoot = File(dugiteGit).parent.parent.path;
-    gitEnv = {
-      'GIT_EXEC_PATH': '$dugiteRoot/libexec/git-core',
-      'GIT_TEMPLATE_DIR': '$dugiteRoot/share/git-core/templates',
-    };
+    gitEnv = {'GIT_EXEC_PATH': '$dugiteRoot/libexec/git-core', 'GIT_TEMPLATE_DIR': '$dugiteRoot/share/git-core/templates'};
   } else {
     git = _findOnPath('git');
   }
@@ -145,12 +132,8 @@ String? _firstExisting(List<String> candidates) {
 }
 
 /// Build expanded PATH inline — must be self-contained for isolate use.
-String _expandedPath() => expandToolPath(
-      Platform.environment['PATH'] ?? '',
-      isMac: Platform.isMacOS,
-      isLinux: Platform.isLinux,
-      home: Platform.environment['HOME'],
-    );
+String _expandedPath() =>
+    expandToolPath(Platform.environment['PATH'] ?? '', isMac: Platform.isMacOS, isLinux: Platform.isLinux, home: Platform.environment['HOME']);
 
 /// Pure PATH-expansion logic, extracted so it's testable without touching the
 /// process environment.
@@ -164,12 +147,7 @@ String _expandedPath() => expandToolPath(
 String expandToolPath(String base, {required bool isMac, required bool isLinux, String? home}) {
   if (!isMac && !isLinux) return base;
   final h = home ?? '';
-  final extras = <String>[
-    if (h.isNotEmpty) '$h/.local/bin',
-    if (isMac) '/opt/homebrew/bin',
-    if (isMac) '/opt/homebrew/sbin',
-    '/usr/local/bin',
-  ];
+  final extras = <String>[if (h.isNotEmpty) '$h/.local/bin', if (isMac) '/opt/homebrew/bin', if (isMac) '/opt/homebrew/sbin', '/usr/local/bin'];
   final existing = base.split(':').toSet();
   final missing = extras.where((p) => !existing.contains(p));
   if (missing.isEmpty) return base;

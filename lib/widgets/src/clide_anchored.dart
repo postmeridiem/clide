@@ -186,52 +186,52 @@ class _ClideAnchoredOverlayState extends State<ClideAnchoredOverlay> {
           a == ClideAnchorAlign.start
               ? Alignment.bottomLeft
               : a == ClideAnchorAlign.end
-                  ? Alignment.bottomRight
-                  : Alignment.bottomCenter,
+              ? Alignment.bottomRight
+              : Alignment.bottomCenter,
           a == ClideAnchorAlign.start
               ? Alignment.topLeft
               : a == ClideAnchorAlign.end
-                  ? Alignment.topRight
-                  : Alignment.topCenter,
+              ? Alignment.topRight
+              : Alignment.topCenter,
         );
       case ClideAnchorSide.above:
         return (
           a == ClideAnchorAlign.start
               ? Alignment.topLeft
               : a == ClideAnchorAlign.end
-                  ? Alignment.topRight
-                  : Alignment.topCenter,
+              ? Alignment.topRight
+              : Alignment.topCenter,
           a == ClideAnchorAlign.start
               ? Alignment.bottomLeft
               : a == ClideAnchorAlign.end
-                  ? Alignment.bottomRight
-                  : Alignment.bottomCenter,
+              ? Alignment.bottomRight
+              : Alignment.bottomCenter,
         );
       case ClideAnchorSide.right:
         return (
           a == ClideAnchorAlign.start
               ? Alignment.topRight
               : a == ClideAnchorAlign.end
-                  ? Alignment.bottomRight
-                  : Alignment.centerRight,
+              ? Alignment.bottomRight
+              : Alignment.centerRight,
           a == ClideAnchorAlign.start
               ? Alignment.topLeft
               : a == ClideAnchorAlign.end
-                  ? Alignment.bottomLeft
-                  : Alignment.centerLeft,
+              ? Alignment.bottomLeft
+              : Alignment.centerLeft,
         );
       case ClideAnchorSide.left:
         return (
           a == ClideAnchorAlign.start
               ? Alignment.topLeft
               : a == ClideAnchorAlign.end
-                  ? Alignment.bottomLeft
-                  : Alignment.centerLeft,
+              ? Alignment.bottomLeft
+              : Alignment.centerLeft,
           a == ClideAnchorAlign.start
               ? Alignment.topRight
               : a == ClideAnchorAlign.end
-                  ? Alignment.bottomRight
-                  : Alignment.centerRight,
+              ? Alignment.bottomRight
+              : Alignment.centerRight,
         );
     }
   }

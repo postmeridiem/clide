@@ -53,11 +53,13 @@ void main() {
 
     test('publish + subscribe round-trip through the message bus', () async {
       Message? received;
-      f.services.extensions.register(_SugarExt((ctx) async {
-        final first = ctx.subscribe(channel: 'greet').first;
-        ctx.publish('greet', {'hello': 'world'});
-        received = await first;
-      }));
+      f.services.extensions.register(
+        _SugarExt((ctx) async {
+          final first = ctx.subscribe(channel: 'greet').first;
+          ctx.publish('greet', {'hello': 'world'});
+          received = await first;
+        }),
+      );
       await f.services.extensions.activate('sugar.ext');
       expect(received, isNotNull);
       expect(received!.publisher, 'sugar.ext');
@@ -68,10 +70,12 @@ void main() {
     test('t + tr resolve against the extension namespace', () async {
       String? t;
       String? tr;
-      f.services.extensions.register(_SugarExt((ctx) async {
-        t = ctx.t('missing.key');
-        tr = ctx.tr('missing.key', replacers: const []);
-      }));
+      f.services.extensions.register(
+        _SugarExt((ctx) async {
+          t = ctx.t('missing.key');
+          tr = ctx.tr('missing.key', replacers: const []);
+        }),
+      );
       await f.services.extensions.activate('sugar.ext');
       // No catalog loaded for this namespace → i18n falls back, but the
       // sugar getters still execute and return a non-null string.

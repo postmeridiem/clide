@@ -161,23 +161,11 @@ index abc..def 100644
     setUp(() async {
       sandbox = await Directory.systemTemp.createTemp('clide-git-diff-test-');
       await Process.run('git', ['init'], workingDirectory: sandbox.path);
-      await Process.run(
-        'git',
-        ['config', 'user.email', 'test@test.com'],
-        workingDirectory: sandbox.path,
-      );
-      await Process.run(
-        'git',
-        ['config', 'user.name', 'Test'],
-        workingDirectory: sandbox.path,
-      );
+      await Process.run('git', ['config', 'user.email', 'test@test.com'], workingDirectory: sandbox.path);
+      await Process.run('git', ['config', 'user.name', 'Test'], workingDirectory: sandbox.path);
       await File('${sandbox.path}/file.txt').writeAsString('line1\nline2\n');
       await Process.run('git', ['add', '.'], workingDirectory: sandbox.path);
-      await Process.run(
-        'git',
-        ['commit', '-m', 'init'],
-        workingDirectory: sandbox.path,
-      );
+      await Process.run('git', ['commit', '-m', 'init'], workingDirectory: sandbox.path);
     });
 
     tearDown(() async {
@@ -194,11 +182,7 @@ index abc..def 100644
 
     test('returns staged diff with staged: true', () async {
       await File('${sandbox.path}/file.txt').writeAsString('line1\nmodified\n');
-      await Process.run(
-        'git',
-        ['add', 'file.txt'],
-        workingDirectory: sandbox.path,
-      );
+      await Process.run('git', ['add', 'file.txt'], workingDirectory: sandbox.path);
       final diffs = await gitDiff(sandbox, staged: true);
       expect(diffs, hasLength(1));
     });

@@ -23,9 +23,9 @@ class DeepLinkAction {
 
   /// A human-readable description for the confirmation prompt.
   String get describe => switch (name) {
-        'open' => 'Open  $path${line != null ? '  (line $line)' : ''}',
-        _ => name,
-      };
+    'open' => 'Open  $path${line != null ? '  (line $line)' : ''}',
+    _ => name,
+  };
 }
 
 /// Parse [url] into a [DeepLinkAction], or null when it is malformed, not a

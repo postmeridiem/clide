@@ -24,13 +24,15 @@ void main() {
       final t = Toolchain();
       var calls = 0;
       t.addListener(() => calls++);
-      t.applyResolved(const ResolvedPaths(
-        git: '/usr/bin/git',
-        pql: '/usr/bin/pql',
-        tmux: '/usr/bin/tmux',
-        shell: '/bin/bash',
-        gitEnv: {'GIT_EXEC_PATH': '/usr/lib/git-core'},
-      ));
+      t.applyResolved(
+        const ResolvedPaths(
+          git: '/usr/bin/git',
+          pql: '/usr/bin/pql',
+          tmux: '/usr/bin/tmux',
+          shell: '/bin/bash',
+          gitEnv: {'GIT_EXEC_PATH': '/usr/lib/git-core'},
+        ),
+      );
       expect(t.resolved, isTrue);
       expect(t.allOk, isTrue);
       expect(t.missing, isEmpty);

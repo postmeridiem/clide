@@ -31,22 +31,19 @@ void main() {
   test('JetBrainsMono Bold advance width matches Regular (cell drift = 0)', () {
     final regularWidth = _measure(FontWeight.normal);
     final boldWidth = _measure(FontWeight.bold);
-    expect(boldWidth, regularWidth,
-        reason: 'Bold advance width must equal Regular at $_fontSize px '
-            'or the terminal cell grid drifts when bold flips on.');
+    expect(
+      boldWidth,
+      regularWidth,
+      reason:
+          'Bold advance width must equal Regular at $_fontSize px '
+          'or the terminal cell grid drifts when bold flips on.',
+    );
   });
 }
 
 double _measure(FontWeight weight) {
-  final builder = ui.ParagraphBuilder(ui.ParagraphStyle(
-    fontFamily: _family,
-    fontSize: _fontSize,
-  ))
-    ..pushStyle(ui.TextStyle(
-      fontFamily: _family,
-      fontWeight: weight,
-      fontSize: _fontSize,
-    ))
+  final builder = ui.ParagraphBuilder(ui.ParagraphStyle(fontFamily: _family, fontSize: _fontSize))
+    ..pushStyle(ui.TextStyle(fontFamily: _family, fontWeight: weight, fontSize: _fontSize))
     ..addText(_sample);
   final paragraph = builder.build()..layout(const ui.ParagraphConstraints(width: double.infinity));
   final width = paragraph.maxIntrinsicWidth;

@@ -19,14 +19,14 @@ class MarkdownExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'markdown.viewer',
-          slot: Slots.contextPanel,
-          title: 'Markdown',
-          icon: PhosphorIcons.byName('file-text'),
-          build: (_) => const MarkdownViewer(),
-        ),
-      ];
+    TabContribution(
+      id: 'markdown.viewer',
+      slot: Slots.contextPanel,
+      title: 'Markdown',
+      icon: PhosphorIcons.byName('file-text'),
+      build: (_) => const MarkdownViewer(),
+    ),
+  ];
 
   @override
   Future<void> activate(ClideExtensionContext ctx) async {

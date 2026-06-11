@@ -23,14 +23,7 @@ import 'package:clide/src/ipc/schema_v1.dart';
 /// D-72. Per-handler isolate offload is the dispatcher / handler's
 /// concern, not this layer's.
 class IpcServer {
-  IpcServer({
-    required this.dispatcher,
-    required this.workspaceRoot,
-    required this.log,
-    this.events,
-    this.replayDepth = 16,
-    this.eventLogDepth = 1024,
-  });
+  IpcServer({required this.dispatcher, required this.workspaceRoot, required this.log, this.events, this.replayDepth = 16, this.eventLogDepth = 1024});
 
   final DaemonDispatcher dispatcher;
   final String workspaceRoot;
@@ -94,10 +87,7 @@ class IpcServer {
     final path = workspaceSocketPath(workspaceRoot);
     await _prepareParentDir(path);
     await _unlinkStale(path);
-    final socket = await ServerSocket.bind(
-      InternetAddress(path, type: InternetAddressType.unix),
-      0,
-    );
+    final socket = await ServerSocket.bind(InternetAddress(path, type: InternetAddressType.unix), 0);
     try {
       await _chmod(path, 0x180); // 0o600
     } catch (e, st) {
@@ -108,9 +98,12 @@ class IpcServer {
     }
     _socket = socket;
     _socketPath = path;
-    _accepts = socket.listen(_onClient, onError: (Object e, StackTrace st) {
-      log.error('ipc', 'accept loop error', error: e, stackTrace: st);
-    });
+    _accepts = socket.listen(
+      _onClient,
+      onError: (Object e, StackTrace st) {
+        log.error('ipc', 'accept loop error', error: e, stackTrace: st);
+      },
+    );
     // Subscribe to the bus so we can populate the replay ring AND
     // fan out to live `tail --events` subscribers. Idempotent —
     // we only attach when a bus is supplied.
@@ -198,11 +191,7 @@ class IpcServer {
       if (msg is! IpcRequest) {
         response = IpcResponse.err(
           id: '',
-          error: IpcError(
-            code: IpcExitCode.userError,
-            kind: IpcErrorKind.userError,
-            message: 'expected request, got ${msg.runtimeType}',
-          ),
+          error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'expected request, got ${msg.runtimeType}'),
         );
       } else {
         // Peel off the `_argv` envelope at the server layer so the
@@ -238,21 +227,13 @@ class IpcServer {
     } on FormatException catch (e) {
       response = IpcResponse.err(
         id: '',
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'malformed request: ${e.message}',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'malformed request: ${e.message}'),
       );
     } catch (e, st) {
       log.error('ipc', 'dispatch threw for "$reqCmd"', error: e, stackTrace: st);
       response = IpcResponse.err(
         id: '',
-        error: IpcError(
-          code: IpcExitCode.toolError,
-          kind: IpcErrorKind.toolError,
-          message: 'internal error: $e',
-        ),
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'internal error: $e'),
       );
     }
     try {
@@ -280,10 +261,7 @@ class IpcServer {
     if (!f.existsSync()) return;
     // Probe: try connecting. If something answers, refuse to bind.
     try {
-      final test = await Socket.connect(
-        InternetAddress(path, type: InternetAddressType.unix),
-        0,
-      ).timeout(const Duration(milliseconds: 200));
+      final test = await Socket.connect(InternetAddress(path, type: InternetAddressType.unix), 0).timeout(const Duration(milliseconds: 200));
       await test.close();
       throw StateError('another clide IPC server is already listening on $path');
     } on SocketException {
@@ -355,11 +333,7 @@ class IpcServer {
     if (since == null) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: '--since must be a non-negative integer cursor',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: '--since must be a non-negative integer cursor'),
       );
     }
     final out = <Map<String, Object?>>[];
@@ -371,12 +345,10 @@ class IpcServer {
     // A gap only means something when the caller had a prior position
     // (since > 0); a first read (since 0) just gets whatever's retained.
     final gap = since > 0 && since < _droppedThrough;
-    return IpcResponse.ok(id: req.id, data: {
-      'events': out,
-      'cursor': _lastCursor,
-      'gap': gap,
-      if (gap) 'oldestCursor': _eventLog.isEmpty ? _lastCursor : _eventLog.first.cursor,
-    });
+    return IpcResponse.ok(
+      id: req.id,
+      data: {'events': out, 'cursor': _lastCursor, 'gap': gap, if (gap) 'oldestCursor': _eventLog.isEmpty ? _lastCursor : _eventLog.first.cursor},
+    );
   }
 
   /// Parse the `--since` flag (a string from argv or an int from a typed
@@ -390,12 +362,7 @@ class IpcServer {
   }
 
   void _onBusEvent(DaemonEvent e) {
-    final ev = IpcEvent(
-      subsystem: e.subsystem,
-      kind: e.kind,
-      data: e.data,
-      timestamp: e.ts,
-    );
+    final ev = IpcEvent(subsystem: e.subsystem, kind: e.kind, data: e.data, timestamp: e.ts);
     // Push to replay ring.
     final ring = _replay.putIfAbsent(e.subsystem, () => Queue<IpcEvent>());
     ring.addLast(ev);

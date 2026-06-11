@@ -71,112 +71,112 @@ class ClideTheme {
 
   // ─── ThemeData ────────────────────────────────────────────────────────
   static ThemeData get data => ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: _bg,
-        canvasColor: _bg,
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: _bg,
+    canvasColor: _bg,
 
-        colorScheme: const ColorScheme.dark(
-          brightness: Brightness.dark,
-          primary: _accent,
-          onPrimary: Color(0xFF0D1020),
-          secondary: _synKeyword,
-          onSecondary: Color(0xFF0D1020),
-          surface: _surface,
-          onSurface: _textHi,
-          surfaceContainerHighest: _surfaceHi,
-          outline: _border,
-          outlineVariant: _borderHi,
-          error: _err,
-          onError: Color(0xFF0D1020),
-        ),
+    colorScheme: const ColorScheme.dark(
+      brightness: Brightness.dark,
+      primary: _accent,
+      onPrimary: Color(0xFF0D1020),
+      secondary: _synKeyword,
+      onSecondary: Color(0xFF0D1020),
+      surface: _surface,
+      onSurface: _textHi,
+      surfaceContainerHighest: _surfaceHi,
+      outline: _border,
+      outlineVariant: _borderHi,
+      error: _err,
+      onError: Color(0xFF0D1020),
+    ),
 
-        textTheme: const TextTheme(
-          // Josefin Sans Light for display; JetBrains Mono for code/body.
-          displayLarge: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 48, height: 1.1, letterSpacing: 0.2, color: _textHi),
-          displayMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 34, height: 1.15, letterSpacing: 0.2, color: _textHi),
-          headlineSmall: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 20, height: 1.2, letterSpacing: 0.2, color: _textHi),
-          titleMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 14, height: 1.3, letterSpacing: 0.3, color: _text),
-          labelSmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w500, fontSize: 10, height: 1.2, letterSpacing: 1.0, color: _textMute),
-          bodyMedium: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 12, height: 1.45, color: _textHi),
-          bodySmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 11, height: 1.4, color: _text),
-        ),
+    textTheme: const TextTheme(
+      // Josefin Sans Light for display; JetBrains Mono for code/body.
+      displayLarge: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 48, height: 1.1, letterSpacing: 0.2, color: _textHi),
+      displayMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w300, fontSize: 34, height: 1.15, letterSpacing: 0.2, color: _textHi),
+      headlineSmall: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 20, height: 1.2, letterSpacing: 0.2, color: _textHi),
+      titleMedium: TextStyle(fontFamily: 'Josefin Sans', fontWeight: FontWeight.w400, fontSize: 14, height: 1.3, letterSpacing: 0.3, color: _text),
+      labelSmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w500, fontSize: 10, height: 1.2, letterSpacing: 1.0, color: _textMute),
+      bodyMedium: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 12, height: 1.45, color: _textHi),
+      bodySmall: TextStyle(fontFamily: 'JetBrains Mono', fontWeight: FontWeight.w400, fontSize: 11, height: 1.4, color: _text),
+    ),
 
-        dividerTheme: const DividerThemeData(color: _border, thickness: 1, space: 1),
+    dividerTheme: const DividerThemeData(color: _border, thickness: 1, space: 1),
 
-        cardTheme: CardThemeData(
-          color: _surface,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            side: const BorderSide(color: _border),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          margin: EdgeInsets.zero,
-        ),
+    cardTheme: CardThemeData(
+      color: _surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: _border),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      margin: EdgeInsets.zero,
+    ),
 
-        inputDecorationTheme: InputDecorationTheme(
-          isDense: true,
-          filled: true,
-          fillColor: _bgSunken,
-          hintStyle: const TextStyle(color: _textMute),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: _border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: _border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: _accent, width: 1.5),
-          ),
-        ),
+    inputDecorationTheme: InputDecorationTheme(
+      isDense: true,
+      filled: true,
+      fillColor: _bgSunken,
+      hintStyle: const TextStyle(color: _textMute),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: _border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: _border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: const BorderSide(color: _accent, width: 1.5),
+      ),
+    ),
 
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _accent,
-            foregroundColor: const Color(0xFF0D1020),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            textStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: _accent,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            textStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12),
-          ),
-        ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _accent,
+        foregroundColor: const Color(0xFF0D1020),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        textStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: _accent,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        textStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12),
+      ),
+    ),
 
-        // Pill-style chips (matches the Projects row in the dashboard).
-        chipTheme: ChipThemeData(
-          backgroundColor: _surface,
-          side: const BorderSide(color: _borderHi),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          labelStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 11, color: _text),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        ),
+    // Pill-style chips (matches the Projects row in the dashboard).
+    chipTheme: ChipThemeData(
+      backgroundColor: _surface,
+      side: const BorderSide(color: _borderHi),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      labelStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 11, color: _text),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    ),
 
-        iconTheme: const IconThemeData(color: _textDim, size: 14),
+    iconTheme: const IconThemeData(color: _textDim, size: 14),
 
-        tooltipTheme: TooltipThemeData(
-          decoration: BoxDecoration(
-            color: _surfaceHi,
-            border: Border.all(color: _borderHi),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          textStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 11, color: _textHi),
-        ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: _surfaceHi,
+        border: Border.all(color: _borderHi),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      textStyle: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 11, color: _textHi),
+    ),
 
-        scrollbarTheme: ScrollbarThemeData(
-          thumbColor: WidgetStatePropertyAll(_border),
-          thickness: const WidgetStatePropertyAll(6),
-          radius: const Radius.circular(3),
-        ),
-      );
+    scrollbarTheme: ScrollbarThemeData(
+      thumbColor: WidgetStatePropertyAll(_border),
+      thickness: const WidgetStatePropertyAll(6),
+      radius: const Radius.circular(3),
+    ),
+  );
 }
 
 /// Raw color tokens — use when Material widgets can't carry the meaning.

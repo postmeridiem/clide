@@ -80,31 +80,19 @@ void main() {
     tearDown(() => kb.clearState());
 
     test('returns null for KeyUpEvent', () {
-      final up = KeyUpEvent(
-        physicalKey: PhysicalKeyboardKey.keyG,
-        logicalKey: LogicalKeyboardKey.keyG,
-        timeStamp: Duration.zero,
-      );
+      final up = KeyUpEvent(physicalKey: PhysicalKeyboardKey.keyG, logicalKey: LogicalKeyboardKey.keyG, timeStamp: Duration.zero);
       expect(KeybindingResolver.fromKeyEvent(up, kb), isNull);
     });
 
     test('returns null when logicalKey has no keyLabel', () {
       // A synthetic logical key with an unassigned id has an empty label.
       final unlabeled = LogicalKeyboardKey(0x1000fffff);
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.controlLeft,
-        logicalKey: unlabeled,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.controlLeft, logicalKey: unlabeled, timeStamp: Duration.zero);
       expect(KeybindingResolver.fromKeyEvent(down, kb), isNull);
     });
 
     test('maps a plain KeyDownEvent to a modifier-free Keybinding', () {
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.keyG,
-        logicalKey: LogicalKeyboardKey.keyG,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.keyG, logicalKey: LogicalKeyboardKey.keyG, timeStamp: Duration.zero);
       final b = KeybindingResolver.fromKeyEvent(down, kb);
       expect(b, isNotNull);
       expect(b!.key, 'g');
@@ -118,11 +106,7 @@ void main() {
       _holdModifier(PhysicalKeyboardKey.altLeft, LogicalKeyboardKey.altLeft);
       _holdModifier(PhysicalKeyboardKey.metaLeft, LogicalKeyboardKey.metaLeft);
 
-      final down = KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.keyG,
-        logicalKey: LogicalKeyboardKey.keyG,
-        timeStamp: Duration.zero,
-      );
+      final down = KeyDownEvent(physicalKey: PhysicalKeyboardKey.keyG, logicalKey: LogicalKeyboardKey.keyG, timeStamp: Duration.zero);
       final b = KeybindingResolver.fromKeyEvent(down, kb)!;
       expect(b.key, 'g');
       expect(b.modifiers.toSet(), {'ctrl', 'shift', 'alt', 'cmd'});
@@ -131,7 +115,5 @@ void main() {
 }
 
 void _holdModifier(PhysicalKeyboardKey physical, LogicalKeyboardKey logical) {
-  HardwareKeyboard.instance.handleKeyEvent(
-    KeyDownEvent(physicalKey: physical, logicalKey: logical, timeStamp: Duration.zero),
-  );
+  HardwareKeyboard.instance.handleKeyEvent(KeyDownEvent(physicalKey: physical, logicalKey: logical, timeStamp: Duration.zero));
 }

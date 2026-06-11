@@ -25,24 +25,13 @@ IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data)
 ///
 /// The [root] entry list populates the workspace root directory so the tree
 /// renders at least one file row.
-void _stubTree(
-  KernelFixture f, {
-  required String rootPath,
-  required List<Map<String, Object?>> entries,
-}) {
+void _stubTree(KernelFixture f, {required String rootPath, required List<Map<String, Object?>> entries}) {
   f.ipc.stub('files.root', (_) async => _ok({'path': rootPath}));
   f.ipc.stub('files.watch', (_) async => _ok(const {}));
   f.ipc.stub('files.ls', (args) async => _ok({'entries': entries}));
 }
 
-Map<String, Object?> _file(String name, String path) => {
-      'name': name,
-      'path': path,
-      'isDirectory': false,
-      'isSymlink': false,
-      'sizeBytes': 0,
-      'modifiedMs': 0,
-    };
+Map<String, Object?> _file(String name, String path) => {'name': name, 'path': path, 'isDirectory': false, 'isSymlink': false, 'sizeBytes': 0, 'modifiedMs': 0};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -108,14 +97,7 @@ void main() {
 
     testWidgets('clicking a .md in the filtered view publishes to builtin.markdown selection', (tester) async {
       const mdPath = 'governance/decisions/architecture.md';
-      _stubTree(
-        f,
-        rootPath: '/repo',
-        entries: [
-          _file('architecture.md', mdPath),
-          _file('tooling.md', 'governance/decisions/tooling.md'),
-        ],
-      );
+      _stubTree(f, rootPath: '/repo', entries: [_file('architecture.md', mdPath), _file('tooling.md', 'governance/decisions/tooling.md')]);
 
       final published = <Message>[];
       final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);

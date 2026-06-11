@@ -18,10 +18,15 @@ void main() {
     tearDown(() async => f.dispose());
 
     Future<void> pump(WidgetTester tester, String mode, ValueChanged<String> onSelect) {
-      return tester.pumpWidget(harness(
-        f,
-        Align(alignment: Alignment.center, child: PermissionModeControl(mode: mode, onSelect: onSelect)),
-      ));
+      return tester.pumpWidget(
+        harness(
+          f,
+          Align(
+            alignment: Alignment.center,
+            child: PermissionModeControl(mode: mode, onSelect: onSelect),
+          ),
+        ),
+      );
     }
 
     testWidgets('opens a menu of the safe trio + a bypass row; selecting sets the mode', (tester) async {
@@ -70,16 +75,9 @@ void main() {
     tearDown(() async => f.dispose());
 
     testWidgets('the mode control and the Stop row coexist while busy', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        ClaudeComposer(
-          onSubmit: (_) {},
-          busy: true,
-          onInterrupt: () {},
-          permissionMode: 'default',
-          onSetPermissionMode: (_) {},
-        ),
-      ));
+      await tester.pumpWidget(
+        harness(f, ClaudeComposer(onSubmit: (_) {}, busy: true, onInterrupt: () {}, permissionMode: 'default', onSetPermissionMode: (_) {})),
+      );
       await tester.pump();
       // Stop affordance (busy row) and the trailing mode control are both present.
       expect(find.textContaining('Stop'), findsOneWidget);

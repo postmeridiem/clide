@@ -56,13 +56,7 @@ class TabContribution extends ContributionPoint {
 /// A status-bar item. Order is determined by [priority] within each
 /// alignment group; negative priorities float left, positive right.
 class StatusItemContribution extends ContributionPoint {
-  const StatusItemContribution({
-    required super.id,
-    required this.build,
-    this.priority = 0,
-    this.listenable,
-    this.flex = 0,
-  });
+  const StatusItemContribution({required super.id, required this.build, this.priority = 0, this.listenable, this.flex = 0});
 
   @override
   SlotId get slot => Slots.statusbar;
@@ -80,14 +74,7 @@ class StatusItemContribution extends ContributionPoint {
 
 /// A button in the main toolbar.
 class ToolbarButtonContribution extends ContributionPoint {
-  const ToolbarButtonContribution({
-    required super.id,
-    required this.label,
-    required this.onPressed,
-    this.icon,
-    this.tooltip,
-    this.priority = 0,
-  });
+  const ToolbarButtonContribution({required super.id, required this.label, required this.onPressed, this.icon, this.tooltip, this.priority = 0});
 
   @override
   SlotId get slot => Slots.toolbar;
@@ -101,14 +88,7 @@ class ToolbarButtonContribution extends ContributionPoint {
 /// A command extensions register with [CommandRegistry]. Surfaced by the
 /// command palette, the keybinding resolver, and `clide` CLI subcommands.
 class CommandContribution extends ContributionPoint {
-  const CommandContribution({
-    required super.id,
-    required this.command,
-    required this.run,
-    this.title,
-    this.defaultBinding,
-    this.bindingWhen,
-  });
+  const CommandContribution({required super.id, required this.command, required this.run, this.title, this.defaultBinding, this.bindingWhen});
 
   final String command; // e.g. "git.commit"
   final String? title; // "Git: Commit staged"
@@ -124,12 +104,7 @@ class CommandContribution extends ContributionPoint {
 
 /// Registers an item in the OS tray / menu-bar.
 class TrayItemContribution extends ContributionPoint {
-  const TrayItemContribution({
-    required super.id,
-    required this.label,
-    required this.onSelected,
-    this.priority = 0,
-  });
+  const TrayItemContribution({required super.id, required this.label, required this.onSelected, this.priority = 0});
 
   @override
   SlotId get slot => Slots.tray;
@@ -141,11 +116,7 @@ class TrayItemContribution extends ContributionPoint {
 /// A named layout arrangement. One "classic" preset ships with
 /// `builtin.default-layout`; other presets can be contributed.
 class LayoutPresetContribution extends ContributionPoint {
-  const LayoutPresetContribution({
-    required super.id,
-    required this.displayName,
-    required this.slots,
-  });
+  const LayoutPresetContribution({required super.id, required this.displayName, required this.slots});
 
   final String displayName;
   final List<LayoutSlot> slots;
@@ -154,14 +125,7 @@ class LayoutPresetContribution extends ContributionPoint {
 /// One slot in a [LayoutPresetContribution]. Describes where the slot
 /// appears and its initial size/visibility.
 class LayoutSlot {
-  const LayoutSlot({
-    required this.slot,
-    required this.position,
-    this.defaultSize,
-    this.minSize,
-    this.maxSize,
-    this.visible = true,
-  });
+  const LayoutSlot({required this.slot, required this.position, this.defaultSize, this.minSize, this.maxSize, this.visible = true});
 
   final SlotId slot;
   final SlotPosition position;

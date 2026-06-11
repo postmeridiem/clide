@@ -61,19 +61,19 @@ class VimExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        _modeCommand('vim.mode.normal', 'Vim: Normal mode', () => _mode?.enterNormal()),
-        _modeCommand('vim.mode.insert', 'Vim: Insert mode', () => _mode?.enterInsert()),
-        _modeCommand('vim.mode.visual', 'Vim: Visual mode', () => _mode?.enterVisual()),
-        StatusItemContribution(
-          id: 'vim.mode',
-          priority: -50, // left group, near the other editor status items
-          listenable: _mode,
-          build: (_) {
-            final m = _mode;
-            return m == null ? const SizedBox.shrink() : VimModeIndicator(service: m);
-          },
-        ),
-      ];
+    _modeCommand('vim.mode.normal', 'Vim: Normal mode', () => _mode?.enterNormal()),
+    _modeCommand('vim.mode.insert', 'Vim: Insert mode', () => _mode?.enterInsert()),
+    _modeCommand('vim.mode.visual', 'Vim: Visual mode', () => _mode?.enterVisual()),
+    StatusItemContribution(
+      id: 'vim.mode',
+      priority: -50, // left group, near the other editor status items
+      listenable: _mode,
+      build: (_) {
+        final m = _mode;
+        return m == null ? const SizedBox.shrink() : VimModeIndicator(service: m);
+      },
+    ),
+  ];
 
   CommandContribution _modeCommand(String id, String title, void Function() apply) {
     return CommandContribution(

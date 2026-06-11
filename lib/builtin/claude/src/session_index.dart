@@ -13,13 +13,7 @@ import 'dart:io';
 
 /// One session in the workspace, summarised for the picker.
 class SessionSummary {
-  const SessionSummary({
-    required this.id,
-    required this.modified,
-    this.firstUser,
-    this.lastUser,
-    this.sizeBytes = 0,
-  });
+  const SessionSummary({required this.id, required this.modified, this.firstUser, this.lastUser, this.sizeBytes = 0});
 
   /// The session id (the `<uuid>` of `<uuid>.jsonl`).
   final String id;
@@ -94,11 +88,7 @@ String? _userTextOf(String line) {
 /// Sessions in [dir] (the munged project dir), most-recently-modified first,
 /// capped at [max]. Each is summarised by bookend user prompts read from a
 /// bounded [window] at each end of its transcript.
-Future<List<SessionSummary>> listSessions(
-  Directory dir, {
-  int max = 20,
-  int window = 128 * 1024,
-}) async {
+Future<List<SessionSummary>> listSessions(Directory dir, {int max = 20, int window = 128 * 1024}) async {
   if (!await dir.exists()) return const [];
   final files = <File>[];
   await for (final e in dir.list(followLinks: false)) {
@@ -109,13 +99,15 @@ Future<List<SessionSummary>> listSessions(
     final stat = await f.stat();
     final bookends = await _bookends(f, window);
     final id = _sessionId(f.path);
-    summaries.add(SessionSummary(
-      id: id,
-      modified: stat.modified,
-      firstUser: bookends.first,
-      lastUser: bookends.last,
-      sizeBytes: stat.size + await _dirSize(Directory('${dir.path}/$id')),
-    ));
+    summaries.add(
+      SessionSummary(
+        id: id,
+        modified: stat.modified,
+        firstUser: bookends.first,
+        lastUser: bookends.last,
+        sizeBytes: stat.size + await _dirSize(Directory('${dir.path}/$id')),
+      ),
+    );
   }
   summaries.sort((a, b) => b.modified.compareTo(a.modified));
   return summaries.length > max ? summaries.sublist(0, max) : summaries;

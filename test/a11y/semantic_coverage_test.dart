@@ -17,12 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// catalog" gate.
 void main() {
   group('Tier-0 built-in extensions — contract-level coverage', () {
-    final extensions = <ClideExtension>[
-      DefaultLayoutExtension(),
-      WelcomeExtension(),
-      IpcStatusExtension(),
-      ThemePickerExtension(),
-    ];
+    final extensions = <ClideExtension>[DefaultLayoutExtension(), WelcomeExtension(), IpcStatusExtension(), ThemePickerExtension()];
 
     for (final ext in extensions) {
       group(ext.id, () {

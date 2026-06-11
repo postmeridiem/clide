@@ -22,12 +22,14 @@ void main() {
     f.services.extensions.register(MenuBarExtension(services: f.services));
     await f.services.extensions.activateAll();
     // A registered View command so the View menu has an enabled item.
-    f.services.commands.register(CommandContribution(
-      id: 'view.zoomIn',
-      command: 'view.zoomIn',
-      title: 'View: Zoom In',
-      run: (_) async => IpcResponse.ok(id: '', data: const {}),
-    ));
+    f.services.commands.register(
+      CommandContribution(
+        id: 'view.zoomIn',
+        command: 'view.zoomIn',
+        title: 'View: Zoom In',
+        run: (_) async => IpcResponse.ok(id: '', data: const {}),
+      ),
+    );
     controller = MenuBarController();
   });
 
@@ -37,32 +39,37 @@ void main() {
   });
 
   Widget harness() => Directionality(
-        textDirection: TextDirection.ltr,
-        child: ClideKernel(
-          services: f.services,
-          child: ClideTheme(
-            controller: f.services.theme,
-            child: MediaQuery(
-              data: const MediaQueryData(),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: 900,
-                  height: 600,
-                  child: DialogHost(
-                    router: f.services.dialog,
-                    child: Overlay(
-                      initialEntries: [
-                        OverlayEntry(builder: (_) => Align(alignment: Alignment.topLeft, child: MenuBar(controller: controller))),
-                      ],
+    textDirection: TextDirection.ltr,
+    child: ClideKernel(
+      services: f.services,
+      child: ClideTheme(
+        controller: f.services.theme,
+        child: MediaQuery(
+          data: const MediaQueryData(),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 900,
+              height: 600,
+              child: DialogHost(
+                router: f.services.dialog,
+                child: Overlay(
+                  initialEntries: [
+                    OverlayEntry(
+                      builder: (_) => Align(
+                        alignment: Alignment.topLeft,
+                        child: MenuBar(controller: controller),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> openMenu(WidgetTester tester, String title) async {
     await tester.tap(find.text(title));

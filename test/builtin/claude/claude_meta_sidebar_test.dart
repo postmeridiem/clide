@@ -64,14 +64,7 @@ void main() {
     ClaudeConfig? config,
     SidebarTab initialTab = SidebarTab.activity,
     ClaudeSessionOrchestrator? orchestrator,
-  }) =>
-      ClaudeMetaSidebar(
-        statsLoader: () async => stats,
-        pollInterval: Duration.zero,
-        config: config,
-        orchestrator: orchestrator,
-        initialTab: initialTab,
-      );
+  }) => ClaudeMetaSidebar(statsLoader: () async => stats, pollInterval: Duration.zero, config: config, orchestrator: orchestrator, initialTab: initialTab);
 
   testWidgets('Activity tab shows today + lifetime stats on the table', (tester) async {
     await tester.pumpWidget(harness(f, sidebar(stats: stats)));
@@ -145,15 +138,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('TODAY'), findsOneWidget); // starts on Activity
 
-    f.services.events.emit(const TeamMemberJoined(
-      team: 't',
-      agentId: 'a1',
-      name: 'Scout',
-      agentType: 'explorer',
-      paneId: '%1',
-      model: 'claude-opus-4-7',
-      color: 'blue',
-    ));
+    f.services.events.emit(
+      const TeamMemberJoined(team: 't', agentId: 'a1', name: 'Scout', agentType: 'explorer', paneId: '%1', model: 'claude-opus-4-7', color: 'blue'),
+    );
     await tester.pump();
     await tester.pump();
 
@@ -167,14 +154,7 @@ void main() {
     await tester.pumpWidget(harness(f, sidebar()));
     await tester.pumpAndSettle();
 
-    f.services.events.emit(const TeamMemberJoined(
-      team: 't',
-      agentId: 'a1',
-      name: 'Scout',
-      agentType: 'explorer',
-      paneId: '%1',
-      color: 'blue',
-    ));
+    f.services.events.emit(const TeamMemberJoined(team: 't', agentId: 'a1', name: 'Scout', agentType: 'explorer', paneId: '%1', color: 'blue'));
     await tester.pump();
     await tester.pump();
     expect(find.text('Scout'), findsOneWidget);
@@ -190,24 +170,14 @@ void main() {
     await tester.pumpWidget(harness(f, sidebar()));
     await tester.pumpAndSettle();
 
-    f.services.events.emit(const TeamMemberJoined(
-      team: 't',
-      agentId: 'a1',
-      name: 'Scout',
-      agentType: 'explorer',
-      paneId: '%1',
-      color: 'blue',
-    ));
+    f.services.events.emit(const TeamMemberJoined(team: 't', agentId: 'a1', name: 'Scout', agentType: 'explorer', paneId: '%1', color: 'blue'));
     await tester.pump();
     await tester.pump();
 
     f.services.messages.publish(
       ClaudeConversation.publisher,
       ClaudeConversation.memberStatusChannel,
-      ClaudeConversation.memberStatusData(
-        'a1',
-        const SessionStatus(model: 'claude-opus-4-7', permissionMode: 'acceptEdits', contextTokens: 21000),
-      ),
+      ClaudeConversation.memberStatusData('a1', const SessionStatus(model: 'claude-opus-4-7', permissionMode: 'acceptEdits', contextTokens: 21000)),
     );
     await tester.pump();
     await tester.pump();
@@ -226,25 +196,11 @@ void main() {
   group('T-171 roster controls', () {
     Future<ClaudeSessionOrchestrator> orchWithMember(WidgetTester tester, {String name = 'Scout', String agentId = 'a1'}) async {
       final orch = _fakeOrchestrator();
-      await orch.spawn(SpawnSpec(
-        id: 'teammate:$name',
-        role: 'teammate',
-        sessionId: '$name-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: name,
-      ));
+      await orch.spawn(SpawnSpec(id: 'teammate:$name', role: 'teammate', sessionId: '$name-uuid', cwd: '/repo', team: true, memberName: name));
 
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
 
-      f.services.events.emit(TeamMemberJoined(
-        team: 't',
-        agentId: agentId,
-        name: name,
-        agentType: 'coder',
-        paneId: '%1',
-        color: 'blue',
-      ));
+      f.services.events.emit(TeamMemberJoined(team: 't', agentId: agentId, name: name, agentType: 'coder', paneId: '%1', color: 'blue'));
       await tester.pump();
       await tester.pump();
       return orch;
@@ -345,24 +301,10 @@ void main() {
       final orch = _fakeOrchestrator();
       // We cannot intercept the proc easily through the public API — verify
       // injectMessage wired up by checking the managed session is the right one.
-      await orch.spawn(SpawnSpec(
-        id: 'teammate:Alpha',
-        role: 'teammate',
-        sessionId: 'alpha-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: 'Alpha',
-      ));
+      await orch.spawn(SpawnSpec(id: 'teammate:Alpha', role: 'teammate', sessionId: 'alpha-uuid', cwd: '/repo', team: true, memberName: 'Alpha'));
 
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
-      f.services.events.emit(const TeamMemberJoined(
-        team: 't',
-        agentId: 'a2',
-        name: 'Alpha',
-        agentType: 'coder',
-        paneId: '%2',
-        color: 'green',
-      ));
+      f.services.events.emit(const TeamMemberJoined(team: 't', agentId: 'a2', name: 'Alpha', agentType: 'coder', paneId: '%2', color: 'green'));
       await tester.pump();
       await tester.pump();
 
@@ -391,32 +333,11 @@ void main() {
   group('T-171 task list', () {
     testWidgets('task list renders live from broker on changes stream', (tester) async {
       final orch = _fakeOrchestrator();
-      await orch.spawn(SpawnSpec(
-        id: 'primary',
-        role: 'primary',
-        sessionId: 'primary-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: 'lead',
-      ));
-      await orch.spawn(SpawnSpec(
-        id: 'teammate:tyre',
-        role: 'teammate',
-        sessionId: 'tyre-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: 'tyre',
-      ));
+      await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'primary-uuid', cwd: '/repo', team: true, memberName: 'lead'));
+      await orch.spawn(SpawnSpec(id: 'teammate:tyre', role: 'teammate', sessionId: 'tyre-uuid', cwd: '/repo', team: true, memberName: 'tyre'));
 
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
-      f.services.events.emit(const TeamMemberJoined(
-        team: 't',
-        agentId: 'a1',
-        name: 'lead',
-        agentType: 'lead',
-        paneId: '%1',
-        color: 'blue',
-      ));
+      f.services.events.emit(const TeamMemberJoined(team: 't', agentId: 'a1', name: 'lead', agentType: 'lead', paneId: '%1', color: 'blue'));
       await tester.pump();
       await tester.pump();
 
@@ -443,10 +364,16 @@ void main() {
       // shared canSizeOverlay harness the sidebar's scrollable otherwise gets a
       // degenerate viewport and clips the task section out of the semantics
       // tree, so the reassign button below the roster isn't findable by label.
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(orchestrator: orch, initialTab: SidebarTab.team)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(orchestrator: orch, initialTab: SidebarTab.team),
+          ),
+        ),
+      );
       f.services.events.emit(const TeamMemberJoined(team: 't', agentId: 'a1', name: 'lead', agentType: 'lead', paneId: '%1', color: 'cyan'));
       await tester.pump();
       await tester.pump();
@@ -462,9 +389,7 @@ void main() {
       // canSizeOverlay test harness gives the sidebar's ListView a degenerate
       // viewport that clips the lower task section out of the semantics *tree*
       // (the widget is built and tappable; only the semantics node is dropped).
-      final reassign = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.label == 'Reassign task',
-      );
+      final reassign = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Reassign task');
       await tester.tap(reassign.first);
       await tester.pump();
       await tester.pump();
@@ -493,29 +418,11 @@ void main() {
       return (orch, writes);
     }
 
-    Future<(ClaudeSessionOrchestrator, List<String>)> spawnAndShow(
-      WidgetTester tester, {
-      String name = 'Scout',
-      String agentId = 'b1',
-    }) async {
+    Future<(ClaudeSessionOrchestrator, List<String>)> spawnAndShow(WidgetTester tester, {String name = 'Scout', String agentId = 'b1'}) async {
       final (orch, writes) = orchCapturing();
-      await orch.spawn(SpawnSpec(
-        id: 'teammate:$name',
-        role: 'teammate',
-        sessionId: '$name-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: name,
-      ));
+      await orch.spawn(SpawnSpec(id: 'teammate:$name', role: 'teammate', sessionId: '$name-uuid', cwd: '/repo', team: true, memberName: name));
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
-      f.services.events.emit(TeamMemberJoined(
-        team: 't',
-        agentId: agentId,
-        name: name,
-        agentType: 'coder',
-        paneId: '%1',
-        color: 'blue',
-      ));
+      f.services.events.emit(TeamMemberJoined(team: 't', agentId: agentId, name: name, agentType: 'coder', paneId: '%1', color: 'blue'));
       await tester.pump();
       await tester.pump();
       return (orch, writes);
@@ -540,10 +447,7 @@ void main() {
       f.services.messages.publish(
         ClaudeConversation.publisher,
         ClaudeConversation.memberStatusChannel,
-        ClaudeConversation.memberStatusData(
-          'b1',
-          const SessionStatus(permissionMode: 'acceptEdits'),
-        ),
+        ClaudeConversation.memberStatusData('b1', const SessionStatus(permissionMode: 'acceptEdits')),
       );
       await tester.pump();
       await tester.pump();
@@ -647,25 +551,11 @@ void main() {
   group('T-172 fork session button', () {
     Future<ClaudeSessionOrchestrator> orchWithMember(WidgetTester tester, {String name = 'Forker', String agentId = 'f1'}) async {
       final orch = _fakeOrchestrator();
-      await orch.spawn(SpawnSpec(
-        id: 'teammate:$name',
-        role: 'teammate',
-        sessionId: '$name-uuid',
-        cwd: '/repo',
-        team: true,
-        memberName: name,
-      ));
+      await orch.spawn(SpawnSpec(id: 'teammate:$name', role: 'teammate', sessionId: '$name-uuid', cwd: '/repo', team: true, memberName: name));
 
       await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.team)));
 
-      f.services.events.emit(TeamMemberJoined(
-        team: 't',
-        agentId: agentId,
-        name: name,
-        agentType: 'coder',
-        paneId: '%1',
-        color: 'teal',
-      ));
+      f.services.events.emit(TeamMemberJoined(team: 't', agentId: agentId, name: name, agentType: 'coder', paneId: '%1', color: 'teal'));
       await tester.pump();
       await tester.pump();
       return orch;
@@ -794,10 +684,7 @@ void main() {
       final config = await loadedConfig(
         tester,
         dir,
-        skills: [
-          (name: 'git-commit', dir: 'git-commit'),
-          (name: 'pql', dir: 'pql'),
-        ],
+        skills: [(name: 'git-commit', dir: 'git-commit'), (name: 'pql', dir: 'pql')],
         commands: ['deploy', 'test'],
         agents: ['planner'],
         settings: {
@@ -810,10 +697,16 @@ void main() {
       );
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -831,18 +724,20 @@ void main() {
       final config = await loadedConfig(
         tester,
         dir,
-        skills: [
-          (name: 'git-commit', dir: 'git-commit'),
-          (name: 'pql', dir: 'pql'),
-          (name: 'deep-research', dir: 'deep-research'),
-        ],
+        skills: [(name: 'git-commit', dir: 'git-commit'), (name: 'pql', dir: 'pql'), (name: 'deep-research', dir: 'deep-research')],
       );
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -865,10 +760,16 @@ void main() {
       final config = await loadedConfig(tester, dir, agents: ['planner', 'coder']);
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -885,10 +786,16 @@ void main() {
       final config = await loadedConfig(tester, dir, commands: ['deploy', 'test', 'lint']);
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -916,10 +823,16 @@ void main() {
       );
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -947,10 +860,16 @@ void main() {
       );
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -973,10 +892,16 @@ void main() {
       final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
       addTearDown(sub.cancel);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -1003,10 +928,16 @@ void main() {
       final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
       addTearDown(sub.cancel);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -1031,10 +962,16 @@ void main() {
       final sub = f.services.messages.subscribe(publisher: 'builtin.markdown', channel: 'selection').listen(published.add);
       addTearDown(sub.cancel);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -1055,10 +992,16 @@ void main() {
       final config = await loadedConfig(tester, dir, skills: [(name: 'git-commit', dir: 'git-commit')]);
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -1079,10 +1022,16 @@ void main() {
       final config = await loadedConfig(tester, dir);
       addTearDown(config.dispose);
 
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 320, height: 700, child: sidebar(config: config, initialTab: SidebarTab.config)),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 320,
+            height: 700,
+            child: sidebar(config: config, initialTab: SidebarTab.config),
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump();
 

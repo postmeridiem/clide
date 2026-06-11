@@ -25,10 +25,7 @@ void main() {
     });
 
     test('StatusItemContribution pins the statusbar slot', () {
-      final s = StatusItemContribution(
-        id: 'ipc-status.indicator',
-        build: (_) => const SizedBox.shrink(),
-      );
+      final s = StatusItemContribution(id: 'ipc-status.indicator', build: (_) => const SizedBox.shrink());
       expect(s.slot, Slots.statusbar);
     });
 
@@ -42,20 +39,12 @@ void main() {
     });
 
     test('TrayItemContribution pins the tray slot', () {
-      final t = TrayItemContribution(
-        id: 't',
-        label: 'Label',
-        onSelected: () {},
-      );
+      final t = TrayItemContribution(id: 't', label: 'Label', onSelected: () {});
       expect(t.slot, Slots.tray);
     });
 
     test('ToolbarButtonContribution pins the toolbar slot', () {
-      final b = ToolbarButtonContribution(
-        id: 'save',
-        label: 'Save',
-        onPressed: () {},
-      );
+      final b = ToolbarButtonContribution(id: 'save', label: 'Save', onPressed: () {});
       expect(b.slot, Slots.toolbar);
     });
   });

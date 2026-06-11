@@ -22,9 +22,9 @@ void main() {
   tearDown(() => f.dispose());
 
   Widget wrap({bool reducedMotion = false}) => MediaQuery(
-        data: MediaQueryData(disableAnimations: reducedMotion),
-        child: const RunningIndicator(shuffle: false),
-      );
+    data: MediaQueryData(disableAnimations: reducedMotion),
+    child: const RunningIndicator(shuffle: false),
+  );
 
   testWidgets('animates the ellipsis and rotates the verb', (tester) async {
     await tester.pumpWidget(harness(f, wrap()));

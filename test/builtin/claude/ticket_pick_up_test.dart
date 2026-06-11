@@ -81,7 +81,12 @@ void main() {
   test('already started: injects but does not move the status backwards (T-339)', () async {
     await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
 
-    final accepted = await applyTicketPickUp(payload(status: 'in_progress'), orchestrator: orch, ipc: ipc, messages: messages);
+    final accepted = await applyTicketPickUp(
+      payload(status: 'in_progress'),
+      orchestrator: orch,
+      ipc: ipc,
+      messages: messages,
+    );
     await Future<void>.delayed(Duration.zero);
 
     expect(accepted, isTrue); // prompt still delivered
@@ -91,7 +96,12 @@ void main() {
 
   test('a backlog ticket is also startable', () async {
     await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
-    await applyTicketPickUp(payload(status: 'backlog'), orchestrator: orch, ipc: ipc, messages: messages);
+    await applyTicketPickUp(
+      payload(status: 'backlog'),
+      orchestrator: orch,
+      ipc: ipc,
+      messages: messages,
+    );
     expect(statusCalls, hasLength(1));
   });
 

@@ -28,11 +28,8 @@ class ReplacementEdit {
 
   Map<String, Object?> toJson() => {'line': line, 'before': before, 'after': after};
 
-  factory ReplacementEdit.fromJson(Map<String, Object?> j) => ReplacementEdit(
-        line: (j['line'] as num).toInt(),
-        before: j['before'] as String,
-        after: j['after'] as String,
-      );
+  factory ReplacementEdit.fromJson(Map<String, Object?> j) =>
+      ReplacementEdit(line: (j['line'] as num).toInt(), before: j['before'] as String, after: j['after'] as String);
 }
 
 /// The set of edits a replacement would make to one file.
@@ -46,18 +43,16 @@ class FileReplacement {
   final List<ReplacementEdit> edits;
 
   Map<String, Object?> toJson() => {
-        'path': path,
-        'count': count,
-        'edits': [for (final e in edits) e.toJson()],
-      };
+    'path': path,
+    'count': count,
+    'edits': [for (final e in edits) e.toJson()],
+  };
 
   factory FileReplacement.fromJson(Map<String, Object?> j) => FileReplacement(
-        path: j['path'] as String,
-        count: (j['count'] as num).toInt(),
-        edits: [
-          for (final e in (j['edits'] as List? ?? const []).whereType<Map>()) ReplacementEdit.fromJson(e.cast<String, Object?>()),
-        ],
-      );
+    path: j['path'] as String,
+    count: (j['count'] as num).toInt(),
+    edits: [for (final e in (j['edits'] as List? ?? const []).whereType<Map>()) ReplacementEdit.fromJson(e.cast<String, Object?>())],
+  );
 }
 
 /// Apply [query]'s pattern to [text], substituting [replacement]. Returns

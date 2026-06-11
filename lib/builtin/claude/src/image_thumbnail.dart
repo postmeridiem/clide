@@ -17,15 +17,11 @@ import 'package:flutter/widgets.dart';
 /// Open [path] full-size in the lightbox via the kernel dialog router.
 void openImageLightbox(BuildContext context, String path) {
   ClideKernel.of(context).dialog.show<Object>(
-        (ctx, dismiss) => ClideLightbox(
-          onDismiss: dismiss,
-          child: Image(
-            image: ClideFileImage(path),
-            fit: BoxFit.contain,
-            errorBuilder: (ctx, _, __) => _placeholder(ctx, 48),
-          ),
-        ),
-      );
+    (ctx, dismiss) => ClideLightbox(
+      onDismiss: dismiss,
+      child: Image(image: ClideFileImage(path), fit: BoxFit.contain, errorBuilder: (ctx, _, _) => _placeholder(ctx, 48)),
+    ),
+  );
 }
 
 Widget _placeholder(BuildContext context, double size) {
@@ -64,13 +60,7 @@ class ImageThumbnail extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(radius),
-            child: Image(
-              image: ClideFileImage(path),
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (ctx, _, __) => _placeholder(ctx, size),
-            ),
+            child: Image(image: ClideFileImage(path), width: size, height: size, fit: BoxFit.cover, errorBuilder: (ctx, _, _) => _placeholder(ctx, size)),
           ),
         ),
       ),

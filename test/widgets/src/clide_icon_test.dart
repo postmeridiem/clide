@@ -12,9 +12,7 @@ void main() {
     tearDown(() async => f.dispose());
 
     testWidgets('sizes a SizedBox + CustomPaint to the given size', (tester) async {
-      await tester.pumpWidget(
-        harness(f, const ClideIcon(FolderIcon(), size: 24)),
-      );
+      await tester.pumpWidget(harness(f, const ClideIcon(FolderIcon(), size: 24)));
       final sb = tester.widget<SizedBox>(find.byType(SizedBox).first);
       expect(sb.width, 24);
       expect(sb.height, 24);
@@ -22,9 +20,7 @@ void main() {
     });
 
     testWidgets('default color is globalForeground', (tester) async {
-      await tester.pumpWidget(
-        harness(f, const ClideIcon(CheckIcon())),
-      );
+      await tester.pumpWidget(harness(f, const ClideIcon(CheckIcon())));
       // Color is inaccessible after painting; ensure it renders without crashing.
       expect(find.byType(ClideIcon), findsOneWidget);
     });

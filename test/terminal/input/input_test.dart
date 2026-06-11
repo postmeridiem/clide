@@ -19,10 +19,7 @@ import 'package:clide/src/terminal/src/core/state.dart';
 import 'package:test/test.dart';
 
 class _State implements TerminalState {
-  _State({
-    this.lineFeedMode = false,
-    this.appKeypadMode = false,
-  });
+  _State({this.lineFeedMode = false, this.appKeypadMode = false});
 
   @override
   bool lineFeedMode;
@@ -78,10 +75,7 @@ TerminalKeyboardEvent _evt(
     shift: shift,
     ctrl: ctrl,
     alt: alt,
-    state: _State(
-      lineFeedMode: lineFeedMode,
-      appKeypadMode: appKeypadMode,
-    ),
+    state: _State(lineFeedMode: lineFeedMode, appKeypadMode: appKeypadMode),
     altBuffer: altBuffer,
     platform: platform,
   );
@@ -161,10 +155,7 @@ void main() {
   group('tokenize', () {
     test('parses a keyboard-name line', () {
       final tokens = tokenize('keyboard "Default"').toList();
-      expect(tokens.map((t) => t.type).toList(), [
-        KeytabTokenType.keyboard,
-        KeytabTokenType.input,
-      ]);
+      expect(tokens.map((t) => t.type).toList(), [KeytabTokenType.keyboard, KeytabTokenType.input]);
       expect(tokens.last.value, 'Default');
     });
 
@@ -200,24 +191,15 @@ key Tab : "\\t"  # trailing comment
 ''';
       final tokens = tokenize(source).toList();
       // Trailing-comment stripping leaves no broken tokens.
-      expect(
-        tokens.map((t) => t.type).toList(),
-        contains(KeytabTokenType.colon),
-      );
+      expect(tokens.map((t) => t.type).toList(), contains(KeytabTokenType.colon));
     });
 
     test('tokenize throws TokenizeError on a malformed key line missing colon', () {
-      expect(
-        () => tokenize('key Tab "\\t"').toList(),
-        throwsA(isA<TokenizeError>()),
-      );
+      expect(() => tokenize('key Tab "\\t"').toList(), throwsA(isA<TokenizeError>()));
     });
 
     test('tokenize throws TokenizeError on unterminated keyboard line', () {
-      expect(
-        () => tokenize('keyboard X').toList(),
-        throwsA(isA<TokenizeError>()),
-      );
+      expect(() => tokenize('keyboard X').toList(), throwsA(isA<TokenizeError>()));
     });
 
     test('KeytabToken toString reflects type + value', () {
@@ -291,14 +273,8 @@ key Up +Bogus : "x"
 
   group('KeytabRecord / KeytabAction toString', () {
     test('action toString quotes input and bare-prints shortcut', () {
-      expect(
-        KeytabAction(KeytabActionType.input, r'\E[A').toString(),
-        '"\\E[A"',
-      );
-      expect(
-        KeytabAction(KeytabActionType.shortcut, 'scrollUp').toString(),
-        'scrollUp',
-      );
+      expect(KeytabAction(KeytabActionType.input, r'\E[A').toString(), '"\\E[A"');
+      expect(KeytabAction(KeytabActionType.shortcut, 'scrollUp').toString(), 'scrollUp');
     });
 
     test('record toString writes +Mode for true and -Mode for false flags', () {
@@ -341,10 +317,7 @@ key Up +Shift : scrollLineUp
 
     test('action unescapedValue returns the raw value for shortcut actions', () {
       // Input actions go through keytabUnescape; shortcut actions don't.
-      expect(
-        KeytabAction(KeytabActionType.shortcut, r'\Ehello').unescapedValue(),
-        r'\Ehello',
-      );
+      expect(KeytabAction(KeytabActionType.shortcut, r'\Ehello').unescapedValue(), r'\Ehello');
     });
 
     test('record toString covers every supported mode flag when set', () {
@@ -384,34 +357,20 @@ key Up +Shift : scrollLineUp
   group('KeytabParser — defensive error paths through hand-crafted tokens', () {
     test('addTokens throws ParseError on a stray non-keyboard / non-keyDefine token', () {
       final parser = KeytabParser();
-      expect(
-        () => parser.addTokens([
-          KeytabToken(KeytabTokenType.colon, ':'),
-        ]),
-        throwsA(isA<ParseError>()),
-      );
+      expect(() => parser.addTokens([KeytabToken(KeytabTokenType.colon, ':')]), throwsA(isA<ParseError>()));
     });
 
     test('_parseName throws when the second token is not an input token', () {
       final parser = KeytabParser();
       expect(
-        () => parser.addTokens([
-          KeytabToken(KeytabTokenType.keyboard, 'keyboard'),
-          KeytabToken(KeytabTokenType.keyName, 'Up'),
-        ]),
+        () => parser.addTokens([KeytabToken(KeytabTokenType.keyboard, 'keyboard'), KeytabToken(KeytabTokenType.keyName, 'Up')]),
         throwsA(isA<ParseError>()),
       );
     });
 
     test('_parseKeyDefine throws when the second token is not a keyName', () {
       final parser = KeytabParser();
-      expect(
-        () => parser.addTokens([
-          KeytabToken(KeytabTokenType.keyDefine, 'key'),
-          KeytabToken(KeytabTokenType.colon, ':'),
-        ]),
-        throwsA(isA<ParseError>()),
-      );
+      expect(() => parser.addTokens([KeytabToken(KeytabTokenType.keyDefine, 'key'), KeytabToken(KeytabTokenType.colon, ':')]), throwsA(isA<ParseError>()));
     });
 
     test('_parseKeyDefine throws on an unrecognised modeStatus value', () {
@@ -470,10 +429,7 @@ key Up +Shift : scrollLineUp
 
     test('exact match: -Shift on a record with shift=null and no anyModifier', () {
       final t = build('key Up -Shift : "\\E[A"');
-      expect(
-        t.find(TerminalKey.arrowUp, shift: false)?.action.value,
-        r'\E[A',
-      );
+      expect(t.find(TerminalKey.arrowUp, shift: false)?.action.value, r'\E[A');
       expect(t.find(TerminalKey.arrowUp, shift: true), isNull);
     });
 
@@ -495,15 +451,9 @@ key Up +NewLine+AppKeyPad+AppScreen+Mac : "match"
 key Up : "fallback"
 ''');
       // Wrong newLine mode falls through to fallback.
-      expect(
-        t.find(TerminalKey.arrowUp, newLineMode: false, appKeyPad: true, appScreen: true, macos: true)?.action.value,
-        'fallback',
-      );
+      expect(t.find(TerminalKey.arrowUp, newLineMode: false, appKeyPad: true, appScreen: true, macos: true)?.action.value, 'fallback');
       // All matching → primary record.
-      expect(
-        t.find(TerminalKey.arrowUp, newLineMode: true, appKeyPad: true, appScreen: true, macos: true)?.action.value,
-        'match',
-      );
+      expect(t.find(TerminalKey.arrowUp, newLineMode: true, appKeyPad: true, appScreen: true, macos: true)?.action.value, 'match');
     });
 
     test('-Ansi records are skipped (VT52 not supported yet)', () {
@@ -519,10 +469,7 @@ key Up : "fallback"
     test('appCursorKeys + keyPad gates also filter', () {
       final t = build('key Up +AppCuKeys+KeyPad : "\\EOA"\nkey Up : "fallback"');
       expect(t.find(TerminalKey.arrowUp)?.action.value, 'fallback');
-      expect(
-        t.find(TerminalKey.arrowUp, appCursorKeys: true, keyPad: true)?.action.value,
-        r'\EOA',
-      );
+      expect(t.find(TerminalKey.arrowUp, appCursorKeys: true, keyPad: true)?.action.value, r'\EOA');
     });
   });
 
@@ -591,23 +538,11 @@ key Up : "fallback"
         (_evt(TerminalKey.arrowUp, alt: true), '\x1b[1;3A'), // alt → 3
         (_evt(TerminalKey.arrowUp, ctrl: true), '\x1b[1;5A'), // ctrl → 5
         // Pair codes.
-        (
-          _evt(TerminalKey.arrowUp, shift: true, alt: true),
-          '\x1b[1;4A',
-        ),
-        (
-          _evt(TerminalKey.arrowUp, shift: true, ctrl: true),
-          '\x1b[1;6A',
-        ),
-        (
-          _evt(TerminalKey.arrowUp, ctrl: true, alt: true),
-          '\x1b[1;7A',
-        ),
+        (_evt(TerminalKey.arrowUp, shift: true, alt: true), '\x1b[1;4A'),
+        (_evt(TerminalKey.arrowUp, shift: true, ctrl: true), '\x1b[1;6A'),
+        (_evt(TerminalKey.arrowUp, ctrl: true, alt: true), '\x1b[1;7A'),
         // Triple.
-        (
-          _evt(TerminalKey.arrowUp, shift: true, alt: true, ctrl: true),
-          '\x1b[1;8A',
-        ),
+        (_evt(TerminalKey.arrowUp, shift: true, alt: true, ctrl: true), '\x1b[1;8A'),
       ];
       for (final c in cases) {
         expect(h(c.$1), c.$2, reason: '$c');
@@ -662,10 +597,7 @@ key Up : "fallback"
     });
 
     test('returns null on macOS (Alt is reserved for char composition)', () {
-      expect(
-        h(_evt(TerminalKey.keyA, alt: true, platform: TerminalTargetPlatform.macos)),
-        isNull,
-      );
+      expect(h(_evt(TerminalKey.keyA, alt: true, platform: TerminalTargetPlatform.macos)), isNull);
     });
 
     test('returns null for non-letter keys', () {
@@ -680,10 +612,7 @@ key Up : "fallback"
 
     test('routes Ctrl+C to 0x03 via CtrlInputHandler when keytab misses', () {
       // Default keytab has no entry for Ctrl+keyC, so CtrlInputHandler runs.
-      expect(
-        defaultInputHandler(_evt(TerminalKey.keyC, ctrl: true)),
-        '\x03',
-      );
+      expect(defaultInputHandler(_evt(TerminalKey.keyC, ctrl: true)), '\x03');
     });
   });
 }

@@ -49,8 +49,8 @@ class ClideButton extends StatelessWidget {
               bg = pressed
                   ? tokens.buttonActiveBackground
                   : hovered
-                      ? tokens.buttonHoverBackground
-                      : tokens.buttonBackground;
+                  ? tokens.buttonHoverBackground
+                  : tokens.buttonBackground;
               fg = tokens.buttonForeground;
             case ClideButtonVariant.primary:
               bg = pressed ? tokens.panelActiveBorder : tokens.buttonActiveBackground;
@@ -67,11 +67,7 @@ class ClideButton extends StatelessWidget {
               border: Border.all(color: tokens.buttonBorder, width: 1),
               borderRadius: BorderRadius.circular(3),
             ),
-            child: ClideText(
-              label,
-              color: fg,
-              fontWeight: variant == ClideButtonVariant.primary ? FontWeight.w600 : FontWeight.w500,
-            ),
+            child: ClideText(label, color: fg, fontWeight: variant == ClideButtonVariant.primary ? FontWeight.w600 : FontWeight.w500),
           );
         },
       ),

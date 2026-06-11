@@ -12,13 +12,13 @@ import '../../helpers/kernel_fixture.dart';
 import '../../helpers/widget_harness.dart';
 
 Map<String, Object?> _t(String id, String title, String status, {String? type, String? parentId}) => {
-      'id': id,
-      'title': title,
-      'status': status,
-      'type': type ?? 'task',
-      'priority': 'medium',
-      if (parentId != null) 'parent_id': parentId,
-    };
+  'id': id,
+  'title': title,
+  'status': status,
+  'type': type ?? 'task',
+  'priority': 'medium',
+  'parent_id': ?parentId,
+};
 
 IpcResponse _list(List<Map<String, Object?>> tickets) => IpcResponse.ok(id: '', data: {'tickets': tickets});
 
@@ -50,12 +50,7 @@ void main() {
   });
 
   testWidgets('renders sectioned cards from the loaded list', (tester) async {
-    f.ipc.stub(
-        'pql.tickets.list',
-        (_) async => _list([
-              _t('T-1', 'Active thing', 'in_progress', parentId: 'T-9'),
-              _t('T-2', 'Queued thing', 'backlog'),
-            ]));
+    f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'Active thing', 'in_progress', parentId: 'T-9'), _t('T-2', 'Queued thing', 'backlog')]));
     await pumpView(tester);
 
     expect(find.textContaining('IN PROGRESS'), findsOneWidget);
@@ -68,12 +63,7 @@ void main() {
   });
 
   testWidgets('filter narrows the visible cards', (tester) async {
-    f.ipc.stub(
-        'pql.tickets.list',
-        (_) async => _list([
-              _t('T-1', 'Alpha', 'backlog'),
-              _t('T-2', 'Beta', 'backlog'),
-            ]));
+    f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'Alpha', 'backlog'), _t('T-2', 'Beta', 'backlog')]));
     await pumpView(tester);
     expect(find.text('Alpha'), findsOneWidget);
 
@@ -115,11 +105,12 @@ void main() {
 
   testWidgets('a load error is surfaced', (tester) async {
     f.ipc.stub(
-        'pql.tickets.list',
-        (_) async => IpcResponse.err(
-              id: '',
-              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
-            ));
+      'pql.tickets.list',
+      (_) async => IpcResponse.err(
+        id: '',
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+      ),
+    );
     await pumpView(tester);
     expect(find.text('boom'), findsOneWidget);
   });
@@ -158,12 +149,7 @@ void main() {
   // window — hence the 350ms pumps below.
 
   Future<void> loadTwoTypes(WidgetTester tester) async {
-    f.ipc.stub(
-        'pql.tickets.list',
-        (_) async => _list([
-              _t('T-1', 'a bug item', 'backlog', type: 'bug'),
-              _t('T-2', 'a task item', 'backlog', type: 'task'),
-            ]));
+    f.ipc.stub('pql.tickets.list', (_) async => _list([_t('T-1', 'a bug item', 'backlog', type: 'bug'), _t('T-2', 'a task item', 'backlog', type: 'task')]));
     await pumpView(tester);
   }
 

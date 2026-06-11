@@ -35,11 +35,7 @@ typedef ImagePathResolver = String? Function(String path);
 /// publisher so both ends point at one name.
 const imageShowChannel = 'image';
 
-void registerImageCommands(
-  DaemonDispatcher d,
-  MessagePublisher? Function() publisher, {
-  ImagePathResolver? resolve,
-}) {
+void registerImageCommands(DaemonDispatcher d, MessagePublisher? Function() publisher, {ImagePathResolver? resolve}) {
   d.register(
     'image.show',
     (req) async => _show(req, publisher, resolve),
@@ -55,15 +51,11 @@ void registerImageCommands(
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
-      id: id,
-      error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message, hint: hint),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message, hint: hint),
+);
 
-Future<IpcResponse> _show(
-  IpcRequest req,
-  MessagePublisher? Function() publisherSource,
-  ImagePathResolver? resolve,
-) async {
+Future<IpcResponse> _show(IpcRequest req, MessagePublisher? Function() publisherSource, ImagePathResolver? resolve) async {
   final path = req.args['path'] as String?;
   if (path == null || path.trim().isEmpty) {
     return _userErr(req.id, 'an image path is required (e.g. `image show docs/diagram.png`)');
@@ -71,11 +63,7 @@ Future<IpcResponse> _show(
 
   final ext = _extensionOf(path);
   if (!imageShowExtensions.contains(ext)) {
-    return _userErr(
-      req.id,
-      'unsupported image format${ext.isEmpty ? '' : ' ".$ext"'}',
-      hint: 'one of: ${(imageShowExtensions.toList()..sort()).join(', ')}',
-    );
+    return _userErr(req.id, 'unsupported image format${ext.isEmpty ? '' : ' ".$ext"'}', hint: 'one of: ${(imageShowExtensions.toList()..sort()).join(', ')}');
   }
 
   // Resolve to a concrete file before publishing, so the CLI fails honestly on
@@ -114,7 +102,7 @@ Future<IpcResponse> _show(
     if (caption != null && caption.trim().isNotEmpty) 'caption': caption.trim(),
     if (fullscreen) 'fullscreen': true,
   });
-  return IpcResponse.ok(id: req.id, data: {'path': resolved, if (caption != null) 'caption': caption, 'fullscreen': fullscreen, 'shown': true});
+  return IpcResponse.ok(id: req.id, data: {'path': resolved, 'caption': ?caption, 'fullscreen': fullscreen, 'shown': true});
 }
 
 /// Lower-cased extension (without the dot) of [path], or '' if none.

@@ -46,24 +46,15 @@ depends_on: [builtin.git, 42, builtin.diff]
     });
 
     test('missing id throws FormatException', () {
-      expect(
-        () => ExtensionManifest.fromYamlString('title: Floating'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => ExtensionManifest.fromYamlString('title: Floating'), throwsA(isA<FormatException>()));
     });
 
     test('empty id throws FormatException', () {
-      expect(
-        () => ExtensionManifest.fromYamlString('id: ""'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => ExtensionManifest.fromYamlString('id: ""'), throwsA(isA<FormatException>()));
     });
 
     test('non-map root throws FormatException', () {
-      expect(
-        () => ExtensionManifest.fromYamlString('- just a list'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => ExtensionManifest.fromYamlString('- just a list'), throwsA(isA<FormatException>()));
     });
   });
 }

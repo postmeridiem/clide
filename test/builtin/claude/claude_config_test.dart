@@ -49,27 +49,10 @@ void main() {
     await File('${scope.path}/settings.json').writeAsString(jsonEncode(json));
   }
 
-  String initLine({
-    String version = '2.1.150',
-    List<String> slash = const ['clear', 'pql'],
-    List<String> skills = const ['pql'],
-  }) =>
-      '${jsonEncode({
-            'type': 'system',
-            'subtype': 'init',
-            'claude_code_version': version,
-            'slash_commands': slash,
-            'skills': skills,
-            'model': 'claude-opus-4-7',
-            'permissionMode': 'default',
-          })}\n';
+  String initLine({String version = '2.1.150', List<String> slash = const ['clear', 'pql'], List<String> skills = const ['pql']}) =>
+      '${jsonEncode({'type': 'system', 'subtype': 'init', 'claude_code_version': version, 'slash_commands': slash, 'skills': skills, 'model': 'claude-opus-4-7', 'permissionMode': 'default'})}\n';
 
-  ClaudeConfig build({
-    ClaudeVersionRunner? versionRunner,
-    ClaudeInitProbe? initProbe,
-    ClaudeConfigWatch? watch,
-    Duration debounce = Duration.zero,
-  }) =>
+  ClaudeConfig build({ClaudeVersionRunner? versionRunner, ClaudeInitProbe? initProbe, ClaudeConfigWatch? watch, Duration debounce = Duration.zero}) =>
       ClaudeConfig(
         globalDir: globalDir,
         cacheDir: cacheDir,
@@ -111,14 +94,14 @@ void main() {
       'keep': 1,
       'permissions': {
         'allow': ['Bash'],
-        'deny': ['Write']
+        'deny': ['Write'],
       },
     });
     await writeSettings(localDir, {
       'model': 'sonnet',
       'permissions': {
         'allow': ['Edit'],
-        'ask': ['Read']
+        'ask': ['Read'],
       },
     });
 
@@ -152,10 +135,12 @@ void main() {
 
   test('load stays on the fallback until ensureProbe runs (no eager turn)', () async {
     var probeCalls = 0;
-    final c = build(initProbe: () async {
-      probeCalls++;
-      return initLine(slash: ['clear', 'pql', 'whats-next']);
-    });
+    final c = build(
+      initProbe: () async {
+        probeCalls++;
+        return initLine(slash: ['clear', 'pql', 'whats-next']);
+      },
+    );
     await c.load();
     expect(probeCalls, 0, reason: 'load must never pay for a model turn');
     expect(c.slashCommands, kFallbackSlashCommands);
@@ -192,10 +177,12 @@ void main() {
 
   test('a different claude version misses the cache and re-probes', () async {
     var probeCalls = 0;
-    final c1 = build(initProbe: () async {
-      probeCalls++;
-      return initLine();
-    });
+    final c1 = build(
+      initProbe: () async {
+        probeCalls++;
+        return initLine();
+      },
+    );
     await c1.load();
     await c1.ensureProbe();
     expect(probeCalls, 1);
@@ -281,10 +268,12 @@ void main() {
 
   test('explicit refresh re-reads disk without re-resolving the version', () async {
     var versionCalls = 0;
-    final c = build(versionRunner: () async {
-      versionCalls++;
-      return '2.1.150 (Claude Code)\n';
-    });
+    final c = build(
+      versionRunner: () async {
+        versionCalls++;
+        return '2.1.150 (Claude Code)\n';
+      },
+    );
     await c.load();
     expect(versionCalls, 1);
 

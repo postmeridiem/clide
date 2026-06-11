@@ -12,9 +12,9 @@ import '../../helpers/kernel_fixture.dart';
 
 IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data);
 IpcResponse _err(String m) => IpcResponse.err(
-      id: '',
-      error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: m),
-    );
+  id: '',
+  error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: m),
+);
 
 void main() {
   late KernelFixture f;
@@ -48,12 +48,13 @@ void main() {
 
   test('search populates ranked results', () async {
     f.ipc.stub(
-        'pql.search',
-        (args) async => _ok({
-              'results': [
-                {'path': 'a.md', 'score': 0.8},
-              ],
-            }));
+      'pql.search',
+      (args) async => _ok({
+        'results': [
+          {'path': 'a.md', 'score': 0.8},
+        ],
+      }),
+    );
     await c.search('term');
     expect(c.results.single['path'], 'a.md');
     expect(c.error, isNull);
@@ -78,12 +79,13 @@ void main() {
 
   test('runQuery populates rows; error surfaces', () async {
     f.ipc.stub(
-        'pql.query',
-        (args) async => _ok({
-              'results': [
-                {'name': 'T-1'},
-              ],
-            }));
+      'pql.query',
+      (args) async => _ok({
+        'results': [
+          {'name': 'T-1'},
+        ],
+      }),
+    );
     await c.runQuery("type = 'ticket'");
     expect(c.results.single['name'], 'T-1');
 
@@ -95,12 +97,13 @@ void main() {
 
   test('loadMarkdownFiles populates + errors', () async {
     f.ipc.stub(
-        'pql.files',
-        (args) async => _ok({
-              'files': [
-                {'path': 'docs/x.md'},
-              ],
-            }));
+      'pql.files',
+      (args) async => _ok({
+        'files': [
+          {'path': 'docs/x.md'},
+        ],
+      }),
+    );
     await c.loadMarkdownFiles();
     expect(c.results.single['path'], 'docs/x.md');
 
@@ -126,12 +129,13 @@ void main() {
 
   test('setSearchMode + toggleSearchMode flip the mode and clear results', () async {
     f.ipc.stub(
-        'pql.search',
-        (_) async => _ok({
-              'results': [
-                {'path': 'a.md', 'score': 0.5},
-              ],
-            }));
+      'pql.search',
+      (_) async => _ok({
+        'results': [
+          {'path': 'a.md', 'score': 0.5},
+        ],
+      }),
+    );
     await c.search('x');
     expect(c.results, isNotEmpty);
     c.setSearchMode(SearchMode.dsl);

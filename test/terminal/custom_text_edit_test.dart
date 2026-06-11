@@ -19,12 +19,12 @@ class _Recorder {
 }
 
 Widget _host(Widget child) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: MediaQuery(
-        data: const MediaQueryData(),
-        child: Center(child: SizedBox(width: 200, height: 100, child: child)),
-      ),
-    );
+  textDirection: TextDirection.ltr,
+  child: MediaQuery(
+    data: const MediaQueryData(),
+    child: Center(child: SizedBox(width: 200, height: 100, child: child)),
+  ),
+);
 
 CustomTextEdit _build({
   required FocusNode focusNode,
@@ -43,7 +43,8 @@ CustomTextEdit _build({
     onDelete: () => r.deletes++,
     onComposing: r.composings.add,
     onAction: r.actions.add,
-    onKeyEvent: onKeyEvent ??
+    onKeyEvent:
+        onKeyEvent ??
         (node, event) {
           r.keys.add(event);
           return KeyEventResult.ignored;
@@ -230,10 +231,7 @@ void main() {
       await tester.pump();
       final state = tester.state<CustomTextEditState>(find.byType(CustomTextEdit));
       // Send a value shorter than the init state (2 chars) directly.
-      state.updateEditingValue(const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      ));
+      state.updateEditingValue(const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0)));
       expect(r.deletes, 1);
     });
 
@@ -244,11 +242,7 @@ void main() {
       await tester.pumpWidget(_host(_build(focusNode: focus, r: r, autofocus: true)));
       await tester.pump();
       final state = tester.state<CustomTextEditState>(find.byType(CustomTextEdit));
-      state.updateEditingValue(const TextEditingValue(
-        text: 'hi',
-        selection: TextSelection.collapsed(offset: 2),
-        composing: TextRange(start: 0, end: 2),
-      ));
+      state.updateEditingValue(const TextEditingValue(text: 'hi', selection: TextSelection.collapsed(offset: 2), composing: TextRange(start: 0, end: 2)));
       expect(r.composings, contains('hi'));
     });
 

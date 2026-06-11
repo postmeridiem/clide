@@ -55,10 +55,7 @@ class _ClideStatusIndicatorState extends State<ClideStatusIndicator> {
     return Semantics(
       label: label,
       container: true,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: glyph,
-      ),
+      child: AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: glyph),
     );
   }
 }

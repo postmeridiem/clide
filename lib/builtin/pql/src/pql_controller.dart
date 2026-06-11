@@ -71,10 +71,7 @@ class PqlController extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
-    final r = await ipc.request('pql.search', args: {
-      'terms': terms,
-      'limit': 50,
-    });
+    final r = await ipc.request('pql.search', args: {'terms': terms, 'limit': 50});
 
     _loading = false;
     if (!r.ok) {
@@ -91,10 +88,7 @@ class PqlController extends ChangeNotifier {
     _loading = true;
     notifyListeners();
 
-    final r = await ipc.request('pql.files', args: {
-      'glob': glob ?? '**/*.md',
-      'limit': 200,
-    });
+    final r = await ipc.request('pql.files', args: {'glob': glob ?? '**/*.md', 'limit': 200});
 
     _loading = false;
     if (!r.ok) {
@@ -113,10 +107,7 @@ class PqlController extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
-    final r = await ipc.request('pql.query', args: {
-      'query': dsl,
-      'limit': 200,
-    });
+    final r = await ipc.request('pql.query', args: {'query': dsl, 'limit': 200});
 
     _loading = false;
     if (!r.ok) {

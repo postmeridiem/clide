@@ -29,14 +29,12 @@ const String argvSentinelCmd = '_argv';
 ArgvParseResult unwrapArgvRequest(IpcRequest outer) {
   final raw = outer.args['argv'];
   if (raw is! List) {
-    return ArgvError(IpcResponse.err(
-      id: outer.id,
-      error: IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: '_argv requires args.argv to be a JSON array',
+    return ArgvError(
+      IpcResponse.err(
+        id: outer.id,
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: '_argv requires args.argv to be a JSON array'),
       ),
-    ));
+    );
   }
   return parseArgv(raw.cast<String>(), requestId: outer.id);
 }

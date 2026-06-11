@@ -33,11 +33,7 @@ class _ClideSelectionAreaState extends State<ClideSelectionArea> {
   @override
   Widget build(BuildContext context) {
     return DefaultTextEditingShortcuts(
-      child: SelectableRegion(
-        focusNode: _focusNode,
-        selectionControls: emptyTextSelectionControls,
-        child: widget.child,
-      ),
+      child: SelectableRegion(focusNode: _focusNode, selectionControls: emptyTextSelectionControls, child: widget.child),
     );
   }
 }

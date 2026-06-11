@@ -77,90 +77,58 @@ class _GitPanelViewState extends State<GitPanelView> {
             children: [
               ClideFilterBox(address: 'git.panel', hint: 'Filter changes…', onChanged: (v) => setState(() => _filter = v)),
               Expanded(
-                  child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _BranchHeader(controller: c),
-                    if (c.error != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        child: ClideText(
-                          c.error!,
-                          color: tokens.statusError,
-                          fontSize: clideFontCaption,
-                          maxLines: 3,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _BranchHeader(controller: c),
+                      if (c.error != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption, maxLines: 3),
                         ),
-                      ),
-                    if (c.loading && c.isClean)
-                      const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: ClideText('Loading…', muted: true),
-                      ),
-                    if (!c.loading && c.isClean && c.error == null)
-                      const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: ClideText('Nothing to commit, working tree clean.', muted: true),
-                      ),
-                    if (c.conflicted.isNotEmpty)
-                      _FileGroup(
-                        label: 'Merge conflicts',
-                        entries: _applyFilter(c.conflicted),
-                        actions: const [],
-                      ),
-                    if (c.staged.isNotEmpty) ...[
-                      _FileGroup(
-                        label: 'Staged',
-                        entries: _applyFilter(c.staged),
-                        actions: [
-                          _GroupAction(
-                            label: 'Unstage all',
-                            onTap: () => unawaited(c.unstage(const [])),
-                          ),
-                        ],
-                        onUnstage: (path) => unawaited(c.unstage([path])),
-                      ),
-                      _CommitInput(
-                        commitMsg: _commitMsg,
-                        commitFocus: _commitFocus,
-                        controller: c,
-                      ),
+                      if (c.loading && c.isClean) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+                      if (!c.loading && c.isClean && c.error == null)
+                        const Padding(padding: EdgeInsets.all(12), child: ClideText('Nothing to commit, working tree clean.', muted: true)),
+                      if (c.conflicted.isNotEmpty) _FileGroup(label: 'Merge conflicts', entries: _applyFilter(c.conflicted), actions: const []),
+                      if (c.staged.isNotEmpty) ...[
+                        _FileGroup(
+                          label: 'Staged',
+                          entries: _applyFilter(c.staged),
+                          actions: [_GroupAction(label: 'Unstage all', onTap: () => unawaited(c.unstage(const [])))],
+                          onUnstage: (path) => unawaited(c.unstage([path])),
+                        ),
+                        _CommitInput(commitMsg: _commitMsg, commitFocus: _commitFocus, controller: c),
+                      ],
+                      if (c.unstaged.isNotEmpty)
+                        _FileGroup(
+                          label: 'Changes',
+                          entries: _applyFilter(c.unstaged),
+                          actions: [_GroupAction(label: 'Stage all', onTap: () => unawaited(c.stageAll()))],
+                          onStage: (path) => unawaited(c.stage([path])),
+                          onDiscard: (path) => _confirmDiscard(context, c, path),
+                        ),
+                      if (c.untracked.isNotEmpty)
+                        _FileGroup(
+                          label: 'Untracked',
+                          entries: _applyFilter(c.untracked),
+                          actions: [
+                            _GroupAction(
+                              label: 'Stage all',
+                              onTap: () {
+                                final paths = [for (final e in c.untracked) e['path'] as String];
+                                unawaited(c.stage(paths));
+                              },
+                            ),
+                          ],
+                          onStage: (path) => unawaited(c.stage([path])),
+                        ),
                     ],
-                    if (c.unstaged.isNotEmpty)
-                      _FileGroup(
-                        label: 'Changes',
-                        entries: _applyFilter(c.unstaged),
-                        actions: [
-                          _GroupAction(
-                            label: 'Stage all',
-                            onTap: () => unawaited(c.stageAll()),
-                          ),
-                        ],
-                        onStage: (path) => unawaited(c.stage([path])),
-                        onDiscard: (path) => _confirmDiscard(context, c, path),
-                      ),
-                    if (c.untracked.isNotEmpty)
-                      _FileGroup(
-                        label: 'Untracked',
-                        entries: _applyFilter(c.untracked),
-                        actions: [
-                          _GroupAction(
-                            label: 'Stage all',
-                            onTap: () {
-                              final paths = [
-                                for (final e in c.untracked) e['path'] as String,
-                              ];
-                              unawaited(c.stage(paths));
-                            },
-                          ),
-                        ],
-                        onStage: (path) => unawaited(c.stage([path])),
-                      ),
-                  ],
+                  ),
                 ),
-              )),
+              ),
             ],
           ),
         );
@@ -185,23 +153,11 @@ class _BranchHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: ClideText(
-              parts.join(' '),
-              fontSize: clideFontCaption,
-              color: tokens.sidebarForeground,
-            ),
+            child: ClideText(parts.join(' '), fontSize: clideFontCaption, color: tokens.sidebarForeground),
           ),
-          _SmallAction(
-            label: 'Pull',
-            semanticsLabel: 'git pull',
-            onTap: () => unawaited(controller.pull()),
-          ),
+          _SmallAction(label: 'Pull', semanticsLabel: 'git pull', onTap: () => unawaited(controller.pull())),
           const SizedBox(width: 4),
-          _SmallAction(
-            label: 'Push',
-            semanticsLabel: 'git push',
-            onTap: () => unawaited(controller.push()),
-          ),
+          _SmallAction(label: 'Push', semanticsLabel: 'git push', onTap: () => unawaited(controller.push())),
         ],
       ),
     );
@@ -209,11 +165,7 @@ class _BranchHeader extends StatelessWidget {
 }
 
 class _CommitInput extends StatelessWidget {
-  const _CommitInput({
-    required this.commitMsg,
-    required this.commitFocus,
-    required this.controller,
-  });
+  const _CommitInput({required this.commitMsg, required this.commitFocus, required this.controller});
 
   final TextEditingController commitMsg;
   final FocusNode commitFocus;
@@ -232,19 +184,12 @@ class _CommitInput extends StatelessWidget {
             label: 'commit message',
             textField: true,
             child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: tokens.globalBorder),
-              ),
+              decoration: BoxDecoration(border: Border.all(color: tokens.globalBorder)),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: EditableText(
                 controller: commitMsg,
                 focusNode: commitFocus,
-                style: TextStyle(
-                  fontFamily: clideUiFamily,
-                  fontWeight: clideUiDefaultWeight,
-                  fontSize: clideFontCaption,
-                  color: tokens.globalForeground,
-                ),
+                style: TextStyle(fontFamily: clideUiFamily, fontWeight: clideUiDefaultWeight, fontSize: clideFontCaption, color: tokens.globalForeground),
                 cursorColor: tokens.globalFocus,
                 backgroundCursorColor: tokens.globalFocus,
                 maxLines: 3,
@@ -268,9 +213,11 @@ class _CommitInput extends StatelessWidget {
   void _doCommit() {
     final msg = commitMsg.text.trim();
     if (msg.isEmpty) return;
-    unawaited(controller.commit(msg).then((hash) {
-      if (hash != null) commitMsg.clear();
-    }));
+    unawaited(
+      controller.commit(msg).then((hash) {
+        if (hash != null) commitMsg.clear();
+      }),
+    );
   }
 }
 
@@ -281,14 +228,7 @@ class _GroupAction {
 }
 
 class _FileGroup extends StatelessWidget {
-  const _FileGroup({
-    required this.label,
-    required this.entries,
-    this.actions = const [],
-    this.onStage,
-    this.onUnstage,
-    this.onDiscard,
-  });
+  const _FileGroup({required this.label, required this.entries, this.actions = const [], this.onStage, this.onUnstage, this.onDiscard});
 
   final String label;
   final List<Map<String, Object?>> entries;
@@ -309,39 +249,20 @@ class _FileGroup extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: ClideText(
-                  '$label (${entries.length})',
-                  fontSize: clideFontCaption,
-                  muted: true,
-                  color: tokens.sidebarForeground,
-                ),
+                child: ClideText('$label (${entries.length})', fontSize: clideFontCaption, muted: true, color: tokens.sidebarForeground),
               ),
-              for (final a in actions) ...[
-                _SmallAction(label: a.label, onTap: a.onTap),
-                const SizedBox(width: 4),
-              ],
+              for (final a in actions) ...[_SmallAction(label: a.label, onTap: a.onTap), const SizedBox(width: 4)],
             ],
           ),
         ),
-        for (final entry in entries)
-          _GitFileRow(
-            entry: entry,
-            onStage: onStage,
-            onUnstage: onUnstage,
-            onDiscard: onDiscard,
-          ),
+        for (final entry in entries) _GitFileRow(entry: entry, onStage: onStage, onUnstage: onUnstage, onDiscard: onDiscard),
       ],
     );
   }
 }
 
 class _GitFileRow extends StatelessWidget {
-  const _GitFileRow({
-    required this.entry,
-    this.onStage,
-    this.onUnstage,
-    this.onDiscard,
-  });
+  const _GitFileRow({required this.entry, this.onStage, this.onUnstage, this.onDiscard});
 
   final Map<String, Object?> entry;
   final void Function(String path)? onStage;
@@ -371,39 +292,15 @@ class _GitFileRow extends StatelessWidget {
           padding: const EdgeInsets.only(left: 20, right: 8, top: 2, bottom: 2),
           child: Row(
             children: [
-              ClideText(
-                _stateIndicator(state),
-                fontSize: clideFontCaption,
-                color: _stateColor(state, tokens),
-              ),
+              ClideText(_stateIndicator(state), fontSize: clideFontCaption, color: _stateColor(state, tokens)),
               const SizedBox(width: 6),
               Expanded(
-                child: ClideText(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  color: tokens.sidebarForeground,
-                ),
+                child: ClideText(name, maxLines: 1, overflow: TextOverflow.ellipsis, color: tokens.sidebarForeground),
               ),
               if (hovered) ...[
-                if (onStage != null)
-                  _SmallAction(
-                    label: '+',
-                    semanticsLabel: 'stage $name',
-                    onTap: () => onStage!(path),
-                  ),
-                if (onUnstage != null)
-                  _SmallAction(
-                    label: '-',
-                    semanticsLabel: 'unstage $name',
-                    onTap: () => onUnstage!(path),
-                  ),
-                if (onDiscard != null)
-                  _SmallAction(
-                    label: 'x',
-                    semanticsLabel: 'discard changes to $name',
-                    onTap: () => onDiscard!(path),
-                  ),
+                if (onStage != null) _SmallAction(label: '+', semanticsLabel: 'stage $name', onTap: () => onStage!(path)),
+                if (onUnstage != null) _SmallAction(label: '-', semanticsLabel: 'unstage $name', onTap: () => onUnstage!(path)),
+                if (onDiscard != null) _SmallAction(label: 'x', semanticsLabel: 'discard changes to $name', onTap: () => onDiscard!(path)),
               ],
             ],
           ),
@@ -447,11 +344,7 @@ class _GitFileRow extends StatelessWidget {
 }
 
 class _SmallAction extends StatelessWidget {
-  const _SmallAction({
-    required this.label,
-    required this.onTap,
-    this.semanticsLabel,
-  });
+  const _SmallAction({required this.label, required this.onTap, this.semanticsLabel});
 
   final String label;
   final String? semanticsLabel;
@@ -467,11 +360,7 @@ class _SmallAction extends StatelessWidget {
         onTap: onTap,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: ClideText(
-            label,
-            fontSize: clideFontCaption,
-            color: tokens.sidebarForeground,
-          ),
+          child: ClideText(label, fontSize: clideFontCaption, color: tokens.sidebarForeground),
         ),
       ),
     );
@@ -479,11 +368,7 @@ class _SmallAction extends StatelessWidget {
 }
 
 class _DiscardConfirmDialog extends StatelessWidget {
-  const _DiscardConfirmDialog({
-    required this.path,
-    required this.onConfirm,
-    required this.onCancel,
-  });
+  const _DiscardConfirmDialog({required this.path, required this.onConfirm, required this.onCancel});
 
   final String path;
   final VoidCallback onConfirm;
@@ -505,30 +390,16 @@ class _DiscardConfirmDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClideText(
-            'Discard changes?',
-            color: tokens.globalForeground,
-          ),
+          ClideText('Discard changes?', color: tokens.globalForeground),
           const SizedBox(height: 8),
-          ClideText(
-            'Unstaged changes to $name will be permanently lost.',
-            fontSize: clideFontCaption,
-            color: tokens.statusError,
-          ),
+          ClideText('Unstaged changes to $name will be permanently lost.', fontSize: clideFontCaption, color: tokens.statusError),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ClideButton(
-                label: 'Cancel',
-                variant: ClideButtonVariant.subtle,
-                onPressed: onCancel,
-              ),
+              ClideButton(label: 'Cancel', variant: ClideButtonVariant.subtle, onPressed: onCancel),
               const SizedBox(width: 8),
-              ClideButton(
-                label: 'Discard',
-                onPressed: onConfirm,
-              ),
+              ClideButton(label: 'Discard', onPressed: onConfirm),
             ],
           ),
         ],

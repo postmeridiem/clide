@@ -16,23 +16,12 @@ enum PaneKind {
   String get wire => name;
 
   static PaneKind parse(String s) {
-    return PaneKind.values.firstWhere(
-      (v) => v.wire == s,
-      orElse: () => throw ArgumentError.value(s, 'kind', 'unknown pane kind'),
-    );
+    return PaneKind.values.firstWhere((v) => v.wire == s, orElse: () => throw ArgumentError.value(s, 'kind', 'unknown pane kind'));
   }
 }
 
 class Pane {
-  Pane({
-    required this.id,
-    required this.kind,
-    required this.pid,
-    required this.argv,
-    this.cwd,
-    this.title,
-    this.isClosed = false,
-  });
+  Pane({required this.id, required this.kind, required this.pid, required this.argv, this.cwd, this.title, this.isClosed = false});
 
   final String id;
   final PaneKind kind;
@@ -47,12 +36,12 @@ class Pane {
   bool isClosed;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'kind': kind.wire,
-        'pid': pid,
-        'argv': argv,
-        if (cwd != null) 'cwd': cwd,
-        if (title != null) 'title': title,
-        'closed': isClosed,
-      };
+    'id': id,
+    'kind': kind.wire,
+    'pid': pid,
+    'argv': argv,
+    if (cwd != null) 'cwd': cwd,
+    if (title != null) 'title': title,
+    'closed': isClosed,
+  };
 }

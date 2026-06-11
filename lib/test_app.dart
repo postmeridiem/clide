@@ -100,15 +100,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     // Emitted under a distinct source so the harness's grep
     // (`make run-testmode` checks for `"failed":0`) keeps working
     // without depending on the human-readable lines above.
-    _logger.info(
-      'testmode:json',
-      jsonEncode({
-        'passed': passed,
-        'failed': failed,
-        'total': _results.length,
-        'failures': failedNames,
-      }),
-    );
+    _logger.info('testmode:json', jsonEncode({'passed': passed, 'failed': failed, 'total': _results.length, 'failures': failedNames}));
 
     setState(() => _done = true);
     await Future<void>.delayed(const Duration(seconds: 2));
@@ -198,30 +190,18 @@ class _ClideTestAppState extends State<ClideTestApp> {
     // ping round-trip
     final pingReq = IpcRequest(id: 'test-ping-1', cmd: 'ping');
     final pingResp = await dispatcher.dispatch(pingReq);
-    _addResult(
-      'ipc ping',
-      pingResp.ok && pingResp.data['pong'] == true,
-      pingResp.ok ? 'pong=${pingResp.data['pong']}' : 'error: ${pingResp.error?.message}',
-    );
+    _addResult('ipc ping', pingResp.ok && pingResp.data['pong'] == true, pingResp.ok ? 'pong=${pingResp.data['pong']}' : 'error: ${pingResp.error?.message}');
 
     // version round-trip
     final verReq = IpcRequest(id: 'test-ver-1', cmd: 'version');
     final verResp = await dispatcher.dispatch(verReq);
     final version = verResp.data['version'];
-    _addResult(
-      'ipc version',
-      verResp.ok && version is String && version.isNotEmpty,
-      'version=$version',
-    );
+    _addResult('ipc version', verResp.ok && version is String && version.isNotEmpty, 'version=$version');
 
     // unknown command → notFound
     final badReq = IpcRequest(id: 'test-bad-1', cmd: 'no_such_command');
     final badResp = await dispatcher.dispatch(badReq);
-    _addResult(
-      'ipc unknown cmd',
-      !badResp.ok && badResp.error?.kind == 'not_found',
-      badResp.ok ? 'unexpected ok' : 'kind=${badResp.error?.kind}',
-    );
+    _addResult('ipc unknown cmd', !badResp.ok && badResp.error?.kind == 'not_found', badResp.ok ? 'unexpected ok' : 'kind=${badResp.error?.kind}');
 
     // envelope encode/decode round-trip
     final encoded = pingReq.encode();
@@ -282,12 +262,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
         toolchain: tc,
       );
 
-      final extensions = <ClideExtension>[
-        DiffExtension(),
-        FilesExtension(),
-        GitExtension(),
-        TerminalExtension(),
-      ];
+      final extensions = <ClideExtension>[DiffExtension(), FilesExtension(), GitExtension(), TerminalExtension()];
 
       for (final ext in extensions) {
         try {
@@ -453,10 +428,15 @@ class _ClideTestAppState extends State<ClideTestApp> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('ClideTestApp', style: TextStyle(color: Color(0xFFCDD6F4), fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+            const Text(
+              'ClideTestApp',
+              style: TextStyle(color: Color(0xFFCDD6F4), fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+            ),
             const SizedBox(height: 4),
-            Text(_done ? 'Done — exiting' : 'Running tests...',
-                style: const TextStyle(color: Color(0xFF6C7086), fontSize: 13, decoration: TextDecoration.none)),
+            Text(
+              _done ? 'Done — exiting' : 'Running tests...',
+              style: const TextStyle(color: Color(0xFF6C7086), fontSize: 13, decoration: TextDecoration.none),
+            ),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
@@ -467,17 +447,25 @@ class _ClideTestAppState extends State<ClideTestApp> {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: [
-                        Text(r.ok ? '●' : '●',
-                            style: TextStyle(color: r.ok ? const Color(0xFFA6E3A1) : const Color(0xFFF38BA8), fontSize: 12, decoration: TextDecoration.none)),
+                        Text(
+                          r.ok ? '●' : '●',
+                          style: TextStyle(color: r.ok ? const Color(0xFFA6E3A1) : const Color(0xFFF38BA8), fontSize: 12, decoration: TextDecoration.none),
+                        ),
                         const SizedBox(width: 8),
                         SizedBox(
-                            width: 220,
-                            child: Text(r.name,
-                                style: const TextStyle(color: Color(0xFFCDD6F4), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none))),
+                          width: 220,
+                          child: Text(
+                            r.name,
+                            style: const TextStyle(color: Color(0xFFCDD6F4), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none),
+                          ),
+                        ),
                         Expanded(
-                            child: Text(r.output,
-                                style: const TextStyle(color: Color(0xFF9399B2), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none),
-                                overflow: TextOverflow.ellipsis)),
+                          child: Text(
+                            r.output,
+                            style: const TextStyle(color: Color(0xFF9399B2), fontSize: 12, fontFamily: 'monospace', decoration: TextDecoration.none),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -497,12 +485,7 @@ class _TestEventSink implements DaemonEventSink {
 
   @override
   void emit(IpcEvent event) {
-    _bus.emit(DaemonEvent(
-      subsystem: event.subsystem,
-      kind: event.kind,
-      data: event.data,
-      ts: DateTime.now(),
-    ));
+    _bus.emit(DaemonEvent(subsystem: event.subsystem, kind: event.kind, data: event.data, ts: DateTime.now()));
   }
 }
 

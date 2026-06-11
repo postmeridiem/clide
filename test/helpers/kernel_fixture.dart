@@ -34,7 +34,7 @@ class KernelFixture {
       preloadNamespaces: preloadNamespaces ?? catalogs.keys.toList(),
       defaultLocale: defaultLocale,
       initialLocale: initialLocale,
-      daemonClientFactory: (log, events, _, __) {
+      daemonClientFactory: (log, events, _, _) {
         fake = FakeDaemonClient(log: log, events: events);
         return fake!;
       },
@@ -45,11 +45,7 @@ class KernelFixture {
       // ~10 minutes (T-280); `existsSync` opens no native port, so it's safe.
       onValidateProject: onValidateProject ?? _walkForGitRoot,
     );
-    return KernelFixture._(
-      services: services,
-      ipc: fake!,
-      tempDir: tempDir,
-    );
+    return KernelFixture._(services: services, ipc: fake!, tempDir: tempDir);
   }
 
   Future<void> dispose() async {
@@ -100,10 +96,5 @@ ThemeDefinition _miniTheme() {
     'error': Color(0xFFF06C6F),
     'info': Color(0xFF00A3D2),
   };
-  return const ThemeDefinition(
-    name: 'test',
-    displayName: 'Test',
-    dark: true,
-    palette: Palette(palette),
-  );
+  return const ThemeDefinition(name: 'test', displayName: 'Test', dark: true, palette: Palette(palette));
 }

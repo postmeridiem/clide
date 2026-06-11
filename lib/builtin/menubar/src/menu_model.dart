@@ -108,12 +108,7 @@ String? keymapBindingLabel(KeymapService keymap, String commandId) {
 /// menus. [bindingLabel] supplies the keybinding string for a command id
 /// (typically [keymapBindingLabel] bound to the keymap); when it returns null
 /// the command's own `defaultBinding` is used as a fallback.
-List<ResolvedMenu> resolveMenus(
-  List<TopMenu> tree,
-  CommandRegistry registry,
-  KernelServices services, {
-  String? Function(String commandId)? bindingLabel,
-}) {
+List<ResolvedMenu> resolveMenus(List<TopMenu> tree, CommandRegistry registry, KernelServices services, {String? Function(String commandId)? bindingLabel}) {
   final placed = <String>{
     for (final m in tree)
       for (final n in m.nodes)
@@ -140,12 +135,10 @@ List<ResolvedMenu> resolveMenus(
   }
 
   List<ResolvedNode> expand(MenuNode n) => switch (n) {
-        MenuCommandItem() => [resolveItem(n)],
-        MenuSeparator() => const [ResolvedSeparator()],
-        MenuAutoFill(:final prefix) => [
-            for (final c in _autoFill(registry, prefix, placed)) resolveItem(MenuCommandItem(c.command)),
-          ],
-      };
+    MenuCommandItem() => [resolveItem(n)],
+    MenuSeparator() => const [ResolvedSeparator()],
+    MenuAutoFill(:final prefix) => [for (final c in _autoFill(registry, prefix, placed)) resolveItem(MenuCommandItem(c.command))],
+  };
 
   return [
     for (final m in tree) ResolvedMenu(title: m.title, mnemonic: m.mnemonic, items: [for (final n in m.nodes) ...expand(n)]),

@@ -19,10 +19,7 @@ import 'package:test/test.dart';
 
 Logger _silent() => Logger(minLevel: LogLevel.error, sinks: const []);
 
-Future<Socket> _connect(IpcServer s) async => Socket.connect(
-      InternetAddress(s.socketPath, type: InternetAddressType.unix),
-      0,
-    );
+Future<Socket> _connect(IpcServer s) async => Socket.connect(InternetAddress(s.socketPath, type: InternetAddressType.unix), 0);
 
 /// Wrap a Socket in a line iterator backed by a single broadcast
 /// stream so the same connection can read multiple framed lines.
@@ -50,15 +47,12 @@ Future<void> _send(Socket s, IpcRequest req) async {
 }
 
 IpcRequest _tailReq({String? filter, String id = 't'}) => IpcRequest(
-      id: id,
-      cmd: 'tail',
-      args: {
-        'flags': {
-          'events': true,
-          if (filter != null) 'filter': filter,
-        },
-      },
-    );
+  id: id,
+  cmd: 'tail',
+  args: {
+    'flags': {'events': true, 'filter': ?filter},
+  },
+);
 
 void main() {
   late Directory ws;
@@ -70,8 +64,13 @@ void main() {
     ws = await Directory.systemTemp.createTemp('clide-stream-test-');
     dispatcher = DaemonDispatcher();
     bus = DaemonBus();
-    server =
-        IpcServer(dispatcher: dispatcher, workspaceRoot: '${ws.path}/${DateTime.now().microsecondsSinceEpoch}', log: _silent(), events: bus, replayDepth: 4);
+    server = IpcServer(
+      dispatcher: dispatcher,
+      workspaceRoot: '${ws.path}/${DateTime.now().microsecondsSinceEpoch}',
+      log: _silent(),
+      events: bus,
+      replayDepth: 4,
+    );
     await server.start();
   });
 
@@ -213,10 +212,15 @@ void main() {
     final r = _lineReader(s);
     final q = _Lines(r.lines);
     await _send(
-        s,
-        IpcRequest(id: 'a', cmd: '_argv', args: {
+      s,
+      IpcRequest(
+        id: 'a',
+        cmd: '_argv',
+        args: {
           'argv': ['tail', '--events', '--filter', 'pane'],
-        }));
+        },
+      ),
+    );
     final ack = IpcMessage.decode(await q.next()) as IpcResponse;
     expect(ack.ok, isTrue);
     expect(ack.data['streaming'], isTrue);

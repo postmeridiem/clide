@@ -12,13 +12,7 @@ import 'package:flutter/widgets.dart';
 /// coarse step). Exposes a `slider` Semantics node so screen readers
 /// announce the current width.
 class DragResizeHandle extends StatefulWidget {
-  const DragResizeHandle({
-    super.key,
-    required this.arrangement,
-    required this.slot,
-    required this.axis,
-    this.thickness = DragResizeHandle.defaultThickness,
-  });
+  const DragResizeHandle({super.key, required this.arrangement, required this.slot, required this.axis, this.thickness = DragResizeHandle.defaultThickness});
 
   final LayoutArrangement arrangement;
   final SlotId slot;
@@ -155,11 +149,7 @@ class _BumpIntent extends Intent {
 /// delta = right/down. Context-panel sits on the right edge of the
 /// app, so we flip the sign there — right-arrow should *shrink* it,
 /// matching how dragging the left-edge handle rightward works.
-double bumpedSlotSize({
-  required SlotId slot,
-  required double current,
-  required double rawDelta,
-}) {
+double bumpedSlotSize({required SlotId slot, required double current, required double rawDelta}) {
   final delta = slot == Slots.contextPanel ? -rawDelta : rawDelta;
   return current + delta;
 }

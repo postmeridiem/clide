@@ -23,35 +23,35 @@ class ViewExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        // Keybindings live in `assets/keymaps/default.yaml` against the
-        // text.scale* intents — registering a `defaultBinding` here too
-        // would shadow them. Palette discovery is the only goal.
-        CommandContribution(
-          id: 'view.zoomIn',
-          command: 'view.zoomIn',
-          title: 'View: Zoom In',
-          run: (_) async {
-            textZoom.increase();
-            return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
-          },
-        ),
-        CommandContribution(
-          id: 'view.zoomOut',
-          command: 'view.zoomOut',
-          title: 'View: Zoom Out',
-          run: (_) async {
-            textZoom.decrease();
-            return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
-          },
-        ),
-        CommandContribution(
-          id: 'view.zoomReset',
-          command: 'view.zoomReset',
-          title: 'View: Reset Zoom',
-          run: (_) async {
-            textZoom.reset();
-            return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
-          },
-        ),
-      ];
+    // Keybindings live in `assets/keymaps/default.yaml` against the
+    // text.scale* intents — registering a `defaultBinding` here too
+    // would shadow them. Palette discovery is the only goal.
+    CommandContribution(
+      id: 'view.zoomIn',
+      command: 'view.zoomIn',
+      title: 'View: Zoom In',
+      run: (_) async {
+        textZoom.increase();
+        return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
+      },
+    ),
+    CommandContribution(
+      id: 'view.zoomOut',
+      command: 'view.zoomOut',
+      title: 'View: Zoom Out',
+      run: (_) async {
+        textZoom.decrease();
+        return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
+      },
+    ),
+    CommandContribution(
+      id: 'view.zoomReset',
+      command: 'view.zoomReset',
+      title: 'View: Reset Zoom',
+      run: (_) async {
+        textZoom.reset();
+        return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
+      },
+    ),
+  ];
 }

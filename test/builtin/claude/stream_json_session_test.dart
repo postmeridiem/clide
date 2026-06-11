@@ -28,12 +28,12 @@ class _FakeMcpServer implements McpServer {
   final List<String> calls = [];
   @override
   List<Map<String, dynamic>> get tools => [
-        {
-          'name': 'ping',
-          'description': 'p',
-          'inputSchema': {'type': 'object', 'properties': <String, dynamic>{}},
-        },
-      ];
+    {
+      'name': 'ping',
+      'description': 'p',
+      'inputSchema': {'type': 'object', 'properties': <String, dynamic>{}},
+    },
+  ];
   @override
   Future<Map<String, dynamic>> callTool(String name, Map<String, dynamic> arguments) async {
     calls.add(name);
@@ -47,114 +47,101 @@ class _FakeMcpServer implements McpServer {
 }
 
 String mcpMessage(String rid, Map<String, dynamic> message, {String server = 'clide-team'}) => jsonEncode({
-      'type': 'control_request',
-      'request_id': rid,
-      'request': {'subtype': 'mcp_message', 'server_name': server, 'message': message},
-    });
+  'type': 'control_request',
+  'request_id': rid,
+  'request': {'subtype': 'mcp_message', 'server_name': server, 'message': message},
+});
 
 String assistantText(String text) => jsonEncode({
-      'type': 'assistant',
-      'uuid': 'a1',
-      'message': {
-        'model': 'claude-opus-4-7',
-        'role': 'assistant',
-        'content': [
-          {'type': 'text', 'text': text},
-        ],
-        'usage': {'input_tokens': 100, 'cache_read_input_tokens': 50, 'cache_creation_input_tokens': 0},
-      },
-    });
+  'type': 'assistant',
+  'uuid': 'a1',
+  'message': {
+    'model': 'claude-opus-4-7',
+    'role': 'assistant',
+    'content': [
+      {'type': 'text', 'text': text},
+    ],
+    'usage': {'input_tokens': 100, 'cache_read_input_tokens': 50, 'cache_creation_input_tokens': 0},
+  },
+});
 
 String assistantToolUse() => jsonEncode({
-      'type': 'assistant',
-      'uuid': 'a2',
-      'message': {
-        'role': 'assistant',
-        'content': [
-          {
-            'type': 'tool_use',
-            'id': 't1',
-            'name': 'Bash',
-            'input': {'command': 'ls'}
-          },
-        ],
+  'type': 'assistant',
+  'uuid': 'a2',
+  'message': {
+    'role': 'assistant',
+    'content': [
+      {
+        'type': 'tool_use',
+        'id': 't1',
+        'name': 'Bash',
+        'input': {'command': 'ls'},
       },
-    });
+    ],
+  },
+});
 
-String initEvent() => jsonEncode({
-      'type': 'system',
-      'subtype': 'init',
-      'model': 'claude-opus-4-7',
-      'permissionMode': 'default',
-    });
+String initEvent() => jsonEncode({'type': 'system', 'subtype': 'init', 'model': 'claude-opus-4-7', 'permissionMode': 'default'});
 
-String resultEvent({double? cost, Map<String, dynamic>? modelUsage}) => jsonEncode({
-      'type': 'result',
-      'result': '',
-      'usage': <String, dynamic>{},
-      if (cost != null) 'total_cost_usd': cost,
-      if (modelUsage != null) 'modelUsage': modelUsage,
-    });
+String resultEvent({double? cost, Map<String, dynamic>? modelUsage}) =>
+    jsonEncode({'type': 'result', 'result': '', 'usage': <String, dynamic>{}, 'total_cost_usd': ?cost, 'modelUsage': ?modelUsage});
 
 String rateLimitEvent({String? status, String? resetsAt}) => jsonEncode({
-      'type': 'rate_limit_event',
-      'rate_limit_info': <String, dynamic>{
-        if (status != null) 'status': status,
-        if (resetsAt != null) 'resetsAt': resetsAt,
-      },
-    });
+  'type': 'rate_limit_event',
+  'rate_limit_info': <String, dynamic>{'status': ?status, 'resetsAt': ?resetsAt},
+});
 
 // Real `--include-partial-messages` wire shape (captured from claude 2.1.150,
 // interactive stream-json mode — T-184): partials arrive as `stream_event`
 // envelopes wrapping Anthropic streaming deltas, NOT `assistant`+`partial:true`.
 String streamMessageStart(String messageId) => jsonEncode({
-      'type': 'stream_event',
-      'event': {
-        'type': 'message_start',
-        'message': {'id': messageId, 'role': 'assistant', 'content': <dynamic>[]},
-      },
-    });
+  'type': 'stream_event',
+  'event': {
+    'type': 'message_start',
+    'message': {'id': messageId, 'role': 'assistant', 'content': <dynamic>[]},
+  },
+});
 
 String streamTextDelta(String text, {int index = 0}) => jsonEncode({
-      'type': 'stream_event',
-      'event': {
-        'type': 'content_block_delta',
-        'index': index,
-        'delta': {'type': 'text_delta', 'text': text},
-      },
-    });
+  'type': 'stream_event',
+  'event': {
+    'type': 'content_block_delta',
+    'index': index,
+    'delta': {'type': 'text_delta', 'text': text},
+  },
+});
 
 String streamMessageStop() => jsonEncode({
-      'type': 'stream_event',
-      'event': {'type': 'message_stop'},
-    });
+  'type': 'stream_event',
+  'event': {'type': 'message_stop'},
+});
 
 // The final per-block `assistant` event carrying a message id (so the session
 // can pair it with a streamed placeholder).
 String assistantTextWithId(String messageId, String text, {String uuid = 'final-uuid'}) => jsonEncode({
-      'type': 'assistant',
-      'uuid': uuid,
-      'message': {
-        'id': messageId,
-        'role': 'assistant',
-        'content': [
-          {'type': 'text', 'text': text},
-        ],
-      },
-    });
+  'type': 'assistant',
+  'uuid': uuid,
+  'message': {
+    'id': messageId,
+    'role': 'assistant',
+    'content': [
+      {'type': 'text', 'text': text},
+    ],
+  },
+});
 
 String canUseTool(String rid, {String tool = 'Write', Map<String, dynamic>? input}) => jsonEncode({
-      'type': 'control_request',
-      'request_id': rid,
-      'request': {
-        'subtype': 'can_use_tool',
-        'tool_name': tool,
-        'display_name': tool,
-        'description': 'banana.txt',
-        'input': input ?? {'file_path': '/tmp/banana.txt', 'content': 'banana'},
-        'tool_use_id': 'toolu_1',
-      },
-    });
+  'type': 'control_request',
+  'request_id': rid,
+  'request': {
+    'subtype': 'can_use_tool',
+    'tool_name': tool,
+    'display_name': tool,
+    'description': 'banana.txt',
+    'input': input ?? {'file_path': '/tmp/banana.txt', 'content': 'banana'},
+    'tool_use_id': 'toolu_1',
+  },
+});
 
 void main() {
   late _FakeProc proc;
@@ -209,13 +196,7 @@ void main() {
   test('captures the claude session id from the first event carrying it (T-185)', () async {
     final ids = <String>[];
     session.sessionIdResolved.listen(ids.add);
-    proc.emit(jsonEncode({
-      'type': 'system',
-      'subtype': 'init',
-      'session_id': 'sess-abc',
-      'model': 'claude-opus-4-7',
-      'permissionMode': 'default',
-    }));
+    proc.emit(jsonEncode({'type': 'system', 'subtype': 'init', 'session_id': 'sess-abc', 'model': 'claude-opus-4-7', 'permissionMode': 'default'}));
     await Future<void>.delayed(Duration.zero);
     expect(session.claudeSessionId, 'sess-abc');
     expect(ids, ['sess-abc']);
@@ -229,12 +210,14 @@ void main() {
     });
 
     test('result event with modelUsage populates contextWindow', () async {
-      proc.emit(resultEvent(
-        cost: 0.01,
-        modelUsage: {
-          'claude-opus-4-7': {'contextWindow': 1000000, 'maxOutputTokens': 8192},
-        },
-      ));
+      proc.emit(
+        resultEvent(
+          cost: 0.01,
+          modelUsage: {
+            'claude-opus-4-7': {'contextWindow': 1000000, 'maxOutputTokens': 8192},
+          },
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
       expect(statuses.last.contextWindow, 1000000);
     });
@@ -275,10 +258,12 @@ void main() {
     test('rate_limit_event with a numeric (epoch) resetsAt does not crash', () async {
       // Claude sends resetsAt as a unix-epoch number, not a string — the
       // old `as String?` cast threw 'int is not a subtype of String?'.
-      proc.emit(jsonEncode({
-        'type': 'rate_limit_event',
-        'rate_limit_info': {'status': 'rate_limited', 'resetsAt': 1780000000},
-      }));
+      proc.emit(
+        jsonEncode({
+          'type': 'rate_limit_event',
+          'rate_limit_info': {'status': 'rate_limited', 'resetsAt': 1780000000},
+        }),
+      );
       await Future<void>.delayed(Duration.zero);
       expect(statuses.last.rateLimitInfo, contains('rate limited'));
       expect(statuses.last.rateLimitInfo, contains('resets'));
@@ -361,31 +346,35 @@ void main() {
   });
 
   test('a synthetic user message (skill/command inject) is flagged injected', () async {
-    proc.emit(jsonEncode({
-      'type': 'user',
-      'isSynthetic': true,
-      'message': {
-        'role': 'user',
-        'content': [
-          {'type': 'text', 'text': 'Base directory for this skill: /x'}
-        ],
-      },
-    }));
+    proc.emit(
+      jsonEncode({
+        'type': 'user',
+        'isSynthetic': true,
+        'message': {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': 'Base directory for this skill: /x'},
+          ],
+        },
+      }),
+    );
     await Future<void>.delayed(Duration.zero);
     final u = items.whereType<UserMessage>().single;
     expect(u.injected, isTrue);
   });
 
   test('a plain user text event is not flagged injected', () async {
-    proc.emit(jsonEncode({
-      'type': 'user',
-      'message': {
-        'role': 'user',
-        'content': [
-          {'type': 'text', 'text': 'hello'}
-        ],
-      },
-    }));
+    proc.emit(
+      jsonEncode({
+        'type': 'user',
+        'message': {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': 'hello'},
+          ],
+        },
+      }),
+    );
     await Future<void>.delayed(Duration.zero);
     expect(items.whereType<UserMessage>().single.injected, isFalse);
   });
@@ -428,18 +417,20 @@ void main() {
   });
 
   test('a permission request carries its permission_suggestions', () async {
-    proc.emit(jsonEncode({
-      'type': 'control_request',
-      'request_id': 'rs',
-      'request': {
-        'subtype': 'can_use_tool',
-        'tool_name': 'Write',
-        'input': {'file_path': '/tmp/x'},
-        'permission_suggestions': [
-          {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'}
-        ],
-      },
-    }));
+    proc.emit(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': 'rs',
+        'request': {
+          'subtype': 'can_use_tool',
+          'tool_name': 'Write',
+          'input': {'file_path': '/tmp/x'},
+          'permission_suggestions': [
+            {'type': 'setMode', 'mode': 'acceptEdits', 'destination': 'session'},
+          ],
+        },
+      }),
+    );
     await Future<void>.delayed(Duration.zero);
     expect(session.pendingPrompt!.permissionSuggestions, hasLength(1));
   });
@@ -448,12 +439,14 @@ void main() {
     proc.emit(canUseTool('rp'));
     await Future<void>.delayed(Duration.zero);
     session.resolvePrompt(
-        'rp',
-        AllowTool(const {
-          'x': 1
-        }, updatedPermissions: const [
-          {'type': 'setMode'}
-        ]));
+      'rp',
+      AllowTool(
+        const {'x': 1},
+        updatedPermissions: const [
+          {'type': 'setMode'},
+        ],
+      ),
+    );
     final decision = ((jsonDecode(proc.writes.single) as Map)['response'] as Map)['response'] as Map;
     expect(decision['behavior'], 'allow');
     expect(decision['updatedPermissions'], hasLength(1));
@@ -496,21 +489,24 @@ void main() {
   });
 
   test('resolving an AskUserQuestion leaves an answered echo in the log', () async {
-    proc.emit(jsonEncode({
-      'type': 'control_request',
-      'request_id': 'aq',
-      'request': {
-        'subtype': 'can_use_tool',
-        'tool_name': 'AskUserQuestion',
-        'input': {'questions': <dynamic>[]},
-      },
-    }));
+    proc.emit(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': 'aq',
+        'request': {
+          'subtype': 'can_use_tool',
+          'tool_name': 'AskUserQuestion',
+          'input': {'questions': <dynamic>[]},
+        },
+      }),
+    );
     await Future<void>.delayed(Duration.zero);
     session.resolvePrompt(
-        'aq',
-        AllowTool(const {
-          'answers': {'Pet': 'Dogs'}
-        }));
+      'aq',
+      AllowTool(const {
+        'answers': {'Pet': 'Dogs'},
+      }),
+    );
     await Future<void>.delayed(Duration.zero);
 
     final echo = items.whereType<UserMessage>().toList();
@@ -541,11 +537,13 @@ void main() {
   });
 
   test('an unsupported control_request is answered with an error (no hang)', () async {
-    proc.emit(jsonEncode({
-      'type': 'control_request',
-      'request_id': 'req-5',
-      'request': {'subtype': 'mystery_subtype'},
-    }));
+    proc.emit(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': 'req-5',
+        'request': {'subtype': 'mystery_subtype'},
+      }),
+    );
     await Future<void>.delayed(Duration.zero);
 
     expect(items, isEmpty);
@@ -646,19 +644,19 @@ void main() {
     }
 
     test('declares its sdkMcpServers in the initialize handshake', () {
-      final init = mproc.writes.map((w) => jsonDecode(w) as Map).firstWhere(
-            (m) => (m['request'] as Map?)?['subtype'] == 'initialize',
-          );
+      final init = mproc.writes.map((w) => jsonDecode(w) as Map).firstWhere((m) => (m['request'] as Map?)?['subtype'] == 'initialize');
       expect((init['request'] as Map)['sdkMcpServers'], ['clide-team']);
     });
 
     test('answers mcp initialize with our serverInfo', () async {
-      mproc.emit(mcpMessage('m1', {
-        'method': 'initialize',
-        'params': {'protocolVersion': '2025-11-25'},
-        'jsonrpc': '2.0',
-        'id': 0,
-      }));
+      mproc.emit(
+        mcpMessage('m1', {
+          'method': 'initialize',
+          'params': {'protocolVersion': '2025-11-25'},
+          'jsonrpc': '2.0',
+          'id': 0,
+        }),
+      );
       await Future<void>.delayed(Duration.zero);
       final r = mcpResponseOf(mproc.writes.last);
       expect((r['result'] as Map)['serverInfo'], {'name': 'clide-team', 'version': '9.9.9'});
@@ -673,12 +671,14 @@ void main() {
     });
 
     test('routes tools/call to the server and returns its result', () async {
-      mproc.emit(mcpMessage('m3', {
-        'method': 'tools/call',
-        'params': {'name': 'ping', 'arguments': <String, dynamic>{}},
-        'jsonrpc': '2.0',
-        'id': 2,
-      }));
+      mproc.emit(
+        mcpMessage('m3', {
+          'method': 'tools/call',
+          'params': {'name': 'ping', 'arguments': <String, dynamic>{}},
+          'jsonrpc': '2.0',
+          'id': 2,
+        }),
+      );
       await Future<void>.delayed(Duration.zero);
       expect(server.calls, ['ping']);
       final r = mcpResponseOf(mproc.writes.last);

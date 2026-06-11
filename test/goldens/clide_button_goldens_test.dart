@@ -32,54 +32,23 @@ void main() {
         ),
         GoldenTestScenario(
           name: 'primary / enabled',
-          child: _wrap(
-            f,
-            ClideButton(
-              label: 'Commit',
-              onPressed: () {},
-              variant: ClideButtonVariant.primary,
-            ),
-          ),
+          child: _wrap(f, ClideButton(label: 'Commit', onPressed: () {}, variant: ClideButtonVariant.primary)),
         ),
         GoldenTestScenario(
           name: 'primary / disabled',
-          child: _wrap(
-            f,
-            const ClideButton(
-              label: 'Commit',
-              onPressed: null,
-              variant: ClideButtonVariant.primary,
-            ),
-          ),
+          child: _wrap(f, const ClideButton(label: 'Commit', onPressed: null, variant: ClideButtonVariant.primary)),
         ),
         GoldenTestScenario(
           name: 'subtle / enabled',
-          child: _wrap(
-            f,
-            ClideButton(
-              label: 'Open',
-              onPressed: () {},
-              variant: ClideButtonVariant.subtle,
-            ),
-          ),
+          child: _wrap(f, ClideButton(label: 'Open', onPressed: () {}, variant: ClideButtonVariant.subtle)),
         ),
         GoldenTestScenario(
           name: 'subtle / disabled',
-          child: _wrap(
-            f,
-            const ClideButton(
-              label: 'Open',
-              onPressed: null,
-              variant: ClideButtonVariant.subtle,
-            ),
-          ),
+          child: _wrap(f, const ClideButton(label: 'Open', onPressed: null, variant: ClideButtonVariant.subtle)),
         ),
       ],
     ),
   );
 }
 
-Widget _wrap(KernelFixture f, Widget child) => SizedBox(
-      width: 140,
-      child: harness(f, child),
-    );
+Widget _wrap(KernelFixture f, Widget child) => SizedBox(width: 140, child: harness(f, child));

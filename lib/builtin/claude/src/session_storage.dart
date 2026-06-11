@@ -17,13 +17,7 @@ import 'package:flutter/widgets.dart';
 typedef SessionDeleter = Future<void> Function(Directory dir, String id);
 
 class SessionStorageDialog extends StatefulWidget {
-  const SessionStorageDialog({
-    super.key,
-    required this.dir,
-    required this.sessions,
-    required this.onClose,
-    this.deleter = deleteSession,
-  });
+  const SessionStorageDialog({super.key, required this.dir, required this.sessions, required this.onClose, this.deleter = deleteSession});
 
   final Directory dir;
   final List<SessionSummary> sessions;
@@ -79,19 +73,11 @@ class _SessionStorageDialogState extends State<SessionStorageDialog> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-              child: ClideText(
-                'Session storage  ·  ${formatBytes(_total)} total',
-                fontSize: clideFontBody,
-                color: theme.globalForeground,
-              ),
+              child: ClideText('Session storage  ·  ${formatBytes(_total)} total', fontSize: clideFontBody, color: theme.globalForeground),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-              child: ClideText(
-                'Deleting a session you are currently using will break that pane.',
-                muted: true,
-                fontSize: clideFontSmall,
-              ),
+              child: ClideText('Deleting a session you are currently using will break that pane.', muted: true, fontSize: clideFontSmall),
             ),
             if (_sessions.isEmpty)
               Padding(
@@ -100,11 +86,7 @@ class _SessionStorageDialogState extends State<SessionStorageDialog> {
               )
             else
               Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _sessions.length,
-                  itemBuilder: (ctx, i) => _row(theme, _sessions[i]),
-                ),
+                child: ListView.builder(shrinkWrap: true, itemCount: _sessions.length, itemBuilder: (ctx, i) => _row(theme, _sessions[i])),
               ),
           ],
         ),

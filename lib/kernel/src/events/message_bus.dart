@@ -1,11 +1,7 @@
 import 'dart:async';
 
 class Message {
-  Message({
-    required this.publisher,
-    required this.channel,
-    required this.data,
-  }) : timestamp = DateTime.now();
+  Message({required this.publisher, required this.channel, required this.data}) : timestamp = DateTime.now();
 
   final String publisher;
   final String channel;

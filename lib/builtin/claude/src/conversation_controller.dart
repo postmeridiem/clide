@@ -21,11 +21,8 @@ class ConversationController extends ChangeNotifier {
   /// over stream-json so the pane would otherwise start empty. [onDispose]
   /// is invoked from [dispose] — wire it to the reader's `dispose` so
   /// cancelling the view tears down the underlying tail.
-  ConversationController({
-    required Stream<ConversationItem> stream,
-    Iterable<ConversationItem>? seed,
-    Future<void> Function()? onDispose,
-  }) : _onDispose = onDispose {
+  ConversationController({required Stream<ConversationItem> stream, Iterable<ConversationItem>? seed, Future<void> Function()? onDispose})
+    : _onDispose = onDispose {
     if (seed != null) _items.addAll(seed);
     _sub = stream.listen(_onItem);
   }
@@ -34,13 +31,10 @@ class ConversationController extends ChangeNotifier {
   /// the [ConversationItem]s a [TranscriptPublisher] writes onto
   /// [publisher]/[channel]. Decouples the view from the reader so several
   /// panels can render the same conversation (team work, T-139/T-140).
-  factory ConversationController.fromBus({
-    required MessageBus messages,
-    String channel = ClaudeConversation.leadChannel,
-    Future<void> Function()? onDispose,
-  }) {
-    final stream =
-        messages.subscribe(publisher: ClaudeConversation.publisher, channel: channel).map((m) => m.data[ClaudeConversation.itemKey] as ConversationItem);
+  factory ConversationController.fromBus({required MessageBus messages, String channel = ClaudeConversation.leadChannel, Future<void> Function()? onDispose}) {
+    final stream = messages
+        .subscribe(publisher: ClaudeConversation.publisher, channel: channel)
+        .map((m) => m.data[ClaudeConversation.itemKey] as ConversationItem);
     return ConversationController(stream: stream, onDispose: onDispose);
   }
 

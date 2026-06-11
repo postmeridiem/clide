@@ -129,19 +129,9 @@ class _ThemePopoverState extends State<_ThemePopover> {
         maxWidth: 280,
         maxHeight: 360,
         entries: [
-          ClideMenuItem(
-            label: 'High contrast',
-            active: _hc,
-            keepOpenOnSelect: true,
-            onSelect: _toggleHc,
-          ),
+          ClideMenuItem(label: 'High contrast', active: _hc, keepOpenOnSelect: true, onSelect: _toggleHc),
           const ClideMenuSeparator(),
-          for (final t in _themes)
-            ClideMenuItem(
-              label: t.displayName,
-              active: t.name == currentBase,
-              onSelect: () => _pick(t),
-            ),
+          for (final t in _themes) ClideMenuItem(label: t.displayName, active: t.name == currentBase, onSelect: () => _pick(t)),
         ],
       ),
     );

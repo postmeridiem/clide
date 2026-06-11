@@ -50,17 +50,16 @@ class _SearchPanelViewState extends State<SearchPanelView> {
     if (c.replacement.isEmpty || c.matchCount == 0) return;
     final dialog = ClideKernel.of(context).dialog;
     if (!await c.isWorkingTreeClean()) {
-      await dialog.show<Object>((ctx, dismiss) => _MessageDialog(
-            title: 'Working tree not clean',
-            body: 'Commit or stash your changes before replacing — git is the only undo.',
-            dismiss: dismiss,
-          ));
+      await dialog.show<Object>(
+        (ctx, dismiss) =>
+            _MessageDialog(title: 'Working tree not clean', body: 'Commit or stash your changes before replacing — git is the only undo.', dismiss: dismiss),
+      );
       return;
     }
-    final confirmed = await dialog.show<bool>((ctx, dismiss) => _ConfirmDialog(
-          body: 'Replace ${c.matchCount} match(es) across ${c.fileCount} file(s)? This cannot be undone in clide.',
-          dismiss: dismiss,
-        ));
+    final confirmed = await dialog.show<bool>(
+      (ctx, dismiss) =>
+          _ConfirmDialog(body: 'Replace ${c.matchCount} match(es) across ${c.fileCount} file(s)? This cannot be undone in clide.', dismiss: dismiss),
+    );
     if (confirmed != true) return;
     await c.applyReplace();
   }
@@ -138,26 +137,34 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                   Row(
                     children: [
                       Expanded(
-                          child: ClideFilterBox(
-                              address: 'search.findInFiles.replace', hint: 'Replace', icon: null, debounce: Duration.zero, onChanged: c.setReplacement)),
-                      const SizedBox(width: 6),
-                      _ReplaceAllButton(
-                        enabled: c.replacement.isNotEmpty && c.matchCount > 0,
-                        tokens: tokens,
-                        onTap: _replaceAll,
+                        child: ClideFilterBox(
+                          address: 'search.findInFiles.replace',
+                          hint: 'Replace',
+                          icon: null,
+                          debounce: Duration.zero,
+                          onChanged: c.setReplacement,
+                        ),
                       ),
+                      const SizedBox(width: 6),
+                      _ReplaceAllButton(enabled: c.replacement.isNotEmpty && c.matchCount > 0, tokens: tokens, onTap: _replaceAll),
                     ],
                   ),
                   const SizedBox(height: 6),
                   ClideFilterBox(
-                      address: 'search.findInFiles.include',
-                      hint: 'files to include (e.g. *.dart)',
-                      icon: null,
-                      debounce: Duration.zero,
-                      onChanged: (v) => c.include = v),
+                    address: 'search.findInFiles.include',
+                    hint: 'files to include (e.g. *.dart)',
+                    icon: null,
+                    debounce: Duration.zero,
+                    onChanged: (v) => c.include = v,
+                  ),
                   const SizedBox(height: 4),
                   ClideFilterBox(
-                      address: 'search.findInFiles.exclude', hint: 'files to exclude', icon: null, debounce: Duration.zero, onChanged: (v) => c.exclude = v),
+                    address: 'search.findInFiles.exclude',
+                    hint: 'files to exclude',
+                    icon: null,
+                    debounce: Duration.zero,
+                    onChanged: (v) => c.exclude = v,
+                  ),
                 ],
               ),
             ),
@@ -171,14 +178,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                 padding: EdgeInsets.zero,
                 children: [
                   for (final entry in groups.entries)
-                    _FileGroup(
-                      path: entry.key,
-                      matches: entry.value,
-                      tokens: tokens,
-                      onTap: c.openMatch,
-                      query: c.query,
-                      replacement: c.replacement,
-                    ),
+                    _FileGroup(path: entry.key, matches: entry.value, tokens: tokens, onTap: c.openMatch, query: c.query, replacement: c.replacement),
                 ],
               ),
             ),
@@ -196,18 +196,15 @@ class _ModeSwitcher extends StatelessWidget {
   final SurfaceTokens tokens;
   final ValueChanged<SearchTabMode> onSelect;
 
-  static const _labels = {
-    SearchTabMode.find: 'Find',
-    SearchTabMode.vault: 'Vault',
-    SearchTabMode.query: 'Query',
-    SearchTabMode.markdown: 'Markdown',
-  };
+  static const _labels = {SearchTabMode.find: 'Find', SearchTabMode.vault: 'Vault', SearchTabMode.query: 'Query', SearchTabMode.markdown: 'Markdown'};
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tokens.panelBorder))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: tokens.panelBorder)),
+      ),
       child: Row(
         children: [
           for (final m in SearchTabMode.values) ...[
@@ -233,13 +230,7 @@ class _ModeSwitcher extends StatelessWidget {
 }
 
 class _Toggle extends StatelessWidget {
-  const _Toggle({
-    required this.label,
-    required this.tooltip,
-    required this.active,
-    required this.tokens,
-    required this.onTap,
-  });
+  const _Toggle({required this.label, required this.tooltip, required this.active, required this.tokens, required this.onTap});
 
   final String label;
   final String tooltip;
@@ -296,14 +287,7 @@ class _StatusText extends StatelessWidget {
 }
 
 class _FileGroup extends StatelessWidget {
-  const _FileGroup({
-    required this.path,
-    required this.matches,
-    required this.tokens,
-    required this.onTap,
-    required this.query,
-    required this.replacement,
-  });
+  const _FileGroup({required this.path, required this.matches, required this.tokens, required this.onTap, required this.query, required this.replacement});
 
   final String path;
   final List<SearchMatch> matches;
@@ -336,13 +320,7 @@ class _FileGroup extends StatelessWidget {
 }
 
 class _MatchRow extends StatelessWidget {
-  const _MatchRow({
-    required this.match,
-    required this.tokens,
-    required this.onTap,
-    required this.query,
-    required this.replacement,
-  });
+  const _MatchRow({required this.match, required this.tokens, required this.onTap, required this.query, required this.replacement});
 
   final SearchMatch match;
   final SurfaceTokens tokens;
@@ -385,11 +363,17 @@ class _MatchRow extends StatelessWidget {
     return RichText(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      text: TextSpan(style: _base, children: [
-        TextSpan(text: line.substring(0, start)),
-        TextSpan(text: line.substring(start, end), style: _base.copyWith(color: tokens.globalFocus, fontWeight: FontWeight.bold)),
-        TextSpan(text: line.substring(end)),
-      ]),
+      text: TextSpan(
+        style: _base,
+        children: [
+          TextSpan(text: line.substring(0, start)),
+          TextSpan(
+            text: line.substring(start, end),
+            style: _base.copyWith(color: tokens.globalFocus, fontWeight: FontWeight.bold),
+          ),
+          TextSpan(text: line.substring(end)),
+        ],
+      ),
     );
   }
 
@@ -403,12 +387,18 @@ class _MatchRow extends StatelessWidget {
         RichText(
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          text: TextSpan(text: match.preview, style: _base.copyWith(decoration: TextDecoration.lineThrough, color: tokens.globalTextMuted)),
+          text: TextSpan(
+            text: match.preview,
+            style: _base.copyWith(decoration: TextDecoration.lineThrough, color: tokens.globalTextMuted),
+          ),
         ),
         RichText(
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          text: TextSpan(text: after, style: _base.copyWith(color: tokens.globalFocus)),
+          text: TextSpan(
+            text: after,
+            style: _base.copyWith(color: tokens.globalFocus),
+          ),
         ),
       ],
     );
@@ -437,11 +427,7 @@ class _ReplaceAllButton extends StatelessWidget {
             border: Border.all(color: tokens.buttonBorder),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: ClideText(
-            'Replace all',
-            fontSize: clideFontCaption,
-            color: enabled ? tokens.sidebarForeground : tokens.globalTextMuted,
-          ),
+          child: ClideText('Replace all', fontSize: clideFontCaption, color: enabled ? tokens.sidebarForeground : tokens.globalTextMuted),
         ),
       ),
     );

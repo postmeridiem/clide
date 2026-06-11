@@ -36,29 +36,20 @@ void main() {
     test('on macOS, includes the well-known extras', () {
       if (!Platform.isMacOS) return;
       // Homebrew is the canonical one; at least one of these should appear.
-      expect(
-        expandedPath,
-        anyOf(contains('/opt/homebrew/bin'), contains('/usr/local/bin')),
-      );
+      expect(expandedPath, anyOf(contains('/opt/homebrew/bin'), contains('/usr/local/bin')));
     });
   });
 
   group('mergePtyEnv', () {
     test('clide defaults override the process env where they overlap', () {
-      final merged = mergePtyEnv(processEnv: {
-        'TERM': 'dumb',
-        'CUSTOM': 'preserved',
-      });
+      final merged = mergePtyEnv(processEnv: {'TERM': 'dumb', 'CUSTOM': 'preserved'});
       expect(merged['TERM'], 'xterm-256color'); // clide default wins
       expect(merged['COLORTERM'], 'truecolor');
       expect(merged['CUSTOM'], 'preserved'); // process env retained
     });
 
     test('overrides win over both process env and clide defaults', () {
-      final merged = mergePtyEnv(
-        processEnv: {'TERM': 'dumb'},
-        overrides: {'TERM': 'screen-256color'},
-      );
+      final merged = mergePtyEnv(processEnv: {'TERM': 'dumb'}, overrides: {'TERM': 'screen-256color'});
       expect(merged['TERM'], 'screen-256color');
     });
 

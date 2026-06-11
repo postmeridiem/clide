@@ -54,11 +54,11 @@ class EditorSettings {
 
   /// The line terminator [endOfLine] names, or null when unset.
   String? get eolString => switch (endOfLine) {
-        'lf' => '\n',
-        'crlf' => '\r\n',
-        'cr' => '\r',
-        _ => null,
-      };
+    'lf' => '\n',
+    'crlf' => '\r\n',
+    'cr' => '\r',
+    _ => null,
+  };
 
   /// The text one Tab press inserts, or null to keep the editor's default
   /// (Flutter's focus traversal) — the editor only takes over Tab when a source
@@ -75,25 +75,25 @@ class EditorSettings {
   /// first) lives in the resolver — a higher-precedence source (settings panel,
   /// clide settings file) merges over a lower one (.editorconfig).
   EditorSettings merge(EditorSettings other) => EditorSettings(
-        indentStyle: other.indentStyle ?? indentStyle,
-        indentSize: other.indentSize ?? indentSize,
-        tabWidth: other.tabWidth ?? tabWidth,
-        endOfLine: other.endOfLine ?? endOfLine,
-        maxLineLength: other.maxLineLength ?? maxLineLength,
-        trimTrailingWhitespace: other.trimTrailingWhitespace ?? trimTrailingWhitespace,
-        insertFinalNewline: other.insertFinalNewline ?? insertFinalNewline,
-      );
+    indentStyle: other.indentStyle ?? indentStyle,
+    indentSize: other.indentSize ?? indentSize,
+    tabWidth: other.tabWidth ?? tabWidth,
+    endOfLine: other.endOfLine ?? endOfLine,
+    maxLineLength: other.maxLineLength ?? maxLineLength,
+    trimTrailingWhitespace: other.trimTrailingWhitespace ?? trimTrailingWhitespace,
+    insertFinalNewline: other.insertFinalNewline ?? insertFinalNewline,
+  );
 
   /// Only the set keys, for the IPC payload. Empty map when [isEmpty].
   Map<String, Object?> toJson() => {
-        if (indentStyle != null) 'indent_style': indentStyle,
-        if (indentSize != null) 'indent_size': indentSize,
-        if (tabWidth != null) 'tab_width': tabWidth,
-        if (endOfLine != null) 'end_of_line': endOfLine,
-        if (maxLineLength != null) 'max_line_length': maxLineLength,
-        if (trimTrailingWhitespace != null) 'trim_trailing_whitespace': trimTrailingWhitespace,
-        if (insertFinalNewline != null) 'insert_final_newline': insertFinalNewline,
-      };
+    if (indentStyle != null) 'indent_style': indentStyle,
+    if (indentSize != null) 'indent_size': indentSize,
+    if (tabWidth != null) 'tab_width': tabWidth,
+    if (endOfLine != null) 'end_of_line': endOfLine,
+    if (maxLineLength != null) 'max_line_length': maxLineLength,
+    if (trimTrailingWhitespace != null) 'trim_trailing_whitespace': trimTrailingWhitespace,
+    if (insertFinalNewline != null) 'insert_final_newline': insertFinalNewline,
+  };
 
   factory EditorSettings.fromJson(Object? raw) {
     if (raw is! Map) return empty;

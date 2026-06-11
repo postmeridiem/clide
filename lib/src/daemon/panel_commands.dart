@@ -86,37 +86,22 @@ Future<IpcResponse> _resize(IpcRequest req, PanelResizer r) async {
     } else {
       r.bumpEditorRatio(value);
     }
-    return IpcResponse.ok(id: req.id, data: {
-      'slot': slot,
-      'ratio': r.currentEditorRatio,
-    });
+    return IpcResponse.ok(id: req.id, data: {'slot': slot, 'ratio': r.currentEditorRatio});
   }
 
   final ok = hasTo ? r.setSlotSize(slot, value) : r.bumpSlotSize(slot, value);
   if (!ok) {
     return _notFound(req.id, 'no such slot: $slot');
   }
-  return IpcResponse.ok(id: req.id, data: {
-    'slot': slot,
-    'size': r.currentSlotSize(slot),
-  });
+  return IpcResponse.ok(id: req.id, data: {'slot': slot, 'size': r.currentSlotSize(slot)});
 }
 
 IpcResponse _userErr(String id, String message, {String? hint}) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.userError,
-        kind: IpcErrorKind.userError,
-        message: message,
-        hint: hint,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message, hint: hint),
+);
 
 IpcResponse _notFound(String id, String message) => IpcResponse.err(
-      id: id,
-      error: IpcError(
-        code: IpcExitCode.notFound,
-        kind: IpcErrorKind.notFound,
-        message: message,
-      ),
-    );
+  id: id,
+  error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: message),
+);

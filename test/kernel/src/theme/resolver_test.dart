@@ -82,9 +82,7 @@ void main() {
           'err': Color(0xFFFF0000),
           'info': Color(0xFF111111),
         }),
-        surfaceOverride: const {
-          'panel.background': '#00FF00',
-        },
+        surfaceOverride: const {'panel.background': '#00FF00'},
       );
       expect(tokens.panelBackground, const Color(0xFF00FF00));
     });
@@ -103,9 +101,7 @@ void main() {
           'err': Color(0xFFFF0000),
           'info': Color(0xFF111111),
         }),
-        semanticOverride: const SemanticRoles({
-          'focus': Color(0xFF007777),
-        }),
+        semanticOverride: const SemanticRoles({'focus': Color(0xFF007777)}),
       );
       // No 'accent' in palette, so globalFocus falls through to
       // semantic.focus which is overridden.
@@ -122,9 +118,7 @@ void main() {
           'textHi': Color(0xFFFFFFFF),
           'accent': Color(0xFF111111),
         }),
-        extensionOverride: const {
-          'ext.sqlite.table.background': '#ABCDEF',
-        },
+        extensionOverride: const {'ext.sqlite.table.background': '#ABCDEF'},
       );
       expect(tokens.extensionTokens['ext.sqlite.table.background'], const Color(0xFFABCDEF));
     });

@@ -36,14 +36,7 @@ void main() {
     if (!hasCC) return;
     final src = '$repoRoot/native/clide-cli/clide.c';
     final out = '${Directory.systemTemp.createTempSync('clide-cli-test-').path}/clide';
-    final build = await Process.run('cc', [
-      '-std=c99',
-      '-O2',
-      '-Wall',
-      src,
-      '-o',
-      out,
-    ]);
+    final build = await Process.run('cc', ['-std=c99', '-O2', '-Wall', src, '-o', out]);
     expect(build.exitCode, 0, reason: 'cc failed: ${build.stderr}');
     binaryPath = out;
 

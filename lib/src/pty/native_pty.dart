@@ -65,38 +65,62 @@ final _ptsname = _dl.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Int32), ffi.P
 // larger than any documented platform layout) and pass it as Pointer<Void>.
 // init() writes the real layout into our memory; destroy() releases any
 // internal nested allocations.
-final _posixSpawn = _dl.lookupFunction<
-    ffi.Int32 Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<Utf8>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Pointer<Utf8>>,
-        ffi.Pointer<ffi.Pointer<Utf8>>),
-    int Function(ffi.Pointer<ffi.Int32>, ffi.Pointer<Utf8>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Pointer<Utf8>>,
-        ffi.Pointer<ffi.Pointer<Utf8>>)>('posix_spawn');
+final _posixSpawn = _dl
+    .lookupFunction<
+      ffi.Int32 Function(
+        ffi.Pointer<ffi.Int32>,
+        ffi.Pointer<Utf8>,
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Pointer<Utf8>>,
+        ffi.Pointer<ffi.Pointer<Utf8>>,
+      ),
+      int Function(
+        ffi.Pointer<ffi.Int32>,
+        ffi.Pointer<Utf8>,
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Pointer<Utf8>>,
+        ffi.Pointer<ffi.Pointer<Utf8>>,
+      )
+    >('posix_spawn');
 
 final _spawnattrInit = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawnattr_init');
 final _spawnattrDestroy = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawnattr_destroy');
-final _spawnattrSetflags =
-    _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int16), int Function(ffi.Pointer<ffi.Void>, int)>('posix_spawnattr_setflags');
+final _spawnattrSetflags = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int16), int Function(ffi.Pointer<ffi.Void>, int)>(
+  'posix_spawnattr_setflags',
+);
 
 final _faInit = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawn_file_actions_init');
 final _faDestroy = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>), int Function(ffi.Pointer<ffi.Void>)>('posix_spawn_file_actions_destroy');
-final _faAddopen = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32, ffi.Pointer<Utf8>, ffi.Int32, ffi.Uint32),
-    int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<Utf8>, int, int)>('posix_spawn_file_actions_addopen');
+final _faAddopen = _dl
+    .lookupFunction<
+      ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32, ffi.Pointer<Utf8>, ffi.Int32, ffi.Uint32),
+      int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<Utf8>, int, int)
+    >('posix_spawn_file_actions_addopen');
 final _faAdddup2 = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32, ffi.Int32), int Function(ffi.Pointer<ffi.Void>, int, int)>(
-    'posix_spawn_file_actions_adddup2');
-final _faAddclose =
-    _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32), int Function(ffi.Pointer<ffi.Void>, int)>('posix_spawn_file_actions_addclose');
+  'posix_spawn_file_actions_adddup2',
+);
+final _faAddclose = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Int32), int Function(ffi.Pointer<ffi.Void>, int)>(
+  'posix_spawn_file_actions_addclose',
+);
 // glibc 2.29+ / macOS 10.15+. Both ship the `_np` suffix.
 final _faAddchdir = _dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<ffi.Void>, ffi.Pointer<Utf8>), int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<Utf8>)>(
-    'posix_spawn_file_actions_addchdir_np');
+  'posix_spawn_file_actions_addchdir_np',
+);
 
 // libc primitives shared with the reader isolate / lifecycle.
-final _nativeWrite =
-    _dl.lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>('write');
+final _nativeWrite = _dl.lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>(
+  'write',
+);
 final _nativeClose = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32), int Function(int)>('close');
-final _ioctl =
-    _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>), int Function(int, int, ffi.Pointer<_Winsize>)>('ioctl');
+final _ioctl = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.UnsignedLong, ffi.Pointer<_Winsize>), int Function(int, int, ffi.Pointer<_Winsize>)>(
+  'ioctl',
+);
 final _nativeKill = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Int32), int Function(int, int)>('kill');
-final _waitpid =
-    _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Int32>, ffi.Int32), int Function(int, ffi.Pointer<ffi.Int32>, int)>('waitpid');
+final _waitpid = _dl.lookupFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Int32>, ffi.Int32), int Function(int, ffi.Pointer<ffi.Int32>, int)>(
+  'waitpid',
+);
 
 // Constants — all duplicated from <fcntl.h>, <sys/ioctl.h>, <spawn.h>.
 final int _kTiocsWinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
@@ -378,11 +402,7 @@ class NativePty {
       }
       var written = 0;
       while (written < bytes.length) {
-        final n = _nativeWrite(
-          _fd,
-          (buf + written).cast(),
-          bytes.length - written,
-        );
+        final n = _nativeWrite(_fd, (buf + written).cast(), bytes.length - written);
         if (n < 0) {
           final err = libc.errno;
           if (err == PosixErrno.eintr) continue;
@@ -451,10 +471,7 @@ class NativePty {
     // Wait for the isolate to send `null` (EOF) — confirms it has
     // exited its poll loop and won't touch the fd again.
     if (_readerExited != null) {
-      await _readerExited!.future.timeout(
-        const Duration(milliseconds: 500),
-        onTimeout: () {},
-      );
+      await _readerExited!.future.timeout(const Duration(milliseconds: 500), onTimeout: () {});
     }
 
     _nativeClose(_fd);

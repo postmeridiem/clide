@@ -53,11 +53,7 @@ void main() {
         focus.dispose();
       });
 
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        controller: controller,
-        focusNode: focus,
-      )));
+      await tester.pumpWidget(_host(TerminalView(t, controller: controller, focusNode: focus)));
       // Tear down via removing the widget; supplied controllers should NOT
       // throw on later use (the state didn't dispose them).
       await tester.pumpWidget(_host(const SizedBox()));
@@ -89,10 +85,7 @@ void main() {
       await testGesture.addPointer(location: viewCenter);
       // A scroll event with a positive dy → page-down keys; a negative
       // dy → page-up. Use a magnitude that comfortably rounds to 1+ lines.
-      await tester.sendEventToBinding(PointerScrollEvent(
-        position: viewCenter,
-        scrollDelta: const Offset(0, 100),
-      ));
+      await tester.sendEventToBinding(PointerScrollEvent(position: viewCenter, scrollDelta: const Offset(0, 100)));
       await tester.pump();
       // Output should contain at least one PgDown escape.
       expect(r.outputs, isNotEmpty);
@@ -108,10 +101,7 @@ void main() {
       final viewCenter = tester.getCenter(find.byType(TerminalView));
       final testGesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await testGesture.addPointer(location: viewCenter);
-      await tester.sendEventToBinding(PointerScrollEvent(
-        position: viewCenter,
-        scrollDelta: const Offset(0, 100),
-      ));
+      await tester.sendEventToBinding(PointerScrollEvent(position: viewCenter, scrollDelta: const Offset(0, 100)));
       await tester.pump();
       expect(r.outputs, isNotEmpty);
       // Wheel-down id is 64+5=69; normal-mode reporter encodes button
@@ -131,10 +121,7 @@ void main() {
       final viewCenter = tester.getCenter(find.byType(TerminalView));
       // PointerScaleEvent is a sibling of PointerScrollEvent; the handler
       // ignores anything other than PointerScrollEvent.
-      await tester.sendEventToBinding(PointerScaleEvent(
-        position: viewCenter,
-        scale: 1.2,
-      ));
+      await tester.sendEventToBinding(PointerScaleEvent(position: viewCenter, scale: 1.2));
       await tester.pump();
       expect(r.outputs, isEmpty);
     });
@@ -188,11 +175,15 @@ void main() {
     testWidgets('hardware key event with a non-modifier key reaches Terminal.keyInput', (tester) async {
       final r = _OutputRecorder();
       final t = r.build();
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        autofocus: true,
-        // hardwareKeyboardOnly: true,
-      )));
+      await tester.pumpWidget(
+        _host(
+          TerminalView(
+            t,
+            autofocus: true,
+            // hardwareKeyboardOnly: true,
+          ),
+        ),
+      );
       // Wait one frame for autofocus to settle.
       await tester.pump();
       // Send a Down arrow keypress through the binding.
@@ -241,14 +232,18 @@ void main() {
       final r = _OutputRecorder();
       final t = r.build();
       var overrideCalls = 0;
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        autofocus: true,
-        onKeyEvent: (focusNode, event) {
-          overrideCalls++;
-          return KeyEventResult.handled;
-        },
-      )));
+      await tester.pumpWidget(
+        _host(
+          TerminalView(
+            t,
+            autofocus: true,
+            onKeyEvent: (focusNode, event) {
+              overrideCalls++;
+              return KeyEventResult.handled;
+            },
+          ),
+        ),
+      );
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
@@ -259,11 +254,7 @@ void main() {
     testWidgets('onKeyEvent returning ignored falls through to the default handler', (tester) async {
       final r = _OutputRecorder();
       final t = r.build();
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        autofocus: true,
-        onKeyEvent: (_, __) => KeyEventResult.ignored,
-      )));
+      await tester.pumpWidget(_host(TerminalView(t, autofocus: true, onKeyEvent: (_, _) => KeyEventResult.ignored)));
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
@@ -308,10 +299,7 @@ void main() {
       final r = _OutputRecorder();
       final t = r.build();
       var tappedAt = 0;
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        onTapUp: (_, __) => tappedAt++,
-      )));
+      await tester.pumpWidget(_host(TerminalView(t, onTapUp: (_, _) => tappedAt++)));
       await tester.tapAt(tester.getCenter(find.byType(TerminalView)));
       // The gesture detector arms a 300 ms double-tap timer after the tap;
       // explicit duration flushes it (pumpAndSettle waits on animations,
@@ -324,10 +312,7 @@ void main() {
       final t = _OutputRecorder().build();
       final controller = TerminalController();
       addTearDown(controller.dispose);
-      controller.setSelection(
-        t.buffer.createAnchor(0, 0),
-        t.buffer.createAnchor(2, 0),
-      );
+      controller.setSelection(t.buffer.createAnchor(0, 0), t.buffer.createAnchor(2, 0));
       expect(controller.selection, isNotNull);
       await tester.pumpWidget(_host(TerminalView(t, controller: controller)));
       await tester.tapAt(tester.getCenter(find.byType(TerminalView)));
@@ -340,11 +325,7 @@ void main() {
       final t = r.build();
       var downCalls = 0;
       var upCalls = 0;
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        onSecondaryTapDown: (_, __) => downCalls++,
-        onSecondaryTapUp: (_, __) => upCalls++,
-      )));
+      await tester.pumpWidget(_host(TerminalView(t, onSecondaryTapDown: (_, _) => downCalls++, onSecondaryTapUp: (_, _) => upCalls++)));
       final pos = tester.getCenter(find.byType(TerminalView));
       final gesture = await tester.startGesture(pos, buttons: kSecondaryButton);
       await gesture.up();
@@ -448,10 +429,7 @@ void main() {
       // deleteDetection seeds the editing value with two spaces; shrinking
       // it below that length triggers CustomTextEdit.onDelete, which fires
       // _scrollToBottom + Terminal.keyInput(backspace) in TerminalView.
-      tester.testTextInput.updateEditingValue(const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      ));
+      tester.testTextInput.updateEditingValue(const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0)));
       await tester.pump();
       // Backspace produces a non-empty escape sequence (^?).
       expect(r.outputs, isNotEmpty);
@@ -461,11 +439,7 @@ void main() {
       final t = _OutputRecorder().build();
       final focus = FocusNode();
       addTearDown(focus.dispose);
-      await tester.pumpWidget(_host(TerminalView(
-        t,
-        hardwareKeyboardOnly: true,
-        focusNode: focus,
-      )));
+      await tester.pumpWidget(_host(TerminalView(t, hardwareKeyboardOnly: true, focusNode: focus)));
       // Tap with no selection-clear short-circuit — the else-branch of
       // _onTapUp routes through _focusNode.requestFocus when
       // hardwareKeyboardOnly is set (no CustomTextEdit to delegate to).

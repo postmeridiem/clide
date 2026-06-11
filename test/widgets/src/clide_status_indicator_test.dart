@@ -17,15 +17,17 @@ void main() {
   // Disable animations so the spinner is static (no perpetual rotation) and
   // pumpAndSettle can settle — mirroring how every animated widget behaves
   // under reduced motion.
-  Future<void> pump(WidgetTester tester, Widget child) => tester.pumpWidget(harness(
-        f,
-        Builder(
-          builder: (ctx) => MediaQuery(
-            data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
-            child: Center(child: child),
-          ),
+  Future<void> pump(WidgetTester tester, Widget child) => tester.pumpWidget(
+    harness(
+      f,
+      Builder(
+        builder: (ctx) => MediaQuery(
+          data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+          child: Center(child: child),
         ),
-      ));
+      ),
+    ),
+  );
 
   Finder iconWith(Object painterType) => find.byWidgetPredicate((w) => w is ClideIcon && w.painter.runtimeType == painterType);
 
@@ -64,15 +66,19 @@ void main() {
       // 'running' key. Pre-fix this threw "Duplicate keys found".
       var status = ClideRunStatus.running;
       late StateSetter set;
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: StatefulBuilder(builder: (ctx, s) {
-            set = s;
-            return ClideStatusIndicator(status: status);
-          }),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: StatefulBuilder(
+              builder: (ctx, s) {
+                set = s;
+                return ClideStatusIndicator(status: status);
+              },
+            ),
+          ),
         ),
-      ));
+      );
 
       void flip(ClideRunStatus next) => set(() => status = next);
 

@@ -34,19 +34,23 @@ void main() {
     });
 
     testWidgets('opens to show an input field + the registered commands', (tester) async {
-      f.services.commands.register(CommandContribution(
-        id: 'c1',
-        command: 'cmd.one',
-        title: 'Command One',
-        defaultBinding: 'ctrl+1',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
-      f.services.commands.register(CommandContribution(
-        id: 'c2',
-        command: 'cmd.two',
-        title: 'Command Two',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c1',
+          command: 'cmd.one',
+          title: 'Command One',
+          defaultBinding: 'ctrl+1',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c2',
+          command: 'cmd.two',
+          title: 'Command Two',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
       await tester.pumpAndSettle();
@@ -57,15 +61,17 @@ void main() {
 
     testWidgets('tapping a row invokes the command + closes the palette', (tester) async {
       var invocations = 0;
-      f.services.commands.register(CommandContribution(
-        id: 'c1',
-        command: 'tap.target',
-        title: 'Tap Target',
-        run: (_) async {
-          invocations++;
-          return IpcResponse.ok(id: '', data: const {});
-        },
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c1',
+          command: 'tap.target',
+          title: 'Tap Target',
+          run: (_) async {
+            invocations++;
+            return IpcResponse.ok(id: '', data: const {});
+          },
+        ),
+      );
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
       await tester.pumpAndSettle();
@@ -75,18 +81,22 @@ void main() {
     });
 
     testWidgets('typing narrows the visible commands via palette.setFilter', (tester) async {
-      f.services.commands.register(CommandContribution(
-        id: 'c1',
-        command: 'alpha.cmd',
-        title: 'Alpha',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
-      f.services.commands.register(CommandContribution(
-        id: 'c2',
-        command: 'beta.cmd',
-        title: 'Beta',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c1',
+          command: 'alpha.cmd',
+          title: 'Alpha',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c2',
+          command: 'beta.cmd',
+          title: 'Beta',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
       await tester.pumpAndSettle();
@@ -99,21 +109,25 @@ void main() {
 
     testWidgets('submitting the input invokes the first filtered command', (tester) async {
       var invocations = 0;
-      f.services.commands.register(CommandContribution(
-        id: 'c1',
-        command: 'submit.target',
-        title: 'Submit Target',
-        run: (_) async {
-          invocations++;
-          return IpcResponse.ok(id: '', data: const {});
-        },
-      ));
-      f.services.commands.register(CommandContribution(
-        id: 'c2',
-        command: 'other.cmd',
-        title: 'Other',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c1',
+          command: 'submit.target',
+          title: 'Submit Target',
+          run: (_) async {
+            invocations++;
+            return IpcResponse.ok(id: '', data: const {});
+          },
+        ),
+      );
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c2',
+          command: 'other.cmd',
+          title: 'Other',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
       await tester.pumpAndSettle();
@@ -126,12 +140,14 @@ void main() {
     });
 
     testWidgets('hovering a palette row updates its hover state', (tester) async {
-      f.services.commands.register(CommandContribution(
-        id: 'c1',
-        command: 'hover.cmd',
-        title: 'Hoverable',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c1',
+          command: 'hover.cmd',
+          title: 'Hoverable',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
       await tester.pumpAndSettle();
@@ -149,12 +165,14 @@ void main() {
 
     testWidgets('arrow keys move the highlighted command (T-100)', (tester) async {
       for (final id in ['a', 'b', 'c']) {
-        f.services.commands.register(CommandContribution(
-          id: id,
-          command: 'cmd.$id',
-          title: 'Item $id',
-          run: (_) async => IpcResponse.ok(id: '', data: const {}),
-        ));
+        f.services.commands.register(
+          CommandContribution(
+            id: id,
+            command: 'cmd.$id',
+            title: 'Item $id',
+            run: (_) async => IpcResponse.ok(id: '', data: const {}),
+          ),
+        );
       }
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
@@ -181,15 +199,17 @@ void main() {
     testWidgets('PaletteAcceptIntent invokes the highlighted command (T-100)', (tester) async {
       var which = '';
       for (final id in ['a', 'b', 'c']) {
-        f.services.commands.register(CommandContribution(
-          id: id,
-          command: 'cmd.$id',
-          title: 'Item $id',
-          run: (_) async {
-            which = id;
-            return IpcResponse.ok(id: '', data: const {});
-          },
-        ));
+        f.services.commands.register(
+          CommandContribution(
+            id: id,
+            command: 'cmd.$id',
+            title: 'Item $id',
+            run: (_) async {
+              which = id;
+              return IpcResponse.ok(id: '', data: const {});
+            },
+          ),
+        );
       }
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
@@ -204,12 +224,14 @@ void main() {
     });
 
     testWidgets('DismissIntent closes the palette (T-100)', (tester) async {
-      f.services.commands.register(CommandContribution(
-        id: 'c1',
-        command: 'thing',
-        title: 'Thing',
-        run: (_) async => IpcResponse.ok(id: '', data: const {}),
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'c1',
+          command: 'thing',
+          title: 'Thing',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
       f.services.palette.open();
       await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
       await tester.pumpAndSettle();
@@ -240,13 +262,7 @@ void main() {
 
     testWidgets('debounces onChanged calls to the configured duration', (tester) async {
       final values = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClideFilterBox(
-          onChanged: values.add,
-          debounce: const Duration(milliseconds: 50),
-        ),
-      ));
+      await tester.pumpWidget(harness(f, ClideFilterBox(onChanged: values.add, debounce: const Duration(milliseconds: 50))));
       // Type into the editable text field.
       await tester.enterText(find.byType(EditableText), 'abc');
       // Before the debounce elapses no call.
@@ -259,13 +275,7 @@ void main() {
 
     testWidgets('clear button appears once the field has text and resets onChanged when tapped', (tester) async {
       final values = <String>[];
-      await tester.pumpWidget(harness(
-        f,
-        ClideFilterBox(
-          onChanged: values.add,
-          debounce: const Duration(milliseconds: 10),
-        ),
-      ));
+      await tester.pumpWidget(harness(f, ClideFilterBox(onChanged: values.add, debounce: const Duration(milliseconds: 10))));
       // No clear icon when the field is empty.
       expect(find.byType(GestureDetector), findsNothing);
       await tester.enterText(find.byType(EditableText), 'foo');
@@ -280,13 +290,7 @@ void main() {
 
     testWidgets('onSubmitted fires when the field is submitted', (tester) async {
       String? submitted;
-      await tester.pumpWidget(harness(
-        f,
-        ClideFilterBox(
-          onChanged: (_) {},
-          onSubmitted: (v) => submitted = v,
-        ),
-      ));
+      await tester.pumpWidget(harness(f, ClideFilterBox(onChanged: (_) {}, onSubmitted: (v) => submitted = v)));
       await tester.enterText(find.byType(EditableText), 'submit-me');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
@@ -294,10 +298,7 @@ void main() {
     });
 
     testWidgets('renders the hint as a placeholder (shown empty, hidden once typed); icon optional', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        ClideFilterBox(onChanged: (_) {}, hint: 'Replace', showIcon: false),
-      ));
+      await tester.pumpWidget(harness(f, ClideFilterBox(onChanged: (_) {}, hint: 'Replace', showIcon: false)));
       // Placeholder visible while empty; the icon slot is kept for alignment but
       // draws a blank glyph (showIcon: false → EmptyIconPainter).
       expect(find.text('Replace'), findsOneWidget);
@@ -318,14 +319,21 @@ void main() {
     testWidgets('left / center / right factories render', (tester) async {
       final wc = WindowControls();
       addTearDown(wc.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Column(children: [
-          SizedBox(width: 200, child: ColumnHat.left(windowControls: wc)),
-          SizedBox(width: 200, child: ColumnHat.center(windowControls: wc, project: 'clide', branch: 'main')),
-          SizedBox(width: 200, child: ColumnHat.right(windowControls: wc)),
-        ]),
-      ));
+      await tester.pumpWidget(
+        harness(
+          f,
+          Column(
+            children: [
+              SizedBox(width: 200, child: ColumnHat.left(windowControls: wc)),
+              SizedBox(
+                width: 200,
+                child: ColumnHat.center(windowControls: wc, project: 'clide', branch: 'main'),
+              ),
+              SizedBox(width: 200, child: ColumnHat.right(windowControls: wc)),
+            ],
+          ),
+        ),
+      );
       // Center hat renders the joined label.
       expect(find.text('clide > main'), findsOneWidget);
     });
@@ -333,10 +341,7 @@ void main() {
     testWidgets('center hat falls back to "clide" with no project/branch', (tester) async {
       final wc = WindowControls();
       addTearDown(wc.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(width: 200, child: ColumnHat.center(windowControls: wc)),
-      ));
+      await tester.pumpWidget(harness(f, SizedBox(width: 200, child: ColumnHat.center(windowControls: wc))));
       expect(find.text('clide'), findsOneWidget);
     });
   });
@@ -348,17 +353,19 @@ void main() {
 
     testWidgets('renders one button per item, marks the active one, fires onSelect', (tester) async {
       String? selected;
-      await tester.pumpWidget(harness(
-        f,
-        ClideIconRail(
-          items: [
-            ClideIconRailItem(id: 'a', icon: PhosphorIcons.byName('folder'), tooltip: 'A'),
-            ClideIconRailItem(id: 'b', icon: PhosphorIcons.byName('git-branch'), tooltip: 'B'),
-          ],
-          activeId: 'a',
-          onSelect: (id) => selected = id,
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideIconRail(
+            items: [
+              ClideIconRailItem(id: 'a', icon: PhosphorIcons.byName('folder'), tooltip: 'A'),
+              ClideIconRailItem(id: 'b', icon: PhosphorIcons.byName('git-branch'), tooltip: 'B'),
+            ],
+            activeId: 'a',
+            onSelect: (id) => selected = id,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // Each item exposes a tooltip-labeled semantics button.
       expect(find.bySemanticsLabel('A'), findsOneWidget);
@@ -368,20 +375,20 @@ void main() {
     });
 
     testWidgets('scrolls instead of overflowing when items exceed the width', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(
-          width: 120,
-          height: 30,
-          child: ClideIconRail(
-            items: [
-              for (var i = 0; i < 10; i++) ClideIconRailItem(id: '$i', icon: PhosphorIcons.byName('folder'), tooltip: 'Tab $i'),
-            ],
-            activeId: '0',
-            onSelect: (_) {},
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 120,
+            height: 30,
+            child: ClideIconRail(
+              items: [for (var i = 0; i < 10; i++) ClideIconRailItem(id: '$i', icon: PhosphorIcons.byName('folder'), tooltip: 'Tab $i')],
+              activeId: '0',
+              onSelect: (_) {},
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // No RenderFlex overflow (would surface as a thrown FlutterError),
       // and the rail is horizontally scrollable.
@@ -397,17 +404,16 @@ void main() {
 
     testWidgets('renders the rotated label + a badge dot when badgeCount > 0', (tester) async {
       var taps = 0;
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
             height: 200,
             width: ClideSpine.width,
-            child: ClideSpine(
-              label: 'SIDEBAR',
-              badgeCount: 3,
-              onExpand: () => taps++,
-            )),
-      ));
+            child: ClideSpine(label: 'SIDEBAR', badgeCount: 3, onExpand: () => taps++),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('SIDEBAR'), findsOneWidget);
       // Tap to expand.
@@ -416,17 +422,16 @@ void main() {
     });
 
     testWidgets('renders the right-side variant without throwing', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
             height: 200,
             width: ClideSpine.width,
-            child: ClideSpine(
-              label: 'CTX',
-              side: SpineSide.right,
-              onExpand: () {},
-            )),
-      ));
+            child: ClideSpine(label: 'CTX', side: SpineSide.right, onExpand: () {}),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('CTX'), findsOneWidget);
     });
@@ -440,13 +445,15 @@ void main() {
     testWidgets('wraps a child and renders 8 resize zones', (tester) async {
       final wc = WindowControls();
       addTearDown(wc.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        ClideResizeBorder(
-          windowControls: wc,
-          child: const SizedBox.expand(child: ColoredBox(color: Color(0xFF000000))),
+      await tester.pumpWidget(
+        harness(
+          f,
+          ClideResizeBorder(
+            windowControls: wc,
+            child: const SizedBox.expand(child: ColoredBox(color: Color(0xFF000000))),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // 4 corners + 4 edges = 8 zones each with a MouseRegion.
       expect(find.byType(MouseRegion).evaluate().length, greaterThanOrEqualTo(8));

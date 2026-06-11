@@ -64,7 +64,12 @@ void main() {
               collapsedByDefault: true,
               collapsedSummary: '/lib/main.dart',
               body: Text('/lib/main.dart', textDirection: TextDirection.ltr),
-              extraSegments: [CardSegment(label: 'result', child: Text('void main() {}', textDirection: TextDirection.ltr))],
+              extraSegments: [
+                CardSegment(
+                  label: 'result',
+                  child: Text('void main() {}', textDirection: TextDirection.ltr),
+                ),
+              ],
             ),
           ),
         ),
@@ -80,7 +85,12 @@ void main() {
               collapsible: true,
               collapsedByDefault: false,
               body: Text('/lib/main.dart', textDirection: TextDirection.ltr),
-              extraSegments: [CardSegment(label: 'result', child: Text('void main() {}', textDirection: TextDirection.ltr))],
+              extraSegments: [
+                CardSegment(
+                  label: 'result',
+                  child: Text('void main() {}', textDirection: TextDirection.ltr),
+                ),
+              ],
             ),
           ),
         ),
@@ -97,8 +107,14 @@ void main() {
               collapsedByDefault: false,
               body: Text('{ "description": "explore the codebase" }', textDirection: TextDirection.ltr),
               extraSegments: [
-                CardSegment(label: 'prompt', child: Text('find all the widgets and summarise', textDirection: TextDirection.ltr)),
-                CardSegment(label: 'result', child: Text('found 42 widgets', textDirection: TextDirection.ltr)),
+                CardSegment(
+                  label: 'prompt',
+                  child: Text('find all the widgets and summarise', textDirection: TextDirection.ltr),
+                ),
+                CardSegment(
+                  label: 'result',
+                  child: Text('found 42 widgets', textDirection: TextDirection.ltr),
+                ),
               ],
             ),
           ),
@@ -178,7 +194,4 @@ void main() {
   );
 }
 
-Widget _wrap(KernelFixture f, Widget child) => SizedBox(
-      width: 360,
-      child: harness(f, child),
-    );
+Widget _wrap(KernelFixture f, Widget child) => SizedBox(width: 360, child: harness(f, child));

@@ -19,22 +19,22 @@ Map<String, Object?> _file(String path) => {'path': path, 'hunks': const []};
 /// A file with rename metadata and a hunk carrying one of each line kind, so
 /// the view exercises `_FileDiff` meta, `_HunkView`, and `_DiffLineRow`.
 Map<String, Object?> _richFile() => {
-      'path': 'lib/c.dart',
-      'renamed': true,
-      'oldPath': 'lib/old.dart',
-      'additions': 2,
-      'removals': 1,
-      'hunks': [
-        {
-          'header': '@@ -1,2 +1,3 @@',
-          'lines': [
-            {'kind': 'context', 'text': 'kept', 'oldLineNo': 1, 'newLineNo': 1},
-            {'kind': 'addition', 'text': 'new line', 'newLineNo': 2},
-            {'kind': 'removal', 'text': 'gone line', 'oldLineNo': 2},
-          ],
-        },
+  'path': 'lib/c.dart',
+  'renamed': true,
+  'oldPath': 'lib/old.dart',
+  'additions': 2,
+  'removals': 1,
+  'hunks': [
+    {
+      'header': '@@ -1,2 +1,3 @@',
+      'lines': [
+        {'kind': 'context', 'text': 'kept', 'oldLineNo': 1, 'newLineNo': 1},
+        {'kind': 'addition', 'text': 'new line', 'newLineNo': 2},
+        {'kind': 'removal', 'text': 'gone line', 'oldLineNo': 2},
       ],
-    };
+    },
+  ],
+};
 
 bool _textIs(Object? w, String s) => w is ClideText && w.data == s;
 bool _textHas(Object? w, String s) => w is ClideText && w.data.contains(s);
@@ -52,10 +52,11 @@ void main() {
     bus = DaemonBus();
     ipc = FakeDaemonClient(log: Logger(), events: bus);
     ipc.stub(
-        'git.diff',
-        (_) async => _ok({
-              'diffs': [_file('lib/a.dart'), _file('lib/b.dart')]
-            }));
+      'git.diff',
+      (_) async => _ok({
+        'diffs': [_file('lib/a.dart'), _file('lib/b.dart')],
+      }),
+    );
     c = DiffController(ipc: ipc, events: bus);
   });
 
@@ -94,10 +95,11 @@ void main() {
 
   testWidgets('renders hunk header, each diff line kind, and rename meta', (tester) async {
     ipc.stub(
-        'git.diff',
-        (_) async => _ok({
-              'diffs': [_richFile()]
-            }));
+      'git.diff',
+      (_) async => _ok({
+        'diffs': [_richFile()],
+      }),
+    );
     await c.load();
     await tester.pumpWidget(harness(f, DiffView(controller: c)));
     await tester.pumpAndSettle();
@@ -111,13 +113,14 @@ void main() {
 
   testWidgets('renders new/deleted/binary metadata and skips hunks for binary', (tester) async {
     ipc.stub(
-        'git.diff',
-        (_) async => _ok({
-              'diffs': [
-                {'path': 'img.png', 'new': true, 'binary': true, 'hunks': const []},
-                {'path': 'gone.txt', 'deleted': true, 'hunks': const []},
-              ]
-            }));
+      'git.diff',
+      (_) async => _ok({
+        'diffs': [
+          {'path': 'img.png', 'new': true, 'binary': true, 'hunks': const []},
+          {'path': 'gone.txt', 'deleted': true, 'hunks': const []},
+        ],
+      }),
+    );
     await c.load();
     await tester.pumpWidget(harness(f, DiffView(controller: c)));
     await tester.pumpAndSettle();
@@ -129,11 +132,12 @@ void main() {
 
   testWidgets('renders the error message when git.diff fails', (tester) async {
     ipc.stub(
-        'git.diff',
-        (_) async => IpcResponse.err(
-              id: '',
-              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
-            ));
+      'git.diff',
+      (_) async => IpcResponse.err(
+        id: '',
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+      ),
+    );
     await c.load();
     await tester.pumpWidget(harness(f, DiffView(controller: c)));
     await tester.pumpAndSettle();

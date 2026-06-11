@@ -19,11 +19,15 @@ void main() {
   setUp(() async {
     f = await KernelFixture.create();
     f.ipc.stub(
-        'files.walk',
-        (_) async => IpcResponse.ok(id: '1', data: const {
-              'files': ['lib/main.dart', 'lib/app.dart', 'README.md'],
-              'truncated': false,
-            }));
+      'files.walk',
+      (_) async => IpcResponse.ok(
+        id: '1',
+        data: const {
+          'files': ['lib/main.dart', 'lib/app.dart', 'README.md'],
+          'truncated': false,
+        },
+      ),
+    );
     f.ipc.stub('editor.open', (args) async => IpcResponse.ok(id: '1', data: {'path': args['path']}));
   });
   tearDown(() => f.dispose());
@@ -102,11 +106,15 @@ void main() {
 
   testWidgets('truncated walk surfaces the limited-results hint', (tester) async {
     f.ipc.stub(
-        'files.walk',
-        (_) async => IpcResponse.ok(id: '1', data: const {
-              'files': ['lib/main.dart'],
-              'truncated': true,
-            }));
+      'files.walk',
+      (_) async => IpcResponse.ok(
+        id: '1',
+        data: const {
+          'files': ['lib/main.dart'],
+          'truncated': true,
+        },
+      ),
+    );
     await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
     f.services.quickOpen.open();
     await pumpAsync(tester);
@@ -151,11 +159,12 @@ void main() {
 
   testWidgets('files.walk failure leaves the list empty (no crash)', (tester) async {
     f.ipc.stub(
-        'files.walk',
-        (_) async => IpcResponse.err(
-              id: '1',
-              error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
-            ));
+      'files.walk',
+      (_) async => IpcResponse.err(
+        id: '1',
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'boom'),
+      ),
+    );
     await tester.pumpWidget(harness(f, const QuickOpenOverlay()));
     f.services.quickOpen.open();
     await pumpAsync(tester);

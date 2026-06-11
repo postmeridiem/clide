@@ -19,28 +19,28 @@ void main() {
 
     testWidgets('horizontal drag adjusts the sidebar slot size', (tester) async {
       final arr = LayoutArrangement();
-      arr.applyPreset(const LayoutPresetContribution(
-        id: 'test-preset',
-        displayName: 'Test',
-        slots: [
-          LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 200),
-          LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 200),
-        ],
-      ));
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: SizedBox(
-            width: 40,
-            height: 200,
-            child: DragResizeHandle(
-              arrangement: arr,
-              slot: Slots.sidebar,
-              axis: Axis.horizontal,
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [
+            LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 200),
+            LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 200),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 40,
+              height: 200,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.sidebar, axis: Axis.horizontal),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       final center = tester.getCenter(find.byType(DragResizeHandle));
       final gesture = await tester.startGesture(center, kind: PointerDeviceKind.mouse);
@@ -53,28 +53,28 @@ void main() {
 
     testWidgets('contextPanel drag inverts the delta sign', (tester) async {
       final arr = LayoutArrangement();
-      arr.applyPreset(const LayoutPresetContribution(
-        id: 'test-preset',
-        displayName: 'Test',
-        slots: [
-          LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 200),
-          LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 200),
-        ],
-      ));
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: SizedBox(
-            width: 40,
-            height: 200,
-            child: DragResizeHandle(
-              arrangement: arr,
-              slot: Slots.contextPanel,
-              axis: Axis.horizontal,
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [
+            LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 200),
+            LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 200),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 40,
+              height: 200,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.contextPanel, axis: Axis.horizontal),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       final center = tester.getCenter(find.byType(DragResizeHandle));
       final gesture = await tester.startGesture(center, kind: PointerDeviceKind.mouse);
@@ -86,28 +86,26 @@ void main() {
 
     testWidgets('exposes a slider Semantics node with the current size', (tester) async {
       final arr = LayoutArrangement();
-      arr.applyPreset(const LayoutPresetContribution(
-        id: 'test-preset',
-        displayName: 'Test',
-        slots: [
-          LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 240),
-        ],
-      ));
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 240)],
+        ),
+      );
       final semHandle = tester.ensureSemantics();
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: SizedBox(
-            width: 40,
-            height: 200,
-            child: DragResizeHandle(
-              arrangement: arr,
-              slot: Slots.sidebar,
-              axis: Axis.horizontal,
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 40,
+              height: 200,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.sidebar, axis: Axis.horizontal),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       final data = tester.getSemantics(find.byType(DragResizeHandle));
       expect(data.label, 'Sidebar width');
@@ -120,28 +118,26 @@ void main() {
 
     testWidgets('contextPanel slider Semantics label matches the slot', (tester) async {
       final arr = LayoutArrangement();
-      arr.applyPreset(const LayoutPresetContribution(
-        id: 'test-preset',
-        displayName: 'Test',
-        slots: [
-          LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 320),
-        ],
-      ));
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 320)],
+        ),
+      );
       final semHandle = tester.ensureSemantics();
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: SizedBox(
-            width: 40,
-            height: 200,
-            child: DragResizeHandle(
-              arrangement: arr,
-              slot: Slots.contextPanel,
-              axis: Axis.horizontal,
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 40,
+              height: 200,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.contextPanel, axis: Axis.horizontal),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       final data = tester.getSemantics(find.byType(DragResizeHandle));
       expect(data.label, 'Context panel width');
@@ -162,28 +158,26 @@ void main() {
 
     testWidgets('vertical-axis handle uses arrow up/down shortcuts and "height" label', (tester) async {
       final arr = LayoutArrangement();
-      arr.applyPreset(const LayoutPresetContribution(
-        id: 'test-preset',
-        displayName: 'Test',
-        slots: [
-          LayoutSlot(slot: Slots.workspace, position: SlotPosition.center, defaultSize: 300),
-        ],
-      ));
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [LayoutSlot(slot: Slots.workspace, position: SlotPosition.center, defaultSize: 300)],
+        ),
+      );
       final semHandle = tester.ensureSemantics();
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: SizedBox(
-            width: 200,
-            height: 40,
-            child: DragResizeHandle(
-              arrangement: arr,
-              slot: Slots.workspace,
-              axis: Axis.vertical,
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 200,
+              height: 40,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.workspace, axis: Axis.vertical),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       final data = tester.getSemantics(find.byType(DragResizeHandle));
       // Custom (non-sidebar, non-contextPanel) slots fall through to
@@ -194,28 +188,28 @@ void main() {
 
     testWidgets('hovered state flips the line colour without throwing', (tester) async {
       final arr = LayoutArrangement();
-      arr.applyPreset(const LayoutPresetContribution(
-        id: 'test-preset',
-        displayName: 'Test',
-        slots: [
-          LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 200),
-          LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 200),
-        ],
-      ));
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: SizedBox(
-            width: 40,
-            height: 200,
-            child: DragResizeHandle(
-              arrangement: arr,
-              slot: Slots.sidebar,
-              axis: Axis.horizontal,
+      arr.applyPreset(
+        const LayoutPresetContribution(
+          id: 'test-preset',
+          displayName: 'Test',
+          slots: [
+            LayoutSlot(slot: Slots.sidebar, position: SlotPosition.left, defaultSize: 200),
+            LayoutSlot(slot: Slots.contextPanel, position: SlotPosition.right, defaultSize: 200),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: SizedBox(
+              width: 40,
+              height: 200,
+              child: DragResizeHandle(arrangement: arr, slot: Slots.sidebar, axis: Axis.horizontal),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // Hover over the handle.
       final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);

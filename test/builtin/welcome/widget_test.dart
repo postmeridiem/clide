@@ -75,12 +75,7 @@ void main() {
     });
 
     testWidgets('status line shows "application ok" when all tools resolved', (tester) async {
-      f.services.toolchain.applyResolved(const ResolvedPaths(
-        git: '/usr/bin/git',
-        pql: '/usr/bin/pql',
-        tmux: '/usr/bin/tmux',
-        shell: '/bin/bash',
-      ));
+      f.services.toolchain.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', tmux: '/usr/bin/tmux', shell: '/bin/bash'));
       await tester.pumpWidget(harness(f, const WelcomeView()));
       await tester.pumpAndSettle();
       expect(find.text('application ok'), findsOneWidget);
@@ -91,9 +86,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      f.services.toolchain.applyResolved(const ResolvedPaths(
-        pql: '/usr/bin/pql',
-      ));
+      f.services.toolchain.applyResolved(const ResolvedPaths(pql: '/usr/bin/pql'));
       await tester.pumpWidget(harness(f, const WelcomeView()));
       await tester.pumpAndSettle();
       expect(find.textContaining('git not found'), findsOneWidget);
@@ -102,15 +95,17 @@ void main() {
 
     testWidgets('theme-name link fires the theme.pick command when tapped', (tester) async {
       var invocations = 0;
-      f.services.commands.register(CommandContribution(
-        id: 'theme.pick',
-        command: 'theme.pick',
-        title: 'Theme: Pick',
-        run: (_) async {
-          invocations++;
-          return IpcResponse.ok(id: '', data: const {});
-        },
-      ));
+      f.services.commands.register(
+        CommandContribution(
+          id: 'theme.pick',
+          command: 'theme.pick',
+          title: 'Theme: Pick',
+          run: (_) async {
+            invocations++;
+            return IpcResponse.ok(id: '', data: const {});
+          },
+        ),
+      );
       await tester.pumpWidget(harness(f, const WelcomeView()));
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('theme:'));
@@ -140,21 +135,21 @@ void main() {
     // harness()'s unbounded width breaks WelcomeView's Positioned status line
     // + Flexible rows independently).
     Widget tightWelcome() => Directionality(
-          textDirection: TextDirection.ltr,
-          child: ClideKernel(
-            services: f.services,
-            child: ClideTheme(
-              controller: f.services.theme,
-              child: const MediaQuery(
-                data: MediaQueryData(size: Size(1200, 900)),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: SizedBox(width: 1200, height: 900, child: WelcomeView()),
-                ),
-              ),
+      textDirection: TextDirection.ltr,
+      child: ClideKernel(
+        services: f.services,
+        child: ClideTheme(
+          controller: f.services.theme,
+          child: const MediaQuery(
+            data: MediaQueryData(size: Size(1200, 900)),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(width: 1200, height: 900, child: WelcomeView()),
             ),
           ),
-        );
+        ),
+      ),
+    );
 
     Future<void> seedRecents(WidgetTester tester, String json) async {
       // runAsync: real event loop, so SettingsStore's file I/O completes.
@@ -186,10 +181,7 @@ void main() {
     });
 
     testWidgets('sticky-startup toggle flips when tapped (T-115/T-122)', (tester) async {
-      await seedRecents(
-        tester,
-        '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]',
-      );
+      await seedRecents(tester, '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]');
       tester.view.physicalSize = const Size(1200, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -205,10 +197,7 @@ void main() {
     });
 
     testWidgets('tapping a recent row kicks off _openRecent without throwing (T-122)', (tester) async {
-      await seedRecents(
-        tester,
-        '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]',
-      );
+      await seedRecents(tester, '[{"path":"/tmp/clide-fixture","name":"clide-fixture","lastOpened":"2026-05-18T00:00:00.000Z"}]');
       tester.view.physicalSize = const Size(1200, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -228,15 +217,12 @@ void main() {
     testWidgets('Open folder opens the fallback dialog when the picker throws MissingPluginException', (tester) async {
       // Pre-register a mock that throws — emulating a platform without
       // native picker support.
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('clide/window'),
-        (call) async {
-          if (call.method == 'pickDirectory') {
-            throw MissingPluginException();
-          }
-          return null;
-        },
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async {
+        if (call.method == 'pickDirectory') {
+          throw MissingPluginException();
+        }
+        return null;
+      });
       await tester.pumpWidget(harness(f, const WelcomeView()));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Open folder…'));

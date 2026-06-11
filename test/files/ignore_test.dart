@@ -69,10 +69,7 @@ void main() {
 
     test('** crosses directory boundaries', () {
       final s = IgnoreSet.parse(const ['docs/**/*.draft.md\n']);
-      expect(
-        s.isIgnored('docs/deep/nested/a.draft.md', isDirectory: false),
-        isTrue,
-      );
+      expect(s.isIgnored('docs/deep/nested/a.draft.md', isDirectory: false), isTrue);
       expect(s.isIgnored('docs/a.draft.md', isDirectory: false), isTrue);
       expect(s.isIgnored('other/a.draft.md', isDirectory: false), isFalse);
     });

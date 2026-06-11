@@ -16,10 +16,7 @@ class FilesDropped extends ClideEvent {
   @override
   String get kind => 'dropped';
   @override
-  Map<String, Object?> payload() => {
-        'paths': paths,
-        'slot': slot.value,
-      };
+  Map<String, Object?> payload() => {'paths': paths, 'slot': slot.value};
 }
 
 /// Tier-0 stub for file pickers and drop targets.
@@ -33,17 +30,11 @@ class FileServices {
   FileServices(this._events);
   final DaemonBus _events;
 
-  Future<List<String>> pickOpen({
-    List<String> extensions = const [],
-    bool multiple = false,
-  }) async {
+  Future<List<String>> pickOpen({List<String> extensions = const [], bool multiple = false}) async {
     throw UnimplementedError('pickOpen — wired in a later tier');
   }
 
-  Future<String?> pickSave({
-    String? defaultName,
-    List<String> extensions = const [],
-  }) async {
+  Future<String?> pickSave({String? defaultName, List<String> extensions = const []}) async {
     throw UnimplementedError('pickSave — wired in a later tier');
   }
 

@@ -12,11 +12,7 @@ class ToolCheck extends ChangeNotifier {
 
   bool get allOk => pqlOk && tmuxOk && gitOk;
 
-  List<String> get errors => [
-        if (!pqlOk) 'pql not found',
-        if (!tmuxOk) 'tmux not found',
-        if (!gitOk) 'git not found',
-      ];
+  List<String> get errors => [if (!pqlOk) 'pql not found', if (!tmuxOk) 'tmux not found', if (!gitOk) 'git not found'];
 
   /// Workspace root, set by the app at boot. Falls back to cwd.
   static String? workspaceRoot;

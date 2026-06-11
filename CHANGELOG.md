@@ -16,15 +16,25 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Changed
+
+- **Minimum toolchain raised to honest values.** `pubspec.yaml` now declares
+  Flutter `>=3.35.0` / Dart `>=3.9.0` (was `3.19.0` / `3.5.0`) — the real
+  minimums our deps already required (`alchemist` needs Flutter 3.32; Dart 3.9
+  ships in Flutter 3.35). The exact build toolchain is pinned in `.fvmrc`
+  (Flutter 3.44.1). Moving to the Dart 3.9 language level reformatted the tree
+  to the new "tall" style and adopted two new lints (`unnecessary_underscores`,
+  `use_null_aware_elements`). (T-353)
+
 ### Security
 
 - **Dependency audit + refresh.** Reviewed every pinned and transitive
   dependency against the GitHub Advisory Database / OSV (Pub ecosystem) — no
   advisory affects any current or candidate version. Refreshed the safe pins:
   `ffi` 2.1.3→2.2.0, `jovial_svg` 1.1.26→1.1.30 (pulls `jovial_misc` 0.10.0 +
-  `xml` 7.0.1), `mocktail` 1.0.4→1.0.5. Deliberately held with reasons in
-  `pubspec.yaml`: `markdown` (7.3.1 needs Dart 3.9), `alchemist` (0.13 golden
-  churn), `test` (Flutter-SDK locked). (T-353)
+  `xml` 7.0.1), `mocktail` 1.0.4→1.0.5, and `markdown` 7.2.2→7.3.1 (unblocked by
+  the Dart 3.9 floor below). Deliberately held with reasons in `pubspec.yaml`:
+  `alchemist` (0.13 golden churn), `test` (Flutter-SDK locked). (T-353)
 - **Supply-chain gate (`make security`).** A new `security` target runs
   `osv-scanner` over `pubspec.lock` and fails if any resolved dependency has a
   known advisory — a hard gate on top of `dart pub`'s passive, non-failing

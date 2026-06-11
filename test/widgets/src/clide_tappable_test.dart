@@ -23,16 +23,14 @@ void main() {
       var tapped = 0;
       final node = FocusNode();
       addTearDown(node.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: ClideTappable(
-            focusNode: node,
-            onTap: () => tapped++,
-            builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: ClideTappable(focusNode: node, onTap: () => tapped++, builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24)),
           ),
         ),
-      ));
+      );
 
       expect(node.hasFocus, isFalse);
       node.requestFocus();
@@ -46,17 +44,19 @@ void main() {
       var tapped = 0;
       final node = FocusNode();
       addTearDown(node.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: ClideTappable(
-            focusNode: node,
-            autofocus: true,
-            onTap: () => tapped++,
-            builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: ClideTappable(
+              focusNode: node,
+              autofocus: true,
+              onTap: () => tapped++,
+              builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24),
+            ),
           ),
         ),
-      ));
+      );
       await tester.pump();
       expect(node.hasFocus, isTrue);
       // Dispatch ActivateIntent directly against the focused context
@@ -70,16 +70,14 @@ void main() {
     testWidgets('disabled tappable (onTap == null) cannot receive focus', (tester) async {
       final node = FocusNode();
       addTearDown(node.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: ClideTappable(
-            focusNode: node,
-            onTap: null,
-            builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: ClideTappable(focusNode: node, onTap: null, builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24)),
           ),
         ),
-      ));
+      );
       node.requestFocus();
       await tester.pump();
       expect(node.hasFocus, isFalse, reason: 'canRequestFocus is false when onTap is null');
@@ -88,16 +86,14 @@ void main() {
     testWidgets('focus ring appears when focused, gone when unfocused', (tester) async {
       final node = FocusNode();
       addTearDown(node.dispose);
-      await tester.pumpWidget(harness(
-        f,
-        Center(
-          child: ClideTappable(
-            focusNode: node,
-            onTap: () {},
-            builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24),
+      await tester.pumpWidget(
+        harness(
+          f,
+          Center(
+            child: ClideTappable(focusNode: node, onTap: () {}, builder: (_, hovered, pressed) => const SizedBox(width: 60, height: 24)),
           ),
         ),
-      ));
+      );
 
       Iterable<Color> ringColors() => tester
           .widgetList<DecoratedBox>(find.descendant(of: find.byType(ClideTappable), matching: find.byType(DecoratedBox)))

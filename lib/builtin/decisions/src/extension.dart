@@ -37,21 +37,21 @@ class DecisionsExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'decisions.panel',
-          slot: Slots.sidebar,
-          title: 'Decisions',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          icon: PhosphorIcons.byName('lightbulb'),
-          build: (_) => const DecisionsView(),
-        ),
-        TabContribution(
-          id: 'decisions.detail',
-          slot: Slots.contextPanel,
-          title: 'Decision',
-          icon: PhosphorIcons.byName('lightbulb'),
-          build: (_) => const DecisionDetailView(),
-        ),
-      ];
+    TabContribution(
+      id: 'decisions.panel',
+      slot: Slots.sidebar,
+      title: 'Decisions',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      icon: PhosphorIcons.byName('lightbulb'),
+      build: (_) => const DecisionsView(),
+    ),
+    TabContribution(
+      id: 'decisions.detail',
+      slot: Slots.contextPanel,
+      title: 'Decision',
+      icon: PhosphorIcons.byName('lightbulb'),
+      build: (_) => const DecisionDetailView(),
+    ),
+  ];
 }

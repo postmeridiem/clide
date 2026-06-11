@@ -28,9 +28,9 @@ void main() {
 
   IpcResponse ok([Map<String, Object?> data = const {}]) => IpcResponse.ok(id: '', data: data);
   IpcResponse err(String message) => IpcResponse.err(
-        id: '',
-        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message),
-      );
+    id: '',
+    error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: message),
+  );
 
   // Let the broadcast streams (bus / events) deliver.
   Future<void> settle() => Future<void>.delayed(Duration.zero);
@@ -38,27 +38,28 @@ void main() {
   group('load + status parsing', () {
     test('hydrates branch / counts / file lists from git.status', () async {
       f.ipc.stub(
-          'git.status',
-          (_) async => ok({
-                'branch': 'main',
-                'upstream': 'origin/main',
-                'ahead': 2,
-                'behind': 1,
-                'clean': false,
-                'hasConflicts': true,
-                'staged': [
-                  {'path': 'a.dart'},
-                ],
-                'unstaged': [
-                  {'path': 'b.dart'},
-                ],
-                'untracked': [
-                  {'path': 'c.dart'},
-                ],
-                'conflicted': [
-                  {'path': 'd.dart'},
-                ],
-              }));
+        'git.status',
+        (_) async => ok({
+          'branch': 'main',
+          'upstream': 'origin/main',
+          'ahead': 2,
+          'behind': 1,
+          'clean': false,
+          'hasConflicts': true,
+          'staged': [
+            {'path': 'a.dart'},
+          ],
+          'unstaged': [
+            {'path': 'b.dart'},
+          ],
+          'untracked': [
+            {'path': 'c.dart'},
+          ],
+          'conflicted': [
+            {'path': 'd.dart'},
+          ],
+        }),
+      );
       final c = controller();
       await c.load();
       expect(c.loading, isFalse);

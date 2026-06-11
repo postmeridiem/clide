@@ -98,15 +98,6 @@ extension ClideExtensionContextI18n on ClideExtensionContext {
   String t(String key, {String? placeholder}) => i18n.string(key, namespace: id, placeholder: placeholder);
 
   /// [t] with interpolation replacers.
-  String tr(
-    String key, {
-    String? placeholder,
-    List<I18nReplacer> replacers = const [],
-  }) =>
-      i18n.interpolated(
-        key,
-        namespace: id,
-        placeholder: placeholder,
-        replacers: replacers,
-      );
+  String tr(String key, {String? placeholder, List<I18nReplacer> replacers = const []}) =>
+      i18n.interpolated(key, namespace: id, placeholder: placeholder, replacers: replacers);
 }

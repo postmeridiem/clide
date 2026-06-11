@@ -18,11 +18,7 @@ class FocusTracker extends ChangeNotifier {
   /// of the three-column layout (sidebar → workspace → context); the
   /// statusbar / toolbar aren't included because they don't host
   /// keyboard-active content.
-  static const List<SlotId> traversalOrder = [
-    Slots.sidebar,
-    Slots.workspace,
-    Slots.contextPanel,
-  ];
+  static const List<SlotId> traversalOrder = [Slots.sidebar, Slots.workspace, Slots.contextPanel];
 
   SlotId? get activeSlot => _slot;
   String? get activeContributionId => _contributionId;

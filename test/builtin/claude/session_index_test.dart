@@ -5,39 +5,39 @@ import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:test/test.dart';
 
 String userLine(String text) => jsonEncode({
-      'type': 'user',
-      'message': {'role': 'user', 'content': text},
-    });
+  'type': 'user',
+  'message': {'role': 'user', 'content': text},
+});
 
 String userBlocksLine(String text) => jsonEncode({
-      'type': 'user',
-      'message': {
-        'role': 'user',
-        'content': [
-          {'type': 'text', 'text': text},
-        ],
-      },
-    });
+  'type': 'user',
+  'message': {
+    'role': 'user',
+    'content': [
+      {'type': 'text', 'text': text},
+    ],
+  },
+});
 
 String toolResultLine() => jsonEncode({
-      'type': 'user',
-      'message': {
-        'role': 'user',
-        'content': [
-          {'type': 'tool_result', 'content': 'output'},
-        ],
-      },
-    });
+  'type': 'user',
+  'message': {
+    'role': 'user',
+    'content': [
+      {'type': 'tool_result', 'content': 'output'},
+    ],
+  },
+});
 
 String assistantLine(String text) => jsonEncode({
-      'type': 'assistant',
-      'message': {
-        'role': 'assistant',
-        'content': [
-          {'type': 'text', 'text': text},
-        ],
-      },
-    });
+  'type': 'assistant',
+  'message': {
+    'role': 'assistant',
+    'content': [
+      {'type': 'text', 'text': text},
+    ],
+  },
+});
 
 void main() {
   group('userText', () {
@@ -69,12 +69,7 @@ void main() {
     });
 
     test('summarises each session with first … last bookends', () async {
-      await writeSession('aaaa', [
-        userLine('start the swallow'),
-        assistantLine('ok'),
-        toolResultLine(),
-        userLine('now the peacock'),
-      ]);
+      await writeSession('aaaa', [userLine('start the swallow'), assistantLine('ok'), toolResultLine(), userLine('now the peacock')]);
       final sessions = await listSessions(dir);
       expect(sessions, hasLength(1));
       expect(sessions.single.id, 'aaaa');

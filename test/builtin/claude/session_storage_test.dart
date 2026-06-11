@@ -17,15 +17,9 @@ void main() {
 
   testWidgets('shows the total and a two-click delete that calls the deleter', (tester) async {
     final deleted = <String>[];
-    await tester.pumpWidget(harness(
-      f,
-      SessionStorageDialog(
-        dir: Directory.systemTemp,
-        sessions: [session('aaa', 2048)],
-        onClose: () {},
-        deleter: (d, id) async => deleted.add(id),
-      ),
-    ));
+    await tester.pumpWidget(
+      harness(f, SessionStorageDialog(dir: Directory.systemTemp, sessions: [session('aaa', 2048)], onClose: () {}, deleter: (d, id) async => deleted.add(id))),
+    );
     await tester.pump();
 
     expect(find.text('Session storage  ·  2 KB total'), findsOneWidget);
@@ -44,30 +38,16 @@ void main() {
 
   testWidgets('Escape closes', (tester) async {
     var closed = false;
-    await tester.pumpWidget(harness(
-      f,
-      SessionStorageDialog(
-        dir: Directory.systemTemp,
-        sessions: [session('aaa', 1024)],
-        onClose: () => closed = true,
-        deleter: (_, __) async {},
-      ),
-    ));
+    await tester.pumpWidget(
+      harness(f, SessionStorageDialog(dir: Directory.systemTemp, sessions: [session('aaa', 1024)], onClose: () => closed = true, deleter: (_, _) async {})),
+    );
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     expect(closed, isTrue);
   });
 
   testWidgets('empty list shows a message', (tester) async {
-    await tester.pumpWidget(harness(
-      f,
-      SessionStorageDialog(
-        dir: Directory.systemTemp,
-        sessions: const [],
-        onClose: () {},
-        deleter: (_, __) async {},
-      ),
-    ));
+    await tester.pumpWidget(harness(f, SessionStorageDialog(dir: Directory.systemTemp, sessions: const [], onClose: () {}, deleter: (_, _) async {})));
     await tester.pump();
     expect(find.text('No sessions found for this workspace.'), findsOneWidget);
   });

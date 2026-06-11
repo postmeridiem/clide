@@ -20,19 +20,13 @@ void main() {
     published = [];
     filterValues = {};
     d = DaemonDispatcher();
-    registerUiCommands(
-      d,
-      () {
-        if (!liveUi) return null;
-        return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
-      },
-      filterValue: liveUi ? (address) => filterValues[address] : null,
-    );
+    registerUiCommands(d, () {
+      if (!liveUi) return null;
+      return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
+    }, filterValue: liveUi ? (address) => filterValues[address] : null);
   }
 
-  Future<IpcResponse> open(List<String> positional) => d.dispatch(
-        IpcRequest(id: '1', cmd: 'ui.open', args: {'positional': positional}),
-      );
+  Future<IpcResponse> open(List<String> positional) => d.dispatch(IpcRequest(id: '1', cmd: 'ui.open', args: {'positional': positional}));
 
   test('ui open tickets T-48 publishes a tickets selection', () async {
     wire();
@@ -97,9 +91,8 @@ void main() {
 
   // -- ui.toast (T-50 drive-half) -------------------------------------------
 
-  Future<IpcResponse> toast(List<String> positional, {Map<String, Object?>? flags}) => d.dispatch(
-        IpcRequest(id: '1', cmd: 'ui.toast', args: {'positional': positional, if (flags != null) 'flags': flags}),
-      );
+  Future<IpcResponse> toast(List<String> positional, {Map<String, Object?>? flags}) =>
+      d.dispatch(IpcRequest(id: '1', cmd: 'ui.toast', args: {'positional': positional, 'flags': ?flags}));
 
   test('ui toast publishes a toast message (default info severity)', () async {
     wire();
@@ -150,9 +143,7 @@ void main() {
 
   // -- ui.filter (T-270 drive+observe half) ---------------------------------
 
-  Future<IpcResponse> filter(List<String> positional) => d.dispatch(
-        IpcRequest(id: '1', cmd: 'ui.filter', args: {'positional': positional}),
-      );
+  Future<IpcResponse> filter(List<String> positional) => d.dispatch(IpcRequest(id: '1', cmd: 'ui.filter', args: {'positional': positional}));
 
   test('ui filter <address> <text> publishes a filter.set', () async {
     wire();

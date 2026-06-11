@@ -14,10 +14,7 @@ class ClideClipboard {
   final int historyLimit;
   final Map<Type, List<Object>> _history = {};
 
-  Future<void> write<T extends Object>(
-    T value, {
-    String Function(T)? toPlain,
-  }) async {
+  Future<void> write<T extends Object>(T value, {String Function(T)? toPlain}) async {
     final bucket = _history.putIfAbsent(T, () => <Object>[]);
     bucket.insert(0, value);
     if (bucket.length > historyLimit) bucket.removeLast();

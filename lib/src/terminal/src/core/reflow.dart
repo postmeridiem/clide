@@ -173,11 +173,7 @@ class _LineReflow {
   }
 }
 
-List<BufferLine> reflow(
-  IndexAwareCircularBuffer<BufferLine> lines,
-  int oldWidth,
-  int newWidth,
-) {
+List<BufferLine> reflow(IndexAwareCircularBuffer<BufferLine> lines, int oldWidth, int newWidth) {
   final result = <BufferLine>[];
 
   for (var i = 0; i < lines.length; i++) {

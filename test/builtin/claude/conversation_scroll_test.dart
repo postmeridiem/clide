@@ -34,24 +34,26 @@ void main() {
     final stream = StreamController<ConversationItem>.broadcast();
     final c = ConversationController(stream: stream.stream);
     addTearDown(c.dispose);
-    await tester.pumpWidget(harness(
-      f,
-      SizedBox(
-        width: 600,
-        height: 600,
-        child: Column(
-          children: [
-            Expanded(child: ConversationView(controller: c)),
-            // Stand-in for the interaction zone (composer / prompt) whose height
-            // changes; ValueListenableBuilder rebuilds just the box.
-            ValueListenableBuilder<double>(
-              valueListenable: bottomH,
-              builder: (_, h, __) => SizedBox(height: h, width: 600),
-            ),
-          ],
+    await tester.pumpWidget(
+      harness(
+        f,
+        SizedBox(
+          width: 600,
+          height: 600,
+          child: Column(
+            children: [
+              Expanded(child: ConversationView(controller: c)),
+              // Stand-in for the interaction zone (composer / prompt) whose height
+              // changes; ValueListenableBuilder rebuilds just the box.
+              ValueListenableBuilder<double>(
+                valueListenable: bottomH,
+                builder: (_, h, _) => SizedBox(height: h, width: 600),
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
     for (var i = 0; i < 40; i++) {
       stream.add(_asst('conversation line number $i', i));
     }

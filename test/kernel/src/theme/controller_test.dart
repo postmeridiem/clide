@@ -4,53 +4,41 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ThemeDefinition _def(String name, Color primary) => ThemeDefinition(
-      name: name,
-      displayName: name,
-      dark: true,
-      palette: Palette({
-        'primary': primary,
-        'accent': primary,
-        'background': const Color(0xFF000000),
-        'surface': const Color(0xFF111111),
-        'panel': const Color(0xFF222222),
-        'foreground': const Color(0xFFFFFFFF),
-        'success': const Color(0xFF00FF00),
-        'warning': const Color(0xFFFFFF00),
-        'error': const Color(0xFFFF0000),
-      }),
-    );
+  name: name,
+  displayName: name,
+  dark: true,
+  palette: Palette({
+    'primary': primary,
+    'accent': primary,
+    'background': const Color(0xFF000000),
+    'surface': const Color(0xFF111111),
+    'panel': const Color(0xFF222222),
+    'foreground': const Color(0xFFFFFFFF),
+    'success': const Color(0xFF00FF00),
+    'warning': const Color(0xFFFFFF00),
+    'error': const Color(0xFFFF0000),
+  }),
+);
 
 void main() {
   group('ThemeController', () {
     test('starts on first bundled theme', () {
-      final c = ThemeController(bundled: [
-        _def('a', const Color(0xFF111111)),
-        _def('b', const Color(0xFF222222)),
-      ]);
+      final c = ThemeController(bundled: [_def('a', const Color(0xFF111111)), _def('b', const Color(0xFF222222))]);
       expect(c.currentName, 'a');
     });
 
     test('honors initialName when present', () {
-      final c = ThemeController(
-        bundled: [_def('a', const Color(0xFF000000)), _def('b', const Color(0xFF999999))],
-        initialName: 'b',
-      );
+      final c = ThemeController(bundled: [_def('a', const Color(0xFF000000)), _def('b', const Color(0xFF999999))], initialName: 'b');
       expect(c.currentName, 'b');
     });
 
     test('silently falls back to first when initialName is unknown', () {
-      final c = ThemeController(
-        bundled: [_def('a', const Color(0xFF000000))],
-        initialName: 'missing',
-      );
+      final c = ThemeController(bundled: [_def('a', const Color(0xFF000000))], initialName: 'missing');
       expect(c.currentName, 'a');
     });
 
     test('select changes current + notifies listeners', () {
-      final c = ThemeController(bundled: [
-        _def('a', const Color(0xFF000000)),
-        _def('b', const Color(0xFF333333)),
-      ]);
+      final c = ThemeController(bundled: [_def('a', const Color(0xFF000000)), _def('b', const Color(0xFF333333))]);
       var count = 0;
       c.addListener(() => count++);
       c.select('b');

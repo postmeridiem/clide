@@ -24,17 +24,5 @@ abstract class SemanticKeys {
   static const error = 'error';
   static const info = 'info';
 
-  static const all = <String>[
-    mainchrome,
-    calltoaction,
-    focus,
-    background,
-    surface,
-    text,
-    textMuted,
-    success,
-    warning,
-    error,
-    info,
-  ];
+  static const all = <String>[mainchrome, calltoaction, focus, background, surface, text, textMuted, success, warning, error, info];
 }

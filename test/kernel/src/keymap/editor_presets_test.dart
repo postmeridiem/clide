@@ -36,11 +36,7 @@ void main() {
   // Build a service whose bundle serves the real shipped preset content.
   Future<KeymapService> activate(String preset) async {
     final src = File('assets/keymaps/$preset.yaml').readAsStringSync();
-    final svc = KeymapService(
-      settings: settings,
-      appDir: appDir,
-      bundle: _bundle({'assets/keymaps/$preset.yaml': src}),
-    );
+    final svc = KeymapService(settings: settings, appDir: appDir, bundle: _bundle({'assets/keymaps/$preset.yaml': src}));
     await svc.setPreset(preset);
     return svc;
   }
@@ -72,11 +68,13 @@ void main() {
 
     test('the Ctrl+K Ctrl+T sequence binds the theme picker', () async {
       final svc = await activate('vscode');
-      final hit = svc.keymap!.effectiveBindings.any((b) =>
-          b.sequence.length == 2 &&
-          b.sequence[0] == KeyChord.parse('ctrl+k') &&
-          b.sequence[1] == KeyChord.parse('ctrl+t') &&
-          isCommand(b.intent, 'theme.pick'));
+      final hit = svc.keymap!.effectiveBindings.any(
+        (b) =>
+            b.sequence.length == 2 &&
+            b.sequence[0] == KeyChord.parse('ctrl+k') &&
+            b.sequence[1] == KeyChord.parse('ctrl+t') &&
+            isCommand(b.intent, 'theme.pick'),
+      );
       expect(hit, isTrue);
     });
   });

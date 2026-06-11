@@ -29,12 +29,7 @@ class EmptyIconPainter extends ClideIconPainter {
 }
 
 class ClideIcon extends StatelessWidget {
-  const ClideIcon(
-    this.painter, {
-    super.key,
-    this.size = 14,
-    this.color,
-  });
+  const ClideIcon(this.painter, {super.key, this.size = 14, this.color});
 
   final ClideIconPainter painter;
   final double size;

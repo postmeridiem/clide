@@ -77,19 +77,10 @@ class DaemonDispatcher {
     return h(IpcRequest(id: req.id, cmd: req.cmd, args: result.values!));
   }
 
-  Future<IpcResponse> _ping(IpcRequest req) async => IpcResponse.ok(
-        id: req.id,
-        data: {
-          'pong': true,
-          'ts': DateTime.now().toUtc().toIso8601String(),
-          'version': clideVersion,
-        },
-      );
+  Future<IpcResponse> _ping(IpcRequest req) async =>
+      IpcResponse.ok(id: req.id, data: {'pong': true, 'ts': DateTime.now().toUtc().toIso8601String(), 'version': clideVersion});
 
-  Future<IpcResponse> _version(IpcRequest req) async => IpcResponse.ok(
-        id: req.id,
-        data: {'version': clideVersion},
-      );
+  Future<IpcResponse> _version(IpcRequest req) async => IpcResponse.ok(id: req.id, data: {'version': clideVersion});
 
   /// Reflects the live command registry so the surface is discoverable, not
   /// just present (T-248). Every registered verb is listed — split into
@@ -139,11 +130,7 @@ class DaemonDispatcher {
       tools.add({
         'name': '$prefix$cmd',
         'description': subsystem.isEmpty ? verb : '$subsystem: $verb',
-        'inputSchema': {
-          'type': 'object',
-          'properties': props,
-          if (required.isNotEmpty) 'required': required,
-        },
+        'inputSchema': {'type': 'object', 'properties': props, if (required.isNotEmpty) 'required': required},
       });
     }
     return tools;
@@ -153,17 +140,9 @@ class DaemonDispatcher {
   static Map<String, Object?> _argJsonSchema(ArgSpec s) {
     switch (s.type) {
       case ArgType.string:
-        return {
-          'type': 'string',
-          if (s.allowed != null) 'enum': (s.allowed!.toList()..sort()),
-          if (s.pattern != null) 'pattern': s.pattern!.pattern,
-        };
+        return {'type': 'string', if (s.allowed != null) 'enum': (s.allowed!.toList()..sort()), if (s.pattern != null) 'pattern': s.pattern!.pattern};
       case ArgType.number:
-        return {
-          'type': 'number',
-          if (s.min != null) 'minimum': s.min,
-          if (s.max != null) 'maximum': s.max,
-        };
+        return {'type': 'number', if (s.min != null) 'minimum': s.min, if (s.max != null) 'maximum': s.max};
       case ArgType.boolean:
         return {'type': 'boolean'};
       case ArgType.stringList:
@@ -176,13 +155,13 @@ class DaemonDispatcher {
   }
 
   static Map<String, Object?> _argSpecJson(ArgSpec s) => {
-        'type': s.type.name,
-        if (s.required) 'required': true,
-        if (s.allowed != null) 'allowed': (s.allowed!.toList()..sort()),
-        if (s.pattern != null) 'pattern': s.pattern!.pattern,
-        if (s.min != null) 'min': s.min,
-        if (s.max != null) 'max': s.max,
-        if (s.maxItems != null) 'maxItems': s.maxItems,
-        if (s.rejectLeadingDash) 'rejectLeadingDash': true,
-      };
+    'type': s.type.name,
+    if (s.required) 'required': true,
+    if (s.allowed != null) 'allowed': (s.allowed!.toList()..sort()),
+    if (s.pattern != null) 'pattern': s.pattern!.pattern,
+    if (s.min != null) 'min': s.min,
+    if (s.max != null) 'max': s.max,
+    if (s.maxItems != null) 'maxItems': s.maxItems,
+    if (s.rejectLeadingDash) 'rejectLeadingDash': true,
+  };
 }

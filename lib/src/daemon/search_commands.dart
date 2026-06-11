@@ -25,12 +25,7 @@ import 'dispatcher.dart';
 /// sink. One instance per workspace, constructed alongside the other
 /// daemon services.
 class SearchService {
-  SearchService({
-    required this.root,
-    required this.ignore,
-    required this.events,
-    this.useIsolates = true,
-  });
+  SearchService({required this.root, required this.ignore, required this.events, this.useIsolates = true});
 
   final Directory root;
   final IgnoreSet ignore;
@@ -64,12 +59,7 @@ class SearchService {
   /// path-safety guard. The clean-git-tree safety gate is enforced by
   /// the caller (the UI checks `git.status` before requesting apply).
   Future<Map<String, Object?>> replace(SearchQuery query, String replacement, {required bool apply}) async {
-    final files = await computeReplacements(
-      root: root,
-      ignore: ignore,
-      query: query,
-      replacement: replacement,
-    );
+    final files = await computeReplacements(root: root, ignore: ignore, query: query, replacement: replacement);
     if (!apply) {
       return {
         'apply': false,
@@ -103,13 +93,7 @@ class SearchService {
 
   Future<void> _run(String id, SearchQuery query, CancelToken cancel) async {
     try {
-      await for (final batch in grepWorkspace(
-        root: root,
-        ignore: ignore,
-        query: query,
-        cancel: cancel,
-        useIsolates: useIsolates,
-      )) {
+      await for (final batch in grepWorkspace(root: root, ignore: ignore, query: query, cancel: cancel, useIsolates: useIsolates)) {
         if (cancel.isCancelled) break;
         _emit('search.match', {
           'searchId': id,
@@ -127,12 +111,7 @@ class SearchService {
   }
 
   void _emit(String kind, Map<String, Object?> data) {
-    events.emit(IpcEvent(
-      subsystem: 'search',
-      kind: kind,
-      timestamp: DateTime.now().toUtc(),
-      data: data,
-    ));
+    events.emit(IpcEvent(subsystem: 'search', kind: kind, timestamp: DateTime.now().toUtc(), data: data));
   }
 }
 
@@ -166,11 +145,7 @@ void registerSearchCommands(DaemonDispatcher d, SearchService search) {
     if (query.pattern.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'search.grep requires a non-empty pattern',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'search.grep requires a non-empty pattern'),
       );
     }
     final id = search.start(query);
@@ -184,11 +159,7 @@ void registerSearchCommands(DaemonDispatcher d, SearchService search) {
     if (query.pattern.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'search.replace requires a non-empty pattern',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'search.replace requires a non-empty pattern'),
       );
     }
     try {
@@ -197,11 +168,7 @@ void registerSearchCommands(DaemonDispatcher d, SearchService search) {
     } on FormatException catch (e) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'invalid regex: ${e.message}',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'invalid regex: ${e.message}'),
       );
     }
   }, schema: _replaceSchema);
@@ -211,11 +178,7 @@ void registerSearchCommands(DaemonDispatcher d, SearchService search) {
     if (id == null || id.isEmpty) {
       return IpcResponse.err(
         id: req.id,
-        error: IpcError(
-          code: IpcExitCode.userError,
-          kind: IpcErrorKind.userError,
-          message: 'search.cancel requires a searchId',
-        ),
+        error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: 'search.cancel requires a searchId'),
       );
     }
     search.cancel(id);

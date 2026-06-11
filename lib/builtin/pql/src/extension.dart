@@ -17,13 +17,13 @@ class PqlExtension extends ClideExtension {
   // tab (T-201); this extension keeps only the Backlinks context panel.
   @override
   List<ContributionPoint> get contributions => [
-        TabContribution(
-          id: 'pql.backlinks',
-          slot: Slots.contextPanel,
-          title: 'Links',
-          icon: PhosphorIcons.byName('link'),
-          priority: -80,
-          build: (_) => const BacklinksView(),
-        ),
-      ];
+    TabContribution(
+      id: 'pql.backlinks',
+      slot: Slots.contextPanel,
+      title: 'Links',
+      icon: PhosphorIcons.byName('link'),
+      priority: -80,
+      build: (_) => const BacklinksView(),
+    ),
+  ];
 }

@@ -3,12 +3,7 @@ import 'package:clide/widgets/src/clide_text.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideTooltip extends StatefulWidget {
-  const ClideTooltip({
-    super.key,
-    required this.message,
-    required this.child,
-    this.showDelay = const Duration(milliseconds: 500),
-  });
+  const ClideTooltip({super.key, required this.message, required this.child, this.showDelay = const Duration(milliseconds: 500)});
 
   final String message;
   final Widget child;
@@ -49,17 +44,9 @@ class _ClideTooltipState extends State<ClideTooltip> {
         final showAbove = spaceBelow < 60;
 
         if (showAbove) {
-          return Positioned(
-            left: target.dx,
-            bottom: screenSize.height - target.dy + 4,
-            child: tooltip,
-          );
+          return Positioned(left: target.dx, bottom: screenSize.height - target.dy + 4, child: tooltip);
         }
-        return Positioned(
-          left: target.dx,
-          top: target.dy + size.height + 4,
-          child: tooltip,
-        );
+        return Positioned(left: target.dx, top: target.dy + size.height + 4, child: tooltip);
       },
     );
     overlay.insert(_entry!);

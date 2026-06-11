@@ -36,18 +36,23 @@ class SyntaxTextController extends TextEditingController {
     if (source == _highlightedText) return;
 
     _highlighting = true;
-    _syntax.highlight(path, source).then((result) {
-      _highlighting = false;
-      if (text != source) {
-        _requestHighlight();
-        return;
-      }
-      _highlightedText = source;
-      _spans = result.spans;
-      notifyListeners();
-    }, onError: (_) {
-      _highlighting = false;
-    });
+    _syntax
+        .highlight(path, source)
+        .then(
+          (result) {
+            _highlighting = false;
+            if (text != source) {
+              _requestHighlight();
+              return;
+            }
+            _highlightedText = source;
+            _spans = result.spans;
+            notifyListeners();
+          },
+          onError: (_) {
+            _highlighting = false;
+          },
+        );
   }
 
   @override
@@ -57,11 +62,7 @@ class SyntaxTextController extends TextEditingController {
   }
 
   @override
-  TextSpan buildTextSpan({
-    required BuildContext context,
-    TextStyle? style,
-    required bool withComposing,
-  }) {
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
     final tokens = _tokens;
     if (_spans.isEmpty || tokens == null || text.isEmpty) {
       return TextSpan(text: text, style: style);
@@ -125,20 +126,17 @@ class SyntaxTextController extends TextEditingController {
 
       // Gap before this span — plain text.
       if (spanCharStart > charPos) {
-        children.add(TextSpan(
-          text: source.substring(charPos, spanCharStart),
-          style: style,
-        ));
+        children.add(TextSpan(text: source.substring(charPos, spanCharStart), style: style));
       }
 
       // The highlighted span.
       if (spanCharEnd > spanCharStart) {
-        children.add(TextSpan(
-          text: source.substring(spanCharStart, spanCharEnd),
-          style: style?.copyWith(
-            color: TreeSitterService.colorForRole(span.role, tokens),
+        children.add(
+          TextSpan(
+            text: source.substring(spanCharStart, spanCharEnd),
+            style: style?.copyWith(color: TreeSitterService.colorForRole(span.role, tokens)),
           ),
-        ));
+        );
       }
 
       charPos = spanCharEnd;
@@ -146,10 +144,7 @@ class SyntaxTextController extends TextEditingController {
 
     // Trailing plain text.
     if (charPos < source.length) {
-      children.add(TextSpan(
-        text: source.substring(charPos),
-        style: style,
-      ));
+      children.add(TextSpan(text: source.substring(charPos), style: style));
     }
 
     return TextSpan(style: style, children: children);

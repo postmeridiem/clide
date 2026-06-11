@@ -5,9 +5,7 @@ import 'package:flutter/services.dart';
 /// (modifiers sorted, lowercased) so equality works for lookup keys.
 @immutable
 class Keybinding {
-  Keybinding({required Set<String> modifiers, required String key})
-      : modifiers = _canonModifiers(modifiers),
-        key = key.toLowerCase();
+  Keybinding({required Set<String> modifiers, required String key}) : modifiers = _canonModifiers(modifiers), key = key.toLowerCase();
 
   final List<String> modifiers;
   final String key;

@@ -15,10 +15,7 @@ import 'buffer.dart';
 import 'editor_settings_resolver.dart';
 
 class EditorRegistry {
-  EditorRegistry({
-    required this.events,
-    required this.workspaceRoot,
-  });
+  EditorRegistry({required this.events, required this.workspaceRoot});
 
   final DaemonEventSink events;
 
@@ -53,12 +50,7 @@ class EditorRegistry {
     }
 
     final id = 'b_${_nextId++}';
-    final buf = EditorBuffer(
-      id: id,
-      path: path,
-      content: content,
-      settings: resolveEditorSettings(workspaceRoot, path),
-    );
+    final buf = EditorBuffer(id: id, path: path, content: content, settings: resolveEditorSettings(workspaceRoot, path));
     _buffers[id] = buf;
     _pathToId[path] = id;
 
@@ -111,10 +103,7 @@ class EditorRegistry {
   void setSelection(String id, Selection sel) {
     final buf = _buffers[id];
     if (buf == null) return;
-    final clamped = Selection(
-      start: sel.start.clamp(0, buf.content.length),
-      end: sel.end.clamp(0, buf.content.length),
-    );
+    final clamped = Selection(start: sel.start.clamp(0, buf.content.length), end: sel.end.clamp(0, buf.content.length));
     if (clamped.start == buf.selection.start && clamped.end == buf.selection.end) {
       return;
     }
@@ -131,23 +120,12 @@ class EditorRegistry {
     if (buf == null) return;
     buf.content = content;
     if (selection != null) {
-      buf.selection = Selection(
-        start: selection.start.clamp(0, content.length),
-        end: selection.end.clamp(0, content.length),
-      );
+      buf.selection = Selection(start: selection.start.clamp(0, content.length), end: selection.end.clamp(0, content.length));
     } else {
-      buf.selection = Selection(
-        start: buf.selection.start.clamp(0, content.length),
-        end: buf.selection.end.clamp(0, content.length),
-      );
+      buf.selection = Selection(start: buf.selection.start.clamp(0, content.length), end: buf.selection.end.clamp(0, content.length));
     }
     buf.dirty = true;
-    _emit('editor.edited', {
-      'id': id,
-      'kind': 'replace',
-      'length': content.length,
-      'selection': buf.selection.toJson(),
-    });
+    _emit('editor.edited', {'id': id, 'kind': 'replace', 'length': content.length, 'selection': buf.selection.toJson()});
   }
 
   /// Persist [id] to disk. Applies the buffer's on-save settings (EOL,
@@ -167,19 +145,11 @@ class EditorRegistry {
 
     if (changed) {
       buf.content = normalized;
-      buf.selection = Selection(
-        start: buf.selection.start.clamp(0, normalized.length),
-        end: buf.selection.end.clamp(0, normalized.length),
-      );
+      buf.selection = Selection(start: buf.selection.start.clamp(0, normalized.length), end: buf.selection.end.clamp(0, normalized.length));
       // Re-broadcast so the UI reloads the normalized text (the editor.edited
       // handler re-reads the buffer); emitted before editor.saved clears dirty.
       buf.dirty = false;
-      _emit('editor.edited', {
-        'id': id,
-        'kind': 'replace',
-        'length': normalized.length,
-        'selection': buf.selection.toJson(),
-      });
+      _emit('editor.edited', {'id': id, 'kind': 'replace', 'length': normalized.length, 'selection': buf.selection.toJson()});
     }
 
     buf.dirty = false;
@@ -197,11 +167,7 @@ class EditorRegistry {
       final next = resolveEditorSettings(workspaceRoot, buf.path);
       if (next.toJson().toString() == buf.settings.toJson().toString()) continue;
       buf.settings = next;
-      _emit('editor.settings-changed', {
-        'id': buf.id,
-        'path': buf.path,
-        'editorSettings': next.toJson(),
-      });
+      _emit('editor.settings-changed', {'id': buf.id, 'path': buf.path, 'editorSettings': next.toJson()});
     }
   }
 
@@ -235,26 +201,15 @@ class EditorRegistry {
 
   void _emitActive() {
     final buf = active;
-    _emit('editor.active-changed', {
-      'id': buf?.id,
-      'path': buf?.path,
-    });
+    _emit('editor.active-changed', {'id': buf?.id, 'path': buf?.path});
   }
 
   void _emitSelection(EditorBuffer buf) {
-    _emit('editor.selection-changed', {
-      'id': buf.id,
-      'selection': buf.selection.toJson(),
-    });
+    _emit('editor.selection-changed', {'id': buf.id, 'selection': buf.selection.toJson()});
   }
 
   void _emit(String kind, Map<String, Object?> data) {
-    events.emit(IpcEvent(
-      subsystem: 'editor',
-      kind: kind,
-      timestamp: DateTime.now().toUtc(),
-      data: data,
-    ));
+    events.emit(IpcEvent(subsystem: 'editor', kind: kind, timestamp: DateTime.now().toUtc(), data: data));
   }
 
   String _absolutePathOf(String repoRelative) {

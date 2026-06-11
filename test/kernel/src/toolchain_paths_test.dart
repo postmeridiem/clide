@@ -9,13 +9,9 @@ import 'package:test/test.dart';
 void main() {
   group('ToolchainView.resolved', () {
     test('exposes the supplied paths verbatim', () {
-      final v = ToolchainView.resolved(const ResolvedPaths(
-        git: '/opt/git',
-        pql: '/opt/pql',
-        tmux: '/opt/tmux',
-        shell: '/usr/bin/zsh',
-        gitEnv: {'GIT_EXEC_PATH': '/opt/git-core'},
-      ));
+      final v = ToolchainView.resolved(
+        const ResolvedPaths(git: '/opt/git', pql: '/opt/pql', tmux: '/opt/tmux', shell: '/usr/bin/zsh', gitEnv: {'GIT_EXEC_PATH': '/opt/git-core'}),
+      );
       expect(v.git, '/opt/git');
       expect(v.pql, '/opt/pql');
       expect(v.tmux, '/opt/tmux');
@@ -39,10 +35,12 @@ void main() {
     });
 
     test('missing reports only the unresolved tools', () {
-      final v = ToolchainView.resolved(const ResolvedPaths(
-        git: '/opt/git',
-        // pql + tmux null → missing.
-      ));
+      final v = ToolchainView.resolved(
+        const ResolvedPaths(
+          git: '/opt/git',
+          // pql + tmux null → missing.
+        ),
+      );
       expect(v.missing, ['pql', 'tmux']);
       expect(v.allOk, isFalse);
     });

@@ -8,9 +8,9 @@ import 'package:flutter/services.dart' show TextEditingValue, TextSelection;
 import 'package:flutter_test/flutter_test.dart';
 
 TextEditingValue _tev(String text, int caret, {int? anchor}) => TextEditingValue(
-      text: text,
-      selection: TextSelection(baseOffset: anchor ?? caret, extentOffset: caret),
-    );
+  text: text,
+  selection: TextSelection(baseOffset: anchor ?? caret, extentOffset: caret),
+);
 
 void main() {
   group('motions', () {

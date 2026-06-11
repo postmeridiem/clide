@@ -62,10 +62,7 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
                 ClideDivider(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [for (final t in tasks) _taskRow(tokens, t)],
-                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final t in tasks) _taskRow(tokens, t)]),
                 ),
               ],
             ],
@@ -76,20 +73,22 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
   }
 
   Widget _summaryRow(SurfaceTokens tokens, String summary, String? current) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          children: [
-            ClideIcon(_expanded ? const ChevronDownIcon() : const ChevronRightIcon(), size: 12, color: tokens.globalTextMuted),
-            const SizedBox(width: 8),
-            ClideText(summary, fontSize: clideFontCaption, color: tokens.globalTextMuted),
-            if (!_expanded && current != null) ...[
-              const SizedBox(width: 10),
-              Expanded(child: ClideText(current, fontSize: clideFontCaption, color: tokens.globalTextMuted, maxLines: 1, overflow: TextOverflow.ellipsis)),
-            ] else
-              const Spacer(),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    child: Row(
+      children: [
+        ClideIcon(_expanded ? const ChevronDownIcon() : const ChevronRightIcon(), size: 12, color: tokens.globalTextMuted),
+        const SizedBox(width: 8),
+        ClideText(summary, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+        if (!_expanded && current != null) ...[
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClideText(current, fontSize: clideFontCaption, color: tokens.globalTextMuted, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ] else
+          const Spacer(),
+      ],
+    ),
+  );
 
   Widget _taskRow(SurfaceTokens tokens, TaskItem t) {
     final (String glyph, Color color, String word) = switch (t.status) {
@@ -106,14 +105,13 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(padding: const EdgeInsets.only(top: 1), child: ClideIcon(PhosphorIcons.byName(glyph), size: 13, color: color)),
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: ClideIcon(PhosphorIcons.byName(glyph), size: 13, color: color),
+            ),
             const SizedBox(width: 8),
             Expanded(
-              child: ClideText(
-                t.text,
-                fontSize: clideFontCaption,
-                color: t.status == TaskStatus.completed ? tokens.globalTextMuted : tokens.globalForeground,
-              ),
+              child: ClideText(t.text, fontSize: clideFontCaption, color: t.status == TaskStatus.completed ? tokens.globalTextMuted : tokens.globalForeground),
             ),
           ],
         ),

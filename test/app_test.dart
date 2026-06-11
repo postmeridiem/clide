@@ -283,13 +283,10 @@ void main() {
   });
 
   testWidgets('switcher → Open Local Project falls back to the path dialog (no native picker)', (tester) async {
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('clide/window'),
-      (call) async {
-        if (call.method == 'pickDirectory') throw MissingPluginException();
-        return null;
-      },
-    );
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async {
+      if (call.method == 'pickDirectory') throw MissingPluginException();
+      return null;
+    });
     addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), null));
 
     final repo = Directory.current.path;

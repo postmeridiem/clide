@@ -69,9 +69,7 @@ Stream<List<SearchMatch>> grepWorkspace({
   final rootPath = root.absolute.path;
 
   // Launch every chunk concurrently; await in chunk order to stream.
-  final futures = <Future<List<SearchMatch>>>[
-    for (final c in chunks) _runChunk(rootPath, c, query, maxPerFile, useIsolates),
-  ];
+  final futures = <Future<List<SearchMatch>>>[for (final c in chunks) _runChunk(rootPath, c, query, maxPerFile, useIsolates)];
 
   var emitted = 0;
   for (final f in futures) {
@@ -104,13 +102,7 @@ void _drain(List<Future<List<SearchMatch>>> futures) {
   }
 }
 
-Future<List<SearchMatch>> _runChunk(
-  String rootPath,
-  List<String> paths,
-  SearchQuery query,
-  int maxPerFile,
-  bool useIsolates,
-) {
+Future<List<SearchMatch>> _runChunk(String rootPath, List<String> paths, SearchQuery query, int maxPerFile, bool useIsolates) {
   if (useIsolates) {
     return Isolate.run(() => grepChunk(rootPath, paths, query, maxPerFile));
   }
@@ -133,12 +125,7 @@ List<List<String>> _chunk(List<String> items, int buckets) {
 /// Grep a chunk of files. Runs in a worker isolate (or in-process for
 /// tests). Reads each file, skips binaries, and collects up to
 /// [maxPerFile] matches per file.
-List<SearchMatch> grepChunk(
-  String rootPath,
-  List<String> relPaths,
-  SearchQuery query,
-  int maxPerFile,
-) {
+List<SearchMatch> grepChunk(String rootPath, List<String> relPaths, SearchQuery query, int maxPerFile) {
   final compiled = CompiledQuery(query);
   final out = <SearchMatch>[];
   for (final rel in relPaths) {
@@ -160,25 +147,13 @@ List<SearchMatch> grepChunk(
 
 /// Match [content]'s lines, appending up to [maxPerFile] hits to [out].
 /// Exposed (with a pre-built [compiled]) for unit testing without I/O.
-void grepContent(
-  String relPath,
-  String content,
-  CompiledQuery compiled,
-  int maxPerFile,
-  List<SearchMatch> out,
-) {
+void grepContent(String relPath, String content, CompiledQuery compiled, int maxPerFile, List<SearchMatch> out) {
   var lineNo = 0;
   final added0 = out.length;
   for (final line in const LineSplitter().convert(content)) {
     lineNo++;
     for (final span in compiled.matches(line)) {
-      out.add(SearchMatch(
-        path: relPath,
-        line: lineNo,
-        matchStart: span.$1,
-        matchEnd: span.$2,
-        preview: line.length > 500 ? line.substring(0, 500) : line,
-      ));
+      out.add(SearchMatch(path: relPath, line: lineNo, matchStart: span.$1, matchEnd: span.$2, preview: line.length > 500 ? line.substring(0, 500) : line));
       if (out.length - added0 >= maxPerFile) return;
     }
   }
@@ -188,9 +163,9 @@ void grepContent(
 /// matcher with an optional case-insensitive fast-path.
 class CompiledQuery {
   CompiledQuery(SearchQuery q)
-      : _regex = q.regex ? RegExp(q.pattern, caseSensitive: !q.ignoreCase) : null,
-        _needle = q.regex ? '' : (q.ignoreCase ? q.pattern.toLowerCase() : q.pattern),
-        _ignoreCase = q.ignoreCase;
+    : _regex = q.regex ? RegExp(q.pattern, caseSensitive: !q.ignoreCase) : null,
+      _needle = q.regex ? '' : (q.ignoreCase ? q.pattern.toLowerCase() : q.pattern),
+      _ignoreCase = q.ignoreCase;
 
   final RegExp? _regex;
   final String _needle;

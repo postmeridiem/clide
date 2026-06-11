@@ -69,13 +69,16 @@ class _TerminalPaneState extends State<TerminalPane> {
     final shell = Platform.environment['SHELL'] ?? '/bin/bash';
     final cwd = Directory.current.path;
 
-    final response = await ipc.request('pane.spawn', args: {
-      'argv': [shell, '-l'],
-      'kind': PaneKind.terminal.wire,
-      'cwd': cwd,
-      'cols': _terminal.viewWidth,
-      'rows': _terminal.viewHeight,
-    });
+    final response = await ipc.request(
+      'pane.spawn',
+      args: {
+        'argv': [shell, '-l'],
+        'kind': PaneKind.terminal.wire,
+        'cwd': cwd,
+        'cols': _terminal.viewWidth,
+        'rows': _terminal.viewHeight,
+      },
+    );
     if (!mounted) return;
     if (!response.ok) {
       setState(() => _error = response.error?.message ?? 'spawn failed');
@@ -120,11 +123,7 @@ class _TerminalPaneState extends State<TerminalPane> {
   void _onTerminalResize(int cols, int rows, int pixelWidth, int pixelHeight) {
     final id = _paneId;
     if (id == null) return;
-    _kernelIpc()?.request('pane.resize', args: {
-      'id': id,
-      'cols': cols,
-      'rows': rows,
-    });
+    _kernelIpc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
   }
 
   DaemonClient? _kernelIpc() => _kernel()?.ipc;
@@ -144,12 +143,7 @@ class _TerminalPaneState extends State<TerminalPane> {
     return ClidePaneChrome(
       title: 'terminal',
       subtitle: subtitle,
-      child: _error != null
-          ? _ErrorBody(message: _error!)
-          : ClidePtyView(
-              terminal: _terminal,
-              label: 'terminal — $subtitle',
-            ),
+      child: _error != null ? _ErrorBody(message: _error!) : ClidePtyView(terminal: _terminal, label: 'terminal — $subtitle'),
     );
   }
 }
@@ -165,11 +159,7 @@ class _ErrorBody extends StatelessWidget {
         alignment: Alignment.topLeft,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const ClideText('Terminal unavailable'),
-            const SizedBox(height: 4),
-            ClideText(message, muted: true),
-          ],
+          children: [const ClideText('Terminal unavailable'), const SizedBox(height: 4), ClideText(message, muted: true)],
         ),
       ),
     );

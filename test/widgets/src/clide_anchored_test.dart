@@ -21,7 +21,7 @@ void main() {
         f,
         ValueListenableBuilder<bool>(
           valueListenable: present,
-          builder: (_, show, __) => show
+          builder: (_, show, _) => show
               ? Align(
                   alignment: Alignment.center,
                   child: ClideAnchoredOverlay(
@@ -30,7 +30,7 @@ void main() {
                     centered: centered,
                     autoFlip: false,
                     anchor: const SizedBox(width: 60, height: 24, child: ClideText('anchor')),
-                    overlayBuilder: (_, __) => const SizedBox(width: 120, height: 60, child: ClideText('panel')),
+                    overlayBuilder: (_, _) => const SizedBox(width: 120, height: 60, child: ClideText('panel')),
                   ),
                 )
               : const SizedBox.shrink(),
@@ -143,11 +143,7 @@ void main() {
       addTearDown(c.dispose);
       var picked = '';
       // Right-edge trigger + end alignment — the menu extends left, on-screen.
-      await tester.pumpWidget(anchoredHarness(
-        f,
-        anchoredMenu(c, (v) => picked = v, align: ClideAnchorAlign.end),
-        alignment: Alignment.topRight,
-      ));
+      await tester.pumpWidget(anchoredHarness(f, anchoredMenu(c, (v) => picked = v, align: ClideAnchorAlign.end), alignment: Alignment.topRight));
       c.open();
       await tester.pumpAndSettle();
       await tester.tap(find.text('C'));
@@ -158,11 +154,7 @@ void main() {
     testWidgets('autoFlip flips below to above when the anchor is near the bottom', (tester) async {
       final c = ClideOverlayController();
       addTearDown(c.dispose);
-      await tester.pumpWidget(anchoredHarness(
-        f,
-        anchoredMenu(c, (_) {}, side: ClideAnchorSide.below, autoFlip: true),
-        alignment: Alignment.bottomLeft,
-      ));
+      await tester.pumpWidget(anchoredHarness(f, anchoredMenu(c, (_) {}, side: ClideAnchorSide.below, autoFlip: true), alignment: Alignment.bottomLeft));
       c.open();
       await tester.pumpAndSettle();
       // The panel (its first item) sits ABOVE the trigger, not below.

@@ -10,14 +10,7 @@ import 'dart:io';
 import 'ignore.dart';
 
 class FileEntry {
-  const FileEntry({
-    required this.name,
-    required this.path,
-    required this.isDirectory,
-    required this.isSymlink,
-    this.sizeBytes,
-    this.modifiedMs,
-  });
+  const FileEntry({required this.name, required this.path, required this.isDirectory, required this.isSymlink, this.sizeBytes, this.modifiedMs});
 
   /// Display name (basename).
   final String name;
@@ -30,23 +23,19 @@ class FileEntry {
   final int? modifiedMs;
 
   Map<String, Object?> toJson() => {
-        'name': name,
-        'path': path,
-        'isDirectory': isDirectory,
-        'isSymlink': isSymlink,
-        if (sizeBytes != null) 'sizeBytes': sizeBytes,
-        if (modifiedMs != null) 'modifiedMs': modifiedMs,
-      };
+    'name': name,
+    'path': path,
+    'isDirectory': isDirectory,
+    'isSymlink': isSymlink,
+    if (sizeBytes != null) 'sizeBytes': sizeBytes,
+    if (modifiedMs != null) 'modifiedMs': modifiedMs,
+  };
 }
 
 /// List the immediate children of [dir] (repo-relative path) under
 /// [root]. Filters against [ignore]. Returns entries sorted
 /// directory-first, then by name.
-Future<List<FileEntry>> listDir({
-  required Directory root,
-  required String dir,
-  required IgnoreSet ignore,
-}) async {
+Future<List<FileEntry>> listDir({required Directory root, required String dir, required IgnoreSet ignore}) async {
   final resolved = dir.isEmpty ? root : Directory('${root.absolute.path}${Platform.pathSeparator}${dir.replaceAll('/', Platform.pathSeparator)}');
   if (!await resolved.exists()) return const [];
 
@@ -57,14 +46,16 @@ Future<List<FileEntry>> listDir({
     final stat = await e.stat();
     final isDir = stat.type == FileSystemEntityType.directory;
     if (ignore.isIgnored(rel, isDirectory: isDir)) continue;
-    entries.add(FileEntry(
-      name: name,
-      path: rel,
-      isDirectory: isDir,
-      isSymlink: stat.type == FileSystemEntityType.link,
-      sizeBytes: isDir ? null : stat.size,
-      modifiedMs: stat.modified.millisecondsSinceEpoch,
-    ));
+    entries.add(
+      FileEntry(
+        name: name,
+        path: rel,
+        isDirectory: isDir,
+        isSymlink: stat.type == FileSystemEntityType.link,
+        sizeBytes: isDir ? null : stat.size,
+        modifiedMs: stat.modified.millisecondsSinceEpoch,
+      ),
+    );
   }
 
   entries.sort((a, b) {
@@ -96,11 +87,7 @@ class WalkResult {
 /// cap is hit the walk stops early and [WalkResult.truncated] is set so
 /// callers can surface "results truncated". The returned list is sorted
 /// by repo-relative path for a deterministic contract.
-Future<WalkResult> walkFiles({
-  required Directory root,
-  required IgnoreSet ignore,
-  int maxFiles = 50000,
-}) async {
+Future<WalkResult> walkFiles({required Directory root, required IgnoreSet ignore, int maxFiles = 50000}) async {
   final out = <FileEntry>[];
   // DFS over repo-relative directory paths; '' is the root itself.
   final stack = <String>[''];

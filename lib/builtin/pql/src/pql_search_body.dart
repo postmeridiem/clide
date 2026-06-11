@@ -59,8 +59,8 @@ class _PqlSearchBodyState extends State<PqlSearchBody> {
         .on<DaemonEvent>()
         .where((e) => e.subsystem == 'files' && e.kind == 'files.changed' && (e.data['path'] as String? ?? '').endsWith('.md'))
         .listen((_) {
-      if (widget.controller.view == PqlView.markdown) unawaited(widget.controller.loadMarkdownFiles());
-    });
+          if (widget.controller.view == PqlView.markdown) unawaited(widget.controller.loadMarkdownFiles());
+        });
   }
 
   @override
@@ -187,10 +187,7 @@ class _SearchResultRow extends StatelessWidget {
         },
         builder: (context, hovered, _) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: hovered ? tokens.sidebarItemHover : null,
-            borderRadius: BorderRadius.circular(4),
-          ),
+          decoration: BoxDecoration(color: hovered ? tokens.sidebarItemHover : null, borderRadius: BorderRadius.circular(4)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -259,13 +256,7 @@ class _FileRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             border: focused ? Border.all(color: tokens.globalFocus, width: 1) : null,
           ),
-          child: ClideText(
-            path,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            fontSize: clideFontCaption,
-            color: tokens.sidebarForeground,
-          ),
+          child: ClideText(path, maxLines: 1, overflow: TextOverflow.ellipsis, fontSize: clideFontCaption, color: tokens.sidebarForeground),
         ),
       ),
     );

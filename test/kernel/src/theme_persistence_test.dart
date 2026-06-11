@@ -6,21 +6,21 @@ import 'package:flutter/widgets.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 
 ThemeDefinition _def(String name) => ThemeDefinition(
-      name: name,
-      displayName: name,
-      dark: true,
-      palette: Palette(const {
-        'primary': Color(0xFF00A3D2),
-        'accent': Color(0xFFFA5F8B),
-        'background': Color(0xFF21262F),
-        'surface': Color(0xFF393E48),
-        'panel': Color(0xFF292E38),
-        'foreground': Color(0xFFE2E8F5),
-        'success': Color(0xFF00AB9A),
-        'warning': Color(0xFFD08447),
-        'error': Color(0xFFF06C6F),
-      }),
-    );
+  name: name,
+  displayName: name,
+  dark: true,
+  palette: Palette(const {
+    'primary': Color(0xFF00A3D2),
+    'accent': Color(0xFFFA5F8B),
+    'background': Color(0xFF21262F),
+    'surface': Color(0xFF393E48),
+    'panel': Color(0xFF292E38),
+    'foreground': Color(0xFFE2E8F5),
+    'success': Color(0xFF00AB9A),
+    'warning': Color(0xFFD08447),
+    'error': Color(0xFFF06C6F),
+  }),
+);
 
 void main() {
   group('wireThemePersistence (T-293)', () {

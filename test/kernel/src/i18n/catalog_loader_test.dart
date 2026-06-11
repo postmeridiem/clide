@@ -29,9 +29,7 @@ class _MapAssetBundle extends CachingAssetBundle {
 void main() {
   group('AssetCatalogLoader', () {
     test('returns parsed JSON for a present asset', () async {
-      final bundle = _MapAssetBundle({
-        'lib/kernel/src/i18n/catalog/welcome_en_us.json': '{"title":{"translation":"Hi"}}',
-      });
+      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': '{"title":{"translation":"Hi"}}'});
       final loader = AssetCatalogLoader(bundle: bundle);
       final r = await loader.load('welcome', const Locale('en', 'US'));
       expect(r['title'], isA<Map>());
@@ -44,25 +42,19 @@ void main() {
     });
 
     test('returns an empty map on malformed JSON (FormatException catch)', () async {
-      final bundle = _MapAssetBundle({
-        'lib/kernel/src/i18n/catalog/welcome_en_us.json': 'not json at all',
-      });
+      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': 'not json at all'});
       final loader = AssetCatalogLoader(bundle: bundle);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });
 
     test('returns an empty map when the asset is blank', () async {
-      final bundle = _MapAssetBundle({
-        'lib/kernel/src/i18n/catalog/welcome_en_us.json': '   \n',
-      });
+      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': '   \n'});
       final loader = AssetCatalogLoader(bundle: bundle);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });
 
     test('returns an empty map when JSON parses to a non-object', () async {
-      final bundle = _MapAssetBundle({
-        'lib/kernel/src/i18n/catalog/welcome_en_us.json': '[1, 2, 3]',
-      });
+      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': '[1, 2, 3]'});
       final loader = AssetCatalogLoader(bundle: bundle);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });

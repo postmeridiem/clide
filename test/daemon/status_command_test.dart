@@ -13,13 +13,7 @@ void main() {
 
   test('status resolves and returns the assembled snapshot with exit 0', () async {
     final d = DaemonDispatcher();
-    registerStatusCommand(
-        d,
-        () async => {
-              'workspace': '/repo',
-              'focusedFile': null,
-              'panes': const [],
-            });
+    registerStatusCommand(d, () async => {'workspace': '/repo', 'focusedFile': null, 'panes': const []});
     final r = await d.dispatch(req());
     expect(r.ok, isTrue);
     expect(r.data['workspace'], '/repo');

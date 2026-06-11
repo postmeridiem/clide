@@ -64,82 +64,28 @@ const int sigwinch = 28;
 // Typedefs
 // ---------------------------------------------------------------------------
 
-typedef _SocketpairC = ffi.Int32 Function(
-  ffi.Int32 domain,
-  ffi.Int32 type,
-  ffi.Int32 protocol,
-  ffi.Pointer<ffi.Int32> sv,
-);
-typedef _SocketpairD = int Function(
-  int domain,
-  int type,
-  int protocol,
-  ffi.Pointer<ffi.Int32> sv,
-);
+typedef _SocketpairC = ffi.Int32 Function(ffi.Int32 domain, ffi.Int32 type, ffi.Int32 protocol, ffi.Pointer<ffi.Int32> sv);
+typedef _SocketpairD = int Function(int domain, int type, int protocol, ffi.Pointer<ffi.Int32> sv);
 
-typedef _RecvmsgC = ffi.IntPtr Function(
-  ffi.Int32 sockfd,
-  ffi.Pointer<Msghdr> msg,
-  ffi.Int32 flags,
-);
-typedef _RecvmsgD = int Function(
-  int sockfd,
-  ffi.Pointer<Msghdr> msg,
-  int flags,
-);
+typedef _RecvmsgC = ffi.IntPtr Function(ffi.Int32 sockfd, ffi.Pointer<Msghdr> msg, ffi.Int32 flags);
+typedef _RecvmsgD = int Function(int sockfd, ffi.Pointer<Msghdr> msg, int flags);
 
-typedef _RecvmsgDarwinC = ffi.IntPtr Function(
-  ffi.Int32 sockfd,
-  ffi.Pointer<MsghdrDarwin> msg,
-  ffi.Int32 flags,
-);
-typedef _RecvmsgDarwinD = int Function(
-  int sockfd,
-  ffi.Pointer<MsghdrDarwin> msg,
-  int flags,
-);
+typedef _RecvmsgDarwinC = ffi.IntPtr Function(ffi.Int32 sockfd, ffi.Pointer<MsghdrDarwin> msg, ffi.Int32 flags);
+typedef _RecvmsgDarwinD = int Function(int sockfd, ffi.Pointer<MsghdrDarwin> msg, int flags);
 
-typedef _ReadC = ffi.IntPtr Function(
-  ffi.Int32 fd,
-  ffi.Pointer<ffi.Uint8> buf,
-  ffi.IntPtr count,
-);
-typedef _ReadD = int Function(
-  int fd,
-  ffi.Pointer<ffi.Uint8> buf,
-  int count,
-);
+typedef _ReadC = ffi.IntPtr Function(ffi.Int32 fd, ffi.Pointer<ffi.Uint8> buf, ffi.IntPtr count);
+typedef _ReadD = int Function(int fd, ffi.Pointer<ffi.Uint8> buf, int count);
 
-typedef _WriteC = ffi.IntPtr Function(
-  ffi.Int32 fd,
-  ffi.Pointer<ffi.Uint8> buf,
-  ffi.IntPtr count,
-);
-typedef _WriteD = int Function(
-  int fd,
-  ffi.Pointer<ffi.Uint8> buf,
-  int count,
-);
+typedef _WriteC = ffi.IntPtr Function(ffi.Int32 fd, ffi.Pointer<ffi.Uint8> buf, ffi.IntPtr count);
+typedef _WriteD = int Function(int fd, ffi.Pointer<ffi.Uint8> buf, int count);
 
 typedef _CloseC = ffi.Int32 Function(ffi.Int32 fd);
 typedef _CloseD = int Function(int fd);
 
-typedef _IoctlPtrC = ffi.Int32 Function(
-  ffi.Int32 fd,
-  ffi.UnsignedLong request,
-  ffi.Pointer<Winsize> argp,
-);
-typedef _IoctlPtrD = int Function(
-  int fd,
-  int request,
-  ffi.Pointer<Winsize> argp,
-);
+typedef _IoctlPtrC = ffi.Int32 Function(ffi.Int32 fd, ffi.UnsignedLong request, ffi.Pointer<Winsize> argp);
+typedef _IoctlPtrD = int Function(int fd, int request, ffi.Pointer<Winsize> argp);
 
-typedef _FcntlIntC = ffi.Int32 Function(
-  ffi.Int32 fd,
-  ffi.Int32 cmd,
-  ffi.Int32 arg,
-);
+typedef _FcntlIntC = ffi.Int32 Function(ffi.Int32 fd, ffi.Int32 cmd, ffi.Int32 arg);
 typedef _FcntlIntD = int Function(int fd, int cmd, int arg);
 
 typedef _ErrnoLocationC = ffi.Pointer<ffi.Int32> Function();
@@ -257,16 +203,12 @@ final _FcntlIntD fcntlInt = _libc.lookupFunction<_FcntlIntC, _FcntlIntD>('fcntl'
 /// uses `__error`.
 int get errno {
   try {
-    final fn = _libc.lookupFunction<_ErrnoLocationC, _ErrnoLocationD>(
-      '__errno_location',
-    );
+    final fn = _libc.lookupFunction<_ErrnoLocationC, _ErrnoLocationD>('__errno_location');
     return fn().value;
   } on ArgumentError {
     // Fall through to macOS-style.
   }
-  final fn = _libc.lookupFunction<_ErrnoLocationC, _ErrnoLocationD>(
-    '__error',
-  );
+  final fn = _libc.lookupFunction<_ErrnoLocationC, _ErrnoLocationD>('__error');
   return fn().value;
 }
 

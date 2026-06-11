@@ -67,24 +67,24 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
   }
 
   List<ClideMenuEntry> _entries(SurfaceTokens tokens) => [
-        for (final m in kSafePermissionCycle)
-          ClideMenuItem(
-            leading: permissionModeIcon(m),
-            color: permissionModeColor(m, tokens),
-            label: permissionModeLabel(m),
-            active: m == widget.mode,
-            onSelect: () => widget.onSelect(m),
-          ),
-        const ClideMenuSeparator(),
-        ClideMenuItem(
-          leading: permissionModeIcon('bypassPermissions'),
-          color: permissionModeColor('bypassPermissions', tokens),
-          label: permissionModeLabel('bypassPermissions'),
-          enabled: false,
-          active: widget.mode == 'bypassPermissions',
-          onSelect: () {},
-        ),
-      ];
+    for (final m in kSafePermissionCycle)
+      ClideMenuItem(
+        leading: permissionModeIcon(m),
+        color: permissionModeColor(m, tokens),
+        label: permissionModeLabel(m),
+        active: m == widget.mode,
+        onSelect: () => widget.onSelect(m),
+      ),
+    const ClideMenuSeparator(),
+    ClideMenuItem(
+      leading: permissionModeIcon('bypassPermissions'),
+      color: permissionModeColor('bypassPermissions', tokens),
+      label: permissionModeLabel('bypassPermissions'),
+      enabled: false,
+      active: widget.mode == 'bypassPermissions',
+      onSelect: () {},
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -94,11 +94,7 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
       side: ClideAnchorSide.above,
       align: ClideAnchorAlign.end,
       offset: const Offset(0, -6),
-      overlayBuilder: (ctx, ctrl) => ClideMenu(
-        onClose: ctrl.close,
-        minWidth: 180,
-        entries: _entries(ClideTheme.of(ctx).surface),
-      ),
+      overlayBuilder: (ctx, ctrl) => ClideMenu(onClose: ctrl.close, minWidth: 180, entries: _entries(ClideTheme.of(ctx).surface)),
       anchor: ListenableBuilder(
         listenable: _overlay,
         builder: (ctx, _) {
@@ -116,9 +112,7 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: hovered ? tokens.listItemHoverBackground : null,
-                  border: Border.all(
-                    color: open ? tokens.globalFocus : (hovered ? tokens.panelActiveBorder : tokens.globalBorder),
-                  ),
+                  border: Border.all(color: open ? tokens.globalFocus : (hovered ? tokens.panelActiveBorder : tokens.globalBorder)),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: ClideIcon(permissionModeIcon(widget.mode), size: 16, color: permissionModeColor(widget.mode, tokens)),

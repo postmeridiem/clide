@@ -20,46 +20,25 @@ class ThemePickerExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        // Opens the settings modal (T-238). Command id kept as `theme.pick`
-        // (the welcome theme-link and other callers reference it); ⌘K opens
-        // Settings, whose only section today is the theme picker.
-        CommandContribution(
-          id: 'theme.pick',
-          command: 'theme.pick',
-          title: 'Settings…',
-          defaultBinding: 'ctrl+k',
-          run: _pick,
-        ),
-        // Always-visible switcher in the far-right status bar (T-234).
-        // priority >= 100 places it in the right group; registered after
-        // ipc-status so it sits to its right.
-        StatusItemContribution(
-          id: 'theme-picker.switcher',
-          priority: 110,
-          build: (_) => const ThemeSwitcherStatusItem(),
-        ),
-      ];
+    // Opens the settings modal (T-238). Command id kept as `theme.pick`
+    // (the welcome theme-link and other callers reference it); ⌘K opens
+    // Settings, whose only section today is the theme picker.
+    CommandContribution(id: 'theme.pick', command: 'theme.pick', title: 'Settings…', defaultBinding: 'ctrl+k', run: _pick),
+    // Always-visible switcher in the far-right status bar (T-234).
+    // priority >= 100 places it in the right group; registered after
+    // ipc-status so it sits to its right.
+    StatusItemContribution(id: 'theme-picker.switcher', priority: 110, build: (_) => const ThemeSwitcherStatusItem()),
+  ];
 
   Future<IpcResponse> _pick(List<String> args) async {
     final ctx = _ctx;
     if (ctx == null) {
       return IpcResponse.err(
         id: '',
-        error: IpcError(
-          code: IpcExitCode.toolError,
-          kind: IpcErrorKind.toolError,
-          message: 'theme-picker not activated',
-        ),
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'theme-picker not activated'),
       );
     }
-    final selected = await ctx.dialog.show<String>(
-      (context, dismiss) => SettingsView(
-        controller: ctx.theme,
-        onDismiss: dismiss,
-      ),
-    );
-    return IpcResponse.ok(id: '', data: {
-      'selected': selected ?? ctx.theme.currentName,
-    });
+    final selected = await ctx.dialog.show<String>((context, dismiss) => SettingsView(controller: ctx.theme, onDismiss: dismiss));
+    return IpcResponse.ok(id: '', data: {'selected': selected ?? ctx.theme.currentName});
   }
 }

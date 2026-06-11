@@ -19,13 +19,9 @@ import '../../helpers/kernel_fixture.dart';
 IpcResponse _ok(Map<String, Object?> data) => IpcResponse.ok(id: '', data: data);
 
 IpcResponse _err(String msg) => IpcResponse.err(
-      id: '',
-      error: IpcError(
-        code: IpcExitCode.toolError,
-        kind: IpcErrorKind.toolError,
-        message: msg,
-      ),
-    );
+  id: '',
+  error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: msg),
+);
 
 Map<String, Object?> _fileEntry({
   required String name,
@@ -34,15 +30,7 @@ Map<String, Object?> _fileEntry({
   bool isSymlink = false,
   int? sizeBytes,
   int? modifiedMs,
-}) =>
-    {
-      'name': name,
-      'path': path,
-      'isDirectory': isDirectory,
-      'isSymlink': isSymlink,
-      'sizeBytes': sizeBytes,
-      'modifiedMs': modifiedMs,
-    };
+}) => {'name': name, 'path': path, 'isDirectory': isDirectory, 'isSymlink': isSymlink, 'sizeBytes': sizeBytes, 'modifiedMs': modifiedMs};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -75,9 +63,7 @@ void main() {
       f.ipc.stub(
         'files.ls',
         (_) async => _ok({
-          'entries': [
-            _fileEntry(name: 'main.dart', path: 'lib/main.dart'),
-          ],
+          'entries': [_fileEntry(name: 'main.dart', path: 'lib/main.dart')],
         }),
       );
 
@@ -148,17 +134,12 @@ void main() {
         final path = args['path'] as String? ?? '';
         if (path == '') {
           return _ok({
-            'entries': [
-              _fileEntry(name: 'lib', path: 'lib', isDirectory: true),
-              _fileEntry(name: 'main.dart', path: 'main.dart'),
-            ],
+            'entries': [_fileEntry(name: 'lib', path: 'lib', isDirectory: true), _fileEntry(name: 'main.dart', path: 'main.dart')],
           });
         }
         if (path == 'lib') {
           return _ok({
-            'entries': [
-              _fileEntry(name: 'app.dart', path: 'lib/app.dart'),
-            ],
+            'entries': [_fileEntry(name: 'app.dart', path: 'lib/app.dart')],
           });
         }
         return _ok({'entries': <Object?>[]});
@@ -243,17 +224,12 @@ void main() {
         final path = args['path'] as String? ?? '';
         if (path == '') {
           return _ok({
-            'entries': [
-              _fileEntry(name: 'lib', path: 'lib', isDirectory: true),
-              _fileEntry(name: 'README.md', path: 'README.md'),
-            ],
+            'entries': [_fileEntry(name: 'lib', path: 'lib', isDirectory: true), _fileEntry(name: 'README.md', path: 'README.md')],
           });
         }
         if (path == 'lib') {
           return _ok({
-            'entries': [
-              _fileEntry(name: 'main.dart', path: 'lib/main.dart'),
-            ],
+            'entries': [_fileEntry(name: 'main.dart', path: 'lib/main.dart')],
           });
         }
         return _ok({'entries': <Object?>[]});
@@ -309,12 +285,7 @@ void main() {
       final countAfterLoad = lsCallCount;
 
       // Emit files.changed for a file at root level — parent is ''.
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': 'README.md'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
       // Give the async refresh a tick.
       await Future<void>.delayed(Duration.zero);
 
@@ -333,12 +304,7 @@ void main() {
       final countAfterLoad = lsCallCount;
 
       // 'lib' is not in _entries yet, so its parent 'lib/src' won't be there.
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': 'lib/src/foo.dart'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'lib/src/foo.dart'}, ts: DateTime.now().toUtc()));
       await Future<void>.delayed(Duration.zero);
 
       expect(lsCallCount, countAfterLoad);
@@ -355,12 +321,7 @@ void main() {
       await c.load();
       final countAfterLoad = lsCallCount;
 
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'editor',
-        kind: 'files.changed',
-        data: {'path': 'README.md'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'editor', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
       await Future<void>.delayed(Duration.zero);
 
       expect(lsCallCount, countAfterLoad);
@@ -377,12 +338,7 @@ void main() {
       await c.load();
       final countAfterLoad = lsCallCount;
 
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.opened',
-        data: {'path': 'README.md'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.opened', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
       await Future<void>.delayed(Duration.zero);
 
       expect(lsCallCount, countAfterLoad);
@@ -395,12 +351,7 @@ void main() {
       await c.load();
       final countAfterLoad = 1;
 
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': 'pubspec.yaml'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'pubspec.yaml'}, ts: DateTime.now().toUtc()));
       await Future<void>.delayed(Duration.zero);
 
       // Root '' is in _entries, so reload fires.
@@ -412,12 +363,7 @@ void main() {
       final c = makeCtrl();
       await c.load();
 
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': null},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': null}, ts: DateTime.now().toUtc()));
       await Future<void>.delayed(Duration.zero);
       // No crash — just checking the null-path guard.
     });
@@ -448,12 +394,7 @@ void main() {
       // Dispose and then emit an event — must not crash.
       c.dispose();
       ctrl = null; // prevent tearDown from double-disposing
-      f.services.events.emit(DaemonEvent(
-        subsystem: 'files',
-        kind: 'files.changed',
-        data: {'path': 'README.md'},
-        ts: DateTime.now().toUtc(),
-      ));
+      f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
       await Future<void>.delayed(Duration.zero);
       // Test passes if no exception.
     });

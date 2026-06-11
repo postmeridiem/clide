@@ -36,21 +36,17 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required bool alwaysShowCursor,
     EditableRectCallback? onEditableRect,
     String? composingText,
-  })  : _terminal = terminal,
-        _controller = controller,
-        _offset = offset,
-        _padding = padding,
-        _autoResize = autoResize,
-        _focusNode = focusNode,
-        _cursorType = cursorType,
-        _alwaysShowCursor = alwaysShowCursor,
-        _onEditableRect = onEditableRect,
-        _composingText = composingText,
-        _painter = TerminalPainter(
-          theme: theme,
-          textStyle: textStyle,
-          textScaler: textScaler,
-        );
+  }) : _terminal = terminal,
+       _controller = controller,
+       _offset = offset,
+       _padding = padding,
+       _autoResize = autoResize,
+       _focusNode = focusNode,
+       _cursorType = cursorType,
+       _alwaysShowCursor = alwaysShowCursor,
+       _onEditableRect = onEditableRect,
+       _composingText = composingText,
+       _painter = TerminalPainter(theme: theme, textStyle: textStyle, textScaler: textScaler);
 
   Terminal _terminal;
   set terminal(Terminal terminal) {
@@ -248,10 +244,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final y = offset.dy - _padding.top + _scrollOffset;
     final row = y ~/ _painter.cellSize.height;
     final col = x ~/ _painter.cellSize.width;
-    return CellOffset(
-      col.clamp(0, _terminal.viewWidth - 1),
-      row.clamp(0, _terminal.buffer.lines.length - 1),
-    );
+    return CellOffset(col.clamp(0, _terminal.viewWidth - 1), row.clamp(0, _terminal.buffer.lines.length - 1));
   }
 
   /// Selects entire words in the terminal that contains [from] and [to].
@@ -283,28 +276,18 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void selectCharacters(Offset from, [Offset? to]) {
     final fromPosition = getCellOffset(from);
     if (to == null) {
-      _controller.setSelection(
-        _terminal.buffer.createAnchorFromOffset(fromPosition),
-        _terminal.buffer.createAnchorFromOffset(fromPosition),
-      );
+      _controller.setSelection(_terminal.buffer.createAnchorFromOffset(fromPosition), _terminal.buffer.createAnchorFromOffset(fromPosition));
     } else {
       var toPosition = getCellOffset(to);
       if (toPosition.x >= fromPosition.x) {
         toPosition = CellOffset(toPosition.x + 1, toPosition.y);
       }
-      _controller.setSelection(
-        _terminal.buffer.createAnchorFromOffset(fromPosition),
-        _terminal.buffer.createAnchorFromOffset(toPosition),
-      );
+      _controller.setSelection(_terminal.buffer.createAnchorFromOffset(fromPosition), _terminal.buffer.createAnchorFromOffset(toPosition));
     }
   }
 
   /// Send a mouse event at [offset] with [button] being currently in [buttonState].
-  bool mouseEvent(
-    TerminalMouseButton button,
-    TerminalMouseButtonState buttonState,
-    Offset offset,
-  ) {
+  bool mouseEvent(TerminalMouseButton button, TerminalMouseButtonState buttonState, Offset offset) {
     final position = getCellOffset(offset);
     return _terminal.mouseInput(button, buttonState, position);
   }
@@ -312,12 +295,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   void _notifyEditableRect() {
     final cursor = localToGlobal(cursorOffset);
 
-    final rect = Rect.fromLTRB(
-      cursor.dx,
-      cursor.dy,
-      size.width,
-      cursor.dy + _painter.cellSize.height,
-    );
+    final rect = Rect.fromLTRB(cursor.dx, cursor.dy, size.width, cursor.dy + _painter.cellSize.height);
 
     final caretRect = cursor & _painter.cellSize;
 
@@ -331,10 +309,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       return;
     }
 
-    final viewportSize = TerminalSize(
-      size.width ~/ _painter.cellSize.width,
-      _viewportHeight ~/ _painter.cellSize.height,
-    );
+    final viewportSize = TerminalSize(size.width ~/ _painter.cellSize.width, _viewportHeight ~/ _painter.cellSize.height);
 
     if (_viewportSize != viewportSize) {
       _viewportSize = viewportSize;
@@ -345,12 +320,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   /// Notify the underlying terminal that the viewport size has changed.
   void _resizeTerminalIfNeeded() {
     if (_autoResize && _viewportSize != null) {
-      _terminal.resize(
-        _viewportSize!.width,
-        _viewportSize!.height,
-        _painter.cellSize.width.round(),
-        _painter.cellSize.height.round(),
-      );
+      _terminal.resize(_viewportSize!.width, _viewportSize!.height, _painter.cellSize.width.round(), _painter.cellSize.height.round());
     }
   }
 
@@ -383,10 +353,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   /// The offset of the cursor from the top left corner of this render object.
   Offset get cursorOffset {
-    return Offset(
-      _terminal.buffer.cursorX * _painter.cellSize.width,
-      _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset,
-    );
+    return Offset(_terminal.buffer.cursorX * _painter.cellSize.width, _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset);
   }
 
   Size get cellSize {
@@ -415,11 +382,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final effectLastLine = lastLine.clamp(0, lines.length - 1);
 
     for (var i = effectFirstLine; i <= effectLastLine; i++) {
-      _painter.paintLine(
-        canvas,
-        offset.translate(0, (i * charHeight + _lineOffset).truncateToDouble()),
-        lines[i],
-      );
+      _painter.paintLine(canvas, offset.translate(0, (i * charHeight + _lineOffset).truncateToDouble()), lines[i]);
     }
 
     if (_terminal.buffer.absoluteCursorY >= effectFirstLine && _terminal.buffer.absoluteCursorY <= effectLastLine) {
@@ -428,29 +391,14 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       }
 
       if (_shouldShowCursor) {
-        _painter.paintCursor(
-          canvas,
-          offset + cursorOffset,
-          cursorType: _cursorType,
-          hasFocus: _focusNode.hasFocus,
-        );
+        _painter.paintCursor(canvas, offset + cursorOffset, cursorType: _cursorType, hasFocus: _focusNode.hasFocus);
       }
     }
 
-    _paintHighlights(
-      canvas,
-      _controller.highlights,
-      effectFirstLine,
-      effectLastLine,
-    );
+    _paintHighlights(canvas, _controller.highlights, effectFirstLine, effectLastLine);
 
     if (_controller.selection != null) {
-      _paintSelection(
-        canvas,
-        _controller.selection!,
-        effectFirstLine,
-        effectLastLine,
-      );
+      _paintSelection(canvas, _controller.selection!, effectFirstLine, effectLastLine);
     }
   }
 
@@ -469,14 +417,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     );
 
     final builder = ParagraphBuilder(style.getParagraphStyle());
-    builder.addPlaceholder(
-      offset.dx,
-      _painter.cellSize.height,
-      PlaceholderAlignment.middle,
-    );
-    builder.pushStyle(
-      style.getTextStyle(textScaler: _painter.textScaler),
-    );
+    builder.addPlaceholder(offset.dx, _painter.cellSize.height, PlaceholderAlignment.middle);
+    builder.pushStyle(style.getTextStyle(textScaler: _painter.textScaler));
     builder.addText(composingText);
 
     final paragraph = builder.build();
@@ -485,12 +427,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     canvas.drawParagraph(paragraph, Offset(0, offset.dy));
   }
 
-  void _paintSelection(
-    Canvas canvas,
-    BufferRange selection,
-    int firstLine,
-    int lastLine,
-  ) {
+  void _paintSelection(Canvas canvas, BufferRange selection, int firstLine, int lastLine) {
     for (final segment in selection.toSegments()) {
       if (segment.line >= _terminal.buffer.lines.length) {
         break;
@@ -508,12 +445,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
   }
 
-  void _paintHighlights(
-    Canvas canvas,
-    List<TerminalHighlight> highlights,
-    int firstLine,
-    int lastLine,
-  ) {
+  void _paintHighlights(Canvas canvas, List<TerminalHighlight> highlights, int firstLine, int lastLine) {
     for (var highlight in _controller.highlights) {
       final range = highlight.range?.normalized;
 
@@ -540,10 +472,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final start = segment.start ?? 0;
     final end = segment.end ?? _terminal.viewWidth;
 
-    final startOffset = Offset(
-      start * _painter.cellSize.width,
-      segment.line * _painter.cellSize.height + _lineOffset,
-    );
+    final startOffset = Offset(start * _painter.cellSize.width, segment.line * _painter.cellSize.height + _lineOffset);
 
     _painter.paintHighlight(canvas, startOffset, end - start, color);
   }

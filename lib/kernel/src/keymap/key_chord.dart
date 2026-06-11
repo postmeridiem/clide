@@ -23,11 +23,11 @@ enum KeyModifier {
 
   /// Display string used in palette + tooltip hints.
   String get display => switch (this) {
-        KeyModifier.ctrl => 'Ctrl',
-        KeyModifier.alt => 'Alt',
-        KeyModifier.shift => 'Shift',
-        KeyModifier.meta => 'Cmd',
-      };
+    KeyModifier.ctrl => 'Ctrl',
+    KeyModifier.alt => 'Alt',
+    KeyModifier.shift => 'Shift',
+    KeyModifier.meta => 'Cmd',
+  };
 }
 
 /// A modifier-set + a single key, identified by layout-independent

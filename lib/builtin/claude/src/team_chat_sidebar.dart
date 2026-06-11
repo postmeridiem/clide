@@ -26,12 +26,7 @@ import 'package:flutter/widgets.dart';
 /// [onPopOut] is called when the user taps the pop-out icon to open the full
 ///   pane — the extension wires this to `panels.activateTab`.
 class TeamChatSidebar extends StatefulWidget {
-  const TeamChatSidebar({
-    super.key,
-    required this.model,
-    required this.broker,
-    required this.onPopOut,
-  });
+  const TeamChatSidebar({super.key, required this.model, required this.broker, required this.onPopOut});
 
   final TeamChatModel model;
   final TeamBroker broker;
@@ -149,11 +144,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
                 onTap: widget.onPopOut,
                 builder: (ctx, hovered, _) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-                  child: ClideIcon(
-                    PhosphorIcons.byName('arrows-out-simple'),
-                    size: 10,
-                    color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
-                  ),
+                  child: ClideIcon(PhosphorIcons.byName('arrows-out-simple'), size: 10, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
                 ),
               ),
             ),
@@ -177,13 +168,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
           formatLabel: (n) => '@$n',
           child: Focus(
             onKeyEvent: _handleKeyEvent,
-            child: _ChatInputField(
-              controller: _controller,
-              focusNode: _focusNode,
-              tokens: tokens,
-              onSubmit: _submit,
-              placeholder: '@name or @team …',
-            ),
+            child: _ChatInputField(controller: _controller, focusNode: _focusNode, tokens: tokens, onSubmit: _submit, placeholder: '@name or @team …'),
           ),
         ),
       ],
@@ -200,11 +185,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
 /// Reads from the same [TeamChatModel] as [TeamChatSidebar]. Supports the
 /// interrupt tickbox and full @-completion.
 class TeamChatPane extends StatefulWidget {
-  const TeamChatPane({
-    super.key,
-    required this.model,
-    required this.broker,
-  });
+  const TeamChatPane({super.key, required this.model, required this.broker});
 
   final TeamChatModel model;
   final TeamBroker broker;
@@ -231,11 +212,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
         // Scroll to bottom on new message.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
-            );
+            _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 120), curve: Curves.easeOut);
           }
         });
       }
@@ -297,11 +274,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
     final text = raw.trim();
     if (text.isEmpty) return;
     final parsed = parseAtTag(text);
-    widget.model.postAsUser(
-      parsed.body.isEmpty ? text : parsed.body,
-      toName: parsed.recipient,
-      interrupt: _interrupt,
-    );
+    widget.model.postAsUser(parsed.body.isEmpty ? text : parsed.body, toName: parsed.recipient, interrupt: _interrupt);
     _controller.clear();
   }
 
@@ -340,11 +313,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   itemCount: messages.length,
-                  itemBuilder: (_, i) => _ChatRow(
-                    key: ValueKey(messages[i].at.microsecondsSinceEpoch),
-                    message: messages[i],
-                    tokens: tokens,
-                  ),
+                  itemBuilder: (_, i) => _ChatRow(key: ValueKey(messages[i].at.microsecondsSinceEpoch), message: messages[i], tokens: tokens),
                 ),
         ),
         // Composer + interrupt tickbox.
@@ -375,24 +344,13 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                           margin: const EdgeInsets.only(right: 5),
                           decoration: BoxDecoration(
                             color: _interrupt ? tokens.globalFocus.withAlpha(40) : const Color(0x00000000),
-                            border: Border.all(
-                              color: _interrupt ? tokens.globalFocus : tokens.globalTextMuted,
-                              width: 1,
-                            ),
+                            border: Border.all(color: _interrupt ? tokens.globalFocus : tokens.globalTextMuted, width: 1),
                             borderRadius: BorderRadius.circular(2),
                           ),
-                          child: _interrupt
-                              ? Center(
-                                  child: ClideIcon(PhosphorIcons.byName('check'), size: 9, color: tokens.globalFocus),
-                                )
-                              : null,
+                          child: _interrupt ? Center(child: ClideIcon(PhosphorIcons.byName('check'), size: 9, color: tokens.globalFocus)) : null,
                         ),
                       ),
-                      ClideText(
-                        'Interrupt',
-                        fontSize: clideFontSmall,
-                        color: _interrupt ? tokens.globalForeground : tokens.globalTextMuted,
-                      ),
+                      ClideText('Interrupt', fontSize: clideFontSmall, color: _interrupt ? tokens.globalForeground : tokens.globalTextMuted),
                     ],
                   ),
                 ),
@@ -405,13 +363,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                 formatLabel: (n) => '@$n',
                 child: Focus(
                   onKeyEvent: _handleKeyEvent,
-                  child: _ChatInputField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    tokens: tokens,
-                    onSubmit: _submit,
-                    placeholder: '@name or @team …',
-                  ),
+                  child: _ChatInputField(controller: _controller, focusNode: _focusNode, tokens: tokens, onSubmit: _submit, placeholder: '@name or @team …'),
                 ),
               ),
             ],
@@ -439,8 +391,8 @@ class _ChatRow extends StatelessWidget {
     final toLabel = message.broadcast
         ? '→ all'
         : message.to != null
-            ? '→ ${message.to}'
-            : null;
+        ? '→ ${message.to}'
+        : null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 3),
@@ -451,10 +403,7 @@ class _ChatRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             margin: const EdgeInsets.only(right: 5, top: 1),
-            decoration: BoxDecoration(
-              color: senderColor.withAlpha(30),
-              borderRadius: BorderRadius.circular(2),
-            ),
+            decoration: BoxDecoration(color: senderColor.withAlpha(30), borderRadius: BorderRadius.circular(2)),
             child: ClideText(message.from, fontSize: clideFontSmall, color: senderColor),
           ),
           if (toLabel != null)
@@ -480,13 +429,7 @@ class _ChatRow extends StatelessWidget {
 
 /// Inline text input for the chat composer.
 class _ChatInputField extends StatelessWidget {
-  const _ChatInputField({
-    required this.controller,
-    required this.focusNode,
-    required this.tokens,
-    required this.onSubmit,
-    required this.placeholder,
-  });
+  const _ChatInputField({required this.controller, required this.focusNode, required this.tokens, required this.onSubmit, required this.placeholder});
 
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -507,12 +450,7 @@ class _ChatInputField extends StatelessWidget {
       child: EditableText(
         controller: controller,
         focusNode: focusNode,
-        style: TextStyle(
-          fontFamily: 'JetBrains Mono',
-          fontSize: clideFontSmall,
-          color: tokens.globalForeground,
-          height: 1.4,
-        ),
+        style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: clideFontSmall, color: tokens.globalForeground, height: 1.4),
         cursorColor: tokens.globalFocus,
         backgroundCursorColor: tokens.globalTextMuted,
         onSubmitted: onSubmit,

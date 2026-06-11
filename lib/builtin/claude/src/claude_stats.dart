@@ -8,12 +8,7 @@ library;
 import 'dart:convert';
 
 class DailyActivity {
-  const DailyActivity({
-    required this.date,
-    required this.messageCount,
-    required this.sessionCount,
-    required this.toolCallCount,
-  });
+  const DailyActivity({required this.date, required this.messageCount, required this.sessionCount, required this.toolCallCount});
 
   final String date; // "YYYY-MM-DD" (sorts chronologically as a string)
   final int messageCount;
@@ -54,12 +49,14 @@ ClaudeStats parseClaudeStats(String jsonStr) {
   if (da is List) {
     for (final e in da) {
       if (e is! Map) continue;
-      daily.add(DailyActivity(
-        date: '${e['date']}',
-        messageCount: _int(e['messageCount']),
-        sessionCount: _int(e['sessionCount']),
-        toolCallCount: _int(e['toolCallCount']),
-      ));
+      daily.add(
+        DailyActivity(
+          date: '${e['date']}',
+          messageCount: _int(e['messageCount']),
+          sessionCount: _int(e['sessionCount']),
+          toolCallCount: _int(e['toolCallCount']),
+        ),
+      );
     }
   }
   return ClaudeStats(lastComputed: j['lastComputedDate'] as String?, daily: daily);

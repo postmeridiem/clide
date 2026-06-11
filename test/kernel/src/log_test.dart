@@ -5,10 +5,7 @@ void main() {
   group('Logger', () {
     test('respects minLevel — lower-level messages drop silently', () {
       final out = <LogRecord>[];
-      final log = Logger(
-        minLevel: LogLevel.warn,
-        sinks: [out.add],
-      );
+      final log = Logger(minLevel: LogLevel.warn, sinks: [out.add]);
       log.debug('s', 'dropped');
       log.info('s', 'dropped');
       log.warn('s', 'kept');
@@ -38,10 +35,7 @@ void main() {
 
     test('broken sink does not kill the logger', () {
       final good = <LogRecord>[];
-      final log = Logger(minLevel: LogLevel.info, sinks: [
-        (_) => throw StateError('bad sink'),
-        good.add,
-      ]);
+      final log = Logger(minLevel: LogLevel.info, sinks: [(_) => throw StateError('bad sink'), good.add]);
       log.info('s', 'still delivered');
       expect(good, hasLength(1));
     });

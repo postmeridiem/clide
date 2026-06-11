@@ -28,16 +28,18 @@ void main() {
       final focus = FocusNode();
       addTearDown(focus.dispose);
 
-      await tester.pumpWidget(_host(
-        CustomKeyboardListener(
-          focusNode: focus,
-          autofocus: true,
-          onInsert: inserts.add,
-          onComposing: composings.add,
-          onKeyEvent: (_, __) => KeyEventResult.ignored,
-          child: const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand()),
+      await tester.pumpWidget(
+        _host(
+          CustomKeyboardListener(
+            focusNode: focus,
+            autofocus: true,
+            onInsert: inserts.add,
+            onComposing: composings.add,
+            onKeyEvent: (_, _) => KeyEventResult.ignored,
+            child: const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand()),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       // A character key with non-empty `character` triggers the insert path.
       await tester.sendKeyEvent(LogicalKeyboardKey.keyA, character: 'a');
@@ -50,16 +52,18 @@ void main() {
       final focus = FocusNode();
       addTearDown(focus.dispose);
 
-      await tester.pumpWidget(_host(
-        CustomKeyboardListener(
-          focusNode: focus,
-          autofocus: true,
-          onInsert: inserts.add,
-          onComposing: (_) {},
-          onKeyEvent: (_, __) => KeyEventResult.handled,
-          child: const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand()),
+      await tester.pumpWidget(
+        _host(
+          CustomKeyboardListener(
+            focusNode: focus,
+            autofocus: true,
+            onInsert: inserts.add,
+            onComposing: (_) {},
+            onKeyEvent: (_, _) => KeyEventResult.handled,
+            child: const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand()),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.keyA, character: 'a');
       await tester.pump();
@@ -71,16 +75,18 @@ void main() {
       final focus = FocusNode();
       addTearDown(focus.dispose);
 
-      await tester.pumpWidget(_host(
-        CustomKeyboardListener(
-          focusNode: focus,
-          autofocus: true,
-          onInsert: inserts.add,
-          onComposing: (_) {},
-          onKeyEvent: (_, __) => KeyEventResult.ignored,
-          child: const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand()),
+      await tester.pumpWidget(
+        _host(
+          CustomKeyboardListener(
+            focusNode: focus,
+            autofocus: true,
+            onInsert: inserts.add,
+            onComposing: (_) {},
+            onKeyEvent: (_, _) => KeyEventResult.ignored,
+            child: const ColoredBox(color: Color(0xFF000000), child: SizedBox.expand()),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       // ArrowUp has no `character` — ignored result + no character means
       // _onKeyEvent returns ignored without firing onInsert.

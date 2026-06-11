@@ -49,7 +49,7 @@ void main() {
       const {
         'ids': ['T-1'],
         'status': 'done',
-      }
+      },
     ),
     ('pql.tickets.board', const <String, Object?>{}),
     ('pql.plan.status', const <String, Object?>{}),

@@ -18,16 +18,8 @@ import 'package:clide/src/terminal/src/ui/themes.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-TerminalPainter _make({
-  TerminalTheme? theme,
-  TerminalStyle? style,
-  TextScaler? scaler,
-}) =>
-    TerminalPainter(
-      theme: theme ?? TerminalThemes.defaultTheme,
-      textStyle: style ?? const TerminalStyle(),
-      textScaler: scaler ?? const TextScaler.linear(1.0),
-    );
+TerminalPainter _make({TerminalTheme? theme, TerminalStyle? style, TextScaler? scaler}) =>
+    TerminalPainter(theme: theme ?? TerminalThemes.defaultTheme, textStyle: style ?? const TerminalStyle(), textScaler: scaler ?? const TextScaler.linear(1.0));
 
 Canvas _canvas() => Canvas(PictureRecorder());
 
@@ -101,11 +93,7 @@ void main() {
   });
 
   group('TerminalPainter — paintCursor', () {
-    final cases = <TerminalCursorType>{
-      TerminalCursorType.block,
-      TerminalCursorType.underline,
-      TerminalCursorType.verticalBar,
-    };
+    final cases = <TerminalCursorType>{TerminalCursorType.block, TerminalCursorType.underline, TerminalCursorType.verticalBar};
     for (final c in cases) {
       test('focused $c paints without throwing', () {
         _make().paintCursor(_canvas(), const Offset(0, 0), cursorType: c);
@@ -114,12 +102,7 @@ void main() {
 
     test('unfocused (hasFocus=false) draws a stroked rect regardless of cursor type', () {
       // Should hit the early-return-with-stroke branch, not the switch.
-      _make().paintCursor(
-        _canvas(),
-        const Offset(0, 0),
-        cursorType: TerminalCursorType.verticalBar,
-        hasFocus: false,
-      );
+      _make().paintCursor(_canvas(), const Offset(0, 0), cursorType: TerminalCursorType.verticalBar, hasFocus: false);
     });
   });
 
@@ -149,12 +132,7 @@ void main() {
 
     test('paintCellForeground caches the layout — second call hits the cache', () {
       final p = _make();
-      final cell = CellData(
-        foreground: CellColor.normal,
-        background: CellColor.normal,
-        flags: 0,
-        content: 'A'.codeUnitAt(0),
-      );
+      final cell = CellData(foreground: CellColor.normal, background: CellColor.normal, flags: 0, content: 'A'.codeUnitAt(0));
       // Two paints with the same cell → second one resolves through the cache.
       p.paintCellForeground(_canvas(), Offset.zero, cell);
       p.paintCellForeground(_canvas(), Offset.zero, cell);
@@ -164,88 +142,48 @@ void main() {
       final p = _make();
       // faint
       p.paintCellForeground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.normal,
-            flags: CellFlags.faint,
-            content: 'B'.codeUnitAt(0),
-          ));
+        _canvas(),
+        Offset.zero,
+        CellData(foreground: CellColor.normal, background: CellColor.normal, flags: CellFlags.faint, content: 'B'.codeUnitAt(0)),
+      );
       // inverse → uses background as foreground
       p.paintCellForeground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.named | 2,
-            flags: CellFlags.inverse,
-            content: 'C'.codeUnitAt(0),
-          ));
+        _canvas(),
+        Offset.zero,
+        CellData(foreground: CellColor.normal, background: CellColor.named | 2, flags: CellFlags.inverse, content: 'C'.codeUnitAt(0)),
+      );
       // underline + space → swaps to U+00A0 internally
       p.paintCellForeground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.normal,
-            flags: CellFlags.underline,
-            content: 0x20,
-          ));
+        _canvas(),
+        Offset.zero,
+        CellData(foreground: CellColor.normal, background: CellColor.normal, flags: CellFlags.underline, content: 0x20),
+      );
       // bold + italic — exercises the flag-driven TextStyle path.
       p.paintCellForeground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.normal,
-            flags: CellFlags.bold | CellFlags.italic,
-            content: 'D'.codeUnitAt(0),
-          ));
+        _canvas(),
+        Offset.zero,
+        CellData(foreground: CellColor.normal, background: CellColor.normal, flags: CellFlags.bold | CellFlags.italic, content: 'D'.codeUnitAt(0)),
+      );
     });
 
     test('paintCellBackground covers normal early-return, inverse, and named/palette paths', () {
       final p = _make();
       // normal + no inverse → early return, no draw.
-      p.paintCellBackground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.normal,
-            flags: 0,
-            content: 0,
-          ));
+      p.paintCellBackground(_canvas(), Offset.zero, CellData(foreground: CellColor.normal, background: CellColor.normal, flags: 0, content: 0));
       // inverse → resolves foreground colour and draws.
       p.paintCellBackground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.named | 1,
-            background: CellColor.normal,
-            flags: CellFlags.inverse,
-            content: 0,
-          ));
+        _canvas(),
+        Offset.zero,
+        CellData(foreground: CellColor.named | 1, background: CellColor.normal, flags: CellFlags.inverse, content: 0),
+      );
       // explicit background colour → draws.
-      p.paintCellBackground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.palette | 5,
-            flags: 0,
-            content: 0,
-          ));
+      p.paintCellBackground(_canvas(), Offset.zero, CellData(foreground: CellColor.normal, background: CellColor.palette | 5, flags: 0, content: 0));
       // double-width cell → exercises the widthScale=2 branch.
       p.paintCellBackground(
-          _canvas(),
-          Offset.zero,
-          CellData(
-            foreground: CellColor.normal,
-            background: CellColor.named | 4,
-            flags: 0,
-            content: 'A'.codeUnitAt(0) | (2 << CellContent.widthShift),
-          ));
+        _canvas(),
+        Offset.zero,
+        CellData(foreground: CellColor.normal, background: CellColor.named | 4, flags: 0, content: 'A'.codeUnitAt(0) | (2 << CellContent.widthShift)),
+      );
     });
   });
 

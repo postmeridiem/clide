@@ -53,9 +53,7 @@ void main() {
     });
 
     test('files take precedence over an image', () async {
-      final result = await resolveClipboardAttachment(
-        _FakeSource(files: ['/x/y'], image: Uint8List.fromList([1, 2])),
-      );
+      final result = await resolveClipboardAttachment(_FakeSource(files: ['/x/y'], image: Uint8List.fromList([1, 2])));
       expect(result.map((a) => a.path), ['/x/y']);
     });
 

@@ -40,12 +40,12 @@ class _TestViewportOffset extends ViewportOffset {
 }
 
 Widget _host(Widget child) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: MediaQuery(
-        data: const MediaQueryData(),
-        child: Center(child: SizedBox(width: 400, height: 200, child: child)),
-      ),
-    );
+  textDirection: TextDirection.ltr,
+  child: MediaQuery(
+    data: const MediaQueryData(),
+    child: Center(child: SizedBox(width: 400, height: 200, child: child)),
+  ),
+);
 
 void main() {
   group('EscapeParser — explicit-param CSI cursor moves', () {

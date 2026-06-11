@@ -38,11 +38,11 @@ abstract final class ClaudeConversation {
 
   /// Encode [status] for [agentId] as a [memberStatusChannel] message body.
   static Map<String, Object?> memberStatusData(String agentId, SessionStatus status) => {
-        'agentId': agentId,
-        if (status.model != null) 'model': status.model,
-        if (status.permissionMode != null) 'permissionMode': status.permissionMode,
-        if (status.contextTokens != null) 'contextTokens': status.contextTokens,
-      };
+    'agentId': agentId,
+    if (status.model != null) 'model': status.model,
+    if (status.permissionMode != null) 'permissionMode': status.permissionMode,
+    if (status.contextTokens != null) 'contextTokens': status.contextTokens,
+  };
 }
 
 class TranscriptPublisher {
@@ -50,16 +50,11 @@ class TranscriptPublisher {
   /// [ClaudeConversation.publisher] / [channel]. The subscription is
   /// attached synchronously, so a controller that subscribes before the
   /// reader's first poll never misses the initial tail.
-  TranscriptPublisher({
-    required MessageBus messages,
-    required TranscriptReader reader,
-    this.channel = ClaudeConversation.leadChannel,
-  })  : _messages = messages,
-        _reader = reader {
+  TranscriptPublisher({required MessageBus messages, required TranscriptReader reader, this.channel = ClaudeConversation.leadChannel})
+    : _messages = messages,
+      _reader = reader {
     _sub = _reader.stream.listen((item) {
-      _messages.publish(ClaudeConversation.publisher, channel, {
-        ClaudeConversation.itemKey: item,
-      });
+      _messages.publish(ClaudeConversation.publisher, channel, {ClaudeConversation.itemKey: item});
     });
   }
 

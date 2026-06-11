@@ -26,10 +26,6 @@ String _pubspecVersion() {
 
 void main() {
   test('clideVersion matches pubspec.yaml version (T-213)', () {
-    expect(
-      clideVersion,
-      _pubspecVersion(),
-      reason: 'build_info.g.dart drifted from pubspec.yaml — run `make gen-build-info`',
-    );
+    expect(clideVersion, _pubspecVersion(), reason: 'build_info.g.dart drifted from pubspec.yaml — run `make gen-build-info`');
   });
 }

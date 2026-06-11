@@ -11,9 +11,7 @@ import 'editor_settings.dart';
 class Selection {
   const Selection({required this.start, required this.end});
 
-  const Selection.collapsed(int offset)
-      : start = offset,
-        end = offset;
+  const Selection.collapsed(int offset) : start = offset, end = offset;
 
   final int start;
   final int end;
@@ -23,10 +21,7 @@ class Selection {
 
   Map<String, Object?> toJson() => {'start': start, 'end': end};
 
-  factory Selection.fromJson(Map<String, Object?> j) => Selection(
-        start: (j['start'] as num).toInt(),
-        end: (j['end'] as num).toInt(),
-      );
+  factory Selection.fromJson(Map<String, Object?> j) => Selection(start: (j['start'] as num).toInt(), end: (j['end'] as num).toInt());
 
   @override
   bool operator ==(Object other) => other is Selection && other.start == start && other.end == end;
@@ -39,14 +34,8 @@ class Selection {
 }
 
 class EditorBuffer {
-  EditorBuffer({
-    required this.id,
-    required this.path,
-    required this.content,
-    Selection? selection,
-    this.dirty = false,
-    this.settings = EditorSettings.empty,
-  }) : selection = selection ?? const Selection.collapsed(0);
+  EditorBuffer({required this.id, required this.path, required this.content, Selection? selection, this.dirty = false, this.settings = EditorSettings.empty})
+    : selection = selection ?? const Selection.collapsed(0);
 
   /// Stable daemon-local id (`b_1`, `b_2`, …).
   final String id;
@@ -77,18 +66,15 @@ class EditorBuffer {
   EditorSettings settings;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'path': path,
-        'length': content.length,
-        'selection': selection.toJson(),
-        'dirty': dirty,
-        'editorSettings': settings.toJson(),
-      };
+    'id': id,
+    'path': path,
+    'length': content.length,
+    'selection': selection.toJson(),
+    'dirty': dirty,
+    'editorSettings': settings.toJson(),
+  };
 
   /// Full snapshot including [content] — for `editor.read` / tests /
   /// anything that needs the text explicitly.
-  Map<String, Object?> toFullJson() => {
-        ...toJson(),
-        'content': content,
-      };
+  Map<String, Object?> toFullJson() => {...toJson(), 'content': content};
 }

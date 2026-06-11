@@ -2,10 +2,7 @@
 
 typedef CharsetTranslator = int Function(int);
 
-final _charsets = <int, CharsetTranslator>{
-  '0'.codeUnitAt(0): decSpecGraphicsTranslator,
-  'B'.codeUnitAt(0): asciiTranslator,
-};
+final _charsets = <int, CharsetTranslator>{'0'.codeUnitAt(0): decSpecGraphicsTranslator, 'B'.codeUnitAt(0): asciiTranslator};
 
 class Charset {
   var _charsetMap = <int, CharsetTranslator>{};

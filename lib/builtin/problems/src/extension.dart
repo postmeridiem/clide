@@ -14,16 +14,16 @@ class ProblemsExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        // Moved out of the sidebar into the bottom dock (D-87): no duplication,
-        // and the dock's width fits `severity · file:line · message` rows.
-        TabContribution(
-          id: 'problems.panel',
-          slot: Slots.dock,
-          title: 'Problems',
-          titleKey: 'tab.title',
-          i18nNamespace: id,
-          priority: -50,
-          build: (_) => const ProblemsView(),
-        ),
-      ];
+    // Moved out of the sidebar into the bottom dock (D-87): no duplication,
+    // and the dock's width fits `severity · file:line · message` rows.
+    TabContribution(
+      id: 'problems.panel',
+      slot: Slots.dock,
+      title: 'Problems',
+      titleKey: 'tab.title',
+      i18nNamespace: id,
+      priority: -50,
+      build: (_) => const ProblemsView(),
+    ),
+  ];
 }

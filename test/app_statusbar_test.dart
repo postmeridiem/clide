@@ -16,21 +16,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/kernel_fixture.dart';
 
 Widget _bar(KernelFixture f, double width) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: ClideKernel(
-        services: f.services,
-        child: ClideTheme(
-          controller: f.services.theme,
-          child: MediaQuery(
-            data: MediaQueryData(size: Size(width, 200)),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: width, height: 26, child: const StatusbarHost()),
-            ),
-          ),
+  textDirection: TextDirection.ltr,
+  child: ClideKernel(
+    services: f.services,
+    child: ClideTheme(
+      controller: f.services.theme,
+      child: MediaQuery(
+        data: MediaQueryData(size: Size(width, 200)),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: width, height: 26, child: const StatusbarHost()),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   late KernelFixture f;
@@ -53,17 +53,8 @@ void main() {
   testWidgets('right group hugs the bar right edge at normal AND ultrawide widths (T-239)', (tester) async {
     // Mirrors the real surface: a left flex:1 item (like the Claude status
     // marquee, priority 50) + a right-group item (priority >= 100).
-    f.services.panels.contribute(StatusItemContribution(
-      id: 'test.left.flex',
-      priority: 50,
-      flex: 1,
-      build: (_) => const Text('LEFT', softWrap: false),
-    ));
-    f.services.panels.contribute(StatusItemContribution(
-      id: 'test.right',
-      priority: 110,
-      build: (_) => const Text('RIGHT', softWrap: false),
-    ));
+    f.services.panels.contribute(StatusItemContribution(id: 'test.left.flex', priority: 50, flex: 1, build: (_) => const Text('LEFT', softWrap: false)));
+    f.services.panels.contribute(StatusItemContribution(id: 'test.right', priority: 110, build: (_) => const Text('RIGHT', softWrap: false)));
 
     // 600 = normal, 3440 = ultrawide (where the float actually surfaced).
     for (final width in [600.0, 3440.0]) {
@@ -77,11 +68,7 @@ void main() {
   });
 
   testWidgets('right group hugs the edge with no left items (ultrawide)', (tester) async {
-    f.services.panels.contribute(StatusItemContribution(
-      id: 'test.right.only',
-      priority: 110,
-      build: (_) => const Text('R2', softWrap: false),
-    ));
+    f.services.panels.contribute(StatusItemContribution(id: 'test.right.only', priority: 110, build: (_) => const Text('R2', softWrap: false)));
     await pumpAt(tester, 3440.0);
     expect(tester.takeException(), isNull);
     expect(tester.getTopRight(find.text('R2')).dx, closeTo(3440 - 8, 1.0));

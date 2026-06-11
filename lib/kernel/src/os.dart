@@ -16,9 +16,7 @@ class OsLifecycleEvent extends ClideEvent {
 }
 
 class OsBridge {
-  OsBridge({required Logger log, required DaemonBus events})
-      : _log = log,
-        _events = events;
+  OsBridge({required Logger log, required DaemonBus events}) : _log = log, _events = events;
 
   final Logger _log;
   final DaemonBus _events;

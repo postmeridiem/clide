@@ -48,31 +48,19 @@ surface:
   panel.background: "semantic.mainchrome"
   panel.border: red
 ''');
-      expect(def.surfaceOverride, {
-        'panel.background': 'semantic.mainchrome',
-        'panel.border': 'red',
-      });
+      expect(def.surfaceOverride, {'panel.background': 'semantic.mainchrome', 'panel.border': 'red'});
     });
 
     test('throws when name is missing and no fallback', () {
-      expect(
-        () => loader.fromYamlString('palette: { fg: "#fff" }'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => loader.fromYamlString('palette: { fg: "#fff" }'), throwsA(isA<FormatException>()));
     });
 
     test('throws when palette is missing', () {
-      expect(
-        () => loader.fromYamlString('name: t'),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => loader.fromYamlString('name: t'), throwsA(isA<FormatException>()));
     });
 
     test('fallback name is used when name is absent', () {
-      final def = loader.fromYamlString(
-        'palette: { fg: "#fff" }',
-        fallbackName: 'inferred',
-      );
+      final def = loader.fromYamlString('palette: { fg: "#fff" }', fallbackName: 'inferred');
       expect(def.name, 'inferred');
     });
   });

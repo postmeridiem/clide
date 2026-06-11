@@ -64,23 +64,11 @@ void main() {
       final handle = tester.ensureSemantics();
       expect(
         tester.getSemantics(find.bySemanticsLabel('Files')),
-        matchesSemantics(
-          label: 'Files',
-          isButton: true,
-          isSelected: true,
-          hasSelectedState: true,
-          hasTapAction: true,
-        ),
+        matchesSemantics(label: 'Files', isButton: true, isSelected: true, hasSelectedState: true, hasTapAction: true),
       );
       expect(
         tester.getSemantics(find.bySemanticsLabel('Git')),
-        matchesSemantics(
-          label: 'Git',
-          isButton: true,
-          isSelected: false,
-          hasSelectedState: true,
-          hasTapAction: true,
-        ),
+        matchesSemantics(label: 'Git', isButton: true, isSelected: false, hasSelectedState: true, hasTapAction: true),
       );
       handle.dispose();
     });

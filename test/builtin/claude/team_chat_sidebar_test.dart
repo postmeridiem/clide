@@ -18,7 +18,7 @@ void main() {
 
   setUp(() async {
     f = await KernelFixture.create();
-    broker = TeamBroker(deliver: (_, __) {});
+    broker = TeamBroker(deliver: (_, _) {});
     broker.addMember(const TeamMemberRef(id: 'primary', name: 'lead', role: 'lead'));
     broker.addMember(const TeamMemberRef(id: 'teammate:tyre', name: 'tyre', role: 'teammate'));
     model = TeamChatModel(broker: broker);
@@ -36,17 +36,13 @@ void main() {
 
   group('TeamChatSidebar', () {
     Widget sidebar({VoidCallback? onPopOut}) => harness(
-          f,
-          SizedBox(
-            width: 220,
-            height: 400,
-            child: TeamChatSidebar(
-              model: model,
-              broker: broker,
-              onPopOut: onPopOut ?? () {},
-            ),
-          ),
-        );
+      f,
+      SizedBox(
+        width: 220,
+        height: 400,
+        child: TeamChatSidebar(model: model, broker: broker, onPopOut: onPopOut ?? () {}),
+      ),
+    );
 
     testWidgets('renders MESSAGES header', (tester) async {
       await tester.pumpWidget(sidebar());
@@ -131,18 +127,16 @@ void main() {
       var popped = false;
       // Use a tall harness so the MESSAGES header (and its pop-out icon) is
       // always in view and tappable.
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(
-          width: 300,
-          height: 800,
-          child: TeamChatSidebar(
-            model: model,
-            broker: broker,
-            onPopOut: () => popped = true,
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 300,
+            height: 800,
+            child: TeamChatSidebar(model: model, broker: broker, onPopOut: () => popped = true),
           ),
         ),
-      ));
+      );
       await tester.pump();
 
       // The pop-out icon is wired via Semantics(label: 'Open full chat pane').
@@ -188,18 +182,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Focus the field and set text with a selection so cursor is at end.
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // Set value with explicit cursor position at end.
-      field.controller.value = const TextEditingValue(
-        text: '@ty',
-        selection: TextSelection.collapsed(offset: 3),
-      );
+      field.controller.value = const TextEditingValue(text: '@ty', selection: TextSelection.collapsed(offset: 3));
       await tester.pump();
       await tester.pump();
 
@@ -211,18 +200,13 @@ void main() {
       await tester.pumpWidget(sidebar());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // No match — _updateSuggestions called with null.
-      field.controller.value = const TextEditingValue(
-        text: '@zzz',
-        selection: TextSelection.collapsed(offset: 4),
-      );
+      field.controller.value = const TextEditingValue(text: '@zzz', selection: TextSelection.collapsed(offset: 4));
       await tester.pump();
       await tester.pump();
 
@@ -236,25 +220,17 @@ void main() {
       await tester.pumpWidget(sidebar());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // Set @ty (matches tyre) → _showOverlay called.
-      field.controller.value = const TextEditingValue(
-        text: '@ty',
-        selection: TextSelection.collapsed(offset: 3),
-      );
+      field.controller.value = const TextEditingValue(text: '@ty', selection: TextSelection.collapsed(offset: 3));
       await tester.pump();
 
       // Clear → _removeOverlay called.
-      field.controller.value = const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      );
+      field.controller.value = const TextEditingValue(text: '', selection: TextSelection.collapsed(offset: 0));
       await tester.pump();
       await tester.pump();
 
@@ -266,18 +242,13 @@ void main() {
       await tester.pumpWidget(sidebar());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // Set a matching @-prefix to activate the overlay path.
-      field.controller.value = const TextEditingValue(
-        text: '@ty',
-        selection: TextSelection.collapsed(offset: 3),
-      );
+      field.controller.value = const TextEditingValue(text: '@ty', selection: TextSelection.collapsed(offset: 3));
       await tester.pump();
 
       // Send Escape — _handleKeyEvent should return KeyEventResult.handled.
@@ -294,18 +265,13 @@ void main() {
       await tester.pumpWidget(sidebar());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-sidebar');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // A value with no selection (baseOffset == -1) triggers the cursor < 0 guard.
-      field.controller.value = const TextEditingValue(
-        text: '@ty',
-        selection: TextSelection.collapsed(offset: -1),
-      );
+      field.controller.value = const TextEditingValue(text: '@ty', selection: TextSelection.collapsed(offset: -1));
       await tester.pump();
       await tester.pump();
 
@@ -337,13 +303,13 @@ void main() {
 
   group('TeamChatPane', () {
     Widget pane() => harness(
-          f,
-          SizedBox(
-            width: 400,
-            height: 600,
-            child: TeamChatPane(model: model, broker: broker),
-          ),
-        );
+      f,
+      SizedBox(
+        width: 400,
+        height: 600,
+        child: TeamChatPane(model: model, broker: broker),
+      ),
+    );
 
     testWidgets('renders Team Chat header', (tester) async {
       await tester.pumpWidget(pane());
@@ -408,18 +374,13 @@ void main() {
       await tester.pumpWidget(pane());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // Set @ty to activate overlay path.
-      field.controller.value = const TextEditingValue(
-        text: '@ty',
-        selection: TextSelection.collapsed(offset: 3),
-      );
+      field.controller.value = const TextEditingValue(text: '@ty', selection: TextSelection.collapsed(offset: 3));
       await tester.pump();
 
       // Escape dismisses.
@@ -434,18 +395,13 @@ void main() {
       await tester.pumpWidget(pane());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
       // @le → matches lead.
-      field.controller.value = const TextEditingValue(
-        text: '@le',
-        selection: TextSelection.collapsed(offset: 3),
-      );
+      field.controller.value = const TextEditingValue(text: '@le', selection: TextSelection.collapsed(offset: 3));
       await tester.pump();
       await tester.pump();
 
@@ -457,17 +413,12 @@ void main() {
       await tester.pumpWidget(pane());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
-      field.controller.value = const TextEditingValue(
-        text: '@zzz',
-        selection: TextSelection.collapsed(offset: 4),
-      );
+      field.controller.value = const TextEditingValue(text: '@zzz', selection: TextSelection.collapsed(offset: 4));
       await tester.pump();
       await tester.pump();
 
@@ -479,17 +430,12 @@ void main() {
       await tester.pumpWidget(pane());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       final field = tester.widget<EditableText>(chatField);
       field.focusNode.requestFocus();
       await tester.pump();
 
-      field.controller.value = const TextEditingValue(
-        text: '@ty',
-        selection: TextSelection.collapsed(offset: -1),
-      );
+      field.controller.value = const TextEditingValue(text: '@ty', selection: TextSelection.collapsed(offset: -1));
       await tester.pump();
       await tester.pump();
 
@@ -500,9 +446,7 @@ void main() {
       await tester.pumpWidget(pane());
       await tester.pumpAndSettle();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       await tester.enterText(chatField, '   ');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
@@ -519,9 +463,7 @@ void main() {
       await tester.tap(interruptArea);
       await tester.pump();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       await tester.enterText(chatField, 'urgent message');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
@@ -538,9 +480,7 @@ void main() {
       await tester.tap(find.text('Interrupt'));
       await tester.pump();
 
-      final chatField = find.byWidgetPredicate(
-        (w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane',
-      );
+      final chatField = find.byWidgetPredicate((w) => w is EditableText && w.focusNode.debugLabel == 'team-chat-pane');
       await tester.enterText(chatField, '@lead do this now');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
@@ -549,26 +489,26 @@ void main() {
     });
 
     testWidgets('sidebar and pane share the same model (both surfaces update)', (tester) async {
-      await tester.pumpWidget(harness(
-        f,
-        SizedBox(
-          width: 800,
-          height: 600,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 220,
-                child: TeamChatSidebar(
-                  model: model,
-                  broker: broker,
-                  onPopOut: () {},
+      await tester.pumpWidget(
+        harness(
+          f,
+          SizedBox(
+            width: 800,
+            height: 600,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 220,
+                  child: TeamChatSidebar(model: model, broker: broker, onPopOut: () {}),
                 ),
-              ),
-              Expanded(child: TeamChatPane(model: model, broker: broker)),
-            ],
+                Expanded(
+                  child: TeamChatPane(model: model, broker: broker),
+                ),
+              ],
+            ),
           ),
         ),
-      ));
+      );
       await tester.pump();
 
       // Posting from the model shows up in both surfaces.

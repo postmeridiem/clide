@@ -51,13 +51,7 @@ class _GitStatusItemState extends State<GitStatusItem> {
 
   void _openBranchPicker() {
     final kernel = ClideKernel.of(context);
-    kernel.dialog.show<String>(
-      (ctx, dismiss) => _BranchPicker(
-        ipc: kernel.ipc,
-        currentBranch: _branch,
-        onDismiss: dismiss,
-      ),
-    );
+    kernel.dialog.show<String>((ctx, dismiss) => _BranchPicker(ipc: kernel.ipc, currentBranch: _branch, onDismiss: dismiss));
   }
 
   @override
@@ -79,17 +73,9 @@ class _GitStatusItemState extends State<GitStatusItem> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClideIcon(
-                  const GitBranchIcon(),
-                  size: 12,
-                  color: tokens.statusBarForeground,
-                ),
+                ClideIcon(const GitBranchIcon(), size: 12, color: tokens.statusBarForeground),
                 const SizedBox(width: 4),
-                ClideText(
-                  parts.join(' '),
-                  fontSize: clideFontCaption,
-                  color: tokens.statusBarForeground,
-                ),
+                ClideText(parts.join(' '), fontSize: clideFontCaption, color: tokens.statusBarForeground),
               ],
             ),
           ),
@@ -100,11 +86,7 @@ class _GitStatusItemState extends State<GitStatusItem> {
 }
 
 class _BranchPicker extends StatefulWidget {
-  const _BranchPicker({
-    required this.ipc,
-    required this.currentBranch,
-    required this.onDismiss,
-  });
+  const _BranchPicker({required this.ipc, required this.currentBranch, required this.onDismiss});
 
   final DaemonClient ipc;
   final String? currentBranch;
@@ -139,9 +121,7 @@ class _BranchPickerState extends State<_BranchPicker> {
     setState(() {
       _loading = false;
       if (r.ok) {
-        _branches = [
-          for (final b in (r.data['branches'] as List? ?? const [])) (b as Map).cast<String, Object?>(),
-        ];
+        _branches = [for (final b in (r.data['branches'] as List? ?? const [])) (b as Map).cast<String, Object?>()];
       } else {
         _error = r.error?.message ?? 'failed to load branches';
       }
@@ -210,11 +190,7 @@ class _BranchPickerState extends State<_BranchPicker> {
                     final b = _branches[i];
                     final name = b['name'] as String? ?? '';
                     final current = b['current'] as bool? ?? false;
-                    return _BranchRow(
-                      name: name,
-                      current: current,
-                      onTap: current ? null : () => unawaited(_checkout(name)),
-                    );
+                    return _BranchRow(name: name, current: current, onTap: current ? null : () => unawaited(_checkout(name)));
                   },
                 ),
               ),
@@ -226,11 +202,7 @@ class _BranchPickerState extends State<_BranchPicker> {
 }
 
 class _BranchRow extends StatelessWidget {
-  const _BranchRow({
-    required this.name,
-    required this.current,
-    this.onTap,
-  });
+  const _BranchRow({required this.name, required this.current, this.onTap});
 
   final String name;
   final bool current;
@@ -250,11 +222,7 @@ class _BranchRow extends StatelessWidget {
             if (current)
               Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: ClideIcon(
-                  const CheckIcon(),
-                  size: 12,
-                  color: tokens.statusSuccess,
-                ),
+                child: ClideIcon(const CheckIcon(), size: 12, color: tokens.statusSuccess),
               )
             else
               const SizedBox(width: 20),

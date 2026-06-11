@@ -20,10 +20,7 @@ import 'package:test/test.dart';
 
 Logger _silent() => Logger(minLevel: LogLevel.error, sinks: const []);
 
-Future<Socket> _connect(IpcServer s) async => Socket.connect(
-      InternetAddress(s.socketPath, type: InternetAddressType.unix),
-      0,
-    );
+Future<Socket> _connect(IpcServer s) async => Socket.connect(InternetAddress(s.socketPath, type: InternetAddressType.unix), 0);
 
 void _emit(DaemonBus bus, String sub, String kind, [Map<String, Object?> data = const {}]) =>
     bus.emit(DaemonEvent(subsystem: sub, kind: kind, data: data, ts: DateTime.now().toUtc()));
@@ -62,12 +59,11 @@ void main() {
     try {
       final lines = s.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
       final it = StreamIterator(lines);
-      s.write('${IpcRequest(id: 'e', cmd: 'events', args: {
-            'flags': {
-              if (since != null) 'since': since,
-              if (filter != null) 'filter': filter,
-            },
-          }).encode()}\n');
+      s.write(
+        '${IpcRequest(id: 'e', cmd: 'events', args: {
+          'flags': {'since': ?since, 'filter': ?filter},
+        }).encode()}\n',
+      );
       await s.flush();
       if (!await it.moveNext().timeout(const Duration(seconds: 2))) {
         throw StateError('no response');

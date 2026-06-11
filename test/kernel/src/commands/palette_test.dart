@@ -4,11 +4,11 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 CommandContribution _cmd(String id, {String? title}) => CommandContribution(
-      id: id,
-      command: id,
-      title: title,
-      run: (_) async => IpcResponse.ok(id: '', data: const {}),
-    );
+  id: id,
+  command: id,
+  title: title,
+  run: (_) async => IpcResponse.ok(id: '', data: const {}),
+);
 
 void main() {
   group('PaletteController', () {
@@ -39,15 +39,9 @@ void main() {
 
     test('filter is case-insensitive against title or command', () {
       palette.setFilter('git');
-      expect(
-        palette.filtered().map((c) => c.command).toSet(),
-        {'git.commit', 'git.push'},
-      );
+      expect(palette.filtered().map((c) => c.command).toSet(), {'git.commit', 'git.push'});
       palette.setFilter('PICK');
-      expect(
-        palette.filtered().map((c) => c.command).toSet(),
-        {'theme.pick'},
-      );
+      expect(palette.filtered().map((c) => c.command).toSet(), {'theme.pick'});
     });
 
     test('invoke closes the palette + runs the command', () async {

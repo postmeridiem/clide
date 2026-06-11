@@ -4,11 +4,7 @@ import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideIconRailItem {
-  const ClideIconRailItem({
-    required this.id,
-    required this.icon,
-    required this.tooltip,
-  });
+  const ClideIconRailItem({required this.id, required this.icon, required this.tooltip});
 
   final String id;
   final ClideIconPainter icon;
@@ -16,12 +12,7 @@ class ClideIconRailItem {
 }
 
 class ClideIconRail extends StatelessWidget {
-  const ClideIconRail({
-    super.key,
-    required this.items,
-    required this.activeId,
-    required this.onSelect,
-  });
+  const ClideIconRail({super.key, required this.items, required this.activeId, required this.onSelect});
 
   final List<ClideIconRailItem> items;
   final String? activeId;
@@ -42,14 +33,7 @@ class ClideIconRail extends StatelessWidget {
             constraints: BoxConstraints(minWidth: minWidth),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final item in items)
-                  _RailButton(
-                    item: item,
-                    active: item.id == activeId,
-                    onTap: () => onSelect(item.id),
-                  ),
-              ],
+              children: [for (final item in items) _RailButton(item: item, active: item.id == activeId, onTap: () => onSelect(item.id))],
             ),
           ),
         );
@@ -59,11 +43,7 @@ class ClideIconRail extends StatelessWidget {
 }
 
 class _RailButton extends StatelessWidget {
-  const _RailButton({
-    required this.item,
-    required this.active,
-    required this.onTap,
-  });
+  const _RailButton({required this.item, required this.active, required this.onTap});
 
   final ClideIconRailItem item;
   final bool active;
@@ -83,17 +63,12 @@ class _RailButton extends StatelessWidget {
           final color = active
               ? tokens.globalForeground
               : hovered
-                  ? tokens.sidebarForeground
-                  : tokens.sidebarSectionHeader;
+              ? tokens.sidebarForeground
+              : tokens.sidebarSectionHeader;
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: active ? tokens.tabActiveBorder : const Color(0x00000000),
-                  width: 2,
-                ),
-              ),
+              border: Border(bottom: BorderSide(color: active ? tokens.tabActiveBorder : const Color(0x00000000), width: 2)),
             ),
             child: ClideIcon(item.icon, size: 16, color: color),
           );

@@ -50,13 +50,7 @@ class ReaderActionBar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ActionButton(
-          painter: PhosphorIcons.byName('caret-left'),
-          tooltip: 'Back',
-          enabled: canGoBack,
-          onTap: canGoBack ? onBack : null,
-          tokens: tokens,
-        ),
+        _ActionButton(painter: PhosphorIcons.byName('caret-left'), tooltip: 'Back', enabled: canGoBack, onTap: canGoBack ? onBack : null, tokens: tokens),
         const SizedBox(width: 2),
         _ActionButton(
           painter: PhosphorIcons.byName('caret-right'),
@@ -67,23 +61,11 @@ class ReaderActionBar extends StatelessWidget {
         ),
         if (hasPinned) ...[
           const SizedBox(width: 2),
-          _ActionButton(
-            painter: PhosphorIcons.byName('arrow-u-up-left'),
-            tooltip: 'Jump to pin',
-            enabled: true,
-            onTap: onJumpToPin,
-            tokens: tokens,
-          ),
+          _ActionButton(painter: PhosphorIcons.byName('arrow-u-up-left'), tooltip: 'Jump to pin', enabled: true, onTap: onJumpToPin, tokens: tokens),
         ],
         if (onEdit != null) ...[
           const SizedBox(width: 4),
-          _ActionButton(
-            painter: PhosphorIcons.byName('pencil-simple'),
-            tooltip: 'Edit in editor',
-            enabled: true,
-            onTap: onEdit,
-            tokens: tokens,
-          ),
+          _ActionButton(painter: PhosphorIcons.byName('pencil-simple'), tooltip: 'Edit in editor', enabled: true, onTap: onEdit, tokens: tokens),
         ],
       ],
     );
@@ -118,14 +100,7 @@ class ReaderPinButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.painter,
-    required this.tooltip,
-    required this.enabled,
-    required this.onTap,
-    required this.tokens,
-    this.active = false,
-  });
+  const _ActionButton({required this.painter, required this.tooltip, required this.enabled, required this.onTap, required this.tokens, this.active = false});
 
   final ClideIconPainter painter;
   final String tooltip;
@@ -161,10 +136,7 @@ class _ActionButton extends StatelessWidget {
           width: 20,
           height: 20,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: hovered && enabled ? tokens.sidebarItemHover : null,
-            borderRadius: BorderRadius.circular(3),
-          ),
+          decoration: BoxDecoration(color: hovered && enabled ? tokens.sidebarItemHover : null, borderRadius: BorderRadius.circular(3)),
           child: ClideIcon(painter, size: 11, color: color),
         ),
       ),

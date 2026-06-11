@@ -40,15 +40,16 @@ class WelcomeView extends StatelessWidget {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: _StartColumn(tokens: tokens, kernel: kernel)),
+                              Expanded(
+                                child: _StartColumn(tokens: tokens, kernel: kernel),
+                              ),
                               const SizedBox(width: 56),
-                              Expanded(child: _RecentColumn(tokens: tokens, kernel: kernel)),
+                              Expanded(
+                                child: _RecentColumn(tokens: tokens, kernel: kernel),
+                              ),
                             ],
                           ),
-                          if (showTips) ...[
-                            const SizedBox(height: 48),
-                            _TipsCard(tokens: tokens),
-                          ],
+                          if (showTips) ...[const SizedBox(height: 48), _TipsCard(tokens: tokens)],
                         ],
                       ),
                     ),
@@ -119,7 +120,9 @@ class _TipsCard extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Expanded(child: ClideText(tips[i].$1, fontSize: clideFontMeta, color: tokens.globalTextMuted)),
+                Expanded(
+                  child: ClideText(tips[i].$1, fontSize: clideFontMeta, color: tokens.globalTextMuted),
+                ),
                 ClideText(tips[i].$2, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily),
               ],
             ),
@@ -166,27 +169,9 @@ class _StartColumn extends StatelessWidget {
       children: [
         ClideText('START', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
         const SizedBox(height: 20),
-        _ActionRow(
-          icon: PhosphorIcons.byName('folder'),
-          label: 'Open folder…',
-          shortcut: '⌘O',
-          tokens: tokens,
-          onTap: () => _openFolder(context),
-        ),
-        _ActionRow(
-          icon: PhosphorIcons.byName('git-branch'),
-          label: 'Clone from git…',
-          shortcut: '⌘G',
-          tokens: tokens,
-          onTap: () {},
-        ),
-        _ActionRow(
-          icon: PhosphorIcons.byName('chat-circle'),
-          label: 'Start a Claude session',
-          shortcut: '⌘C',
-          tokens: tokens,
-          onTap: () {},
-        ),
+        _ActionRow(icon: PhosphorIcons.byName('folder'), label: 'Open folder…', shortcut: '⌘O', tokens: tokens, onTap: () => _openFolder(context)),
+        _ActionRow(icon: PhosphorIcons.byName('git-branch'), label: 'Clone from git…', shortcut: '⌘G', tokens: tokens, onTap: () {}),
+        _ActionRow(icon: PhosphorIcons.byName('chat-circle'), label: 'Start a Claude session', shortcut: '⌘C', tokens: tokens, onTap: () {}),
       ],
     );
   }
@@ -199,10 +184,7 @@ class _StartColumn extends StatelessWidget {
         if (ok) {
           kernel.panels.activateTab(Slots.workspace, 'claude.primary');
         } else {
-          kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(
-                path: picked,
-                onDismiss: () => dismiss(),
-              ));
+          kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(path: picked, onDismiss: () => dismiss()));
         }
       }
       return;
@@ -239,15 +221,14 @@ class _ActionRow extends StatelessWidget {
       onTap: onTap,
       builder: (context, hovered, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: hovered ? tokens.listItemHoverBackground : null,
-          borderRadius: BorderRadius.circular(4),
-        ),
+        decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(4)),
         child: Row(
           children: [
             ClideIcon(icon, size: 18, color: tokens.globalTextMuted),
             const SizedBox(width: 14),
-            Expanded(child: ClideText(label, fontSize: clideFontBody, color: tokens.globalForeground)),
+            Expanded(
+              child: ClideText(label, fontSize: clideFontBody, color: tokens.globalForeground),
+            ),
             if (shortcut != null) ClideText(shortcut!, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
           ],
         ),
@@ -296,12 +277,7 @@ class _RecentColumn extends StatelessWidget {
 }
 
 class _RecentRow extends StatelessWidget {
-  const _RecentRow({
-    required this.project,
-    required this.tokens,
-    required this.onTap,
-    required this.onToggleSticky,
-  });
+  const _RecentRow({required this.project, required this.tokens, required this.onTap, required this.onToggleSticky});
   final RecentProject project;
   final SurfaceTokens tokens;
   final VoidCallback onTap;
@@ -313,10 +289,7 @@ class _RecentRow extends StatelessWidget {
       onTap: onTap,
       builder: (context, hovered, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: hovered ? tokens.listItemHoverBackground : null,
-          borderRadius: BorderRadius.circular(4),
-        ),
+        decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(4)),
         child: Row(
           children: [
             Expanded(
@@ -328,27 +301,36 @@ class _RecentRow extends StatelessWidget {
                   Row(
                     children: [
                       Flexible(
-                          child: ClideText(project.relativePath,
-                              muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        child: ClideText(
+                          project.relativePath,
+                          muted: true,
+                          fontSize: clideFontMeta,
+                          fontFamily: clideMonoFamily,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       if (project.branch != null) ...[
                         ClideText('  ·  ', muted: true, fontSize: clideFontMeta),
                         ClideIcon(PhosphorIcons.byName('git-branch'), size: 11, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
                         Flexible(
-                            child: ClideText(project.branch!,
-                                muted: true, fontSize: clideFontMeta, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          child: ClideText(
+                            project.branch!,
+                            muted: true,
+                            fontSize: clideFontMeta,
+                            fontFamily: clideMonoFamily,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ],
                   ),
                 ],
               ),
             ),
-            _StickyToggle(
-              key: ValueKey('welcome.sticky.${project.path}'),
-              sticky: project.startupSticky,
-              tokens: tokens,
-              onTap: onToggleSticky,
-            ),
+            _StickyToggle(key: ValueKey('welcome.sticky.${project.path}'), sticky: project.startupSticky, tokens: tokens, onTap: onToggleSticky),
             const SizedBox(width: 12),
             ClideText(project.timeAgo, muted: true, fontSize: clideFontMeta),
           ],
@@ -420,8 +402,12 @@ class _StatusLine extends StatelessWidget {
               else if (tc.allOk)
                 ClideText('application ok', fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusSuccess)
               else
-                ClideText(tc.missing.map((t) => '$t not found').join(' · '),
-                    fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusWarning),
+                ClideText(
+                  tc.missing.map((t) => '$t not found').join(' · '),
+                  fontSize: clideFontSmall,
+                  fontFamily: clideMonoFamily,
+                  color: tokens.statusWarning,
+                ),
               ClideText('  ·  ', muted: true, fontSize: clideFontSmall),
               _ThemeLink(tokens: tokens, kernel: kernel, themeName: themeName),
             ],
@@ -526,16 +512,17 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
               controller: _controller,
               focusNode: _focus,
               style: TextStyle(
-                  color: tokens.globalForeground, fontSize: clideFontCaption, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
+                color: tokens.globalForeground,
+                fontSize: clideFontCaption,
+                fontFamily: clideMonoFamily,
+                fontFamilyFallback: clideMonoFamilyFallback,
+              ),
               cursorColor: tokens.globalForeground,
               backgroundCursorColor: tokens.globalTextMuted,
               onSubmitted: (_) => unawaited(_submit()),
             ),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            ClideText(_error!, color: tokens.statusError, fontSize: clideFontSmall),
-          ],
+          if (_error != null) ...[const SizedBox(height: 8), ClideText(_error!, color: tokens.statusError, fontSize: clideFontSmall)],
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -575,17 +562,11 @@ class _NotARepoDialog extends StatelessWidget {
           const SizedBox(height: 8),
           ClideText(path, muted: true, fontSize: clideFontMeta),
           const SizedBox(height: 8),
-          const ClideText(
-            'A clide project root requires a git repository.',
-            muted: true,
-            fontSize: clideFontMeta,
-          ),
+          const ClideText('A clide project root requires a git repository.', muted: true, fontSize: clideFontMeta),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ClideButton(label: 'OK', onPressed: () => onDismiss()),
-            ],
+            children: [ClideButton(label: 'OK', onPressed: () => onDismiss())],
           ),
         ],
       ),

@@ -7,12 +7,7 @@ import 'package:flutter/foundation.dart';
 /// A foreground/background token pair the a11y contrast suite walks.
 @immutable
 class ContrastPair {
-  const ContrastPair({
-    required this.name,
-    required this.foreground,
-    required this.background,
-    this.largeText = false,
-  });
+  const ContrastPair({required this.name, required this.foreground, required this.background, this.largeText = false});
 
   final String name;
   final Color foreground;
@@ -49,62 +44,18 @@ double minimumRatio(ContrastPair pair) => pair.largeText ? 3.0 : 4.5;
 /// muted text, status chips, syntax tokens, and the focus border lives
 /// in [extendedPairs], which only `-hc`/`-cb` variants must pass.
 List<ContrastPair> canonicalPairs(SurfaceTokens s) => [
-      ContrastPair(
-        name: 'global.text_on_background',
-        foreground: s.globalForeground,
-        background: s.globalBackground,
-      ),
-      ContrastPair(
-        name: 'panel.header_foreground_on_panel',
-        foreground: s.panelHeaderForeground,
-        background: s.panelHeader,
-      ),
-      ContrastPair(
-        name: 'sidebar.foreground_on_sidebar',
-        foreground: s.sidebarForeground,
-        background: s.sidebarBackground,
-      ),
-      ContrastPair(
-        name: 'statusbar.foreground_on_statusbar',
-        foreground: s.statusBarForeground,
-        background: s.statusBarBackground,
-      ),
-      ContrastPair(
-        name: 'tab.active_text_on_active_bg',
-        foreground: s.tabActiveForeground,
-        background: s.tabActive,
-      ),
-      ContrastPair(
-        name: 'tab.inactive_text_on_inactive_bg',
-        foreground: s.tabInactiveForeground,
-        background: s.tabInactive,
-      ),
-      ContrastPair(
-        name: 'button.text_on_button',
-        foreground: s.buttonForeground,
-        background: s.buttonBackground,
-      ),
-      ContrastPair(
-        name: 'listItem.selected_text_on_selected_bg',
-        foreground: s.listItemSelectedForeground,
-        background: s.listItemSelectedBackground,
-      ),
-      ContrastPair(
-        name: 'listItem.text_on_list',
-        foreground: s.listItemForeground,
-        background: s.listItemBackground,
-      ),
-      ContrastPair(
-        name: 'tooltip.text_on_tooltip',
-        foreground: s.tooltipForeground,
-        background: s.tooltipBackground,
-      ),
-      ContrastPair(
-        name: 'dropdown.text_on_dropdown',
-        foreground: s.dropdownForeground,
-        background: s.dropdownBackground,
-      ),
-    ];
+  ContrastPair(name: 'global.text_on_background', foreground: s.globalForeground, background: s.globalBackground),
+  ContrastPair(name: 'panel.header_foreground_on_panel', foreground: s.panelHeaderForeground, background: s.panelHeader),
+  ContrastPair(name: 'sidebar.foreground_on_sidebar', foreground: s.sidebarForeground, background: s.sidebarBackground),
+  ContrastPair(name: 'statusbar.foreground_on_statusbar', foreground: s.statusBarForeground, background: s.statusBarBackground),
+  ContrastPair(name: 'tab.active_text_on_active_bg', foreground: s.tabActiveForeground, background: s.tabActive),
+  ContrastPair(name: 'tab.inactive_text_on_inactive_bg', foreground: s.tabInactiveForeground, background: s.tabInactive),
+  ContrastPair(name: 'button.text_on_button', foreground: s.buttonForeground, background: s.buttonBackground),
+  ContrastPair(name: 'listItem.selected_text_on_selected_bg', foreground: s.listItemSelectedForeground, background: s.listItemSelectedBackground),
+  ContrastPair(name: 'listItem.text_on_list', foreground: s.listItemForeground, background: s.listItemBackground),
+  ContrastPair(name: 'tooltip.text_on_tooltip', foreground: s.tooltipForeground, background: s.tooltipBackground),
+  ContrastPair(name: 'dropdown.text_on_dropdown', foreground: s.dropdownForeground, background: s.dropdownBackground),
+];
 
 /// Stricter pair set — only the high-contrast (`-hc`) and colour-blind
 /// (`-cb`) theme variants must clear it. See D-69. These are the
@@ -112,94 +63,37 @@ List<ContrastPair> canonicalPairs(SurfaceTokens s) => [
 /// text, status chip foregrounds, syntax tokens on the code-block
 /// surface, and the focus-indicating panel border.
 List<ContrastPair> extendedPairs(SurfaceTokens s) => [
-      ContrastPair(
-        name: 'global.text_muted_on_background',
-        foreground: s.globalTextMuted,
-        background: s.globalBackground,
-      ),
-      ContrastPair(
-        name: 'global.text_muted_on_panel',
-        foreground: s.globalTextMuted,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'status.success_on_statusbar',
-        foreground: s.statusSuccess,
-        background: s.statusBarBackground,
-      ),
-      ContrastPair(
-        name: 'status.warning_on_statusbar',
-        foreground: s.statusWarning,
-        background: s.statusBarBackground,
-      ),
-      ContrastPair(
-        name: 'status.error_on_statusbar',
-        foreground: s.statusError,
-        background: s.statusBarBackground,
-      ),
-      ContrastPair(
-        name: 'status.info_on_statusbar',
-        foreground: s.statusInfo,
-        background: s.statusBarBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.keyword_on_panel',
-        foreground: s.syntaxKeyword,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.type_on_panel',
-        foreground: s.syntaxType,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.string_on_panel',
-        foreground: s.syntaxString,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.number_on_panel',
-        foreground: s.syntaxNumber,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.comment_on_panel',
-        foreground: s.syntaxComment,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.method_on_panel',
-        foreground: s.syntaxMethod,
-        background: s.panelBackground,
-      ),
-      ContrastPair(
-        name: 'syntax.punct_on_panel',
-        foreground: s.syntaxPunct,
-        background: s.panelBackground,
-      ),
-      // WCAG 1.4.11 wants 3:1 for non-text UI components like a focus
-      // border against the adjacent surface.
-      ContrastPair(
-        name: 'panel.active_border_on_background',
-        foreground: s.panelActiveBorder,
-        background: s.globalBackground,
-        largeText: true,
-      ),
-      // selection.foreground_on_selection is intentionally omitted here.
-      //
-      // The `selectionBackground` token defaults to `globalFocus.withAlpha(0x66)`
-      // — a semi-transparent tint composited onto the real content background at
-      // runtime. The WCAG compositor in contrastRatio() blends onto neutral grey
-      // (0x808080) rather than the actual dark panel background, which
-      // systematically understates the readable contrast for all current bundled
-      // themes. Adding the pair here would require retuning palettes, which D-69
-      // forbids for user-contract themes.
-      //
-      // Enforcement is deferred to a follow-up ticket: -hc/-cb variants will
-      // declare an explicit `surface.selectionBackground` override that is
-      // opaque enough to clear 3:1 against the grey compositor, at which point
-      // the pair can be added to extendedPairs.
-    ];
+  ContrastPair(name: 'global.text_muted_on_background', foreground: s.globalTextMuted, background: s.globalBackground),
+  ContrastPair(name: 'global.text_muted_on_panel', foreground: s.globalTextMuted, background: s.panelBackground),
+  ContrastPair(name: 'status.success_on_statusbar', foreground: s.statusSuccess, background: s.statusBarBackground),
+  ContrastPair(name: 'status.warning_on_statusbar', foreground: s.statusWarning, background: s.statusBarBackground),
+  ContrastPair(name: 'status.error_on_statusbar', foreground: s.statusError, background: s.statusBarBackground),
+  ContrastPair(name: 'status.info_on_statusbar', foreground: s.statusInfo, background: s.statusBarBackground),
+  ContrastPair(name: 'syntax.keyword_on_panel', foreground: s.syntaxKeyword, background: s.panelBackground),
+  ContrastPair(name: 'syntax.type_on_panel', foreground: s.syntaxType, background: s.panelBackground),
+  ContrastPair(name: 'syntax.string_on_panel', foreground: s.syntaxString, background: s.panelBackground),
+  ContrastPair(name: 'syntax.number_on_panel', foreground: s.syntaxNumber, background: s.panelBackground),
+  ContrastPair(name: 'syntax.comment_on_panel', foreground: s.syntaxComment, background: s.panelBackground),
+  ContrastPair(name: 'syntax.method_on_panel', foreground: s.syntaxMethod, background: s.panelBackground),
+  ContrastPair(name: 'syntax.punct_on_panel', foreground: s.syntaxPunct, background: s.panelBackground),
+  // WCAG 1.4.11 wants 3:1 for non-text UI components like a focus
+  // border against the adjacent surface.
+  ContrastPair(name: 'panel.active_border_on_background', foreground: s.panelActiveBorder, background: s.globalBackground, largeText: true),
+  // selection.foreground_on_selection is intentionally omitted here.
+  //
+  // The `selectionBackground` token defaults to `globalFocus.withAlpha(0x66)`
+  // — a semi-transparent tint composited onto the real content background at
+  // runtime. The WCAG compositor in contrastRatio() blends onto neutral grey
+  // (0x808080) rather than the actual dark panel background, which
+  // systematically understates the readable contrast for all current bundled
+  // themes. Adding the pair here would require retuning palettes, which D-69
+  // forbids for user-contract themes.
+  //
+  // Enforcement is deferred to a follow-up ticket: -hc/-cb variants will
+  // declare an explicit `surface.selectionBackground` override that is
+  // opaque enough to clear 3:1 against the grey compositor, at which point
+  // the pair can be added to extendedPairs.
+];
 
 /// Convenience for tests: returns the list of [canonicalPairs] that
 /// fail WCAG AA.
@@ -223,18 +117,15 @@ List<ContrastFailure> _failures(List<ContrastPair> pairs) {
 
 @immutable
 class ContrastFailure {
-  const ContrastFailure({
-    required this.pair,
-    required this.ratio,
-    required this.minimum,
-  });
+  const ContrastFailure({required this.pair, required this.ratio, required this.minimum});
 
   final ContrastPair pair;
   final double ratio;
   final double minimum;
 
   @override
-  String toString() => 'contrast ${pair.name}: ${ratio.toStringAsFixed(2)} < '
+  String toString() =>
+      'contrast ${pair.name}: ${ratio.toStringAsFixed(2)} < '
       '${minimum.toStringAsFixed(1)}';
 }
 
@@ -244,12 +135,7 @@ Color _composite(Color src, Color dst) {
   final a = src.a;
   if (a >= 0.999) return src;
   double mix(double s, double d) => s * a + d * (1 - a);
-  return Color.from(
-    alpha: 1.0,
-    red: mix(src.r, dst.r),
-    green: mix(src.g, dst.g),
-    blue: mix(src.b, dst.b),
-  );
+  return Color.from(alpha: 1.0, red: mix(src.r, dst.r), green: mix(src.g, dst.g), blue: mix(src.b, dst.b));
 }
 
 double _relativeLuminance(Color c) {

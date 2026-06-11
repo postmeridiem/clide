@@ -49,11 +49,7 @@ void main() {
     // CJK ideograph — terminal stores it as a width-2 cell, so paintLine
     // advances `i` twice and the wide-char branch fires.
     t.write('漢字');
-    final p = TerminalPainter(
-      theme: TerminalThemes.defaultTheme,
-      textStyle: const TerminalStyle(),
-      textScaler: const TextScaler.linear(1.0),
-    );
+    final p = TerminalPainter(theme: TerminalThemes.defaultTheme, textStyle: const TerminalStyle(), textScaler: const TextScaler.linear(1.0));
     p.paintLine(Canvas(PictureRecorder()), Offset.zero, t.buffer.lines[0]);
   });
 }

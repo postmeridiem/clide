@@ -6,11 +6,7 @@ import 'package:flutter/widgets.dart';
 
 @immutable
 class ClideTabItem {
-  const ClideTabItem({
-    required this.id,
-    required this.title,
-    this.icon,
-  });
+  const ClideTabItem({required this.id, required this.title, this.icon});
 
   final String id;
   final String title;
@@ -18,14 +14,7 @@ class ClideTabItem {
 }
 
 class ClideTabBar extends StatelessWidget {
-  const ClideTabBar({
-    super.key,
-    required this.items,
-    required this.activeId,
-    required this.onSelect,
-    this.height = 28,
-    this.semanticContainerLabel,
-  });
+  const ClideTabBar({super.key, required this.items, required this.activeId, required this.onSelect, this.height = 28, this.semanticContainerLabel});
 
   final List<ClideTabItem> items;
   final String? activeId;
@@ -49,14 +38,7 @@ class ClideTabBar extends StatelessWidget {
         margin: const EdgeInsets.only(top: 1),
         color: tokens.tabBarBackground,
         child: Row(
-          children: [
-            for (final item in items)
-              _Tab(
-                item: item,
-                active: item.id == activeId,
-                onTap: () => onSelect(item.id),
-              ),
-          ],
+          children: [for (final item in items) _Tab(item: item, active: item.id == activeId, onTap: () => onSelect(item.id))],
         ),
       ),
     );
@@ -89,20 +71,12 @@ class _Tab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: bg,
-              border: Border(
-                bottom: BorderSide(
-                  color: active ? tokens.tabActiveBorder : const Color(0x00000000),
-                  width: 2,
-                ),
-              ),
+              border: Border(bottom: BorderSide(color: active ? tokens.tabActiveBorder : const Color(0x00000000), width: 2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (item.icon != null) ...[
-                  ClideIcon(item.icon!, size: 12, color: fg),
-                  const SizedBox(width: 6),
-                ],
+                if (item.icon != null) ...[ClideIcon(item.icon!, size: 12, color: fg), const SizedBox(width: 6)],
                 ClideText(item.title, color: fg),
               ],
             ),

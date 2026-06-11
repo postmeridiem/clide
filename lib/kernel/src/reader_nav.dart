@@ -17,11 +17,7 @@ import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:flutter/foundation.dart';
 
 class ReaderNav extends ChangeNotifier {
-  ReaderNav({
-    required MessageBus messages,
-    required this.publisherId,
-    required this.dataKey,
-  }) : _messages = messages {
+  ReaderNav({required MessageBus messages, required this.publisherId, required this.dataKey}) : _messages = messages {
     // Retained recorder: every selection for this reader is captured
     // here whether or not the reader widget is mounted.
     _selectionSub = _messages.subscribe(publisher: publisherId, channel: 'selection').listen((m) {
@@ -132,17 +128,14 @@ class ReaderNavRegistry {
   /// `clide status` to surface what the user is reading (T-221, D-6 parity) —
   /// viewer files aren't editor buffers, so they don't live in EditorRegistry.
   Map<String, String> get currentByReader => {
-        for (final e in _navs.entries)
-          if (e.value.current != null) e.key: e.value.current!,
-      };
+    for (final e in _navs.entries)
+      if (e.value.current != null) e.key: e.value.current!,
+  };
 
   /// The retained [ReaderNav] for [publisherId], created on first use.
   /// [dataKey] is the bus-payload key for this reader's entry.
   ReaderNav navFor(String publisherId, {required String dataKey}) {
-    return _navs.putIfAbsent(
-      publisherId,
-      () => ReaderNav(messages: _messages, publisherId: publisherId, dataKey: dataKey),
-    );
+    return _navs.putIfAbsent(publisherId, () => ReaderNav(messages: _messages, publisherId: publisherId, dataKey: dataKey));
   }
 
   void dispose() {

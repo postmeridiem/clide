@@ -164,7 +164,10 @@ void main() {
       final f = File('${tmp.path}/pql');
       await f.writeAsString('#!/bin/sh\n$body\n');
       await Process.run('chmod', ['+x', f.path]);
-      return PqlClient(workDir: Directory.current, toolchain: ToolchainView.resolved(ResolvedPaths(pql: f.path)));
+      return PqlClient(
+        workDir: Directory.current,
+        toolchain: ToolchainView.resolved(ResolvedPaths(pql: f.path)),
+      );
     }
 
     test('a genuine (non-busy) error surfaces immediately', () async {
@@ -178,14 +181,18 @@ void main() {
     });
 
     test('a transient db-busy (exit 69) recovers on retry', () async {
-      final p = await fakePql(r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$c"; '
-          r'if [ "$n" -lt 3 ]; then exit 69; fi; echo "[]"');
+      final p = await fakePql(
+        r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$c"; '
+        r'if [ "$n" -lt 3 ]; then exit 69; fi; echo "[]"',
+      );
       expect(await p.files(), isEmpty); // retried through two busies to success
     });
 
     test('a "database is locked" stderr (non-69 exit) is also retried', () async {
-      final p = await fakePql(r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$c"; '
-          r'if [ "$n" -lt 3 ]; then echo "database is locked" >&2; exit 1; fi; echo "[]"');
+      final p = await fakePql(
+        r'c="$0.n"; n=$(cat "$c" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$c"; '
+        r'if [ "$n" -lt 3 ]; then echo "database is locked" >&2; exit 1; fi; echo "[]"',
+      );
       expect(await p.files(), isEmpty);
     });
   });

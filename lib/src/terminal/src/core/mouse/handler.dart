@@ -24,19 +24,10 @@ class TerminalMouseEvent {
   /// The platform of the terminal.
   final TerminalTargetPlatform platform;
 
-  TerminalMouseEvent({
-    required this.button,
-    required this.buttonState,
-    required this.position,
-    required this.state,
-    required this.platform,
-  });
+  TerminalMouseEvent({required this.button, required this.buttonState, required this.position, required this.state, required this.platform});
 }
 
-const defaultMouseHandler = CascadeMouseHandler([
-  ClickMouseHandler(),
-  UpDownMouseHandler(),
-]);
+const defaultMouseHandler = CascadeMouseHandler([ClickMouseHandler(), UpDownMouseHandler()]);
 
 abstract class TerminalMouseHandler {
   const TerminalMouseHandler();
@@ -70,12 +61,7 @@ class ClickMouseHandler implements TerminalMouseHandler {
       case MouseMode.clickOnly:
         // Only clicks and only the first 3 buttons are reported.
         if (event.buttonState == TerminalMouseButtonState.down && (event.button.id < 3)) {
-          return MouseReporter.report(
-            event.button,
-            event.buttonState,
-            event.position,
-            event.state.mouseReportMode,
-          );
+          return MouseReporter.report(event.button, event.buttonState, event.position, event.state.mouseReportMode);
         }
         return null;
       case MouseMode.none:
@@ -103,12 +89,7 @@ class UpDownMouseHandler implements TerminalMouseHandler {
         if (event.button.isWheel && event.buttonState == TerminalMouseButtonState.up) {
           return null;
         }
-        return MouseReporter.report(
-          event.button,
-          event.buttonState,
-          event.position,
-          event.state.mouseReportMode,
-        );
+        return MouseReporter.report(event.button, event.buttonState, event.position, event.state.mouseReportMode);
     }
   }
 }

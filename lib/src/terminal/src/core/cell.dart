@@ -3,20 +3,10 @@
 import 'package:clide/src/terminal/src/utils/hash_values.dart';
 
 class CellData {
-  CellData({
-    required this.foreground,
-    required this.background,
-    required this.flags,
-    required this.content,
-  });
+  CellData({required this.foreground, required this.background, required this.flags, required this.content});
 
   factory CellData.empty() {
-    return CellData(
-      foreground: 0,
-      background: 0,
-      flags: 0,
-      content: 0,
-    );
+    return CellData(foreground: 0, background: 0, flags: 0, content: 0);
   }
 
   int foreground;

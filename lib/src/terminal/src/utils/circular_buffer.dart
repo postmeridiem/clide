@@ -77,10 +77,7 @@ class IndexAwareCircularBuffer<T extends IndexedItem> {
 
     // Reconstruct array, starting at index 0. Only transfer values from the
     // indexes 0 to length.
-    final newArray = List<T?>.generate(
-      value,
-      (index) => index < _length ? _getChild(index) : null,
-    );
+    final newArray = List<T?>.generate(value, (index) => index < _length ? _getChild(index) : null);
 
     _startIndex = 0;
     _array = newArray;

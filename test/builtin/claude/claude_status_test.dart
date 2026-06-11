@@ -67,13 +67,7 @@ void main() {
     });
 
     test('full status line with all fields (T-168)', () {
-      const s = SessionStatus(
-        model: 'claude-opus-4-7',
-        permissionMode: 'default',
-        contextTokens: 21000,
-        contextWindow: 1000000,
-        cost: 0.05,
-      );
+      const s = SessionStatus(model: 'claude-opus-4-7', permissionMode: 'default', contextTokens: 21000, contextWindow: 1000000, cost: 0.05);
       final line = formatStatusLine(s);
       expect(line, contains('opus 4.7'));
       expect(line, contains('default'));
@@ -98,12 +92,7 @@ void main() {
 
   group('statusSegmentsAroundMode (T-226)', () {
     test('splits model (leading) from ctx/cost/rate (trailing), mode excluded', () {
-      const s = SessionStatus(
-        model: 'claude-opus-4-7',
-        permissionMode: 'plan',
-        contextTokens: 21000,
-        cost: 0.05,
-      );
+      const s = SessionStatus(model: 'claude-opus-4-7', permissionMode: 'plan', contextTokens: 21000, cost: 0.05);
       final seg = statusSegmentsAroundMode(s);
       expect(seg.leading, 'opus 4.7');
       expect(seg.trailing, contains('21k ctx'));

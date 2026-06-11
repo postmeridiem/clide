@@ -17,21 +17,23 @@ void main() {
   // Resolves only the one known repo path; everything else is "not a file".
   String? resolve(String p) => p == 'lib/app.dart' ? '/repo/lib/app.dart' : null;
 
-  ClideMarkdown md(String src, {void Function(String, int?)? onOpen}) => ClideMarkdown(
-        src,
-        resolveFileRef: resolve,
-        onOpenFile: onOpen ?? (_, __) {},
-      );
+  ClideMarkdown md(String src, {void Function(String, int?)? onOpen}) => ClideMarkdown(src, resolveFileRef: resolve, onOpenFile: onOpen ?? (_, _) {});
 
   testWidgets('a bare repo path in prose is tappable and opens with no line', (tester) async {
     String? path;
     int? line = -1;
-    await tester.pumpWidget(harness(
+    await tester.pumpWidget(
+      harness(
         f,
-        md('see lib/app.dart for the entry point', onOpen: (p, l) {
-          path = p;
-          line = l;
-        })));
+        md(
+          'see lib/app.dart for the entry point',
+          onOpen: (p, l) {
+            path = p;
+            line = l;
+          },
+        ),
+      ),
+    );
     await tester.pump();
 
     await tester.tap(find.text('lib/app.dart'));
@@ -43,12 +45,18 @@ void main() {
   testWidgets('a path:line ref opens at the line', (tester) async {
     String? path;
     int? line;
-    await tester.pumpWidget(harness(
+    await tester.pumpWidget(
+      harness(
         f,
-        md('crash at lib/app.dart:42 today', onOpen: (p, l) {
-          path = p;
-          line = l;
-        })));
+        md(
+          'crash at lib/app.dart:42 today',
+          onOpen: (p, l) {
+            path = p;
+            line = l;
+          },
+        ),
+      ),
+    );
     await tester.pump();
 
     await tester.tap(find.text('lib/app.dart:42'));
@@ -70,12 +78,18 @@ void main() {
   testWidgets('a backticked path is clickable', (tester) async {
     String? path;
     int? line;
-    await tester.pumpWidget(harness(
+    await tester.pumpWidget(
+      harness(
         f,
-        md('open `lib/app.dart:7`', onOpen: (p, l) {
-          path = p;
-          line = l;
-        })));
+        md(
+          'open `lib/app.dart:7`',
+          onOpen: (p, l) {
+            path = p;
+            line = l;
+          },
+        ),
+      ),
+    );
     await tester.pump();
 
     await tester.tap(find.text('lib/app.dart:7'));
@@ -96,7 +110,7 @@ void main() {
 
   testWidgets('a path that does not resolve stays literal (no link, no fire)', (tester) async {
     var calls = 0;
-    await tester.pumpWidget(harness(f, md('nothing at lib/ghost.dart here', onOpen: (_, __) => calls++)));
+    await tester.pumpWidget(harness(f, md('nothing at lib/ghost.dart here', onOpen: (_, _) => calls++)));
     await tester.pumpAndSettle();
 
     // Rendered as plain text — tapping it does nothing.
@@ -107,7 +121,7 @@ void main() {
 
   testWidgets('dotted prose (a version number) does not linkify', (tester) async {
     var calls = 0;
-    await tester.pumpWidget(harness(f, md('shipped version 2.2.0 today', onOpen: (_, __) => calls++)));
+    await tester.pumpWidget(harness(f, md('shipped version 2.2.0 today', onOpen: (_, _) => calls++)));
     await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('2.2.0'), warnIfMissed: false);

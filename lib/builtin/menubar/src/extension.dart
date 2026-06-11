@@ -26,67 +26,77 @@ class MenuBarExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-        CommandContribution(
-          id: 'file.openFolder',
-          command: 'file.openFolder',
-          title: 'File: Open Folder…',
-          run: (_) async {
-            await _file.openFolder();
-            return IpcResponse.ok(id: '', data: const {});
-          },
-        ),
-        CommandContribution(
-          id: 'file.newWindow',
-          command: 'file.newWindow',
-          title: 'File: New Window',
-          run: (_) async {
-            _file.newWindow();
-            return IpcResponse.ok(id: '', data: const {});
-          },
-        ),
-        CommandContribution(
-          id: 'file.closeWorkspace',
-          command: 'file.closeWorkspace',
-          title: 'File: Close Project',
-          run: (_) async {
-            _file.closeWorkspace();
-            return IpcResponse.ok(id: '', data: const {});
-          },
-        ),
-        CommandContribution(
-          id: 'help.about',
-          command: 'help.about',
-          title: 'Help: About clide',
-          run: (_) async {
-            services.dialog.show<Object>((ctx, dismiss) => AboutDialog(onDismiss: () => dismiss()));
-            return IpcResponse.ok(id: '', data: const {});
-          },
-        ),
-      ];
+    CommandContribution(
+      id: 'file.openFolder',
+      command: 'file.openFolder',
+      title: 'File: Open Folder…',
+      run: (_) async {
+        await _file.openFolder();
+        return IpcResponse.ok(id: '', data: const {});
+      },
+    ),
+    CommandContribution(
+      id: 'file.newWindow',
+      command: 'file.newWindow',
+      title: 'File: New Window',
+      run: (_) async {
+        _file.newWindow();
+        return IpcResponse.ok(id: '', data: const {});
+      },
+    ),
+    CommandContribution(
+      id: 'file.closeWorkspace',
+      command: 'file.closeWorkspace',
+      title: 'File: Close Project',
+      run: (_) async {
+        _file.closeWorkspace();
+        return IpcResponse.ok(id: '', data: const {});
+      },
+    ),
+    CommandContribution(
+      id: 'help.about',
+      command: 'help.about',
+      title: 'Help: About clide',
+      run: (_) async {
+        services.dialog.show<Object>((ctx, dismiss) => AboutDialog(onDismiss: () => dismiss()));
+        return IpcResponse.ok(id: '', data: const {});
+      },
+    ),
+  ];
 }
 
 /// The curated File / View / Help tree (T-48). View ends with a `view.*`
 /// auto-fill so newly-registered view commands surface without edits here.
 List<TopMenu> buildClideMenuTree() => [
-      TopMenu(title: 'File', mnemonic: 0, nodes: [
-        const MenuCommandItem('file.openFolder', fallbackTitle: 'Open Folder…'),
-        const MenuCommandItem('file.newWindow', fallbackTitle: 'New Window'),
-        const MenuSeparator(),
-        MenuCommandItem('file.closeWorkspace', fallbackTitle: 'Close Project', enabledWhen: (s) => s.project.isOpen),
-      ]),
-      TopMenu(title: 'View', mnemonic: 0, nodes: const [
-        MenuCommandItem('view.zoomIn'),
-        MenuCommandItem('view.zoomOut'),
-        MenuCommandItem('view.zoomReset'),
-        MenuSeparator(),
-        MenuCommandItem('sidebar.collapse'),
-        MenuCommandItem('context.collapse'),
-        MenuCommandItem('dock.toggle'),
-        MenuCommandItem('panel.focusMode'),
-        MenuSeparator(),
-        MenuAutoFill('view.'),
-      ]),
-      TopMenu(title: 'Help', mnemonic: 0, nodes: const [
-        MenuCommandItem('help.about', fallbackTitle: 'About clide'),
-      ]),
-    ];
+  TopMenu(
+    title: 'File',
+    mnemonic: 0,
+    nodes: [
+      const MenuCommandItem('file.openFolder', fallbackTitle: 'Open Folder…'),
+      const MenuCommandItem('file.newWindow', fallbackTitle: 'New Window'),
+      const MenuSeparator(),
+      MenuCommandItem('file.closeWorkspace', fallbackTitle: 'Close Project', enabledWhen: (s) => s.project.isOpen),
+    ],
+  ),
+  TopMenu(
+    title: 'View',
+    mnemonic: 0,
+    nodes: const [
+      MenuCommandItem('view.zoomIn'),
+      MenuCommandItem('view.zoomOut'),
+      MenuCommandItem('view.zoomReset'),
+      MenuSeparator(),
+      MenuCommandItem('sidebar.collapse'),
+      MenuCommandItem('context.collapse'),
+      MenuCommandItem('dock.toggle'),
+      MenuCommandItem('panel.focusMode'),
+      MenuSeparator(),
+      MenuAutoFill('view.'),
+    ],
+  ),
+  TopMenu(
+    title: 'Help',
+    mnemonic: 0,
+    nodes: const [MenuCommandItem('help.about', fallbackTitle: 'About clide')],
+  ),
+];

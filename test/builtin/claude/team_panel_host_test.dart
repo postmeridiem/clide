@@ -16,15 +16,8 @@ import '../../helpers/widget_harness.dart';
 
 Widget _lead() => const Center(child: Text('LEAD', textDirection: TextDirection.ltr));
 
-TeamMemberJoined _joined(String name, String pane, {String? color}) => TeamMemberJoined(
-      team: 'myteam',
-      agentId: '$name@myteam',
-      name: name,
-      agentType: 'researcher',
-      paneId: pane,
-      model: 'sonnet',
-      color: color,
-    );
+TeamMemberJoined _joined(String name, String pane, {String? color}) =>
+    TeamMemberJoined(team: 'myteam', agentId: '$name@myteam', name: name, agentType: 'researcher', paneId: pane, model: 'sonnet', color: color);
 
 void main() {
   late KernelFixture f;

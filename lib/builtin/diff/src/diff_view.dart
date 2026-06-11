@@ -98,24 +98,11 @@ class _DiffViewState extends State<DiffView> {
               if (c.error != null)
                 Padding(
                   padding: const EdgeInsets.all(12),
-                  child: ClideText(
-                    c.error!,
-                    color: tokens.statusError,
-                  ),
+                  child: ClideText(c.error!, color: tokens.statusError),
                 ),
-              if (c.loading && c.diffs.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: ClideText('Loading…', muted: true),
-                ),
+              if (c.loading && c.diffs.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
               if (!c.loading && c.diffs.isEmpty && c.error == null)
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ClideText(
-                    c.showStaged ? 'No staged changes.' : 'No unstaged changes.',
-                    muted: true,
-                  ),
-                ),
+                Padding(padding: const EdgeInsets.all(12), child: ClideText(c.showStaged ? 'No staged changes.' : 'No unstaged changes.', muted: true)),
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scroll,
@@ -163,11 +150,7 @@ class _DiffToolbar extends StatelessWidget {
             label: 'show unstaged changes',
             child: GestureDetector(
               onTap: controller.showStaged ? controller.toggleStaged : null,
-              child: ClideText(
-                'Unstaged',
-                fontSize: clideFontCaption,
-                color: controller.showStaged ? tokens.globalTextMuted : tokens.globalForeground,
-              ),
+              child: ClideText('Unstaged', fontSize: clideFontCaption, color: controller.showStaged ? tokens.globalTextMuted : tokens.globalForeground),
             ),
           ),
           const SizedBox(width: 12),
@@ -177,11 +160,7 @@ class _DiffToolbar extends StatelessWidget {
             label: 'show staged changes',
             child: GestureDetector(
               onTap: controller.showStaged ? null : controller.toggleStaged,
-              child: ClideText(
-                'Staged',
-                fontSize: clideFontCaption,
-                color: controller.showStaged ? tokens.globalForeground : tokens.globalTextMuted,
-              ),
+              child: ClideText('Staged', fontSize: clideFontCaption, color: controller.showStaged ? tokens.globalForeground : tokens.globalTextMuted),
             ),
           ),
         ],
@@ -233,11 +212,7 @@ class _FileDiff extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: ClideText(
-                  path,
-                  fontSize: clideFontCaption,
-                  color: focused ? tokens.globalFocus : tokens.panelHeaderForeground,
-                ),
+                child: ClideText(path, fontSize: clideFontCaption, color: focused ? tokens.globalFocus : tokens.panelHeaderForeground),
               ),
               if (additions > 0) ClideText('+$additions ', fontSize: clideFontCaption, color: tokens.statusSuccess),
               if (removals > 0) ClideText('-$removals', fontSize: clideFontCaption, color: tokens.statusError),
@@ -250,12 +225,7 @@ class _FileDiff extends StatelessWidget {
             child: ClideText(meta.join(' · '), fontSize: clideFontCaption, muted: true),
           ),
         if (!isBinary)
-          for (final hunk in hunks)
-            _HunkView(
-              hunk: (hunk as Map).cast<String, Object?>(),
-              filePath: path,
-              controller: controller,
-            ),
+          for (final hunk in hunks) _HunkView(hunk: (hunk as Map).cast<String, Object?>(), filePath: path, controller: controller),
         const SizedBox(height: 8),
       ],
     );
@@ -263,11 +233,7 @@ class _FileDiff extends StatelessWidget {
 }
 
 class _HunkView extends StatelessWidget {
-  const _HunkView({
-    required this.hunk,
-    required this.filePath,
-    required this.controller,
-  });
+  const _HunkView({required this.hunk, required this.filePath, required this.controller});
 
   final Map<String, Object?> hunk;
   final String filePath;
@@ -284,17 +250,9 @@ class _HunkView extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          child: ClideText(
-            header,
-            fontSize: clideFontMono,
-            muted: true,
-            fontFamily: clideMonoFamily,
-          ),
+          child: ClideText(header, fontSize: clideFontMono, muted: true, fontFamily: clideMonoFamily),
         ),
-        for (final lineObj in lines)
-          _DiffLineRow(
-            line: (lineObj as Map).cast<String, Object?>(),
-          ),
+        for (final lineObj in lines) _DiffLineRow(line: (lineObj as Map).cast<String, Object?>()),
       ],
     );
   }
@@ -313,18 +271,9 @@ class _DiffLineRow extends StatelessWidget {
     final newLineNo = line['newLineNo'] as num?;
 
     final (Color bg, Color fg) = switch (kind) {
-      'addition' => (
-          tokens.statusSuccess.withValues(alpha: 0.15),
-          tokens.statusSuccess,
-        ),
-      'removal' => (
-          tokens.statusError.withValues(alpha: 0.15),
-          tokens.statusError,
-        ),
-      _ => (
-          const Color(0x00000000),
-          tokens.globalForeground,
-        ),
+      'addition' => (tokens.statusSuccess.withValues(alpha: 0.15), tokens.statusSuccess),
+      'removal' => (tokens.statusError.withValues(alpha: 0.15), tokens.statusError),
+      _ => (const Color(0x00000000), tokens.globalForeground),
     };
 
     final prefix = switch (kind) {
@@ -361,22 +310,10 @@ class _DiffLineRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          ClideText(
-            prefix,
-            fontSize: clideFontMono,
-            color: fg,
-            fontFamily: clideMonoFamily,
-          ),
+          ClideText(prefix, fontSize: clideFontMono, color: fg, fontFamily: clideMonoFamily),
           const SizedBox(width: 2),
           Expanded(
-            child: ClideText(
-              text,
-              fontSize: clideFontMono,
-              color: fg,
-              fontFamily: clideMonoFamily,
-              maxLines: 1,
-              overflow: TextOverflow.clip,
-            ),
+            child: ClideText(text, fontSize: clideFontMono, color: fg, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.clip),
           ),
         ],
       ),

@@ -20,11 +20,7 @@ void main() {
 
   setUp(() async {
     discoveryDir = await Directory.systemTemp.createTemp('clide-mcp-disc-');
-    server = McpServer(
-      workspaceRoot: '/var/mnt/test/clide-fixture',
-      log: _silent(),
-      discoveryDirOverride: discoveryDir.path,
-    );
+    server = McpServer(workspaceRoot: '/var/mnt/test/clide-fixture', log: _silent(), discoveryDirOverride: discoveryDir.path);
     await server.start();
   });
 
@@ -155,7 +151,7 @@ void main() {
         'method': 'tools/call',
         'params': {
           'name': 'mcp__ide__executeCode',
-          'arguments': {'code': 'print(1)'}
+          'arguments': {'code': 'print(1)'},
         },
       });
       final reply = jsonDecode(await replyFuture.timeout(const Duration(seconds: 2))) as Map<String, Object?>;
@@ -214,12 +210,7 @@ void main() {
       dispatcher.register('echo', (req) async => IpcResponse.ok(id: req.id, data: {'echo': req.args['text']}));
       // A poor MCP fit — withheld from the tool surface (D-86).
       dispatcher.register('pane.tail', (req) async => IpcResponse.ok(id: req.id, data: const {}), mcpExpose: false);
-      srv = McpServer(
-        workspaceRoot: '/x',
-        log: _silent(),
-        discoveryDirOverride: disc.path,
-        dispatcher: dispatcher,
-      );
+      srv = McpServer(workspaceRoot: '/x', log: _silent(), discoveryDirOverride: disc.path, dispatcher: dispatcher);
       await srv.start();
     });
 
@@ -234,8 +225,12 @@ void main() {
       final client = HttpClient();
       addTearDown(client.close);
       final resp = await (await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'))).close();
-      final dataLines =
-          resp.transform(utf8.decoder).transform(const LineSplitter()).where((l) => l.startsWith('data: ')).map((l) => l.substring(6)).asBroadcastStream();
+      final dataLines = resp
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .where((l) => l.startsWith('data: '))
+          .map((l) => l.substring(6))
+          .asBroadcastStream();
       final endpoint = Completer<String>();
       final sub = dataLines.listen((d) {
         final m = RegExp(r'sessionId=([\w-]+)').firstMatch(d);
@@ -312,8 +307,12 @@ void main() {
     final client = HttpClient();
     addTearDown(client.close);
     final resp = await (await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'))).close();
-    final data =
-        resp.transform(utf8.decoder).transform(const LineSplitter()).where((l) => l.startsWith('data: ')).map((l) => l.substring(6)).asBroadcastStream();
+    final data = resp
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .where((l) => l.startsWith('data: '))
+        .map((l) => l.substring(6))
+        .asBroadcastStream();
     final ep = Completer<String>();
     final sub = data.listen((d) {
       final m = RegExp(r'sessionId=([\w-]+)').firstMatch(d);
@@ -324,12 +323,14 @@ void main() {
     final replyFuture = data.firstWhere((s) => s.contains('"id":13'));
     final post = await client.postUrl(Uri.parse('http://127.0.0.1:${srv.port}/messages?sessionId=$sid'));
     post.headers.contentType = ContentType.json;
-    post.write(jsonEncode({
-      'jsonrpc': '2.0',
-      'id': 13,
-      'method': 'tools/call',
-      'params': {'name': 'mcp__clide__echo', 'arguments': const {}},
-    }));
+    post.write(
+      jsonEncode({
+        'jsonrpc': '2.0',
+        'id': 13,
+        'method': 'tools/call',
+        'params': {'name': 'mcp__clide__echo', 'arguments': const {}},
+      }),
+    );
     await post.close();
     final reply = jsonDecode(await replyFuture.timeout(const Duration(seconds: 2))) as Map<String, Object?>;
     expect((reply['result'] as Map)['isError'], isTrue);
