@@ -92,6 +92,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Security
 
+- **The MCP HTTP server now requires a per-start auth token.** The localhost
+  SSE port served the entire clide command surface unauthenticated,
+  bypassing the unix socket's 0600 gate; requests must now present the
+  token published in the 0600 `/ide` lock file. (T-362)
+
 - **`editor.open` / `editor.save` are now workspace-confined.** Both verbs
   accepted absolute paths and `..` traversal verbatim — an unconfined read
   and write primitive over IPC. They now pass the same path-safety guard as
