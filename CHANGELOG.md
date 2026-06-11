@@ -18,26 +18,17 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- **Live tail inside expanded Bash activity cards.** Expanding a Bash card whose
-  command follows a file (`tail -f …`, `tail -n N …`) now shows a live, scrolling
-  terminal of that file below the result, so you can watch progress on a
-  long-running tail instead of waiting for the final block. clide can't see
-  Claude's running process, so it opens its OWN read-only follower on the same
-  file — never re-running or intercepting the command — connected lazily only
-  while the card is expanded and torn down on collapse. A command with no
-  independent file-backed source (a pipe into `tail`, a path outside the repo)
-  shows a muted "no independent source to follow" note rather than an empty
-  terminal. (T-325)
+- **Live tail inside expanded Bash activity cards.** A Bash card that follows a
+  file (`tail -f …`) now shows a live, scrolling read-only tail of that file
+  below the result — connected only while the card is expanded. Commands with no
+  followable file show a muted "nothing to follow" note. (T-325)
 
 ### Changed
 
 - **Each spawned subagent gets its own collapsing activity card.** A fan-out of
-  N agents (Task/Agent tool) used to merge into one shared "Activity / N steps"
-  cluster; now every agent spawn is its own first-class collapsing card with its
-  folded prompt and nested run, labelled by its task. Surrounding non-agent tool
-  calls (Bash/Read/Grep) still group into the normal Activity card. Under a
-  parallel fan-out, an item that can't be attributed to a specific agent now
-  renders inline rather than being mis-filed into a sibling agent's card. (T-342)
+  N agents no longer merges into one "Activity / N steps" cluster — each spawn is
+  its own card with its prompt and nested run. Non-agent tool calls still group
+  as before. (T-342)
 
 ### Fixed
 
