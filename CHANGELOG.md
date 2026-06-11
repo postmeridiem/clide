@@ -68,6 +68,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   the scope the user typed; replace now uses the same glob filtering as
   search. (T-364)
 
+- **Switching projects releases the previous workspace's services.** The old
+  file watcher, pane PTYs, in-flight searches, and editor buffers were left
+  alive on every project switch, with stale watcher events leaking into the
+  new workspace. (T-367)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

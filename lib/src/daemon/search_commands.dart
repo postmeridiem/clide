@@ -52,6 +52,15 @@ class SearchService {
     _active.remove(id)?.cancel();
   }
 
+  /// Cancel every in-flight search. Called when the workspace service
+  /// set is torn down on project switch (T-367).
+  Future<void> shutdown() async {
+    for (final c in _active.values) {
+      c.cancel();
+    }
+    _active.clear();
+  }
+
   /// Compute (preview) or perform (apply) a search-and-replace.
   ///
   /// Preview returns per-file before/after edits without touching disk.
