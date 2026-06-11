@@ -115,6 +115,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   preserved as `.broken` with a logged warning instead of being silently
   reset. (T-376)
 
+- **Markdown hard breaks break lines and images leave a visible trace.**
+  Both rendered as empty text — words on either side of a hard break glued
+  together and images vanished; breaks now emit a newline and images render
+  an italic `[image: alt]` placeholder. (T-379)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

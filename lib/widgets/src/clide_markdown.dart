@@ -405,6 +405,22 @@ class ClideMarkdown extends StatelessWidget {
           text: _unescapeHtml(el.textContent),
           style: TextStyle(decoration: TextDecoration.lineThrough, color: tokens.globalTextMuted),
         );
+      case 'br':
+        // A hard break has no textContent — the default branch rendered it
+        // as an empty span and glued the surrounding words together (T-379).
+        return const TextSpan(text: '\n');
+      case 'img':
+        // No inline image loading (network fetch in a text span is not the
+        // owned-renderer way; live-pane images go through `clide image
+        // show`) — render a visible alt-text placeholder instead of
+        // disappearing (T-379).
+        final alt = _unescapeHtml(el.attributes['alt'] ?? '');
+        final src = el.attributes['src'] ?? '';
+        final label = alt.isNotEmpty ? alt : src;
+        return TextSpan(
+          text: label.isEmpty ? '[image]' : '[image: $label]',
+          style: TextStyle(color: tokens.globalTextMuted, fontStyle: FontStyle.italic),
+        );
       default:
         return TextSpan(text: _unescapeHtml(el.textContent));
     }

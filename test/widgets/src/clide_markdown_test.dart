@@ -49,4 +49,26 @@ void main() {
     expect(find.textContaining('https://example.com'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  // T-379: hard breaks and images fell through to empty text spans —
+  // words glued together, images vanished without a trace.
+  testWidgets('a hard line break splits the line instead of gluing words', (tester) async {
+    // Two trailing spaces = a markdown hard break.
+    await tester.pumpWidget(harness(f, const ClideMarkdown('alpha  \nbeta')));
+    await tester.pump();
+    expect(find.textContaining('alpha\nbeta'), findsOneWidget);
+    expect(find.textContaining('alphabeta'), findsNothing);
+  });
+
+  testWidgets('an image renders its alt text as a visible placeholder', (tester) async {
+    await tester.pumpWidget(harness(f, const ClideMarkdown('before ![a diagram](http://x/y.png) after')));
+    await tester.pump();
+    expect(find.textContaining('[image: a diagram]'), findsOneWidget);
+  });
+
+  testWidgets('an image with no alt text falls back to its source', (tester) async {
+    await tester.pumpWidget(harness(f, const ClideMarkdown('![](http://x/y.png)')));
+    await tester.pump();
+    expect(find.textContaining('[image: http://x/y.png]'), findsOneWidget);
+  });
 }
