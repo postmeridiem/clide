@@ -2,14 +2,23 @@
 /// exit-code contract — a failure is an ERROR envelope (non-zero CLI
 /// exit), never `ok` with an `error` field a script can't detect.
 /// `clide claude.agent.set-permission-mode bogus` exited 0 before this.
+/// Plus the activation lifecycle + command success paths.
 library;
 
+import 'package:clide/builtin/claude/src/activity_cluster.dart' show kActivityFoldLevelKey;
+import 'package:clide/builtin/claude/src/claude_config.dart' show activeClaudeConfig;
 import 'package:clide/builtin/claude/src/extension.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart' show activeSessionOrchestrator;
 import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
+import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/kernel_fixture.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized(); // GlobalKey lookups in handlers
   final ext = ClaudeExtension();
   CommandContribution cmd(String id) => ext.contributions.whereType<CommandContribution>().firstWhere((c) => c.id == id);
 
@@ -43,5 +52,97 @@ void main() {
         expect(r.error!.code, isNot(0), reason: 'the CLI must exit non-zero');
       });
     }
+  });
+
+  group('activated lifecycle + success paths', () {
+    late KernelFixture f;
+
+    setUp(() async {
+      f = await KernelFixture.create();
+      f.services.extensions.register(ClaudeExtension());
+      await f.services.extensions.activate('builtin.claude');
+      expect(f.services.extensions.isActivated('builtin.claude'), isTrue, reason: f.services.extensions.failedExtensions.toString());
+    });
+
+    tearDown(() async {
+      await f.services.extensions.deactivate('builtin.claude');
+      await f.dispose();
+    });
+
+    Future<IpcResponse> run(String command, [List<String> args = const []]) {
+      final c = f.services.commands.get(command);
+      expect(c, isNotNull, reason: '$command should be registered after activation');
+      return c!.run(args);
+    }
+
+    test('roster verbs succeed once the orchestrator is wired (no-op on unknown ids)', () async {
+      for (final verb in ['claude.agent.show', 'claude.agent.hide', 'claude.agent.close', 'claude.agent.mute', 'claude.agent.unmute']) {
+        final r = await run(verb, ['no-such-session']);
+        expect(r.ok, isTrue, reason: '$verb is idempotent on unknown ids');
+      }
+      final inject = await run('claude.agent.inject-message', ['no-such-session', 'hello']);
+      expect(inject.ok, isTrue);
+      final mode = await run('claude.agent.set-permission-mode', ['no-such-session', 'plan']);
+      expect(mode.ok, isTrue);
+      expect(mode.data['mode'], 'plan');
+    });
+
+    test('claude.new-secondary and kill-all-sessions succeed with no live panes', () async {
+      expect((await run('claude.new-secondary')).ok, isTrue);
+      final killed = await run('claude.kill-all-sessions');
+      expect(killed.ok, isTrue);
+      expect(killed.data['status'], 'killed');
+    });
+
+    test('claude.activity.fold-level cycles and persists the setting (T-235)', () async {
+      final r1 = await run('claude.activity.fold-level');
+      expect(r1.ok, isTrue);
+      final first = r1.data['foldLevel'] as String;
+      expect(f.services.settings.get<String>(kActivityFoldLevelKey), first);
+      final r2 = await run('claude.activity.fold-level');
+      expect(r2.data['foldLevel'], isNot(first), reason: 'the level advances each call');
+    });
+
+    test('claude.team-chat.open and .post succeed', () async {
+      expect((await run('claude.team-chat.open')).ok, isTrue);
+      final broadcast = await run('claude.team-chat.post', ['hello', 'team']);
+      expect(broadcast.ok, isTrue);
+      final directed = await run('claude.team-chat.post', ['@tyre', 'hello', 'you']);
+      expect(directed.ok, isTrue);
+      expect(directed.data['to'], 'tyre');
+    });
+
+    test('claude.session-storage degrades cleanly when files.root is unavailable', () async {
+      // The fixture IPC has no files.root stub → the handler bails out ok
+      // without opening the dialog.
+      final r = await run('claude.session-storage');
+      expect(r.ok, isTrue);
+    });
+
+    test('an image-show message with no live session is dropped silently (T-249)', () async {
+      f.services.messages.publish('test', imageShowChannel, {'path': '/tmp/x.png'});
+      f.services.messages.publish('test', imageShowChannel, {'path': ''});
+      await Future<void>.delayed(Duration.zero);
+      // Nothing to assert beyond "no throw" — there is no conversation to
+      // receive the card and the CLI already acked at publish time.
+    });
+
+    test('a project switch closes sessions that belong to the old root (T-269)', () async {
+      f.services.events.emit(const ProjectOpened(path: '/repo-one'));
+      await Future<void>.delayed(Duration.zero);
+      f.services.events.emit(const ProjectOpened(path: '/repo-one'));
+      await Future<void>.delayed(Duration.zero);
+      f.services.events.emit(const ProjectOpened(path: '/repo-two'));
+      await Future<void>.delayed(Duration.zero);
+      // No live sessions in this fixture — the sweep runs over an empty set.
+      expect(activeSessionOrchestrator!.sessions, isEmpty);
+    });
+
+    test('deactivate clears the builtin-owned singletons', () async {
+      expect(activeSessionOrchestrator, isNotNull);
+      await f.services.extensions.deactivate('builtin.claude');
+      expect(activeSessionOrchestrator, isNull);
+      expect(activeClaudeConfig, isNull);
+    });
   });
 }

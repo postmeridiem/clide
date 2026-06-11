@@ -253,6 +253,7 @@ class ClaudeConfig extends ChangeNotifier {
     _version = _parseVersion(await _guard(_versionRunner));
     await _readProbeCache();
     await _loadDiskConfig();
+    if (_disposed) return; // activation fired-and-forgot; teardown won
     _startWatchers();
     notifyListeners();
   }
@@ -296,8 +297,14 @@ class ClaudeConfig extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set when [dispose] runs. The fire-and-forget [load] from extension
+  /// activation checks this so a teardown racing an in-flight load can't
+  /// notify (or start watchers on) a disposed notifier.
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     _stopWatching();
     super.dispose();
   }
