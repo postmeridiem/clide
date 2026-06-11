@@ -52,6 +52,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   sub-parameters (`38:2:r:g:b`, ITU T.416) parse like the semicolon form
   instead of being mangled. (T-369)
 
+- **File listing flags symlinks again and the workspace walk no longer
+  follows them.** Symlink detection was dead code, so `files.walk` (and the
+  search engine on top of it) silently descended symlinked directories —
+  including ones pointing outside the workspace. (T-365)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
