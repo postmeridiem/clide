@@ -46,6 +46,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   scroll position, dragging a reader back to the bottom; it now follows only
   while already pinned there. (T-368)
 
+- **The terminal no longer crashes on truncated SGR color sequences.**
+  `ESC[38m` and friends threw a RangeError inside the emulator; incomplete
+  38/48 sequences are now ignored, and colon-form truecolor/256-color
+  sub-parameters (`38:2:r:g:b`, ITU T.416) parse like the semicolon form
+  instead of being mangled. (T-369)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

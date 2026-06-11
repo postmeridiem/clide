@@ -220,6 +220,7 @@ class EscapeParser {
     }
 
     _csi.params.clear();
+    _csi.subParam.clear();
 
     // test whether the csi is a `CSI ? Ps ...` or `CSI Ps ...`
     final prefix = _queue.peek();
@@ -232,6 +233,11 @@ class EscapeParser {
 
     var param = 0;
     var hasParam = false;
+    // Whether the value being accumulated was attached to its predecessor
+    // with a colon (ECMA-48 sub-parameter separator, ITU T.416 SGR colors).
+    // Before T-369 colons were silently dropped mid-sequence, fusing
+    // `38:2:255:0:0` into one bogus parameter.
+    var linkedToPrev = false;
     while (true) {
       // The sequence isn't completed, just ignore it.
       if (_queue.isEmpty) {
@@ -243,8 +249,21 @@ class EscapeParser {
       if (char == Ascii.semicolon) {
         if (hasParam) {
           _csi.params.add(param);
+          _csi.subParam.add(linkedToPrev);
         }
         param = 0;
+        linkedToPrev = false;
+        continue;
+      }
+
+      if (char == Ascii.colon) {
+        // Push the current value even when empty — `38:2::r:g:b` carries an
+        // empty colorspace slot that must keep its position in the group.
+        _csi.params.add(hasParam ? param : 0);
+        _csi.subParam.add(linkedToPrev);
+        hasParam = true;
+        param = 0;
+        linkedToPrev = true;
         continue;
       }
 
@@ -263,6 +282,7 @@ class EscapeParser {
       if (char >= Ascii.atSign && char <= Ascii.tilde) {
         if (hasParam) {
           _csi.params.add(param);
+          _csi.subParam.add(linkedToPrev);
         }
 
         _csi.finalByte = char;
@@ -499,21 +519,7 @@ class EscapeParser {
           handler.setForegroundColor16(NamedColor.white);
           continue;
         case 38:
-          final mode = params[i + 1];
-          switch (mode) {
-            case 2:
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
-              handler.setForegroundColorRgb(r, g, b);
-              i += 4;
-              break;
-            case 5:
-              final index = params[i + 2];
-              handler.setForegroundColor256(index);
-              i += 2;
-              break;
-          }
+          i = _csiHandleExtendedColor(i, foreground: true);
           continue;
         case 39:
           handler.resetForeground();
@@ -544,21 +550,7 @@ class EscapeParser {
           handler.setBackgroundColor16(NamedColor.white);
           continue;
         case 48:
-          final mode = params[i + 1];
-          switch (mode) {
-            case 2:
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
-              handler.setBackgroundColorRgb(r, g, b);
-              i += 4;
-              break;
-            case 5:
-              final index = params[i + 2];
-              handler.setBackgroundColor256(index);
-              i += 2;
-              break;
-          }
+          i = _csiHandleExtendedColor(i, foreground: false);
           continue;
         case 49:
           handler.resetBackground();
@@ -619,6 +611,61 @@ class EscapeParser {
           continue;
       }
     }
+  }
+
+  /// Extended fg/bg color (SGR 38/48), semicolon or colon form.
+  ///
+  /// Returns the index of the last parameter consumed. Never reads past the
+  /// end of the parameter list — a truncated sequence (`ESC [38m`,
+  /// `ESC [38;2;255m`) is ignored instead of throwing; an emulator must never
+  /// throw on hostile bytes (T-369). Colon-form sub-parameters per ITU T.416
+  /// (`38:2:r:g:b`, `38:2:<colorspace>:r:g:b`, `38:5:n`) are treated as one
+  /// logical group: parsed equivalently to the semicolon form, and dropped
+  /// whole when malformed so they never spill into neighbouring parameters.
+  int _csiHandleExtendedColor(int i, {required bool foreground}) {
+    final params = _csi.params;
+    final sub = _csi.subParam;
+
+    // End of the colon-linked group starting at params[i] (exclusive).
+    var end = i + 1;
+    while (end < params.length && sub[end]) {
+      end++;
+    }
+
+    if (end > i + 1) {
+      // Colon form. Group is params[i..end-1]; n includes the 38/48 itself.
+      final n = end - i;
+      final mode = params[i + 1];
+      if (mode == 5 && n >= 3) {
+        foreground ? handler.setForegroundColor256(params[i + 2]) : handler.setBackgroundColor256(params[i + 2]);
+      } else if (mode == 2) {
+        // A 6+ element group carries the T.416 colorspace id slot — skip it.
+        final base = n >= 6 ? i + 3 : i + 2;
+        if (base + 2 < end) {
+          foreground
+              ? handler.setForegroundColorRgb(params[base], params[base + 1], params[base + 2])
+              : handler.setBackgroundColorRgb(params[base], params[base + 1], params[base + 2]);
+        }
+      }
+      return end - 1;
+    }
+
+    // Semicolon form (legacy).
+    if (i + 1 >= params.length) return i; // bare 38/48 — ignore
+    switch (params[i + 1]) {
+      case 2:
+        if (i + 4 >= params.length) return params.length - 1; // truncated — ignore
+        foreground
+            ? handler.setForegroundColorRgb(params[i + 2], params[i + 3], params[i + 4])
+            : handler.setBackgroundColorRgb(params[i + 2], params[i + 3], params[i + 4]);
+        return i + 4;
+      case 5:
+        if (i + 2 >= params.length) return params.length - 1; // truncated — ignore
+        foreground ? handler.setForegroundColor256(params[i + 2]) : handler.setBackgroundColor256(params[i + 2]);
+        return i + 2;
+    }
+    // Unknown mode — consume it so it isn't re-interpreted as an SGR code.
+    return i + 1;
   }
 
   /// `ESC [ Ps n` Device Status Report [Dispatch] (DSR)
@@ -1120,6 +1167,10 @@ class _Csi {
   int? prefix;
 
   List<int> params;
+
+  /// Parallel to [params]: true when that parameter was attached to its
+  /// predecessor with a colon (ECMA-48 sub-parameter, ITU T.416 — T-369).
+  final List<bool> subParam = [];
 
   int finalByte;
   // final List<int> intermediates;
