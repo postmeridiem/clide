@@ -268,9 +268,13 @@ class _ConversationViewState extends State<ConversationView> {
   void _onChanged() {
     if (!mounted) return;
     setState(() {});
-    // Follow the tail — jump to the bottom after the new item lays out.
+    // Follow the tail — but only when already pinned to it. New items arrive
+    // on every streamed token; jumping unconditionally yanks a reader who
+    // scrolled up back to the bottom for the whole reply (T-368, twin of the
+    // T-297 resize gate).
+    if (!_atBottom) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
+      if (_scroll.hasClients && _atBottom) {
         _scroll.jumpTo(_scroll.position.maxScrollExtent);
       }
     });

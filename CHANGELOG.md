@@ -41,6 +41,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   sent — the backend PTY and daemon pane leaked on every closed terminal
   pane, and Claude panes leaked a settings listener the same way. (T-366)
 
+- **Scrolling up during a streaming reply no longer fights the auto-scroll.**
+  The conversation followed the tail on every streamed token regardless of
+  scroll position, dragging a reader back to the bottom; it now follows only
+  while already pinned there. (T-368)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
