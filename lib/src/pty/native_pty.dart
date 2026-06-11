@@ -444,6 +444,11 @@ class NativePty {
   void _reap() {
     if (_dead) return;
     _dead = true;
+    // The reader isolate sends EOF only after exiting its poll loop, so
+    // nothing touches the master fd anymore. Release it here — close()
+    // short-circuits on _dead, so skipping this leaks the fd and its pty
+    // device for the life of the app on every natural child exit (T-360).
+    _nativeClose(_fd);
     final s = calloc<ffi.Int32>();
     _waitpid(pid, s, _kWnohang);
     calloc.free(s);

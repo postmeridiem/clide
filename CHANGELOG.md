@@ -32,6 +32,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **PTY master fd no longer leaks when a child exits on its own.** Every
+  terminal or Claude pane whose process ended naturally left its pty device
+  open for the life of the app; natural exit now releases the fd. (T-360)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
