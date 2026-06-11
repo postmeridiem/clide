@@ -14,8 +14,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
+import 'package:clide/builtin/claude/src/bash_tail_source.dart';
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
+import 'package:clide/builtin/claude/src/file_tail_follower.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
@@ -23,6 +25,7 @@ import 'package:clide/kernel/src/facade.dart';
 import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
+import 'package:clide/src/terminal/terminal.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -423,6 +426,64 @@ void _openFile(BuildContext context, String path, int? line) {
   unawaited(ClideKernel.of(context).ipc.request('editor.open', args: {'path': path, 'line': ?line}));
 }
 
+/// A live, read-only tail of the file a Bash command follows (T-325).
+///
+/// Mounts when the Bash card is EXPANDED — the collapser builds its children
+/// lazily (clide_collapser_card.dart), so initialising here and tearing down in
+/// [dispose] gives the "connect on expand, disconnect on collapse" lifecycle
+/// for free. Resolves the followed file from the command against the open
+/// workspace; when there's no independent file-backed source (a pipe into
+/// `tail`, a path outside the repo) it shows a muted note instead of an empty
+/// terminal.
+class _BashLiveTail extends StatefulWidget {
+  const _BashLiveTail({required this.command});
+
+  final String command;
+
+  @override
+  State<_BashLiveTail> createState() => _BashLiveTailState();
+}
+
+class _BashLiveTailState extends State<_BashLiveTail> {
+  Terminal? _terminal;
+  FileTailFollower? _follower;
+  bool _resolved = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_resolved) return; // resolve once — InheritedWidget access needs context
+    _resolved = true;
+    final root = ClideKernel.of(context).project.current;
+    final source = root == null ? null : detectBashTailSource(widget.command, workspaceRoot: root);
+    if (source == null) return; // no file-backed source → muted note in build
+    final term = Terminal(maxLines: 1000);
+    _terminal = term;
+    _follower = FileTailFollower(source, onData: (bytes) => term.write(utf8.decode(bytes, allowMalformed: true)));
+    unawaited(_follower!.start());
+  }
+
+  @override
+  void dispose() {
+    _follower?.stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final term = _terminal;
+    if (term == null) {
+      return ClideText('no independent source to follow', muted: true, fontSize: clideFontMeta);
+    }
+    return SizedBox(
+      height: 160,
+      child: ClipRect(
+        child: ClidePtyView(terminal: term, label: 'live tail', fontSize: clideFontMeta),
+      ),
+    );
+  }
+}
+
 /// One conversation item, rendered by kind.
 class _ConversationTurn extends StatelessWidget {
   const _ConversationTurn({
@@ -693,6 +754,14 @@ class _ConversationTurn extends StatelessWidget {
         CardSegment(
           label: 'result',
           child: ClideCodeBlock(source: result.content, language: _resultLanguage(t)),
+        ),
+      // T-325: a Bash card that follows a file (`tail -f …`) gets a live,
+      // scrolling tail of that file below the result — connected lazily, only
+      // while the card is expanded (the collapser builds segments on expand).
+      if (t.name == 'Bash' && t.input['command'] is String && bashHasTailIntent(t.input['command'] as String))
+        CardSegment(
+          label: 'live tail',
+          child: _BashLiveTail(command: t.input['command'] as String),
         ),
     ];
 

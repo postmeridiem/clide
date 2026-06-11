@@ -818,6 +818,29 @@ void main() {
       expect(copied, contains('question text'));
       expect(copied, contains('answer text'));
     });
+
+    testWidgets('a tail Bash card shows a live-tail segment; no workspace source → muted note (T-325)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'b1', timestamp: _t, isSidechain: false, toolUseId: 'tb', name: 'Bash', input: const {'command': 'tail -f app.log'}),
+      ]);
+      // Collapsed by default — the segment only builds (and connects) on expand.
+      expect(find.text('live tail'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Bash, 1 step, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.text('live tail'), findsOneWidget); // segment surfaced for a tail command
+      // No project open in the fixture → no resolvable source → the muted note,
+      // never a broken/empty terminal.
+      expect(find.text('no independent source to follow'), findsOneWidget);
+    });
+
+    testWidgets('an ordinary Bash card has no live-tail segment (T-325)', (tester) async {
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'b2', timestamp: _t, isSidechain: false, toolUseId: 'tb2', name: 'Bash', input: const {'command': 'ls -la'}),
+      ]);
+      await tester.tap(find.bySemanticsLabel('Bash, 1 step, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.text('live tail'), findsNothing); // no tail intent → no segment
+    });
   });
 
   group('ClaudeBanner', () {

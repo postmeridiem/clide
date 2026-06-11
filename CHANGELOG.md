@@ -16,6 +16,19 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- **Live tail inside expanded Bash activity cards.** Expanding a Bash card whose
+  command follows a file (`tail -f …`, `tail -n N …`) now shows a live, scrolling
+  terminal of that file below the result, so you can watch progress on a
+  long-running tail instead of waiting for the final block. clide can't see
+  Claude's running process, so it opens its OWN read-only follower on the same
+  file — never re-running or intercepting the command — connected lazily only
+  while the card is expanded and torn down on collapse. A command with no
+  independent file-backed source (a pipe into `tail`, a path outside the repo)
+  shows a muted "no independent source to follow" note rather than an empty
+  terminal. (T-325)
+
 ### Changed
 
 - **Each spawned subagent gets its own collapsing activity card.** A fan-out of
