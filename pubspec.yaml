@@ -54,10 +54,7 @@ dependencies:
 
   jovial_svg: 1.1.30
 
-  # Held at 7.2.2: 7.3.1 requires Dart ^3.9.0, which would raise our
-  # environment floor below; only minor fixes behind it, no advisory. Bump
-  # alongside a deliberate SDK-floor decision (T-353).
-  markdown: 7.2.2
+  markdown: 7.3.1
 
   flutter_widget_from_html_core: 0.17.2
 
