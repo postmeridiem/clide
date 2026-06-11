@@ -46,10 +46,13 @@ dependencies:
 
   yaml: 3.1.3
 
-  ffi: 2.1.3
+  ffi: 2.2.0
 
-  jovial_svg: 1.1.26
+  jovial_svg: 1.1.30
 
+  # Held at 7.2.2: 7.3.1 requires Dart ^3.9.0, which would raise our
+  # environment floor below; only minor fixes behind it, no advisory. Bump
+  # alongside a deliberate SDK-floor decision (T-353).
   markdown: 7.2.2
 
   flutter_widget_from_html_core: 0.17.2
@@ -62,8 +65,13 @@ dev_dependencies:
   integration_test:
     sdk: flutter
 
+  # Held at 1.31.0: flutter_test SDK-locks the resolvable ceiling here
+  # (1.31.1 is latest but not reachable under our Flutter pin).
   test: 1.31.0
-  mocktail: 1.0.4
+  mocktail: 1.0.5
+  # Held at 0.12.1: 0.13.0 disabled anti-aliasing on text painting, which
+  # churns every golden. Dev-only, no advisory — defer the golden re-baseline
+  # to its own change (T-353).
   alchemist: 0.12.1
 
 flutter:

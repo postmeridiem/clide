@@ -16,6 +16,16 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Security
+
+- **Dependency audit + refresh.** Reviewed every pinned and transitive
+  dependency against the GitHub Advisory Database / OSV (Pub ecosystem) — no
+  advisory affects any current or candidate version. Refreshed the safe pins:
+  `ffi` 2.1.3→2.2.0, `jovial_svg` 1.1.26→1.1.30 (pulls `jovial_misc` 0.10.0 +
+  `xml` 7.0.1), `mocktail` 1.0.4→1.0.5. Deliberately held with reasons in
+  `pubspec.yaml`: `markdown` (7.3.1 needs Dart 3.9), `alchemist` (0.13 golden
+  churn), `test` (Flutter-SDK locked). (T-353)
+
 ## [2.3.2] — 2026-06-11
 
 ### Fixed
