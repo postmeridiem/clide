@@ -8,7 +8,7 @@ set -euo pipefail
 
 PORT=${CLIDE_UI_PORT:-4280}
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DIR="$HERE/../../app/build/web"
+DIR="$HERE/../../build/web"
 PID_FILE="$HERE/.serve.pid"
 
 if [[ ! -d "$DIR" ]]; then

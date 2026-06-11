@@ -153,4 +153,10 @@ ticket persistence.
 - **Context:** The only unshipped piece of the otherwise-complete native-Claude epic (T-132). Blocked on data availability, not on clide work — hence a question (when/how to revisit) rather than active scope. Option (c) interacts with D-75's "version-pinned coupling to CC internals" posture. Resolved by T-158 when a viable path lands.
 - **Source:** 2026-06-09 — split out of T-132 / T-158 (was "blocked on upstream"); project memory `claude-usage-budget-not-exposed`, GitHub anthropics/claude-code#44328.
 
+### Q-50: Web/WASM target after the dart:ffi pivot — fence, fix, or drop?
+- **Status:** Open
+- **Question:** `flutter build web --wasm` no longer compiles: the tree-sitter FFI pivot and the native PTY both import `dart:ffi` unconditionally, which the wasm target forbids. That kills `make test-e2e` / `ui-dev` / `ui-smoke` and the Playwright harness regardless of the `cd app` staleness T-384 fixed. Options: (a) fence every `dart:ffi` import behind conditional imports with web stubs (ongoing tax on every future native binding, for a target CLAUDE.md calls "a happy accident"); (b) keep the harness parked and re-evaluate if/when a web build matters (D-26's Playwright driver stays dormant); (c) drop the web target + `tools/ui/` harness formally and amend D-26/D-32. The guardrail says don't compromise desktop fidelity for web — (a) leans against it; (b) defers; (c) is honest but irreversible-ish.
+- **Context:** Surfaced 2026-06-12 while fixing T-384 (dead make targets). The mechanical path fixes (post app/-flattening) are done; the Gitea workflow's e2e job is withheld with a pointer here. The startup-regression gate (D-27) and integration tests are unaffected — only the browser/Playwright surface is blocked.
+- **Source:** T-384 / 2026-06-11 Fable review (epic T-359).
+
 ---

@@ -179,6 +179,7 @@ You might also want, project-permitting:
 - [Q-47: Live mixed documents — implement?](questions/design.md#q-47-live-mixed-documents--implement) — _design_
 - [Q-48: Sealed-workspace mode — implement?](questions/design.md#q-48-sealed-workspace-mode--implement) — _design_
 - [Q-49: Review honorable mentions — which, if any, get promoted?](questions/design.md#q-49-review-honorable-mentions--which-if-any-get-promoted) — _design_
+- [Q-50: Web/WASM target after the dart:ffi pivot — fence, fix, or drop?](questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop) — _architecture_
 
 ## Resolved questions
 
