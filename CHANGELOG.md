@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.3.3] — 2026-06-11
+
 ### Fixed
 
 - **Ticket/decision sidebars load on first open after a desktop launch.** A
