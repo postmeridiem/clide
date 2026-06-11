@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:clide/kernel/src/events/message_bus.dart';
+import 'package:clide/kernel/src/toast.dart';
 import 'package:flutter/foundation.dart';
 
 enum NotificationLevel { info, warning, error, success }
@@ -18,6 +20,14 @@ class ClideNotification {
 }
 
 class Notifications extends ChangeNotifier {
+  Notifications({MessageBus? messages}) : _messages = messages;
+
+  /// When wired (the facade passes the kernel bus), every notification is
+  /// also published to the toast channel so it actually renders — the
+  /// in-memory list had zero widget consumers and messages vanished
+  /// silently (T-382).
+  final MessageBus? _messages;
+
   final List<ClideNotification> _active = [];
   final Map<String, Timer> _timers = {};
   int _seq = 0;
@@ -41,6 +51,21 @@ class Notifications extends ChangeNotifier {
     final n = ClideNotification(id: id, level: level, message: message, title: title, duration: duration ?? const Duration(seconds: 4));
     _active.add(n);
     _timers[id] = Timer(n.duration, () => dismiss(id));
+    final bus = _messages;
+    if (bus != null) {
+      publishToast(
+        bus,
+        'kernel.notify',
+        title == null ? message : '$title — $message',
+        severity: switch (level) {
+          NotificationLevel.info => ToastSeverity.info,
+          NotificationLevel.warning => ToastSeverity.warning,
+          NotificationLevel.error => ToastSeverity.error,
+          NotificationLevel.success => ToastSeverity.success,
+        },
+        duration: duration,
+      );
+    }
     notifyListeners();
   }
 

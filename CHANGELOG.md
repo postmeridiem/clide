@@ -120,6 +120,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   together and images vanished; breaks now emit a newline and images render
   an italic `[image: alt]` placeholder. (T-379)
 
+- **Extension notifications actually appear on screen.** Messages pushed
+  through the kernel Notifications service (e.g. the CLI-install dogfood
+  warnings) accumulated in a list no surface rendered; they now raise
+  toasts with matching severity. (T-382)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

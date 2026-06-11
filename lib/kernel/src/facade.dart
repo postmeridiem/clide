@@ -166,7 +166,7 @@ class KernelServices {
     final readerNav = ReaderNavRegistry(messages);
     final clipboard = ClideClipboard();
     final files = FileServices(events);
-    final notify = Notifications();
+    final notify = Notifications(messages: messages);
     final dialog = DialogRouter();
     final tray = TrayRegistry();
     final secrets = SecretsVault();

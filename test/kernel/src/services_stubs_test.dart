@@ -272,5 +272,36 @@ void main() {
       expect(calls, 1);
       n.dispose();
     });
+
+    // T-382: the in-memory list had no widget consumer — notifications
+    // vanished silently. Wired to the bus, each one now raises a toast.
+    test('a bus-wired notification surfaces as a rendered toast (T-382)', () async {
+      final messages = MessageBus();
+      final toasts = ToastService(messages: messages);
+      addTearDown(toasts.dispose);
+      final n = Notifications(messages: messages);
+      addTearDown(n.dispose);
+
+      n.warn('clide CLI not on PATH', title: 'dogfood');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(toasts.entries, hasLength(1));
+      expect(toasts.entries.single.message, 'dogfood — clide CLI not on PATH');
+      expect(toasts.entries.single.severity, ToastSeverity.warning);
+    });
+
+    test('error and success levels map to their toast severities (T-382)', () async {
+      final messages = MessageBus();
+      final toasts = ToastService(messages: messages);
+      addTearDown(toasts.dispose);
+      final n = Notifications(messages: messages);
+      addTearDown(n.dispose);
+
+      n.error('boom');
+      n.success('done');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(toasts.entries.map((e) => e.severity), [ToastSeverity.error, ToastSeverity.success]);
+    });
   });
 }
