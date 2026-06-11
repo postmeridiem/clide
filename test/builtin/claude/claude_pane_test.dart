@@ -52,15 +52,18 @@ void main() {
   late ClaudeSessionOrchestrator orch;
   late String root;
   final created = <_FakeProc>[];
+  final spawnArgs = <List<String>>[];
 
   setUp(() async {
     f = await KernelFixture.create();
     created.clear();
+    spawnArgs.clear();
     root = '/repo-a';
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         final p = _FakeProc();
         created.add(p);
+        spawnArgs.add(sessionArgs);
         return p;
       },
     );
@@ -173,6 +176,20 @@ void main() {
     expect(created, hasLength(2));
     // Re-bound to the SAME deterministic id (cleared in place, not a random id).
     expect(orch.byId('primary')!.sessionId, id);
+  });
+
+  testWidgets('/clear in a fork pane clears instead of re-forking (T-375)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false, isPrimary: false, secondaryIndex: 1, forkSourceId: 'source-session-uuid'));
+    // First bind forks from the source.
+    expect(spawnArgs.single, containsAll(['--fork-session', 'source-session-uuid']));
+
+    await act(tester, () => composer(tester).onSubmit('/clear'));
+
+    // The respawn must NOT fork the original again — the fork source is a
+    // one-shot spawn parameter consumed by the first bind.
+    expect(spawnArgs, hasLength(2));
+    expect(spawnArgs.last, isNot(contains('--fork-session')));
+    expect(spawnArgs.last, isNot(contains('source-session-uuid')));
   });
 
   testWidgets('/fork delegates to the onFork callback with the session id', (tester) async {

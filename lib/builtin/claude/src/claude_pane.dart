@@ -81,6 +81,10 @@ class _ClaudePaneState extends State<ClaudePane> {
   String? _error;
   String _statusLine = 'starting…';
 
+  /// One-shot fork source: seeds the first bind, then cleared so /clear,
+  /// /resume, and respawns operate on this pane's own session (T-375).
+  late String? _forkSource = widget.forkSourceId;
+
   bool _spawned = false;
 
   /// Per-session composer draft (text + caret), held here so an unsent
@@ -272,7 +276,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
 
     final ManagedSession managed;
-    final forkSource = widget.forkSourceId;
+    final forkSource = _forkSource;
     if (forkSource != null) {
       // Fork pane: branch source session into a new clide-managed session.
       // The clide-internal id is a fresh UUID; the real claude session id is
@@ -286,6 +290,10 @@ class _ClaudePaneState extends State<ClaudePane> {
         if (mounted) setState(() => _error = 'Could not start fork: $e');
         return;
       }
+      // One-shot: the fork source seeds only the FIRST bind. Leaving it set
+      // made /clear re-fork the original conversation instead of clearing —
+      // every later respawn must operate on this pane's own session (T-375).
+      _forkSource = null;
       if (!mounted) return;
       setState(() => _statusLine = 'fork of $forkSource');
     } else {

@@ -99,6 +99,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   check and the loser's live process was orphaned; spawns for an id are now
   coalesced onto one in-flight future. (T-374)
 
+- **`/clear` in a fork pane clears instead of re-forking.** The fork source
+  took precedence on every respawn, so clearing a fork tab silently branched
+  the original conversation again; the source now seeds only the first
+  bind. (T-375)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
