@@ -84,6 +84,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   pane stops spinning, clears any unanswerable permission prompt, reports
   the exit in the status line, and logs the stderr tail. (T-361)
 
+- **The Claude status bar populates reliably after a session starts.** The
+  session's init event often fired before the pane subscribed and the plain
+  broadcast stream dropped it, leaving the model/mode/context line blank;
+  session state streams now replay their latest value to late subscribers.
+  (T-274, T-386)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

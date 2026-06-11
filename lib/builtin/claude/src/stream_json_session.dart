@@ -19,6 +19,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/src/util/value_stream.dart';
 
 /// The claude subprocess, abstracted so tests drive it without spawning.
 /// Fakes `extend` this and override what they drive; the defaults below
@@ -251,7 +252,9 @@ class StreamJsonSession {
   /// round-trips are answered by [_handleMcpMessage].
   final List<McpServer> _mcpServers;
   final _items = StreamController<ConversationItem>.broadcast();
-  final _statusCtl = StreamController<SessionStatus>.broadcast();
+  // State, not events — replay-latest so a subscriber that binds after the
+  // init event still sees the current status (T-386; root cause of T-274).
+  final _statusCtl = ValueStream<SessionStatus>();
   final _sessionIdCtl = StreamController<String>.broadcast();
   StreamSubscription<String>? _sub;
   SessionStatus _status = const SessionStatus();
@@ -284,7 +287,7 @@ class StreamJsonSession {
   /// Prompts awaiting a [resolvePrompt] decision, in arrival order. The head
   /// is the one currently shown in the composer zone.
   final _queue = <ToolPrompt>[];
-  final _pendingCtl = StreamController<ToolPrompt?>.broadcast();
+  final _pendingCtl = ValueStream<ToolPrompt?>.seeded(null);
 
   /// tool_use_ids that surfaced as a prompt — the view hides their raw
   /// tool-use card while pending (it shows as a prompt) but keeps the result.
@@ -309,7 +312,7 @@ class StreamJsonSession {
   /// Whether a turn is in flight (between a send and claude's `result`). Drives
   /// the composer's Stop affordance.
   bool _busy = false;
-  final _busyCtl = StreamController<bool>.broadcast();
+  final _busyCtl = ValueStream<bool>.seeded(false);
   bool get busy => _busy;
   Stream<bool> get busyStream => _busyCtl.stream;
 

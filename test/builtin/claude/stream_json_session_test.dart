@@ -201,6 +201,21 @@ void main() {
     expect(statuses, hasLength(1));
   });
 
+  // T-274 root cause: the init event fired before the pane subscribed and
+  // the plain broadcast stream dropped it — the status bar stayed blank.
+  test('subscribing AFTER the init event still yields the status (T-274/T-386)', () async {
+    proc.emit(initEvent());
+    await Future<void>.delayed(Duration.zero);
+
+    final late = <SessionStatus>[];
+    session.statusStream.listen(late.add);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(late, hasLength(1), reason: 'replay-latest delivers the current status to late binders');
+    expect(late.single.model, 'claude-opus-4-7');
+    expect(late.single.permissionMode, 'default');
+  });
+
   test('captures the claude session id from the first event carrying it (T-185)', () async {
     final ids = <String>[];
     session.sessionIdResolved.listen(ids.add);
@@ -647,7 +662,9 @@ void main() {
     proc.emit(jsonEncode({'type': 'result', 'subtype': 'success'}));
     await Future<void>.delayed(Duration.zero);
     expect(session.busy, isFalse);
-    expect(busy, [true, false]);
+    // Leading false is the replayed seed — busyStream tells a new
+    // subscriber the CURRENT state before the live updates (T-386).
+    expect(busy, [false, true, false]);
   });
 
   test('dispose kills the process', () async {
