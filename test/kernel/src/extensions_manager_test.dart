@@ -315,6 +315,86 @@ void main() {
       expect(ctx.project, same(f.services.project));
       expect(ctx.ipc, same(f.services.ipc));
     });
+
+    // T-377: activation is transactional, deactivation respects dependents,
+    // and duplicate contribution ids are rejected, not silently clobbered.
+    group('lifecycle hardening (T-377)', () {
+      test('a throw mid-contribution unwinds everything already mounted', () async {
+        // The tab mounts first, then the duplicate command id throws.
+        f.services.commands.register(CommandContribution(id: 'taken', command: 'taken.cmd', run: (_) async => IpcResponse.ok(id: '')));
+        f.services.extensions.register(
+          _Ext(
+            id: 'half-mounts',
+            contributions: [
+              TabContribution(id: 'half.view', slot: Slots.workspace, title: 'T', build: (_) => const SizedBox.shrink()),
+              CommandContribution(id: 'half.cmd', command: 'taken.cmd', run: (_) async => IpcResponse.ok(id: '')),
+            ],
+          ),
+        );
+        await f.services.extensions.activateAll();
+
+        expect(f.services.extensions.isActivated('half-mounts'), isFalse);
+        expect(f.services.extensions.didFail('half-mounts'), isTrue);
+        expect(f.services.panels.hasContribution('half.view'), isFalse, reason: 'the mounted tab must be unwound');
+      });
+
+      test('a failed activation can retry cleanly without double-applying', () async {
+        var attempts = 0;
+        f.services.extensions.register(
+          _Ext(
+            id: 'flaky',
+            contributions: [TabContribution(id: 'flaky.view', slot: Slots.workspace, title: 'T', build: (_) => const SizedBox.shrink())],
+            onActivate: (_) async {
+              attempts++;
+              if (attempts == 1) throw StateError('first attempt fails');
+            },
+          ),
+        );
+        await f.services.extensions.activateAll();
+        expect(f.services.extensions.didFail('flaky'), isTrue);
+
+        await f.services.extensions.activate('flaky');
+        expect(f.services.extensions.isActivated('flaky'), isTrue);
+        expect(f.services.extensions.didFail('flaky'), isFalse);
+        expect(f.services.panels.tabsFor(Slots.workspace).where((t) => t.id == 'flaky.view'), hasLength(1), reason: 'exactly one mount after the retry');
+      });
+
+      test('deactivate refuses while an active extension depends on it', () async {
+        f.services.extensions
+          ..register(_Ext(id: 'base'))
+          ..register(_Ext(id: 'leaf', dependsOn: const ['base']));
+        await f.services.extensions.activateAll();
+
+        await f.services.extensions.deactivate('base');
+        expect(f.services.extensions.isActivated('base'), isTrue, reason: 'refused: leaf still depends on base');
+
+        await f.services.extensions.deactivate('leaf');
+        await f.services.extensions.deactivate('base');
+        expect(f.services.extensions.isActivated('base'), isFalse, reason: 'allowed once the dependent is gone');
+      });
+
+      test('a duplicate contribution id fails the second activation', () async {
+        f.services.extensions
+          ..register(
+            _Ext(
+              id: 'first',
+              contributions: [TabContribution(id: 'shared.view', slot: Slots.workspace, title: 'A', build: (_) => const SizedBox.shrink())],
+            ),
+          )
+          ..register(
+            _Ext(
+              id: 'second',
+              contributions: [TabContribution(id: 'shared.view', slot: Slots.workspace, title: 'B', build: (_) => const SizedBox.shrink())],
+            ),
+          );
+        await f.services.extensions.activateAll();
+
+        expect(f.services.extensions.isActivated('first'), isTrue);
+        expect(f.services.extensions.isActivated('second'), isFalse);
+        expect(f.services.extensions.didFail('second'), isTrue);
+        expect(f.services.panels.tabsFor(Slots.workspace).where((t) => t.id == 'shared.view'), hasLength(1), reason: 'first-wins, no clobber');
+      });
+    });
   });
 }
 

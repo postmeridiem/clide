@@ -142,6 +142,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   rune split across reads into replacement-character noise; the terminal
   now ingests bytes through a persistent decoder. (T-373)
 
+- **Extension lifecycle is transactional.** A throw mid-activation now
+  unwinds every contribution it had mounted (a retry no longer
+  double-applies), deactivating an extension is refused while active
+  extensions depend on it, and duplicate contribution/command ids are
+  rejected instead of silently clobbering. (T-377)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
