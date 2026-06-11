@@ -33,6 +33,11 @@ class _TerminalPaneState extends State<TerminalPane> {
   String? _error;
   int _pid = 0;
 
+  /// Cached in didChangeDependencies — ancestor lookups are illegal in
+  /// dispose(), and the old lookup-and-swallow there meant pane.close
+  /// was never sent, leaking the backend PTY + daemon pane (T-366).
+  KernelServices? _kernel;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +51,12 @@ class _TerminalPaneState extends State<TerminalPane> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _kernel = ClideKernel.of(context);
+  }
+
+  @override
   void dispose() {
     _eventSub?.cancel();
     _eventSub = null;
@@ -53,14 +64,14 @@ class _TerminalPaneState extends State<TerminalPane> {
     _paneId = null;
     if (id != null) {
       // Fire-and-forget. Daemon-side pane.close is idempotent.
-      unawaited(_kernelIpc()?.request('pane.close', args: {'id': id}));
+      unawaited(_kernel?.ipc.request('pane.close', args: {'id': id}));
     }
     super.dispose();
   }
 
   Future<void> _spawn() async {
     if (!mounted) return;
-    final ipc = _kernelIpc();
+    final ipc = _kernel?.ipc;
     if (ipc == null || !ipc.isConnected) {
       setState(() => _error = 'Backend not connected.');
       return;
@@ -92,7 +103,7 @@ class _TerminalPaneState extends State<TerminalPane> {
   }
 
   void _subscribeToPaneEvents() {
-    final kernel = _kernel();
+    final kernel = _kernel;
     if (kernel == null) return;
     _eventSub = kernel.events.on<DaemonEvent>().listen((event) {
       if (event.subsystem != 'pane') return;
@@ -117,23 +128,13 @@ class _TerminalPaneState extends State<TerminalPane> {
   void _onTerminalOutput(String text) {
     final id = _paneId;
     if (id == null) return;
-    _kernelIpc()?.request('pane.write', args: {'id': id, 'text': text});
+    _kernel?.ipc.request('pane.write', args: {'id': id, 'text': text});
   }
 
   void _onTerminalResize(int cols, int rows, int pixelWidth, int pixelHeight) {
     final id = _paneId;
     if (id == null) return;
-    _kernelIpc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
-  }
-
-  DaemonClient? _kernelIpc() => _kernel()?.ipc;
-
-  KernelServices? _kernel() {
-    try {
-      return ClideKernel.of(context);
-    } catch (_) {
-      return null;
-    }
+    _kernel?.ipc.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
   }
 
   @override

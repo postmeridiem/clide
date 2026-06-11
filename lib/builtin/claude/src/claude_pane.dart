@@ -141,6 +141,10 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Cache the kernel for dispose() — ancestor lookups there are illegal,
+    // and the old lookup-and-swallow leaked the settings listener on every
+    // disposed pane (T-366).
+    _kernel = ClideKernel.of(context);
     // Spawn once, after the kernel is available.
     if (!_spawned) {
       _spawned = true;
@@ -168,7 +172,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void dispose() {
     activeClaudeConfig?.removeListener(_onConfigChanged);
-    _kernel()?.settings.removeListener(_onSettingsChanged);
+    _kernel?.settings.removeListener(_onSettingsChanged);
     _projectSub?.cancel();
     _projectSub = null;
     _statusSub?.cancel();
@@ -314,7 +318,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     // a fresh spawn vs connecting to existing on-disk history (the seed read
     // from the transcript/sidecar). Surfaces the resume path in `make run`.
     final seeded = _conversation?.items.length ?? 0;
-    _kernel()?.log.info(
+    _kernel?.log.info(
       'claude',
       'pane $_orchId bound session ${_sessionId ?? '?'} in $repoRoot — '
           '${seeded > 0 ? 'connected to history ($seeded seeded item(s))' : 'fresh session (no history)'}',
@@ -422,7 +426,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// re-bind the pane to it.
   Future<void> _resumeFlow() async {
     final root = _repoRoot;
-    final dialog = _kernel()?.dialog;
+    final dialog = _kernel?.dialog;
     if (root == null || dialog == null) return;
     final dir = Directory(claudeProjectDir(root));
     final sessions = await listSessions(dir);
@@ -455,15 +459,10 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   // -- helpers --------------------------------------------------------------
 
-  DaemonClient? _ipc() => _kernel()?.ipc;
+  DaemonClient? _ipc() => _kernel?.ipc;
 
-  KernelServices? _kernel() {
-    try {
-      return ClideKernel.of(context);
-    } catch (_) {
-      return null;
-    }
-  }
+  /// Cached in didChangeDependencies (T-366); see note there.
+  KernelServices? _kernel;
 
   // -- build ----------------------------------------------------------------
 
@@ -496,7 +495,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                   onTap: _focusComposerOnTap,
                   child: ConversationView(
                     controller: _conversation!,
-                    foldLevel: foldLevelFromName(_kernel()?.settings.get<String>(kActivityFoldLevelKey)),
+                    foldLevel: foldLevelFromName(_kernel?.settings.get<String>(kActivityFoldLevelKey)),
                     hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
                     toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
                     quietErrorToolUseIds: _session?.quietErrorToolUseIds ?? const <String>{},

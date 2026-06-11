@@ -36,6 +36,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   terminal or Claude pane whose process ended naturally left its pty device
   open for the life of the app; natural exit now releases the fd. (T-360)
 
+- **Closing a terminal pane now closes its shell.** Pane disposal looked up
+  the kernel illegally and swallowed the failure, so `pane.close` was never
+  sent — the backend PTY and daemon pane leaked on every closed terminal
+  pane, and Claude panes leaked a settings listener the same way. (T-366)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,
