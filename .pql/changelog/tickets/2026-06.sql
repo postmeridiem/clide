@@ -3366,3 +3366,210 @@ SCOPE CLARIFICATION (2026-06-10, from user):
    - Net behaviour: a fan-out of N agents -> N distinct collapsed cards, each containing its own complete run; surrounding non-agent tool calls still group into their normal Activity card.
 
 Test additions: (a) two concurrent agents whose sidechain items interleave -> each agent''s run items land under its own card, none cross-attributed; (b) an unattributable sidechain item (no parent_tool_use_id, broken chain) is NOT swept into the nearest agent''s card; (c) regression: consecutive Bash/Read calls still form one Activity cluster.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 15:26:33', '2026-06-11 12:35:27', NULL, 'a1faa7af007b8cb1952fb7595e720c4a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB493JEW32CH0H3771TNHF7G', 'story', '06FB0TNQM5TWC00GW0P3X02HZW', 'Give each spawned subagent its own collapsing activity card (don''t merge Task spawns)', 'Filed 2026-06-10 from a user request: when the agent fans out multiple subagents (Task/Agent tool), each spawned subagent should get its OWN collapsing activity card. The space is worth it — a fan-out of N agents should read as N cards, not one lumped card.
+
+CURRENT BEHAVIOUR (confirmed): multiple Task/Agent spawns are MERGED into a single shared ''Activity / N steps'' cluster. groupConversation() in lib/builtin/claude/src/activity_cluster.dart:120-147 walks items and coalesces every consecutive _isFoldable item into one FoldedCluster. _isFoldable (:149-172, AssistantToolUse case at :161-164) only distinguishes diff tools (Edit/Write/MultiEdit/NotebookEdit/Update -> stay first-class) from everything else (Task/Agent/Bash/Read/... -> all foldable). The Task tool is treated identically to a Bash/Read call; there is NO subagent-aware grouping key (not toolUseId, not parent_tool_use_id). So 4 spawned agents render as one ''Activity 4 steps'' card.
+
+What recent work already does (do NOT redo): T-263 folds the subagent PROMPT into the Agent card; T-264 nests the subagent''s RUN items under the parent Agent card (the ''agent run'' collapser); T-338 routes sidechain items to their parent via parent_tool_use_id. All of that is about what shows INSIDE one agent''s card. This ticket is the complement: stop merging DISTINCT agent spawns into a shared cluster.
+
+SCOPE / DESIGN:
+- An AssistantToolUse where _isAgentTool(name) (Task/Agent) should break the current Activity cluster and render as its own first-class collapsing card (its own ClideCollapserCard with the prompt + nested ''agent run'' from T-263/T-264), rather than folding into the generic Activity cluster with sibling tool calls.
+- Decide grouping precisely in groupConversation/_isFoldable: an Agent tool-use is a cluster boundary (like a sticky item) OR emits its own single-item card. Adjacent non-agent foldables (Bash/Read/Grep) keep clustering into the normal Activity card as today.
+- Label each subagent card by its task/description (the Agent call''s label) so parallel fan-outs are distinguishable, not ''Activity N steps''.
+- Keep collapsed-by-default behaviour and the FoldLevel semantics; this changes the grouping boundary, not the fold mechanics.
+
+Refs: lib/builtin/claude/src/activity_cluster.dart (groupConversation, _isFoldable, isDiffTool), lib/builtin/claude/src/conversation_view.dart (_ActivityCard at ~833, _toolUseCollapser ~615-657, _isAgentTool ~378). Related: T-230 (clustering), T-263, T-264, T-338.
+
+Tests: a groupConversation case asserting that two consecutive Agent tool-uses yield two separate cards (not one FoldedCluster), while two consecutive Bash calls still yield one Activity cluster.
+
+SCOPE CLARIFICATION (2026-06-10, from user):
+
+1. RIGHT card, not just A card. Each per-agent card must pull in ALL of that agent''s nested run — the folded prompt (T-263) AND every nested response: prose, thinking, sidechain tool cards, and results (T-264) — attributed to the CORRECT agent even under a parallel fan-out where multiple agents'' sidechain items interleave in the stream. Reuse the existing _sidechainFold machinery (conversation_view.dart:188-256): runByToolUseId / promptsByToolUseId are already keyed by the owning Agent''s toolUseId, and resolveOwner''s direct route (conversation_view.dart:210-217) uses parent_tool_use_id (T-338) which disambiguates concurrent agents correctly. THE HAZARD: resolveOwner falls back to ''nearest'' = lastAgent (the most-recently-emitted Agent in stream order; conversation_view.dart:228, applied at :242). In a parallel fan-out any item that lacks parent_tool_use_id and a rooted parentUuid chain would mis-route to whichever agent was emitted last — landing in the WRONG card. Harden this: for the multi-agent case, drop or guard the nearest-lastAgent fallback so an unattributable item is rendered inline/orphaned (resolveOwner already returns null -> handled at :243) rather than mis-filed into a sibling agent''s card.
+
+2. PRESERVE the existing grouping. This ticket only adds an Agent-spawn cluster boundary; it must NOT regress the rest:
+   - Non-agent foldables (Bash/Read/Grep/LS/etc.) keep coalescing into the generic ''Activity / N steps'' cluster exactly as today (activity_cluster.dart groupConversation/_isFoldable).
+   - The intra-agent folding stays: prompt-into-call (T-263), run-nested-under-card (T-264), sidechain routing by parent_tool_use_id (T-338). Reuse them; do not rebuild.
+   - Net behaviour: a fan-out of N agents -> N distinct collapsed cards, each containing its own complete run; surrounding non-agent tool calls still group into their normal Activity card.
+
+Test additions: (a) two concurrent agents whose sidechain items interleave -> each agent''s run items land under its own card, none cross-attributed; (b) an unattributable sidechain item (no parent_tool_use_id, broken chain) is NOT swept into the nearest agent''s card; (c) regression: consecutive Bash/Read calls still form one Activity cluster.', 'done', 'medium', NULL, NULL, NULL, '2026-06-10 15:26:33', '2026-06-11 12:57:24', NULL, 'd822618eb175daca9547b05cb07096d4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'story', '06FB0TNQM79H4MPEWW2TWQ89D0', 'clide self-update mechanism', 'Check for new versions on startup (or on demand via command palette). Show a non-intrusive notification when an update is available. Support in-place update without losing running Claude sessions (tmux sessions survive). Respect POLICY.md: no silent network calls on default launch path — the check should be opt-in or gated behind a setting. Consider delta updates for bandwidth efficiency.', 'ready', 'medium', NULL, NULL, NULL, '2026-04-23 20:28:43', '2026-06-11 13:01:55', NULL, '02b5cb1f954c1733edefaee9a8f0a03d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'story', '06FB0TNQM79H4MPEWW2TWQ89D0', 'clide self-update mechanism', 'Check for new versions on startup (or on demand via command palette). Show a non-intrusive notification when an update is available. Support in-place update without losing running Claude sessions (tmux sessions survive). Respect POLICY.md: no silent network calls on default launch path — the check should be opt-in or gated behind a setting. Consider delta updates for bandwidth efficiency.
+
+─────────────────────────────────────────────
+REFINED 2026-06-11
+
+## Current state (grounding)
+- Version is surfaced at runtime via `lib/src/build_info.g.dart` (`clideVersion`,
+  `clideCommit`, `clideDate`, `clideRepository` = github.com/postmeridiem/clide),
+  generated from pubspec by `make gen-build-info`. This is the "installed version".
+- Install layout (`make install`): Linux → bundle at `~/.local/lib/clide/`, C client
+  at `~/.local/bin/clide`, desktop file + icons. macOS → `~/Applications/clide.app`
+  + `~/.local/bin/clide`. Windows: not yet shipped.
+- clide currently makes NO outbound HTTP calls anywhere in `lib/`. Self-update would
+  be the FIRST one — so this is a policy-sensitive feature, not just plumbing.
+- tmux owns Claude session persistence (D-41); the app re-attaches on restart. An
+  in-place update that restarts the app does NOT lose sessions — they live in tmux,
+  outside the bundle.
+
+## HARD CONSTRAINTS (non-negotiable)
+- **D-64 (no telemetry / no phone-home):** "No auto-update checks without user
+  action." This is STRICTER than this ticket''s original "opt-in or gated behind a
+  setting" wording. A background/startup check — even one a setting enabled — runs
+  "without user action" at that launch and conflicts with D-64. RESOLUTION: the
+  version check must be **explicitly user-initiated every time** (a command-palette
+  "Check for updates…" action / an About-screen button). If we ever want a
+  startup/periodic check, that needs a deliberate D-64 amendment first — flag, don''t
+  assume.
+- **POLICY.md §"no network on the default launch path":** opening the app, a file,
+  or typing must never trigger the fetch. The update check + download are explicit
+  user actions, so they''re allowed — but must meet the §"grudging allowance"
+  criteria: clear error on failure (not silent), cached result, app fully functional
+  if the fetch fails.
+
+## BLOCKING PREREQUISITE (likely its own ticket under T-46)
+There is no release channel to update FROM today: only 2 git tags (v2.0.0, v2.1.0)
+despite being at 2.3.3, no CI (`.github/workflows` is empty), and no published binary
+artifacts. Self-update is meaningless without:
+  1. Consistent, automated release tagging (every `release vX.Y.Z` commit → a tag).
+  2. CI that builds the per-platform bundles and publishes them as GitHub Releases.
+  3. Each artifact accompanied by a checksum AND a signature (POLICY.md: "behavior is
+     determined by the SIGNED release artifact"). An unsigned/unverified download
+     would break the trust model the update is supposed to preserve.
+  4. A machine-readable "latest version" source — the GitHub Releases API
+     (`/repos/postmeridiem/clide/releases/latest`) is the zero-infra option; a
+     committed `latest.json` manifest is the alternative.
+RECOMMENDATION: split this prerequisite into a sibling story "Release channel: CI
+build + signed GitHub Releases + version manifest" and make T-47 depend on it.
+
+## DECISIONS TO MAKE (surface before building)
+1. Check source: GitHub Releases API vs a hosted `latest.json`. (Lean: Releases API —
+   no extra infra, origin is already GitHub.)
+2. Signature scheme + verification: minisign/age/cosign? Where does the public key
+   live (vendored in-repo, per POLICY.md provenance)?
+3. Delivery: full bundle replacement vs delta/binary-patch (original ask). Lean full
+   for v1 — deltas are a bandwidth optimization, not correctness; revisit if size hurts.
+4. Apply strategy per platform: Linux is easy (swap `~/.local/lib/clide/` + the
+   `~/.local/bin/clide` client atomically, then relaunch). macOS `.app` replacement +
+   notarization/quarantine handling is harder. Windows out of scope until it ships.
+5. Privilege: user-local installs (`~/.local`, `~/Applications`) need no sudo — good.
+   A system-wide install would; declare user-local only for v1.
+
+## PROPOSED SCOPE / PHASES (each independently shippable)
+P0 (prereq, separate ticket): release channel — tags + CI + signed GitHub Releases.
+P1: "Check for updates…" command (palette + About-screen button). Explicit fetch of
+    the latest release, semver-compare against `clideVersion`, non-intrusive ToastService
+    notification ("clide X.Y.Z is available") with a "What''s changed" link to the release
+    notes. No download yet. Clear error toast on network failure. Fully covers the D-64 /
+    POLICY-compliant "notify" half of the story.
+P2: download + signature/checksum verify into a staging dir; show progress; verify before
+    touching the install.
+P3: apply + relaunch (Linux first): atomic swap of bundle + client, restart the app;
+    tmux sessions survive (D-41). Confirm-before-apply.
+P4 (optional): macOS apply path (.app swap + quarantine), delta updates.
+
+## ACCEPTANCE (for the full story; refine per-phase ticket)
+- No network call on any default launch path (verified — grep + a test that boot makes
+  no outbound connection).
+- "Check for updates" only runs on explicit user action; failure surfaces a clear
+  toast, never a silent hang or degraded launch.
+- A downloaded update is signature+checksum verified before it can replace the install;
+  verification failure aborts with the old version intact.
+- Applying an update and relaunching preserves running Claude/tmux sessions.
+- Version comparison is correct semver (2.3.10 > 2.3.9, pre-release handling defined).
+
+## REFERENCES
+POLICY.md (network rule + grudging-allowance criteria); D-64 (no phone-home);
+D-41 (tmux session persistence); `lib/src/build_info.g.dart` (version source);
+`lib/kernel/src/toast.dart` (ToastService — the notification); settings bool pattern
+(`app.*.enabled`, `lib/kernel/src/extensions_manager.dart`); `Makefile` install target
+(per-platform layout); parent epic T-46 (cross-platform installer).', 'ready', 'medium', NULL, NULL, NULL, '2026-04-23 20:28:43', '2026-06-11 13:30:03', NULL, '73a6def84544128c6212852d22c58e9f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'story', '06FB0TNQM79H4MPEWW2TWQ89D0', 'clide self-update mechanism', 'Check for new versions on startup (or on demand via command palette). Show a non-intrusive notification when an update is available. Support in-place update without losing running Claude sessions (tmux sessions survive). Respect POLICY.md: no silent network calls on default launch path — the check should be opt-in or gated behind a setting. Consider delta updates for bandwidth efficiency.
+
+─────────────────────────────────────────────
+REFINED 2026-06-11
+
+## Current state (grounding)
+- Version is surfaced at runtime via `lib/src/build_info.g.dart` (`clideVersion`,
+  `clideCommit`, `clideDate`, `clideRepository` = github.com/postmeridiem/clide),
+  generated from pubspec by `make gen-build-info`. This is the "installed version".
+- Install layout (`make install`): Linux → bundle at `~/.local/lib/clide/`, C client
+  at `~/.local/bin/clide`, desktop file + icons. macOS → `~/Applications/clide.app`
+  + `~/.local/bin/clide`. Windows: not yet shipped.
+- clide currently makes NO outbound HTTP calls anywhere in `lib/`. Self-update would
+  be the FIRST one — so this is a policy-sensitive feature, not just plumbing.
+- tmux owns Claude session persistence (D-41); the app re-attaches on restart. An
+  in-place update that restarts the app does NOT lose sessions — they live in tmux,
+  outside the bundle.
+
+## HARD CONSTRAINTS (non-negotiable)
+- **D-64 (no telemetry / no phone-home):** "No auto-update checks without user
+  action." This is STRICTER than this ticket''s original "opt-in or gated behind a
+  setting" wording. A background/startup check — even one a setting enabled — runs
+  "without user action" at that launch and conflicts with D-64. RESOLUTION: the
+  version check must be **explicitly user-initiated every time** (a command-palette
+  "Check for updates…" action / an About-screen button). If we ever want a
+  startup/periodic check, that needs a deliberate D-64 amendment first — flag, don''t
+  assume.
+- **POLICY.md §"no network on the default launch path":** opening the app, a file,
+  or typing must never trigger the fetch. The update check + download are explicit
+  user actions, so they''re allowed — but must meet the §"grudging allowance"
+  criteria: clear error on failure (not silent), cached result, app fully functional
+  if the fetch fails.
+
+## BLOCKING PREREQUISITE (likely its own ticket under T-46)
+There is no release channel to update FROM today: only 2 git tags (v2.0.0, v2.1.0)
+despite being at 2.3.3, no CI (`.github/workflows` is empty), and no published binary
+artifacts. Self-update is meaningless without:
+  1. Consistent, automated release tagging (every `release vX.Y.Z` commit → a tag).
+  2. CI that builds the per-platform bundles and publishes them as GitHub Releases.
+  3. Each artifact accompanied by a checksum AND a signature (POLICY.md: "behavior is
+     determined by the SIGNED release artifact"). An unsigned/unverified download
+     would break the trust model the update is supposed to preserve.
+  4. A machine-readable "latest version" source — the GitHub Releases API
+     (`/repos/postmeridiem/clide/releases/latest`) is the zero-infra option; a
+     committed `latest.json` manifest is the alternative.
+RECOMMENDATION: split this prerequisite into a sibling story "Release channel: CI
+build + signed GitHub Releases + version manifest" and make T-47 depend on it.
+
+## DECISIONS TO MAKE (surface before building)
+1. Check source: GitHub Releases API vs a hosted `latest.json`. (Lean: Releases API —
+   no extra infra, origin is already GitHub.)
+2. Signature scheme + verification: minisign/age/cosign? Where does the public key
+   live (vendored in-repo, per POLICY.md provenance)?
+3. Delivery: full bundle replacement vs delta/binary-patch (original ask). Lean full
+   for v1 — deltas are a bandwidth optimization, not correctness; revisit if size hurts.
+4. Apply strategy per platform: Linux is easy (swap `~/.local/lib/clide/` + the
+   `~/.local/bin/clide` client atomically, then relaunch). macOS `.app` replacement +
+   notarization/quarantine handling is harder. Windows out of scope until it ships.
+5. Privilege: user-local installs (`~/.local`, `~/Applications`) need no sudo — good.
+   A system-wide install would; declare user-local only for v1.
+
+## PROPOSED SCOPE / PHASES (each independently shippable)
+P0 (prereq, separate ticket): release channel — tags + CI + signed GitHub Releases.
+P1: "Check for updates…" command (palette + About-screen button). Explicit fetch of
+    the latest release, semver-compare against `clideVersion`, non-intrusive ToastService
+    notification ("clide X.Y.Z is available") with a "What''s changed" link to the release
+    notes. No download yet. Clear error toast on network failure. Fully covers the D-64 /
+    POLICY-compliant "notify" half of the story.
+P2: download + signature/checksum verify into a staging dir; show progress; verify before
+    touching the install.
+P3: apply + relaunch (Linux first): atomic swap of bundle + client, restart the app;
+    tmux sessions survive (D-41). Confirm-before-apply.
+P4 (optional): macOS apply path (.app swap + quarantine), delta updates.
+
+## ACCEPTANCE (for the full story; refine per-phase ticket)
+- No network call on any default launch path (verified — grep + a test that boot makes
+  no outbound connection).
+- "Check for updates" only runs on explicit user action; failure surfaces a clear
+  toast, never a silent hang or degraded launch.
+- A downloaded update is signature+checksum verified before it can replace the install;
+  verification failure aborts with the old version intact.
+- Applying an update and relaunching preserves running Claude/tmux sessions.
+- Version comparison is correct semver (2.3.10 > 2.3.9, pre-release handling defined).
+
+## REFERENCES
+POLICY.md (network rule + grudging-allowance criteria); D-64 (no phone-home);
+D-41 (tmux session persistence); `lib/src/build_info.g.dart` (version source);
+`lib/kernel/src/toast.dart` (ToastService — the notification); settings bool pattern
+(`app.*.enabled`, `lib/kernel/src/extensions_manager.dart`); `Makefile` install target
+(per-platform layout); parent epic T-46 (cross-platform installer).', 'backlog', 'medium', NULL, NULL, NULL, '2026-04-23 20:28:43', '2026-06-11 13:30:47', NULL, '28d5684adc9127f1306bddaaff8d1f77', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

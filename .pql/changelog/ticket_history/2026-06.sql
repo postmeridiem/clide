@@ -3532,3 +3532,96 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB3DWCJSGZH9WYDNFWZBAYYR', 'status', 'in_progress', 'in_progress', NULL, '2026-06-11 11:27:07', '2026-06-11 11:27:07', '2026-06-11 11:27:07', NULL, '00d5d9b5cf592f3a3fc63fbef7a8b8f2', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB3DWCJSGZH9WYDNFWZBAYYR', 'status', 'in_progress', 'done', NULL, '2026-06-11 12:35:27', '2026-06-11 12:35:27', '2026-06-11 12:35:27', NULL, '3426869e05daf251e562d77373d55752', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB493JEW32CH0H3771TNHF7G', 'status', 'in_progress', 'in_progress', NULL, '2026-06-11 12:35:27', '2026-06-11 12:35:27', '2026-06-11 12:35:27', NULL, '4f776a2c08d43710d7dadf9bb3a4b71f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB493JEW32CH0H3771TNHF7G', 'status', 'in_progress', 'done', NULL, '2026-06-11 12:57:24', '2026-06-11 12:57:24', '2026-06-11 12:57:24', NULL, 'd067abbb3829e8eb200f7f854befba2c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'status', 'backlog', 'ready', NULL, '2026-06-11 13:01:55', '2026-06-11 13:01:55', '2026-06-11 13:01:55', NULL, '122a1e8ac78fe4a4429c6e146b0e1a17', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'description', 'Check for new versions on startup (or on demand via command palette). Show a non-intrusive notification when an update is available. Support in-place update without losing running Claude sessions (tmux sessions survive). Respect POLICY.md: no silent network calls on default launch path — the check should be opt-in or gated behind a setting. Consider delta updates for bandwidth efficiency.', 'Check for new versions on startup (or on demand via command palette). Show a non-intrusive notification when an update is available. Support in-place update without losing running Claude sessions (tmux sessions survive). Respect POLICY.md: no silent network calls on default launch path — the check should be opt-in or gated behind a setting. Consider delta updates for bandwidth efficiency.
+
+─────────────────────────────────────────────
+REFINED 2026-06-11
+
+## Current state (grounding)
+- Version is surfaced at runtime via `lib/src/build_info.g.dart` (`clideVersion`,
+  `clideCommit`, `clideDate`, `clideRepository` = github.com/postmeridiem/clide),
+  generated from pubspec by `make gen-build-info`. This is the "installed version".
+- Install layout (`make install`): Linux → bundle at `~/.local/lib/clide/`, C client
+  at `~/.local/bin/clide`, desktop file + icons. macOS → `~/Applications/clide.app`
+  + `~/.local/bin/clide`. Windows: not yet shipped.
+- clide currently makes NO outbound HTTP calls anywhere in `lib/`. Self-update would
+  be the FIRST one — so this is a policy-sensitive feature, not just plumbing.
+- tmux owns Claude session persistence (D-41); the app re-attaches on restart. An
+  in-place update that restarts the app does NOT lose sessions — they live in tmux,
+  outside the bundle.
+
+## HARD CONSTRAINTS (non-negotiable)
+- **D-64 (no telemetry / no phone-home):** "No auto-update checks without user
+  action." This is STRICTER than this ticket''s original "opt-in or gated behind a
+  setting" wording. A background/startup check — even one a setting enabled — runs
+  "without user action" at that launch and conflicts with D-64. RESOLUTION: the
+  version check must be **explicitly user-initiated every time** (a command-palette
+  "Check for updates…" action / an About-screen button). If we ever want a
+  startup/periodic check, that needs a deliberate D-64 amendment first — flag, don''t
+  assume.
+- **POLICY.md §"no network on the default launch path":** opening the app, a file,
+  or typing must never trigger the fetch. The update check + download are explicit
+  user actions, so they''re allowed — but must meet the §"grudging allowance"
+  criteria: clear error on failure (not silent), cached result, app fully functional
+  if the fetch fails.
+
+## BLOCKING PREREQUISITE (likely its own ticket under T-46)
+There is no release channel to update FROM today: only 2 git tags (v2.0.0, v2.1.0)
+despite being at 2.3.3, no CI (`.github/workflows` is empty), and no published binary
+artifacts. Self-update is meaningless without:
+  1. Consistent, automated release tagging (every `release vX.Y.Z` commit → a tag).
+  2. CI that builds the per-platform bundles and publishes them as GitHub Releases.
+  3. Each artifact accompanied by a checksum AND a signature (POLICY.md: "behavior is
+     determined by the SIGNED release artifact"). An unsigned/unverified download
+     would break the trust model the update is supposed to preserve.
+  4. A machine-readable "latest version" source — the GitHub Releases API
+     (`/repos/postmeridiem/clide/releases/latest`) is the zero-infra option; a
+     committed `latest.json` manifest is the alternative.
+RECOMMENDATION: split this prerequisite into a sibling story "Release channel: CI
+build + signed GitHub Releases + version manifest" and make T-47 depend on it.
+
+## DECISIONS TO MAKE (surface before building)
+1. Check source: GitHub Releases API vs a hosted `latest.json`. (Lean: Releases API —
+   no extra infra, origin is already GitHub.)
+2. Signature scheme + verification: minisign/age/cosign? Where does the public key
+   live (vendored in-repo, per POLICY.md provenance)?
+3. Delivery: full bundle replacement vs delta/binary-patch (original ask). Lean full
+   for v1 — deltas are a bandwidth optimization, not correctness; revisit if size hurts.
+4. Apply strategy per platform: Linux is easy (swap `~/.local/lib/clide/` + the
+   `~/.local/bin/clide` client atomically, then relaunch). macOS `.app` replacement +
+   notarization/quarantine handling is harder. Windows out of scope until it ships.
+5. Privilege: user-local installs (`~/.local`, `~/Applications`) need no sudo — good.
+   A system-wide install would; declare user-local only for v1.
+
+## PROPOSED SCOPE / PHASES (each independently shippable)
+P0 (prereq, separate ticket): release channel — tags + CI + signed GitHub Releases.
+P1: "Check for updates…" command (palette + About-screen button). Explicit fetch of
+    the latest release, semver-compare against `clideVersion`, non-intrusive ToastService
+    notification ("clide X.Y.Z is available") with a "What''s changed" link to the release
+    notes. No download yet. Clear error toast on network failure. Fully covers the D-64 /
+    POLICY-compliant "notify" half of the story.
+P2: download + signature/checksum verify into a staging dir; show progress; verify before
+    touching the install.
+P3: apply + relaunch (Linux first): atomic swap of bundle + client, restart the app;
+    tmux sessions survive (D-41). Confirm-before-apply.
+P4 (optional): macOS apply path (.app swap + quarantine), delta updates.
+
+## ACCEPTANCE (for the full story; refine per-phase ticket)
+- No network call on any default launch path (verified — grep + a test that boot makes
+  no outbound connection).
+- "Check for updates" only runs on explicit user action; failure surfaces a clear
+  toast, never a silent hang or degraded launch.
+- A downloaded update is signature+checksum verified before it can replace the install;
+  verification failure aborts with the old version intact.
+- Applying an update and relaunching preserves running Claude/tmux sessions.
+- Version comparison is correct semver (2.3.10 > 2.3.9, pre-release handling defined).
+
+## REFERENCES
+POLICY.md (network rule + grudging-allowance criteria); D-64 (no phone-home);
+D-41 (tmux session persistence); `lib/src/build_info.g.dart` (version source);
+`lib/kernel/src/toast.dart` (ToastService — the notification); settings bool pattern
+(`app.*.enabled`, `lib/kernel/src/extensions_manager.dart`); `Makefile` install target
+(per-platform layout); parent epic T-46 (cross-platform installer).', NULL, '2026-06-11 13:30:03', '2026-06-11 13:30:03', '2026-06-11 13:30:03', NULL, 'cf37ae15ac8dbf59eb23e98fef32427f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7CEKQCMZAV751402G', 'status', 'ready', 'backlog', NULL, '2026-06-11 13:30:47', '2026-06-11 13:30:47', '2026-06-11 13:30:47', NULL, '2c566e731dfce3b9e111c1c1c50ec642', 2) ON CONFLICT(hash) DO NOTHING;
