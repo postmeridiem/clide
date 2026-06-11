@@ -36,6 +36,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   its own card with its prompt and nested run. Non-agent tool calls still group
   as before. (T-342)
 
+### Removed
+
+- **Dead welcome-screen tiles.** "Clone from git…" and "Start a Claude
+  session" did nothing on tap and advertised shortcuts that were never
+  registered; the tips card now lists only shortcuts that exist in the
+  default keymap. Each tile returns when its flow ships. (T-383)
+
 ### Fixed
 
 - **PTY master fd no longer leaks when a child exits on its own.** Every

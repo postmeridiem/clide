@@ -74,13 +74,16 @@ class _TipsCard extends StatelessWidget {
   const _TipsCard({required this.tokens});
   final SurfaceTokens tokens;
 
+  // Every tip mirrors a binding that actually exists in the default
+  // preset / contributed commands (T-383) — ctrl-based on the shipped
+  // default keymap, hence ⌃ glyphs. If a binding moves, move the tip.
   static const _tips = <(String, String)>[
-    ('Quick open', '⌘P'),
-    ('Command palette', '⌘⇧P'),
-    ('Toggle sidebar', '⌘B'),
-    ('Toggle context', '⌘J'),
-    ('Switch theme', '⌘K ⌘T'),
-    ('New Claude session', '⌘⇧C'),
+    ('Quick open', '⌃P'),
+    ('Command palette', '⌃⇧P'),
+    ('Toggle sidebar', '⌃⇧1'),
+    ('Toggle context', '⌃⇧3'),
+    ('Find in files', '⌃⇧F'),
+    ('Focus mode', '⌃.'),
   ];
 
   @override
@@ -169,9 +172,10 @@ class _StartColumn extends StatelessWidget {
       children: [
         ClideText('START', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
         const SizedBox(height: 20),
-        _ActionRow(icon: PhosphorIcons.byName('folder'), label: 'Open folder…', shortcut: '⌘O', tokens: tokens, onTap: () => _openFolder(context)),
-        _ActionRow(icon: PhosphorIcons.byName('git-branch'), label: 'Clone from git…', shortcut: '⌘G', tokens: tokens, onTap: () {}),
-        _ActionRow(icon: PhosphorIcons.byName('chat-circle'), label: 'Start a Claude session', shortcut: '⌘C', tokens: tokens, onTap: () {}),
+        // Only flows that exist get a tile — the old Clone-from-git and
+        // Start-a-Claude-session rows were inert and advertised shortcuts
+        // that were never registered (T-383). Re-add each WITH its flow.
+        _ActionRow(icon: PhosphorIcons.byName('folder'), label: 'Open folder…', shortcut: '⌃O', tokens: tokens, onTap: () => _openFolder(context)),
       ],
     );
   }

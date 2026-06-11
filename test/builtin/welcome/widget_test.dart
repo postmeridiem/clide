@@ -46,6 +46,10 @@ void main() {
       expect(find.text('clide'), findsOneWidget);
       expect(find.text('IDE for Claude Code CLI'), findsOneWidget);
       expect(find.text('Open folder…'), findsOneWidget);
+      // T-383: no advertised dead ends — these tiles were inert no-ops with
+      // unregistered shortcuts; they return only with working flows.
+      expect(find.text('Clone from git…'), findsNothing);
+      expect(find.text('Start a Claude session'), findsNothing);
     });
 
     testWidgets('TIPS card renders when the viewport is tall enough', (tester) async {
