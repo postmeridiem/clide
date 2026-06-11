@@ -25,7 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
 
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
   final List<String> writes = [];
   bool killed = false;

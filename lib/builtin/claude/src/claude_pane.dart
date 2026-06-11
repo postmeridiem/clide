@@ -71,6 +71,7 @@ class ClaudePane extends StatefulWidget {
 
 class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<SessionStatus>? _statusSub;
+  StreamSubscription<SessionEnd>? _endSub;
   StreamSubscription<ProjectOpened>? _projectSub;
   ConversationController? _conversation;
   StreamJsonSession? _session;
@@ -177,6 +178,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _projectSub = null;
     _statusSub?.cancel();
     _statusSub = null;
+    _endSub?.cancel();
+    _endSub = null;
     // The orchestrator owns the session, so disposing this pane does NOT kill
     // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
     // A secondary tab being *closed* is a real teardown, so close its session;
@@ -228,6 +231,8 @@ class _ClaudePaneState extends State<ClaudePane> {
   Future<void> _rebindToActiveProject() async {
     _statusSub?.cancel();
     _statusSub = null;
+    _endSub?.cancel();
+    _endSub = null;
     await activeSessionOrchestrator?.close(_orchId); // kills the old repo's session
     _conversation = null;
     _session = null;
@@ -327,6 +332,24 @@ class _ClaudePaneState extends State<ClaudePane> {
       if (!mounted) return;
       setState(() => _status = s);
     });
+    // Surface a dead process instead of letting it look thoughtful (T-361):
+    // late binders read the replayed end; live sessions stream it.
+    final alreadyEnded = managed.session.end;
+    if (alreadyEnded != null) {
+      _onSessionEnd(alreadyEnded);
+    } else {
+      _endSub = managed.session.endedStream.listen(_onSessionEnd);
+    }
+  }
+
+  /// The claude process exited under this pane's live session. Stop looking
+  /// busy, say so in the status line, and log the drained stderr tail —
+  /// the diagnostics that used to vanish (T-361).
+  void _onSessionEnd(SessionEnd end) {
+    if (!mounted) return;
+    final tail = end.stderrTail.isEmpty ? '' : '; stderr tail:\n${end.stderrTail.join('\n')}';
+    _kernel?.log.warn('claude', 'session $_orchId exited (code ${end.exitCode})$tail');
+    setState(() => _statusLine = 'claude exited (code ${end.exitCode}) — /clear to restart');
   }
 
   // Send composed text to Claude over the stream-json channel. Commands clide
@@ -444,6 +467,8 @@ class _ClaudePaneState extends State<ClaudePane> {
   Future<void> _respawnWithSession(String sessionId, {bool clearTranscript = false}) async {
     _statusSub?.cancel();
     _statusSub = null;
+    _endSub?.cancel();
+    _endSub = null;
     await activeSessionOrchestrator?.close(_orchId); // kills the old session
     // Erase only after the process is dead, so claude isn't mid-write.
     final root = _repoRoot;

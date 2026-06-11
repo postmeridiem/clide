@@ -21,6 +21,8 @@ import 'dart:io';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 
 /// The claude subprocess, abstracted so tests drive it without spawning.
+/// Fakes `extend` this and override what they drive; the defaults below
+/// describe a process with no real child behind it.
 abstract class StreamJsonProcess {
   /// stdout, one JSON event per line.
   Stream<String> get lines;
@@ -30,13 +32,43 @@ abstract class StreamJsonProcess {
 
   /// Terminate the process.
   Future<void> kill();
+
+  /// The last lines of the child's stderr, drained continuously so the pipe
+  /// can never fill and block the child mid-turn (T-361). Default: none.
+  List<String> get stderrTail => const [];
+
+  /// Completes with the child's exit code, or null when there is no real
+  /// process to watch (fakes that never "exit").
+  Future<int>? get exitCode => null;
+}
+
+/// A bounded FIFO of the most recent lines — the stderr tail kept for
+/// post-mortem diagnostics while the stream itself is drained and dropped.
+class BoundedLineBuffer {
+  BoundedLineBuffer({this.cap = 100});
+
+  final int cap;
+  final List<String> _lines = [];
+
+  void add(String line) {
+    _lines.add(line);
+    if (_lines.length > cap) _lines.removeAt(0);
+  }
+
+  List<String> get lines => List.unmodifiable(_lines);
 }
 
 /// Production [StreamJsonProcess] backed by a real `claude` process.
-class ClaudeStreamJsonProcess implements StreamJsonProcess {
-  ClaudeStreamJsonProcess._(this._proc);
+class ClaudeStreamJsonProcess extends StreamJsonProcess {
+  ClaudeStreamJsonProcess._(this._proc) {
+    // Drain stderr from the moment the process exists — with --verbose the
+    // CLI chats on stderr, and an undrained 64KB pipe blocks the child
+    // mid-turn with zero diagnostics (T-361). Keep a tail for post-mortems.
+    _proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(_stderr.add, onError: (Object _) {});
+  }
 
   final Process _proc;
+  final BoundedLineBuffer _stderr = BoundedLineBuffer();
 
   /// Spawn `claude` in stream-json mode. [sessionArgs] is `['--session-id', id]`
   /// for a new session or `['--resume', id]` to resume an existing one (T-161).
@@ -75,6 +107,12 @@ class ClaudeStreamJsonProcess implements StreamJsonProcess {
   Future<void> kill() async {
     _proc.kill();
   }
+
+  @override
+  List<String> get stderrTail => _stderr.lines;
+
+  @override
+  Future<int> get exitCode => _proc.exitCode;
 }
 
 /// An in-process MCP server clide hosts for a session, entirely over the
@@ -194,6 +232,15 @@ final class DenyTool extends ToolDecision {
 
 /// Parses a [StreamJsonProcess]'s events into conversation items + status,
 /// answers control-channel prompts, and sends user messages.
+/// Terminal session end: the claude process exited (crash or otherwise).
+/// Carries the exit code and the drained stderr tail for diagnostics.
+class SessionEnd {
+  const SessionEnd({required this.exitCode, required this.stderrTail});
+
+  final int exitCode;
+  final List<String> stderrTail;
+}
+
 class StreamJsonSession {
   StreamJsonSession(this._proc, {List<McpServer> mcpServers = const []}) : _mcpServers = mcpServers;
 
@@ -299,9 +346,25 @@ class StreamJsonSession {
   /// The latest known status — the current value [statusStream] last emitted.
   SessionStatus get status => _status;
 
+  /// Non-null once the claude process has exited (T-361). Late binders read
+  /// this; live listeners get [endedStream]. Never set by a deliberate
+  /// [dispose] — only by the process dying underneath a live session.
+  SessionEnd? get end => _end;
+  SessionEnd? _end;
+  final _endCtl = StreamController<SessionEnd>.broadcast();
+  bool _disposed = false;
+
+  /// Fires once when the process exits while the session is still live —
+  /// a crashed/dead session must not just look thoughtful (T-361).
+  Stream<SessionEnd> get endedStream => _endCtl.stream;
+
   /// Begin consuming the process's event stream.
   void start() {
     _sub = _proc.lines.listen(_onLine, onError: (Object _) {});
+    // Watch the process itself: stdout EOF alone is ambiguous, the exit
+    // code is not (T-361).
+    final exit = _proc.exitCode;
+    if (exit != null) unawaited(exit.then(_onExit));
     // Declaring our in-process MCP servers in the `initialize` handshake is what
     // makes claude drive their JSON-RPC over `mcp_message` (T-170). Only sent
     // when we actually host a server, so a plain session is unchanged.
@@ -712,7 +775,23 @@ class StreamJsonSession {
     _mergeStatus(SessionStatus(permissionMode: mode));
   }
 
+  /// The process exited under a live session. Flip every "in flight"
+  /// surface off so the pane reflects reality instead of spinning forever.
+  void _onExit(int code) {
+    if (_disposed || _end != null) return;
+    _end = SessionEnd(exitCode: code, stderrTail: _proc.stderrTail);
+    _setBusy(false);
+    // A prompt pending against a dead process can never be answered —
+    // clear it so the composer comes back.
+    if (_queue.isNotEmpty) {
+      _queue.clear();
+      _pendingCtl.add(null);
+    }
+    _endCtl.add(_end!);
+  }
+
   Future<void> dispose() async {
+    _disposed = true; // deliberate teardown — suppress the exit-watch path
     await _sub?.cancel();
     await _proc.kill();
     await _items.close();
@@ -720,5 +799,6 @@ class StreamJsonSession {
     await _sessionIdCtl.close();
     await _pendingCtl.close();
     await _busyCtl.close();
+    await _endCtl.close();
   }
 }

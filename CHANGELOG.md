@@ -78,6 +78,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   expanding a run announced nothing inside it; the exclusion is now scoped
   to the header and the inner cards stay in the a11y tree. (T-370)
 
+- **A crashed Claude process no longer looks like it's still thinking.**
+  stderr is now drained continuously (an undrained pipe could block the
+  child mid-turn) and the exit code is watched: when the process dies the
+  pane stops spinning, clears any unanswerable permission prompt, reports
+  the exit in the status line, and logs the stderr tail. (T-361)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

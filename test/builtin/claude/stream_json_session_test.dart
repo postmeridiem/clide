@@ -5,10 +5,14 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:test/test.dart';
 
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>();
   final List<String> writes = [];
   bool killed = false;
+
+  /// Drives the T-361 exit watch; never completes unless a test exits it.
+  final exit = Completer<int>();
+  final List<String> stderr = [];
 
   @override
   Stream<String> get lines => _ctl.stream;
@@ -16,6 +20,10 @@ class _FakeProc implements StreamJsonProcess {
   void writeLine(String line) => writes.add(line);
   @override
   Future<void> kill() async => killed = true;
+  @override
+  Future<int> get exitCode => exit.future;
+  @override
+  List<String> get stderrTail => stderr;
 
   void emit(String line) => _ctl.add(line);
 }
@@ -743,6 +751,60 @@ void main() {
       final r = mcpResponseOf(mproc.writes.last);
       expect((r['error'] as Map)['code'], -32601);
       expect((r['error'] as Map)['message'], contains('resources/list'));
+    });
+  });
+
+  // T-361: nothing watched the process itself — a crashed claude just
+  // looked thoughtful forever.
+  group('process exit (T-361)', () {
+    test('exit emits SessionEnd with code + stderr tail and clears busy', () async {
+      final ends = <SessionEnd>[];
+      session.endedStream.listen(ends.add);
+      session.send('do something');
+      await Future<void>.delayed(Duration.zero);
+      expect(session.busy, isTrue, reason: 'a send marks the turn in flight');
+
+      proc.stderr.addAll(['boom: stack', 'fatal: died']);
+      proc.exit.complete(70);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(session.busy, isFalse, reason: 'a dead process is not thinking');
+      expect(ends, hasLength(1));
+      expect(ends.single.exitCode, 70);
+      expect(ends.single.stderrTail, ['boom: stack', 'fatal: died']);
+      expect(session.end, same(ends.single), reason: 'late binders replay via the getter');
+    });
+
+    test('exit clears a pending prompt — it can never be answered', () async {
+      final pendings = <ToolPrompt?>[];
+      session.pendingPromptStream.listen(pendings.add);
+      proc.emit(canUseTool('p1'));
+      await Future<void>.delayed(Duration.zero);
+      expect(session.pendingPrompt, isNotNull);
+
+      proc.exit.complete(1);
+      await Future<void>.delayed(Duration.zero);
+      expect(session.pendingPrompt, isNull);
+      expect(pendings.last, isNull, reason: 'the composer swaps back from the prompt UI');
+    });
+
+    test('a deliberate dispose suppresses the exit watch', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p)..start();
+      await s.dispose();
+      p.exit.complete(9); // the kill's exit must not surface as a crash
+      await Future<void>.delayed(Duration.zero);
+      expect(s.end, isNull);
+    });
+  });
+
+  group('BoundedLineBuffer', () {
+    test('keeps only the last cap lines', () {
+      final b = BoundedLineBuffer(cap: 3);
+      for (var i = 0; i < 5; i++) {
+        b.add('line $i');
+      }
+      expect(b.lines, ['line 2', 'line 3', 'line 4']);
     });
   });
 }

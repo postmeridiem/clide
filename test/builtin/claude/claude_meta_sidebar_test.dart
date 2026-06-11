@@ -20,7 +20,7 @@ import '../../helpers/widget_harness.dart';
 // ---------------------------------------------------------------------------
 // Minimal fake process so orchestrator tests don't need a real `claude` binary.
 // ---------------------------------------------------------------------------
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
   final List<String> writes = [];
   bool killed = false;
