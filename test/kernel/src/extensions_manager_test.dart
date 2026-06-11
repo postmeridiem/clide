@@ -321,13 +321,23 @@ void main() {
     group('lifecycle hardening (T-377)', () {
       test('a throw mid-contribution unwinds everything already mounted', () async {
         // The tab mounts first, then the duplicate command id throws.
-        f.services.commands.register(CommandContribution(id: 'taken', command: 'taken.cmd', run: (_) async => IpcResponse.ok(id: '')));
+        f.services.commands.register(
+          CommandContribution(
+            id: 'taken',
+            command: 'taken.cmd',
+            run: (_) async => IpcResponse.ok(id: ''),
+          ),
+        );
         f.services.extensions.register(
           _Ext(
             id: 'half-mounts',
             contributions: [
               TabContribution(id: 'half.view', slot: Slots.workspace, title: 'T', build: (_) => const SizedBox.shrink()),
-              CommandContribution(id: 'half.cmd', command: 'taken.cmd', run: (_) async => IpcResponse.ok(id: '')),
+              CommandContribution(
+                id: 'half.cmd',
+                command: 'taken.cmd',
+                run: (_) async => IpcResponse.ok(id: ''),
+              ),
             ],
           ),
         );

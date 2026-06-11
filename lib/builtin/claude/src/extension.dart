@@ -23,10 +23,15 @@ import 'package:flutter/widgets.dart';
 
 /// D-6 contract (T-391): a failed command returns an ERROR envelope (non-zero
 /// CLI exit), never `ok` with an `error` field a script can't detect.
-IpcResponse _userErr(String msg, {String? hint}) =>
-    IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: msg, hint: hint));
+IpcResponse _userErr(String msg, {String? hint}) => IpcResponse.err(
+  id: '',
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: msg, hint: hint),
+);
 
-IpcResponse _notFound(String msg) => IpcResponse.err(id: '', error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: msg));
+IpcResponse _notFound(String msg) => IpcResponse.err(
+  id: '',
+  error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: msg),
+);
 
 class ClaudeExtension extends ClideExtension {
   @override
