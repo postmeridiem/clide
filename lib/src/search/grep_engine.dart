@@ -56,11 +56,11 @@ Stream<List<SearchMatch>> grepWorkspace({
   final walk = await walkFiles(root: root, ignore: ignore);
   if (cancel?.isCancelled ?? false) return;
 
-  final includes = [for (final g in query.include) _globToRegExp(g)];
-  final excludes = [for (final g in query.exclude) _globToRegExp(g)];
+  final includes = [for (final g in query.include) globToRegExp(g)];
+  final excludes = [for (final g in query.exclude) globToRegExp(g)];
   final candidates = <String>[];
   for (final e in walk.files) {
-    if (_acceptGlobs(e.path, includes, excludes)) candidates.add(e.path);
+    if (acceptGlobs(e.path, includes, excludes)) candidates.add(e.path);
   }
   if (candidates.isEmpty) return;
 
@@ -193,7 +193,10 @@ class CompiledQuery {
 
 // -- Glob filtering ----------------------------------------------------------
 
-bool _acceptGlobs(String path, List<RegExp> includes, List<RegExp> excludes) {
+/// Whether [path] passes the compiled include/exclude filters. Shared with
+/// the replace engine so search and replace can never disagree on scope
+/// (T-364).
+bool acceptGlobs(String path, List<RegExp> includes, List<RegExp> excludes) {
   if (includes.isNotEmpty && !includes.any((r) => r.hasMatch(path))) return false;
   if (excludes.any((r) => r.hasMatch(path))) return false;
   return true;
@@ -202,7 +205,7 @@ bool _acceptGlobs(String path, List<RegExp> includes, List<RegExp> excludes) {
 /// Compile a gitignore-flavoured glob to a full-path regex. A `/` in
 /// the glob anchors it to the workspace root; otherwise it may match at
 /// any depth (basename-style). Supports `*`, `**`, `?`.
-RegExp _globToRegExp(String glob) {
+RegExp globToRegExp(String glob) {
   final anchored = glob.contains('/');
   final b = StringBuffer('^');
   if (!anchored) b.write(r'(?:.*/)?');

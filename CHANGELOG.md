@@ -57,6 +57,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   search engine on top of it) silently descended symlinked directories —
   including ones pointing outside the workspace. (T-365)
 
+- **Search-and-replace now honors its include/exclude globs.** The filters
+  were accepted but never applied, so replace could rewrite files outside
+  the scope the user typed; replace now uses the same glob filtering as
+  search. (T-364)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

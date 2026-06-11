@@ -104,6 +104,30 @@ void main() {
       );
       expect(r.any((f) => f.path == 'blob.bin'), isFalse);
     });
+
+    // T-364: the globs were accepted and silently dropped — replace touched
+    // files the equivalent search would never have matched.
+    test('include glob restricts replacement to matching files', () async {
+      File('${root.path}/c.txt').writeAsStringSync('foo here too\n');
+      final r = await computeReplacements(
+        root: root,
+        ignore: IgnoreSet([]),
+        query: const SearchQuery(pattern: 'foo', include: ['*.dart']),
+        replacement: 'baz',
+      );
+      expect(r.map((f) => f.path).toList(), ['a.dart']);
+    });
+
+    test('exclude glob is honored', () async {
+      File('${root.path}/c.txt').writeAsStringSync('foo here too\n');
+      final r = await computeReplacements(
+        root: root,
+        ignore: IgnoreSet([]),
+        query: const SearchQuery(pattern: 'foo', exclude: ['*.dart']),
+        replacement: 'baz',
+      );
+      expect(r.map((f) => f.path).toList(), ['c.txt']);
+    });
   });
 
   group('rewriteFileContent', () {
