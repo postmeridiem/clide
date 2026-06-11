@@ -3633,3 +3633,307 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2T11GCV1EV07DYD5BZENTM', 'status', 'ready', 'in_progress', NULL, '2026-06-11 14:18:34', '2026-06-11 14:18:34', '2026-06-11 14:18:34', NULL, 'a2a75bcb471d6eba8a215d56922c6337', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2T11GCV1EV07DYD5BZENTM', 'status', 'in_progress', 'in_progress', NULL, '2026-06-11 14:59:53', '2026-06-11 14:59:53', '2026-06-11 14:59:53', NULL, '96bef4f722871cb468f67b55d6447acc', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2T11GCV1EV07DYD5BZENTM', 'status', 'in_progress', 'done', NULL, '2026-06-11 17:09:12', '2026-06-11 17:09:12', '2026-06-11 17:09:12', NULL, '591cc2576194fd9400b42aa6c932f0a8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBGHNEQTAEPGNJKN42C1E8', 'description', NULL, 'Thirteen parallel subsystem reviewers + adversarial verification over ~58k LOC produced ~14 high-severity and ~35 medium findings plus systemic patterns and a feature backlog. Source: fable-ous.md (committed alongside this epic). Children are filed individually so they can land independently; feature proposals went to governance/questions as Q-records, not tickets.
+
+Acceptance: all dragon (high-severity) findings resolved or formally rejected with a D-record; scorpions shipped or moved to follow-up work with rationale; rat-extermination and systemic-pattern batches closed; god-file split plans written into their tickets.', NULL, '2026-06-11 21:54:44', '2026-06-11 21:54:44', '2026-06-11 21:54:44', NULL, 'f4f3f8de34ddcffcedfa3dda86cddd7f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBJ5T7HAQ9CA8XQMX43A2C', 'description', NULL, 'lib/src/pty/native_pty.dart:444-450 — on child EOF, _reap() sets _dead = true but never closes _fd; a later close() short-circuits at `if (_dead) return;` (line ~460) so _nativeClose(_fd) (line ~477) never runs. Every terminal/Claude pane whose child exits on its own leaks an fd and a pty device for the life of the app. Two independent reviewers confirmed.
+
+Fix: close the master fd in the natural-exit path (or let close() proceed to fd teardown when dead). Add a test asserting the fd is released after child EOF.', NULL, '2026-06-11 21:54:56', '2026-06-11 21:54:56', '2026-06-11 21:54:56', NULL, '446dac267b474cc3c72291e1d34ed8d1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBKK2TZQK683J8FS0ZH5A4', 'description', NULL, 'lib/builtin/claude/src/stream_json_session.dart:43-78 — the claude child stderr is never drained: >=64KB of --verbose spew fills the pipe, the child blocks mid-turn, and the flagship pane wedges with zero diagnostics. Nothing watches exitCode or stdout onDone (line ~303), so a crashed/dead session just looks busy.
+
+Fix: drain stderr into a bounded ring buffer (surface it on failure), watch exitCode/onDone, and emit a terminal SessionEnded state to the pane. Intersects T-283 (resume hang has no timeout/fallback). Tests: dead-child surfaces SessionEnded; stderr flood does not wedge the session.', NULL, '2026-06-11 21:55:07', '2026-06-11 21:55:07', '2026-06-11 21:55:07', NULL, '9a3d2aecfc09ce6c6afa183e80e718f4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBN5F0F8SDF15P21DNKT1W', 'description', NULL, 'lib/src/ipc/mcp_server.dart:138-195, started unconditionally at boot (lib/main.dart:174-180). D-71 threat model (another user on the same host must not drive my IDE) is enforced with 0600 on the unix socket — then bypassed wholesale by an unauthenticated localhost HTTP port that, since D-86, serves every clide verb as a tool.
+
+Fix: generate a token in the lock file (Claude Code /ide lock format has a slot for it) and require the auth header on every request. Tests: request without token is rejected; token round-trips via the lock file.', NULL, '2026-06-11 21:55:21', '2026-06-11 21:55:21', '2026-06-11 21:55:21', NULL, '3e4a3ab07c224bc9c498c4ac168fcb42', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBPQE4J4YBJX92812ZK6DR', 'description', NULL, 'lib/src/editor/registry.dart:215-219 returns absolute paths verbatim — no .. normalization, no path_safety call — an unconfined read AND write primitive over IPC while files.read is carefully guarded.
+
+Fix: route editor.open/editor.save through path_safety like files.*. Tests: traversal and absolute-escape attempts rejected for both verbs. Longer-term the confinement should move to the dispatch layer (see the systemic ticket filed with this epic).', NULL, '2026-06-11 21:55:33', '2026-06-11 21:55:33', '2026-06-11 21:55:33', NULL, '9814d1e2ac630b792799349b073e29cd', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBR4636GSRJBWFJDAZ6ZA0', 'description', NULL, 'lib/src/search/replace_engine.dart:124-143 — the include/exclude glob filters the user typed are accepted but never applied; replace will happily rewrite files outside the filter.
+
+Fix: apply the same glob filtering the search side uses before rewriting. Test: replace with an include glob touches only matching files; exclude glob is honored.', NULL, '2026-06-11 21:55:44', '2026-06-11 21:55:44', '2026-06-11 21:55:44', NULL, '6f7302d4cf04632c7c336131552dddc8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBSG6356MZJ2DCCCSBMBGM', 'description', NULL, 'lib/src/files/listing.dart:46-54 — stat() follows links, so isSymlink is always false; walkFiles therefore descends symlinked directories the docs claim it skips (escape hatch out of the workspace, plus cycle risk).
+
+Fix: use lstat (FileStat via Link check / FileSystemEntity.isLinkSync on the raw path) for symlink detection. Tests: symlinked dir is reported as symlink and not descended; symlink cycle does not hang the walk.', NULL, '2026-06-11 21:55:56', '2026-06-11 21:55:56', '2026-06-11 21:55:56', NULL, 'eb7a89483e85f7c069567c56ee80fdb9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBV0465906BY3QFAY9F1YM', 'description', NULL, 'lib/builtin/terminal/src/terminal_pane.dart:131-137 calls ClideKernel.of(context) from dispose() — illegal ancestor lookup, swallowed by catch (_) — so pane.close is never sent and the backend PTY + daemon pane leak on every closed terminal pane. The same idiom leaks the settings listener in every disposed ClaudePane (lib/builtin/claude/src/claude_pane.dart:460-466).
+
+Fix: cache the kernel ref in didChangeDependencies, delete the catch-alls. Combined with the PTY natural-exit fd leak this is a two-stage leak pipeline. Tests: closing a terminal pane sends pane.close; disposing a ClaudePane removes its settings listener.', NULL, '2026-06-11 21:56:09', '2026-06-11 21:56:09', '2026-06-11 21:56:09', NULL, '92693bb428217e84d75d240b5da07bec', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBWE2W1226T58CX37E50HC', 'description', NULL, 'lib/main.dart:335-344 — switching projects builds a new dispatcher with fresh PaneRegistry, FilesService, EditorRegistry, etc., but nothing calls the old set''s shutdown() methods (which exist and have zero callers). Old file watchers keep emitting into the new workspace''s bus.
+
+Fix: dispose/shutdown the previous service set before (or while) standing up the new one. Test: after a workspace switch, the old FilesService watcher no longer delivers events.', NULL, '2026-06-11 21:56:19', '2026-06-11 21:56:19', '2026-06-11 21:56:19', NULL, '25954a8b7b5f77985dff44c8e78f5ee9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM5W6VN98RQM6S22X28', 'description', 'The bottom status-bar context slot for the Claude pane (model · permission-mode · context, T-145/T-150) frequently renders empty and doesn''t update. The slot is fed by the active pane''s status widget via the focus service (PaneContextStatusItem -> ClidePane.statusWidget in claude_pane.dart), sourced from StreamJsonSession.statusStream (model/permissionMode from the ''system/init'' event; cost/contextWindow from ''result'' events in stream_json_session.dart).
+
+Repro: open clide; the status line is often blank and stays blank until/unless a turn completes (or never populates).
+
+Likely suspects to investigate:
+- status only published while the pane is the focused contribution (active==true) — if focus isn''t on the Claude pane, the slot clears.
+- statusStream may not emit until the first ''result''/''init'' event; a resumed session (--resume) may not re-emit init, so model/mode never arrive.
+- _statusWidget returns null when _status.isEmpty AND no skills, so an unstarted/!init session shows nothing.
+- focus-slot wiring (FocusTracker) may not re-publish on pane (re)build / session rebind.
+
+Acceptance: the Claude status line shows model · mode · context promptly after a session starts/resumes and stays current across turns and focus changes; add a test covering the resumed-session (no fresh init) case.', 'The bottom status-bar context slot for the Claude pane (model · permission-mode · context, T-145/T-150) frequently renders empty and doesn''t update. The slot is fed by the active pane''s status widget via the focus service (PaneContextStatusItem -> ClidePane.statusWidget in claude_pane.dart), sourced from StreamJsonSession.statusStream (model/permissionMode from the ''system/init'' event; cost/contextWindow from ''result'' events in stream_json_session.dart).
+
+Repro: open clide; the status line is often blank and stays blank until/unless a turn completes (or never populates).
+
+Likely suspects to investigate:
+- status only published while the pane is the focused contribution (active==true) — if focus isn''t on the Claude pane, the slot clears.
+- statusStream may not emit until the first ''result''/''init'' event; a resumed session (--resume) may not re-emit init, so model/mode never arrive.
+- _statusWidget returns null when _status.isEmpty AND no skills, so an unstarted/!init session shows nothing.
+- focus-slot wiring (FocusTracker) may not re-publish on pane (re)build / session rebind.
+
+Acceptance: the Claude status line shows model · mode · context promptly after a session starts/resumes and stays current across turns and focus changes; add a test covering the resumed-session (no fresh init) case.
+
+Root cause found and verified by the 2026-06-11 Fable review (fable-ous.md, epic T-359): statusStream is a plain broadcast controller — the system/init event fires while spawn() is still awaiting a 256KB transcript-tail read, before the pane ever subscribes (lib/builtin/claude/src/claude_pane.dart:322, lib/builtin/claude/src/session_orchestrator.dart:222-225). Fix: seed from session.status on bind, or make the stream replay-latest (see the ValueStream systemic ticket under T-359).', NULL, '2026-06-11 21:56:28', '2026-06-11 21:56:28', '2026-06-11 21:56:28', NULL, '8bddda6f828eeb567dfaed51eef82762', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHBYTJ4E7ZBY6DWWNT1S16M', 'description', NULL, 'lib/builtin/claude/src/conversation_view.dart:268-277 — the _atBottom pin exists but is only consulted on viewport resize, not on new items. Anyone reading earlier output during a long streaming reply is dragged to the bottom continuously.
+
+Fix: gate the new-item auto-scroll on _atBottom (one-line) and add the missing twin test: scrolled-up viewport stays put when items stream in; at-bottom viewport follows.', NULL, '2026-06-11 21:56:40', '2026-06-11 21:56:40', '2026-06-11 21:56:40', NULL, 'e519966a59d3a52cdc28d598967010ce', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC0HYRZ86CWW0DDQJ5CAQM', 'description', NULL, 'lib/src/terminal/src/core/escape/parser.dart:501-516 — SGR 38/48 extended-color parsing does unguarded params[i + 1] lookahead, so a truncated sequence like printf ''\e[38m'' throws RangeError inside Terminal.write. An emulator must never throw on hostile bytes. Secondary, same code path: colon-form SGR sub-parameters (e.g. 38:2:r:g:b, emitted by modern terminfo) are not split out and get mangled into bogus params.
+
+Fix: bounds-check the lookahead (ignore incomplete 38/48 sequences), and parse colon-form sub-parameters per ECMA-48/ITU T.416 — treat 38:2::r:g:b and 38;2;r;g;b equivalently. Note T-123 (parser split) touches the same file; coordinate but do not block on it.
+
+Acceptance: feeding any truncated/garbled SGR byte sequence never throws (fuzz-style test over partial sequences); colon-form truecolor sets the same fg/bg as semicolon form; existing SGR tests stay green.', NULL, '2026-06-11 21:56:59', '2026-06-11 21:56:59', '2026-06-11 21:56:59', NULL, 'acbde4172213adbf84599ca1575e2bb6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC2NM7AYKENZ0ZD49HAX1W', 'description', NULL, 'lib/widgets/src/clide_collapser_card.dart:92-101 — excludeSemantics: true on the card wipes every expanded child from the a11y tree: a screen-reader user can expand a run/tool card and hear nothing inside it. A11y is a Tier-0 contract in this repo, so this is a contract breach, not polish.
+
+Fix: exclude semantics only while collapsed (or scope the exclusion to the chrome, not the body); keep the header announcing expanded/collapsed state.
+
+Acceptance: semantics test asserting expanded-card children are present in the semantics tree and absent (or summarized) when collapsed; make test-a11y green.', NULL, '2026-06-11 21:57:12', '2026-06-11 21:57:12', '2026-06-11 21:57:12', NULL, '7ffe4c0c1c435020f5b0ef564088b997', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC46SEHH8NQY481VMGK66R', 'description', NULL, 'The three a11y gate tests hand-enumerate their subjects and have measurably drifted from lib/: the contrast gate checks fewer themes than lib/main.dart:443-454 actually loads (catppuccin is silently unvalidated — the same theme list also drifted between main.dart and the testmode harness), and the i18n gate checks 4 of 8 namespaces. The gates stay green while covering less — worst kind of drift.
+
+Fix (pattern: hand-enumerated lists drift; export the truth): make lib/ export one canonical const each for bundled themes, a11y gate subjects, and i18n namespaces; the gates and the testmode harness iterate those exports instead of their own lists. Add a meta-assertion where feasible (e.g. namespace list derived from the assets dir at test time) so a new theme/namespace cannot ship unvalidated.
+
+Acceptance: gates fail if a newly added theme/namespace is not covered; catppuccin contrast-checked; all 8 i18n namespaces checked; testmode harness consumes the same exported theme list.', NULL, '2026-06-11 21:57:26', '2026-06-11 21:57:26', '2026-06-11 21:57:26', NULL, 'c8af63caa7c66890bf983ca0745ba220', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC5ZE4EZEGXK8YY8J86CM0', 'description', NULL, 'lib/src/ipc/server.dart:151-180 — D-72 promises serial dispatch, but the async onData handler never pauses the subscription, so pipelined requests interleave; the shared StringBuffer framing can also drop or double lines when chunks split mid-frame, and per-chunk utf8 decode corrupts multi-byte characters split across chunks.
+
+Fix in one move: client.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()) consumed with await for — gives correct framing, persistent UTF-8 decoding, and true serialization at once.
+
+Acceptance: test sending two pipelined requests in a single write (responses arrive in order, both handled); test a request split mid-UTF-8-rune across two socket writes; existing IPC tests stay green. Runs under dart test — keep imports Flutter-free.', NULL, '2026-06-11 21:57:40', '2026-06-11 21:57:40', '2026-06-11 21:57:40', NULL, '4463b6a7be217a811ec7d0a34f90d40e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC7KDFW07S8WTCC3MD71J0', 'description', NULL, 'The terminal''s only ingestion API is write(String) (lib/src/terminal/src/terminal.dart:218), so both consumers decode bytes per-chunk — a multi-byte rune split across PTY reads renders as U+FFFD garbage. FileTailFollower starts reading mid-file by construction, so it can begin mid-character too.
+
+Fix: add Terminal.writeBytes(List<int>) backed by a persistent chunked Utf8Decoder (allowMalformed) per terminal instance; migrate the PTY consumer and FileTailFollower to it. Keep write(String) for tests/programmatic use.
+
+Acceptance: test feeding a multi-byte rune split across two writeBytes calls renders one glyph; FileTailFollower starting mid-rune resyncs without emitting replacement chars mid-stream.', NULL, '2026-06-11 21:57:52', '2026-06-11 21:57:52', '2026-06-11 21:57:52', NULL, 'e3a6ef892b21e588590ce513c7e4e40d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC90B72A270CAKA7AP1ZX8', 'description', NULL, 'lib/builtin/claude/src/session_orchestrator.dart:191-249 — spawn() does check-then-act on the sessions map across two awaits (transcript-tail read, process start). Two concurrent spawns for the same session id both pass the check; the loser''s live claude process is orphaned, never killed, never observed.
+
+Fix: hold a Map<String, Future<ManagedSession>> — first caller installs the future synchronously, later callers await the same future; remove the entry on failure.
+
+Acceptance: test issuing two concurrent spawn() calls for one id yields the same ManagedSession instance and exactly one process spawn (count via injected spawner); failure path clears the in-flight entry so a retry can proceed.', NULL, '2026-06-11 21:58:03', '2026-06-11 21:58:03', '2026-06-11 21:58:03', NULL, '8dc37c08e1f62b6b8c3cdf80e32eb4be', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCAFKK334YNJXZJQG4J6AW', 'description', NULL, 'lib/builtin/claude/src/claude_pane.dart:266-281 — when (re)binding a session, widget.forkSourceId takes precedence forever, so /clear in a fork pane re-forks the original conversation instead of clearing, and /resume and /fork misbehave the same way. Related context: clide owns /clear, /resume, /compact interception (T-156); panes pin a session id.
+
+Fix: treat forkSourceId as a one-shot spawn parameter — consume it on first bind (clear it into pane state), so subsequent session-mutating commands operate on the pane''s live session.
+
+Acceptance: test that a fork pane after /clear starts an empty session (no fork source passed to the orchestrator on respawn); first bind still forks from the source.', NULL, '2026-06-11 21:58:16', '2026-06-11 21:58:16', '2026-06-11 21:58:16', NULL, 'ce8c670160f5180e3eb35263c28d4f78', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCC6AR37VTF4SY8DR99JHC', 'description', NULL, 'lib/kernel/src/settings.dart:199-219 — the writer emits toString() for maps nested inside lists, corrupting them on the next read; this breaks the documented keymap overlay across restarts. Writes are also non-atomic (a crash mid-write truncates the file), and a parse failure on load silently resets ALL settings instead of preserving the file and surfacing the error.
+
+Fix: serialize with a real encoder (JSON/YAML emitter, whatever the file format is) covering nested structures; write to a temp file + rename for atomicity; on parse failure keep the original file (e.g. move aside as .broken) and log via the kernel Logger instead of resetting.
+
+Acceptance: round-trip test for a keymap overlay (list of maps) across save/load; simulated partial write leaves previous settings intact; corrupt file does not silently reset and produces a logged diagnostic.', NULL, '2026-06-11 21:58:33', '2026-06-11 21:58:33', '2026-06-11 21:58:33', NULL, '1f0f584e4c35a60c69b6ffdbe41caad9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCEC25337J2AXXQNST56Y4', 'description', NULL, 'lib/kernel/src/extensions_manager.dart:133-192 — a throw mid-contribution leaves earlier contributions mounted while the extension records as failed; a retry then double-applies them. Also: disabling an extension ignores extensions that depend on it, and contribution registries silently clobber on id collision. Benign among curated builtins; hazardous the day Tier-6 Lua extensions (T-8) land.
+
+Fix: make activation transactional — collect contributions, mount only after the extension activates cleanly, and unwind mounted ones on failure; disable refuses (or cascades, pick one and record it) when dependents are active; registries reject or namespace duplicate ids with a logged diagnostic.
+
+Acceptance: test that an extension throwing mid-activation leaves zero contributions mounted and can retry cleanly; disable-with-dependents behaves per the chosen rule; duplicate contribution id surfaces an error instead of clobbering.', NULL, '2026-06-11 21:58:49', '2026-06-11 21:58:49', '2026-06-11 21:58:49', NULL, 'fef851b7cad9f7a3307e04de1168792a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCG84F4SPFW111CC4K26A8', 'description', NULL, 'The owned terminal fork fixes what it trips over but has no vttest-style conformance suite. Verified debt:
+
+- HTS (set tab stop) is a no-op: calls isSetAt instead of setAt (lib/src/terminal/src/terminal.dart:423).
+- DECCKM (cursor-keys application mode) is tracked but never consumed when encoding arrow-key input.
+- Legacy X10/X11 mouse reporting rows are off-by-one AND the existing test enshrines the bug — fix both together.
+- CPR (cursor position report) replies 0-based where every real terminal is 1-based.
+- Scrollback is maintained but structurally unreachable: ViewportOffset.zero() is pinned on every build (lib/src/terminal/src/terminal_view.dart:224), so no scrolling UI path exists. (Blocks the semantic-terminal feature idea; fix is a prerequisite there.)
+
+Approach: fix each item with a focused conformance test (vttest-style expectations); consider starting a small conformance_test.dart suite that future escape-sequence work extends. Coordinate with T-123 (parser split) and T-369 (SGR crash) which touch the same area.
+
+Acceptance: each of the five items has a test that fails on the old behavior and passes after; mouse test corrected, not deleted.', NULL, '2026-06-11 21:59:05', '2026-06-11 21:59:05', '2026-06-11 21:59:05', NULL, 'c47893702c6e206fb78da5e04c8ffdbe', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCJEYHC91PMVNVWVHBR2RG', 'description', NULL, 'lib/widgets/src/clide_markdown.dart:408-410 — hard line breaks and image nodes both fall through to empty text spans: words on either side of a hard break glue together, and images vanish entirely (no placeholder, no alt text).
+
+Fix: emit a newline span for hard breaks; render images as at least an alt-text placeholder chip (full image rendering can be a follow-up — note the existing feedback that live-pane images go through clide image show).
+
+Acceptance: golden/widget test for hard-break line splitting; image node renders alt text; no regression in existing markdown goldens.', NULL, '2026-06-11 21:59:20', '2026-06-11 21:59:20', '2026-06-11 21:59:20', NULL, 'a839cd055a09b586f3693fabed212aa4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCM1RBAF72SCZBKRTXJSYC', 'description', NULL, 'Three compounding costs on every streamed token:
+
+1. The whole markdown document re-parses inside build on each streaming delta, including sync existsSync() calls in the parse path (clide_markdown.dart) — sync I/O on the UI isolate per frame.
+2. The conversation view re-derives its full item list O(n) on every controller notification.
+3. Token streaming re-encodes the full reply text per delta (lib/builtin/claude/src/stream_json_session.dart:410-431) — O(n²) churn over a long reply.
+
+Fix directions: cache parsed markdown per card keyed by content hash and only re-parse the tail/dirty card; move file-existence link checks off the build path (async + cache); make the session accumulate deltas in a StringBuffer instead of string concat re-encode; derive conversation items incrementally. Profile before/after with a long synthetic reply.
+
+Acceptance: a 1000-delta synthetic stream does no existsSync in build (assert via injected fs seam or profiling harness), and per-delta work is bounded (no full-document re-parse); existing rendering tests green.', NULL, '2026-06-11 21:59:37', '2026-06-11 21:59:37', '2026-06-11 21:59:37', NULL, '2ad44f254878d377bb9b54512a5e4947', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCP03EJ9CDBGZGRPD19N8W', 'description', NULL, 'lib/builtin/terminal/src/terminal_pane.dart:69 — the shell spawns with Directory.current as cwd. Launched from a desktop entry, that is $HOME, not the open workspace; after a project switch it is whatever the process started in. SpawnSpec.cwd already exists in the PTY layer.
+
+Fix: pass the active workspace root as the spawn cwd (and re-derive it on project switch for new panes).
+
+Acceptance: test that a terminal pane''s SpawnSpec.cwd equals the workspace root, not Directory.current.', NULL, '2026-06-11 21:59:50', '2026-06-11 21:59:50', '2026-06-11 21:59:50', NULL, '87e1c5e8220dd5fa5eb9d7b44335ed6a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCQHZQ0NKY1VRWWPSNZT84', 'description', NULL, 'lib/kernel/src/notify.dart has zero widget consumers — anything pushed through the Notifications service (e.g. cli_install''s dogfood warnings) accumulates in a list no surface renders. ToastService exists right next to it and does render.
+
+Fix options (pick one, note it on this ticket): (a) route notify-level messages through ToastService with severity styling; (b) add a notifications tray/indicator surface; (c) delete the service and migrate callers to toasts. Option (a) or (c) is likely right for current scale — avoid building a tray nobody asked for.
+
+Acceptance: a notification posted by cli_install is visibly surfaced in the UI (test via whichever surface is chosen); no silent sink remains.', NULL, '2026-06-11 22:00:05', '2026-06-11 22:00:05', '2026-06-11 22:00:05', NULL, 'b97d86a5de4f9b7435f678fb44bcb25b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCST6CQ449VJGAP6C5KZ5W', 'description', NULL, 'lib/builtin/welcome/src/welcome_view.dart:173-174 — the Clone-from-git and Start-a-Claude-session tiles are inert on tap, and the keyboard shortcuts printed on the tiles are not registered anywhere. First-run users hit dead UI on the first screen.
+
+Fix: either wire the tiles (clone flow; open a Claude pane) and register the shortcuts through the keymap subsystem, or remove the tiles until the flows exist — no advertised dead ends. Note: the welcome screen also duplicates FileActions'' open-folder flow verbatim; the dedup is covered by the copy-paste sweep ticket under this epic, but if you touch this file, prefer calling into FileActions.
+
+Acceptance: every tile on the welcome screen performs its action (widget test taps each); every shortcut shown is registered in the keymap.', NULL, '2026-06-11 22:00:22', '2026-06-11 22:00:22', '2026-06-11 22:00:22', NULL, 'e968c74a8637487134343841ae96ddfa', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCVPGCKEGDC54KKQ120SRM', 'description', NULL, 'tools/ui/*.sh still cd into the removed app/ directory, so make test-e2e, make ui-dev, and make ui-smoke fail immediately. The staged Gitea CI workflow would fail in three independent ways the day it is activated, while D-32 describes it as ready.
+
+Fix: repoint the scripts at the repo root (post app/-flattening layout), run each target to prove it, and walk the Gitea workflow steps locally (or in a dry-run) until each step is green or consciously removed. Amend D-32 if the CI story changed.
+
+Acceptance: all three make targets run; the workflow file''s steps each map to a working make target; D-32 matches reality.', NULL, '2026-06-11 22:00:37', '2026-06-11 22:00:37', '2026-06-11 22:00:37', NULL, '89d8eb48c066c985f1fb44270b0a95da', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCXFF5V1RT6QJETS2K4C0G', 'description', NULL, 'Verified-dead code worth one sweep (coverage denominator benefits too):
+
+- Legacy free-function git API (~250 LOC duplicating GitClient, kept alive only by its own tests, and carrying its own latent pipe-deadlock bug) — delete API + tests.
+- ToolCheck — zero callers.
+- ~60% of lib/src/pty/ffi/libc.dart — fd-passing-era bindings unused since D-56.
+- GraphView — unreachable placeholder (note: the Governance Graph idea (see Q-records from this review) may later want the slot; deleting now is still right, it is a 17-line stub).
+- ColumnHat — duplicated line-for-line in app.dart, kept alive by a zero-coverage test; the app.dart split ticket removes the duplicate, this sweep removes the orphan.
+- tmux-era team pipeline: TranscriptPublisher, TeamMemberJoined — nothing emits these events, yet the team roster UI listens to them exclusively (team tiles are populated by ghosts). Remove pipeline + dead listeners; if the roster UI stays, it needs a real data source first (surface that before deleting the UI).
+- Dead ptyc binary still committed in native/linux-x64/ against D-62/D-63 — remove binary + licenses.yaml entry if present.
+- mocktail — pinned, documented in D-25 as the IO-mocking strategy, imported by zero files: either adopt it where mocks are hand-rolled or drop the dep AND amend D-25.
+
+Each bullet is one commit. Run make test + coverage after each; expect the floor to ratchet up.', NULL, '2026-06-11 22:01:02', '2026-06-11 22:01:02', '2026-06-11 22:01:02', NULL, 'eda1bd3f4f7db6bfe206a1c0c39e8dae', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHD098CV2N73823KX4Z99P4', 'description', NULL, 'Broadcast streams that carry STATE (not events) drop the current value for late subscribers. This one shape caused T-274 (status bar blank — root cause appended there), the meta sidebar''s manual compensation, and the prompt-stream''s initialData workaround.
+
+Fix: write one small ValueStream<T> wrapper (a broadcast stream that replays the latest value to each new subscriber, plus a .value getter) in the kernel; retrofit statusStream, busyStream, and pendingPromptStream in the claude builtin; delete the per-site workarounds it obsoletes. No third-party dep (rxdart) — prefer-zero-deps; the wrapper is ~30 LOC.
+
+Acceptance: unit tests for the wrapper (late subscriber gets latest value; no value yet = no synthetic emit unless seeded); T-274 repro covered: subscribing after the init event still yields the status. Closing this should make T-274 fixable in one line at the call site.', NULL, '2026-06-11 22:01:18', '2026-06-11 22:01:18', '2026-06-11 22:01:18', NULL, '8d7c4939861881d0de4c984be2df9b7c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHD2FWTDFYA00W4QXTE41M0', 'description', NULL, 'The silent-swallow idiom turned an illegal-lookup-in-dispose into two resource leaks (T-366) and turned process-spawn failures into blank panes. Rule to apply: cleanup/teardown paths MAY swallow (with a comment saying why); spawn, read, and dispose-adjacent paths MUST log through the kernel Logger they already have access to.
+
+Work: grep the tree for `catch (_)` and empty catch bodies; classify each site (cleanup vs load-bearing); add logging or rethrow on the load-bearing ones; leave a one-line justification comment on the legitimate swallows. Consider an analysis_options lint (avoid_catches_without_on_clauses or a custom assist) only if it can be enabled without suppressions — per repo policy no lint suppressions without approval.
+
+Acceptance: zero unjustified empty catches on spawn/read/dispose paths; each remaining swallow carries a why-comment; any new logging visible in the kernel log during testmode.', NULL, '2026-06-11 22:01:37', '2026-06-11 22:01:37', '2026-06-11 22:01:37', NULL, 'bac36bc044fb209147b1c3d13c59b1d5', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHD4QYHYRTK0SGRZCBSHSQ0', 'description', NULL, 'The single-isolate app does sync I/O inside async IPC handlers: files.read does a sync 10MB read; the replace engine reads and rewrites workspace files synchronously — while grep right next to it fans out to isolates per D-79. There is no recorded rule, so each new handler guesses.
+
+Work: claim a D-record (pql decisions claim D architecture "sync I/O policy in IPC handlers") deciding the rule — suggested: async File APIs by default in handlers; offload to an isolate above N KB (align N with the D-79 grep design); sync allowed only in pure-Dart test seams. Then apply it to files.read and replace_engine, citing the new D-NNN at each site.
+
+Acceptance: D-record confirmed; files.read and search.replace no longer block the UI isolate on large files (test with a multi-MB fixture asserting the event loop stays responsive, e.g. a timer keeps firing).', NULL, '2026-06-11 22:01:52', '2026-06-11 22:01:52', '2026-06-11 22:01:52', NULL, 'da3256b09a0299b9a127cb80478f6af0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHD6FQMXMQQQ877KMNCK6QC', 'description', NULL, 'Per-verb path confinement is a lottery: files.read remembered, search.replace half-remembered, editor.open/save forgot (T-363). The dispatcher registry (D-74) already co-registers a schema with every handler and the schema already knows which params are paths.
+
+Fix: add a path-type marker to the schema layer (or derive from a naming convention recorded in the D-record amendment) and run path_safety confinement once in the dispatcher before the handler sees the request. Per-verb checks become defense-in-depth or get deleted.
+
+Do after T-363 lands its point fix — this is the structural follow-up that prevents the next forgotten verb. Amend D-74 with the confinement rule.
+
+Acceptance: a registered verb with a path param automatically rejects traversal/escape without any handler code; a regression test registers a synthetic verb and proves confinement applies; existing verbs unchanged behavior for in-workspace paths.', NULL, '2026-06-11 22:02:08', '2026-06-11 22:02:08', '2026-06-11 22:02:08', NULL, '41a21f3eaedab8c7455484862d7f5247', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHD8F2NBEFZNPKSJ9W253J0', 'description', NULL, 'Verified duplication clusters, each small, together the repo''s main rot vector:
+
+- Welcome screen clones FileActions'' entire open-folder flow verbatim — call FileActions instead (coordinate with T-383).
+- Command palette and quick-open are ~230-line near-twins — extract the shared list-overlay+filter core.
+- Three private tail-a-growing-file implementations in the claude builtin alone — one shared follower (coordinate with T-373, which gives it the chunked decoder).
+- Five hand-rolled _userErr helpers across handlers — one shared error-shaping helper.
+- Five copy-pasted git test sandboxes, none isolating host git config (set GIT_CONFIG_GLOBAL/HOME in the shared fixture — flaky-test risk today).
+- Two parallel ANSI flag enums that already drifted: strikethrough is stored but never painted — unify, then paint strikethrough.
+
+One commit per cluster. Acceptance: each cluster has a single implementation with the call sites migrated and a test guarding the shared piece; git sandboxes isolated from host config.', NULL, '2026-06-11 22:02:25', '2026-06-11 22:02:25', '2026-06-11 22:02:25', NULL, '09ac8f7ccc448560db7318cb09d2a9a3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDAK04ZA0PBT69ZWNBXPSR', 'description', NULL, '16 handlers in the claude builtin return result: ok with an error field in the payload instead of an error envelope, drifting from the D-6 exit-code contract every other subsystem honors. Scripted example: clide claude.agent.set-permission-mode bogus exits 0 today, so scripts cannot detect failure.
+
+Fix: sweep the claude builtin handlers; on failure return the error envelope (non-zero CLI exit) like the rest of the dispatcher. Audit callers/UI that may currently rely on ok-with-error.
+
+Acceptance: clide claude.agent.set-permission-mode bogus exits non-zero; a table-driven test walks the claude verbs'' failure paths asserting error envelopes; D-6 conformance restored.', NULL, '2026-06-11 22:02:40', '2026-06-11 22:02:40', '2026-06-11 22:02:40', NULL, 'c6b3edd27b9c8d00aad3eee4bd7cc227', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDC7B2MFQZVR1K9E30FXDR', 'description', NULL, 'CLAUDE.md and README still say "tmux owns Claude session persistence (D-41)" — superseded by D-75/D-77 per docs/architecture.md. README says "Pre-v2.0 (2.0.0-dev)" while pubspec is at v2.3.3, and headlines "canvas and graph surfaces" that are a 17-line stub and a flat ListView respectively (T-7 epic was cancelled).
+
+Fix: rewrite the stale paragraphs in both files to match current architecture (clide-managed stream-json sessions); fix the README version line (or derive it); demote canvas/graph to roadmap wording or drop them. The repo''s honesty is its brand; the README is the one off-brand surface.
+
+Acceptance: no tmux-persistence claim outside historical D-records; README version matches pubspec; every README feature claim maps to shipped behavior.', NULL, '2026-06-11 22:02:54', '2026-06-11 22:02:54', '2026-06-11 22:02:54', NULL, 'afb2a71c491410f5ca5d313d1b9c716b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDE5A3965GNRFS5WPZW878', 'description', NULL, 'No git tag since v2.1.0 despite five CHANGELOG releases; ci/release.sh exits 64 and still references the dissolved sidecar; the pre-push fast path''s safety argument cites "release CI on tagged versions" that does not exist; and the fast-path regex skips ALL tests for pushes touching test/, ci/, or the hook itself.
+
+Work items (separable commits):
+1. Back-tag v2.2.0 through v2.3.3 at the release-cut commits (find them via the CHANGELOG version-bump commits).
+2. Rewrite ci/release.sh for the single-process architecture or delete it and fold release steps into the Makefile — either way, no stub that exits 64.
+3. Add tagging to the release ritual in .claude/skills/git-commit/SKILL.md (version bump + changelog move + tag in one documented step).
+4. Widen the pre-push fast-path regex so changes under test/, ci/, and the hook itself run the full gate.
+
+This is also the blocking prerequisite the T-47 (self-update) refinement identified. Acceptance: git tag lists every released version; release.sh (or its replacement) runs end-to-end; fast-path regex covered by a hook test if feasible.', NULL, '2026-06-11 22:03:10', '2026-06-11 22:03:10', '2026-06-11 22:03:10', NULL, '50c2e5c64c6a78ac9e785fcd4a0a128d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDGPXQN31NNRPJ00PFRAG4', 'description', NULL, 'lib/app.dart is 1187 LOC mixing five confirmed concerns. Split plan (verified against the file 2026-06-12):
+
+Inventory: ClideApp (14-29), _AppRoot (31-45), _RootShell/_RootShellState keyboard+intent routing (47-229), RootLayout (231-350), hat bar family _HatBar/_LeftHatContent/_RightHatContent/_WinBtn (352-439), project switcher family _ProjectSwitcherButton/_ProjectSwitcherDropdown/_RecentProjectRow/_ActionRow (441-672), SlotHost/_SlotHostState/_SlotBody/_SidebarSlot/_WorkspaceSlot/_RevealedTab/_ContextSlot (674-1030), _BottomRail (1032-1078), StatusbarCollapseToggle (1093-1126), StatusbarHost (1128-1170), _EditorDragHandle (924-1010), _WelcomeOverlay (1172-1187).
+
+Target layout:
+- app.dart keeps ClideApp + _AppRoot and RE-EXPORTS the public symbols so tests keep importing package:clide/app.dart.
+- lib/widgets/root_shell.dart: _RootShell/_RootShellState (keyboard routing; depends on ModifierTapTracker, MenuBarController).
+- lib/builtin/hat/hat_bar.dart: _HatBar, _LeftHatContent, _RightHatContent, _WinBtn, hatHeight.
+- lib/builtin/hat/project_switcher.dart: the switcher family (~230 LOC).
+- lib/widgets/slot_host.dart: SlotHost + slot bodies (NOTE: _RevealedTab references _SlotBody._resolveTitle — keep them together or extract the helper).
+- lib/widgets/layout_status.dart: RootLayout internals, StatusbarHost, StatusbarCollapseToggle, _BottomRail, _EditorDragHandle(+Intent), _WelcomeOverlay.
+
+Order: mechanical first (hat bar, switcher rows, welcome overlay), then root shell, then slot host (tangled: _SlotHostState registers focus scopes via ClideKernel.of in didChangeDependencies), then layout/status.
+
+Tests importing app.dart: test/app_test.dart (RootLayout, StatusbarHost, ClideApp), test/app_statusbar_test.dart (StatusbarHost), test/app_collapse_toggle_test.dart (StatusbarCollapseToggle) — re-exports keep them unchanged.
+
+CORRECTION to fable-ous.md: ColumnHat is NOT duplicated line-for-line in app.dart (verified); ColumnHat lives only in lib/widgets/src/clide_column_hat.dart. The rat-sweep ticket T-385 was annotated accordingly — verify whether ColumnHat is dead before deleting.', NULL, '2026-06-11 22:09:19', '2026-06-11 22:09:19', '2026-06-11 22:09:19', NULL, '4e73e28db0c7d196d2e6fec455c87a1a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCXFF5V1RT6QJETS2K4C0G', 'description', 'Verified-dead code worth one sweep (coverage denominator benefits too):
+
+- Legacy free-function git API (~250 LOC duplicating GitClient, kept alive only by its own tests, and carrying its own latent pipe-deadlock bug) — delete API + tests.
+- ToolCheck — zero callers.
+- ~60% of lib/src/pty/ffi/libc.dart — fd-passing-era bindings unused since D-56.
+- GraphView — unreachable placeholder (note: the Governance Graph idea (see Q-records from this review) may later want the slot; deleting now is still right, it is a 17-line stub).
+- ColumnHat — duplicated line-for-line in app.dart, kept alive by a zero-coverage test; the app.dart split ticket removes the duplicate, this sweep removes the orphan.
+- tmux-era team pipeline: TranscriptPublisher, TeamMemberJoined — nothing emits these events, yet the team roster UI listens to them exclusively (team tiles are populated by ghosts). Remove pipeline + dead listeners; if the roster UI stays, it needs a real data source first (surface that before deleting the UI).
+- Dead ptyc binary still committed in native/linux-x64/ against D-62/D-63 — remove binary + licenses.yaml entry if present.
+- mocktail — pinned, documented in D-25 as the IO-mocking strategy, imported by zero files: either adopt it where mocks are hand-rolled or drop the dep AND amend D-25.
+
+Each bullet is one commit. Run make test + coverage after each; expect the floor to ratchet up.', 'Verified-dead code worth one sweep (coverage denominator benefits too):
+
+- Legacy free-function git API (~250 LOC duplicating GitClient, kept alive only by its own tests, and carrying its own latent pipe-deadlock bug) — delete API + tests.
+- ToolCheck — zero callers.
+- ~60% of lib/src/pty/ffi/libc.dart — fd-passing-era bindings unused since D-56.
+- GraphView — unreachable placeholder (note: the Governance Graph idea (see Q-records from this review) may later want the slot; deleting now is still right, it is a 17-line stub).
+- ColumnHat — duplicated line-for-line in app.dart, kept alive by a zero-coverage test; the app.dart split ticket removes the duplicate, this sweep removes the orphan.
+- tmux-era team pipeline: TranscriptPublisher, TeamMemberJoined — nothing emits these events, yet the team roster UI listens to them exclusively (team tiles are populated by ghosts). Remove pipeline + dead listeners; if the roster UI stays, it needs a real data source first (surface that before deleting the UI).
+- Dead ptyc binary still committed in native/linux-x64/ against D-62/D-63 — remove binary + licenses.yaml entry if present.
+- mocktail — pinned, documented in D-25 as the IO-mocking strategy, imported by zero files: either adopt it where mocks are hand-rolled or drop the dep AND amend D-25.
+
+Each bullet is one commit. Run make test + coverage after each; expect the floor to ratchet up.
+
+Correction (2026-06-12, verified during T-394 breakdown): ColumnHat is NOT duplicated line-for-line in app.dart — it exists only in lib/widgets/src/clide_column_hat.dart. Before deleting it, verify it actually has zero non-test callers; if it is genuinely used by app chrome, drop that bullet from this sweep.', NULL, '2026-06-11 22:09:30', '2026-06-11 22:09:30', '2026-06-11 22:09:30', NULL, '96c700c252728e81f7477b0f18e68192', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDH8TE9MJBXZ4GQ5YT10JM', 'description', NULL, 'lib/builtin/claude/src/claude_meta_sidebar.dart is 1192 LOC. Split plan (verified against the file 2026-06-12). Public API (ClaudeMetaSidebar widget + SidebarTab enum) stays in the root file — tests and extension.dart need zero import changes.
+
+Inventory: consts _labelColumnWidth/_rowPitch (43-44), SidebarTab enum (46), ClaudeMetaSidebar (48-79), _ClaudeMetaSidebarState monolith (81-638: lifecycle, stats polling, team membership streams, primary-session binding, broker subscription, config listener, inject state, accordion state, plus the three tab bodies), _ConfigSection/_ConfigPermKind enums (641/644), _MetaSection/_MetaRow models (646-657), _AgentRosterRow(+State) (680-928), _permissionModeBadge + _PermissionModeBadge T-181 (935-1009), _IconButton (1012-1039), _InjectTextField (1043-1070), _TaskRow T-171 (1077-1141), _TabStrip (1145-1192).
+
+Target layout under lib/builtin/claude/src/meta_sidebar/: models.dart (enums + _MetaSection/_MetaRow + layout consts), activity_tab.dart (ActivityTabView ~70 LOC, from _activityBody/_runtimeSection 272-302), team_tab.dart (TeamTabView ~120 LOC, from _teamBody/_taskSection 304-380, props-driven with callbacks), config_tab.dart (ConfigTabView ~200 LOC, from _configBody family 382-597; accordion _expanded state stays in parent, passed as prop+callback), roster_row.dart (_AgentRosterRow ~250 LOC incl. bypass-confirm state), permission_badge.dart (~80), task_row.dart (~70), tab_strip.dart (~55), icon_button.dart + inject_field.dart (~30 each — keep here initially; promote to lib/widgets/ only when a second consumer appears). Root file shrinks to ~150 LOC of lifecycle + event bindings + tab switch.
+
+Execution order (each phase independently green): 1) primitives (icon button, inject field, permission badge, models); 2) stateless tab views (activity, config, tab strip) with prop threading; 3) team tab + roster row (most orchestrator coupling: verify show/hide, mute, inject submit-and-clear, shift-click bypass confirm, fork, close, task reassign cycle, auto-front on TeamMemberJoined at line 158); 4) cleanup of moved methods from the root state.
+
+Tests: test/builtin/claude/claude_meta_sidebar_test.dart imports only the root file and public symbols — no changes needed; no goldens reference the sidebar. Caveat from the rat sweep (T-385): TeamMemberJoined currently has no emitter — coordinate before investing in the team tab plumbing.', NULL, '2026-06-11 22:09:55', '2026-06-11 22:09:55', '2026-06-11 22:09:55', NULL, '02f7234d8c395607fe5aa477e6bf291f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4RJ9K19P5AX14RHRR', 'description', 'parser.dart is a single 1139-line file containing the full ESC/CSI/OSC/DCS handler tree for the terminal emulator. Functional but unwieldy; the consultant flagged it as ''consider splitting'' in the T-107 review.
+
+Suggested split (sequenced with the T-91 coverage sweep on lib/src/terminal/, so the split doesn''t fight in-flight test work):
+
+- parser.dart — entry point + state machine driver
+- esc_handlers.dart — single-char ESC dispatch table + handlers
+- csi_handlers.dart — CSI parameter parsing + handlers
+- osc_handlers.dart — OSC string handlers (title, colour set, etc.)
+- dcs_handlers.dart — DCS/SOS/PM/APC string handlers
+
+Each handler module exports a registrar that the driver wires at construction.
+
+Done when:
+- parser.dart < 400 LOC
+- All existing parser tests pass without changes
+- No new public surface; everything stays library-private
+
+Source: T-107 / consultants.md "Code quality — Findings — [Major]".', 'parser.dart is a single 1139-line file containing the full ESC/CSI/OSC/DCS handler tree for the terminal emulator. Functional but unwieldy; the consultant flagged it as ''consider splitting'' in the T-107 review.
+
+Suggested split (sequenced with the T-91 coverage sweep on lib/src/terminal/, so the split doesn''t fight in-flight test work):
+
+- parser.dart — entry point + state machine driver
+- esc_handlers.dart — single-char ESC dispatch table + handlers
+- csi_handlers.dart — CSI parameter parsing + handlers
+- osc_handlers.dart — OSC string handlers (title, colour set, etc.)
+- dcs_handlers.dart — DCS/SOS/PM/APC string handlers
+
+Each handler module exports a registrar that the driver wires at construction.
+
+Done when:
+- parser.dart < 400 LOC
+- All existing parser tests pass without changes
+- No new public surface; everything stays library-private
+
+Source: T-107 / consultants.md "Code quality — Findings — [Major]".
+
+Split breakdown from the 2026-06-11 Fable review (epic T-359), verified against the file 2026-06-12:
+
+Structure today: main parser + routing (11-116), CSI core _escHandleCSI (196-209) + _consumeCsi (217-272), _csiHandlers table of 27 final bytes (274-304), cursor movement handlers (306-807), erase/scroll/line/char ops (809-945), SGR monolith (411-622, 212 LOC), mode set/reset (395-409, 946-1030), DA/DSR (334-343, 624-635), window manipulation (658-712), OSC (1034-1110), _Csi state object (1113-1131 — note the commented-out `intermediates` field at 1117/1125).
+
+Target layout under escape/: parser.dart keeps EscapeParser (queue, tokenization, top-level dispatch, ~400 LOC); csi_parser.dart (CsiSequence value object — prefix, params, RESTORED intermediates, finalByte — plus the consume logic from _consumeCsi); csi_handlers.dart (dispatch table, now keyed on final byte + intermediates); cursor_handlers.dart; sgr_handler.dart (the 411-622 monolith); mode_handler.dart; osc_parser.dart + osc_handlers.dart. EscapeHandler interface unchanged. Preserve the zero-allocation/reset-able design goal noted at lines 14-16.
+
+Bug this split must fix (verified): _consumeCsi DISCARDS intermediate bytes — lines 258-261 have `// intermediates.add(char);` commented out and `continue`, so CSI Ps SP q (DECSCUSR, cursor style) and CSI ! p / SP-intermediate forms dispatch on the bare final byte and fall to unknownCSI. Fix: restore the intermediates field on CsiSequence, capture them during consume, dispatch on (intermediates, finalByte), and add EscapeHandler.setCursorStyle for DECSCUSR. (DECSTR is CSI ! p — soft terminal reset — same intermediate mechanism.)
+
+Related bug with its own ticket (T-369): unguarded params[i+1] lookahead in SGR 38/48 at lines ~502/512/547/557 (RangeError on truncated sequences) + colon-form sub-parameters unhandled. The split makes the fix natural: sgr_handler.dart owns guarded lookahead helpers; if T-369 lands first, carry its tests over; if this lands first, fix it inside sgr_handler.dart and close T-369 with it.
+
+Tests: test/terminal/escape/parser_test.dart (786 LOC) splits along the same seams — keep parser_test.dart for top-level dispatch/SBC/rollback, add csi_parser_test.dart (intermediates capture, DECSCUSR), sgr_handler_test.dart (bounds + colon form + 256/RGB), mode_handler_test.dart, osc_parser_test.dart, window/DA splits as convenient. The _RecordingHandler fixture is reusable across all of them.', NULL, '2026-06-11 22:10:19', '2026-06-11 22:10:19', '2026-06-11 22:10:19', NULL, '2942deccaff5b534ac3e33ac23b4d9fa', 2) ON CONFLICT(hash) DO NOTHING;
