@@ -133,6 +133,10 @@ You might also want, project-permitting:
 - [D-89: inline pasted-image thumbnails that expand to the lightbox](decisions/design.md#d-89-inline-pasted-image-thumbnails-that-expand-to-the-lightbox) — _design_
 - [D-90: clide:// deep links — paranoid allowlist + user confirmation](decisions/architecture.md#d-90-clide-deep-links--paranoid-allowlist--user-confirmation) — _architecture_
 - [D-91: Unified conversation drawing card backed by a canvas renderer](decisions/architecture.md#d-91-unified-conversation-drawing-card-backed-by-a-canvas-renderer) — _architecture_
+- [D-92: Ship pql bundled with clide](decisions/tooling.md#d-92-ship-pql-bundled-with-clide) — _tooling_
+- [D-93: clide writes no directories of its own into the workspace](decisions/architecture.md#d-93-clide-writes-no-directories-of-its-own-into-the-workspace) — _architecture_
+- [D-94: Workspace mode is a first-class, extensible declared capability](decisions/architecture.md#d-94-workspace-mode-is-a-first-class-extensible-declared-capability) — _architecture_
+- [D-95: Workspace validity and onboarding flow](decisions/architecture.md#d-95-workspace-validity-and-onboarding-flow) — _architecture_
 
 ## Open questions
 
