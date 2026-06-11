@@ -170,6 +170,43 @@ void main() {
       expect(store.get<int>('app.anything'), isNull);
     });
 
+    // T-376: maps nested inside lists were emitted via toString() and
+    // corrupted on the next read — breaking the documented keymap overlay.
+    test('maps inside lists round-trip across save/load (keymap overlay shape)', () async {
+      final overlay = [
+        {'keys': 'ctrl+k ctrl+s', 'command': 'keybindings.open'},
+        {'keys': 'shift shift', 'command': 'finder.open', 'when': 'editorFocus'},
+      ];
+      await store.set<Object>('app.keymap.overlay', overlay);
+      final loaded = SettingsStore(appDir: tmp);
+      addTearDown(loaded.dispose);
+      await loaded.load();
+      final got = loaded.get<List>('app.keymap.overlay');
+      expect(got, hasLength(2));
+      expect((got![0] as Map)['keys'], 'ctrl+k ctrl+s');
+      expect((got[0] as Map)['command'], 'keybindings.open');
+      expect((got[1] as Map)['when'], 'editorFocus');
+    });
+
+    test('a parse failure preserves the original file and reports it (T-376)', () async {
+      final errors = <String>[];
+      final f = File('${tmp.path}/settings.yaml');
+      const garbage = 'app:\n  broken: [unclosed\n'; // genuinely invalid YAML
+      await f.writeAsString(garbage);
+      final reporting = SettingsStore(appDir: tmp, onError: errors.add);
+      addTearDown(reporting.dispose);
+      await reporting.load();
+      expect(errors, hasLength(1));
+      expect(errors.single, contains('.broken'));
+      expect(File('${f.path}.broken').readAsStringSync(), garbage, reason: 'the broken original is preserved for recovery');
+    });
+
+    test('writes are atomic — no .tmp residue, content lands whole', () async {
+      await store.set<String>('app.k', 'v');
+      expect(File('${tmp.path}/settings.yaml.tmp').existsSync(), isFalse);
+      expect(File('${tmp.path}/settings.yaml').readAsStringSync(), contains('k: v'));
+    });
+
     test('load returns empty when the settings file is blank or missing', () async {
       // File missing → empty.
       final f = File('${tmp.path}/settings.yaml');

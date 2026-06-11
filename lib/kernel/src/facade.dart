@@ -144,7 +144,7 @@ class KernelServices {
     final messages = MessageBus();
     final filterStates = FilterStateCache(messages: messages);
 
-    final settings = SettingsStore(appDir: appDir);
+    final settings = SettingsStore(appDir: appDir, onError: (m) => log.warn('settings', m));
     await settings.load();
 
     final i18n = I18n(loader: i18nLoader, log: log, defaultLocale: defaultLocale, initialLocale: initialLocale, availableLocales: availableLocales);

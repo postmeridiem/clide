@@ -109,6 +109,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   D-72's contract), drop or double frames split across reads, and corrupt
   multi-byte characters split across chunks. (T-372)
 
+- **Settings survive nested structures, crashes, and corruption.** Maps
+  inside lists (the keymap overlay shape) were corrupted on save; writes
+  are now atomic (temp file + rename), and a file that fails to parse is
+  preserved as `.broken` with a logged warning instead of being silently
+  reset. (T-376)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

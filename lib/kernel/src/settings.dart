@@ -6,10 +6,15 @@ import 'package:yaml/yaml.dart';
 enum SettingsScope { app, project, ext }
 
 class SettingsStore extends ChangeNotifier {
-  SettingsStore({required this.appDir, this.projectDir});
+  SettingsStore({required this.appDir, this.projectDir, this.onError});
 
   final Directory appDir;
   Directory? projectDir;
+
+  /// Surfaces load/parse problems (wired to the kernel Logger by the
+  /// facade). A parse failure must not pass silently — it used to reset
+  /// every setting on the next write (T-376).
+  final void Function(String message)? onError;
 
   final Map<String, Object?> _appValues = <String, Object?>{};
   final Map<String, Object?> _projectValues = <String, Object?>{};
@@ -93,17 +98,29 @@ class SettingsStore extends ChangeNotifier {
   }
 
   Future<Map<String, Object?>> _readFile(File f) async {
+    String txt;
     try {
       if (!await f.exists()) return <String, Object?>{};
-      final txt = await f.readAsString();
-      if (txt.trim().isEmpty) return <String, Object?>{};
+      txt = await f.readAsString();
+    } catch (_) {
+      // On web (or in sandboxes where the path isn't readable) silently
+      // degrade to an empty in-memory catalog. `set` will no-op too.
+      return <String, Object?>{};
+    }
+    if (txt.trim().isEmpty) return <String, Object?>{};
+    try {
       final yaml = loadYaml(txt);
       final out = <String, Object?>{};
       if (yaml is Map) _flatten(yaml, '', out);
       return out;
-    } catch (_) {
-      // On web (or in sandboxes where the path isn't writable) silently
-      // degrade to an empty in-memory catalog. `set` will no-op too.
+    } catch (e) {
+      // A parse failure must not silently reset the user's settings — the
+      // next `set` overwrites the file with the (now empty) in-memory map.
+      // Preserve the original for recovery and say so (T-376).
+      try {
+        await File('${f.path}.broken').writeAsString(txt);
+      } catch (_) {}
+      onError?.call('failed to parse ${f.path}: $e — original preserved at ${f.path}.broken');
       return <String, Object?>{};
     }
   }
@@ -111,7 +128,11 @@ class SettingsStore extends ChangeNotifier {
   Future<void> _writeFile(File f, Map<String, Object?> flat) async {
     try {
       await f.parent.create(recursive: true);
-      await f.writeAsString(_emitYaml(_unflatten(flat)));
+      // Temp-file + rename: a crash mid-write must not truncate the live
+      // settings file (T-376).
+      final tmp = File('${f.path}.tmp');
+      await tmp.writeAsString(_emitYaml(_unflatten(flat)));
+      await tmp.rename(f.path);
     } catch (_) {
       // Web / read-only sandbox: in-memory update remains valid, we
       // just can't persist. Callers already called notifyListeners.
@@ -214,6 +235,20 @@ void _emitScalar(StringBuffer buf, Object? v) {
       _emitScalar(buf, v[i]);
     }
     buf.write(']');
+  } else if (v is Map) {
+    // YAML flow mapping — maps nested inside lists (e.g. keymap overlay
+    // entries) used to fall through to toString() and corrupt on the
+    // next read (T-376).
+    buf.write('{');
+    var first = true;
+    v.forEach((k, vv) {
+      if (!first) buf.write(', ');
+      first = false;
+      _emitScalar(buf, '$k');
+      buf.write(': ');
+      _emitScalar(buf, vv);
+    });
+    buf.write('}');
   } else {
     buf.write('"${v.toString()}"');
   }
