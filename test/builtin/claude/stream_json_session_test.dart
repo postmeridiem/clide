@@ -478,6 +478,43 @@ void main() {
     expect(session.toolUseOutcomes['toolu_1'], isFalse);
   });
 
+  String planInit() => jsonEncode({'type': 'system', 'subtype': 'init', 'model': 'claude-opus-4-7', 'permissionMode': 'plan'});
+
+  test('approving ExitPlanMode leaves plan mode (T-337)', () async {
+    proc.emit(planInit());
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.permissionMode, 'plan');
+
+    proc.emit(canUseTool('exit-1', tool: 'ExitPlanMode', input: {'plan': 'do the thing'}));
+    await Future<void>.delayed(Duration.zero);
+    final p = session.pendingPrompt!;
+    expect(p.toolName, 'ExitPlanMode');
+
+    session.resolvePrompt(p.promptId, AllowTool(p.input));
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.permissionMode, 'default', reason: 'approving ExitPlanMode must exit plan mode');
+  });
+
+  test('denying ExitPlanMode stays in plan mode (T-337)', () async {
+    proc.emit(planInit());
+    await Future<void>.delayed(Duration.zero);
+    proc.emit(canUseTool('exit-2', tool: 'ExitPlanMode', input: {'plan': 'x'}));
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt(session.pendingPrompt!.promptId, const DenyTool('keep planning'));
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.permissionMode, 'plan', reason: 'a denied plan-exit keeps plan mode');
+  });
+
+  test('approving a non-ExitPlanMode tool does not change plan mode (T-337)', () async {
+    proc.emit(planInit());
+    await Future<void>.delayed(Duration.zero);
+    proc.emit(canUseTool('w1')); // a Write
+    await Future<void>.delayed(Duration.zero);
+    session.resolvePrompt(session.pendingPrompt!.promptId, AllowTool(const {}));
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.permissionMode, 'plan', reason: 'only ExitPlanMode exits plan mode');
+  });
+
   test('resolvePrompt(deny) writes a deny decision with a message', () async {
     proc.emit(canUseTool('req-3'));
     await Future<void>.delayed(Duration.zero);

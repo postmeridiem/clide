@@ -570,6 +570,14 @@ class StreamJsonSession {
       }),
     );
     if (decision is AllowTool) {
+      // Approving ExitPlanMode leaves plan mode. The CLI performs the
+      // transition itself on the approval, so we don't send a
+      // set_permission_mode control request — we just sync our tracked status
+      // (exits to 'default', matching Claude Code) so the permission-mode
+      // indicator and composer reflect the change (T-337).
+      if (prompt.toolName == 'ExitPlanMode') {
+        _mergeStatus(const SessionStatus(permissionMode: 'default'));
+      }
       // The prompt card is ephemeral (it vanishes once resolved), so leave a
       // compact record of an answered question in the conversation log (D-78).
       if (prompt.isQuestion) {

@@ -16,6 +16,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
+  Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
+  session out of plan mode, but clide's tracked permission mode didn't follow,
+  so the mode indicator and composer stayed stuck on "plan". The approval now
+  syncs the tracked mode to `default`. (T-337)
+
 ### Added
 
 - **Double-tap-modifier shortcuts (e.g. double-Shift "Search Everywhere").**
