@@ -223,7 +223,13 @@ Future<void> main() async {
     return next;
   }
 
-  (DaemonDispatcher, Future<void> Function()) buildDispatcher(DaemonBus events, Toolchain tc, Directory workRoot, LayoutArrangement arrangement, PanelRegistry panels) {
+  (DaemonDispatcher, Future<void> Function()) buildDispatcher(
+    DaemonBus events,
+    Toolchain tc,
+    Directory workRoot,
+    LayoutArrangement arrangement,
+    PanelRegistry panels,
+  ) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
     final paneRegistry = PaneRegistry(events: eventSink);

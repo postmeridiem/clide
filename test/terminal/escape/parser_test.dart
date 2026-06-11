@@ -682,7 +682,18 @@ void main() {
     // inside Terminal.write.
     test('truncated 38/48 sequences are ignored, never throw', () {
       final f = _newParser();
-      for (final s in ['\x1b[38m', '\x1b[48m', '\x1b[38;2m', '\x1b[38;2;255m', '\x1b[38;2;255;10m', '\x1b[38;5m', '\x1b[48;5m', '\x1b[38:2m', '\x1b[38:5m', '\x1b[48:2:255m']) {
+      for (final s in [
+        '\x1b[38m',
+        '\x1b[48m',
+        '\x1b[38;2m',
+        '\x1b[38;2;255m',
+        '\x1b[38;2;255;10m',
+        '\x1b[38;5m',
+        '\x1b[48;5m',
+        '\x1b[38:2m',
+        '\x1b[38:5m',
+        '\x1b[48:2:255m',
+      ]) {
         f.parser.write(s);
       }
       expect(f.h.named('setForegroundColorRgb'), isEmpty);

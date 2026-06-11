@@ -162,12 +162,12 @@ void main() {
       if (!Platform.isLinux) return;
 
       int ptmxCount() => Directory('/proc/self/fd').listSync().where((e) {
-            try {
-              return Link(e.path).targetSync() == '/dev/ptmx';
-            } on FileSystemException {
-              return false; // fd vanished between list and readlink
-            }
-          }).length;
+        try {
+          return Link(e.path).targetSync() == '/dev/ptmx';
+        } on FileSystemException {
+          return false; // fd vanished between list and readlink
+        }
+      }).length;
 
       final baseline = ptmxCount();
       final s = NativePty.start(
