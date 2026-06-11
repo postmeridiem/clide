@@ -309,7 +309,7 @@ clide-cli-clean: ## Remove the compiled C `clide` client.
 # -- security -------------------------------------------------------------
 
 .PHONY: security
-security: ## Supply-chain gate — osv-scanner over pubspec.lock (fails on a known advisory).
+security: ## Supply-chain gate — osv-scanner over pubspec.lock (CI PR-merge pipeline; run locally on demand). Fails on a known advisory.
 	ci/osv_scan.sh
 
 # -- pre-push gate --------------------------------------------------------
@@ -319,7 +319,11 @@ decisions-validate: ## Parser dry-run over governance/{decisions,questions,rejec
 	pql decisions validate
 
 .PHONY: push-check
-push-check: decisions-validate changelog-gate security test-coverage coverage-gate test-core ## Pre-push gate (fast — <2 min target). Order is fail-fast: instant gates (decisions, changelog, security/osv) first, then the coverage suite + gate (the expensive, most-likely-to-fail stage) BEFORE test-core — a coverage miss aborts here instead of after running everything, so a fix doesn't force a full re-run of the rest. test-coverage already runs the a11y suite (test/a11y), so no separate test-a11y pass.
+# NOTE: the `security` (osv-scanner) gate is deliberately NOT in push-check —
+# it runs in the CI PR-merge pipeline (where the scanner is provisioned) so we
+# don't force every dev machine to install osv-scanner. Run it locally any time
+# with `make security`.
+push-check: decisions-validate changelog-gate test-coverage coverage-gate test-core ## Pre-push gate (fast — <2 min target). Order is fail-fast: instant gates (decisions, changelog) first, then the coverage suite + gate (the expensive, most-likely-to-fail stage) BEFORE test-core — a coverage miss aborts here instead of after running everything, so a fix doesn't force a full re-run of the rest. test-coverage already runs the a11y suite (test/a11y), so no separate test-a11y pass.
 
 .PHONY: push-check-full
 push-check-full: push-check test-integration smoke-bundle ## Pre-release gate (push-check + integration + smoke; slower).

@@ -25,11 +25,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `xml` 7.0.1), `mocktail` 1.0.4→1.0.5. Deliberately held with reasons in
   `pubspec.yaml`: `markdown` (7.3.1 needs Dart 3.9), `alchemist` (0.13 golden
   churn), `test` (Flutter-SDK locked). (T-353)
-- **Supply-chain gate in `make push-check`.** A new `security` step runs
-  `osv-scanner` over `pubspec.lock` and fails the push if any resolved
-  dependency has a known advisory — a hard gate on top of `dart pub`'s passive,
-  non-failing advisory print. Requires `osv-scanner` on PATH
-  (`brew install osv-scanner`). (T-353)
+- **Supply-chain gate (`make security`).** A new `security` target runs
+  `osv-scanner` over `pubspec.lock` and fails if any resolved dependency has a
+  known advisory — a hard gate on top of `dart pub`'s passive, non-failing
+  advisory print. Intended for the CI PR-merge pipeline (kept out of
+  `push-check` so dev machines don't need the scanner installed); run locally
+  any time with `make security`. (T-353)
 
 ## [2.3.2] — 2026-06-11
 
