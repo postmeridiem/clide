@@ -104,6 +104,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   the original conversation again; the source now seeds only the first
   bind. (T-375)
 
+- **Pipelined IPC requests are now truly serial and framing-safe.** The
+  server's read handler could interleave concurrent requests (against
+  D-72's contract), drop or double frames split across reads, and corrupt
+  multi-byte characters split across chunks. (T-372)
+
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
   session out of plan mode, but clide's tracked permission mode didn't follow,

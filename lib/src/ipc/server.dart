@@ -150,33 +150,26 @@ class IpcServer {
 
   void _onClient(Socket client) {
     _clients.add(client);
-    final buffer = StringBuffer();
-    late StreamSubscription<List<int>> sub;
-    sub = client.listen(
-      (chunk) async {
-        buffer.write(utf8.decode(chunk, allowMalformed: true));
-        var idx = buffer.toString().indexOf('\n');
-        while (idx >= 0) {
-          final raw = buffer.toString().substring(0, idx);
-          // Trim consumed bytes by rebuilding the buffer with the
-          // tail — StringBuffer can't slice in place.
-          final tail = buffer.toString().substring(idx + 1);
-          buffer.clear();
-          buffer.write(tail);
-          await _handleLine(client, raw);
-          idx = buffer.toString().indexOf('\n');
-        }
-      },
-      onError: (Object e, StackTrace st) {
-        log.warn('ipc', 'client read error: $e');
-      },
-      onDone: () {
-        _clients.remove(client);
-        _subscribers.remove(client);
-        sub.cancel();
-      },
-      cancelOnError: true,
-    );
+    unawaited(_serveClient(client));
+  }
+
+  /// One read loop per connection: persistent UTF-8 decode, line framing,
+  /// and true serial dispatch in a single `await for` (D-72, T-372). The
+  /// old async onData handler never paused its subscription — pipelined
+  /// requests interleaved mid-handler, the shared StringBuffer could
+  /// re-frame while an await was in flight, and per-chunk decode corrupted
+  /// runes split across reads.
+  Future<void> _serveClient(Socket client) async {
+    try {
+      await for (final line in client.cast<List<int>>().transform(const Utf8Decoder(allowMalformed: true)).transform(const LineSplitter())) {
+        await _handleLine(client, line);
+      }
+    } catch (e) {
+      log.warn('ipc', 'client read error: $e');
+    } finally {
+      _clients.remove(client);
+      _subscribers.remove(client);
+    }
   }
 
   Future<void> _handleLine(Socket client, String line) async {
