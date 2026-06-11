@@ -164,6 +164,21 @@ You might also want, project-permitting:
 - [Q-30: Focus behavior when editor is dirty and viewer is peeked](questions/architecture.md#q-30-focus-behavior-when-editor-is-dirty-and-viewer-is-peeked) — _architecture_
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
 - [Q-34: How + when to surface the account/team token budget given upstream doesn't expose it](questions/architecture.md#q-34-how--when-to-surface-the-accountteam-token-budget-given-upstream-doesnt-expose-it) — _architecture_
+- [Q-35: Agent Blame + Session Flight Recorder — implement?](questions/design.md#q-35-agent-blame--session-flight-recorder--implement) — _design_
+- [Q-36: Context X-ray — implement?](questions/design.md#q-36-context-x-ray--implement) — _design_
+- [Q-37: Trust Ledger + decision-aware permission prompts — implement?](questions/design.md#q-37-trust-ledger--decision-aware-permission-prompts--implement) — _design_
+- [Q-38: Agent Activity HUD — implement?](questions/design.md#q-38-agent-activity-hud--implement) — _design_
+- [Q-39: Active Ticket Context — implement?](questions/design.md#q-39-active-ticket-context--implement) — _design_
+- [Q-40: Twin-timeline rewind — implement?](questions/design.md#q-40-twin-timeline-rewind--implement) — _design_
+- [Q-41: Visual Dialog — one bidirectional scene schema — implement?](questions/design.md#q-41-visual-dialog--one-bidirectional-scene-schema--implement) — _design_
+- [Q-42: Immortal terminals — implement?](questions/design.md#q-42-immortal-terminals--implement) — _design_
+- [Q-43: Local cost ledger — implement?](questions/design.md#q-43-local-cost-ledger--implement) — _design_
+- [Q-44: Label-routed work queues / ticket dispatch — implement?](questions/design.md#q-44-label-routed-work-queues--ticket-dispatch--implement) — _design_
+- [Q-45: Semantic terminal — implement?](questions/design.md#q-45-semantic-terminal--implement) — _design_
+- [Q-46: Living codebase map — implement?](questions/design.md#q-46-living-codebase-map--implement) — _design_
+- [Q-47: Live mixed documents — implement?](questions/design.md#q-47-live-mixed-documents--implement) — _design_
+- [Q-48: Sealed-workspace mode — implement?](questions/design.md#q-48-sealed-workspace-mode--implement) — _design_
+- [Q-49: Review honorable mentions — which, if any, get promoted?](questions/design.md#q-49-review-honorable-mentions--which-if-any-get-promoted) — _design_
 
 ## Resolved questions
 
