@@ -6,6 +6,8 @@
 /// was never sent and the backend PTY + daemon pane leaked.
 library;
 
+import 'dart:io';
+
 import 'package:clide/builtin/terminal/src/terminal_pane.dart';
 import 'package:clide/clide.dart';
 import 'package:flutter/widgets.dart';
@@ -47,6 +49,30 @@ void main() {
     await pumpAsync(tester);
 
     expect(closed, ['pane-7']);
+  });
+
+  testWidgets('spawns the shell in the open workspace, not Directory.current (T-381)', (tester) async {
+    String? spawnedCwd;
+    fixture.ipc.setConnected(true);
+    fixture.ipc.stub('pane.spawn', (args) async {
+      spawnedCwd = args['cwd'] as String?;
+      return IpcResponse.ok(id: 'r1', data: {'id': 'pane-9', 'pid': 1});
+    });
+
+    // Open a project so the kernel has a workspace root.
+    final repo = await tester.runAsync(() async {
+      final dir = fixture.tempDir.createTempSync('repo-');
+      Directory('${dir.path}/.git').createSync();
+      return dir;
+    });
+    final opened = await tester.runAsync(() => fixture.services.project.open(repo!.path));
+    expect(opened, isTrue);
+
+    await tester.pumpWidget(harness(fixture, const TerminalPane()));
+    await pumpAsync(tester);
+
+    expect(spawnedCwd, repo!.path);
+    expect(spawnedCwd, isNot(Directory.current.path));
   });
 
   testWidgets('disposing before spawn completes sends no close', (tester) async {

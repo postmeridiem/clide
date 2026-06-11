@@ -78,7 +78,9 @@ class _TerminalPaneState extends State<TerminalPane> {
     }
 
     final shell = Platform.environment['SHELL'] ?? '/bin/bash';
-    final cwd = Directory.current.path;
+    // The open workspace, not Directory.current — a desktop launch starts
+    // in $HOME and a project switch doesn't move the process CWD (T-381).
+    final cwd = _kernel?.project.current?.path ?? Directory.current.path;
 
     final response = await ipc.request(
       'pane.spawn',
