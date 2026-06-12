@@ -1,11 +1,10 @@
 /// Smoke + branch tests for the previously-uncovered widgets under
-/// `lib/widgets/src/`: ClidePalette, ClideFilterBox, ColumnHat,
+/// `lib/widgets/src/`: ClidePalette, ClideFilterBox,
 /// ClideIconRail, ClideSpine, ClideResizeBorder.
 library;
 
 import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
-import 'package:clide/widgets/src/clide_column_hat.dart';
 import 'package:clide/widgets/src/clide_filter_box.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_icon_rail.dart';
@@ -308,41 +307,6 @@ void main() {
       await tester.enterText(find.byType(EditableText), 'x');
       await tester.pump();
       expect(find.text('Replace'), findsNothing);
-    });
-  });
-
-  group('ColumnHat', () {
-    late KernelFixture f;
-    setUp(() async => f = await KernelFixture.create());
-    tearDown(() async => f.dispose());
-
-    testWidgets('left / center / right factories render', (tester) async {
-      final wc = WindowControls();
-      addTearDown(wc.dispose);
-      await tester.pumpWidget(
-        harness(
-          f,
-          Column(
-            children: [
-              SizedBox(width: 200, child: ColumnHat.left(windowControls: wc)),
-              SizedBox(
-                width: 200,
-                child: ColumnHat.center(windowControls: wc, project: 'clide', branch: 'main'),
-              ),
-              SizedBox(width: 200, child: ColumnHat.right(windowControls: wc)),
-            ],
-          ),
-        ),
-      );
-      // Center hat renders the joined label.
-      expect(find.text('clide > main'), findsOneWidget);
-    });
-
-    testWidgets('center hat falls back to "clide" with no project/branch', (tester) async {
-      final wc = WindowControls();
-      addTearDown(wc.dispose);
-      await tester.pumpWidget(harness(f, SizedBox(width: 200, child: ColumnHat.center(windowControls: wc))));
-      expect(find.text('clide'), findsOneWidget);
     });
   });
 
