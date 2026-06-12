@@ -74,6 +74,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<SessionStatus>? _statusSub;
   StreamSubscription<SessionEnd>? _endSub;
   StreamSubscription<ProjectOpened>? _projectSub;
+  StreamSubscription<Message>? _commandSub;
   StreamSubscription<String>? _modelErrorSub;
   ConversationController? _conversation;
   StreamJsonSession? _session;
@@ -177,6 +178,18 @@ class _ClaudePaneState extends State<ClaudePane> {
       // GlobalKey and spawns once, so without this it would keep the previous
       // repo's session after a switch (T-269).
       _projectSub = ClideKernel.of(context).events.on<ProjectOpened>().listen(_onProjectChanged);
+      // Sidebar controls (and any future surface) drive this pane's session by
+      // publishing slash-command text on builtin.claude/command (T-414) —
+      // executed through the exact _send routing the composer uses, so the
+      // control and the typed command are one code path (D-6). Only the
+      // primary pane listens: the controls target the primary session, and a
+      // second listener would double-execute.
+      if (widget.isPrimary) {
+        _commandSub = ClideKernel.of(context).messages.subscribe(publisher: 'builtin.claude', channel: 'command').listen((msg) {
+          final text = msg.data['text'] as String?;
+          if (text != null && text.isNotEmpty) _send(text);
+        });
+      }
       // Re-fold the conversation when the activity fold-level setting changes
       // (claude.activity.fold-level command, T-235).
       ClideKernel.of(context).settings.addListener(_onSettingsChanged);
@@ -192,6 +205,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     activeClaudeConfig?.removeListener(_onConfigChanged);
     _kernel?.settings.removeListener(_onSettingsChanged);
     _projectSub?.cancel();
+    _commandSub?.cancel();
     _projectSub = null;
     _statusSub?.cancel();
     _statusSub = null;

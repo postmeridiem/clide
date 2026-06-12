@@ -9,7 +9,11 @@ import 'package:flutter/widgets.dart';
 /// The shared label-column width + row pitch the Activity and Config tables
 /// both use, so toggling between tabs keeps every value at the same x and y.
 const double kMetaLabelColumnWidth = 110;
-const double kMetaRowPitch = 4;
+const double kMetaRowPitch = 6;
+
+/// Type scale for the sidebar tables (T-414 styling pass): labels/values read
+/// at meta size (13) — the old 12px-everything read as bland and cramped.
+const double kMetaFont = clideFontMeta;
 
 /// The sidebar's sub-tabs.
 enum SidebarTab { activity, team, config }
@@ -36,7 +40,7 @@ class MetaRow {
 /// The muted empty-state body shared by every tab.
 Widget metaPlaceholder(String text) => Padding(
   padding: const EdgeInsets.all(12),
-  child: ClideText(text, muted: true, fontSize: clideFontSmall),
+  child: ClideText(text, muted: true, fontSize: kMetaFont),
 );
 
 /// Key→value sections on the shared table geometry (Activity + Config).
@@ -46,8 +50,8 @@ Widget buildMetaTable(SurfaceTokens tokens, List<MetaSection> sections) {
     final s = sections[i];
     children.add(
       Padding(
-        padding: EdgeInsets.only(top: i == 0 ? 0 : 16, bottom: 6),
-        child: ClideText(s.header, fontSize: clideFontSmall, color: tokens.globalTextMuted),
+        padding: EdgeInsets.only(top: i == 0 ? 0 : 18, bottom: 8),
+        child: ClideText(s.header, fontSize: clideFontSmall, color: tokens.sidebarSectionHeader),
       ),
     );
     for (final r in s.rows) {
@@ -59,10 +63,10 @@ Widget buildMetaTable(SurfaceTokens tokens, List<MetaSection> sections) {
             children: [
               SizedBox(
                 width: kMetaLabelColumnWidth,
-                child: ClideText(r.label, muted: true, fontSize: clideFontSmall),
+                child: ClideText(r.label, muted: true, fontSize: kMetaFont),
               ),
               Expanded(
-                child: ClideText(r.value, fontSize: clideFontSmall, color: r.valueColor ?? tokens.globalForeground),
+                child: ClideText(r.value, fontSize: kMetaFont, color: r.valueColor ?? tokens.globalForeground),
               ),
             ],
           ),

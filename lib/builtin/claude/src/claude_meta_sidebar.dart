@@ -312,6 +312,8 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
             ),
             SidebarTab.config => ConfigTabView(
               config: _config,
+              status: _primaryStatus,
+              models: _orchestrator?.byId('primary')?.session.availableModels,
               expanded: _expanded,
               onToggleSection: (section) => setState(() {
                 if (_expanded.contains(section)) {

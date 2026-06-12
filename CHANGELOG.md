@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **The Claude sidebar Config tab is a live control panel.** Model, effort, and
+  permission mode are popover controls showing the running session's values;
+  picking an option drives the session through the same path as the typed slash
+  command. The sidebar tables also got a visual pass — larger type, accent
+  section headers, more breathing room. (T-414)
 - **The TUI command family opens clide surfaces.** `/permissions` sets the mode
   directly or opens a picker; `/status`, `/config`, `/mcp`, `/agents`, `/hooks`
   jump to the matching Claude sidebar tab; `/memory` opens CLAUDE.md in the

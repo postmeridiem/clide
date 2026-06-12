@@ -133,6 +133,33 @@ void main() {
     expect(find.text('Claude environment not loaded.'), findsOneWidget);
   });
 
+  testWidgets('a settings control publishes its slash command on pick (T-414)', (tester) async {
+    final dir = Directory.systemTemp.createTempSync('cfg');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final config = ClaudeConfig(globalDir: dir, cacheDir: dir);
+    final published = <Message>[];
+    final sub = f.services.messages.subscribe(publisher: 'builtin.claude', channel: 'command').listen(published.add);
+    addTearDown(sub.cancel);
+
+    await tester.pumpWidget(harness(f, sidebar(config: config, initialTab: SidebarTab.config)));
+    await tester.pumpAndSettle();
+
+    // The three live controls render alongside the read-only rows.
+    expect(find.text('model'), findsOneWidget);
+    expect(find.text('effort'), findsOneWidget);
+    expect(find.text('permission mode'), findsOneWidget);
+
+    // Open the effort control and pick a level → the explicit slash command
+    // goes out on the bus (the primary pane executes it via _send, D-6).
+    await tester.tap(find.bySemanticsLabel(RegExp('effort: .*Click to change.')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('xhigh'));
+    await tester.pumpAndSettle();
+
+    expect(published, hasLength(1));
+    expect(published.single.data['text'], '/effort xhigh');
+  });
+
   testWidgets('a meta.tab message switches the sub-tab (T-413 slash navigation)', (tester) async {
     await tester.pumpWidget(harness(f, sidebar(stats: stats)));
     await tester.pumpAndSettle();

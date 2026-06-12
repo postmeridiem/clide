@@ -1,21 +1,39 @@
-/// The Config tab (T-183): the pinned settings table over [ClaudeConfig]
-/// plus the skills/agents/commands/hooks/permissions/MCP accordion.
-/// Split out of claude_meta_sidebar.dart (T-395). The accordion's
-/// expansion state lives in the parent (it survives tab switches) and
-/// arrives as a prop + toggle callback.
+/// The Config tab (T-183): the settings table over [ClaudeConfig] plus the
+/// skills/agents/commands/hooks/permissions/MCP accordion. Split out of
+/// claude_meta_sidebar.dart (T-395). The accordion's expansion state lives in
+/// the parent (it survives tab switches) and arrives as a prop + toggle
+/// callback.
+///
+/// T-414 makes the settings table a control panel: model / effort /
+/// permission-mode rows are live popover controls. Picking an option
+/// publishes the explicit slash command (`/model sonnet`) on the
+/// `builtin.claude`/`command` channel; the primary Claude pane executes it
+/// through the same `_send` routing the composer uses — one implementation,
+/// two surfaces (D-6).
 library;
 
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show permissionModeLabel;
 import 'package:clide/builtin/claude/src/meta_sidebar/models.dart';
+import 'package:clide/builtin/claude/src/stream_json_session.dart' show ModelOption, kEffortLevels, kFallbackModels, kPermissionModes;
+import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 class ConfigTabView extends StatelessWidget {
-  const ConfigTabView({super.key, required this.config, required this.expanded, required this.onToggleSection});
+  const ConfigTabView({super.key, required this.config, required this.expanded, required this.onToggleSection, this.status, this.models});
 
   final ClaudeConfig? config;
+
+  /// The primary session's live status — drives the control rows' current
+  /// values. Null before the session reports (controls fall back to the
+  /// probe/settings values).
+  final SessionStatus? status;
+
+  /// Models selectable for the primary session (from its `initialize`
+  /// response); falls back to [kFallbackModels].
+  final List<ModelOption>? models;
 
   /// Sections currently expanded — owned by the parent state.
   final Set<ConfigSection> expanded;
@@ -29,19 +47,34 @@ class ConfigTabView extends StatelessWidget {
       return metaPlaceholder('Claude environment not loaded.');
     }
     final settings = cfg.settings;
-    final model = cfg.probe?.model ?? settings['model']?.toString() ?? '—';
+    final model = status?.model ?? cfg.probe?.model ?? settings['model']?.toString() ?? 'default';
     final outputStyle = settings['outputStyle']?.toString() ?? 'default';
-    final mode = cfg.probe?.permissionMode ?? settings['permissionMode']?.toString() ?? 'default';
+    final mode = status?.permissionMode ?? cfg.probe?.permissionMode ?? settings['permissionMode']?.toString() ?? 'default';
+    final effort = status?.effort ?? settings['effortLevel']?.toString() ?? 'default';
 
     final children = <Widget>[
-      // Pinned SETTINGS table — not collapsible.
+      // Pinned SETTINGS control panel — not collapsible.
       Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: ClideText('SETTINGS', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+        padding: const EdgeInsets.only(bottom: 8),
+        child: ClideText('SETTINGS', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader),
       ),
-      _configRow(tokens, 'model', model, valueColor: tokens.globalFocus),
+      SettingControlRow(
+        label: 'model',
+        value: model,
+        valueColor: tokens.globalFocus,
+        options: (models == null || models!.isEmpty) ? kFallbackModels : models!,
+        isActive: (o) => o.value == model || model.toLowerCase().contains(o.value.toLowerCase()),
+        command: 'model',
+      ),
+      SettingControlRow(label: 'effort', value: effort, options: kEffortLevels, isActive: (o) => o.value == effort, command: 'effort'),
+      SettingControlRow(
+        label: 'permission mode',
+        value: permissionModeLabel(mode),
+        options: kPermissionModes,
+        isActive: (o) => o.value == mode,
+        command: 'permissions',
+      ),
       _configRow(tokens, 'output style', outputStyle),
-      _configRow(tokens, 'permission mode', permissionModeLabel(mode)),
       _configRow(tokens, 'source', '~/.claude + .claude'),
 
       // ---- Accordion sections ----
@@ -57,7 +90,7 @@ class ConfigTabView extends StatelessWidget {
     return ListView(padding: const EdgeInsets.all(12), children: children);
   }
 
-  /// One key→value row in the pinned SETTINGS table.
+  /// One read-only key→value row in the pinned SETTINGS table.
   Widget _configRow(SurfaceTokens tokens, String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: kMetaRowPitch),
@@ -66,10 +99,10 @@ class ConfigTabView extends StatelessWidget {
         children: [
           SizedBox(
             width: kMetaLabelColumnWidth,
-            child: ClideText(label, muted: true, fontSize: clideFontSmall),
+            child: ClideText(label, muted: true, fontSize: kMetaFont),
           ),
           Expanded(
-            child: ClideText(value, fontSize: clideFontSmall, color: valueColor ?? tokens.globalForeground),
+            child: ClideText(value, fontSize: kMetaFont, color: valueColor ?? tokens.globalForeground),
           ),
         ],
       ),
@@ -221,5 +254,107 @@ class ConfigTabView extends StatelessWidget {
       );
     }
     return rows;
+  }
+}
+
+/// One live setting row (T-414): label + current value as a popover control on
+/// the owned anchored-menu primitive. Picking an option publishes the explicit
+/// slash command on `builtin.claude`/`command`; the primary Claude pane
+/// executes it through its normal `_send` routing — so the sidebar control and
+/// the typed command are literally the same code path (D-6).
+class SettingControlRow extends StatefulWidget {
+  const SettingControlRow({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.isActive,
+    required this.command,
+    this.valueColor,
+  });
+
+  final String label;
+
+  /// Current value, displayed on the trigger.
+  final String value;
+  final Color? valueColor;
+
+  final List<ModelOption> options;
+  final bool Function(ModelOption option) isActive;
+
+  /// The slash-command token this control drives (`model`, `effort`,
+  /// `permissions`); a pick publishes `/<command> <option.value>`.
+  final String command;
+
+  @override
+  State<SettingControlRow> createState() => _SettingControlRowState();
+}
+
+class _SettingControlRowState extends State<SettingControlRow> {
+  final ClideOverlayController _overlay = ClideOverlayController();
+
+  void _pick(String value) {
+    ClideKernel.of(context).messages.publish('builtin.claude', 'command', {'text': '/${widget.command} $value'});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: kMetaRowPitch),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: kMetaLabelColumnWidth,
+            child: ClideText(widget.label, muted: true, fontSize: kMetaFont),
+          ),
+          Expanded(
+            child: ClideAnchoredOverlay(
+              controller: _overlay,
+              align: ClideAnchorAlign.start,
+              overlayBuilder: (ctx, c) => ClideMenu(
+                onClose: c.close,
+                entries: [
+                  for (final o in widget.options)
+                    ClideMenuItem(
+                      label: o.description.isEmpty ? o.displayName : '${o.displayName} — ${o.description}',
+                      active: widget.isActive(o),
+                      semanticLabel: '${widget.label}: ${o.displayName}',
+                      onSelect: () => _pick(o.value),
+                    ),
+                ],
+              ),
+              anchor: Semantics(
+                button: true,
+                label: '${widget.label}: ${widget.value}. Click to change.',
+                excludeSemantics: true,
+                onTap: _overlay.toggle,
+                child: ClideTappable(
+                  tooltip: 'change ${widget.label}',
+                  onTap: _overlay.toggle,
+                  builder: (ctx, hovered, _) => DecoratedBox(
+                    decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(4)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: ClideText(widget.value, fontSize: kMetaFont, color: widget.valueColor ?? tokens.globalForeground, maxLines: 1),
+                          ),
+                          const SizedBox(width: 4),
+                          ClideIcon(PhosphorIcons.byName('caret-down'), size: 10, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
