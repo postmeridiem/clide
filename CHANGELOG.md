@@ -37,10 +37,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   conversation; bare `/effort` opens a picker with the five levels and the
   current one marked. The active effort shows in the session status. (T-412)
 - **TUI-only slash commands get a helpful notice instead of failing.** A typed
-  `/effort`, `/status`, `/permissions`, … no longer errors raw from the CLI or
-  leaks to the model as literal text — clide routes known TUI-only commands to
-  a muted notice card pointing at the clide-native way. CLI-local output (like
-  `/usage`) now renders as a "clide" card, never fake Claude prose. (T-411)
+  `/cost` or `/doctor` no longer errors raw from the CLI or leaks to the model
+  as literal text — known TUI-only commands route to a muted notice card with
+  the clide-native way. CLI-local output (like `/usage`) renders as a "clide"
+  card, never fake Claude prose. (T-411)
 - **`/model` works in the Claude pane.** With a name (`/model sonnet`) it
   switches the live session's model over the control channel; bare `/model`
   opens a picker in the interaction zone with the CLI's model list and the
