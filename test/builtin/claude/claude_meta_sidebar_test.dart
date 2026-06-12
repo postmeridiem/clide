@@ -133,6 +133,22 @@ void main() {
     expect(find.text('Claude environment not loaded.'), findsOneWidget);
   });
 
+  testWidgets('Activity session controls publish their slash commands (T-415)', (tester) async {
+    final published = <Message>[];
+    final sub = f.services.messages.subscribe(publisher: 'builtin.claude', channel: 'command').listen(published.add);
+    addTearDown(sub.cancel);
+
+    await tester.pumpWidget(harness(f, sidebar(stats: stats)));
+    await tester.pumpAndSettle();
+    expect(find.text('SESSION'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('clear session'));
+    await tester.tap(find.bySemanticsLabel('compact session'));
+    await tester.tap(find.bySemanticsLabel('refresh usage session'));
+    await tester.pump();
+    expect(published.map((m) => m.data['text']), ['/clear', '/compact', '/usage']);
+  });
+
   testWidgets('a settings control publishes its slash command on pick (T-414)', (tester) async {
     final dir = Directory.systemTemp.createTempSync('cfg');
     addTearDown(() => dir.deleteSync(recursive: true));

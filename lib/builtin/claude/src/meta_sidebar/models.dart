@@ -44,7 +44,12 @@ Widget metaPlaceholder(String text) => Padding(
 );
 
 /// Key→value sections on the shared table geometry (Activity + Config).
-Widget buildMetaTable(SurfaceTokens tokens, List<MetaSection> sections) {
+Widget buildMetaTable(SurfaceTokens tokens, List<MetaSection> sections) =>
+    ListView(padding: const EdgeInsets.all(12), children: metaTableChildren(tokens, sections));
+
+/// The table rows without the enclosing ListView, for tabs that compose extra
+/// widgets around the sections (the Activity tab's control strip, T-415).
+List<Widget> metaTableChildren(SurfaceTokens tokens, List<MetaSection> sections) {
   final children = <Widget>[];
   for (var i = 0; i < sections.length; i++) {
     final s = sections[i];
@@ -74,5 +79,5 @@ Widget buildMetaTable(SurfaceTokens tokens, List<MetaSection> sections) {
       );
     }
   }
-  return ListView(padding: const EdgeInsets.all(12), children: children);
+  return children;
 }

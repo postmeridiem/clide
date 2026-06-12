@@ -36,8 +36,9 @@ import 'package:clide/builtin/claude/src/meta_sidebar/tab_strip.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/team_tab.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/team_broker.dart' show TeamBroker, TeamTask;
+import 'package:clide/builtin/claude/src/claude_status.dart' show ClaudeUsage, parseUsageText;
 import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
-import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
+import 'package:clide/builtin/claude/src/transcript_reader.dart' show AssistantTextMessage, ConversationItem, SessionStatus;
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 
@@ -85,6 +86,8 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   StreamSubscription<Message>? _statusSub;
   StreamSubscription<Message>? _tabSub;
   StreamSubscription<SessionStatus>? _primarySub;
+  StreamSubscription<ConversationItem>? _primaryItemsSub;
+  ClaudeUsage? _usage;
   StreamSubscription<void>? _brokerChangeSub;
   Timer? _timer;
   late final Future<ClaudeStats> Function() _load;
@@ -199,6 +202,8 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     final session = _orchestrator?.byId('primary')?.session;
     _primarySub?.cancel();
     _primarySub = null;
+    _primaryItemsSub?.cancel();
+    _primaryItemsSub = null;
     if (session == null) {
       if (_primaryStatus != null && mounted) setState(() => _primaryStatus = null);
       return;
@@ -207,6 +212,14 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     if (mounted) setState(() => _primaryStatus = seed);
     _primarySub = session.statusStream.listen((s) {
       if (mounted) setState(() => _primaryStatus = s);
+    });
+    // Watch for /usage responses: CLI-local output arrives as synthetic
+    // assistant text; when it parses as usage, the Activity block updates
+    // (T-415). Driven by the refresh control publishing '/usage'.
+    _primaryItemsSub = session.items.listen((item) {
+      if (item is! AssistantTextMessage || !item.synthetic) return;
+      final parsed = parseUsageText(item.text);
+      if (parsed != null && mounted) setState(() => _usage = parsed);
     });
   }
 
@@ -257,6 +270,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _statusSub?.cancel();
     _tabSub?.cancel();
     _primarySub?.cancel();
+    _primaryItemsSub?.cancel();
     _brokerChangeSub?.cancel();
     _injectCtl.dispose();
     _config?.removeListener(_onConfigChange);
@@ -272,7 +286,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
         SidebarTabStrip(current: _tab, memberCount: _members.length, onPick: (t) => setState(() => _tab = t)),
         Expanded(
           child: switch (_tab) {
-            SidebarTab.activity => ActivityTabView(stats: _stats, primaryStatus: _primaryStatus, config: _config),
+            SidebarTab.activity => ActivityTabView(stats: _stats, primaryStatus: _primaryStatus, config: _config, usage: _usage),
             SidebarTab.team => TeamTabView(
               members: _members,
               memberStatus: _memberStatus,

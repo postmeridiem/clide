@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Session controls and live usage in the Claude sidebar Activity tab.** A
+  SESSION strip offers clear/compact/fork/resume buttons (same code path as the
+  typed commands), and a refresh control fetches `/usage` — plan usage renders
+  as a USAGE block (session and weekly percentages). The runtime row now also
+  shows the session's effort level. (T-415)
 - **The Claude sidebar Config tab is a live control panel.** Model, effort, and
   permission mode are popover controls showing the running session's values;
   picking an option drives the session through the same path as the typed slash
