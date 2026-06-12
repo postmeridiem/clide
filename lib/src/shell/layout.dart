@@ -146,7 +146,7 @@ class _BottomRail extends StatelessWidget {
         return Container(
           color: tokens.chromeBackground,
           child: ClideIconRail(
-            items: [for (final t in tabs) ClideIconRailItem(id: t.id, icon: _iconFor(slot, t), tooltip: resolveTabTitle(ctx, t))],
+            items: [for (final t in tabs) ClideIconRailItem(id: t.id, icon: _iconFor(slot, t), tooltip: resolveTabTitle(ctx, t), iconColor: t.iconColor)],
             activeId: activeId,
             onSelect: (id) => kernel.panels.activateTab(slot, id),
           ),

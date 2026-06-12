@@ -5,6 +5,7 @@ import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
+import 'package:clide/builtin/claude/src/conversation_view.dart' show claudeAccent;
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
@@ -308,6 +309,9 @@ class ClaudeExtension extends ClideExtension {
       slot: Slots.sidebar,
       title: 'Activity',
       icon: PhosphorIcons.byName('robot'),
+      // Claude's accent marks Claude's own panel in the rail (T-418) —
+      // nominative use per the licenses.yaml trademark note.
+      iconColor: claudeAccent,
       priority: 60,
       build: (_) => const ClaudeMetaSidebar(),
     ),
