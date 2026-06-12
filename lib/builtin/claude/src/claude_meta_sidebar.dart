@@ -13,8 +13,11 @@
 ///   permission mode / source) over [ClaudeConfig]. The expandable
 ///   skills/agents/commands/permissions/MCP browser is T-183.
 ///
-/// Activity and Config render their key→value rows on the SAME table geometry
-/// ([_metaTable]) so switching tabs doesn't visually jump.
+/// This root file owns the LIFECYCLE — stats polling, team membership
+/// streams, primary-session binding, broker subscription, inject state,
+/// accordion state — and switches between the stateless tab views under
+/// `meta_sidebar/` (T-395 split). Activity and Config render on the same
+/// table geometry (`buildMetaTable`) so switching tabs doesn't visually jump.
 ///
 /// The account/team token budget is intentionally absent: it isn't
 /// programmatically exposed under subscription auth (see project memory /
@@ -26,24 +29,19 @@ import 'dart:io';
 
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_stats.dart';
-import 'package:clide/builtin/claude/src/claude_status.dart' show formatTokenCount, permissionModeLabel, shortModelLabel;
+import 'package:clide/builtin/claude/src/meta_sidebar/activity_tab.dart';
+import 'package:clide/builtin/claude/src/meta_sidebar/config_tab.dart';
+import 'package:clide/builtin/claude/src/meta_sidebar/models.dart';
+import 'package:clide/builtin/claude/src/meta_sidebar/tab_strip.dart';
+import 'package:clide/builtin/claude/src/meta_sidebar/team_tab.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/team_broker.dart' show TeamBroker, TeamTask;
-import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatSidebar;
-import 'package:clide/builtin/claude/src/team_panel_host.dart' show teamColor;
 import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/widgets/widgets.dart';
-import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart';
 
-/// The shared label-column width + row pitch the Activity and Config tables both
-/// use, so toggling between tabs keeps every value at the same x and y.
-const double _labelColumnWidth = 110;
-const double _rowPitch = 4;
-
-enum SidebarTab { activity, team, config }
+export 'package:clide/builtin/claude/src/meta_sidebar/models.dart' show SidebarTab;
 
 class ClaudeMetaSidebar extends StatefulWidget {
   const ClaudeMetaSidebar({
@@ -97,7 +95,8 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   SessionStatus? _primaryStatus;
 
   // T-183: Config accordion expansion state — each section starts collapsed.
-  final Set<_ConfigSection> _expanded = {};
+  // Owned here (not in the tab view) so it survives tab switches.
+  final Set<ConfigSection> _expanded = {};
 
   /// agentId currently in "inject message" mode (shows the text field).
   String? _injectingAgentId;
@@ -237,6 +236,11 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     if (mounted) setState(() => _stats = stats);
   }
 
+  /// Open the full team chat pane in the workspace (T-180).
+  void _openChatPane() {
+    ClideKernel.of(context).panels.activateTab(Slots.workspace, 'claude.team-chat');
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -253,940 +257,64 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _TabStrip(current: _tab, memberCount: _members.length, onPick: (t) => setState(() => _tab = t)),
+        SidebarTabStrip(current: _tab, memberCount: _members.length, onPick: (t) => setState(() => _tab = t)),
         Expanded(
           child: switch (_tab) {
-            SidebarTab.activity => _activityBody(tokens),
-            SidebarTab.team => _teamBody(tokens),
-            SidebarTab.config => _configBody(tokens),
-          },
-        ),
-      ],
-    );
-  }
-
-  // --- Activity -------------------------------------------------------------
-
-  Widget _activityBody(SurfaceTokens tokens) {
-    final latest = _stats.latest;
-    final sections = <_MetaSection>[
-      if (latest != null)
-        _MetaSection('TODAY', [
-          _MetaRow('messages', '${latest.messageCount}'),
-          _MetaRow('sessions', '${latest.sessionCount}'),
-          _MetaRow('tool calls', '${latest.toolCallCount}'),
-        ]),
-      if (latest != null) _MetaSection('LIFETIME', [_MetaRow('messages', '${_stats.lifetimeMessages}'), _MetaRow('sessions', '${_stats.lifetimeSessions}')]),
-      ..._runtimeSection(tokens),
-    ];
-    if (sections.isEmpty) {
-      return _placeholder('No activity recorded yet.');
-    }
-    return _metaTable(tokens, sections);
-  }
-
-  List<_MetaSection> _runtimeSection(SurfaceTokens tokens) {
-    final st = _primaryStatus;
-    final skills = _config?.skills.length;
-    final rows = <_MetaRow>[
-      if (st?.model != null) _MetaRow('model', shortModelLabel(st!.model!), valueColor: tokens.globalFocus),
-      if (st?.contextTokens != null) _MetaRow('context', '${formatTokenCount(st!.contextTokens!)} ctx'),
-      if (st?.permissionMode != null) _MetaRow('mode', permissionModeLabel(st!.permissionMode!)),
-      if (skills != null) _MetaRow('skills', '$skills'),
-    ];
-    return rows.isEmpty ? const [] : [_MetaSection('RUNTIME · primary', rows)];
-  }
-
-  // --- Team -----------------------------------------------------------------
-
-  Widget _teamBody(SurfaceTokens tokens) {
-    if (_members.isEmpty) {
-      return _placeholder('No team active.');
-    }
-    final children = <Widget>[
-      for (final m in _members)
-        _AgentRosterRow(
-          key: ValueKey(m.agentId),
-          member: m,
-          status: _memberStatus[m.agentId],
-          orchestrator: _orchestrator,
-          injectingAgentId: _injectingAgentId,
-          injectController: _injectCtl,
-          onToggleInject: (name) => setState(() {
-            if (_injectingAgentId == name) {
-              _injectingAgentId = null;
-              _injectCtl.clear();
-            } else {
-              _injectingAgentId = name;
-              _injectCtl.clear();
-            }
-          }),
-          onInjectSubmit: (name, text) {
-            final managed = _orchestrator?.byMemberName(name);
-            if (managed != null) {
-              _orchestrator!.injectMessage(managed.id, text);
-            }
-            setState(() {
-              _injectingAgentId = null;
-              _injectCtl.clear();
-            });
-          },
-          onClose: (name) {
-            final managed = _orchestrator?.byMemberName(name);
-            if (managed != null) _orchestrator!.close(managed.id);
-          },
-          onSetPermissionMode: (name, mode) {
-            final managed = _orchestrator?.byMemberName(name);
-            managed?.session.setPermissionMode(mode);
-          },
-          onFork: (name) => _forkMember(name),
-        ),
-    ];
-
-    if (_tasks.isNotEmpty) {
-      children.add(const SizedBox(height: 12));
-      children.add(_taskSection(tokens));
-    }
-
-    // MESSAGES section (T-180): live broker chat feed + quick-post composer.
-    final chatModel = _orchestrator?.chatModel;
-    final broker = _orchestrator?.broker;
-    if (chatModel != null && broker != null) {
-      children.add(const SizedBox(height: 12));
-      children.add(TeamChatSidebar(model: chatModel, broker: broker, onPopOut: _openChatPane));
-    }
-
-    return ListView(padding: const EdgeInsets.all(12), children: children);
-  }
-
-  Widget _taskSection(SurfaceTokens tokens) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClideText('TASKS', fontSize: clideFontSmall, color: tokens.globalTextMuted),
-        const SizedBox(height: 4),
-        for (final t in _tasks) _TaskRow(task: t, members: _members, broker: _orchestrator?.broker),
-      ],
-    );
-  }
-
-  /// Open the full team chat pane in the workspace (T-180).
-  void _openChatPane() {
-    ClideKernel.of(context).panels.activateTab(Slots.workspace, 'claude.team-chat');
-  }
-
-  // --- Config (T-183) -------------------------------------------------------
-
-  Widget _configBody(SurfaceTokens tokens) {
-    final config = _config;
-    if (config == null) {
-      return _placeholder('Claude environment not loaded.');
-    }
-    final settings = config.settings;
-    final model = config.probe?.model ?? settings['model']?.toString() ?? '—';
-    final outputStyle = settings['outputStyle']?.toString() ?? 'default';
-    final mode = config.probe?.permissionMode ?? settings['permissionMode']?.toString() ?? 'default';
-
-    final children = <Widget>[
-      // Pinned SETTINGS table — not collapsible.
-      Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: ClideText('SETTINGS', fontSize: clideFontSmall, color: tokens.globalTextMuted),
-      ),
-      _configRow(tokens, 'model', model, valueColor: tokens.globalFocus),
-      _configRow(tokens, 'output style', outputStyle),
-      _configRow(tokens, 'permission mode', permissionModeLabel(mode)),
-      _configRow(tokens, 'source', '~/.claude + .claude'),
-
-      // ---- Accordion sections ----
-      _configAccordion(tokens, config, _ConfigSection.skills),
-      _configAccordion(tokens, config, _ConfigSection.agents),
-      _configAccordion(tokens, config, _ConfigSection.commands),
-      _configAccordion(tokens, config, _ConfigSection.hooks),
-      _configAccordion(tokens, config, _ConfigSection.permissions),
-      _configAccordion(tokens, config, _ConfigSection.mcpServers),
-
-      // Footer hint.
-      Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: ClideText('expand a list to see all · click a skill/agent/command → opens its .md', muted: true, fontSize: clideFontSmall),
-      ),
-    ];
-
-    return ListView(padding: const EdgeInsets.all(12), children: children);
-  }
-
-  /// One key→value row in the pinned SETTINGS table.
-  Widget _configRow(SurfaceTokens tokens, String label, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: _rowPitch),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: _labelColumnWidth,
-            child: ClideText(label, muted: true, fontSize: clideFontSmall),
-          ),
-          Expanded(
-            child: ClideText(value, fontSize: clideFontSmall, color: valueColor ?? tokens.globalForeground),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _configSectionLabel(_ConfigSection section) => switch (section) {
-    _ConfigSection.skills => 'SKILLS',
-    _ConfigSection.agents => 'AGENTS',
-    _ConfigSection.commands => 'COMMANDS',
-    _ConfigSection.hooks => 'HOOKS',
-    _ConfigSection.permissions => 'PERMISSIONS',
-    _ConfigSection.mcpServers => 'MCP SERVERS',
-  };
-
-  int _configSectionCount(ClaudeConfig config, _ConfigSection section) => switch (section) {
-    _ConfigSection.skills => config.skills.length,
-    _ConfigSection.agents => config.agents.length,
-    _ConfigSection.commands => config.commands.length,
-    _ConfigSection.hooks => config.hooks.length,
-    _ConfigSection.permissions => config.permissions.allow.length + config.permissions.deny.length + config.permissions.ask.length,
-    _ConfigSection.mcpServers => config.mcpServers.length,
-  };
-
-  Widget _configAccordion(SurfaceTokens tokens, ClaudeConfig config, _ConfigSection section) {
-    final expanded = _expanded.contains(section);
-    final children = expanded ? _configSectionChildren(tokens, config, section) : const <Widget>[];
-    return ClideAccordion(
-      label: _configSectionLabel(section),
-      count: _configSectionCount(config, section),
-      expanded: expanded,
-      onToggle: () => setState(() {
-        if (expanded) {
-          _expanded.remove(section);
-        } else {
-          _expanded.add(section);
-        }
-      }),
-      children: children,
-    );
-  }
-
-  List<Widget> _configSectionChildren(SurfaceTokens tokens, ClaudeConfig config, _ConfigSection section) {
-    switch (section) {
-      case _ConfigSection.skills:
-        return [for (final skill in config.skills) _configFileRow(tokens, skill.name, skill.path)];
-      case _ConfigSection.agents:
-        return [for (final agent in config.agents) _configFileRow(tokens, agent.name, agent.path)];
-      case _ConfigSection.commands:
-        return [for (final cmd in config.commands) _configFileRow(tokens, cmd.name, cmd.path)];
-      case _ConfigSection.hooks:
-        return [
-          for (final hook in config.hooks)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClideText(hook.event, fontSize: clideFontSmall, color: tokens.sidebarSectionHeader),
-                  for (final cmd in hook.commands)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8, top: 1),
-                      child: ClideText(cmd, fontSize: clideFontSmall, muted: true),
-                    ),
-                ],
-              ),
-            ),
-        ];
-      case _ConfigSection.permissions:
-        return _permissionRows(tokens, config.permissions);
-      case _ConfigSection.mcpServers:
-        return [
-          for (final srv in config.mcpServers)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-              child: ClideText(srv.name, fontSize: clideFontSmall, color: tokens.globalForeground),
-            ),
-        ];
-    }
-  }
-
-  /// A tappable row for file-backed items (skills, agents, commands).
-  /// All config items are .md files — opens in the markdown reader panel
-  /// via the kernel MessageBus (D-6, T-183).
-  Widget _configFileRow(SurfaceTokens tokens, String name, String? path) {
-    final row = Padding(
-      padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-      child: ClideText(name, fontSize: clideFontSmall, color: path != null ? tokens.globalFocus : tokens.globalForeground),
-    );
-    if (path == null) return row;
-    void openMarkdown() => ClideKernel.of(context).messages.publish('builtin.markdown', 'selection', {'path': path});
-    return Semantics(
-      button: true,
-      label: name,
-      excludeSemantics: true,
-      onTap: openMarkdown,
-      child: ClideTappable(
-        tooltip: path,
-        onTap: openMarkdown,
-        builder: (ctx, hovered, _) => Padding(
-          padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
-          child: ClideText(name, fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalFocus),
-        ),
-      ),
-    );
-  }
-
-  /// Renders grouped allow/ask/deny permission rows, colour-coded by kind.
-  List<Widget> _permissionRows(SurfaceTokens tokens, ClaudePermissions perms) {
-    const kindAllow = 'allow';
-    const kindAsk = 'ask';
-    const kindDeny = 'deny';
-
-    // allow → statusSuccess, ask → statusWarning, deny → statusError
-    Color kindColor(_ConfigPermKind k) => switch (k) {
-      _ConfigPermKind.allow => tokens.statusSuccess,
-      _ConfigPermKind.ask => tokens.statusWarning,
-      _ConfigPermKind.deny => tokens.statusError,
-    };
-
-    String kindLabel(_ConfigPermKind k) => switch (k) {
-      _ConfigPermKind.allow => kindAllow,
-      _ConfigPermKind.ask => kindAsk,
-      _ConfigPermKind.deny => kindDeny,
-    };
-
-    final groups = [(_ConfigPermKind.allow, perms.allow), (_ConfigPermKind.ask, perms.ask), (_ConfigPermKind.deny, perms.deny)];
-
-    final rows = <Widget>[];
-    for (final (kind, rules) in groups) {
-      if (rules.isEmpty) continue;
-      final color = kindColor(kind);
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.only(left: 16, top: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 36,
-                child: ClideText(kindLabel(kind), fontSize: clideFontSmall, color: color),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final rule in rules)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 1),
-                        child: ClideText(rule, fontSize: clideFontSmall, color: tokens.globalForeground),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    return rows;
-  }
-
-  // --- Shared rendering -----------------------------------------------------
-
-  Widget _placeholder(String text) => Padding(
-    padding: const EdgeInsets.all(12),
-    child: ClideText(text, muted: true, fontSize: clideFontSmall),
-  );
-
-  Widget _metaTable(SurfaceTokens tokens, List<_MetaSection> sections) {
-    final children = <Widget>[];
-    for (var i = 0; i < sections.length; i++) {
-      final s = sections[i];
-      children.add(
-        Padding(
-          padding: EdgeInsets.only(top: i == 0 ? 0 : 16, bottom: 6),
-          child: ClideText(s.header, fontSize: clideFontSmall, color: tokens.globalTextMuted),
-        ),
-      );
-      for (final r in s.rows) {
-        children.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: _rowPitch),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: _labelColumnWidth,
-                  child: ClideText(r.label, muted: true, fontSize: clideFontSmall),
-                ),
-                Expanded(
-                  child: ClideText(r.value, fontSize: clideFontSmall, color: r.valueColor ?? tokens.globalForeground),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    }
-    return ListView(padding: const EdgeInsets.all(12), children: children);
-  }
-}
-
-// T-183: accordion sections for the Config tab.
-enum _ConfigSection { skills, agents, commands, hooks, permissions, mcpServers }
-
-/// Permission kind for colour-coding in the Config tab (T-183).
-enum _ConfigPermKind { allow, ask, deny }
-
-class _MetaSection {
-  const _MetaSection(this.header, this.rows);
-  final String header;
-  final List<_MetaRow> rows;
-}
-
-class _MetaRow {
-  const _MetaRow(this.label, this.value, {this.valueColor});
-  final String label;
-  final String value;
-  final Color? valueColor;
-}
-
-// ---------------------------------------------------------------------------
-// Reusable roster-row widget (T-171)
-//
-// Extract point for future siblings:
-//   - T-181 adds a permission-mode badge to the trailing region.
-//   - T-172 adds a fork button next to the close/mute icons.
-// Extend _AgentRosterRow or compose it from a shared _RosterRowBase to avoid
-// forking the layout. The trailing region is the explicit seam: the control
-// icons column may grow with new additions.
-// ---------------------------------------------------------------------------
-
-/// A single agent roster row: color dot + name + status sub-text + controls.
-///
-/// Controls (trailing region):
-/// - permission-mode badge (T-181) — D/A/P cycles the safe trio; shift-click
-///   reaches bypassPermissions behind a confirm
-/// - eye / eye-slash — show / hide the session pane
-/// - speaker / speaker-slash — mute / unmute broker delivery
-/// - inject (chat icon) — expand the inline message input
-/// - fork (git-branch icon) — open a new pane branching from this session (T-172)
-/// - close (×) — kill the session
-class _AgentRosterRow extends StatefulWidget {
-  const _AgentRosterRow({
-    super.key,
-    required this.member,
-    required this.status,
-    required this.orchestrator,
-    required this.injectingAgentId,
-    required this.injectController,
-    required this.onToggleInject,
-    required this.onInjectSubmit,
-    required this.onClose,
-    required this.onSetPermissionMode,
-    required this.onFork,
-  });
-
-  final TeamMemberJoined member;
-  final SessionStatus? status;
-  final ClaudeSessionOrchestrator? orchestrator;
-
-  /// The member name currently in inject mode (null = none).
-  final String? injectingAgentId;
-
-  /// Shared text controller for the inject field (cleared on submit/cancel).
-  final TextEditingController injectController;
-
-  final void Function(String memberName) onToggleInject;
-  final void Function(String memberName, String text) onInjectSubmit;
-  final void Function(String memberName) onClose;
-
-  /// Called when the badge cycles to a new [mode] string for this member.
-  /// Handles both safe-trio clicks and confirmed bypass. The parent sends
-  /// the mode to the session via [StreamJsonSession.setPermissionMode].
-  final void Function(String memberName, String mode) onSetPermissionMode;
-
-  /// Called when the fork button is tapped (T-172). The session id of the
-  /// member's managed session is passed so the host can open a fork pane.
-  final void Function(String memberName) onFork;
-
-  @override
-  State<_AgentRosterRow> createState() => _AgentRosterRowState();
-}
-
-class _AgentRosterRowState extends State<_AgentRosterRow> {
-  /// Whether the bypass-confirm inline prompt is showing.
-  bool _confirmingBypass = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    final managed = widget.orchestrator?.byMemberName(widget.member.name);
-    final color = teamColor(widget.member.color, fallback: tokens.globalForeground);
-    final st = widget.status;
-    final model = st?.model ?? widget.member.model;
-    final sub = [
-      widget.member.agentType,
-      if (model != null) shortModelLabel(model),
-      if (st?.permissionMode != null) permissionModeLabel(st!.permissionMode!),
-      if (st?.contextTokens != null) '${formatTokenCount(st!.contextTokens!)} ctx',
-    ].join('  ·  ');
-
-    final isVisible = managed?.visible ?? true;
-    final isMuted = managed?.muted ?? false;
-    final isInjecting = widget.injectingAgentId == widget.member.name;
-    final currentMode = st?.permissionMode ?? 'default';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Color dot
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Name + status
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClideText(widget.member.name, fontSize: clideFontSmall, color: tokens.globalForeground, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    if (sub.isNotEmpty) ClideText(sub, muted: true, fontSize: clideFontSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    // T-181: permission-mode badge (inline below the status sub-text).
-                    if (managed != null)
-                      _PermissionModeBadge(
-                        mode: currentMode,
-                        tokens: tokens,
-                        onCycle: () {
-                          final next = _nextSafeMode(currentMode);
-                          widget.onSetPermissionMode(widget.member.name, next);
-                        },
-                        onBypass: () => setState(() => _confirmingBypass = true),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-              // Trailing controls (T-171).
-              // T-172 seam: append a fork icon button to this row.
-              if (managed != null) _buildControls(context, tokens, managed, isVisible, isMuted, isInjecting),
-            ],
-          ),
-          // Bypass confirm: replaces inject field area when active.
-          if (_confirmingBypass) _buildBypassConfirm(tokens),
-          // Inline inject-message field — visible only when toggled.
-          if (isInjecting && !_confirmingBypass) _buildInjectField(context, tokens),
-        ],
-      ),
-    );
-  }
-
-  /// Safe-mode cycle: default → acceptEdits → plan → default (T-181).
-  static String _nextSafeMode(String current) {
-    const cycle = ['default', 'acceptEdits', 'plan'];
-    final idx = cycle.indexOf(current);
-    return cycle[(idx + 1) % cycle.length];
-  }
-
-  Widget _buildBypassConfirm(SurfaceTokens tokens) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, top: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: ClideText('Enable bypassPermissions? All tool calls will be auto-allowed.', fontSize: clideFontSmall, color: tokens.globalTextMuted),
-          ),
-          const SizedBox(width: 4),
-          // Confirm
-          Semantics(
-            button: true,
-            label: 'Confirm bypass',
-            excludeSemantics: true,
-            onTap: () {
-              setState(() => _confirmingBypass = false);
-              widget.onSetPermissionMode(widget.member.name, 'bypassPermissions');
-            },
-            child: ClideTappable(
-              tooltip: 'Confirm',
-              onTap: () {
-                setState(() => _confirmingBypass = false);
-                widget.onSetPermissionMode(widget.member.name, 'bypassPermissions');
+            SidebarTab.activity => ActivityTabView(stats: _stats, primaryStatus: _primaryStatus, config: _config),
+            SidebarTab.team => TeamTabView(
+              members: _members,
+              memberStatus: _memberStatus,
+              orchestrator: _orchestrator,
+              tasks: _tasks,
+              injectingAgentId: _injectingAgentId,
+              injectController: _injectCtl,
+              onToggleInject: (name) => setState(() {
+                if (_injectingAgentId == name) {
+                  _injectingAgentId = null;
+                  _injectCtl.clear();
+                } else {
+                  _injectingAgentId = name;
+                  _injectCtl.clear();
+                }
+              }),
+              onInjectSubmit: (name, text) {
+                final managed = _orchestrator?.byMemberName(name);
+                if (managed != null) {
+                  _orchestrator!.injectMessage(managed.id, text);
+                }
+                setState(() {
+                  _injectingAgentId = null;
+                  _injectCtl.clear();
+                });
               },
-              builder: (ctx, hovered, _) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                child: ClideText('OK', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalFocus),
-              ),
+              onClose: (name) {
+                final managed = _orchestrator?.byMemberName(name);
+                if (managed != null) _orchestrator!.close(managed.id);
+              },
+              onSetPermissionMode: (name, mode) {
+                final managed = _orchestrator?.byMemberName(name);
+                managed?.session.setPermissionMode(mode);
+              },
+              onFork: _forkMember,
+              onOpenChatPane: _openChatPane,
             ),
-          ),
-          const SizedBox(width: 4),
-          // Cancel
-          Semantics(
-            button: true,
-            label: 'Cancel bypass',
-            excludeSemantics: true,
-            onTap: () => setState(() => _confirmingBypass = false),
-            child: ClideTappable(
-              tooltip: 'Cancel',
-              onTap: () => setState(() => _confirmingBypass = false),
-              builder: (ctx, hovered, _) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                child: ClideText('Cancel', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
-              ),
+            SidebarTab.config => ConfigTabView(
+              config: _config,
+              expanded: _expanded,
+              onToggleSection: (section) => setState(() {
+                if (_expanded.contains(section)) {
+                  _expanded.remove(section);
+                } else {
+                  _expanded.add(section);
+                }
+              }),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildControls(BuildContext context, SurfaceTokens tokens, ManagedSession managed, bool isVisible, bool isMuted, bool isInjecting) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Show / hide
-        _IconButton(
-          painter: isVisible ? PhosphorIcons.byName('eye') : PhosphorIcons.byName('eye-slash'),
-          tooltip: isVisible ? 'Hide pane' : 'Show pane',
-          color: tokens.globalTextMuted,
-          onTap: () => isVisible ? widget.orchestrator!.hide(managed.id) : widget.orchestrator!.show(managed.id),
-        ),
-        // Mute / unmute
-        _IconButton(
-          painter: isMuted ? PhosphorIcons.byName('eye-slash') : PhosphorIcons.byName('eye'),
-          // NOTE: We use eye/eyeSlash as stand-ins until a dedicated speaker
-          // icon is added to PhosphorIcons (no speaker codepoint yet).
-          // The semantic tooltip still says mute/unmute so AT users are clear.
-          tooltip: isMuted ? 'Unmute messages' : 'Mute messages',
-          color: isMuted ? tokens.globalFocus : tokens.globalTextMuted,
-          onTap: () => isMuted ? widget.orchestrator!.unmute(managed.id) : widget.orchestrator!.mute(managed.id),
-        ),
-        // Inject message
-        _IconButton(
-          painter: PhosphorIcons.byName('chat-circle'),
-          tooltip: 'Inject message',
-          color: isInjecting ? tokens.globalFocus : tokens.globalTextMuted,
-          onTap: () => widget.onToggleInject(widget.member.name),
-        ),
-        // Fork session (T-172): branch into a new pane without touching the original.
-        _IconButton(
-          painter: PhosphorIcons.byName('git-branch'),
-          tooltip: 'Fork session',
-          color: tokens.globalTextMuted,
-          onTap: () => widget.onFork(widget.member.name),
-        ),
-        // Close session
-        _IconButton(
-          painter: PhosphorIcons.byName('x'),
-          tooltip: 'Close session',
-          color: tokens.globalTextMuted,
-          onTap: () => widget.onClose(widget.member.name),
+          },
         ),
       ],
     );
   }
-
-  Widget _buildInjectField(BuildContext context, SurfaceTokens tokens) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, top: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: _InjectTextField(
-              controller: widget.injectController,
-              tokens: tokens,
-              onSubmit: (text) {
-                if (text.trim().isNotEmpty) widget.onInjectSubmit(widget.member.name, text.trim());
-              },
-            ),
-          ),
-          const SizedBox(width: 4),
-          _IconButton(
-            painter: PhosphorIcons.byName('x'),
-            tooltip: 'Cancel',
-            color: tokens.globalTextMuted,
-            onTap: () => widget.onToggleInject(widget.member.name),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Permission-mode badge (T-181)
-// ---------------------------------------------------------------------------
-
-/// Maps a permission-mode string to a single-letter badge label.
-String _permissionModeBadge(String mode) => switch (mode) {
-  'acceptEdits' => 'A',
-  'plan' => 'P',
-  'bypassPermissions' => 'B',
-  _ => 'D', // default
-};
-
-/// Clickable permission-mode badge shown in each roster row (T-181).
-///
-/// - Plain click → cycles the safe trio: default → acceptEdits → plan → default.
-/// - Shift-click → shows the bypass confirm inline in the parent row.
-///
-/// The badge reflects the LIVE mode from [SessionStatus.permissionMode] (T-157).
-/// It is a custom painted label (no Material), consistent with the rendering
-/// stack rules (D-7, CLAUDE.md guardrails).
-class _PermissionModeBadge extends StatelessWidget {
-  const _PermissionModeBadge({required this.mode, required this.tokens, required this.onCycle, required this.onBypass});
-
-  final String mode;
-  final SurfaceTokens tokens;
-
-  /// Called on a plain click — the parent cycles to the next safe mode.
-  final VoidCallback onCycle;
-
-  /// Called on a shift-click — the parent shows the bypass confirm.
-  final VoidCallback onBypass;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = _permissionModeBadge(mode);
-    final isBypass = mode == 'bypassPermissions';
-    final badgeColor = isBypass ? const Color(0xFFF06C6F) : tokens.globalFocus;
-
-    final tooltip =
-        'Permission mode: ${permissionModeLabel(mode)}. '
-        'Click to cycle default/acceptEdits/plan; Shift-click for bypassPermissions.';
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 3),
-      child: Semantics(
-        button: true,
-        label: 'Permission mode: $label',
-        excludeSemantics: true,
-        onTap: () {
-          if (HardwareKeyboard.instance.isShiftPressed) {
-            onBypass();
-          } else {
-            onCycle();
-          }
-        },
-        child: ClideTappable(
-          tooltip: tooltip,
-          onTap: () {
-            if (HardwareKeyboard.instance.isShiftPressed) {
-              onBypass();
-            } else {
-              onCycle();
-            }
-          },
-          builder: (ctx, hovered, _) => Container(
-            width: 16,
-            height: 14,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: badgeColor.withAlpha(hovered ? 51 : 26),
-              borderRadius: BorderRadius.circular(2),
-              border: Border.all(color: badgeColor.withAlpha(hovered ? 180 : 100), width: 1),
-            ),
-            child: ClideText(label, fontSize: 9, color: badgeColor),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A single icon-button used in the roster row controls.
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.painter, required this.tooltip, required this.color, required this.onTap});
-
-  final ClideIconPainter painter;
-  final String tooltip;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // Icon-only button: expose the tooltip text as the Semantics button label
-    // so AT (and widget tests) can find and activate it by name.
-    return Semantics(
-      button: true,
-      label: tooltip,
-      excludeSemantics: true,
-      onTap: onTap,
-      child: ClideTappable(
-        tooltip: tooltip,
-        onTap: onTap,
-        builder: (ctx, hovered, _) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-          child: ClideIcon(painter, size: 12, color: hovered ? ClideTheme.of(ctx).surface.globalForeground : color),
-        ),
-      ),
-    );
-  }
-}
-
-/// Inline text input for injecting a message into a session (T-171).
-/// Submits on Enter; Cancel is handled by the parent via [_IconButton].
-class _InjectTextField extends StatelessWidget {
-  const _InjectTextField({required this.controller, required this.tokens, required this.onSubmit});
-
-  final TextEditingController controller;
-  final SurfaceTokens tokens;
-  final void Function(String text) onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: tokens.panelBackground,
-        border: Border.all(color: tokens.panelBorder),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: EditableText(
-        controller: controller,
-        focusNode: FocusNode(debugLabel: 'inject-${controller.hashCode}')..requestFocus(),
-        style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: clideFontSmall, color: tokens.globalForeground, height: 1.4),
-        cursorColor: tokens.globalFocus,
-        backgroundCursorColor: tokens.globalTextMuted,
-        onSubmitted: onSubmit,
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Task row (T-171)
-// ---------------------------------------------------------------------------
-
-/// One row in the TASKS section: status marker + title + owner + reassign.
-class _TaskRow extends StatelessWidget {
-  const _TaskRow({required this.task, required this.members, required this.broker});
-
-  final TeamTask task;
-  final List<TeamMemberJoined> members;
-  final TeamBroker? broker;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    final marker = switch (task.status) {
-      'done' => '✓',
-      'claimed' => '◈',
-      _ => '○',
-    };
-    final markerColor = switch (task.status) {
-      'done' => tokens.globalTextMuted,
-      'claimed' => tokens.globalFocus,
-      _ => tokens.globalForeground,
-    };
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          ClideText(marker, fontSize: clideFontSmall, color: markerColor),
-          const SizedBox(width: 6),
-          Expanded(
-            child: ClideText(
-              task.title,
-              fontSize: clideFontSmall,
-              color: task.status == 'done' ? tokens.globalTextMuted : tokens.globalForeground,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (task.owner != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: ClideText(task.owner!, fontSize: clideFontSmall, color: tokens.globalFocus),
-            ),
-          // Reassign: cycle to the next roster member.
-          if (broker != null && broker!.members.length > 1)
-            _IconButton(
-              painter: PhosphorIcons.byName('arrow-clockwise'),
-              tooltip: 'Reassign task',
-              color: tokens.globalTextMuted,
-              onTap: () => _reassign(context),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _reassign(BuildContext context) {
-    final b = broker;
-    if (b == null || members.isEmpty) return;
-    final brokerMembers = b.members;
-    if (brokerMembers.isEmpty) return;
-    // Cycle to the next member after the current owner.
-    final currentIndex = brokerMembers.indexWhere((m) => m.name == task.owner);
-    final nextIndex = (currentIndex + 1) % brokerMembers.length;
-    b.reassignTask(task.id, brokerMembers[nextIndex].id);
-  }
-}
-
-/// The Activity / Team / Config sub-tab strip — same interaction as the pql
-/// panel's view tabs, with an underline under the active tab.
-class _TabStrip extends StatelessWidget {
-  const _TabStrip({required this.current, required this.memberCount, required this.onPick});
-  final SidebarTab current;
-  final int memberCount;
-  final ValueChanged<SidebarTab> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: tokens.panelBorder)),
-      ),
-      child: Row(
-        children: [
-          for (final t in SidebarTab.values)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Semantics(
-                button: true,
-                selected: t == current,
-                label: _label(t),
-                excludeSemantics: true,
-                onTap: () => onPick(t),
-                child: ClideTappable(
-                  onTap: () => onPick(t),
-                  builder: (ctx, hovered, _) => Container(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: t == current ? tokens.globalFocus : const Color(0x00000000), width: 2)),
-                    ),
-                    child: ClideText(_label(t), fontSize: clideFontSmall, color: t == current || hovered ? tokens.globalForeground : tokens.globalTextMuted),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  String _label(SidebarTab t) => switch (t) {
-    SidebarTab.activity => 'Activity',
-    SidebarTab.team => memberCount == 0 ? 'Team' : 'Team · $memberCount',
-    SidebarTab.config => 'Config',
-  };
 }

@@ -4091,3 +4091,40 @@ Correction (2026-06-12, verified during T-394 breakdown): ColumnHat is NOT dupli
 
 Done 2026-06-12 across six commits. Notes: ColumnHat''s file carried the LIVE hatHeight constant (app hat bar + menu bar) — moved to widgets/src/chrome_metrics.dart before deleting the dead widget. TranscriptPublisher class removed; the ClaudeConversation addressing constants stay (still consumed). The TeamMemberJoined ghost-event rewiring is real work, split out as T-396. mocktail dropped with D-25 amended (hand-rolled fakes throughout). ptyc binary untracked+deleted (no licenses.yaml entry existed). Coverage rose 95.03% → 95.13% with the dead denominator gone; full push-check green.', NULL, '2026-06-12 00:23:24', '2026-06-12 00:23:24', '2026-06-12 00:23:24', NULL, '0791573d68f344d3edab4cd8b89d2d69', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDGPXQN31NNRPJ00PFRAG4', 'status', 'backlog', 'in_progress', NULL, '2026-06-12 00:23:56', '2026-06-12 00:23:56', '2026-06-12 00:23:56', NULL, 'e2cf08e3a17b8f8ad8288061d263744c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDGPXQN31NNRPJ00PFRAG4', 'status', 'in_progress', 'done', NULL, '2026-06-12 00:29:57', '2026-06-12 00:29:57', '2026-06-12 00:29:57', NULL, 'f7a67bd27641e35f6cf1955fe78d41a6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDGPXQN31NNRPJ00PFRAG4', 'description', 'lib/app.dart is 1187 LOC mixing five confirmed concerns. Split plan (verified against the file 2026-06-12):
+
+Inventory: ClideApp (14-29), _AppRoot (31-45), _RootShell/_RootShellState keyboard+intent routing (47-229), RootLayout (231-350), hat bar family _HatBar/_LeftHatContent/_RightHatContent/_WinBtn (352-439), project switcher family _ProjectSwitcherButton/_ProjectSwitcherDropdown/_RecentProjectRow/_ActionRow (441-672), SlotHost/_SlotHostState/_SlotBody/_SidebarSlot/_WorkspaceSlot/_RevealedTab/_ContextSlot (674-1030), _BottomRail (1032-1078), StatusbarCollapseToggle (1093-1126), StatusbarHost (1128-1170), _EditorDragHandle (924-1010), _WelcomeOverlay (1172-1187).
+
+Target layout:
+- app.dart keeps ClideApp + _AppRoot and RE-EXPORTS the public symbols so tests keep importing package:clide/app.dart.
+- lib/widgets/root_shell.dart: _RootShell/_RootShellState (keyboard routing; depends on ModifierTapTracker, MenuBarController).
+- lib/builtin/hat/hat_bar.dart: _HatBar, _LeftHatContent, _RightHatContent, _WinBtn, hatHeight.
+- lib/builtin/hat/project_switcher.dart: the switcher family (~230 LOC).
+- lib/widgets/slot_host.dart: SlotHost + slot bodies (NOTE: _RevealedTab references _SlotBody._resolveTitle — keep them together or extract the helper).
+- lib/widgets/layout_status.dart: RootLayout internals, StatusbarHost, StatusbarCollapseToggle, _BottomRail, _EditorDragHandle(+Intent), _WelcomeOverlay.
+
+Order: mechanical first (hat bar, switcher rows, welcome overlay), then root shell, then slot host (tangled: _SlotHostState registers focus scopes via ClideKernel.of in didChangeDependencies), then layout/status.
+
+Tests importing app.dart: test/app_test.dart (RootLayout, StatusbarHost, ClideApp), test/app_statusbar_test.dart (StatusbarHost), test/app_collapse_toggle_test.dart (StatusbarCollapseToggle) — re-exports keep them unchanged.
+
+CORRECTION to fable-ous.md: ColumnHat is NOT duplicated line-for-line in app.dart (verified); ColumnHat lives only in lib/widgets/src/clide_column_hat.dart. The rat-sweep ticket T-385 was annotated accordingly — verify whether ColumnHat is dead before deleting.', 'lib/app.dart is 1187 LOC mixing five confirmed concerns. Split plan (verified against the file 2026-06-12):
+
+Inventory: ClideApp (14-29), _AppRoot (31-45), _RootShell/_RootShellState keyboard+intent routing (47-229), RootLayout (231-350), hat bar family _HatBar/_LeftHatContent/_RightHatContent/_WinBtn (352-439), project switcher family _ProjectSwitcherButton/_ProjectSwitcherDropdown/_RecentProjectRow/_ActionRow (441-672), SlotHost/_SlotHostState/_SlotBody/_SidebarSlot/_WorkspaceSlot/_RevealedTab/_ContextSlot (674-1030), _BottomRail (1032-1078), StatusbarCollapseToggle (1093-1126), StatusbarHost (1128-1170), _EditorDragHandle (924-1010), _WelcomeOverlay (1172-1187).
+
+Target layout:
+- app.dart keeps ClideApp + _AppRoot and RE-EXPORTS the public symbols so tests keep importing package:clide/app.dart.
+- lib/widgets/root_shell.dart: _RootShell/_RootShellState (keyboard routing; depends on ModifierTapTracker, MenuBarController).
+- lib/builtin/hat/hat_bar.dart: _HatBar, _LeftHatContent, _RightHatContent, _WinBtn, hatHeight.
+- lib/builtin/hat/project_switcher.dart: the switcher family (~230 LOC).
+- lib/widgets/slot_host.dart: SlotHost + slot bodies (NOTE: _RevealedTab references _SlotBody._resolveTitle — keep them together or extract the helper).
+- lib/widgets/layout_status.dart: RootLayout internals, StatusbarHost, StatusbarCollapseToggle, _BottomRail, _EditorDragHandle(+Intent), _WelcomeOverlay.
+
+Order: mechanical first (hat bar, switcher rows, welcome overlay), then root shell, then slot host (tangled: _SlotHostState registers focus scopes via ClideKernel.of in didChangeDependencies), then layout/status.
+
+Tests importing app.dart: test/app_test.dart (RootLayout, StatusbarHost, ClideApp), test/app_statusbar_test.dart (StatusbarHost), test/app_collapse_toggle_test.dart (StatusbarCollapseToggle) — re-exports keep them unchanged.
+
+CORRECTION to fable-ous.md: ColumnHat is NOT duplicated line-for-line in app.dart (verified); ColumnHat lives only in lib/widgets/src/clide_column_hat.dart. The rat-sweep ticket T-385 was annotated accordingly — verify whether ColumnHat is dead before deleting.
+
+Done 2026-06-12. One deviation from the plan: the shell pieces went to lib/src/shell/ rather than lib/widgets/ + lib/builtin/hat/ — SlotHost/RootLayout know kernel + contribution types (not widget primitives), and the hat bar isn''t extension-shaped (no contributions), so neither home fit. app.dart kept the planned re-exports; zero test edits needed.', NULL, '2026-06-12 00:30:11', '2026-06-12 00:30:11', '2026-06-12 00:30:11', NULL, '871c3a1d4c3545dfa41bdafa3a39aaa8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDH8TE9MJBXZ4GQ5YT10JM', 'status', 'backlog', 'in_progress', NULL, '2026-06-12 00:30:17', '2026-06-12 00:30:17', '2026-06-12 00:30:17', NULL, '95cd4a80d4e61af091427c6d20bf701a', 2) ON CONFLICT(hash) DO NOTHING;
