@@ -1,63 +1,46 @@
-/// Raw FFI bindings to the libc functions the PTY wrapper needs.
+/// Raw FFI bindings to the libc symbols the PTY layer still needs.
 ///
-/// `dart:io` doesn't expose `forkpty`, `read`/`write` on raw fds,
-/// `ioctl`, or `poll` — FFI is the minimum tool for the job.
+/// `dart:io` doesn't expose `socketpair`, `close` on raw fds, `errno`,
+/// or the `poll()` event bits — FFI is the minimum tool for the job.
+/// The fd-passing-era surface that used to live here (recvmsg + the
+/// msghdr/cmsghdr/iovec structs, read/write, ioctl/winsize, fcntl
+/// non-blocking helpers) had no callers since the daemon dissolution
+/// (D-56) and was removed in the T-385 dead-code sweep; `NativePty`
+/// binds its own symbols.
 ///
 /// Linux + macOS only for now. Windows is covered by platform checks
 /// higher up; when Windows support lands it'll need a parallel binding
 /// set against the Win32 API (named pipes instead of unix sockets).
 library;
 
-// File-wide analyzer exceptions, with reason — see CLAUDE.md
-// no-lint-suppression rule. These are the textbook FFI-binding
-// case where the lints work against the file's purpose:
+// File-wide analyzer exception, with reason — see CLAUDE.md
+// no-lint-suppression rule. This is the textbook FFI-binding case
+// where the lint works against the file's purpose:
 //
-// * `non_constant_identifier_names` — struct field names map 1:1
-//   to POSIX (`man 2 socketpair`, `recvmsg`, `iovec`, `msghdr`).
-//   Keeping snake_case makes the code greppable against the spec
-//   and the field offsets readable next to the C ABI. Dart FFI
-//   layout depends on declaration order + types, not names, so
-//   this is purely a readability call.
 // * `library_private_types_in_public_api` — the C / Dart function-
-//   signature typedefs (`_SocketpairC`, `_SocketpairDart`, etc.)
-//   are implementation details consumed only by the public
-//   `lookupFunction<...>()` calls in this file. Promoting them
-//   to public would just add noise to the import surface.
+//   signature typedefs (`_SocketpairC`, `_SocketpairD`, etc.) are
+//   implementation details consumed only by the public
+//   `lookupFunction<...>()` calls in this file. Promoting them to
+//   public would just add noise to the import surface.
 //
-// ignore_for_file: non_constant_identifier_names, library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api
 
 import 'dart:ffi' as ffi;
-import 'dart:io' show Platform;
-
-import 'package:ffi/ffi.dart' as pkg_ffi;
 
 // ---------------------------------------------------------------------------
-// Constants (POSIX — platform-dispatched where Linux/macOS diverge)
+// Constants (POSIX — identical numeric values on Linux + macOS for the
+// entries we touch)
 // ---------------------------------------------------------------------------
 
-const int afUnix = 1;
-const int sockStream = 1;
-
-final int solSocket = Platform.isMacOS ? 0xffff : 1;
-final int scmRights = Platform.isMacOS ? 0x01 : 1;
-
-final int oNonblock = Platform.isMacOS ? 0x0004 : 0x0800;
-const int fGetFl = 3;
-const int fSetFl = 4;
-
-final int tiocswinsz = Platform.isMacOS ? 0x80087467 : 0x5414;
-
-// poll() event bits (POSIX — same numeric values on Linux + macOS).
+// poll() event bits.
 const int pollin = 0x0001;
 const int pollerr = 0x0008;
 const int pollhup = 0x0010;
 const int pollnval = 0x0020;
 const int pollAnyErr = pollerr | pollhup | pollnval;
 
-// Signal numbers used from the PTY layer (POSIX standard; identical
-// across Linux + macOS for the entries we touch).
+// Signal numbers used from the PTY layer.
 const int sighup = 1;
-const int sigkill = 9;
 const int sigwinch = 28;
 
 // ---------------------------------------------------------------------------
@@ -67,107 +50,11 @@ const int sigwinch = 28;
 typedef _SocketpairC = ffi.Int32 Function(ffi.Int32 domain, ffi.Int32 type, ffi.Int32 protocol, ffi.Pointer<ffi.Int32> sv);
 typedef _SocketpairD = int Function(int domain, int type, int protocol, ffi.Pointer<ffi.Int32> sv);
 
-typedef _RecvmsgC = ffi.IntPtr Function(ffi.Int32 sockfd, ffi.Pointer<Msghdr> msg, ffi.Int32 flags);
-typedef _RecvmsgD = int Function(int sockfd, ffi.Pointer<Msghdr> msg, int flags);
-
-typedef _RecvmsgDarwinC = ffi.IntPtr Function(ffi.Int32 sockfd, ffi.Pointer<MsghdrDarwin> msg, ffi.Int32 flags);
-typedef _RecvmsgDarwinD = int Function(int sockfd, ffi.Pointer<MsghdrDarwin> msg, int flags);
-
-typedef _ReadC = ffi.IntPtr Function(ffi.Int32 fd, ffi.Pointer<ffi.Uint8> buf, ffi.IntPtr count);
-typedef _ReadD = int Function(int fd, ffi.Pointer<ffi.Uint8> buf, int count);
-
-typedef _WriteC = ffi.IntPtr Function(ffi.Int32 fd, ffi.Pointer<ffi.Uint8> buf, ffi.IntPtr count);
-typedef _WriteD = int Function(int fd, ffi.Pointer<ffi.Uint8> buf, int count);
-
 typedef _CloseC = ffi.Int32 Function(ffi.Int32 fd);
 typedef _CloseD = int Function(int fd);
 
-typedef _IoctlPtrC = ffi.Int32 Function(ffi.Int32 fd, ffi.UnsignedLong request, ffi.Pointer<Winsize> argp);
-typedef _IoctlPtrD = int Function(int fd, int request, ffi.Pointer<Winsize> argp);
-
-typedef _FcntlIntC = ffi.Int32 Function(ffi.Int32 fd, ffi.Int32 cmd, ffi.Int32 arg);
-typedef _FcntlIntD = int Function(int fd, int cmd, int arg);
-
 typedef _ErrnoLocationC = ffi.Pointer<ffi.Int32> Function();
 typedef _ErrnoLocationD = ffi.Pointer<ffi.Int32> Function();
-
-// ---------------------------------------------------------------------------
-// Native structs
-// ---------------------------------------------------------------------------
-
-/// POSIX `struct iovec`.
-final class Iovec extends ffi.Struct {
-  external ffi.Pointer<ffi.Uint8> iov_base;
-  @ffi.IntPtr()
-  external int iov_len;
-}
-
-/// Linux `struct msghdr`. msg_iovlen/msg_controllen are size_t (8 bytes
-/// on 64-bit). macOS uses int/socklen_t (4 bytes) — see MsghdrDarwin.
-final class Msghdr extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> msg_name;
-  @ffi.Uint32()
-  external int msg_namelen;
-  external ffi.Pointer<Iovec> msg_iov;
-  @ffi.IntPtr()
-  external int msg_iovlen;
-  external ffi.Pointer<ffi.Void> msg_control;
-  @ffi.IntPtr()
-  external int msg_controllen;
-  @ffi.Int32()
-  external int msg_flags;
-}
-
-/// macOS `struct msghdr`. msg_iovlen is int (4 bytes), msg_controllen
-/// is socklen_t (4 bytes) — smaller than Linux's size_t fields.
-final class MsghdrDarwin extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> msg_name;
-  @ffi.Uint32()
-  external int msg_namelen;
-  external ffi.Pointer<Iovec> msg_iov;
-  @ffi.Int32()
-  external int msg_iovlen;
-  external ffi.Pointer<ffi.Void> msg_control;
-  @ffi.Uint32()
-  external int msg_controllen;
-  @ffi.Int32()
-  external int msg_flags;
-}
-
-/// POSIX `struct cmsghdr` prefix. We treat the rest of the control
-/// buffer as a raw byte region and compute offsets by hand.
-// On Linux, cmsg_len is size_t (8 bytes on 64-bit).
-// On macOS, cmsg_len is socklen_t (4 bytes, always).
-// Use platform-specific structs.
-final class CmsghdrLinux extends ffi.Struct {
-  @ffi.IntPtr()
-  external int cmsg_len;
-  @ffi.Int32()
-  external int cmsg_level;
-  @ffi.Int32()
-  external int cmsg_type;
-}
-
-final class CmsghdrDarwin extends ffi.Struct {
-  @ffi.Uint32()
-  external int cmsg_len;
-  @ffi.Int32()
-  external int cmsg_level;
-  @ffi.Int32()
-  external int cmsg_type;
-}
-
-/// POSIX `struct winsize` for `TIOCSWINSZ`.
-final class Winsize extends ffi.Struct {
-  @ffi.Uint16()
-  external int ws_row;
-  @ffi.Uint16()
-  external int ws_col;
-  @ffi.Uint16()
-  external int ws_xpixel;
-  @ffi.Uint16()
-  external int ws_ypixel;
-}
 
 // ---------------------------------------------------------------------------
 // Library handle + lazy-resolved function pointers
@@ -184,19 +71,7 @@ ffi.DynamicLibrary _openLibc() {
 
 final _SocketpairD socketpair = _libc.lookupFunction<_SocketpairC, _SocketpairD>('socketpair');
 
-final _RecvmsgD recvmsgLinux = _libc.lookupFunction<_RecvmsgC, _RecvmsgD>('recvmsg');
-
-final _RecvmsgDarwinD recvmsgDarwin = _libc.lookupFunction<_RecvmsgDarwinC, _RecvmsgDarwinD>('recvmsg');
-
-final _ReadD read = _libc.lookupFunction<_ReadC, _ReadD>('read');
-
-final _WriteD write = _libc.lookupFunction<_WriteC, _WriteD>('write');
-
 final _CloseD close = _libc.lookupFunction<_CloseC, _CloseD>('close');
-
-final _IoctlPtrD ioctlWinsize = _libc.lookupFunction<_IoctlPtrC, _IoctlPtrD>('ioctl');
-
-final _FcntlIntD fcntlInt = _libc.lookupFunction<_FcntlIntC, _FcntlIntD>('fcntl');
 
 /// Resolve `errno` through the platform-appropriate thread-local
 /// accessor. glibc exposes `__errno_location`, musl the same, macOS
@@ -210,40 +85,4 @@ int get errno {
   }
   final fn = _libc.lookupFunction<_ErrnoLocationC, _ErrnoLocationD>('__error');
   return fn().value;
-}
-
-// ---------------------------------------------------------------------------
-// Convenience — scoped allocations
-// ---------------------------------------------------------------------------
-
-/// Allocate a typed native block, run [action], free. Frees even if
-/// [action] throws.
-T withBuffer<T>(int bytes, T Function(ffi.Pointer<ffi.Uint8>) action) {
-  final p = pkg_ffi.calloc<ffi.Uint8>(bytes);
-  try {
-    return action(p);
-  } finally {
-    pkg_ffi.calloc.free(p);
-  }
-}
-
-/// Set [fd] non-blocking. Returns whether the flag was changed.
-bool setNonBlocking(int fd) {
-  final flags = fcntlInt(fd, fGetFl, 0);
-  if (flags < 0) return false;
-  if ((flags & oNonblock) != 0) return false;
-  fcntlInt(fd, fSetFl, flags | oNonblock);
-  return true;
-}
-
-/// Apply `TIOCSWINSZ` to the master PTY fd.
-int setWinsize(int fd, int cols, int rows) {
-  final ws = pkg_ffi.calloc<Winsize>();
-  try {
-    ws.ref.ws_col = cols;
-    ws.ref.ws_row = rows;
-    return ioctlWinsize(fd, tiocswinsz, ws);
-  } finally {
-    pkg_ffi.calloc.free(ws);
-  }
 }
