@@ -217,7 +217,11 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
     final consumed = _consumeCsi();
     if (!consumed) return false;
 
-    final csiHandler = _csiHandlers[_csi.finalByte];
+    // An intermediate byte changes the meaning of the final byte
+    // (`CSI 5 SP @` is scroll-left, not insert-blank). None of the
+    // intermediate forms are implemented, so report them as unknown
+    // rather than mis-dispatching on the bare final byte.
+    final csiHandler = _csi.intermediates.isEmpty ? _csiHandlers[_csi.finalByte] : null;
 
     if (csiHandler == null) {
       handler.unknownCSI(_csi.finalByte);
@@ -237,6 +241,7 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
 
     _csi.params.clear();
     _csi.subParam.clear();
+    _csi.intermediates.clear();
 
     // test whether the csi is a `CSI ? Ps ...` or `CSI Ps ...`
     final prefix = _queue.peek();
@@ -290,8 +295,13 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
         continue;
       }
 
+      if (char >= Ascii.space && char <= Ascii.slash) {
+        _csi.intermediates.add(char);
+        continue;
+      }
+
       if (char > Ascii.NULL && char < Ascii.num0) {
-        // intermediates.add(char);
+        // Other C0 controls embedded in a CSI: ignore, as before.
         continue;
       }
 
@@ -341,11 +351,7 @@ class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _
 }
 
 class _Csi {
-  _Csi({
-    required this.params,
-    required this.finalByte,
-    // required this.intermediates,
-  });
+  _Csi({required this.params, required this.finalByte});
 
   int? prefix;
 
@@ -356,7 +362,12 @@ class _Csi {
   final List<bool> subParam = [];
 
   int finalByte;
-  // final List<int> intermediates;
+
+  /// Intermediate bytes (0x20–0x2f) between the parameters and the final
+  /// byte — `SP` in `CSI Ps SP q` (DECSCUSR), `!` in `CSI ! p` (DECSTR).
+  /// They change the meaning of the final byte, so dispatch must not fall
+  /// through to the bare-final handler when any are present.
+  final List<int> intermediates = [];
 
   @override
   String toString() {

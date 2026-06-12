@@ -51,6 +51,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Terminal CSI sequences with intermediate bytes no longer mis-dispatch.**
+  The parser dropped intermediates, so e.g. VT420 scroll-left (`CSI 5 SP @`)
+  executed as "insert 5 blank characters"; such sequences are now reported
+  as unknown instead. (T-123)
+
 - **PTY master fd no longer leaks when a child exits on its own.** Every
   terminal or Claude pane whose process ended naturally left its pty device
   open for the life of the app; natural exit now releases the fd. (T-360)

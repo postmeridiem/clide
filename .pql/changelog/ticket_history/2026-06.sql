@@ -4130,3 +4130,19 @@ Done 2026-06-12. One deviation from the plan: the shell pieces went to lib/src/s
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDH8TE9MJBXZ4GQ5YT10JM', 'status', 'backlog', 'in_progress', NULL, '2026-06-12 00:30:17', '2026-06-12 00:30:17', '2026-06-12 00:30:17', NULL, '95cd4a80d4e61af091427c6d20bf701a', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDH8TE9MJBXZ4GQ5YT10JM', 'status', 'in_progress', 'done', NULL, '2026-06-12 00:39:04', '2026-06-12 00:39:04', '2026-06-12 00:39:04', NULL, '9354054c9dee37482c76674a331ebc26', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4RJ9K19P5AX14RHRR', 'status', 'backlog', 'in_progress', NULL, '2026-06-12 00:39:41', '2026-06-12 00:39:41', '2026-06-12 00:39:41', NULL, 'a5439ee868e2491127308f8028d29417', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4RJ9K19P5AX14RHRR', 'status', 'in_progress', 'done', NULL, '2026-06-12 00:50:21', '2026-06-12 00:50:21', '2026-06-12 00:50:21', NULL, 'e8f7d648aeab251aa91d4b110d1d5cbc', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBJM6XXQZ3EMGRC13XRYVBEM', 'description', NULL, 'Follow-up to T-123. The escape parser now captures CSI intermediate bytes (0x20-0x2f) on _Csi.intermediates and routes any intermediate-bearing sequence to unknownCSI instead of mis-dispatching on the bare final byte. Nothing implements those forms yet.
+
+Scope: implement DECSCUSR — `CSI Ps SP q` — cursor shape + blink:
+- 0/1 blinking block (default), 2 steady block, 3 blinking underline, 4 steady underline, 5 blinking bar, 6 steady bar.
+
+Plan:
+1. lib/src/terminal/src/core/escape/handler.dart — add `void setCursorShape(<enum> shape, {required bool blink})` (or an int-style variant matching the existing surface; note resetCursorStyle() there is SGR pen state, NOT cursor shape — pick a name that cannot be confused with it).
+2. lib/src/terminal/src/core/escape/csi_handlers.dart — dispatch: in parser.dart _escHandleCSI, intermediate-bearing sequences currently all fall to unknownCSI; add a lookup keyed on (intermediates, finalByte) — a simple `if (_csi.intermediates is [0x20] && finalByte == ''q'')` check is fine until a second form exists.
+3. lib/src/terminal/src/core/terminal.dart — implement the handler method: store a cursorStyle field, notify observers.
+4. Renderer (lib/src/terminal/src/ui/) — draw underline/bar cursors; today only block is painted. This is the bulk of the work; check TerminalPainter for the cursor paint path.
+5. Tests: parser dispatch (test/terminal/escape/parser_test.dart has a _RecordingHandler fixture + an existing ''CSI intermediate bytes (T-123)'' group with a DECSCUSR placeholder test that expects unknownCSI — update it), terminal state, painter golden if shape rendering lands.
+
+DECSTR (`CSI ! p`, soft reset) is a separate, smaller follow-up — same intermediates mechanism, maps to a subset of the existing reset paths; file separately if wanted.
+
+Done when: claude/vim cursor-shape changes (insert vs normal mode) render as bar vs block in the terminal pane.', NULL, '2026-06-12 00:52:40', '2026-06-12 00:52:40', '2026-06-12 00:52:40', NULL, 'fd38b932757c81de62d693d72b883448', 2) ON CONFLICT(hash) DO NOTHING;

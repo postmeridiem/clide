@@ -801,6 +801,34 @@ void main() {
     });
   });
 
+  group('EscapeParser — CSI intermediate bytes (T-123)', () {
+    test('CSI 5 SP @ (SL) does not mis-dispatch as insert-blank-chars', () {
+      final f = _newParser();
+      f.parser.write('\x1b[5 @');
+      expect(f.h.named('insertBlankChars'), isEmpty);
+      expect(f.h.named('unknownCSI').first.args, ['@'.codeUnitAt(0)]);
+    });
+
+    test('CSI 4 SP q (DECSCUSR) routes to unknownCSI, not a bare-q handler', () {
+      final f = _newParser();
+      f.parser.write('\x1b[4 q');
+      expect(f.h.named('unknownCSI').first.args, ['q'.codeUnitAt(0)]);
+    });
+
+    test('CSI ! p (DECSTR) routes to unknownCSI', () {
+      final f = _newParser();
+      f.parser.write('\x1b[!p');
+      expect(f.h.named('unknownCSI').first.args, ['p'.codeUnitAt(0)]);
+    });
+
+    test('intermediates reset between sequences', () {
+      final f = _newParser();
+      f.parser.write('\x1b[5 @'); // intermediate form → unknownCSI
+      f.parser.write('\x1b[3@'); // plain form must dispatch normally again
+      expect(f.h.named('insertBlankChars').first.args, [3]);
+    });
+  });
+
   group('EscapeParser — token bookkeeping', () {
     test('tokenBegin / tokenEnd advance with consumed bytes', () {
       final f = _newParser();

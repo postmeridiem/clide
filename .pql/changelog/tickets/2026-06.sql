@@ -4383,3 +4383,49 @@ Bug this split must fix (verified): _consumeCsi DISCARDS intermediate bytes — 
 Related bug with its own ticket (T-369): unguarded params[i+1] lookahead in SGR 38/48 at lines ~502/512/547/557 (RangeError on truncated sequences) + colon-form sub-parameters unhandled. The split makes the fix natural: sgr_handler.dart owns guarded lookahead helpers; if T-369 lands first, carry its tests over; if this lands first, fix it inside sgr_handler.dart and close T-369 with it.
 
 Tests: test/terminal/escape/parser_test.dart (786 LOC) splits along the same seams — keep parser_test.dart for top-level dispatch/SBC/rollback, add csi_parser_test.dart (intermediates capture, DECSCUSR), sgr_handler_test.dart (bounds + colon form + 256/RGB), mode_handler_test.dart, osc_parser_test.dart, window/DA splits as convenient. The _RecordingHandler fixture is reusable across all of them.', 'in_progress', 'low', NULL, NULL, NULL, '2026-05-18 10:29:02', '2026-06-12 00:39:41', NULL, 'e8810fd23adc05225565eaa3af23eb53', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM4RJ9K19P5AX14RHRR', 'task', '06FB0TNQM4HGK6KR0314P2M32M', 'split lib/src/terminal/.../escape/parser.dart (1139 LOC)', 'parser.dart is a single 1139-line file containing the full ESC/CSI/OSC/DCS handler tree for the terminal emulator. Functional but unwieldy; the consultant flagged it as ''consider splitting'' in the T-107 review.
+
+Suggested split (sequenced with the T-91 coverage sweep on lib/src/terminal/, so the split doesn''t fight in-flight test work):
+
+- parser.dart — entry point + state machine driver
+- esc_handlers.dart — single-char ESC dispatch table + handlers
+- csi_handlers.dart — CSI parameter parsing + handlers
+- osc_handlers.dart — OSC string handlers (title, colour set, etc.)
+- dcs_handlers.dart — DCS/SOS/PM/APC string handlers
+
+Each handler module exports a registrar that the driver wires at construction.
+
+Done when:
+- parser.dart < 400 LOC
+- All existing parser tests pass without changes
+- No new public surface; everything stays library-private
+
+Source: T-107 / consultants.md "Code quality — Findings — [Major]".
+
+Split breakdown from the 2026-06-11 Fable review (epic T-359), verified against the file 2026-06-12:
+
+Structure today: main parser + routing (11-116), CSI core _escHandleCSI (196-209) + _consumeCsi (217-272), _csiHandlers table of 27 final bytes (274-304), cursor movement handlers (306-807), erase/scroll/line/char ops (809-945), SGR monolith (411-622, 212 LOC), mode set/reset (395-409, 946-1030), DA/DSR (334-343, 624-635), window manipulation (658-712), OSC (1034-1110), _Csi state object (1113-1131 — note the commented-out `intermediates` field at 1117/1125).
+
+Target layout under escape/: parser.dart keeps EscapeParser (queue, tokenization, top-level dispatch, ~400 LOC); csi_parser.dart (CsiSequence value object — prefix, params, RESTORED intermediates, finalByte — plus the consume logic from _consumeCsi); csi_handlers.dart (dispatch table, now keyed on final byte + intermediates); cursor_handlers.dart; sgr_handler.dart (the 411-622 monolith); mode_handler.dart; osc_parser.dart + osc_handlers.dart. EscapeHandler interface unchanged. Preserve the zero-allocation/reset-able design goal noted at lines 14-16.
+
+Bug this split must fix (verified): _consumeCsi DISCARDS intermediate bytes — lines 258-261 have `// intermediates.add(char);` commented out and `continue`, so CSI Ps SP q (DECSCUSR, cursor style) and CSI ! p / SP-intermediate forms dispatch on the bare final byte and fall to unknownCSI. Fix: restore the intermediates field on CsiSequence, capture them during consume, dispatch on (intermediates, finalByte), and add EscapeHandler.setCursorStyle for DECSCUSR. (DECSTR is CSI ! p — soft terminal reset — same intermediate mechanism.)
+
+Related bug with its own ticket (T-369): unguarded params[i+1] lookahead in SGR 38/48 at lines ~502/512/547/557 (RangeError on truncated sequences) + colon-form sub-parameters unhandled. The split makes the fix natural: sgr_handler.dart owns guarded lookahead helpers; if T-369 lands first, carry its tests over; if this lands first, fix it inside sgr_handler.dart and close T-369 with it.
+
+Tests: test/terminal/escape/parser_test.dart (786 LOC) splits along the same seams — keep parser_test.dart for top-level dispatch/SBC/rollback, add csi_parser_test.dart (intermediates capture, DECSCUSR), sgr_handler_test.dart (bounds + colon form + 256/RGB), mode_handler_test.dart, osc_parser_test.dart, window/DA splits as convenient. The _RecordingHandler fixture is reusable across all of them.', 'done', 'low', NULL, NULL, NULL, '2026-05-18 10:29:02', '2026-06-12 00:50:21', NULL, '9b4f05fb5786f50b1908b85cc99cbb6f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBJM6XXQZ3EMGRC13XRYVBEM', 'task', '06FB0TNQM4HGK6KR0314P2M32M', 'support DECSCUSR cursor-shape sequences (CSI Ps SP q)', NULL, 'backlog', 'low', NULL, NULL, NULL, '2026-06-12 00:52:25', '2026-06-12 00:52:25', NULL, '7b313d1954ab7f7346365ea058dd1787', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBJM6XXQZ3EMGRC13XRYVBEM', 'task', '06FB0TNQM4HGK6KR0314P2M32M', 'support DECSCUSR cursor-shape sequences (CSI Ps SP q)', 'Follow-up to T-123. The escape parser now captures CSI intermediate bytes (0x20-0x2f) on _Csi.intermediates and routes any intermediate-bearing sequence to unknownCSI instead of mis-dispatching on the bare final byte. Nothing implements those forms yet.
+
+Scope: implement DECSCUSR — `CSI Ps SP q` — cursor shape + blink:
+- 0/1 blinking block (default), 2 steady block, 3 blinking underline, 4 steady underline, 5 blinking bar, 6 steady bar.
+
+Plan:
+1. lib/src/terminal/src/core/escape/handler.dart — add `void setCursorShape(<enum> shape, {required bool blink})` (or an int-style variant matching the existing surface; note resetCursorStyle() there is SGR pen state, NOT cursor shape — pick a name that cannot be confused with it).
+2. lib/src/terminal/src/core/escape/csi_handlers.dart — dispatch: in parser.dart _escHandleCSI, intermediate-bearing sequences currently all fall to unknownCSI; add a lookup keyed on (intermediates, finalByte) — a simple `if (_csi.intermediates is [0x20] && finalByte == ''q'')` check is fine until a second form exists.
+3. lib/src/terminal/src/core/terminal.dart — implement the handler method: store a cursorStyle field, notify observers.
+4. Renderer (lib/src/terminal/src/ui/) — draw underline/bar cursors; today only block is painted. This is the bulk of the work; check TerminalPainter for the cursor paint path.
+5. Tests: parser dispatch (test/terminal/escape/parser_test.dart has a _RecordingHandler fixture + an existing ''CSI intermediate bytes (T-123)'' group with a DECSCUSR placeholder test that expects unknownCSI — update it), terminal state, painter golden if shape rendering lands.
+
+DECSTR (`CSI ! p`, soft reset) is a separate, smaller follow-up — same intermediates mechanism, maps to a subset of the existing reset paths; file separately if wanted.
+
+Done when: claude/vim cursor-shape changes (insert vs normal mode) render as bar vs block in the terminal pane.', 'backlog', 'low', NULL, NULL, NULL, '2026-06-12 00:52:25', '2026-06-12 00:52:40', NULL, '5c07c49f5ad28c005a77ba26434e66d7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
