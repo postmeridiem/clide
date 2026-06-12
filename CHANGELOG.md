@@ -16,6 +16,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`Shift+;` types a colon again — double-Shift no longer fires on chorded
+  Shift.** The double-tap detector counted any Shift press as a tap, even
+  mid-chord, and never saw keys the focused editor consumed; a tap now
+  requires a clean press-and-release, observed at the raw-keyboard level.
+  (T-409)
+
 ## [2.4.0] — 2026-06-12
 
 ### Added

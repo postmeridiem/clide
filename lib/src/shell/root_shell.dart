@@ -25,8 +25,10 @@ class RootShellState extends State<RootShell> {
   late final FocusNode _keyFocus;
   final MenuBarController _menuBar = MenuBarController();
   // Detects double-tapped bare modifiers (e.g. double-Shift → quick-open,
-  // JetBrains "Search Everywhere"). Bare modifiers never resolve as a single
-  // chord, so this is the only path that handles them (T-341).
+  // JetBrains "Search Everywhere"). Fed from a HardwareKeyboard handler, not
+  // the focus tree: a focused editor consumes the chorded key of `Shift+;`,
+  // so the gesture must observe every event to know a press wasn't bare
+  // (T-341, T-409).
   final ModifierTapTracker _modTap = ModifierTapTracker();
 
   @override
@@ -34,10 +36,12 @@ class RootShellState extends State<RootShell> {
     super.initState();
     _keyFocus = FocusNode()..requestFocus();
     widget.services.textZoom.addListener(_onZoom);
+    HardwareKeyboard.instance.addHandler(_onRawKey);
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onRawKey);
     widget.services.textZoom.removeListener(_onZoom);
     _menuBar.dispose();
     _keyFocus.dispose();
@@ -156,25 +160,35 @@ class RootShellState extends State<RootShell> {
 
   void _onKey(KeyEvent event) {
     if (_handleMenuMnemonic(event)) return;
-    // Double-tapped bare modifier (e.g. double-Shift → quick-open). Handle
-    // it here because a bare modifier never forms a single chord — an
-    // intervening non-modifier key breaks the gesture (T-341).
-    if (event is KeyDownEvent) {
-      final mod = KeyChord.modifierForLogicalKey(event.logicalKey);
-      if (mod != null) {
-        if (_modTap.tap(mod, DateTime.now()) != null) {
-          final seq = [KeyChord.bareModifier(mod), KeyChord.bareModifier(mod)];
-          final tapIntent = widget.services.keymap.resolveSequence(seq);
-          if (tapIntent != null) _dispatchIntent(tapIntent);
-        }
-        return; // a bare modifier resolves nothing else
-      }
-      _modTap.reset();
-    }
     final intent = widget.services.keymap.resolveEvent(event, HardwareKeyboard.instance);
     if (intent == null) return;
     _dispatchIntent(intent);
   }
+
+  /// Double-tapped bare modifier (e.g. double-Shift → quick-open). Observed
+  /// at the HardwareKeyboard level — before focus dispatch and regardless of
+  /// who consumes the event — so a chorded key the focused editor swallows
+  /// (the `;` of `Shift+;`) still dirties the press (T-341, T-409). Fires on
+  /// the second clean *release*; never consumes anything.
+  bool _onRawKey(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      var mod = KeyChord.modifierForLogicalKey(event.logicalKey);
+      // A modifier pressed while a non-modifier is already held (rolled
+      // `a`+Shift) is a chord, not a tap.
+      if (mod != null && _nonModifierHeld()) mod = null;
+      _modTap.down(mod);
+    } else if (event is KeyUpEvent) {
+      final mod = _modTap.up(KeyChord.modifierForLogicalKey(event.logicalKey), DateTime.now());
+      if (mod != null) {
+        final seq = [KeyChord.bareModifier(mod), KeyChord.bareModifier(mod)];
+        final tapIntent = widget.services.keymap.resolveSequence(seq);
+        if (tapIntent != null) _dispatchIntent(tapIntent);
+      }
+    }
+    return false;
+  }
+
+  bool _nonModifierHeld() => HardwareKeyboard.instance.logicalKeysPressed.any((k) => KeyChord.modifierForLogicalKey(k) == null);
 
   void _dispatchIntent(Intent intent) {
     // Try the focused context first so feature widgets (palette, editor, …)

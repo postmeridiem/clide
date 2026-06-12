@@ -4279,3 +4279,32 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 - Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
 
 Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.', NULL, '2026-06-12 03:22:28', '2026-06-12 03:22:28', '2026-06-12 03:22:28', NULL, '267348e926541d1c7b5e55c3c1ef6219', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBN3VTK2MYQQ173MSJN6E1DM', 'description', NULL, 'User report: typing /model in the Claude conversation view does nothing useful — it is forwarded to the session''s stream-json stdin like a plain message, and the CLI''s interactive /model picker only exists in its own TUI. Clide must own it (same class as /clear,/resume,/fork — T-156).
+
+Interaction design:
+- `/model <name>` → set the session model directly to <name> (accept aliases like sonnet/opus and full ids).
+- `/model` (bare) → show a model picker in the interaction zone — replaces the composer while open, like ToolPromptCard (D-78); list selectable via keyboard (numbers/arrows + Enter), Esc cancels back to the composer.
+
+Implementation map (from code exploration):
+- Add ''model'' to kClideOwnedCommands in lib/builtin/claude/src/slash_commands.dart and handle it in ClaudePane._send (lib/builtin/claude/src/claude_pane.dart).
+- Add StreamJsonSession.setModel(String) following the setPermissionMode control_request pattern (lib/builtin/claude/src/stream_json_session.dart) — subtype set_model; optimistically merge SessionStatus(model: …) so the status bar updates.
+- Model list for the bare-picker: query the CLI via the supported_models-style control request if available (verify exact subtype/shapes against the installed CLI), falling back to a static alias list.
+- Picker widget swaps in via the existing pending-interaction slot in ClaudePane; reuse composer focus/draft preservation (the draft must survive the swap).
+
+Acceptance:
+- `/model sonnet` switches the live session model; status bar reflects it on the next status merge.
+- bare `/model` opens the picker; choosing an entry sets the model; Esc restores the composer with the draft intact.
+- `/model` is never forwarded to the session as message text.
+- Unit tests in test/builtin/claude/ for the parsing (slash_commands_test.dart), the pane interception, and the picker widget.', NULL, '2026-06-12 06:40:53', '2026-06-12 06:40:53', '2026-06-12 06:40:53', NULL, '86aaba4cdf1d5e3c054af341977c5315', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBN3VYR84023Z5XFEX9DS0S0', 'description', NULL, 'Regression from T-341 (double-tap-modifier shortcuts, shipped in 2.4.0). User report: pressing shift+; to type a colon in the editor or the Claude composer no longer types '':'' — the quick-open finder opens instead.
+
+Likely cause: the double-Shift tap detector counts a Shift press/release as a "tap" even when another key was chorded while Shift was held. Typing '':'' is shift-down, '';'', shift-up; two colons (or a colon shortly after any shifted character) within the tap window then reads as shift,shift → "Search Everywhere" fires and may also swallow the keystroke.
+
+Fix: a modifier press only qualifies as a tap if NO other key goes down between the modifier''s keydown and keyup. Any chorded key must invalidate the pending tap (and reset the double-tap sequence state).
+
+Acceptance:
+- Typing `::` rapidly in the editor and in the Claude composer produces two colons, never quick-open.
+- Shifted typing in general (capitals, symbols) never triggers double-tap bindings.
+- Genuine double-Shift (two bare taps within the window) still opens quick-open in all four presets.
+- Regression test covering chorded-Shift-then-Shift-tap sequences.', NULL, '2026-06-12 06:40:54', '2026-06-12 06:40:54', '2026-06-12 06:40:54', NULL, '4f7eddbb58a3551d208dcd03541bed5d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBN3VYR84023Z5XFEX9DS0S0', 'status', 'backlog', 'in_progress', NULL, '2026-06-12 06:40:59', '2026-06-12 06:40:59', '2026-06-12 06:40:59', NULL, '6f856737a3d115b0a8dd510d2051047d', 2) ON CONFLICT(hash) DO NOTHING;

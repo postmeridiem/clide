@@ -354,6 +354,44 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('double-tapped bare Shift opens quick-open (T-341)', (tester) async {
+    await pumpApp(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(f.services.quickOpen.isOpen, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('typing colons (Shift+;) never triggers quick-open (T-409)', (tester) async {
+    await pumpApp(tester);
+    // Two rapid `:` keystrokes — the chorded `;` dirties each Shift press.
+    for (var i = 0; i < 2; i++) {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.semicolon);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.semicolon);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    }
+    await tester.pump();
+    expect(f.services.quickOpen.isOpen, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a bare Shift tap followed by a Shift chord does not fire (T-409)', (tester) async {
+    await pumpApp(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft); // clean tap arms
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.semicolon); // chord — old code fired on the down
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.semicolon);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(f.services.quickOpen.isOpen, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('file.closeWorkspace command closes the active project', (tester) async {
     final repo = Directory.current.path;
     await tester.runAsync(() async => f.services.project.open(repo));
