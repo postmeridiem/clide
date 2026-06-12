@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.4.1] — 2026-06-12
+
 ### Fixed
 
 - **`Shift+;` types a colon again — double-Shift no longer fires on chorded
