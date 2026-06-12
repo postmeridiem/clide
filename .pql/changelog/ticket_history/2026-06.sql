@@ -4060,3 +4060,34 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 Fix: drive both roster surfaces from TeamBroker membership (expose a listenable roster or change stream on the broker), delete TeamMemberJoined/TeamMemberLeft from kernel events/types.dart, and remove the dead listeners. Coordinate with T-395 (meta sidebar split) — whichever lands second adapts.
 
 Acceptance: spawning a team session through the orchestrator makes the member appear in both surfaces (widget test); the ghost event types are gone from types.dart; no kernel.events team-member subscriptions remain.', NULL, '2026-06-12 00:12:04', '2026-06-12 00:12:04', '2026-06-12 00:12:04', NULL, 'f04b7af4488069d004d99acbf9717cc6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCXFF5V1RT6QJETS2K4C0G', 'status', 'in_progress', 'done', NULL, '2026-06-12 00:23:13', '2026-06-12 00:23:13', '2026-06-12 00:23:13', NULL, '8c817e20084503af9ab849d4974eef97', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCXFF5V1RT6QJETS2K4C0G', 'description', 'Verified-dead code worth one sweep (coverage denominator benefits too):
+
+- Legacy free-function git API (~250 LOC duplicating GitClient, kept alive only by its own tests, and carrying its own latent pipe-deadlock bug) — delete API + tests.
+- ToolCheck — zero callers.
+- ~60% of lib/src/pty/ffi/libc.dart — fd-passing-era bindings unused since D-56.
+- GraphView — unreachable placeholder (note: the Governance Graph idea (see Q-records from this review) may later want the slot; deleting now is still right, it is a 17-line stub).
+- ColumnHat — duplicated line-for-line in app.dart, kept alive by a zero-coverage test; the app.dart split ticket removes the duplicate, this sweep removes the orphan.
+- tmux-era team pipeline: TranscriptPublisher, TeamMemberJoined — nothing emits these events, yet the team roster UI listens to them exclusively (team tiles are populated by ghosts). Remove pipeline + dead listeners; if the roster UI stays, it needs a real data source first (surface that before deleting the UI).
+- Dead ptyc binary still committed in native/linux-x64/ against D-62/D-63 — remove binary + licenses.yaml entry if present.
+- mocktail — pinned, documented in D-25 as the IO-mocking strategy, imported by zero files: either adopt it where mocks are hand-rolled or drop the dep AND amend D-25.
+
+Each bullet is one commit. Run make test + coverage after each; expect the floor to ratchet up.
+
+Correction (2026-06-12, verified during T-394 breakdown): ColumnHat is NOT duplicated line-for-line in app.dart — it exists only in lib/widgets/src/clide_column_hat.dart. Before deleting it, verify it actually has zero non-test callers; if it is genuinely used by app chrome, drop that bullet from this sweep.', 'Verified-dead code worth one sweep (coverage denominator benefits too):
+
+- Legacy free-function git API (~250 LOC duplicating GitClient, kept alive only by its own tests, and carrying its own latent pipe-deadlock bug) — delete API + tests.
+- ToolCheck — zero callers.
+- ~60% of lib/src/pty/ffi/libc.dart — fd-passing-era bindings unused since D-56.
+- GraphView — unreachable placeholder (note: the Governance Graph idea (see Q-records from this review) may later want the slot; deleting now is still right, it is a 17-line stub).
+- ColumnHat — duplicated line-for-line in app.dart, kept alive by a zero-coverage test; the app.dart split ticket removes the duplicate, this sweep removes the orphan.
+- tmux-era team pipeline: TranscriptPublisher, TeamMemberJoined — nothing emits these events, yet the team roster UI listens to them exclusively (team tiles are populated by ghosts). Remove pipeline + dead listeners; if the roster UI stays, it needs a real data source first (surface that before deleting the UI).
+- Dead ptyc binary still committed in native/linux-x64/ against D-62/D-63 — remove binary + licenses.yaml entry if present.
+- mocktail — pinned, documented in D-25 as the IO-mocking strategy, imported by zero files: either adopt it where mocks are hand-rolled or drop the dep AND amend D-25.
+
+Each bullet is one commit. Run make test + coverage after each; expect the floor to ratchet up.
+
+Correction (2026-06-12, verified during T-394 breakdown): ColumnHat is NOT duplicated line-for-line in app.dart — it exists only in lib/widgets/src/clide_column_hat.dart. Before deleting it, verify it actually has zero non-test callers; if it is genuinely used by app chrome, drop that bullet from this sweep.
+
+Done 2026-06-12 across six commits. Notes: ColumnHat''s file carried the LIVE hatHeight constant (app hat bar + menu bar) — moved to widgets/src/chrome_metrics.dart before deleting the dead widget. TranscriptPublisher class removed; the ClaudeConversation addressing constants stay (still consumed). The TeamMemberJoined ghost-event rewiring is real work, split out as T-396. mocktail dropped with D-25 amended (hand-rolled fakes throughout). ptyc binary untracked+deleted (no licenses.yaml entry existed). Coverage rose 95.03% → 95.13% with the dead denominator gone; full push-check green.', NULL, '2026-06-12 00:23:24', '2026-06-12 00:23:24', '2026-06-12 00:23:24', NULL, '0791573d68f344d3edab4cd8b89d2d69', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDGPXQN31NNRPJ00PFRAG4', 'status', 'backlog', 'in_progress', NULL, '2026-06-12 00:23:56', '2026-06-12 00:23:56', '2026-06-12 00:23:56', NULL, 'e2cf08e3a17b8f8ad8288061d263744c', 2) ON CONFLICT(hash) DO NOTHING;
