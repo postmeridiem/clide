@@ -25,6 +25,7 @@ import 'slash_commands.dart';
 import 'stream_json_session.dart';
 import 'task_list.dart';
 import 'transcript_reader.dart';
+import 'workflow_run.dart';
 
 /// The Claude conversation pane. Drives `claude` over the stream-json control
 /// protocol (D-77/D-78): a [StreamJsonSession] owns the process, its events
@@ -76,6 +77,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<ProjectOpened>? _projectSub;
   StreamSubscription<Message>? _commandSub;
   StreamSubscription<String>? _modelErrorSub;
+  StreamSubscription<Map<String, WorkflowRun>>? _workflowsSub;
   ConversationController? _conversation;
   StreamJsonSession? _session;
   SessionStatus _status = const SessionStatus();
@@ -213,6 +215,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _endSub = null;
     _modelErrorSub?.cancel();
     _modelErrorSub = null;
+    _workflowsSub?.cancel();
+    _workflowsSub = null;
     // The orchestrator owns the session, so disposing this pane does NOT kill
     // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
     // A secondary tab being *closed* is a real teardown, so close its session;
@@ -268,6 +272,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _endSub = null;
     _modelErrorSub?.cancel();
     _modelErrorSub = null;
+    _workflowsSub?.cancel();
+    _workflowsSub = null;
     _modelPickerOpen = false;
     _effortPickerOpen = false;
     _permissionPickerOpen = false;
@@ -384,6 +390,13 @@ class _ClaudePaneState extends State<ClaudePane> {
     _statusSub = managed.session.statusStream.listen((s) {
       if (!mounted) return;
       setState(() => _status = s);
+    });
+    // Workflow runs arrive on out-of-band system events that add no
+    // conversation item, so the view won't rebuild on its own — drive a
+    // rebuild as the run map changes so the workflow card updates live (T-416).
+    _workflowsSub = managed.session.workflowsStream.listen((_) {
+      if (!mounted) return;
+      setState(() {});
     });
     // A rejected /model change (unknown name) rolls back silently in the
     // status — say why out loud (T-408).
@@ -671,6 +684,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _endSub = null;
     _modelErrorSub?.cancel();
     _modelErrorSub = null;
+    _workflowsSub?.cancel();
+    _workflowsSub = null;
     _modelPickerOpen = false;
     _effortPickerOpen = false;
     _permissionPickerOpen = false;
@@ -729,6 +744,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
                     toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
                     quietErrorToolUseIds: _session?.quietErrorToolUseIds ?? const <String>{},
+                    workflows: _session?.workflows ?? const <String, WorkflowRun>{},
                     emptyState: ClaudeBanner(
                       role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
                       workspace: _repoRoot,

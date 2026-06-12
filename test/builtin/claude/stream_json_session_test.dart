@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:test/test.dart';
 
 class _FakeProc extends StreamJsonProcess {
@@ -943,6 +944,59 @@ void main() {
         b.add('line $i');
       }
       expect(b.lines, ['line 2', 'line 3', 'line 4']);
+    });
+  });
+
+  group('workflow runs (T-416)', () {
+    test('accumulates a run from system task_* events keyed by tool_use_id', () async {
+      final p = _FakeProc();
+      final session = StreamJsonSession(p)..start();
+      final snapshots = <Map<String, WorkflowRun>>[];
+      session.workflowsStream.listen(snapshots.add);
+
+      p.emit(
+        jsonEncode({
+          'type': 'system',
+          'subtype': 'task_started',
+          'task_id': 'wy01fihjt',
+          'tool_use_id': 'toolu_wf',
+          'description': 'Two agents',
+          'workflow_name': 'parallel-words',
+        }),
+      );
+      p.emit(
+        jsonEncode({
+          'type': 'system',
+          'subtype': 'task_progress',
+          'tool_use_id': 'toolu_wf',
+          'workflow_progress': [
+            {'type': 'workflow_agent', 'index': 1, 'label': 'alpha', 'state': 'start'},
+            {'type': 'workflow_agent', 'index': 2, 'label': 'beta', 'state': 'done'},
+          ],
+        }),
+      );
+      p.emit(jsonEncode({'type': 'system', 'subtype': 'task_notification', 'tool_use_id': 'toolu_wf', 'status': 'completed', 'summary': 'done'}));
+      await Future<void>.delayed(Duration.zero);
+
+      final run = session.workflows['toolu_wf'];
+      expect(run, isNotNull);
+      expect(run!.name, 'parallel-words');
+      expect(run.agentCount, 2);
+      expect(run.doneCount, 1);
+      expect(run.done, isTrue);
+      expect(run.summary, 'done');
+      expect(snapshots, isNotEmpty);
+    });
+
+    test('a workflow system event produces no conversation item', () async {
+      final p = _FakeProc();
+      final session = StreamJsonSession(p)..start();
+      final items = <ConversationItem>[];
+      session.items.listen(items.add);
+      p.emit(jsonEncode({'type': 'system', 'subtype': 'task_progress', 'tool_use_id': 'toolu_wf', 'workflow_progress': const []}));
+      await Future<void>.delayed(Duration.zero);
+      expect(items, isEmpty);
+      expect(session.workflows.containsKey('toolu_wf'), isTrue);
     });
   });
 }

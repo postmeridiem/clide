@@ -1109,4 +1109,35 @@ void main() {
       expect(find.text('MCP SERVERS · 0'), findsOneWidget);
     });
   });
+
+  group('T-416 workflow runs in the Activity tab', () {
+    testWidgets('a primary workflow run surfaces as a WORKFLOWS row', (tester) async {
+      _FakeProc? proc;
+      final orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+      await orch.spawn(const SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
+      await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.activity)));
+      await tester.pump();
+
+      // The harness emits the workflow progress on the primary session's wire.
+      proc!._ctl.add(
+        jsonEncode({
+          'type': 'system',
+          'subtype': 'task_progress',
+          'tool_use_id': 'toolu_wf',
+          'summary': 'orchestrating',
+          'workflow_progress': [
+            {'type': 'workflow_agent', 'index': 1, 'label': 'a', 'state': 'done'},
+            {'type': 'workflow_agent', 'index': 2, 'label': 'b', 'state': 'start'},
+          ],
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('WORKFLOWS'), findsOneWidget);
+      expect(find.text('1/2 agents'), findsOneWidget);
+
+      orch.dispose();
+    });
+  });
 }

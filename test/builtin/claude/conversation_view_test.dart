@@ -13,6 +13,7 @@ import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
@@ -154,6 +155,7 @@ void main() {
       Set<String> hiddenToolUseIds = const {},
       Map<String, bool> toolUseOutcomes = const {},
       Set<String> quietErrorToolUseIds = const {},
+      Map<String, WorkflowRun> workflows = const {},
       FoldLevel foldLevel = FoldLevel.none,
     }) async {
       tester.view.physicalSize = const Size(900, 700);
@@ -178,6 +180,7 @@ void main() {
                 hiddenToolUseIds: hiddenToolUseIds,
                 toolUseOutcomes: toolUseOutcomes,
                 quietErrorToolUseIds: quietErrorToolUseIds,
+                workflows: workflows,
                 foldLevel: foldLevel,
               ),
             ),
@@ -194,6 +197,45 @@ void main() {
     testWidgets('empty controller shows the waiting hint', (tester) async {
       await pumpWith(tester, const []);
       expect(find.text('Waiting for Claude…'), findsOneWidget);
+    });
+
+    testWidgets('a Workflow tool-use with a live run renders the workflow card (T-416)', (tester) async {
+      var run = const WorkflowRun(toolUseId: 'x1', name: 'parallel-words');
+      run = run.foldEvent({
+        'subtype': 'task_progress',
+        'tool_use_id': 'x1',
+        'workflow_progress': [
+          {'type': 'workflow_agent', 'index': 1, 'label': 'do alpha', 'model': 'haiku', 'state': 'done'},
+          {'type': 'workflow_agent', 'index': 2, 'label': 'do beta', 'model': 'haiku', 'state': 'start'},
+        ],
+      });
+      await pumpWith(
+        tester,
+        [
+          _tool('Workflow', const {'script': 'await parallel([])'}),
+        ],
+        workflows: {'x1': run},
+      );
+
+      // Collapsed: the dedicated workflow collapser with its done/total counter
+      // and the workflow name as the summary (no description set → no duplicate).
+      expect(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'), findsOneWidget);
+      expect(find.text('parallel-words'), findsOneWidget);
+      expect(find.text('do alpha'), findsNothing); // folded while collapsed
+
+      // Expand → the per-agent rows show.
+      await tester.tap(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'));
+      await tester.pumpAndSettle();
+      expect(find.text('do alpha'), findsOneWidget);
+      expect(find.text('do beta'), findsOneWidget);
+    });
+
+    testWidgets('a Workflow tool-use with no run yet falls back to the generic tool card (T-416)', (tester) async {
+      await pumpWith(tester, [
+        _tool('Workflow', const {'script': 'await parallel([])'}),
+      ]);
+      // No run snapshot → the generic tool collapser labeled by the tool name.
+      expect(find.bySemanticsLabel('Workflow, 1 step, collapsed'), findsOneWidget);
     });
 
     testWidgets('unfolded conversation cards carry stable per-item identity keys (T-285)', (tester) async {

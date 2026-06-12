@@ -39,6 +39,7 @@ import 'package:clide/builtin/claude/src/team_broker.dart' show TeamBroker, Team
 import 'package:clide/builtin/claude/src/claude_status.dart' show ClaudeUsage, parseUsageText;
 import 'package:clide/builtin/claude/src/transcript_publisher.dart' show ClaudeConversation;
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show AssistantTextMessage, ConversationItem, SessionStatus;
+import 'package:clide/builtin/claude/src/workflow_run.dart' show WorkflowRun;
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/widgets.dart';
 
@@ -87,7 +88,9 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   StreamSubscription<Message>? _tabSub;
   StreamSubscription<SessionStatus>? _primarySub;
   StreamSubscription<ConversationItem>? _primaryItemsSub;
+  StreamSubscription<Map<String, WorkflowRun>>? _primaryWorkflowsSub;
   ClaudeUsage? _usage;
+  Map<String, WorkflowRun> _workflows = const {};
   StreamSubscription<void>? _brokerChangeSub;
   Timer? _timer;
   late final Future<ClaudeStats> Function() _load;
@@ -204,14 +207,31 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _primarySub = null;
     _primaryItemsSub?.cancel();
     _primaryItemsSub = null;
+    _primaryWorkflowsSub?.cancel();
+    _primaryWorkflowsSub = null;
     if (session == null) {
-      if (_primaryStatus != null && mounted) setState(() => _primaryStatus = null);
+      if (mounted && (_primaryStatus != null || _workflows.isNotEmpty)) {
+        setState(() {
+          _primaryStatus = null;
+          _workflows = const {};
+        });
+      }
       return;
     }
     final seed = session.status;
-    if (mounted) setState(() => _primaryStatus = seed);
+    if (mounted) {
+      setState(() {
+        _primaryStatus = seed;
+        _workflows = session.workflows;
+      });
+    }
     _primarySub = session.statusStream.listen((s) {
       if (mounted) setState(() => _primaryStatus = s);
+    });
+    // The Activity tab's WORKFLOWS section tracks the primary session's live
+    // workflow runs (T-416).
+    _primaryWorkflowsSub = session.workflowsStream.listen((w) {
+      if (mounted) setState(() => _workflows = w);
     });
     // Watch for /usage responses: CLI-local output arrives as synthetic
     // assistant text; when it parses as usage, the Activity block updates
@@ -271,6 +291,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _tabSub?.cancel();
     _primarySub?.cancel();
     _primaryItemsSub?.cancel();
+    _primaryWorkflowsSub?.cancel();
     _brokerChangeSub?.cancel();
     _injectCtl.dispose();
     _config?.removeListener(_onConfigChange);
@@ -286,7 +307,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
         SidebarTabStrip(current: _tab, memberCount: _members.length, onPick: (t) => setState(() => _tab = t)),
         Expanded(
           child: switch (_tab) {
-            SidebarTab.activity => ActivityTabView(stats: _stats, primaryStatus: _primaryStatus, config: _config, usage: _usage),
+            SidebarTab.activity => ActivityTabView(stats: _stats, primaryStatus: _primaryStatus, config: _config, usage: _usage, workflows: _workflows),
             SidebarTab.team => TeamTabView(
               members: _members,
               memberStatus: _memberStatus,

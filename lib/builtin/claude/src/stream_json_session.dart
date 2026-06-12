@@ -19,6 +19,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/src/util/value_stream.dart';
 
 /// The claude subprocess, abstracted so tests drive it without spawning.
@@ -377,6 +378,20 @@ class StreamJsonSession {
   Map<String, bool> get toolUseOutcomes => _toolUseOutcome;
   Set<String> get quietErrorToolUseIds => _quietErrorToolUses;
 
+  /// Live Workflow runs, keyed by their launching `Workflow` tool-use id
+  /// (T-416). Accumulated from the out-of-band `system` task_* events the
+  /// harness emits while a workflow runs in the background; the conversation
+  /// card and the sidebar indicator both read this snapshot. Ephemeral — the
+  /// events aren't in the resumed transcript, so this is empty on reload.
+  final _workflows = <String, WorkflowRun>{};
+  final _workflowsCtl = ValueStream<Map<String, WorkflowRun>>.seeded(const {});
+
+  /// The current workflow runs, keyed by launching tool-use id.
+  Map<String, WorkflowRun> get workflows => Map.unmodifiable(_workflows);
+
+  /// Emits the workflow-run map whenever a `system` task event updates it.
+  Stream<Map<String, WorkflowRun>> get workflowsStream => _workflowsCtl.stream;
+
   /// Whether a turn is in flight (between a send and claude's `result`). Drives
   /// the composer's Stop affordance.
   bool _busy = false;
@@ -501,6 +516,15 @@ class StreamJsonSession {
       return;
     }
 
+    // Workflow run progress (T-416): the harness reports a backgrounded Workflow
+    // tool's fan-out on out-of-band `system` task_* events keyed by the
+    // launching tool-use id. Fold them into the run snapshot and notify; they
+    // carry no conversation item, so don't fall through to the parser.
+    if (isWorkflowSystemEvent(ev)) {
+      _onWorkflowEvent(ev);
+      return;
+    }
+
     // Finalise a streamed reply: when the real text `assistant` event for a
     // message we streamed arrives, reuse the placeholder's `partial-<id>` uuid
     // so the controller replaces the placeholder in place rather than appending
@@ -572,6 +596,15 @@ class StreamJsonSession {
       case 'message_stop':
         _streamingMsgId = null;
     }
+  }
+
+  /// Fold one workflow `system` task event into its run snapshot, keyed by the
+  /// launching tool-use id, and publish the updated map (T-416).
+  void _onWorkflowEvent(Map<String, dynamic> ev) {
+    final id = ev['tool_use_id'] as String;
+    final prior = _workflows[id] ?? WorkflowRun(toolUseId: id);
+    _workflows[id] = prior.foldEvent(ev);
+    _workflowsCtl.add(Map.unmodifiable(_workflows));
   }
 
   /// Handle an inbound `control_request`. `can_use_tool` becomes a [ToolPrompt]
@@ -938,6 +971,7 @@ class StreamJsonSession {
     await _proc.kill();
     await _items.close();
     await _statusCtl.close();
+    await _workflowsCtl.close();
     await _sessionIdCtl.close();
     await _pendingCtl.close();
     await _busyCtl.close();

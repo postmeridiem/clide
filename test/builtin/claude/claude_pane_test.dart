@@ -167,6 +167,44 @@ void main() {
     expect(proc.writes.any((w) => w.contains('hello there')), isTrue);
   });
 
+  testWidgets('a Workflow run renders its dedicated card in the conversation (T-416)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+    final semantics = tester.ensureSemantics();
+
+    await act(tester, () {
+      proc.feed({
+        'type': 'assistant',
+        'uuid': 'a-wf',
+        'message': {
+          'role': 'assistant',
+          'content': [
+            {
+              'type': 'tool_use',
+              'id': 'toolu_wf',
+              'name': 'Workflow',
+              'input': {'script': 'await parallel([])'},
+            },
+          ],
+        },
+      });
+      proc.feed({
+        'type': 'system',
+        'subtype': 'task_progress',
+        'tool_use_id': 'toolu_wf',
+        'workflow_progress': [
+          {'type': 'workflow_agent', 'index': 1, 'label': 'first agent', 'state': 'done'},
+          {'type': 'workflow_agent', 'index': 2, 'label': 'second agent', 'state': 'start'},
+        ],
+      });
+    });
+
+    // The dedicated workflow collapser, with its live done/total agent counter.
+    expect(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'), findsOneWidget);
+
+    semantics.dispose();
+  });
+
   testWidgets('/clear empties the deterministic session in place', (tester) async {
     await mount(tester, const ClaudePane(showChrome: false));
     final firstProc = created.single;

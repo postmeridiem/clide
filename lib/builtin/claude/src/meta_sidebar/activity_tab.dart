@@ -9,12 +9,20 @@ import 'package:clide/builtin/claude/src/claude_stats.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show ClaudeUsage, formatTokenCount, permissionModeLabel, shortModelLabel;
 import 'package:clide/builtin/claude/src/meta_sidebar/models.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show SessionStatus;
+import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 class ActivityTabView extends StatelessWidget {
-  const ActivityTabView({super.key, required this.stats, required this.primaryStatus, required this.config, this.usage});
+  const ActivityTabView({
+    super.key,
+    required this.stats,
+    required this.primaryStatus,
+    required this.config,
+    this.usage,
+    this.workflows = const <String, WorkflowRun>{},
+  });
 
   final ClaudeStats stats;
   final SessionStatus? primaryStatus;
@@ -23,6 +31,11 @@ class ActivityTabView extends StatelessWidget {
   /// Parsed `/usage` output for the usage block, refreshed via the refresh
   /// control (T-415). Null until the first refresh.
   final ClaudeUsage? usage;
+
+  /// Live Workflow runs in the primary session, keyed by launching tool-use id
+  /// (T-416). Rendered as an aggregate WORKFLOWS section — one row per run with
+  /// its done/total agent count and running/done state.
+  final Map<String, WorkflowRun> workflows;
 
   /// Publish a slash command for the primary pane to execute — the session
   /// controls are the same code path as typing the command (D-6).
@@ -36,6 +49,7 @@ class ActivityTabView extends StatelessWidget {
     final latest = stats.latest;
     final u = usage;
     final sections = <MetaSection>[
+      ..._workflowSection(tokens),
       if (u != null)
         MetaSection('USAGE', [
           if (u.session != null) MetaRow('session', u.session!),
@@ -92,6 +106,24 @@ class ActivityTabView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// An aggregate WORKFLOWS section while one or more workflow runs exist this
+  /// session (T-416): a row per run — its name and `done/total agents`, tinted
+  /// focus while running and success once complete.
+  List<MetaSection> _workflowSection(SurfaceTokens tokens) {
+    final runs = workflows.values.toList();
+    if (runs.isEmpty) return const [];
+    return [
+      MetaSection('WORKFLOWS', [
+        for (final r in runs)
+          MetaRow(
+            r.name ?? r.taskId ?? 'workflow',
+            r.agentCount == 0 ? (r.done ? 'done' : 'starting') : '${r.doneCount}/${r.agentCount} agents${r.done ? ' ✓' : ''}',
+            valueColor: r.done ? tokens.statusSuccess : tokens.globalFocus,
+          ),
+      ]),
+    ];
   }
 
   List<MetaSection> _runtimeSection(SurfaceTokens tokens) {

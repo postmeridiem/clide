@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Claude Code Workflow runs surface in the conversation and sidebar.** A
+  `Workflow` tool-use renders a dedicated run card — phase groups, per-agent
+  rows with live spinner/check status, usage, and the script — driven by the
+  harness's out-of-band progress events. The Activity tab adds a WORKFLOWS
+  section showing each run's done/total agent count. (T-416)
 - **Session controls and live usage in the Claude sidebar Activity tab.** A
   SESSION strip offers clear/compact/fork/resume buttons (same code path as the
   typed commands), and a refresh control fetches `/usage` — plan usage renders
