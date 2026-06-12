@@ -18,10 +18,10 @@ Test pyramid, drivers, client-side constraint.
 - **Cost:** Goldens have zero real text; layouts rely on widget tests. Acceptable.
 - **Raised by:** 2026-04-21 planning.
 
-### D-25: Mocks — mocktail at IO, hand-rolled fakes for ChangeNotifiers
-- **Date:** 2026-04-21
-- **Decision:** `mocktail 1.0.4` mocks IO boundaries (sockets, processes, `dart:io` File/Directory). `ChangeNotifier` facades get hand-rolled fakes — tiny classes that extend `ChangeNotifier` with test-controlled setters. No `mocktail` for notifiers.
-- **Rationale:** Mocking a `ChangeNotifier` with a generated mock hides subscription bugs — `notifyListeners` becomes a mock call instead of actually firing. Hand-rolled fakes exercise the real subscription machinery.
+### D-25: Mocks — hand-rolled fakes throughout; mocktail dropped
+- **Date:** 2026-04-21 (amended 2026-06-12)
+- **Decision:** Test doubles are hand-rolled fakes — tiny classes that extend the real base (`ChangeNotifier` facades, `StreamJsonProcess`, `DaemonClient`) with test-controlled setters. **Amendment (2026-06-12, T-385):** `mocktail` was originally pinned for IO boundaries, but after the T-91 coverage drive it had zero imports — every IO seam ended up with an injected hand-rolled fake (`FakeDaemonClient`, fake process factories, recording event sinks) instead. The unused dep is dropped; the no-mocks-for-notifiers rule stands and in practice covers IO seams too.
+- **Rationale:** Mocking a `ChangeNotifier` with a generated mock hides subscription bugs — `notifyListeners` becomes a mock call instead of actually firing. Hand-rolled fakes exercise the real subscription machinery. The same held at IO seams: constructor-injected fakes kept tests on real control flow.
 - **Cost:** Roughly 20 lines per fake. Rounds out to less code than configuring a mocktail whenCall chain.
 - **Raised by:** 2026-04-21 planning.
 

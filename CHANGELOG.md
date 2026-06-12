@@ -38,6 +38,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Removed
 
+- **Dead-code sweep.** The legacy free-function git API (with its latent
+  pipe deadlock), ToolCheck, the fd-passing-era libc bindings, the GraphView
+  placeholder, the superseded ColumnHat widget, the tmux-era
+  TranscriptPublisher, the committed `ptyc` binary, and the unused
+  `mocktail` dev-dependency (D-25 amended) are gone. (T-385)
+
 - **Dead welcome-screen tiles.** "Clone from git…" and "Start a Claude
   session" did nothing on tap and advertised shortcuts that were never
   registered; the tips card now lists only shortcuts that exist in the

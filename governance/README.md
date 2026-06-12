@@ -66,7 +66,7 @@ You might also want, project-permitting:
 - [D-22: WCAG-AA contrast gate on bundled themes](decisions/accessibility.md#d-22-wcag-aa-contrast-gate-on-bundled-themes) — _accessibility_
 - [D-23: Test pyramid — seven layers](decisions/testing.md#d-23-test-pyramid--seven-layers) — _testing_
 - [D-24: Golden tests — primitives only, Alchemist + Ahem](decisions/testing.md#d-24-golden-tests--primitives-only-alchemist--ahem) — _testing_
-- [D-25: Mocks — mocktail at IO, hand-rolled fakes for ChangeNotifiers](decisions/testing.md#d-25-mocks--mocktail-at-io-hand-rolled-fakes-for-changenotifiers) — _testing_
+- [D-25: Mocks — hand-rolled fakes throughout; mocktail dropped](decisions/testing.md#d-25-mocks--hand-rolled-fakes-throughout-mocktail-dropped) — _testing_
 - [D-26: Web driver — raw Playwright + Flutter semantics](decisions/testing.md#d-26-web-driver--raw-playwright--flutter-semantics) — _testing_
 - [D-27: Startup regression gate](decisions/testing.md#d-27-startup-regression-gate) — _testing_
 - [D-28: Test organisation — mirror `lib/` in `test/`](decisions/testing.md#d-28-test-organisation--mirror-lib-in-test) — _testing_

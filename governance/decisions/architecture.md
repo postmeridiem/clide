@@ -73,7 +73,7 @@ Core, rendering, IPC, kernel, panel manager.
 ### D-10: State management — `ChangeNotifier` + `ListenableBuilder`
 - **Date:** 2026-04-21
 - **Decision:** Per-feature state uses `ChangeNotifier` exposed through a feature facade (singleton-per-kernel); widgets subscribe via `ListenableBuilder`. No Riverpod, Provider, BLoC, or Redux.
-- **Rationale:** SDK-shipped, zero deps, trivial to fake in tests (hand-rolled fakes in [D-25](testing.md#d-25-mocks--mocktail-at-io-hand-rolled-fakes-for-changenotifiers)). Violates [D-31 prefer-zero-deps](tooling.md#d-31-prefer-zero-deps-exact-pin) otherwise. See [R-8](../rejected/architecture.md#r-8-riverpod--provider--bloc-for-state).
+- **Rationale:** SDK-shipped, zero deps, trivial to fake in tests (hand-rolled fakes in [D-25](testing.md#d-25-mocks--hand-rolled-fakes-throughout-mocktail-dropped)). Violates [D-31 prefer-zero-deps](tooling.md#d-31-prefer-zero-deps-exact-pin) otherwise. See [R-8](../rejected/architecture.md#r-8-riverpod--provider--bloc-for-state).
 - **Cost:** No codegen ergonomics; manual `notifyListeners()` discipline. The `ListenableBuilder.listenable` contract rejects rebuilds outside the subscribed notifier — intentional.
 - **Raised by:** 2026-04-21 planning.
 
