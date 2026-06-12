@@ -4385,3 +4385,200 @@ PLAN: parse system task_* into a WorkflowRun model keyed by tool_use_id in Strea
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBPQ8QNGJFFK7G24CBWQAR2C', 'status', 'ready', 'in_progress', NULL, '2026-06-12 14:22:45', '2026-06-12 14:22:45', '2026-06-12 14:22:45', NULL, 'bff47e0f2b4ebfbf5a4ca6b9c7b45825', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBPQ8QNGJFFK7G24CBWQAR2C', 'status', 'in_progress', 'done', NULL, '2026-06-12 14:52:31', '2026-06-12 14:52:31', '2026-06-12 14:52:31', NULL, 'd05d502773832fcfb5c8baf19a606b1c', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBP3EZC7AJANXZVF3D91QYWM', 'status', 'ready', 'done', NULL, '2026-06-12 19:44:20', '2026-06-12 19:44:20', '2026-06-12 19:44:20', NULL, '3637ac53f5fc94698f604db89fdcb7e0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP67X1Y1FEE9T5R0E5DA9C', 'status', 'backlog', 'ready', NULL, '2026-06-12 19:54:32', '2026-06-12 19:54:32', '2026-06-12 19:54:32', NULL, 'b70e45fbed6d4ad8d2c6e0e6abc5b443', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP8KFAF526ZNXBQS98DPPG', 'description', 'Bind vim''s window-command prefix in assets/keymaps/vim.yaml, guarded `when: vim.normal` (and probably `|| vim.visual`), mapping onto the existing panel commands — no new services:
+
+- `ctrl+w h` → command:panel.focus.left; `ctrl+w l` → command:panel.focus.right (clide''s three-column layout has no vertical pane stack, so j/k map to the dock: `ctrl+w j` → command:dock.toggle — document the approximation in the YAML comment)
+- `ctrl+w w` and `ctrl+w ctrl+w` → focus.nextPanel; `ctrl+w shift+w` → focus.previousPanel
+- `ctrl+w o` → command:panel.focusMode (vim "only" — exact semantic match)
+- `ctrl+w q` and `ctrl+w c` → command:editor.close
+
+Conflict to resolve (the real work): editor.close carries defaultBinding ''ctrl+w'' globally. Verify how preset bindings + defaultBindings merge in KeymapService, and that the sequence matcher''s pending-exact path (sequence_matcher.dart, _pendingExact + timeout flush) makes bare ctrl+w wait for a possible second chord under the vim preset — bare ctrl+w should still close the editor after the ambiguity timeout, prefix completions should win immediately. Add matcher tests for chord-prefixed sequences (existing tests cover `d d` letter sequences; `ctrl+w h` adds a modified first chord).
+
+Done when: all bindings above work under the vim preset with editor focused AND with tree/conversation focused (they''re global commands, not editor.vim.*); bare ctrl+w still closes the editor after the timeout; no behavior change under default/vscode/jetbrains presets; keymap loader + matcher tests cover the new shapes.', 'Bind vim''s window-command prefix in assets/keymaps/vim.yaml, guarded `when: vim.normal` (and probably `|| vim.visual`), mapping onto the existing panel commands — no new services:
+
+- `ctrl+w h` → command:panel.focus.left; `ctrl+w l` → command:panel.focus.right (clide''s three-column layout has no vertical pane stack, so j/k map to the dock: `ctrl+w j` → command:dock.toggle — document the approximation in the YAML comment)
+- `ctrl+w w` and `ctrl+w ctrl+w` → focus.nextPanel; `ctrl+w shift+w` → focus.previousPanel
+- `ctrl+w o` → command:panel.focusMode (vim "only" — exact semantic match)
+- `ctrl+w q` and `ctrl+w c` → command:editor.close
+
+Conflict to resolve (the real work): editor.close carries defaultBinding ''ctrl+w'' globally. Verify how preset bindings + defaultBindings merge in KeymapService, and that the sequence matcher''s pending-exact path (sequence_matcher.dart, _pendingExact + timeout flush) makes bare ctrl+w wait for a possible second chord under the vim preset — bare ctrl+w should still close the editor after the ambiguity timeout, prefix completions should win immediately. Add matcher tests for chord-prefixed sequences (existing tests cover `d d` letter sequences; `ctrl+w h` adds a modified first chord).
+
+Done when: all bindings above work under the vim preset with editor focused AND with tree/conversation focused (they''re global commands, not editor.vim.*); bare ctrl+w still closes the editor after the timeout; no behavior change under default/vscode/jetbrains presets; keymap loader + matcher tests cover the new shapes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Bind the vim ctrl+w window-command family onto existing panel commands — but the "YAML + small command, no new services" framing is WRONG: no surface can match a ctrl+w-prefixed sequence today. The global handler (lib/src/shell/root_shell.dart _onKey → KeymapService.resolveEvent → Keymap.resolve) is single-chord only and explicitly skips `b.isSequence` bindings — it has no SequenceMatcher. The only SequenceMatcher lives in the editor (lib/builtin/editor/src/editor_view.dart:68), and its _onKey returns KeyEventResult.ignored for any non-shift-modified chord (lines 213-215), so even editor-focused the matcher never sees ctrl+w. The real work is a global/shared SequenceMatcher (with D-82 pending-exact + timeout flush) so ctrl+w buffers and `ctrl+w h` resolves, while bare ctrl+w still fires editor.close after the timeout. The YAML bindings + matcher tests are the small part.
+
+ACCEPTANCE CRITERIA:
+- vim.yaml gains ctrl+w bindings: `ctrl+w h`→panel.focus.left, `ctrl+w l`→panel.focus.right, `ctrl+w j`→dock.toggle (comment the 3-column approximation), `ctrl+w w`/`ctrl+w ctrl+w`→focus.nextPanel, `ctrl+w shift+w`→focus.previousPanel, `ctrl+w o`→panel.focusMode, `ctrl+w q`/`ctrl+w c`→editor.close, all `when: vim.normal || vim.visual`.
+- A global (non-editor) key path matches multi-chord sequences: `ctrl+w h` fires panel.focus.left with the file tree / conversation focused (those panes have no Focus key handler today), not just editor-focused.
+- Bare ctrl+w still closes the editor after the ambiguity timeout under vim (editor.close''s contributions-layer ctrl+w binding preserved); a completed prefix (ctrl+w o) fires immediately and suppresses bare ctrl+w.
+- No resolution change under default/vscode/jetbrains — editor_presets_test.dart `ctrl+w → editor.close` (e.g. line 60) stays green.
+- sequence_matcher / loader tests cover a modified first chord (ctrl+w h) and the ctrl+w-vs-ctrl+w-h exact-plus-prefix ambiguity, paralleling the `d d` / `ctrl+k ctrl+s` cases.
+- make analyze + format + keymap suite pass; 95% coverage floor holds.
+
+FILES: assets/keymaps/vim.yaml; lib/src/shell/root_shell.dart (_onKey — single-chord today, needs buffering); lib/kernel/src/keymap/keymap_service.dart (resolveEvent single-chord; may need a sequence-aware surface); lib/kernel/src/keymap/sequence_matcher.dart (reuse as-is); lib/builtin/editor/src/editor_view.dart (lines 213-215 drop ctrl chords — decide intercept here vs globally); test/kernel/src/keymap/{sequence_matcher_test,editor_presets_test,shipped_presets_test}.dart.
+
+DEPENDENCIES: Hard dependency on the global-matcher wiring that T-406 ("the structural one") is scoped to own — non-editor panes have NO key handling today, so "works with tree/conversation focused" is unachievable until that lands. Build the global SequenceMatcher once, in one place; sequence with T-406. Independent of T-405/T-407 at the binding level, but all four share the global key-routing surface — coordinate ordering to avoid three matcher rewires.
+
+OPEN QUESTIONS:
+- Where does the global multi-chord matcher live — a buffer in root_shell._onKey, a sequence-aware KeymapService method, or is it explicitly T-406''s deliverable that T-404 consumes? Determines whether T-404 is "small" or carries the structural lift.
+- ctrl+w must be intercepted before the editor''s _onKey discards it AND before the global single-chord resolveEvent fires editor.close immediately — confirm timeout/pending-exact ordering so bare ctrl+w isn''t swallowed when no second chord arrives.
+- No ctrl+w mapping to the middle/workspace panel though panel.focus.middle (ctrl+2) exists — intentional for the 3-column model, or add `ctrl+w k`? (j is taken by dock.toggle.)
+- Should the family also fire in vim.insert (it shouldn''t — ctrl chords pass through there); does guarding on vim.normal||vim.visual leave insert alone correctly?', NULL, '2026-06-12 20:03:16', '2026-06-12 20:03:16', '2026-06-12 20:03:16', NULL, '7171f5ba9998c641743b8a0341f32364', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPAZR4XEV8YW3PVR2XJBFC', 'description', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Two halves. (1) Add workspace.tab.next / workspace.tab.previous commands in lib/builtin/default_layout/src/extension.dart that cycle the workspace slot''s tab strip with wraparound, with defaultBindings ctrl+pagedown / ctrl+pageup so EVERY preset gains tab cycling. PanelRegistry (lib/kernel/src/panels/registry.dart) confirms the gap — only activateTab(SlotId,tabId), activeTabIn(SlotId), tabsFor(SlotId); no cycle — so compute the wrapped index from tabsFor+activeTabIn, or add a cycleTab method. (2) Bind `g t`→workspace.tab.next and `g shift+t`→workspace.tab.previous, `when: vim.normal`. Half (1) is fully achievable TODAY (single-chord resolveEvent + InvokeCommandIntent→commands.execute bridge in root_shell.dart both exist; pagedown/pageup tokens exist in key_chord.dart). Half (2) shares T-404''s blocker: no global SequenceMatcher, so a `g`-prefixed sequence can''t buffer outside the editor. `g g` (docStart) is already bound vim.normal||vim.visual, so `g t` slots beside it — but only once a matcher runs on the focused surface.
+
+ACCEPTANCE CRITERIA:
+- workspace.tab.next/previous registered in default_layout, cycling Slots.workspace tabs (tabsFor order) with wraparound; no-op at 0/1 tab.
+- defaultBindings ctrl+pagedown / ctrl+pageup so default/vscode/jetbrains cycle workspace tabs without YAML edits; verified via keymap resolution test.
+- vim.yaml binds `g t`→workspace.tab.next, `g shift+t`→workspace.tab.previous, when: vim.normal.
+- gt/gT cycle workspace tabs under vim; the `g` prefix is shared with `g g` docStart without breaking either.
+- Existing alt+1..5 sidebar-section behavior unchanged (those target Slots.sidebar, not workspace).
+- A matcher/loader test covers two sequences sharing the `g` prefix with different finals (g g vs g t) under vim scope.
+- make analyze + format + keymap/panel tests pass; coverage floor holds for default_layout / registry if touched.
+
+FILES: lib/builtin/default_layout/src/extension.dart (two CommandContributions w/ defaultBinding ctrl+pagedown/up + handlers computing wrapped index, following the sidebar.section.N / editor.close pattern); lib/kernel/src/panels/registry.dart (optional cycleTab helper); assets/keymaps/vim.yaml (g t / g shift+t near `g g`); lib/src/shell/root_shell.dart (global path that must buffer `g` — same surface as T-404); test/kernel/src/keymap/{editor_presets_test,sequence_matcher_test}.dart; test/kernel/src/panels/registry_test.dart (verify path before assuming).
+
+DEPENDENCIES: Part 1 (ctrl+pagedown/up) is fully independent and shippable now — needs only the existing single-chord path + InvokeCommandIntent bridge. Part 2 (gt/gT) shares T-404''s hard dependency on a global multi-chord matcher (the structural work T-406 owns). Recommend: land part 1 first (immediate value, every preset), gate part 2 behind whichever ticket introduces the global matcher. Coordinate matcher wiring with T-404 so it isn''t built twice. No conflict with T-407.
+
+OPEN QUESTIONS:
+- Add a cycleTab/activateNext API to PanelRegistry, or compute the wrapped index in the handler from tabsFor(Slots.workspace)+activeTabIn? Registry method is cleaner/reusable but widens coverage surface; handler-local keeps the change in default_layout.
+- Cycle Slots.workspace specifically, or the currently-focused slot''s tab strip (so gt cycles whatever column has focus)? Ticket says workspace; confirm against the cross-pane intent of the epic.
+- Confirm ctrl+pagedown/up don''t collide with terminal/Claude pane passthrough or an existing binding in any of the four presets before claiming "free for every preset".
+- Does gt/gT need a visual-mode guard, or is vim.normal-only correct? (vim allows gt in normal; the gg precedent uses normal||visual.)', NULL, '2026-06-12 20:03:43', '2026-06-12 20:03:43', '2026-06-12 20:03:43', NULL, 'e6a5c7b4074b0e097a4fc5ee1d359ae6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPD85PFBPJJTQ0WS3PWWXR', 'description', 'The structural piece: make vim NORMAL mode mean something in panes that aren''t the editor. Today the file tree, ticket board, git panel, and conversation view have no keyboard handling at all (mouse-only — verified 2026-06-12); under the vim preset, j/k outside the editor are dead keys.
+
+Mechanism (follow the ActivateIntent pattern from default.yaml — intents dispatched via Actions.maybeInvoke against the FOCUSED context, so only opted-in widgets respond and there''s no global-flag confusion):
+
+1. New typed intents in kernel/src/keymap/intents.dart: nav.down / nav.up / nav.pageDown / nav.pageUp / nav.top / nav.bottom / nav.expandOrRight / nav.collapseOrLeft / nav.activate (ids in builtinIntents).
+2. vim.yaml binds them when "vim.normal && !editor.focused": j/k, ctrl+d/ctrl+u, "g g"/shift+g, l/h, [o, enter]. Needs an editor.focused scope flag if none exists — check what the editor publishes today; the editor''s own key handler consumes j/k first when focused, so the guard may even be unnecessary — verify dispatch order and document it.
+3. Panes opt in with Actions handlers:
+   - file tree (lib/builtin/files/src/file_tree_view.dart): selection cursor + j/k move, h/l collapse/expand-or-step-into, o/enter open (the NERDTree idiom)
+   - conversation view (lib/builtin/claude/src/conversation_view.dart): j/k line scroll, ctrl+d/u half page, G jump-to-bottom AND re-arm follow-tail (_atBottom), gg top
+   - ticket board + git panel lists: selection cursor + activate
+4. default/vscode/jetbrains presets can bind the same intents to arrows/page keys later — the intents are preset-neutral; this ticket only wires vim.
+
+Scope guard: this is keyboard NAVIGATION only — no editing semantics outside the editor. Start with tree + conversation (highest value), lists can trail in a follow-up commit on the same ticket.
+
+Done when: with the vim preset active and the tree/conversation focused, j/k/ctrl+d/ctrl+u/gg/G work as above; widget tests per pane; zero behavior change under other presets and in insert mode.', 'The structural piece: make vim NORMAL mode mean something in panes that aren''t the editor. Today the file tree, ticket board, git panel, and conversation view have no keyboard handling at all (mouse-only — verified 2026-06-12); under the vim preset, j/k outside the editor are dead keys.
+
+Mechanism (follow the ActivateIntent pattern from default.yaml — intents dispatched via Actions.maybeInvoke against the FOCUSED context, so only opted-in widgets respond and there''s no global-flag confusion):
+
+1. New typed intents in kernel/src/keymap/intents.dart: nav.down / nav.up / nav.pageDown / nav.pageUp / nav.top / nav.bottom / nav.expandOrRight / nav.collapseOrLeft / nav.activate (ids in builtinIntents).
+2. vim.yaml binds them when "vim.normal && !editor.focused": j/k, ctrl+d/ctrl+u, "g g"/shift+g, l/h, [o, enter]. Needs an editor.focused scope flag if none exists — check what the editor publishes today; the editor''s own key handler consumes j/k first when focused, so the guard may even be unnecessary — verify dispatch order and document it.
+3. Panes opt in with Actions handlers:
+   - file tree (lib/builtin/files/src/file_tree_view.dart): selection cursor + j/k move, h/l collapse/expand-or-step-into, o/enter open (the NERDTree idiom)
+   - conversation view (lib/builtin/claude/src/conversation_view.dart): j/k line scroll, ctrl+d/u half page, G jump-to-bottom AND re-arm follow-tail (_atBottom), gg top
+   - ticket board + git panel lists: selection cursor + activate
+4. default/vscode/jetbrains presets can bind the same intents to arrows/page keys later — the intents are preset-neutral; this ticket only wires vim.
+
+Scope guard: this is keyboard NAVIGATION only — no editing semantics outside the editor. Start with tree + conversation (highest value), lists can trail in a follow-up commit on the same ticket.
+
+Done when: with the vim preset active and the tree/conversation focused, j/k/ctrl+d/ctrl+u/gg/G work as above; widget tests per pane; zero behavior change under other presets and in insert mode.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Make vim normal-mode keys mean navigation in panes that are mouse-only today (verified: file_tree_view.dart, conversation_view.dart, git_panel_view.dart, tickets_view.dart all use ClideTappable rows with no nav-key handling). Add typed nav.* intents to lib/kernel/src/keymap/intents.dart + builtinIntents, bind them in vim.yaml under vim.normal, then have each pane opt in. CRITICAL structural finding the ticket understates: the global key path (RootShell._onKey) is a passive KeyboardListener doing single-chord resolveEvent only — it CANNOT consume events or run sequences. Multi-key motions (gg, disambiguating bare j/k from text) require each pane to host its OWN SequenceMatcher inside a Focus.onKeyEvent handler, exactly like the editor (editor_view.dart _onKey + _matcher, lines 169-227). So the real work per pane is a focusable key handler + matcher, with nav.* as the dispatched vocabulary; YAML bindings alone are insufficient. Start with file tree (NERDTree idiom: a NEW flat-index selection-cursor model over the recursive _Children tree + FileTreeController) and conversation (j/k scroll _scroll by a line, ctrl+d/u half-page, G→maxScrollExtent AND re-arm _atBottom follow-tail, gg→0). Lists (tickets/git) trail in a follow-up commit. Navigation only — no editing semantics outside the editor.
+
+THIS IS T-403''s STRUCTURAL CHILD: it establishes whether non-editor panes can run sequence matchers at all. T-404 (ctrl+w) and T-405 part 2 (gt/gT) consume that capability — land/decide this first.
+
+ACCEPTANCE CRITERIA:
+- nav.down/up/pageDown/pageUp/top/bottom/expandOrRight/collapseOrLeft/activate intent classes added to intents.dart + registered in builtinIntents by id.
+- vim.yaml binds j/k/ctrl+d/ctrl+u/`g g`/shift+g/l/h/`o`,`enter` to those intents under vim.normal, with zero resolution under default/vscode/jetbrains and in vim.insert/vim.visual.
+- file tree (file_tree_view.dart + file_tree_controller.dart): j/k move a visible selection cursor over the flattened expanded tree, h collapses-or-steps-out, l expands-or-steps-in, o/enter opens via openWorkspaceFile; selection/focus ring visible.
+- conversation (conversation_view.dart): j/k scroll ~one line, ctrl+d/u half a viewport, gg→offset 0, G→_scroll.position.maxScrollExtent and sets _atBottom=true so follow-tail re-arms.
+- each opted-in pane handles motions via its own Focus.onKeyEvent + SequenceMatcher (mirroring editor_view.dart) so gg and bare j/k resolve without leaking to text or other panes.
+- widget tests per pane (tree, conversation) prove the motions; editor vim tests + other-preset behavior unchanged.
+- git panel + ticket board list nav delivered OR explicitly deferred to a follow-up commit on this ticket.
+
+FILES: lib/kernel/src/keymap/intents.dart; assets/keymaps/vim.yaml (mind the `g g` docStart prefix); lib/builtin/files/src/file_tree_view.dart; lib/builtin/files/src/file_tree_controller.dart (NEW flat visible-index + selection model); lib/builtin/claude/src/conversation_view.dart (reuse _atBottom/_trackBottom/jumpTo, lines ~90-114, 280-290); lib/builtin/git/src/git_panel_view.dart + lib/builtin/tickets/src/tickets_view.dart (follow-up); test/builtin/editor/vim_preset_test.dart + new per-pane widget tests under test/builtin/files and test/builtin/claude.
+
+DEPENDENCIES: Should land before T-404/T-405 conceptually (it decides whether non-editor panes can run matchers), but technically independent (different intents/files). Shares the vim.yaml `g`-prefix space with T-405 (g t / g shift+t) and the existing `g g` docStart — coordinate the shared `g` sequence-prefix tests. No code conflict with T-404 (ctrl+w) or T-407 (`:` overlay).
+
+OPEN QUESTIONS:
+- The `vim.normal && !editor.focused` guard assumes an editor.focused scope flag — VERIFIED it does NOT exist (only in comments; vscode.yaml notes it "has no producer yet"). Decide: (a) create the producer (FocusTracker.setActive in lib/kernel/src/focus.dart publishing editor.focused via KeymapService.setScopeFlag), or (b) rely on the editor''s own _onKey consuming bare j/k first when focused and drop the guard — (b) only works because each pane owns its handler.
+- File-tree selection needs a flat index over a recursive, lazily-loaded widget tree (_Children recursion). Confirm the cursor model lives in FileTreeController (flattening _expanded + entriesFor) vs recomputed in the view — affects testability + scroll-into-view.
+- Conversation uses ListView.builder with grouped/coalesced items; j/k "line scroll" is pixel-offset, not item selection. Confirm pixel-scroll (reader-pane semantic) is intended vs card-by-card selection.
+- Should focusing a pane via F6/ctrl+1..3 (FocusTracker.focusSlot) also focus the inner nav handler so j/k work immediately, or must the user click in first?', NULL, '2026-06-12 20:03:58', '2026-06-12 20:03:58', '2026-06-12 20:03:58', NULL, 'f7e4047127e864a5a20f1b3c5d7578a3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'description', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?', NULL, '2026-06-12 20:04:07', '2026-06-12 20:04:07', '2026-06-12 20:04:07', NULL, '916ff113755b114298ca32762fa815b0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP67X1Y1FEE9T5R0E5DA9C', 'description', 'From the 2026-06-12 vim keybind review (user: "we are leaving opportunities on the table" for cross-pane vim interactions). Findings:
+
+TODAY the vim layer (T-65) is editor-only. vim.normal/insert/visual scope flags are global (VimModeService), but every binding in vim.yaml either targets editor.vim.* (applied by the focused editor''s key handler, editor_view.dart _dispatchVim) or is a copy of the default preset''s app chords. Outside the editor, the vim preset offers nothing vim-shaped: no ctrl+w window family, no gt/gT, no j/k in the file tree / ticket list / git panel / conversation (those panes have NO key handling at all — mouse-only), no ex command line (vim_mode_service.dart explicitly defers it as "a transient overlay").
+
+EXISTING primitives to map onto: focus.nextPanel/previousPanel (F6/shift+F6), panel.focus.left/middle/right (ctrl+1/2/3), panel.focusMode (ctrl+. — semantically EXACTLY vim''s ctrl+w o "only"), editor.open/close (ctrl+e/ctrl+w), dock.toggle (ctrl+j), sidebar.collapse/context.collapse, quickOpen, alt+1..5 sidebar sections. The D-82 sequence matcher already resolves exact-vs-longer ambiguity with a pending-exact + timeout (sequence_matcher.dart _pendingExact), so chord-prefixed sequences like "ctrl+w h" are expressible in preset YAML today.
+
+GAP also found: no workspace tab next/prev cycling command exists for ANY preset (only direct alt+N for sidebar sections) — child ticket adds the commands, vim binds gt/gT to them.
+
+Children: T-404 (ctrl+w window-command family), T-405 (tab cycle commands + gt/gT), T-406 (normal-mode list/scroll nav intents for non-editor panes), T-407 (ex command-line overlay). 404/405 are YAML+small-command work; 406 is the structural one; 407 is the most visible.', 'From the 2026-06-12 vim keybind review (user: "we are leaving opportunities on the table" for cross-pane vim interactions). Findings:
+
+TODAY the vim layer (T-65) is editor-only. vim.normal/insert/visual scope flags are global (VimModeService), but every binding in vim.yaml either targets editor.vim.* (applied by the focused editor''s key handler, editor_view.dart _dispatchVim) or is a copy of the default preset''s app chords. Outside the editor, the vim preset offers nothing vim-shaped: no ctrl+w window family, no gt/gT, no j/k in the file tree / ticket list / git panel / conversation (those panes have NO key handling at all — mouse-only), no ex command line (vim_mode_service.dart explicitly defers it as "a transient overlay").
+
+EXISTING primitives to map onto: focus.nextPanel/previousPanel (F6/shift+F6), panel.focus.left/middle/right (ctrl+1/2/3), panel.focusMode (ctrl+. — semantically EXACTLY vim''s ctrl+w o "only"), editor.open/close (ctrl+e/ctrl+w), dock.toggle (ctrl+j), sidebar.collapse/context.collapse, quickOpen, alt+1..5 sidebar sections. The D-82 sequence matcher already resolves exact-vs-longer ambiguity with a pending-exact + timeout (sequence_matcher.dart _pendingExact), so chord-prefixed sequences like "ctrl+w h" are expressible in preset YAML today.
+
+GAP also found: no workspace tab next/prev cycling command exists for ANY preset (only direct alt+N for sidebar sections) — child ticket adds the commands, vim binds gt/gT to them.
+
+Children: T-404 (ctrl+w window-command family), T-405 (tab cycle commands + gt/gT), T-406 (normal-mode list/scroll nav intents for non-editor panes), T-407 (ex command-line overlay). 404/405 are YAML+small-command work; 406 is the structural one; 407 is the most visible.
+
+--- COORDINATION NOTE (2026-06-12, from the parallel refinement of T-404–407) ---
+SHARED BLOCKER: all four children assume vim-shaped multi-chord sequences (ctrl+w …, g t, g g, : ) can be matched outside the editor. They CANNOT today. The global key path (lib/src/shell/root_shell.dart _onKey → KeymapService.resolveEvent) is single-chord only and skips `isSequence` bindings; the only SequenceMatcher lives inside the editor (editor_view.dart) and even there drops non-shift ctrl chords. So a global/shared multi-chord matcher (D-82 pending-exact + timeout flush) is the real structural lift — and it must be built ONCE, in one place, not three times.
+
+RECOMMENDED SEQUENCING:
+1. T-406 (the structural child) FIRST — it establishes whether non-editor panes can run sequence matchers at all (per-pane Focus.onKeyEvent + matcher). T-404 and T-405''s gt/gT consume that capability.
+2. T-405 part 1 (ctrl+pagedown/up tab-cycle commands) is independent and shippable NOW on the existing single-chord path — land it anytime for immediate value across every preset.
+3. T-404 (ctrl+w family) and T-405 part 2 (gt/gT) after the global matcher exists.
+4. T-407 (ex `:` overlay) after T-404, so :q reuses whatever editor.close semantics T-404 settles (note: editor.close closes the whole split, not a single tab; and NO editor.save command exists yet — T-407 must add one).
+
+All four share assets/keymaps/vim.yaml and the `g`-prefix space (g g docStart vs g t) — coordinate the shared-prefix matcher tests.', NULL, '2026-06-12 20:05:16', '2026-06-12 20:05:16', '2026-06-12 20:05:16', NULL, 'a7ce9c91b076f4f1ba94691d8cbcd631', 2) ON CONFLICT(hash) DO NOTHING;
