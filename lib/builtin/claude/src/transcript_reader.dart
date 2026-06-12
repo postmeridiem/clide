@@ -114,12 +114,19 @@ final class AssistantTextMessage extends ConversationItem {
     super.parentUuid,
     super.parentToolUseId,
     required this.text,
+    this.synthetic = false,
   });
 
   final String text;
 
+  /// CLI-local output, not the model: the wire marks it `model: "<synthetic>"`
+  /// (a forwarded local command's response — /usage output, "/x isn't
+  /// available in this environment", …). clide-injected notices use it too.
+  /// Rendered as a muted "clide" card, never coral Claude prose (T-411).
+  final bool synthetic;
+
   @override
-  String toString() => 'AssistantTextMessage(${_shortId(uuid)}, ${text.length} chars)';
+  String toString() => 'AssistantTextMessage(${_shortId(uuid)}, ${text.length} chars${synthetic ? ', synthetic' : ''})';
 }
 
 /// Extended thinking block from an assistant turn.
@@ -582,7 +589,9 @@ void _extractAssistantStatus(Map<String, dynamic> envelope, _StatusAcc status) {
   final message = envelope['message'] as Map?;
   if (message == null) return;
   final model = message['model'] as String?;
-  if (model != null && model.isNotEmpty) status.model = model;
+  // "<synthetic>" marks CLI-local output (a forwarded local command's
+  // response) — not a model switch; it must not clobber the tracked model.
+  if (model != null && model.isNotEmpty && model != kSyntheticModel) status.model = model;
   final usage = message['usage'] as Map?;
   if (usage != null) {
     int n(String k) => (usage[k] as num?)?.toInt() ?? 0;
@@ -656,6 +665,9 @@ void _parseUserInto(
   }
 }
 
+/// The model marker on CLI-local output (forwarded local-command responses).
+const String kSyntheticModel = '<synthetic>';
+
 void _parseAssistantInto(
   Map<String, dynamic> envelope,
   String uuid,
@@ -669,6 +681,7 @@ void _parseAssistantInto(
   if (message == null) return;
   final content = message['content'];
   if (content is! List) return;
+  final synthetic = (message['model'] as String?) == kSyntheticModel;
 
   for (final item in content) {
     if (item is! Map) continue;
@@ -684,6 +697,7 @@ void _parseAssistantInto(
               parentUuid: parentUuid,
               parentToolUseId: parentToolUseId,
               text: text,
+              synthetic: synthetic,
             ),
           );
         }

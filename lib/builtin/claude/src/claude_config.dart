@@ -145,29 +145,14 @@ typedef ClaudeInitProbe = Future<String?> Function();
 /// Returns a change stream for [dir] (fires on any file event under it).
 typedef ClaudeConfigWatch = Stream<void> Function(Directory dir);
 
-/// Modest version-agnostic fallback used when the probe is unavailable, so
-/// the typeahead still offers the common built-ins.
-const List<String> kFallbackSlashCommands = [
-  'add-dir',
-  'agents',
-  'clear',
-  'compact',
-  'config',
-  'context',
-  'cost',
-  'doctor',
-  'exit',
-  'help',
-  'init',
-  'mcp',
-  'memory',
-  'model',
-  'permissions',
-  'resume',
-  'review',
-  'status',
-  'usage',
-];
+/// Fallback used when the probe is unavailable. Mirrors the builtins a real
+/// CLI advertises in its stream-json `initialize` handshake (probed against
+/// 2.1.175) — i.e. the ones that genuinely work headless. It deliberately
+/// does NOT list TUI-only commands (config, permissions, status, doctor, …):
+/// this list doubles as the router's "advertised" set (T-411), and a TUI-only
+/// token here would be forwarded to the CLI and error. The composer unions
+/// [kClideOwnedCommands] on top for the typeahead (T-162).
+const List<String> kFallbackSlashCommands = ['clear', 'compact', 'context', 'init', 'review', 'security-review', 'usage'];
 
 class ClaudeConfig extends ChangeNotifier {
   ClaudeConfig({

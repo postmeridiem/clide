@@ -577,6 +577,17 @@ class _ConversationTurn extends StatelessWidget {
           onOpenFile: (path, line) => _openFile(context, path, line),
         ),
       ),
+      // CLI-local output (model "<synthetic>": a forwarded local command's
+      // response or a clide-injected notice, T-411) is not Claude speaking —
+      // framed + muted like the context card (T-306), attributed to clide.
+      AssistantTextMessage() when i.synthetic => ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: tokens.globalTextMuted,
+        label: 'clide',
+        copyText: i.text,
+        margin: _childMargin,
+        body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
+      ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
       // agent with a muted accent, never the coral "claude" brand (T-265). The
       // coral claudeAccent is reserved for the real main-thread Claude.

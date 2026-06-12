@@ -398,6 +398,15 @@ class _ClaudePaneState extends State<ClaudePane> {
         _modelCommand(slashCommandArg(text) ?? '');
         return;
     }
+    // Route the rest (T-411): a known TUI-only builtin never reaches the
+    // session — forwarded it would error (or, un-advertised, bracket-paste to
+    // the model as literal text, burning a turn). It becomes a local notice
+    // card pointing at the clide-native way instead.
+    final advertised = activeClaudeConfig?.slashCommands ?? kFallbackSlashCommands;
+    if (routeSlashCommand(text, advertised: advertised) == SlashRoute.unavailable) {
+      _session?.addLocalNotice(tuiOnlyNotice(slashCommandToken(text)!));
+      return;
+    }
     _session?.send(text);
   }
 

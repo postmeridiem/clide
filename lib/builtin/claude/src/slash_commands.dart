@@ -42,6 +42,84 @@ String? clideOwnedCommand(String text) {
   return token != null && kClideOwnedCommands.contains(token) ? token : null;
 }
 
+/// Where slash input goes (T-411). One source of truth so a TUI-only command
+/// neither errors raw from the CLI nor bracket-pastes to the model as text
+/// (burning a real turn — observed with /effort on claude 2.1.175).
+enum SlashRoute {
+  /// clide implements it natively ([kClideOwnedCommands]).
+  owned,
+
+  /// The CLI handles it headless — advertised in the `initialize` handshake's
+  /// `slash_commands` (skills + the headless builtins: compact, context, …).
+  forward,
+
+  /// A known TUI-only builtin: never forwarded; clide shows a local notice
+  /// with the clide-native way ([kTuiOnlyCommands]).
+  unavailable,
+}
+
+/// Claude Code TUI-only builtins (probed against 2.1.175: not advertised in
+/// stream-json, and forwarding would either error "isn't available in this
+/// environment" or — worse, for un-advertised tokens — bracket-paste to the
+/// model as literal text). Value = the clide-native pointer shown in the
+/// notice card. Commands clide later implements move to [kClideOwnedCommands].
+const Map<String, String> kTuiOnlyCommands = {
+  'effort': 'the session effort level is set at spawn time; clide support is tracked in T-412',
+  'status': 'session status lives in the Claude sidebar (Activity tab)',
+  'cost': 'cost and context usage live in the Claude sidebar (Activity tab)',
+  'context': '', // advertised on current CLIs — only routes here on older ones
+  'help': 'type / to browse commands; clide owns /clear /resume /fork /model',
+  'config': 'open the Claude sidebar Config tab',
+  'permissions': 'use the permission-mode control beside the composer',
+  'memory': 'open CLAUDE.md in the editor',
+  'mcp': 'MCP servers are listed in the Claude sidebar Config tab',
+  'agents': 'agents are listed in the Claude sidebar Config tab',
+  'hooks': 'hooks are listed in the Claude sidebar Config tab',
+  'todos': "Claude's task list docks above the composer",
+  'model': '', // owned (T-408) — only routes here if ever removed from owned
+  'doctor': 'run `claude doctor` in a terminal',
+  'login': 'run `claude` in a terminal and use /login there',
+  'logout': 'run `claude` in a terminal and use /logout there',
+  'exit': 'close the pane or switch sessions instead',
+  'vim': 'clide ships its own editor vim mode',
+  'add-dir': '',
+  'bashes': '',
+  'bug': '',
+  'export': '',
+  'fast': '',
+  'ide': "you're already in one",
+  'install-github-app': '',
+  'migrate-installer': '',
+  'output-style': '',
+  'pr-comments': '',
+  'privacy-settings': '',
+  'release-notes': '',
+  'rewind': '',
+  'statusline': '',
+  'terminal-setup': '',
+  'upgrade': '',
+};
+
+/// Route [text] (composer input). Null when it isn't slash-command input —
+/// send it as a normal message. Precedence: owned > advertised > TUI-only
+/// catalog > forward (unknown tokens stay literal text via bracketed paste).
+SlashRoute? routeSlashCommand(String text, {required Iterable<String> advertised}) {
+  final token = slashCommandToken(text);
+  if (token == null) return null;
+  if (kClideOwnedCommands.contains(token)) return SlashRoute.owned;
+  if (advertised.contains(token)) return SlashRoute.forward;
+  if (kTuiOnlyCommands.containsKey(token)) return SlashRoute.unavailable;
+  return SlashRoute.forward;
+}
+
+/// The notice text for a TUI-only [token] — the CLI's own phrasing plus the
+/// clide-native pointer when the catalog has one.
+String tuiOnlyNotice(String token) {
+  final hint = kTuiOnlyCommands[token] ?? '';
+  final base = "/$token is a Claude Code TUI command — it isn't available in clide's conversation pane.";
+  return hint.isEmpty ? base : '$base\n→ $hint';
+}
+
 /// The argument text after the command token — `"/model sonnet"` → `"sonnet"`
 /// — trimmed; empty when there is none (`"/model"`). Null when [text] isn't
 /// single-line leading-slash input.

@@ -640,6 +640,16 @@ void main() {
     expect(statuses.last.permissionMode, 'plan', reason: 'only ExitPlanMode exits plan mode');
   });
 
+  test('addLocalNotice emits a synthetic clide item and sends nothing (T-411)', () async {
+    final before = proc.writes.length;
+    session.addLocalNotice('/status is a Claude Code TUI command');
+    await Future<void>.delayed(Duration.zero);
+    final notice = items.whereType<AssistantTextMessage>().single;
+    expect(notice.synthetic, isTrue);
+    expect(notice.text, contains('/status'));
+    expect(proc.writes.length, before); // nothing went to the CLI
+  });
+
   test('resolvePrompt(deny) writes a deny decision with a message', () async {
     proc.emit(canUseTool('req-3'));
     await Future<void>.delayed(Duration.zero);

@@ -136,4 +136,58 @@ void main() {
       expect(r.cursor, 10);
     });
   });
+
+  group('routeSlashCommand (T-411)', () {
+    // The probed 2.1.175 shape: skills + headless builtins.
+    const advertised = ['compact', 'context', 'usage', 'whats-next', 'git-commit'];
+
+    test('non-command text routes null (normal message send)', () {
+      expect(routeSlashCommand('hello world', advertised: advertised), isNull);
+      expect(routeSlashCommand('multi\n/line', advertised: advertised), isNull);
+    });
+
+    test('a path-like leading slash is an unknown token → forward (stays literal)', () {
+      expect(routeSlashCommand('/tmp/x.log explain', advertised: advertised), SlashRoute.forward);
+    });
+
+    test('owned beats everything', () {
+      for (final t in ['/clear', '/resume', '/fork', '/model opus']) {
+        expect(routeSlashCommand(t, advertised: advertised), SlashRoute.owned, reason: t);
+      }
+    });
+
+    test('advertised commands (skills + headless builtins) forward', () {
+      expect(routeSlashCommand('/compact', advertised: advertised), SlashRoute.forward);
+      expect(routeSlashCommand('/usage', advertised: advertised), SlashRoute.forward);
+      expect(routeSlashCommand('/whats-next', advertised: advertised), SlashRoute.forward);
+    });
+
+    test('a known TUI-only builtin routes unavailable', () {
+      for (final t in ['/effort high', '/status', '/permissions', '/doctor', '/login']) {
+        expect(routeSlashCommand(t, advertised: advertised), SlashRoute.unavailable, reason: t);
+      }
+    });
+
+    test('an advertised name shadows the TUI-only catalog (a skill named like a builtin forwards)', () {
+      expect(routeSlashCommand('/status', advertised: ['status']), SlashRoute.forward);
+    });
+
+    test('an unknown token forwards (stays literal text downstream)', () {
+      expect(routeSlashCommand('/no-such-thing', advertised: advertised), SlashRoute.forward);
+    });
+  });
+
+  group('tuiOnlyNotice (T-411)', () {
+    test('carries the clide-native pointer when the catalog has one', () {
+      final n = tuiOnlyNotice('status');
+      expect(n, contains('/status is a Claude Code TUI command'));
+      expect(n, contains('Activity tab'));
+    });
+
+    test('plain notice when there is no pointer', () {
+      final n = tuiOnlyNotice('terminal-setup');
+      expect(n, contains('/terminal-setup is a Claude Code TUI command'));
+      expect(n, isNot(contains('→')));
+    });
+  });
 }

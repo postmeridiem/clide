@@ -794,6 +794,13 @@ class StreamJsonSession {
     _setBusy(true);
   }
 
+  /// Inject a clide-local notice card into the conversation — nothing is sent
+  /// to claude. Used by the slash-command router for TUI-only commands
+  /// (T-411); renders as the muted synthetic "clide" card.
+  void addLocalNotice(String text) {
+    _items.add(AssistantTextMessage(uuid: 'local-${_localSeq++}', timestamp: DateTime.now(), isSidechain: false, text: text, synthetic: true));
+  }
+
   /// Interrupt the running turn (the escape hatch for a runaway — D-78). Sends
   /// the `interrupt` control_request; claude cancels the current turn and ends
   /// it with a `result`, which clears [busy]. Safe to call when idle.

@@ -833,6 +833,15 @@ void main() {
       expect(find.text('no independent source to follow'), findsOneWidget);
     });
 
+    testWidgets('synthetic CLI-local output renders as a muted "clide" card, not claude prose (T-411)', (tester) async {
+      await pumpWith(tester, [
+        AssistantTextMessage(uuid: 's1', timestamp: _t, isSidechain: false, text: "/effort isn't available in this environment.", synthetic: true),
+      ]);
+      expect(find.text('clide'), findsOneWidget);
+      expect(find.text('claude'), findsNothing);
+      expect(find.textContaining("isn't available"), findsOneWidget);
+    });
+
     testWidgets('an ordinary Bash card has no live-tail segment (T-325)', (tester) async {
       await pumpWith(tester, [
         AssistantToolUse(uuid: 'b2', timestamp: _t, isSidechain: false, toolUseId: 'tb2', name: 'Bash', input: const {'command': 'ls -la'}),
