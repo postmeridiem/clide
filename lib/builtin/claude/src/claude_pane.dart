@@ -92,6 +92,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// resolves.
   bool _modelPickerOpen = false;
   bool _effortPickerOpen = false;
+  bool _permissionPickerOpen = false;
 
   /// Effort level this pane's session runs at (`--effort`, T-412). Null =
   /// the CLI default. Set by /effort; carried by every respawn.
@@ -255,6 +256,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _modelErrorSub = null;
     _modelPickerOpen = false;
     _effortPickerOpen = false;
+    _permissionPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old repo's session
     _conversation = null;
     _session = null;
@@ -417,6 +419,24 @@ class _ClaudePaneState extends State<ClaudePane> {
       case 'effort':
         _effortCommand(slashCommandArg(text) ?? '');
         return;
+      case 'permissions':
+        _permissionsCommand(slashCommandArg(text) ?? '');
+        return;
+      case 'status':
+        _openMetaTab('activity');
+        return;
+      case 'config':
+      case 'mcp':
+      case 'agents':
+      case 'hooks':
+        _openMetaTab('config');
+        return;
+      case 'memory':
+        _openMemory();
+        return;
+      case 'help':
+        _helpCommand();
+        return;
     }
     // Route the rest (T-411): a known TUI-only builtin never reaches the
     // session — forwarded it would error (or, un-advertised, bracket-paste to
@@ -486,6 +506,59 @@ class _ClaudePaneState extends State<ClaudePane> {
     unawaited(_respawnWithSession(sid));
   }
 
+  /// clide-owned `/permissions` (T-413): with a mode, set it directly over
+  /// set_permission_mode; bare, open a picker — the same interaction-zone
+  /// pattern as /model and /effort.
+  void _permissionsCommand(String arg) {
+    final s = _session;
+    if (s == null) return;
+    if (arg.isEmpty) {
+      setState(() => _permissionPickerOpen = true);
+      return;
+    }
+    if (!kPermissionModes.any((m) => m.value == arg)) {
+      s.addLocalNotice('unknown permission mode "$arg" — modes: ${kPermissionModes.map((m) => m.value).join(', ')}');
+      return;
+    }
+    s.setPermissionMode(arg);
+  }
+
+  void _pickPermissionMode(String value) {
+    _closePermissionPicker();
+    _session?.setPermissionMode(value);
+  }
+
+  void _closePermissionPicker() {
+    setState(() => _permissionPickerOpen = false);
+    _composerFocus.requestFocus();
+  }
+
+  /// Navigate to the Claude sidebar and select a sub-tab (T-413): the
+  /// /status//config//mcp//agents//hooks commands land here.
+  void _openMetaTab(String tab) {
+    final k = _kernel;
+    if (k == null) return;
+    k.panels.activateTab(Slots.sidebar, 'claude.meta');
+    k.messages.publish('builtin.claude', 'meta.tab', {'tab': tab});
+  }
+
+  /// clide-owned `/memory` (T-413): open the workspace CLAUDE.md in the editor.
+  void _openMemory() {
+    final root = _repoRoot;
+    if (root == null) return;
+    unawaited(_ipc()?.request('editor.open', args: {'path': '$root/CLAUDE.md'}));
+  }
+
+  /// clide-owned `/help` (T-413): a local summary card — never the CLI's TUI
+  /// help, which doesn't exist headless.
+  void _helpCommand() {
+    final advertised = (activeClaudeConfig?.slashCommands ?? kFallbackSlashCommands).where((c) => !kClideOwnedCommands.contains(c)).toList()..sort();
+    _session?.addLocalNotice(
+      'clide commands: ${(kClideOwnedCommands.toList()..sort()).map((c) => '/$c').join(' ')}\n'
+      'claude commands & skills: ${advertised.map((c) => '/$c').join(' ')}',
+    );
+  }
+
   /// Record a submitted prompt in the active session's history (T-163),
   /// de-duping immediate repeats. Empty/whitespace prompts are skipped.
   void _appendHistory(String text) {
@@ -510,7 +583,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// background tap must never pull focus from (or resurrect) the composer
   /// over an open prompt.
   void _focusComposerOnTap() {
-    if (_session?.pendingPrompt != null || _modelPickerOpen || _effortPickerOpen) return;
+    if (_session?.pendingPrompt != null || _modelPickerOpen || _effortPickerOpen || _permissionPickerOpen) return;
     _composerFocus.requestFocus();
   }
 
@@ -586,6 +659,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _modelErrorSub = null;
     _modelPickerOpen = false;
     _effortPickerOpen = false;
+    _permissionPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old session
     // Erase only after the process is dead, so claude isn't mid-write.
     final root = _repoRoot;
@@ -677,6 +751,15 @@ class _ClaudePaneState extends State<ClaudePane> {
                   isCurrent: (o, c) => c != null && o.value == c,
                   onPick: _pickEffort,
                   onCancel: _closeEffortPicker,
+                )
+              else if (_permissionPickerOpen && _session != null)
+                ModelPickerCard(
+                  title: 'permissions',
+                  models: kPermissionModes,
+                  currentModel: _status.permissionMode,
+                  isCurrent: (o, c) => c != null && o.value == c,
+                  onPick: _pickPermissionMode,
+                  onCancel: _closePermissionPicker,
                 )
               else
                 StreamBuilder<bool>(

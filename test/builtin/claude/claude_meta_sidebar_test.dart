@@ -133,6 +133,29 @@ void main() {
     expect(find.text('Claude environment not loaded.'), findsOneWidget);
   });
 
+  testWidgets('a meta.tab message switches the sub-tab (T-413 slash navigation)', (tester) async {
+    await tester.pumpWidget(harness(f, sidebar(stats: stats)));
+    await tester.pumpAndSettle();
+    expect(find.text('TODAY'), findsOneWidget); // starts on Activity
+
+    // /config (and /mcp, /agents, /hooks) publish this from the Claude pane.
+    f.services.messages.publish('builtin.claude', 'meta.tab', {'tab': 'config'});
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Claude environment not loaded.'), findsOneWidget); // Config tab (no env in fixture)
+
+    f.services.messages.publish('builtin.claude', 'meta.tab', {'tab': 'activity'});
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('TODAY'), findsOneWidget); // back on Activity
+
+    // An unknown tab name is ignored.
+    f.services.messages.publish('builtin.claude', 'meta.tab', {'tab': 'bogus'});
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('TODAY'), findsOneWidget);
+  });
+
   testWidgets('a team spawn auto-fronts the Team tab', (tester) async {
     await tester.pumpWidget(harness(f, sidebar(stats: stats)));
     await tester.pumpAndSettle();

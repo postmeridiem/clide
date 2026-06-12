@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **The TUI command family opens clide surfaces.** `/permissions` sets the mode
+  directly or opens a picker; `/status`, `/config`, `/mcp`, `/agents`, `/hooks`
+  jump to the matching Claude sidebar tab; `/memory` opens CLAUDE.md in the
+  editor; `/help` shows clide's own command summary. (T-413)
 - **`/effort` works in the Claude pane.** With a level (`/effort xhigh`) the
   session restarts in place carrying `--effort` — resume keeps the
   conversation; bare `/effort` opens a picker with the five levels and the

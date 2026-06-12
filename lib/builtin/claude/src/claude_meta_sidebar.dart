@@ -83,6 +83,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
   StreamSubscription<TeamMemberJoined>? _joinSub;
   StreamSubscription<TeamMemberLeft>? _leftSub;
   StreamSubscription<Message>? _statusSub;
+  StreamSubscription<Message>? _tabSub;
   StreamSubscription<SessionStatus>? _primarySub;
   StreamSubscription<void>? _brokerChangeSub;
   Timer? _timer;
@@ -162,6 +163,13 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
         _members.removeWhere((x) => x.agentId == m.agentId);
         _memberStatus.remove(m.agentId);
       });
+    });
+    // Slash-command navigation (T-413): /status, /config, /mcp, … publish a
+    // meta.tab message; switch the sub-tab to match.
+    _tabSub = kernel.messages.subscribe(publisher: 'builtin.claude', channel: 'meta.tab').listen((msg) {
+      final name = msg.data['tab'] as String?;
+      final tab = SidebarTab.values.where((t) => t.name == name).firstOrNull;
+      if (tab != null && mounted) setState(() => _tab = tab);
     });
     // Live per-member status forwarded by the observer (T-157).
     _statusSub = kernel.messages.subscribe(channel: ClaudeConversation.memberStatusChannel).listen((msg) {
@@ -247,6 +255,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
     _joinSub?.cancel();
     _leftSub?.cancel();
     _statusSub?.cancel();
+    _tabSub?.cancel();
     _primarySub?.cancel();
     _brokerChangeSub?.cancel();
     _injectCtl.dispose();

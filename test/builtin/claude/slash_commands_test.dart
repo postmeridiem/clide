@@ -151,7 +151,21 @@ void main() {
     });
 
     test('owned beats everything', () {
-      for (final t in ['/clear', '/resume', '/fork', '/model opus', '/effort high']) {
+      for (final t in [
+        '/clear',
+        '/resume',
+        '/fork',
+        '/model opus',
+        '/effort high',
+        '/permissions plan',
+        '/status',
+        '/config',
+        '/mcp',
+        '/agents',
+        '/hooks',
+        '/memory',
+        '/help',
+      ]) {
         expect(routeSlashCommand(t, advertised: advertised), SlashRoute.owned, reason: t);
       }
     });
@@ -163,13 +177,14 @@ void main() {
     });
 
     test('a known TUI-only builtin routes unavailable', () {
-      for (final t in ['/status', '/permissions', '/doctor', '/login']) {
+      for (final t in ['/cost', '/doctor', '/login', '/rewind', '/output-style']) {
         expect(routeSlashCommand(t, advertised: advertised), SlashRoute.unavailable, reason: t);
       }
     });
 
     test('an advertised name shadows the TUI-only catalog (a skill named like a builtin forwards)', () {
-      expect(routeSlashCommand('/status', advertised: ['status']), SlashRoute.forward);
+      // 'cost' is in the catalog but not owned — advertising it wins.
+      expect(routeSlashCommand('/cost', advertised: ['cost']), SlashRoute.forward);
     });
 
     test('an unknown token forwards (stays literal text downstream)', () {
@@ -179,8 +194,8 @@ void main() {
 
   group('tuiOnlyNotice (T-411)', () {
     test('carries the clide-native pointer when the catalog has one', () {
-      final n = tuiOnlyNotice('status');
-      expect(n, contains('/status is a Claude Code TUI command'));
+      final n = tuiOnlyNotice('cost');
+      expect(n, contains('/cost is a Claude Code TUI command'));
       expect(n, contains('Activity tab'));
     });
 

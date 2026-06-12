@@ -174,6 +174,16 @@ const List<ModelOption> kEffortLevels = [
   ModelOption(value: 'max', displayName: 'max', description: 'maximum thinking budget'),
 ];
 
+/// Permission modes for the /permissions picker (T-413), set over the
+/// set_permission_mode control request. Bypass is last and explicit — the
+/// footgun stays visible but never the default reach (T-181).
+const List<ModelOption> kPermissionModes = [
+  ModelOption(value: 'default', displayName: 'default', description: 'ask before sensitive tools'),
+  ModelOption(value: 'acceptEdits', displayName: 'acceptEdits', description: 'auto-approve file edits'),
+  ModelOption(value: 'plan', displayName: 'plan', description: 'read-only planning mode'),
+  ModelOption(value: 'bypassPermissions', displayName: 'bypassPermissions', description: 'no prompts at all — careful'),
+];
+
 /// Fallback picker entries for when the `initialize` response hasn't arrived
 /// (or carried no models): the stable aliases every claude build accepts
 /// (T-408). `default` resets to the CLI's configured model.
