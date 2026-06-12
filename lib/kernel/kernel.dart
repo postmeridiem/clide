@@ -65,3 +65,4 @@ export 'src/theme/semantic.dart';
 export 'src/theme/tokens.dart';
 export 'src/toolchain.dart';
 export 'src/window_controls.dart';
+export 'src/workspace_ref.dart';
