@@ -43,11 +43,30 @@ void main() {
       expect(clideOwnedCommand('/resume'), 'resume');
     });
 
+    test('recognises /model with and without an argument (T-408)', () {
+      expect(clideOwnedCommand('/model'), 'model');
+      expect(clideOwnedCommand('/model sonnet'), 'model');
+    });
+
     test('returns null for commands clide forwards to Claude', () {
-      expect(clideOwnedCommand('/model sonnet'), isNull);
       expect(clideOwnedCommand('/compact'), isNull);
       expect(clideOwnedCommand('not a command'), isNull);
       expect(clideOwnedCommand('/clearairspace'), isNull); // token must be exactly "clear"
+    });
+  });
+
+  group('slashCommandArg', () {
+    test('returns the trimmed argument after the command token', () {
+      expect(slashCommandArg('/model sonnet'), 'sonnet');
+      expect(slashCommandArg('/model  claude-opus-4-8 '), 'claude-opus-4-8');
+      expect(slashCommandArg('/model\tsonnet'), 'sonnet');
+    });
+
+    test('empty for a bare command, null for non-command input', () {
+      expect(slashCommandArg('/model'), '');
+      expect(slashCommandArg('/model '), '');
+      expect(slashCommandArg('hello'), isNull);
+      expect(slashCommandArg('/foo\nbar'), isNull);
     });
   });
 

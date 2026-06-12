@@ -14,12 +14,14 @@ import 'dart:convert';
 import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/claude_pane.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
+import 'package:clide/builtin/claude/src/model_picker_card.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_picker.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -198,6 +200,52 @@ void main() {
     composer(tester).onSubmit('/fork');
     await tester.pump();
     expect(forkedWith, primarySessionId('/repo-a'));
+  });
+
+  testWidgets('/model with an argument sends set_model, never a user message (T-408)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+
+    await act(tester, () => composer(tester).onSubmit('/model sonnet'));
+
+    final sent = proc.writes.map((w) => jsonDecode(w) as Map).toList();
+    final setModel = sent.where((m) => (m['request'] as Map?)?['subtype'] == 'set_model').toList();
+    expect(setModel, hasLength(1));
+    expect((setModel.single['request'] as Map)['model'], 'sonnet');
+    expect(sent.any((m) => m['type'] == 'user'), isFalse, reason: '/model must not be forwarded as message text');
+    expect(find.byType(ModelPickerCard), findsNothing);
+  });
+
+  testWidgets('bare /model swaps the picker in; picking sends set_model and restores the composer (T-408)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+
+    await act(tester, () => composer(tester).onSubmit('/model'));
+    expect(find.byType(ModelPickerCard), findsOneWidget);
+    expect(find.byType(ClaudeComposer), findsNothing, reason: 'the picker takes the interaction zone (D-78)');
+
+    tester.widget<ModelPickerCard>(find.byType(ModelPickerCard)).onPick('opus');
+    await tester.pump();
+
+    expect(find.byType(ModelPickerCard), findsNothing);
+    expect(find.byType(ClaudeComposer), findsOneWidget);
+    final setModel = proc.writes.map((w) => jsonDecode(w) as Map).where((m) => (m['request'] as Map?)?['subtype'] == 'set_model').toList();
+    expect((setModel.single['request'] as Map)['model'], 'opus');
+  });
+
+  testWidgets('Esc cancels the /model picker without sending (T-408)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+
+    await act(tester, () => composer(tester).onSubmit('/model'));
+    expect(find.byType(ModelPickerCard), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(find.byType(ModelPickerCard), findsNothing);
+    expect(find.byType(ClaudeComposer), findsOneWidget);
+    expect(proc.writes.any((w) => w.contains('set_model')), isFalse);
   });
 
   testWidgets('cycling permission mode sends a control message', (tester) async {

@@ -30,14 +30,25 @@ bool isKnownSlashCommand(String text, Iterable<String> known) {
 /// Slash commands clide handles itself instead of forwarding to Claude:
 /// Claude Code's own handling forks the session to a new id that clide's
 /// transcript reader can't follow, so clide owns the semantics (T-156).
-/// `/fork` branches the current session into a new pane (T-172).
-const Set<String> kClideOwnedCommands = {'clear', 'resume', 'fork'};
+/// `/fork` branches the current session into a new pane (T-172). `/model`
+/// is interactive in the CLI's TUI only — forwarded it does nothing — so
+/// clide owns it as a set_model control request / picker (T-408).
+const Set<String> kClideOwnedCommands = {'clear', 'resume', 'fork', 'model'};
 
 /// The clide-owned command in [text] (a single-line leading-slash token in
 /// [kClideOwnedCommands]), or null.
 String? clideOwnedCommand(String text) {
   final token = slashCommandToken(text);
   return token != null && kClideOwnedCommands.contains(token) ? token : null;
+}
+
+/// The argument text after the command token — `"/model sonnet"` → `"sonnet"`
+/// — trimmed; empty when there is none (`"/model"`). Null when [text] isn't
+/// single-line leading-slash input.
+String? slashCommandArg(String text) {
+  if (slashCommandToken(text) == null) return null;
+  final ws = text.indexOf(RegExp(r'\s'));
+  return ws < 0 ? '' : text.substring(ws + 1).trim();
 }
 
 bool _isWs(String c) => c == ' ' || c == '\t' || c == '\n';

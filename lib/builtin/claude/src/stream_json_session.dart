@@ -147,6 +147,31 @@ abstract class McpServer {
   Future<Map<String, dynamic>> callTool(String name, Map<String, dynamic> arguments);
 }
 
+/// A model selectable for a session, from the `initialize` control_response's
+/// `models[]` (T-408). Pure data, Flutter-free.
+class ModelOption {
+  const ModelOption({required this.value, required this.displayName, this.description = ''});
+
+  /// The id/alias sent in `set_model` — e.g. `default`, `sonnet`, `opus`.
+  final String value;
+
+  /// Human label, e.g. `Sonnet`.
+  final String displayName;
+
+  /// One-line blurb shown muted next to the label.
+  final String description;
+}
+
+/// Fallback picker entries for when the `initialize` response hasn't arrived
+/// (or carried no models): the stable aliases every claude build accepts
+/// (T-408). `default` resets to the CLI's configured model.
+const List<ModelOption> kFallbackModels = [
+  ModelOption(value: 'default', displayName: 'Default', description: 'recommended — the CLI\'s configured model'),
+  ModelOption(value: 'sonnet', displayName: 'Sonnet', description: 'fast, great for everyday tasks'),
+  ModelOption(value: 'opus', displayName: 'Opus', description: 'most capable'),
+  ModelOption(value: 'haiku', displayName: 'Haiku', description: 'fastest, lightweight'),
+];
+
 /// An interactive prompt Claude is blocked on, from the stream-json control
 /// channel (a `can_use_tool` control_request) — a tool needing permission, or
 /// an `AskUserQuestion`. Pure data; the decision goes back via
@@ -261,6 +286,27 @@ class StreamJsonSession {
   String? _claudeSessionId;
   int _localSeq = 0;
 
+  /// The `initialize` handshake's request id — its control_response carries
+  /// the selectable `models[]` (T-408).
+  String? _initRequestId;
+
+  /// In-flight `set_model` request ids → the model the status held before the
+  /// optimistic merge, so an error response can roll it back (T-408).
+  final _pendingSetModel = <String, String?>{};
+
+  List<ModelOption> _availableModels = const [];
+
+  /// Models selectable for this session, from the `initialize` response.
+  /// Empty until that response arrives (callers fall back to
+  /// [kFallbackModels]).
+  List<ModelOption> get availableModels => _availableModels;
+
+  final _modelErrorCtl = StreamController<String>.broadcast();
+
+  /// Errors from rejected `set_model` requests (e.g. an unknown model name),
+  /// for the pane to surface (T-408).
+  Stream<String> get modelErrors => _modelErrorCtl.stream;
+
   /// Token-by-token streaming state (T-168, wire shape verified by T-184).
   ///
   /// With `--include-partial-messages`, claude emits the in-progress reply as
@@ -368,22 +414,22 @@ class StreamJsonSession {
     // code is not (T-361).
     final exit = _proc.exitCode;
     if (exit != null) unawaited(exit.then(_onExit));
-    // Declaring our in-process MCP servers in the `initialize` handshake is what
-    // makes claude drive their JSON-RPC over `mcp_message` (T-170). Only sent
-    // when we actually host a server, so a plain session is unchanged.
-    if (_mcpServers.isNotEmpty) {
-      _proc.writeLine(
-        jsonEncode({
-          'type': 'control_request',
-          'request_id': 'init-${_localSeq++}',
-          'request': {
-            'subtype': 'initialize',
-            'hooks': <String, dynamic>{},
-            'sdkMcpServers': [for (final s in _mcpServers) s.name],
-          },
-        }),
-      );
-    }
+    // The `initialize` handshake is side-effect-free (verified in the protocol
+    // spike) and does double duty: declaring our in-process MCP servers is what
+    // makes claude drive their JSON-RPC over `mcp_message` (T-170), and the
+    // response's `models[]` feeds the /model picker (T-408).
+    _initRequestId = 'init-${_localSeq++}';
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': _initRequestId,
+        'request': {
+          'subtype': 'initialize',
+          'hooks': <String, dynamic>{},
+          'sdkMcpServers': [for (final s in _mcpServers) s.name],
+        },
+      }),
+    );
   }
 
   void _onLine(String line) {
@@ -409,6 +455,12 @@ class StreamJsonSession {
     // routed out of the normal event stream and answered (D-78).
     if (ev['type'] == 'control_request') {
       _onControlRequest(ev);
+      return;
+    }
+    // Responses to OUR control requests: the initialize result (models) and
+    // set_model acks/errors (T-408).
+    if (ev['type'] == 'control_response') {
+      _onControlResponse(ev);
       return;
     }
     // A `result` ends the turn — clear the busy/interruptible state and reset
@@ -778,6 +830,59 @@ class StreamJsonSession {
     _mergeStatus(SessionStatus(permissionMode: mode));
   }
 
+  /// Set the model for subsequent turns (T-408). Sends a `set_model`
+  /// control_request; [model] is an alias (`sonnet`, `opus`) or full id, and
+  /// `default` resets to the CLI's configured model. The status merges
+  /// optimistically (mirroring [setPermissionMode]); an error response rolls
+  /// it back and surfaces on [modelErrors].
+  void setModel(String model) {
+    final rid = 'set-model-${_localSeq++}';
+    _pendingSetModel[rid] = _status.model;
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': rid,
+        'request': {'subtype': 'set_model', 'model': model},
+      }),
+    );
+    // `default` resolves to a model only the CLI knows — leave the status to
+    // the next assistant event in that case.
+    if (model != 'default') _mergeStatus(SessionStatus(model: model));
+  }
+
+  /// A `control_response` to one of our requests: capture the initialize
+  /// result's `models[]`, and roll back + surface a rejected set_model (T-408).
+  void _onControlResponse(Map<String, dynamic> ev) {
+    final resp = ev['response'];
+    if (resp is! Map) return;
+    final rid = resp['request_id'] as String?;
+    if (rid == null) return;
+    final isError = resp['subtype'] == 'error';
+    if (rid == _initRequestId && !isError) {
+      final result = resp['response'];
+      final models = result is Map ? result['models'] : null;
+      if (models is List) {
+        _availableModels = List.unmodifiable([
+          for (final m in models)
+            if (m is Map && m['value'] is String)
+              ModelOption(
+                value: m['value'] as String,
+                displayName: m['displayName'] as String? ?? m['value'] as String,
+                description: m['description'] as String? ?? '',
+              ),
+        ]);
+      }
+      return;
+    }
+    if (_pendingSetModel.containsKey(rid)) {
+      final previous = _pendingSetModel.remove(rid);
+      if (isError) {
+        if (previous != null) _mergeStatus(SessionStatus(model: previous));
+        _modelErrorCtl.add(resp['error'] as String? ?? 'model change rejected');
+      }
+    }
+  }
+
   /// The process exited under a live session. Flip every "in flight"
   /// surface off so the pane reflects reality instead of spinning forever.
   void _onExit(int code) {
@@ -803,5 +908,6 @@ class StreamJsonSession {
     await _pendingCtl.close();
     await _busyCtl.close();
     await _endCtl.close();
+    await _modelErrorCtl.close();
   }
 }

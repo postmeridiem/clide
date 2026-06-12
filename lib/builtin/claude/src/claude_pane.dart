@@ -14,6 +14,7 @@ import 'clipboard_paste.dart';
 import 'activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey;
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
+import 'model_picker_card.dart';
 import 'permission_mode_control.dart';
 import 'prompt_card.dart';
 import 'session_index.dart';
@@ -73,6 +74,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<SessionStatus>? _statusSub;
   StreamSubscription<SessionEnd>? _endSub;
   StreamSubscription<ProjectOpened>? _projectSub;
+  StreamSubscription<String>? _modelErrorSub;
   ConversationController? _conversation;
   StreamJsonSession? _session;
   SessionStatus _status = const SessionStatus();
@@ -84,6 +86,11 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// One-shot fork source: seeds the first bind, then cleared so /clear,
   /// /resume, and respawns operate on this pane's own session (T-375).
   late String? _forkSource = widget.forkSourceId;
+
+  /// Whether a bare `/model` opened the picker in the interaction zone
+  /// (T-408). An open prompt takes precedence; the picker shows once it
+  /// resolves.
+  bool _modelPickerOpen = false;
 
   bool _spawned = false;
 
@@ -184,6 +191,8 @@ class _ClaudePaneState extends State<ClaudePane> {
     _statusSub = null;
     _endSub?.cancel();
     _endSub = null;
+    _modelErrorSub?.cancel();
+    _modelErrorSub = null;
     // The orchestrator owns the session, so disposing this pane does NOT kill
     // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
     // A secondary tab being *closed* is a real teardown, so close its session;
@@ -237,6 +246,9 @@ class _ClaudePaneState extends State<ClaudePane> {
     _statusSub = null;
     _endSub?.cancel();
     _endSub = null;
+    _modelErrorSub?.cancel();
+    _modelErrorSub = null;
+    _modelPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old repo's session
     _conversation = null;
     _session = null;
@@ -340,6 +352,11 @@ class _ClaudePaneState extends State<ClaudePane> {
       if (!mounted) return;
       setState(() => _status = s);
     });
+    // A rejected /model change (unknown name) rolls back silently in the
+    // status — say why out loud (T-408).
+    _modelErrorSub = managed.session.modelErrors.listen((msg) {
+      _kernel?.notify.warn(msg, title: 'model');
+    });
     // Surface a dead process instead of letting it look thoughtful (T-361):
     // late binders read the replayed end; live sessions stream it.
     final alreadyEnded = managed.session.end;
@@ -377,8 +394,32 @@ class _ClaudePaneState extends State<ClaudePane> {
       case 'fork':
         _forkSession();
         return;
+      case 'model':
+        _modelCommand(slashCommandArg(text) ?? '');
+        return;
     }
     _session?.send(text);
+  }
+
+  /// clide-owned `/model` (T-408): with an argument, set the model directly;
+  /// bare, open the picker in the interaction zone (D-78).
+  void _modelCommand(String arg) {
+    if (_session == null) return;
+    if (arg.isNotEmpty) {
+      _session!.setModel(arg);
+      return;
+    }
+    setState(() => _modelPickerOpen = true);
+  }
+
+  void _pickModel(String value) {
+    _session?.setModel(value);
+    _closeModelPicker();
+  }
+
+  void _closeModelPicker() {
+    setState(() => _modelPickerOpen = false);
+    _composerFocus.requestFocus();
   }
 
   /// Record a submitted prompt in the active session's history (T-163),
@@ -405,7 +446,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// background tap must never pull focus from (or resurrect) the composer
   /// over an open prompt.
   void _focusComposerOnTap() {
-    if (_session?.pendingPrompt != null) return;
+    if (_session?.pendingPrompt != null || _modelPickerOpen) return;
     _composerFocus.requestFocus();
   }
 
@@ -477,6 +518,9 @@ class _ClaudePaneState extends State<ClaudePane> {
     _statusSub = null;
     _endSub?.cancel();
     _endSub = null;
+    _modelErrorSub?.cancel();
+    _modelErrorSub = null;
+    _modelPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old session
     // Erase only after the process is dead, so claude isn't mid-write.
     final root = _repoRoot;
@@ -548,9 +592,17 @@ class _ClaudePaneState extends State<ClaudePane> {
               ),
               // An open prompt takes the composer's space and hides the text
               // input until it's answered, so interaction stays out of the
-              // conversation stream (D-78).
+              // conversation stream (D-78). The /model picker uses the same
+              // slot; a prompt outranks it (T-408).
               if (prompt != null && _session != null)
                 ToolPromptCard(prompt: prompt, onResolve: _session!.resolvePrompt)
+              else if (_modelPickerOpen && _session != null)
+                ModelPickerCard(
+                  models: _session!.availableModels.isEmpty ? kFallbackModels : _session!.availableModels,
+                  currentModel: _status.model,
+                  onPick: _pickModel,
+                  onCancel: _closeModelPicker,
+                )
               else
                 StreamBuilder<bool>(
                   stream: _session?.busyStream,

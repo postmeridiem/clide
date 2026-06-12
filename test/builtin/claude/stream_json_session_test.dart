@@ -165,9 +165,111 @@ void main() {
     session.items.listen(items.add);
     session.statusStream.listen(statuses.add);
     session.start();
+    // start() always sends the `initialize` handshake (T-408); drop it so the
+    // write assertions below stay about what each test sends. The handshake
+    // itself is asserted in the 'initialize handshake' group.
+    proc.writes.clear();
   });
 
   tearDown(() => session.dispose());
+
+  group('initialize handshake + model list (T-408)', () {
+    test('start() sends the initialize handshake even with no MCP servers', () {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      final init = jsonDecode(p.writes.single) as Map;
+      expect(init['type'], 'control_request');
+      expect((init['request'] as Map)['subtype'], 'initialize');
+      expect((init['request'] as Map)['sdkMcpServers'], isEmpty);
+    });
+
+    test('the initialize response populates availableModels', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      final rid = (jsonDecode(p.writes.single) as Map)['request_id'];
+      expect(s.availableModels, isEmpty);
+      p.emit(
+        jsonEncode({
+          'type': 'control_response',
+          'response': {
+            'subtype': 'success',
+            'request_id': rid,
+            'response': {
+              'commands': <dynamic>[],
+              'models': [
+                {'value': 'default', 'displayName': 'Default', 'description': 'recommended'},
+                {'value': 'sonnet', 'displayName': 'Sonnet'},
+                {'value': 12345}, // malformed entry → skipped
+              ],
+            },
+          },
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(s.availableModels, hasLength(2));
+      expect(s.availableModels[0].value, 'default');
+      expect(s.availableModels[0].description, 'recommended');
+      expect(s.availableModels[1].displayName, 'Sonnet');
+      expect(s.availableModels[1].description, isEmpty);
+    });
+  });
+
+  group('setModel (T-408)', () {
+    test('sends a set_model control_request and optimistically merges status', () async {
+      session.setModel('sonnet');
+      final sent = jsonDecode(proc.writes.single) as Map;
+      expect(sent['type'], 'control_request');
+      expect((sent['request'] as Map)['subtype'], 'set_model');
+      expect((sent['request'] as Map)['model'], 'sonnet');
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'sonnet');
+    });
+
+    test('setModel(default) does not guess the resolved model', () async {
+      session.setModel('default');
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses, isEmpty, reason: 'only the CLI knows what default resolves to');
+    });
+
+    test('an error response rolls the model back and surfaces the message', () async {
+      final errors = <String>[];
+      session.modelErrors.listen(errors.add);
+      proc.emit(initEvent()); // model: claude-opus-4-7
+      await Future<void>.delayed(Duration.zero);
+
+      session.setModel('bogus-model');
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'bogus-model'); // optimistic
+
+      final rid = (jsonDecode(proc.writes.single) as Map)['request_id'];
+      proc.emit(
+        jsonEncode({
+          'type': 'control_response',
+          'response': {'subtype': 'error', 'request_id': rid, 'error': 'Unknown model: bogus-model'},
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'claude-opus-4-7', reason: 'rolled back');
+      expect(errors, ['Unknown model: bogus-model']);
+    });
+
+    test('a success response keeps the optimistic model', () async {
+      session.setModel('opus');
+      final rid = (jsonDecode(proc.writes.single) as Map)['request_id'];
+      proc.emit(
+        jsonEncode({
+          'type': 'control_response',
+          'response': {'subtype': 'success', 'request_id': rid},
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'opus');
+    });
+  });
 
   test('parses assistant text + tool_use events into items', () async {
     proc.emit(assistantText('hello there'));

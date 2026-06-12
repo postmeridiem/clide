@@ -16,6 +16,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- **`/model` works in the Claude pane.** With a name (`/model sonnet`) it
+  switches the live session's model over the control channel; bare `/model`
+  opens a picker in the interaction zone with the CLI's model list and the
+  current model marked. A rejected name rolls back and raises a toast. (T-408)
+
 ## [2.4.1] — 2026-06-12
 
 ### Fixed

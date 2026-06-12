@@ -4624,3 +4624,20 @@ Acceptance:
 - Shifted typing in general (capitals, symbols) never triggers double-tap bindings.
 - Genuine double-Shift (two bare taps within the window) still opens quick-open in all four presets.
 - Regression test covering chorded-Shift-then-Shift-tap sequences.', 'done', 'high', NULL, NULL, NULL, '2026-06-12 06:40:26', '2026-06-12 06:49:24', NULL, '7a26c6d1ae0aa3086ef337aa1640f799', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBN3VTK2MYQQ173MSJN6E1DM', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'intercept /model in the Claude pane: arg sets model, bare shows picker', 'User report: typing /model in the Claude conversation view does nothing useful — it is forwarded to the session''s stream-json stdin like a plain message, and the CLI''s interactive /model picker only exists in its own TUI. Clide must own it (same class as /clear,/resume,/fork — T-156).
+
+Interaction design:
+- `/model <name>` → set the session model directly to <name> (accept aliases like sonnet/opus and full ids).
+- `/model` (bare) → show a model picker in the interaction zone — replaces the composer while open, like ToolPromptCard (D-78); list selectable via keyboard (numbers/arrows + Enter), Esc cancels back to the composer.
+
+Implementation map (from code exploration):
+- Add ''model'' to kClideOwnedCommands in lib/builtin/claude/src/slash_commands.dart and handle it in ClaudePane._send (lib/builtin/claude/src/claude_pane.dart).
+- Add StreamJsonSession.setModel(String) following the setPermissionMode control_request pattern (lib/builtin/claude/src/stream_json_session.dart) — subtype set_model; optimistically merge SessionStatus(model: …) so the status bar updates.
+- Model list for the bare-picker: query the CLI via the supported_models-style control request if available (verify exact subtype/shapes against the installed CLI), falling back to a static alias list.
+- Picker widget swaps in via the existing pending-interaction slot in ClaudePane; reuse composer focus/draft preservation (the draft must survive the swap).
+
+Acceptance:
+- `/model sonnet` switches the live session model; status bar reflects it on the next status merge.
+- bare `/model` opens the picker; choosing an entry sets the model; Esc restores the composer with the draft intact.
+- `/model` is never forwarded to the session as message text.
+- Unit tests in test/builtin/claude/ for the parsing (slash_commands_test.dart), the pane interception, and the picker widget.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-12 06:40:25', '2026-06-12 06:50:01', NULL, 'cba563b9c69c2bb0033b33bd32895059', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
