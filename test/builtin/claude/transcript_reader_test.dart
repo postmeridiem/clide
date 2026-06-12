@@ -522,6 +522,16 @@ void main() {
       expect(const SessionStatus(contextWindow: 0).isEmpty, isFalse);
       expect(const SessionStatus(rateLimitInfo: 'rate limited').isEmpty, isFalse);
     });
+
+    test('effort merges, compares, and flips isEmpty (T-412)', () {
+      const a = SessionStatus(model: 'm1');
+      final m = a.merge(const SessionStatus(effort: 'high'));
+      expect(m.effort, 'high');
+      expect(m.model, 'm1');
+      expect(const SessionStatus(effort: 'high'), const SessionStatus(effort: 'high'));
+      expect(const SessionStatus(effort: 'high'), isNot(const SessionStatus(effort: 'max')));
+      expect(const SessionStatus(effort: 'low').isEmpty, isFalse);
+    });
   });
 
   group('synthetic CLI-local output (T-411)', () {

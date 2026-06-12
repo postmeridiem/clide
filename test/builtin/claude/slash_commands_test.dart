@@ -151,7 +151,7 @@ void main() {
     });
 
     test('owned beats everything', () {
-      for (final t in ['/clear', '/resume', '/fork', '/model opus']) {
+      for (final t in ['/clear', '/resume', '/fork', '/model opus', '/effort high']) {
         expect(routeSlashCommand(t, advertised: advertised), SlashRoute.owned, reason: t);
       }
     });
@@ -163,7 +163,7 @@ void main() {
     });
 
     test('a known TUI-only builtin routes unavailable', () {
-      for (final t in ['/effort high', '/status', '/permissions', '/doctor', '/login']) {
+      for (final t in ['/status', '/permissions', '/doctor', '/login']) {
         expect(routeSlashCommand(t, advertised: advertised), SlashRoute.unavailable, reason: t);
       }
     });

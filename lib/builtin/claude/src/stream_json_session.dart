@@ -162,6 +162,18 @@ class ModelOption {
   final String description;
 }
 
+/// Effort levels `claude --effort` accepts (probed against 2.1.175). There is
+/// NO set_effort control subtype (probed: rejected), so changing effort
+/// respawns the session with the flag — resume keeps the conversation (T-412).
+/// Expressed as [ModelOption]s so the /effort picker reuses the /model card.
+const List<ModelOption> kEffortLevels = [
+  ModelOption(value: 'low', displayName: 'low', description: 'fastest, minimal thinking'),
+  ModelOption(value: 'medium', displayName: 'medium', description: 'balanced'),
+  ModelOption(value: 'high', displayName: 'high', description: 'thorough'),
+  ModelOption(value: 'xhigh', displayName: 'xhigh', description: 'deeper reasoning'),
+  ModelOption(value: 'max', displayName: 'max', description: 'maximum thinking budget'),
+];
+
 /// Fallback picker entries for when the `initialize` response hasn't arrived
 /// (or carried no models): the stable aliases every claude build accepts
 /// (T-408). `default` resets to the CLI's configured model.
@@ -800,6 +812,11 @@ class StreamJsonSession {
   void addLocalNotice(String text) {
     _items.add(AssistantTextMessage(uuid: 'local-${_localSeq++}', timestamp: DateTime.now(), isSidechain: false, text: text, synthetic: true));
   }
+
+  /// Record the effort level this session was spawned with (`--effort`,
+  /// T-412). The wire never reports effort, so the spawner tells the status
+  /// what it set; the status line / sidebar read it from [SessionStatus].
+  void noteEffort(String level) => _mergeStatus(SessionStatus(effort: level));
 
   /// Interrupt the running turn (the escape hatch for a runaway — D-78). Sends
   /// the `interrupt` control_request; claude cancels the current turn and ends

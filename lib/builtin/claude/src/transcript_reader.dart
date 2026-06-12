@@ -433,7 +433,7 @@ class TranscriptReader {
 /// (T-145, T-168). All fields nullable — a chunk only carries what it saw,
 /// and the reader [merge]s deltas into a running status.
 class SessionStatus {
-  const SessionStatus({this.model, this.permissionMode, this.contextTokens, this.cost, this.contextWindow, this.rateLimitInfo});
+  const SessionStatus({this.model, this.permissionMode, this.contextTokens, this.cost, this.contextWindow, this.rateLimitInfo, this.effort});
 
   /// Assistant `message.model`, e.g. `claude-opus-4-7`.
   final String? model;
@@ -458,7 +458,13 @@ class SessionStatus {
   /// `"rate limited — resets 14:32"` (T-168). Null when not rate-limited.
   final String? rateLimitInfo;
 
-  bool get isEmpty => model == null && permissionMode == null && contextTokens == null && cost == null && contextWindow == null && rateLimitInfo == null;
+  /// The session's effort level (`--effort`, T-412). The wire never reports
+  /// it — clide records what it spawned with via [StreamJsonSession.noteEffort];
+  /// null means the CLI default (settings.json `effortLevel`).
+  final String? effort;
+
+  bool get isEmpty =>
+      model == null && permissionMode == null && contextTokens == null && cost == null && contextWindow == null && rateLimitInfo == null && effort == null;
 
   /// Overlay [other]'s non-null fields onto this one.
   SessionStatus merge(SessionStatus other) => SessionStatus(
@@ -468,6 +474,7 @@ class SessionStatus {
     cost: other.cost ?? cost,
     contextWindow: other.contextWindow ?? contextWindow,
     rateLimitInfo: other.rateLimitInfo ?? rateLimitInfo,
+    effort: other.effort ?? effort,
   );
 
   @override
@@ -478,10 +485,11 @@ class SessionStatus {
       other.contextTokens == contextTokens &&
       other.cost == cost &&
       other.contextWindow == contextWindow &&
-      other.rateLimitInfo == rateLimitInfo;
+      other.rateLimitInfo == rateLimitInfo &&
+      other.effort == effort;
 
   @override
-  int get hashCode => Object.hash(model, permissionMode, contextTokens, cost, contextWindow, rateLimitInfo);
+  int get hashCode => Object.hash(model, permissionMode, contextTokens, cost, contextWindow, rateLimitInfo, effort);
 }
 
 /// Result of [parseTranscriptChunk]: items, version-drift warnings, and

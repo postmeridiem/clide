@@ -22,20 +22,36 @@ class _FakeProc extends StreamJsonProcess {
 
 void main() {
   late List<_FakeProc> created;
+  late List<List<String>> spawnedArgs;
   late ClaudeSessionOrchestrator orch;
 
   setUp(() {
     created = [];
+    spawnedArgs = [];
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         final p = _FakeProc();
         created.add(p);
+        spawnedArgs.add(sessionArgs);
         return p;
       },
     );
   });
 
   SpawnSpec spec(String id, {bool visible = true}) => SpawnSpec(id: id, role: id, sessionId: '$id-uuid', cwd: '/repo', visible: visible);
+
+  test('a spec with effort spawns claude with --effort <level> (T-412)', () async {
+    await orch.spawn(SpawnSpec(id: 'e1', role: 'primary', sessionId: 'e1-uuid', cwd: '/repo', effort: 'xhigh'));
+    final args = spawnedArgs.single;
+    final i = args.indexOf('--effort');
+    expect(i, isNonNegative, reason: 'sessionArgs: $args');
+    expect(args[i + 1], 'xhigh');
+  });
+
+  test('a spec without effort spawns without the flag (CLI default applies)', () async {
+    await orch.spawn(spec('primary'));
+    expect(spawnedArgs.single, isNot(contains('--effort')));
+  });
 
   test('spawns multiple concurrent sessions, each with its own process', () async {
     await orch.spawn(spec('primary'));

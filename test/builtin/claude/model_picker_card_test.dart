@@ -85,4 +85,24 @@ void main() {
     await tester.pump();
     expect(picked, isNull);
   });
+
+  testWidgets('effort reuse: custom title + exact-match marking (T-412)', (tester) async {
+    // Exact-match isCurrent: `high` must not be marked when effort is `xhigh`.
+    await tester.pumpWidget(
+      harness(
+        f,
+        ModelPickerCard(
+          title: 'effort',
+          models: kEffortLevels,
+          currentModel: 'xhigh',
+          isCurrent: (o, c) => c != null && o.value == c,
+          onPick: (_) {},
+          onCancel: () {},
+        ),
+      ),
+    );
+    expect(find.text('effort'), findsOneWidget); // the custom header
+    expect(find.textContaining('● xhigh'), findsOneWidget);
+    expect(find.textContaining('○ high'), findsOneWidget); // NOT containment-marked
+  });
 }

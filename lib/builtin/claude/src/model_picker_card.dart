@@ -25,7 +25,15 @@ bool modelOptionIsCurrent(ModelOption option, String? currentModel) {
 }
 
 class ModelPickerCard extends StatefulWidget {
-  const ModelPickerCard({super.key, required this.models, this.currentModel, required this.onPick, required this.onCancel});
+  const ModelPickerCard({
+    super.key,
+    required this.models,
+    this.currentModel,
+    required this.onPick,
+    required this.onCancel,
+    this.title = 'model',
+    this.isCurrent = modelOptionIsCurrent,
+  });
 
   /// Selectable entries, in display order. Callers pass [kFallbackModels]
   /// when the session hasn't reported its list yet.
@@ -40,6 +48,15 @@ class ModelPickerCard extends StatefulWidget {
   /// Called when the user dismisses the picker without choosing.
   final VoidCallback onCancel;
 
+  /// Header label. The /effort picker reuses this card with its own title
+  /// and an exact-match [isCurrent] (T-412).
+  final String title;
+
+  /// Marks the active entry. The model default ([modelOptionIsCurrent]) also
+  /// alias-matches (`sonnet` ⊂ `claude-sonnet-4-6`); effort needs exact match
+  /// (`high` would falsely match inside `xhigh`).
+  final bool Function(ModelOption option, String? current) isCurrent;
+
   @override
   State<ModelPickerCard> createState() => _ModelPickerCardState();
 }
@@ -49,7 +66,7 @@ class _ModelPickerCardState extends State<ModelPickerCard> {
 
   int _initialHighlight() {
     for (var i = 0; i < widget.models.length; i++) {
-      if (modelOptionIsCurrent(widget.models[i], widget.currentModel)) return i;
+      if (widget.isCurrent(widget.models[i], widget.currentModel)) return i;
     }
     return 0;
   }
@@ -130,7 +147,7 @@ class _ModelPickerCardState extends State<ModelPickerCard> {
           children: [
             Row(
               children: [
-                ClideText('model', fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusInfo),
+                ClideText(widget.title, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusInfo),
                 const Spacer(),
                 ClideText('↑↓ · 1-${widget.models.length} · Enter · Esc', fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
               ],
@@ -152,7 +169,7 @@ class _ModelPickerCardState extends State<ModelPickerCard> {
 
   Widget _row(SurfaceTokens tokens, int i) {
     final m = widget.models[i];
-    final current = modelOptionIsCurrent(m, widget.currentModel);
+    final current = widget.isCurrent(m, widget.currentModel);
     final highlighted = i == _highlight;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),

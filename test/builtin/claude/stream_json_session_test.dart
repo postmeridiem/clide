@@ -640,6 +640,15 @@ void main() {
     expect(statuses.last.permissionMode, 'plan', reason: 'only ExitPlanMode exits plan mode');
   });
 
+  test('noteEffort merges the effort level into the status (T-412)', () async {
+    proc.emit(initEvent());
+    await Future<void>.delayed(Duration.zero);
+    session.noteEffort('xhigh');
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.effort, 'xhigh');
+    expect(statuses.last.model, 'claude-opus-4-7'); // merge, not replace
+  });
+
   test('addLocalNotice emits a synthetic clide item and sends nothing (T-411)', () async {
     final before = proc.writes.length;
     session.addLocalNotice('/status is a Claude Code TUI command');

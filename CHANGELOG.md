@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`/effort` works in the Claude pane.** With a level (`/effort xhigh`) the
+  session restarts in place carrying `--effort` — resume keeps the
+  conversation; bare `/effort` opens a picker with the five levels and the
+  current one marked. The active effort shows in the session status. (T-412)
 - **TUI-only slash commands get a helpful notice instead of failing.** A typed
   `/effort`, `/status`, `/permissions`, … no longer errors raw from the CLI or
   leaks to the model as literal text — clide routes known TUI-only commands to

@@ -32,8 +32,10 @@ bool isKnownSlashCommand(String text, Iterable<String> known) {
 /// transcript reader can't follow, so clide owns the semantics (T-156).
 /// `/fork` branches the current session into a new pane (T-172). `/model`
 /// is interactive in the CLI's TUI only — forwarded it does nothing — so
-/// clide owns it as a set_model control request / picker (T-408).
-const Set<String> kClideOwnedCommands = {'clear', 'resume', 'fork', 'model'};
+/// clide owns it as a set_model control request / picker (T-408). `/effort`
+/// has no control subtype, so clide owns it as a respawn-with-resume
+/// carrying `--effort` (T-412).
+const Set<String> kClideOwnedCommands = {'clear', 'resume', 'fork', 'model', 'effort'};
 
 /// The clide-owned command in [text] (a single-line leading-slash token in
 /// [kClideOwnedCommands]), or null.
@@ -64,7 +66,7 @@ enum SlashRoute {
 /// model as literal text). Value = the clide-native pointer shown in the
 /// notice card. Commands clide later implements move to [kClideOwnedCommands].
 const Map<String, String> kTuiOnlyCommands = {
-  'effort': 'the session effort level is set at spawn time; clide support is tracked in T-412',
+  'effort': '', // owned (T-412) — only routes here if ever removed from owned
   'status': 'session status lives in the Claude sidebar (Activity tab)',
   'cost': 'cost and context usage live in the Claude sidebar (Activity tab)',
   'context': '', // advertised on current CLIs — only routes here on older ones

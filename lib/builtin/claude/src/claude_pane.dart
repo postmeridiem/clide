@@ -91,6 +91,11 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// (T-408). An open prompt takes precedence; the picker shows once it
   /// resolves.
   bool _modelPickerOpen = false;
+  bool _effortPickerOpen = false;
+
+  /// Effort level this pane's session runs at (`--effort`, T-412). Null =
+  /// the CLI default. Set by /effort; carried by every respawn.
+  String? _effort;
 
   bool _spawned = false;
 
@@ -249,6 +254,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _modelErrorSub?.cancel();
     _modelErrorSub = null;
     _modelPickerOpen = false;
+    _effortPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old repo's session
     _conversation = null;
     _session = null;
@@ -296,7 +302,14 @@ class _ClaudePaneState extends State<ClaudePane> {
       _sessionId ??= freshSessionId();
       try {
         managed = await orch.spawn(
-          SpawnSpec(id: _orchId, role: 'fork ${widget.secondaryIndex}', sessionId: _sessionId!, cwd: repoRoot, forkSourceSessionId: forkSource),
+          SpawnSpec(
+            id: _orchId,
+            role: 'fork ${widget.secondaryIndex}',
+            sessionId: _sessionId!,
+            cwd: repoRoot,
+            forkSourceSessionId: forkSource,
+            effort: _effort,
+          ),
         );
       } catch (e) {
         if (mounted) setState(() => _error = 'Could not start fork: $e');
@@ -327,6 +340,7 @@ class _ClaudePaneState extends State<ClaudePane> {
             cwd: repoRoot,
             resume: resume,
             transcriptPath: resume ? transcriptFile : null,
+            effort: _effort,
           ),
         );
       } catch (e) {
@@ -339,6 +353,9 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     _session = managed.session;
     _conversation = managed.conversation;
+    // The wire never reports effort — record what this session was spawned
+    // with so the status line / sidebar can show it (T-412).
+    if (_effort != null) managed.session.noteEffort(_effort!);
     // Diagnostic (T-274 follow-up): record how this pane bound its session —
     // a fresh spawn vs connecting to existing on-disk history (the seed read
     // from the transcript/sidecar). Surfaces the resume path in `make run`.
@@ -397,6 +414,9 @@ class _ClaudePaneState extends State<ClaudePane> {
       case 'model':
         _modelCommand(slashCommandArg(text) ?? '');
         return;
+      case 'effort':
+        _effortCommand(slashCommandArg(text) ?? '');
+        return;
     }
     // Route the rest (T-411): a known TUI-only builtin never reaches the
     // session — forwarded it would error (or, un-advertised, bracket-paste to
@@ -431,6 +451,41 @@ class _ClaudePaneState extends State<ClaudePane> {
     _composerFocus.requestFocus();
   }
 
+  /// clide-owned `/effort` (T-412): with a level, respawn-with-resume carrying
+  /// `--effort`; bare, open the picker. No set_effort control subtype exists
+  /// (probed 2.1.175), so the respawn IS the mechanism — resume keeps the
+  /// conversation, only the process restarts.
+  void _effortCommand(String arg) {
+    if (_session == null) return;
+    if (arg.isEmpty) {
+      setState(() => _effortPickerOpen = true);
+      return;
+    }
+    if (!kEffortLevels.any((l) => l.value == arg)) {
+      _session!.addLocalNotice('unknown effort "$arg" — levels: ${kEffortLevels.map((l) => l.value).join(', ')}');
+      return;
+    }
+    _setEffort(arg);
+  }
+
+  void _pickEffort(String value) {
+    _closeEffortPicker();
+    _setEffort(value);
+  }
+
+  void _closeEffortPicker() {
+    setState(() => _effortPickerOpen = false);
+    _composerFocus.requestFocus();
+  }
+
+  void _setEffort(String level) {
+    final sid = _sessionId;
+    if (sid == null) return;
+    _effort = level;
+    _kernel?.notify.info('effort $level — restarting the session to apply', title: 'effort');
+    unawaited(_respawnWithSession(sid));
+  }
+
   /// Record a submitted prompt in the active session's history (T-163),
   /// de-duping immediate repeats. Empty/whitespace prompts are skipped.
   void _appendHistory(String text) {
@@ -455,7 +510,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// background tap must never pull focus from (or resurrect) the composer
   /// over an open prompt.
   void _focusComposerOnTap() {
-    if (_session?.pendingPrompt != null || _modelPickerOpen) return;
+    if (_session?.pendingPrompt != null || _modelPickerOpen || _effortPickerOpen) return;
     _composerFocus.requestFocus();
   }
 
@@ -530,6 +585,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _modelErrorSub?.cancel();
     _modelErrorSub = null;
     _modelPickerOpen = false;
+    _effortPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old session
     // Erase only after the process is dead, so claude isn't mid-write.
     final root = _repoRoot;
@@ -611,6 +667,16 @@ class _ClaudePaneState extends State<ClaudePane> {
                   currentModel: _status.model,
                   onPick: _pickModel,
                   onCancel: _closeModelPicker,
+                )
+              else if (_effortPickerOpen && _session != null)
+                ModelPickerCard(
+                  title: 'effort',
+                  models: kEffortLevels,
+                  currentModel: _status.effort,
+                  // Exact match — containment would mark `high` inside `xhigh`.
+                  isCurrent: (o, c) => c != null && o.value == c,
+                  onPick: _pickEffort,
+                  onCancel: _closeEffortPicker,
                 )
               else
                 StreamBuilder<bool>(
