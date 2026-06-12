@@ -137,6 +137,10 @@ You might also want, project-permitting:
 - [D-93: clide writes no directories of its own into the workspace](decisions/architecture.md#d-93-clide-writes-no-directories-of-its-own-into-the-workspace) — _architecture_
 - [D-94: Workspace mode is a first-class, extensible declared capability](decisions/architecture.md#d-94-workspace-mode-is-a-first-class-extensible-declared-capability) — _architecture_
 - [D-95: Workspace validity and onboarding flow](decisions/architecture.md#d-95-workspace-validity-and-onboarding-flow) — _architecture_
+- [D-96: Remote-execution footprint — no-install ssh-exec](decisions/architecture.md#d-96-remote-execution-footprint--no-install-ssh-exec) — _architecture_
+- [D-97: ssh:// workspace URI + system-ssh auth](decisions/architecture.md#d-97-ssh-workspace-uri--system-ssh-auth) — _architecture_
+- [D-98: Remote-tool contract + connect preflight](decisions/architecture.md#d-98-remote-tool-contract--connect-preflight) — _architecture_
+- [D-99: Remote session identity keyed on (host, workspace)](decisions/architecture.md#d-99-remote-session-identity-keyed-on-host-workspace) — _architecture_
 
 ## Open questions
 
@@ -156,7 +160,6 @@ You might also want, project-permitting:
 - [Q-17: Icon set growth](questions/process.md#q-17-icon-set-growth) — _process_
 - [Q-18: Theme hot-reload in release builds](questions/process.md#q-18-theme-hot-reload-in-release-builds) — _process_
 - [Q-20: Kernel DB service — namespaced SQL access?](questions/process.md#q-20-kernel-db-service--namespaced-sql-access) — _process_
-- [Q-23: SSH-remote development — run clide against a remote workspace](questions/architecture.md#q-23-ssh-remote-development--run-clide-against-a-remote-workspace) — _architecture_
 - [Q-25: Body text face — mono everywhere vs Josefin Sans UI + mono code](questions/architecture.md#q-25-body-text-face--mono-everywhere-vs-josefin-sans-ui--mono-code) — _architecture_
 - [Q-26: Small screen layout (< 1000px)](questions/architecture.md#q-26-small-screen-layout--1000px) — _architecture_
 - [Q-27: Two-editor split](questions/architecture.md#q-27-two-editor-split) — _architecture_
@@ -189,6 +192,7 @@ You might also want, project-permitting:
 - [Q-19: (withdrawn)](questions/process.md#q-19-withdrawn) — _process_
 - [Q-21: Pql absorbs planning vs keeps separate](questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate) — _architecture_
 - [Q-22: Ticket persistence strategy](questions/architecture.md#q-22-ticket-persistence-strategy) — _architecture_
+- [Q-23: SSH-remote development — run clide against a remote workspace](questions/architecture.md#q-23-ssh-remote-development--run-clide-against-a-remote-workspace) — _architecture_
 - [Q-28: Terminal strip scope — shell only or logs/errors/tests](questions/architecture.md#q-28-terminal-strip-scope--shell-only-or-logserrorstests) — _architecture_
 - [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
 - [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
