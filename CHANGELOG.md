@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-06-12
+
 ### Added
 
 - **Live tail inside expanded Bash activity cards.** A Bash card that follows a
