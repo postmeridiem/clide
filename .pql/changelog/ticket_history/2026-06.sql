@@ -4146,3 +4146,4 @@ Plan:
 DECSTR (`CSI ! p`, soft reset) is a separate, smaller follow-up — same intermediates mechanism, maps to a subset of the existing reset paths; file separately if wanted.
 
 Done when: claude/vim cursor-shape changes (insert vs normal mode) render as bar vs block in the terminal pane.', NULL, '2026-06-12 00:52:40', '2026-06-12 00:52:40', '2026-06-12 00:52:40', NULL, 'fd38b932757c81de62d693d72b883448', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB3DKQQJ583944DG8561VQ3G', 'status', 'backlog', 'done', NULL, '2026-06-12 01:04:52', '2026-06-12 01:04:52', '2026-06-12 01:04:52', NULL, '66a692e143b6a4be1b4845825e9e16ad', 2) ON CONFLICT(hash) DO NOTHING;

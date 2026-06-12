@@ -191,7 +191,7 @@ class KernelServices {
         isolateClient ??
         (daemonClientFactory != null
             ? daemonClientFactory(log, events, arrangement, panels)
-            : DaemonClient(
+            : DaemonClient.unixSocket(
                 // Legacy socket-client fallback — kept until T-127
                 // replaces it with the in-process socket loopback.
                 // Today nothing in production hits this branch

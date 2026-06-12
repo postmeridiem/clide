@@ -24,6 +24,7 @@ export 'src/pql/client.dart' show PqlClient, PqlException;
 export 'src/ipc/envelope.dart';
 export 'src/ipc/paths.dart';
 export 'src/ipc/schema_v1.dart';
+export 'src/ipc/transport.dart' show DaemonTransport, DaemonConnection, LocalSocketTransport;
 export 'src/panes/event_sink.dart';
 export 'src/panes/pane.dart' show Pane, PaneKind;
 export 'src/util/value_stream.dart' show ValueStream;

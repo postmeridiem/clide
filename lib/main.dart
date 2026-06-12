@@ -132,8 +132,8 @@ Future<void> main() async {
   McpServer? mcpServer;
   final ipcLog = Logger();
 
-  // IPC-server swaps must run one-at-a-time — see the swapIpcServer wrapper
-  // below doSwapIpcServer for why. (T-352)
+  // Backend swaps must run one-at-a-time — see the swapBackend wrapper
+  // below doSwapBackend for why. (T-352)
   Future<void> swapChain = Future<void>.value();
 
   // Teardown of the service set behind the currently-served dispatcher
@@ -142,7 +142,7 @@ Future<void> main() async {
   // workspace's watchers into the new one's bus (T-367).
   Future<void> Function()? activeSubsystemTeardown;
 
-  Future<void> doSwapIpcServer(DaemonDispatcher dispatcher, Future<void> Function() teardown, Directory workRoot) async {
+  Future<void> doSwapBackend(DaemonDispatcher dispatcher, Future<void> Function() teardown, Directory workRoot) async {
     if (kIsWeb) return;
     // Already serving this exact workspace? Reuse the live server.
     // The startup factory binds the launch CWD, then the project-open
@@ -216,8 +216,8 @@ Future<void> main() async {
   // load (stale/global pql.db) yet working after a manual refresh. Chaining
   // every swap makes them apply in call order; the repo swap is issued last
   // and therefore wins. (T-352)
-  Future<void> swapIpcServer(DaemonDispatcher dispatcher, Future<void> Function() teardown, Directory workRoot) {
-    final next = swapChain.then((_) => doSwapIpcServer(dispatcher, teardown, workRoot));
+  Future<void> swapBackend(DaemonDispatcher dispatcher, Future<void> Function() teardown, Directory workRoot) {
+    final next = swapChain.then((_) => doSwapBackend(dispatcher, teardown, workRoot));
     // A failed swap must not break the chain for the next one.
     swapChain = next.catchError((Object _) {});
     return next;
@@ -350,20 +350,20 @@ Future<void> main() async {
             final workRoot = startupWorkRoot;
             final (dispatcher, teardown) = buildDispatcher(events, toolchain, workRoot, arrangement, panels);
             // Build the client at the workspace's socket path. The
-            // server is started below (swapIpcServer) which the
+            // server is started below (swapBackend) which the
             // client will then auto-connect to via its reconnect
             // loop. autoStartDaemonClient:false means we own the
             // lifecycle here.
-            final client = DaemonClient(socketPath: workspaceSocketPath(workRoot.path), log: log, events: events);
+            final client = DaemonClient.unixSocket(socketPath: workspaceSocketPath(workRoot.path), log: log, events: events);
             ipcClient = client;
             // start() synchronously marks the client "connecting" (so
             // requests issued during the startup window park for the
             // socket instead of failing) and arms the reconnect loop.
-            // swapIpcServer then binds the server and reconnectAt makes
+            // swapBackend then binds the server and reconnectAt makes
             // the connect immediate. _connect's already-connected guard
             // keeps these two paths from opening a second socket.
             unawaited(client.start());
-            unawaited(swapIpcServer(dispatcher, teardown, workRoot));
+            unawaited(swapBackend(dispatcher, teardown, workRoot));
             return client;
           },
     onProjectOpen: kIsWeb
@@ -374,7 +374,7 @@ Future<void> main() async {
             final panels = kernelPanels;
             if (bus == null || arrangement == null || panels == null) return;
             final (dispatcher, teardown) = buildDispatcher(bus, toolchain, Directory(path), arrangement, panels);
-            await swapIpcServer(dispatcher, teardown, Directory(path));
+            await swapBackend(dispatcher, teardown, Directory(path));
           },
   );
   // Expose the reader nav to the `clide status` snapshot (T-221). Boot
