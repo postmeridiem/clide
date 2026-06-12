@@ -339,4 +339,93 @@ void main() {
     expect(created, hasLength(1));
     expect(proc.killed, isFalse);
   });
+
+  // ---- T-410 epic: bus-driven owned commands (T-412/T-413/T-414) ----------
+  // The sidebar controls publish slash-command text on builtin.claude/command;
+  // the primary pane executes it through _send — the same path as typing.
+  group('command bus → owned slash commands', () {
+    Future<void> command(WidgetTester tester, String text) => act(tester, () => f.services.messages.publish('builtin.claude', 'command', {'text': text}));
+
+    testWidgets('/effort <level> respawns the session carrying --effort (T-412)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      expect(created, hasLength(1));
+
+      await command(tester, '/effort xhigh');
+
+      expect(created, hasLength(2), reason: 'effort change = respawn');
+      final args = spawnArgs.last;
+      final i = args.indexOf('--effort');
+      expect(i, isNonNegative, reason: 'args: $args');
+      expect(args[i + 1], 'xhigh');
+      // The pane records the level on the session status (the wire never
+      // reports effort).
+      expect(orch.byId('primary')!.session.status.effort, 'xhigh');
+    });
+
+    testWidgets('/effort with an unknown level notices and does NOT respawn (T-412)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/effort warp9');
+      expect(created, hasLength(1));
+      expect(find.textContaining('unknown effort "warp9"'), findsOneWidget);
+    });
+
+    testWidgets('bare /effort opens the effort picker in the interaction zone (T-412)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/effort');
+      expect(find.byType(ModelPickerCard), findsOneWidget);
+      expect(find.text('effort'), findsOneWidget); // the picker title
+    });
+
+    testWidgets('/permissions <mode> sends set_permission_mode (T-413)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/permissions plan');
+      final proc = created.single;
+      expect(proc.writes.any((w) => w.contains('set_permission_mode') && w.contains('"plan"')), isTrue, reason: proc.writes.join('\n'));
+    });
+
+    testWidgets('bare /permissions opens the mode picker (T-413)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/permissions');
+      expect(find.byType(ModelPickerCard), findsOneWidget);
+      expect(find.text('permissions'), findsOneWidget);
+    });
+
+    testWidgets('/status and /config navigate the Claude sidebar (T-413)', (tester) async {
+      final tabs = <String?>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.claude', channel: 'meta.tab').listen((m) => tabs.add(m.data['tab'] as String?));
+      addTearDown(sub.cancel);
+
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/status');
+      await command(tester, '/config');
+      await command(tester, '/mcp');
+      expect(tabs, ['activity', 'config', 'config']);
+    });
+
+    testWidgets('/memory opens CLAUDE.md in the editor (T-413)', (tester) async {
+      final opened = <String?>[];
+      f.ipc.stub('editor.open', (args) async {
+        opened.add(args['path'] as String?);
+        return IpcResponse.ok(id: '', data: const {});
+      });
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/memory');
+      expect(opened, ['/repo-a/CLAUDE.md']);
+    });
+
+    testWidgets('/help renders a local clide summary card (T-413)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/help');
+      expect(find.textContaining('clide commands:'), findsOneWidget);
+      expect(find.text('clide'), findsOneWidget); // synthetic card attribution
+    });
+
+    testWidgets('a TUI-only command becomes a notice card, never reaching the session (T-411)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      final before = created.single.writes.length;
+      await command(tester, '/doctor');
+      expect(find.textContaining('/doctor is a Claude Code TUI command'), findsOneWidget);
+      expect(created.single.writes.length, before, reason: 'nothing forwarded');
+    });
+  });
 }
