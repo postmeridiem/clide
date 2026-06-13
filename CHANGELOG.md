@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Vim normal-mode navigation works outside the editor.** Under the vim preset,
+  a focused file tree or conversation now responds to j/k, ctrl+d/ctrl+u, gg/G,
+  and (tree) h/l/o — a selection cursor in the tree, scrolling in the
+  conversation. Each pane runs its own sequence matcher; an `editor.focused`
+  flag keeps these keys as buffer motions while the editor holds focus. (T-406)
 - **Claude Code Workflow runs surface in the conversation and sidebar.** A
   `Workflow` tool-use renders a dedicated run card — phase groups, per-agent
   rows with live spinner/check status, usage, and the script — driven by the

@@ -63,6 +63,43 @@ bindings:
   - intent: text.scaleReset
     keys: [ctrl+0, meta+0]
 
+  # ---- Pane navigation (non-editor panes) ------------------------------
+  # When a non-editor pane holds focus (file tree, conversation, lists), the
+  # same motion keys mean NAVIGATION, not buffer edits (T-406). The
+  # `!editor.focused` guard keeps these out of the editor's way; the editor
+  # publishes `editor.focused` while it has focus. These MUST precede the
+  # editor motions below — the resolver takes the first matching binding in
+  # file order, so with a pane focused (editor.focused false) nav wins, and
+  # with the editor focused the `!editor.focused` clause fails and the buffer
+  # motion below wins. Each pane runs its own SequenceMatcher (PaneKeyNav).
+  - intent: nav.down
+    keys: j
+    when: "vim.normal && !editor.focused"
+  - intent: nav.up
+    keys: k
+    when: "vim.normal && !editor.focused"
+  - intent: nav.pageDown
+    keys: ctrl+d
+    when: "vim.normal && !editor.focused"
+  - intent: nav.pageUp
+    keys: ctrl+u
+    when: "vim.normal && !editor.focused"
+  - intent: nav.top
+    keys: "g g" # gg
+    when: "vim.normal && !editor.focused"
+  - intent: nav.bottom
+    keys: shift+g # G
+    when: "vim.normal && !editor.focused"
+  - intent: nav.expandOrRight
+    keys: l
+    when: "vim.normal && !editor.focused"
+  - intent: nav.collapseOrLeft
+    keys: h
+    when: "vim.normal && !editor.focused"
+  - intent: nav.activate
+    keys: [o, enter]
+    when: "vim.normal && !editor.focused"
+
   # ---- Mode transitions ------------------------------------------------
   - intent: command:vim.mode.visual
     keys: v
