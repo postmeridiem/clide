@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Workspace tab cycling with ctrl+pagedown / ctrl+pageup.** New
+  `workspace.tab.next` / `workspace.tab.previous` commands cycle the workspace
+  tab strip with wraparound, bound across every preset. (T-405)
 - **Vim normal-mode navigation works outside the editor.** Under the vim preset,
   a focused file tree or conversation now responds to j/k, ctrl+d/ctrl+u, gg/G,
   and (tree) h/l/o — a selection cursor in the tree, scrolling in the

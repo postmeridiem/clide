@@ -53,6 +53,23 @@ class DefaultLayoutExtension extends ClideExtension {
     // Editor split (D-049, D-054)
     CommandContribution(id: 'editor.open', command: 'editor.open', title: 'Open Editor', defaultBinding: 'ctrl+e', run: _openEditor),
     CommandContribution(id: 'editor.close', command: 'editor.close', title: 'Close Editor', defaultBinding: 'ctrl+w', run: _closeEditor),
+    // Workspace tab cycling (T-405). Preset-neutral ctrl+pagedown/up across every
+    // preset; the vim preset additionally binds gt/gT to these (T-405 part 2,
+    // once a global multi-chord matcher lands — see T-404).
+    CommandContribution(
+      id: 'workspace.tab.next',
+      command: 'workspace.tab.next',
+      title: 'Next Workspace Tab',
+      defaultBinding: 'ctrl+pagedown',
+      run: _nextWorkspaceTab,
+    ),
+    CommandContribution(
+      id: 'workspace.tab.previous',
+      command: 'workspace.tab.previous',
+      title: 'Previous Workspace Tab',
+      defaultBinding: 'ctrl+pageup',
+      run: _prevWorkspaceTab,
+    ),
     // Sidebar section switching (D-054): alt+1 through alt+5
     for (var i = 0; i < 5; i++)
       CommandContribution(
@@ -193,6 +210,27 @@ class DefaultLayoutExtension extends ClideExtension {
       ctx.focus.setActive(slot: Slots.workspace, contributionId: active);
     }
     return IpcResponse.ok(id: '', data: {'focused': 'workspace'});
+  }
+
+  Future<IpcResponse> _nextWorkspaceTab(List<String> args) => _cycleWorkspaceTab(forward: true);
+  Future<IpcResponse> _prevWorkspaceTab(List<String> args) => _cycleWorkspaceTab(forward: false);
+
+  /// Cycle the workspace tab strip with wraparound (T-405). A no-op when there
+  /// are fewer than two tabs. Activating a tab also focuses the workspace slot
+  /// so the newly-shown pane takes keyboard focus.
+  Future<IpcResponse> _cycleWorkspaceTab({required bool forward}) async {
+    final ctx = _ctx;
+    if (ctx == null) return _notActivated();
+    final tabs = ctx.panels.tabsFor(Slots.workspace);
+    if (tabs.length < 2) return IpcResponse.ok(id: '', data: const {'cycled': false});
+    final active = ctx.panels.activeTabIn(Slots.workspace);
+    final cur = tabs.indexWhere((t) => t.id == active);
+    final start = cur < 0 ? 0 : cur;
+    final next = (start + (forward ? 1 : -1) + tabs.length) % tabs.length;
+    final nextId = tabs[next].id;
+    ctx.panels.activateTab(Slots.workspace, nextId);
+    ctx.focus.setActive(slot: Slots.workspace, contributionId: nextId);
+    return IpcResponse.ok(id: '', data: {'active': nextId});
   }
 
   Future<IpcResponse> _focusRight(List<String> args) async {
