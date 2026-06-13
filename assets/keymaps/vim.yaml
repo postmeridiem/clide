@@ -100,6 +100,34 @@ bindings:
     keys: [o, enter]
     when: "vim.normal && !editor.focused"
 
+  # ---- ctrl+w window-command family (T-404) ----------------------------
+  # Multi-chord sequences resolved by the GLOBAL matcher (root_shell), so they
+  # work from any focus. Bare ctrl+w still closes the editor after the ambiguity
+  # timeout (the editor.close binding below / contributions layer). The 3-column
+  # clide layout approximates vim's window grid: h/l focus left/right panels,
+  # j toggles the dock, o is "only" (focus mode), q/c close the editor.
+  - intent: command:panel.focus.left
+    keys: ctrl+w h
+    when: "vim.normal || vim.visual"
+  - intent: command:panel.focus.right
+    keys: ctrl+w l
+    when: "vim.normal || vim.visual"
+  - intent: command:dock.toggle
+    keys: ctrl+w j
+    when: "vim.normal || vim.visual"
+  - intent: focus.nextPanel
+    keys: [ctrl+w w, ctrl+w ctrl+w]
+    when: "vim.normal || vim.visual"
+  - intent: focus.previousPanel
+    keys: ctrl+w shift+w # ctrl+w W
+    when: "vim.normal || vim.visual"
+  - intent: command:panel.focusMode
+    keys: ctrl+w o
+    when: "vim.normal || vim.visual"
+  - intent: command:editor.close
+    keys: [ctrl+w q, ctrl+w c]
+    when: "vim.normal || vim.visual"
+
   # ---- Mode transitions ------------------------------------------------
   - intent: command:vim.mode.visual
     keys: v

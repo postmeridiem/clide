@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Vim `ctrl+w` window commands.** Under the vim preset, `ctrl+w` followed by
+  h/l (focus left/right panel), j (toggle dock), w / ctrl+w (cycle panels),
+  shift+w (cycle back), o (focus mode), or q/c (close editor). A new global
+  multi-chord matcher in the shell resolves these from any focus; bare `ctrl+w`
+  still closes the editor after the ambiguity timeout. (T-404)
 - **Workspace tab cycling with ctrl+pagedown / ctrl+pageup.** New
   `workspace.tab.next` / `workspace.tab.previous` commands cycle the workspace
   tab strip with wraparound, bound across every preset. (T-405)

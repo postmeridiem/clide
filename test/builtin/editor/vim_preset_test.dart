@@ -126,4 +126,57 @@ void main() {
       expect(_cmd(resolve('j', visual)), 'editor.vim.down');
     });
   });
+
+  group('ctrl+w window family (T-404)', () {
+    SequenceMatcher matcher([Keymap? k]) => SequenceMatcher(keymap: () => k ?? km, context: () => normal, captureCounts: false);
+
+    Intent? seq(SequenceMatcher m, List<String> chords) {
+      SeqResult? r;
+      for (final c in chords) {
+        r = m.feed(KeyChord.parse(c));
+      }
+      return r?.intent;
+    }
+
+    test('ctrl+w h/l/j/o resolve to the panel commands', () {
+      expect(_cmd(seq(matcher(), ['ctrl+w', 'h'])), 'panel.focus.left');
+      expect(_cmd(seq(matcher(), ['ctrl+w', 'l'])), 'panel.focus.right');
+      expect(_cmd(seq(matcher(), ['ctrl+w', 'j'])), 'dock.toggle');
+      expect(_cmd(seq(matcher(), ['ctrl+w', 'o'])), 'panel.focusMode');
+    });
+
+    test('ctrl+w w and ctrl+w ctrl+w cycle panels; shift+w cycles back', () {
+      expect(seq(matcher(), ['ctrl+w', 'w']), isA<FocusNextPanelIntent>());
+      expect(seq(matcher(), ['ctrl+w', 'ctrl+w']), isA<FocusNextPanelIntent>());
+      expect(seq(matcher(), ['ctrl+w', 'shift+w']), isA<FocusPreviousPanelIntent>());
+    });
+
+    test('ctrl+w q and ctrl+w c close the editor', () {
+      expect(_cmd(seq(matcher(), ['ctrl+w', 'q'])), 'editor.close');
+      expect(_cmd(seq(matcher(), ['ctrl+w', 'c'])), 'editor.close');
+    });
+
+    test('bare ctrl+w is a live prefix; the timeout flush fires editor.close', () {
+      // editor.close's bare ctrl+w binding comes from the default-layout
+      // contributions layer, which sits under the preset in the real app.
+      final layered = Keymap([
+        KeymapLayer.fromYaml(File('assets/keymaps/vim.yaml').readAsStringSync()),
+        KeymapLayer(
+          name: 'contrib',
+          bindings: [KeymapBinding.chord(KeyChord.parse('ctrl+w'), intent: const InvokeCommandIntent('editor.close'))],
+        ),
+      ]);
+      final m = matcher(layered);
+      expect(m.feed(KeyChord.parse('ctrl+w')).outcome, SeqOutcome.pending);
+      expect(_cmd(m.flush().intent), 'editor.close'); // bare ctrl+w → close, after the wait
+    });
+
+    test('ctrl+w sequences need vim.normal/visual — inert under no vim scope', () {
+      final m = SequenceMatcher(keymap: () => km, context: () => const {}, captureCounts: false);
+      // With no vim scope, ctrl+w isn't a sequence prefix here, so the first
+      // chord doesn't pend on the family.
+      expect(m.feed(KeyChord.parse('ctrl+w')).outcome, isNot(SeqOutcome.fired));
+      expect(seq(matcher(km), ['ctrl+w', 'h']), isNotNull); // but it does under vim.normal
+    });
+  });
 }
