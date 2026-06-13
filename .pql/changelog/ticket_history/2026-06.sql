@@ -4582,3 +4582,87 @@ RECOMMENDED SEQUENCING:
 4. T-407 (ex `:` overlay) after T-404, so :q reuses whatever editor.close semantics T-404 settles (note: editor.close closes the whole split, not a single tab; and NO editor.save command exists yet — T-407 must add one).
 
 All four share assets/keymaps/vim.yaml and the `g`-prefix space (g g docStart vs g t) — coordinate the shared-prefix matcher tests.', NULL, '2026-06-12 20:05:16', '2026-06-12 20:05:16', '2026-06-12 20:05:16', NULL, 'a7ce9c91b076f4f1ba94691d8cbcd631', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'description', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?
+
+--- DECISION: :q / ZZ close semantics (2026-06-12, user) ---
+RESOLVED (was the open "split vs tab" question): `:q` closes the ACTIVE TAB, not the whole editor split. After closing it focuses the next editor tab, so repeated `:q` walks the tabs and the LAST `:q` ends up collapsing the split (the "ends up doing editor.close in the end" behavior the user wants).
+
+KEY MECHANISM (verified in code) — this falls out of existing wiring, so `:q` should NOT map to command:editor.close at all:
+- `:q` → EditorController.closeBuffer(activeId) (lib/builtin/editor/src/editor_controller.dart:90) — the same per-tab close the tab-strip X already uses (editor_view.dart:306-322 onCloseRequested).
+- Server registry close(id) (lib/src/editor/registry.dart:178-187) removes the buffer and, when it was active, re-activates another and emits editor.active-changed; when the LAST buffer closes it emits editor.active-changed{id:null}.
+- The editor extension already turns that null-active event into arrangement.closeEditor() (lib/builtin/editor/src/extension.dart:22-45 → lib/kernel/src/panels/arrangement.dart:108-112). So the split self-collapses on the final tab — no explicit editor.close needed, and command:editor.close (the whole-split close, default_layout extension.dart:244-252) stays the ctrl+w binding only.
+
+THE ONE REAL GAP: registry close() re-focuses `_buffers.values.first` (registry.dart:182), i.e. the FIRST remaining buffer, not the NEXT tab in visual order. Vim `:q` wants focus to move to the tab to the RIGHT of the closed one (else the LEFT if it was last). Two options:
+  (a) UI-side: before closeBuffer, compute the next tab from _tabs.entries (editor_view.dart) and activate it, then close — no protocol change; keeps tab-visual-order knowledge in the view that owns it.
+  (b) Server-side: teach registry.close() a focus-direction (next-not-first), so the tab-strip X button also gets vim-correct next-focus. Wider blast radius (protocol + all close callers) but fixes the focus order everywhere, not just for :q.
+RECOMMEND (a) for the :q scope, and file (b) separately if we want the X button to match. Confirm before building.
+
+ACCEPTANCE CRITERIA (supersede the earlier ":q closes the split" line):
+- `:q` closes the active editor tab; focus moves to the next tab (right, else left). With one tab open, `:q` closes it and the editor split collapses (via the existing null-active → closeEditor path) — no separate editor.close dispatch.
+- N tabs open + N `:q` in a row closes them left-to-focus-order and ends with the split collapsed.
+- `:wq` / `:x` / `ZZ` save the active buffer then run the same close-active-tab path.
+- `:q` with no editor buffer active (tree/conversation focused, editor closed) no-ops or flashes — does NOT touch other panes (still an open question below).
+
+STILL OPEN: when no editor buffer is active, does `:q` no-op, flash, or close the focused workspace tab? (Cross-pane angle — keep v1 editor-targeted.)', NULL, '2026-06-13 11:39:41', '2026-06-13 11:39:41', '2026-06-13 11:39:41', NULL, '658b0d19c0265ea4d753c1d8e9d52dcf', 2) ON CONFLICT(hash) DO NOTHING;
