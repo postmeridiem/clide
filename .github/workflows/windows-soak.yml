@@ -1,0 +1,59 @@
+name: windows-soak
+
+# ConPTY orphan-leak soak on a GitHub-hosted Windows runner — the cheap
+# alternative to a dedicated Windows VM. The freeze hypothesis (T-424) is that
+# each WindowsPty.start() leaks its conhost/OpenConsole host because the child
+# is not in a kill-on-close Job Object; across many runs those hosts pile up
+# until the box starves. tools/windows-verify/soak-conpty.ps1 reproduces that
+# WITHOUT crashing: it runs the ConPTY suite many times IN ONE job and counts
+# the hosts that survive each dart.exe exit. A throwaway runner is fine — we
+# watch the accumulation (the leading indicator), not the reboot. The repeated
+# runs happen inside this single job, so the leak can build up here even though
+# the runner is discarded afterwards (cf. the note in windows.yml, which only
+# runs the suite once).
+#
+# Diagnostic, never a gate: it always exits 0 and just publishes the verdict +
+# CSV. Runs on demand (workflow_dispatch) and when the soak kit itself changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: How many times to run the ConPTY suite
+        default: "25"
+  push:
+    branches: [windows-support]
+    paths:
+      - tools/windows-verify/**
+      - .github/workflows/windows-soak.yml
+
+jobs:
+  conpty-soak:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter --version
+      - run: flutter pub get
+      - name: ConPTY orphan-leak soak
+        shell: pwsh
+        run: |
+          $iters = "${{ github.event.inputs.iterations }}"
+          if (-not $iters) { $iters = "25" }
+          tools/windows-verify/soak-conpty.ps1 -Iterations ([int]$iters) -OutDir "$env:GITHUB_WORKSPACE/soak-out"
+      - name: Publish verdict to job summary
+        if: always()
+        shell: pwsh
+        run: |
+          $s = Get-ChildItem "$env:GITHUB_WORKSPACE/soak-out/*.summary.txt" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($s) { Get-Content $s.FullName | Add-Content $env:GITHUB_STEP_SUMMARY }
+      - name: Upload soak CSV + summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conpty-soak
+          path: soak-out
+          if-no-files-found: warn
