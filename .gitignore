@@ -58,6 +58,8 @@ tools/ui/.serve.pid
 /native/linux-x64/clide
 /native/macos-arm64/clide
 /native/macos-x64/clide
+/native/windows-x64/clide.exe
+/native/windows-x64/clide.obj
 
 # -- Test, coverage, profile output ------------------------------------
 *.test
