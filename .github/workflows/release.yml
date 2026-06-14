@@ -79,11 +79,26 @@ jobs:
     if: needs.version.outputs.fresh == 'true'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: changelog notes for this version
+        shell: bash
+        run: |
+          ver="${{ needs.version.outputs.version }}"
+          # Pull the entries under `## [<version>]` — the changelog cut that the
+          # version-bump commit lands per the changelog discipline — as the
+          # release body; fall back to a one-liner if the section is absent.
+          awk -v ver="$ver" '
+            $0 ~ "^## \\[" ver "\\]" {grab=1; next}
+            grab && /^## \[/ {exit}
+            grab {print}
+          ' CHANGELOG.md > release-notes.md
+          [ -s release-notes.md ] || echo "Release v$ver." > release-notes.md
       - uses: actions/download-artifact@v4
         with: { path: dist }
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: clide v${{ needs.version.outputs.version }}
-          files: dist/**/*
-          generate_release_notes: true
+          body_path: release-notes.md     # the version's CHANGELOG section
+          generate_release_notes: true    # + auto commit list appended
+          files: dist/**/*                # the built versioned bundles
