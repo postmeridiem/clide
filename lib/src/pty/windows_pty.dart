@@ -53,15 +53,29 @@ import 'pty_size.dart';
 // Everything from here to the `resolveExecutable` helper below is the
 // Windows-only ConPTY FFI path: Win32 structs, kernel32 bindings, and the
 // `WindowsPty` session that calls CreatePseudoConsole / CreateProcessW /
-// WaitForSingleObject. None of it can execute on the Linux CI runner that
-// produces the coverage report — there is no kernel32 to bind, so these
-// lines are structurally uncoverable off-Windows and would otherwise drag
-// the line-coverage gate down for code the gate's platform can't reach. The
-// pure, platform-agnostic spawn helpers (resolveExecutable / quoteArg /
-// composeEnvironmentBlock) sit AFTER the ignore-end below and ARE covered by
-// test/pty/windows_pty_test.dart on every platform. Behaviour of the FFI
-// path is validated on the Windows runner (windows.yml) and, end-to-end, in
-// the Windows VM soak (tools/windows-verify/).
+// WaitForSingleObject. The kernel32 symbols all resolve through one
+// `DynamicLibrary.open('kernel32.dll')` handle (below), which has no Linux
+// equivalent — so any method that touches a binding cannot even be ENTERED
+// on the ubuntu-latest runner that produces the coverage report, and the
+// syscall sites are genuinely uncoverable off-Windows.
+//
+// Honest caveat: this span is excluded at FILE granularity, but it is not
+// 100% syscall. A few fragments are pure input->output and COULD be unit-
+// tested on Linux if extracted into free helpers (the way the three pure
+// helpers below already were): the _Coord / _StartupInfoExW struct packing
+// and write()'s empty/length guard. They stay entangled here only because
+// they share a method with a kernel32 binding; T-431 tracks pulling them
+// (and the POSIX marshalling in native_pty.dart) into testable helpers and
+// shrinking this ignore span to the raw syscalls.
+//
+// The pure, platform-agnostic spawn helpers (resolveExecutable / quoteArg /
+// composeEnvironmentBlock) sit AFTER the ignore-end below and ARE covered on
+// every platform by test/pty/windows_pty_args_test.dart. The FFI path's
+// BEHAVIOUR — not its line coverage — is what the Windows runner validates:
+// windows.yml spawns real ConPTY children (start/write/resize/kill/errors)
+// but collects no coverage, so there is intentionally no line-coverage
+// metric for this span anywhere. End-to-end leak/handle correctness is
+// proven by the Windows VM soak (tools/windows-verify/).
 
 // -- structs ----------------------------------------------------------------
 
