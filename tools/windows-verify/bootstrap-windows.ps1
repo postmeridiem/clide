@@ -1,81 +1,102 @@
 <#
 .SYNOPSIS
-  Provision a Windows VM (or bare machine) with everything needed to build and
-  test clide's windows-support branch, then run the ConPTY soak.
+  Provision a fresh Windows machine (including a GCP Compute Engine Windows
+  Server instance) to build and test clide's windows-support branch, then run
+  the ConPTY soak. No winget dependency — works on Windows Server images that
+  don't ship the Store.
 
 .DESCRIPTION
-  Installs (via winget): Git, the Flutter SDK (brings Dart), and Visual Studio
-  2022 Build Tools with the C++ desktop workload — required for both the
-  ConPTY FFI path and the `clide.c` AF_UNIX CLI (ws2_32 / afunix). Then clones
-  the repo, checks out the branch, runs `flutter pub get`, and builds the C
-  client. Nothing here freezes the box; it just gets you to a runnable state.
+  Installs Git (via Chocolatey) and the Flutter SDK (direct from Google's
+  current stable — brings Dart). With -SkipVS it stops there: the ConPTY soak
+  only needs Flutter/Dart (windows_pty.dart loads kernel32 at runtime). Without
+  -SkipVS it also installs VS 2022 Build Tools (C++ workload) for
+  `flutter build windows` + the C CLI. Then clones + checks out the branch and
+  runs `flutter pub get`. Runs under Windows PowerShell 5.1 (no pwsh needed).
 
-  Run from an ELEVATED PowerShell (winget package installs need admin). After
-  it finishes, open a NEW shell so PATH updates take effect, then run
-  soak-conpty.ps1.
+  Run from an ELEVATED PowerShell (Chocolatey + machine PATH need admin). On a
+  fresh VM, fetch this script first:
+    iwr https://raw.githubusercontent.com/postmeridiem/clide/windows-support/tools/windows-verify/bootstrap-windows.ps1 -OutFile $env:TEMP\bootstrap.ps1
+    powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1 -SkipVS
 
-.PARAMETER RepoUrl   Git remote (default: the GitHub origin).
-.PARAMETER Branch    Branch to check out (default: windows-support).
-.PARAMETER Dest      Checkout directory (default: %USERPROFILE%\src\clide).
+.PARAMETER RepoUrl  Git remote (default: GitHub origin).
+.PARAMETER Branch   Branch to check out (default: windows-support).
+.PARAMETER Dest     Checkout directory (default: %USERPROFILE%\src\clide).
+.PARAMETER SkipVS   Skip VS Build Tools — enough for the ConPTY soak.
 #>
 [CmdletBinding()]
 param(
   [string] $RepoUrl = 'https://github.com/postmeridiem/clide.git',
   [string] $Branch  = 'windows-support',
-  [string] $Dest    = "$env:USERPROFILE\src\clide"
+  [string] $Dest    = "$env:USERPROFILE\src\clide",
+  [switch] $SkipVS
 )
 
 $ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-  throw "winget not found. Install 'App Installer' from the Microsoft Store (or use a Win11/Server 2022+ image)."
-}
-
-function Install-Pkg([string]$id, [string]$override = $null) {
-  Write-Host "==> winget install $id" -ForegroundColor Cyan
-  $args = @('install', '--id', $id, '-e', '--accept-source-agreements', '--accept-package-agreements')
-  if ($override) { $args += @('--override', $override) }
-  winget @args
-  if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {  # -1978335189 = already installed
-    throw "winget install $id failed ($LASTEXITCODE)"
+function Add-PersistentPath([string] $dir) {
+  if (";$env:Path;" -notlike "*;$dir;*") { $env:Path = "$dir;$env:Path" }
+  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  if (";$userPath;" -notlike "*;$dir;*") {
+    [Environment]::SetEnvironmentVariable('Path', "$dir;$userPath", 'User')
   }
 }
 
-Install-Pkg 'Git.Git'
-Install-Pkg 'Flutter.Flutter'   # provides flutter + bundled dart
-# VS 2022 Build Tools with the native C++ desktop workload (cl.exe, ws2_32, afunix.h).
-Install-Pkg 'Microsoft.VisualStudio.2022.BuildTools' `
-  '--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
+# -- Chocolatey (works on Server images that lack winget) -------------------
+if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+  Write-Host '==> installing Chocolatey' -ForegroundColor Cyan
+  Set-ExecutionPolicy Bypass -Scope Process -Force
+  Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+  Add-PersistentPath "$env:ProgramData\chocolatey\bin"
+}
 
-# Re-resolve PATH for this session so the freshly installed tools are visible.
-$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
-            [System.Environment]::GetEnvironmentVariable('Path','User')
+# -- Git --------------------------------------------------------------------
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  Write-Host '==> installing Git' -ForegroundColor Cyan
+  choco install -y git
+  Add-PersistentPath "$env:ProgramFiles\Git\cmd"
+}
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue))     { throw "git not on PATH after install — open a new shell and re-run from the clone step." }
-if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) { throw "flutter not on PATH after install — open a new shell and re-run from the clone step." }
+# -- Flutter (direct from Google; brings Dart) ------------------------------
+if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) {
+  Write-Host '==> installing Flutter (current stable)' -ForegroundColor Cyan
+  $rel = Invoke-RestMethod 'https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json'
+  $cur = $rel.releases | Where-Object { $_.channel -eq 'stable' } | Select-Object -First 1
+  $zip = "$env:TEMP\flutter-stable.zip"
+  Invoke-WebRequest -Uri "$($rel.base_url)/$($cur.archive)" -OutFile $zip
+  $toolsDir = "$env:USERPROFILE\tools"
+  New-Item -ItemType Directory -Force -Path $toolsDir | Out-Null
+  Expand-Archive -Path $zip -DestinationPath $toolsDir -Force   # creates $toolsDir\flutter
+  Add-PersistentPath "$toolsDir\flutter\bin"
+}
 
+# -- VS Build Tools (C++) — only when building, NOT for the soak ------------
+if (-not $SkipVS) {
+  Write-Host '==> installing VS 2022 Build Tools (C++ workload)' -ForegroundColor Cyan
+  choco install -y visualstudio2022buildtools `
+    --package-parameters '--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
+}
+
+# refresh PATH so the just-installed tools resolve in THIS session
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'git not on PATH — open a new admin shell and re-run.' }
+if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) { throw 'flutter not on PATH — open a new admin shell and re-run.' }
+
+# -- clide ------------------------------------------------------------------
 if (-not (Test-Path $Dest)) {
-  Write-Host "==> git clone $RepoUrl -> $Dest" -ForegroundColor Cyan
+  Write-Host "==> git clone -> $Dest" -ForegroundColor Cyan
   git clone $RepoUrl $Dest
 }
 Push-Location $Dest
 try {
   git fetch origin $Branch
   git checkout $Branch
-  Write-Host "==> flutter pub get" -ForegroundColor Cyan
+  Write-Host '==> flutter pub get' -ForegroundColor Cyan
   flutter pub get
-  # Build the C CLI (needs the VS toolset; ci/build_cli_windows.sh wraps cl.exe).
-  # Requires a bash — Git for Windows ships one at /usr/bin/bash.
-  $bash = Join-Path $env:ProgramFiles 'Git\bin\bash.exe'
-  if (Test-Path $bash) {
-    Write-Host "==> build C CLI (ci/build_cli_windows.sh)" -ForegroundColor Cyan
-    & $bash -lc "cd '$($Dest -replace '\\','/')' && ci/build_cli_windows.sh"
-  } else {
-    Write-Warning "Git Bash not found; skipping C CLI build. Build later with 'make clide-cli' from Git Bash."
-  }
 }
 finally { Pop-Location }
 
 Write-Host "`nReady. Open a NEW shell, then:" -ForegroundColor Green
 Write-Host "  cd $Dest"
-Write-Host "  pwsh -File tools\windows-verify\soak-conpty.ps1 -Iterations 40"
+Write-Host "  powershell -ExecutionPolicy Bypass -File tools\windows-verify\soak-conpty.ps1 -Iterations 40"

@@ -20,6 +20,30 @@ Tooling to **verify (or refute) the Windows test-freeze assessment** for the
 The leak (#1) is the **test-path** explanation and the actionable one. A VM is
 the right instrument for it; it is the wrong instrument for #5.
 
+## On a cloud VM (GCP) — no local hypervisor
+
+If the host has no KVM (e.g. VT-x disabled in firmware), run this on a GCP
+Windows Server instance instead — real hardware acceleration, nothing installed
+locally. From the GCP Cloud Shell (browser; `gcloud` preinstalled):
+
+```bash
+gcloud compute instances create clide-win-verify \
+  --zone=us-central1-a --machine-type=e2-standard-4 \
+  --image-family=windows-2022 --image-project=windows-cloud \
+  --boot-disk-size=100GB --boot-disk-type=pd-ssd
+gcloud compute reset-windows-password clide-win-verify --zone=us-central1-a --user=admin
+```
+
+RDP to the printed IP with the printed credentials (KDE: KRDC; or
+`flatpak install flathub org.remmina.Remmina`). Then run steps 2-3 below inside
+Windows (`bootstrap-windows.ps1 -SkipVS` is winget-free and Server-compatible).
+Stop the VM when idle, delete it when done:
+
+```bash
+gcloud compute instances stop   clide-win-verify --zone=us-central1-a   # idle
+gcloud compute instances delete clide-win-verify --zone=us-central1-a   # done
+```
+
 ## The three steps
 
 1. **Provision the VM** (on the Fedora/KVM host — "danoontje"):
@@ -31,16 +55,18 @@ the right instrument for it; it is the wrong instrument for #5.
    Finish the interactive Windows install in `virt-viewer` (load the virtio
    disk driver from the second CD during setup).
 
-2. **Bootstrap the toolchain** (inside Windows, elevated PowerShell):
+2. **Bootstrap the toolchain** (inside Windows, elevated PowerShell). No winget
+   dependency, so this also works on Windows Server / GCP images. For the soak,
+   `-SkipVS` installs only Flutter/Dart:
    ```powershell
-   pwsh -File tools\windows-verify\bootstrap-windows.ps1
+   powershell -ExecutionPolicy Bypass -File tools\windows-verify\bootstrap-windows.ps1 -SkipVS
    ```
-   Installs Git, Flutter/Dart, and VS 2022 Build Tools (C++ workload), then
-   clones + checks out `windows-support` and builds the C CLI.
+   Drop `-SkipVS` to also install VS 2022 Build Tools (needed only for
+   `flutter build windows` + the C CLI). Clones + checks out `windows-support`.
 
 3. **Run the soak** (new shell, so PATH is fresh):
    ```powershell
-   pwsh -File tools\windows-verify\soak-conpty.ps1 -Iterations 40
+   powershell -ExecutionPolicy Bypass -File tools\windows-verify\soak-conpty.ps1 -Iterations 40
    ```
 
 ## Reading the result
