@@ -2,9 +2,9 @@
 /// output dock (T-54 / D-87) reads on open.
 ///
 /// The [Logger] only live-broadcasts to its stream; a panel that opens late
-/// would see nothing. [LogRing] is a sink that keeps the last [capacity]
+/// would see nothing. [LogRing] is a sink that keeps the last `capacity`
 /// records (drop-oldest, same shape as the D-85 event ring) plus enough
-/// bookkeeping to drive the panel's filter dropdown (distinct [sources]) and
+/// bookkeeping to drive the panel's filter dropdown (distinct `sources`) and
 /// the status-bar health badge (level counts).
 ///
 /// Flutter-free (only `dart:async`/`dart:collection` + the [LogRecord] type)
@@ -42,7 +42,7 @@ class LogRing {
   int get length => _records.length;
   bool get isEmpty => _records.isEmpty;
 
-  /// Append a record (the [Logger] sink). Drops the oldest past [capacity].
+  /// Append a record (the [Logger] sink). Drops the oldest past `capacity`.
   void add(LogRecord r) {
     _records.addLast(r);
     _sourceCounts.update(r.source, (n) => n + 1, ifAbsent: () => 1);

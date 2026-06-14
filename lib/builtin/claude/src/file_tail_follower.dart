@@ -4,7 +4,7 @@
 /// process), so to "watch the same output" we open our OWN read-only follower
 /// on the file the command tails. This never spawns a process and never
 /// touches Claude's command — it just reads the file as it grows, like
-/// `tail -f`, and hands new bytes to [onData].
+/// `tail -f`, and hands new bytes to `onData`.
 ///
 /// Pure dart:io/dart:async (no Flutter) so it's unit-testable. Polls rather
 /// than using a watcher so it works uniformly across platforms and survives

@@ -13,7 +13,7 @@ import 'vim_edit_ops.dart';
 
 /// Tier-2 editor pane. Shows one tab per open buffer via the shared
 /// [MultitabPane] (the same strip the Claude pane uses); the body
-/// reflects the daemon's active buffer. The daemon ([EditorRegistry])
+/// reflects the daemon's active buffer. The daemon (`EditorRegistry`)
 /// is the source of truth for which buffers are open and which is
 /// active — the local [MultitabController] is reconciled from it, and
 /// tab gestures (select / close) are routed back as `editor.activate`

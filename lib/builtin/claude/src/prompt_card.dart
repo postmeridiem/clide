@@ -5,7 +5,7 @@
 /// Rendered in the composer zone (not inline in the conversation) so
 /// interaction and conversation widgets don't mix — the pane swaps it in for
 /// the text input while a prompt is open. The decision is returned via
-/// [onResolve]; the pane then removes the card.
+/// `onResolve`; the pane then removes the card.
 ///
 /// Plain [ClideButton]s (Semantics buttons → keyboard/AT reachable), no
 /// hover-revealed chrome that would fight the buttons.

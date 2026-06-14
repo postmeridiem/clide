@@ -24,7 +24,7 @@
 ///
 /// # Version drift-guard
 /// If the envelope `version` field has an unfamiliar major version the reader
-/// warns via [onWarn] (or stderr if omitted) and degrades gracefully — it
+/// warns via `onWarn` (or stderr if omitted) and degrades gracefully — it
 /// parses whatever it can and skips the rest rather than crashing.
 library;
 
@@ -227,7 +227,7 @@ class TranscriptReader {
   /// [pollInterval] controls how often the reader polls for new data and
   /// session switches (default 500 ms).
   ///
-  /// [onWarn] receives warning messages from the version drift-guard.
+  /// `onWarn` receives warning messages from the version drift-guard.
   /// If omitted, warnings are written to stderr.
   TranscriptReader(
     this.workspacePath, {
@@ -419,7 +419,7 @@ class TranscriptReader {
   }
 
   /// Parse a single JSONL line into its items (forwarding any version
-  /// warnings to [onWarn]). Public so tests exercise the real parser.
+  /// warnings to `onWarn`). Public so tests exercise the real parser.
   List<ConversationItem> parseLine(String line) {
     final parsed = parseTranscriptChunk(line);
     for (final w in parsed.warnings) {

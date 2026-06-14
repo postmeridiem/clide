@@ -53,8 +53,8 @@ String nextSafePermissionMode(String current) {
 }
 
 /// Status-line segments split around the permission-mode badge so the UI can
-/// render the mode as an interactive control between them (T-226). [leading]
-/// is the model; [trailing] joins context / cost / rate-limit. Either may be
+/// render the mode as an interactive control between them (T-226). `leading`
+/// is the model; `trailing` joins context / cost / rate-limit. Either may be
 /// null when there's nothing to show.
 ({String? leading, String? trailing}) statusSegmentsAroundMode(SessionStatus s) {
   final trailing = [

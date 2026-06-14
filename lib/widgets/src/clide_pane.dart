@@ -1,12 +1,12 @@
 /// Behaviour-only wrapper every pane uses (T-150). No chrome — that's
 /// [ClidePaneChrome]'s job. ClidePane handles cross-pane uniformity:
-/// surfacing the pane's [statusWidget] to the bottom status bar while the
+/// surfacing the pane's `statusWidget` to the bottom status bar while the
 /// pane is focused, via [FocusTracker.setStatusWidget].
 ///
 /// The widget lives with the pane; ClidePane only conveys it to the
 /// shared slot while this pane is the shown one (its contribution is
-/// focused and, for multi-pane contributions, it's the [active] sub-tab),
-/// and re-conveys whenever [statusWidget] changes. A backgrounded pane
+/// focused and, for multi-pane contributions, it's the `active` sub-tab),
+/// and re-conveys whenever `statusWidget` changes. A backgrounded pane
 /// keeps its content locally and re-conveys on regaining focus.
 library;
 

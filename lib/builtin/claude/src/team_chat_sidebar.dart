@@ -2,7 +2,7 @@
 ///
 /// Displays the live broker chat timeline as colour-coded rows and provides a
 /// quick @-post composer. Tapping the pop-out icon opens the full chat pane
-/// ([claude.team-chat] workspace tab).
+/// (`claude.team-chat` workspace tab).
 ///
 /// Both this widget and [TeamChatPane] read from the same [TeamChatModel] —
 /// there is one model, two surfaces.

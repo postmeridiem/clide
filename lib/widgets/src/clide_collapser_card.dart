@@ -4,9 +4,9 @@
 /// list of one: there is no separate single-card path, which keeps the model
 /// uniform and reliable.
 ///
-/// - **Collapsed** (default): a one-line ticker — the [label], the echoed
-///   [collapsedSummary] (the run's latest content line), a fixed-width [counter]
-///   ("3 steps"), and the aggregate [status] (spinner / check / cross). The
+/// - **Collapsed** (default): a one-line ticker — the `label`, the echoed
+///   `collapsedSummary` (the run's latest content line), a fixed-width `counter`
+///   ("3 steps"), and the aggregate `status` (spinner / check / cross). The
 ///   whole row is the toggle.
 /// - **Expanded**: a framed inner canvas wrapping the item cards; clicking the
 ///   frame BACKGROUND (padding, the gaps between items, the gutter — anywhere an
@@ -16,7 +16,7 @@
 ///
 /// Chrome is consistent across every collapser: the chevron is hard against the
 /// LEFT edge, the status icon hard against the RIGHT edge, the counter sits in a
-/// fixed-width slot just inboard of it, and [color] drives the border + the
+/// fixed-width slot just inboard of it, and `color` drives the border + the
 /// chevron/label tint so each instance keeps its visual identity through one
 /// widget. The inner item cards are content (they keep their OWN per-item status
 /// + stripe); the aggregate status/count/title shown here are computed by the

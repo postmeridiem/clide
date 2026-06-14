@@ -2,8 +2,8 @@
 ///
 /// A session is a `claude` stream-json process clide spawns and renders; a
 /// pane is just a *view* on one. The orchestrator decouples a session's
-/// lifecycle from any pane: [spawn] starts and registers it, [show]/[hide]
-/// toggle visibility WITHOUT tearing the process down, and [close] kills it.
+/// lifecycle from any pane: `spawn` starts and registers it, `show`/`hide`
+/// toggle visibility WITHOUT tearing the process down, and `close` kills it.
 /// This is the one primitive behind teammate / secondary tab / forked branch
 /// (Phase 2): they are all just managed sessions shown as panes.
 ///

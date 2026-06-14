@@ -10,7 +10,7 @@
 /// While a `vim.normal` scope flag is set and this region holds focus, bare and
 /// shift-only chords (plus the two half-page chords `ctrl+d` / `ctrl+u`) feed
 /// the matcher against the live keymap; a fired [NavIntent] is handed to
-/// [onNav] with its repeat count. Everything else under `vim.normal` is
+/// `onNav` with its repeat count. Everything else under `vim.normal` is
 /// swallowed (vim normal mode is inert for unbound keys), except other-modifier
 /// chords (palette, quick-open, …) which bubble to the global handler. Under a
 /// non-vim preset or in insert mode the region is transparent — keys pass

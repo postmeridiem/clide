@@ -51,7 +51,7 @@ class AgentRosterRow extends StatefulWidget {
   final void Function(String memberName, String text) onInjectSubmit;
   final void Function(String memberName) onClose;
 
-  /// Called when the badge cycles to a new [mode] string for this member.
+  /// Called when the badge cycles to a new `mode` string for this member.
   /// Handles both safe-trio clicks and confirmed bypass. The parent sends
   /// the mode to the session via `StreamJsonSession.setPermissionMode`.
   final void Function(String memberName, String mode) onSetPermissionMode;

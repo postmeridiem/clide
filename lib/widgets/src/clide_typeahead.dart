@@ -2,11 +2,11 @@
 ///
 /// The host owns the text parsing + completion (where the `@`/`/` token is, how
 /// to filter, how to rewrite the text on select); `ClideTypeahead` owns the
-/// anchored overlay + the suggestion list. It is driven by [suggestions] —
+/// anchored overlay + the suggestion list. It is driven by `suggestions` —
 /// non-empty shows the popover above the field, empty hides it. Unlike a menu,
 /// it does NOT capture focus or install a tap-away barrier: the text field keeps
 /// focus (you're still typing), and the host closes it on text change / blur /
-/// Esc. Pass [navController] to drive the highlight from the field's own key
+/// Esc. Pass `navController` to drive the highlight from the field's own key
 /// handler (the slash typeahead does this while the EditableText keeps focus);
 /// omit it for a mouse-only list (the @-mention).
 library;
