@@ -33,8 +33,11 @@ jobs:
           pql --version
           # The pql tests query the repo's vault, but .pql/pql.db is gitignored
           # (the post-checkout hook rebuilds it from the committed changelog).
-          # A fresh CI checkout has the changelog but no db — materialize it.
+          # A fresh CI checkout has the changelog but no db — materialize it,
+          # and sync decision records from the governance/ DQR markdown tree
+          # (tickets come from the changelog; decisions from `decisions sync`).
           pql plan import
+          pql decisions sync
       # test-coverage runs the full fast suite WITH coverage (it includes the
       # a11y suite — see the push-check note in the Makefile), which is what
       # coverage-gate consumes.
@@ -61,8 +64,11 @@ jobs:
           pql --version
           # The pql tests query the repo's vault, but .pql/pql.db is gitignored
           # (the post-checkout hook rebuilds it from the committed changelog).
-          # A fresh CI checkout has the changelog but no db — materialize it.
+          # A fresh CI checkout has the changelog but no db — materialize it,
+          # and sync decision records from the governance/ DQR markdown tree
+          # (tickets come from the changelog; decisions from `decisions sync`).
           pql plan import
+          pql decisions sync
       - uses: coactions/setup-xvfb@v1
         with: { run: make test-integration }
 
@@ -86,8 +92,11 @@ jobs:
           pql --version
           # The pql tests query the repo's vault, but .pql/pql.db is gitignored
           # (the post-checkout hook rebuilds it from the committed changelog).
-          # A fresh CI checkout has the changelog but no db — materialize it.
+          # A fresh CI checkout has the changelog but no db — materialize it,
+          # and sync decision records from the governance/ DQR markdown tree
+          # (tickets come from the changelog; decisions from `decisions sync`).
           pql plan import
+          pql decisions sync
       - run: make smoke-bundle
 
   # The web-WASM Playwright job is withheld: `flutter build web --wasm` cannot
