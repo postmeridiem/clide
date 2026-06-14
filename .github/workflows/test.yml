@@ -23,6 +23,14 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
       - run: flutter pub get
+      - name: install pql
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo postmeridiem/pql --pattern 'pql_*_Linux_x86_64.tar.gz' --output /tmp/pql.tgz
+          tar -xzf /tmp/pql.tgz -C /tmp
+          sudo install -m 0755 /tmp/pql /usr/local/bin/pql
+          pql --version
       # test-coverage runs the full fast suite WITH coverage (it includes the
       # a11y suite — see the push-check note in the Makefile), which is what
       # coverage-gate consumes.
@@ -39,6 +47,14 @@ jobs:
         with: { channel: stable, cache: true }
       - run: sudo apt-get update && sudo apt-get install -y xvfb ninja-build libgtk-3-dev
       - run: flutter pub get
+      - name: install pql
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo postmeridiem/pql --pattern 'pql_*_Linux_x86_64.tar.gz' --output /tmp/pql.tgz
+          tar -xzf /tmp/pql.tgz -C /tmp
+          sudo install -m 0755 /tmp/pql /usr/local/bin/pql
+          pql --version
       - uses: coactions/setup-xvfb@v1
         with: { run: make test-integration }
 
@@ -52,6 +68,14 @@ jobs:
         with: { channel: stable, cache: true }
       - run: sudo apt-get update && sudo apt-get install -y xvfb ninja-build libgtk-3-dev
       - run: flutter pub get
+      - name: install pql
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo postmeridiem/pql --pattern 'pql_*_Linux_x86_64.tar.gz' --output /tmp/pql.tgz
+          tar -xzf /tmp/pql.tgz -C /tmp
+          sudo install -m 0755 /tmp/pql /usr/local/bin/pql
+          pql --version
       - run: make smoke-bundle
 
   # The web-WASM Playwright job is withheld: `flutter build web --wasm` cannot
