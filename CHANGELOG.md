@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Windows desktop support.** clide builds and runs on Windows: ConPTY-backed
+  terminals, an AF_UNIX `clide` CLI client, PowerShell as the default shell, and
+  a `make build-windows` target. tmux is optional there (no Windows build).
 - **Live tail inside expanded Bash activity cards.** A Bash card that follows a
   file (`tail -f …`) now shows a live, scrolling read-only tail of that file
   below the result — connected only while the card is expanded. Commands with no

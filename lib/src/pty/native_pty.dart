@@ -27,6 +27,7 @@ import 'package:ffi/ffi.dart';
 import 'errors.dart';
 import '../ipc/errno_mapping.dart' show PosixErrno;
 import 'ffi/libc.dart' as libc;
+import 'pty_session.dart';
 
 // -- structs ----------------------------------------------------------------
 
@@ -137,8 +138,9 @@ const _kWnohang = 1;
 // -- NativePty --------------------------------------------------------------
 
 /// A pseudo-terminal backed by forkpty() via Dart FFI.
-class NativePty {
+class NativePty implements PtySession {
   final int _fd;
+  @override
   final int pid;
   final _out = StreamController<Uint8List>.broadcast();
   bool _dead = false;
@@ -153,8 +155,10 @@ class NativePty {
   NativePty._(this._fd, this.pid);
 
   /// Byte stream of data produced by the child.
+  @override
   Stream<Uint8List> get output => _out.stream;
 
+  @override
   bool get isClosed => _dead;
 
   /// Spawn a new PTY running [executable] with [arguments].
@@ -393,6 +397,7 @@ class NativePty {
   /// Write bytes to the child's stdin. Loops on short writes; throws
   /// [PtyException] (with errno) on failure. Returns the total bytes
   /// written, which is always [bytes.length] on success.
+  @override
   int write(List<int> bytes) {
     if (_dead || bytes.isEmpty) return 0;
     final buf = malloc<ffi.Uint8>(bytes.length);
@@ -420,6 +425,7 @@ class NativePty {
 
   /// Resize the terminal. Silently no-ops if the fd is already
   /// closed; flips [_dead] on EBADF so subsequent calls short-circuit.
+  @override
   void resize({required int cols, required int rows}) {
     if (_dead) return;
     final ws = calloc<_Winsize>()
@@ -435,10 +441,11 @@ class NativePty {
     _nativeKill(pid, libc.sigwinch);
   }
 
-  /// Send a signal to the child.
-  bool kill([int signal = libc.sighup]) {
+  /// Send a signal to the child. Null means SIGHUP.
+  @override
+  bool kill([int? signal]) {
     if (_dead) return false;
-    return _nativeKill(pid, signal) == 0;
+    return _nativeKill(pid, signal ?? libc.sighup) == 0;
   }
 
   void _reap() {
@@ -457,6 +464,7 @@ class NativePty {
   /// closing it before the isolate exits creates a window where the
   /// fd number could be reused and the isolate would briefly poll
   /// the wrong file.
+  @override
   Future<void> close() async {
     if (_dead) return;
     _dead = true;

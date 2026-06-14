@@ -19,7 +19,9 @@ class ToolCheck extends ChangeNotifier {
 
   Future<void> check() async {
     pqlOk = _existsOnPath('pql');
-    tmuxOk = _existsOnPath('tmux');
+    // tmux has no Windows build; absence there is the documented
+    // no-tmux mode, not a failed check.
+    tmuxOk = Platform.isWindows || _existsOnPath('tmux');
     gitOk = _existsOnPath('git');
     checked = true;
     notifyListeners();
@@ -29,9 +31,16 @@ class ToolCheck extends ChangeNotifier {
   /// Uses direct file-existence checks — works inside a macOS sandbox
   /// without needing to exec `which`.
   static bool _existsOnPath(String name) {
-    for (final dir in expandedPath.split(':')) {
+    final sep = Platform.isWindows ? ';' : ':';
+    for (final dir in expandedPath.split(sep)) {
       if (dir.isEmpty) continue;
-      if (File('$dir/$name').existsSync()) return true;
+      if (Platform.isWindows) {
+        for (final ext in const ['.exe', '.bat', '.cmd', '.com', '']) {
+          if (File('$dir\\$name$ext').existsSync()) return true;
+        }
+      } else {
+        if (File('$dir/$name').existsSync()) return true;
+      }
     }
     return false;
   }

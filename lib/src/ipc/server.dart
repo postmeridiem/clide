@@ -410,8 +410,12 @@ class IpcServer {
   // -- internals ------------------------------------------------------------
 
   /// `chmod` via `chmod(1)` because dart:io doesn't expose the
-  /// syscall on unix. Cheap; only runs at start/stop.
+  /// syscall on unix. Cheap; only runs at start/stop. No-op on
+  /// Windows: POSIX modes don't exist there, and the socket lives
+  /// under `%LOCALAPPDATA%`, whose per-user ACL already provides the
+  /// user-only gate D-71 wants.
   Future<void> _chmod(String path, int modeBits) async {
+    if (Platform.isWindows) return;
     final octal = modeBits.toRadixString(8).padLeft(3, '0');
     final r = await Process.run('chmod', [octal, path]);
     if (r.exitCode != 0) {

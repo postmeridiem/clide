@@ -66,18 +66,16 @@ class _TerminalPaneState extends State<TerminalPane> {
       return;
     }
 
-    final shell = Platform.environment['SHELL'] ?? '/bin/bash';
+    // Windows has no $SHELL convention and no login-shell flag —
+    // PowerShell 7 first, classic PowerShell as the always-there
+    // fallback.
+    final shell = Platform.isWindows ? null : (Platform.environment['SHELL'] ?? '/bin/bash');
+    final argv = shell != null ? [shell, '-l'] : ['powershell.exe', '-NoLogo'];
     final cwd = Directory.current.path;
 
     final response = await ipc.request(
       'pane.spawn',
-      args: {
-        'argv': [shell, '-l'],
-        'kind': PaneKind.terminal.wire,
-        'cwd': cwd,
-        'cols': _terminal.viewWidth,
-        'rows': _terminal.viewHeight,
-      },
+      args: {'argv': argv, 'kind': PaneKind.terminal.wire, 'cwd': cwd, 'cols': _terminal.viewWidth, 'rows': _terminal.viewHeight},
     );
     if (!mounted) return;
     if (!response.ok) {

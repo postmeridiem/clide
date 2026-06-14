@@ -1,6 +1,6 @@
 /// [PaneRegistry] — backend-side state for all live panes.
 ///
-/// Owns the [NativePty] per pane, generates `p_N` ids, and forwards
+/// Owns the [PtySession] per pane, generates `p_N` ids, and forwards
 /// pty output + lifecycle changes as IPC events via a [DaemonEventSink].
 /// Pane commands (pane.spawn / list / write / resize / close) resolve
 /// against this registry; extension UIs subscribe to the emitted events.
@@ -12,7 +12,7 @@ import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import '../ipc/envelope.dart';
-import '../pty/native_pty.dart';
+import '../pty/pty_session.dart';
 import 'event_sink.dart';
 import 'pane.dart';
 
@@ -21,7 +21,7 @@ class PaneRegistry {
 
   final DaemonEventSink events;
   final Map<String, Pane> _panes = {};
-  final Map<String, NativePty> _sessions = {};
+  final Map<String, PtySession> _sessions = {};
   final Map<String, StreamSubscription<Uint8List>> _subs = {};
   int _nextId = 1;
 
@@ -55,7 +55,7 @@ class PaneRegistry {
       ...?env,
     };
 
-    final session = NativePty.start(executable: executable, arguments: arguments, columns: cols, rows: rows, workingDirectory: cwd, environment: fullEnv);
+    final session = startPtySession(executable: executable, arguments: arguments, columns: cols, rows: rows, workingDirectory: cwd, environment: fullEnv);
     final pane = Pane(id: id, kind: kind, pid: session.pid, argv: argv, cwd: cwd, title: title);
     _panes[id] = pane;
     _sessions[id] = session;

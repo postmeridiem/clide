@@ -120,20 +120,28 @@ class _ClideTestAppState extends State<ClideTestApp> {
 
     await _testExists('git', tc.git);
     await _testExists('pql', tc.pql);
-    await _testExists('tmux', tc.tmux);
+    // tmux has no Windows build — its absence there is the documented
+    // no-tmux mode, so the probes would only report a non-failure.
+    if (!Platform.isWindows) await _testExists('tmux', tc.tmux);
     await _testExists('shell', tc.shell);
     _say('');
 
     await _testExec('git --version', tc.git, ['--version'], workDir);
     await _testExec('pql --version', tc.pql, ['--version'], workDir);
-    await _testExec('tmux -V', tc.tmux, ['-V'], workDir);
-    await _testExec('shell --version', tc.shell, ['--version'], workDir);
+    if (!Platform.isWindows) await _testExec('tmux -V', tc.tmux, ['-V'], workDir);
+    // PowerShell has no --version flag; ask for the version variable
+    // through the same -c path the passthrough tests use.
+    await _testExec('shell --version', tc.shell, Platform.isWindows ? ['-c', r'$PSVersionTable.PSVersion.ToString()'] : ['--version'], workDir);
     _say('');
 
     // Shell passthrough — use the resolved shell, not a hardcoded path
-    await _testExec('shell -c git', tc.shell, ['-c', '${tc.git} --version'], workDir);
-    await _testExec('shell -c pql', tc.shell, ['-c', '${tc.pql} --version'], workDir);
-    await _testExec('shell -c tmux', tc.shell, ['-c', '${tc.tmux} -V'], workDir);
+    // (-c works for POSIX shells and as PowerShell's -Command alias).
+    // PowerShell needs the & call operator to run a quoted path; POSIX
+    // shells take the bare path.
+    String shellCall(String exe, String args) => Platform.isWindows ? "& '$exe' $args" : '$exe $args';
+    await _testExec('shell -c git', tc.shell, ['-c', shellCall(tc.git, '--version')], workDir);
+    await _testExec('shell -c pql', tc.shell, ['-c', shellCall(tc.pql, '--version')], workDir);
+    if (!Platform.isWindows) await _testExec('shell -c tmux', tc.shell, ['-c', shellCall(tc.tmux, '-V')], workDir);
     await _testExec('shell -c git (bare)', tc.shell, ['-c', 'git --version'], workDir);
     _say('');
 

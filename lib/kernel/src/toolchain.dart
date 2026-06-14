@@ -10,6 +10,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 
@@ -32,7 +33,7 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   @override
   String get tmux => _tmux ?? 'tmux';
   @override
-  String get shell => _shell ?? '/bin/bash';
+  String get shell => _shell ?? (Platform.isWindows ? 'powershell.exe' : '/bin/bash');
 
   /// Extra environment variables for git (e.g. GIT_EXEC_PATH for dugite).
   @override
@@ -44,7 +45,13 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   bool get allOk => _resolved && missing.isEmpty;
 
   @override
-  List<String> get missing => [if (_git == null) 'git', if (_pql == null) 'pql', if (_tmux == null) 'tmux'];
+  List<String> get missing => [
+    if (_git == null) 'git',
+    if (_pql == null) 'pql',
+    // tmux has no Windows build; its absence there is the documented
+    // no-tmux mode, not a missing tool.
+    if (_tmux == null && !Platform.isWindows) 'tmux',
+  ];
 
   /// Returns a Future that completes when resolution finishes.
   Future<void> waitForResolution() {

@@ -35,7 +35,9 @@ echo "==> dart test (pty — unreliable under the flutter test runner; serial)"
 # --concurrency=1: these spawn real PTYs and compete for fds when run in
 # parallel, which flaked them (registry/session). Serialize — the proper fix
 # for resource-bound tests, vs. the old per-test `retry:` band-aid. (T-193)
-dart test -r "$REPORTER" --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart
+# windows_pty_test is the ConPTY sibling of session_test; each suite
+# self-skips off-platform, so the union always contributes tests.
+dart test -r "$REPORTER" --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart test/pty/windows_pty_test.dart
 
 # The parallel pool excludes both pty (runs under dart test, above) and
 # serial-tagged tests (concurrency-vulnerable — run in their own --concurrency=1
