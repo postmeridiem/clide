@@ -48,6 +48,21 @@ import 'errors.dart';
 import 'pty_session.dart';
 import 'pty_size.dart';
 
+// coverage:ignore-start
+//
+// Everything from here to the `resolveExecutable` helper below is the
+// Windows-only ConPTY FFI path: Win32 structs, kernel32 bindings, and the
+// `WindowsPty` session that calls CreatePseudoConsole / CreateProcessW /
+// WaitForSingleObject. None of it can execute on the Linux CI runner that
+// produces the coverage report — there is no kernel32 to bind, so these
+// lines are structurally uncoverable off-Windows and would otherwise drag
+// the line-coverage gate down for code the gate's platform can't reach. The
+// pure, platform-agnostic spawn helpers (resolveExecutable / quoteArg /
+// composeEnvironmentBlock) sit AFTER the ignore-end below and ARE covered by
+// test/pty/windows_pty_test.dart on every platform. Behaviour of the FFI
+// path is validated on the Windows runner (windows.yml) and, end-to-end, in
+// the Windows VM soak (tools/windows-verify/).
+
 // -- structs ----------------------------------------------------------------
 
 /// Win32 `COORD` — passed BY VALUE to Create/ResizePseudoConsole.
@@ -582,6 +597,8 @@ class WindowsPty implements PtySession {
     _releaseHandles();
     if (!_out.isClosed) await _out.close();
   }
+
+  // coverage:ignore-end
 
   // -- spawn helpers ------------------------------------------------------
 
