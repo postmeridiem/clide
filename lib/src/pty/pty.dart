@@ -1,7 +1,7 @@
 /// PTY subsystem — spawn child processes under a PTY and expose their
 /// output as a byte stream. POSIX uses posix_openpt() + posix_spawn();
 /// Windows uses ConPTY. Desktop IDE's pane model (terminal / Claude /
-/// future tmux wrappers) rides on this.
+/// future PTY-backed panes) rides on this.
 library;
 
 export 'env.dart' show clidePtyEnvDefaults, mergePtyEnv;

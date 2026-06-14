@@ -67,6 +67,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   opens a picker in the interaction zone with the CLI's model list and the
   current model marked. A rejected name rolls back and raises a toast. (T-408)
 
+### Removed
+
+- **tmux is no longer a required tool.** clide stopped spawning tmux when Claude
+  session persistence moved to `--resume` (D-77); the toolchain no longer probes
+  for it or warns when it's absent, on any platform.
+
 ## [2.4.1] — 2026-06-12
 
 ### Fixed

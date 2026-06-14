@@ -16,7 +16,7 @@ typedef MultitabEntryCallback<T> = void Function(MultitabEntry<T> entry);
 ///
 /// The widget is generic and domain-free: it never knows what's
 /// inside a tab. Hosts pick `T` and decide what add / close mean
-/// (e.g. spawning or killing a tmux session for the Claude pane).
+/// (e.g. spawning or killing a Claude session for the Claude pane).
 ///
 /// See `docs/design/multitab-pane.md` for the design rationale.
 class MultitabPane<T> extends StatelessWidget {

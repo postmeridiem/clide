@@ -21,7 +21,6 @@ export 'toolchain_paths.dart';
 class Toolchain extends ChangeNotifier implements ToolchainView {
   String? _git;
   String? _pql;
-  String? _tmux;
   String? _shell;
   Map<String, String>? _gitEnv;
   bool _resolved = false;
@@ -30,8 +29,6 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   String get git => _git ?? 'git';
   @override
   String get pql => _pql ?? 'pql';
-  @override
-  String get tmux => _tmux ?? 'tmux';
   @override
   String get shell => _shell ?? (Platform.isWindows ? 'powershell.exe' : '/bin/bash');
 
@@ -45,13 +42,7 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   bool get allOk => _resolved && missing.isEmpty;
 
   @override
-  List<String> get missing => [
-    if (_git == null) 'git',
-    if (_pql == null) 'pql',
-    // tmux has no Windows build; its absence there is the documented
-    // no-tmux mode, not a missing tool.
-    if (_tmux == null && !Platform.isWindows) 'tmux',
-  ];
+  List<String> get missing => [if (_git == null) 'git', if (_pql == null) 'pql'];
 
   /// Returns a Future that completes when resolution finishes.
   Future<void> waitForResolution() {
@@ -72,7 +63,6 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   void applyResolved(ResolvedPaths p) {
     _git = p.git;
     _pql = p.pql;
-    _tmux = p.tmux;
     _shell = p.shell;
     _gitEnv = p.gitEnv;
     _resolved = true;

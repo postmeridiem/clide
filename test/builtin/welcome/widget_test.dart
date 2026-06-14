@@ -79,7 +79,7 @@ void main() {
     });
 
     testWidgets('status line shows "application ok" when all tools resolved', (tester) async {
-      f.services.toolchain.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', tmux: '/usr/bin/tmux', shell: '/bin/bash'));
+      f.services.toolchain.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', shell: '/bin/bash'));
       await tester.pumpWidget(harness(f, const WelcomeView()));
       await tester.pumpAndSettle();
       expect(find.text('application ok'), findsOneWidget);
@@ -90,11 +90,11 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      f.services.toolchain.applyResolved(const ResolvedPaths(pql: '/usr/bin/pql'));
+      f.services.toolchain.applyResolved(const ResolvedPaths());
       await tester.pumpWidget(harness(f, const WelcomeView()));
       await tester.pumpAndSettle();
       expect(find.textContaining('git not found'), findsOneWidget);
-      expect(find.textContaining('tmux not found'), findsOneWidget);
+      expect(find.textContaining('pql not found'), findsOneWidget);
     });
 
     testWidgets('theme-name link fires the theme.pick command when tapped', (tester) async {

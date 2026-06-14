@@ -12,11 +12,10 @@ import 'dart:io';
 
 /// Serializable result of tool resolution (crosses isolate boundary).
 class ResolvedPaths {
-  const ResolvedPaths({this.git, this.pql, this.tmux, this.shell, this.gitEnv});
+  const ResolvedPaths({this.git, this.pql, this.shell, this.gitEnv});
 
   final String? git;
   final String? pql;
-  final String? tmux;
   final String? shell;
   final Map<String, String>? gitEnv;
 }
@@ -32,7 +31,6 @@ abstract class ToolchainView {
 
   String get git;
   String get pql;
-  String get tmux;
   String get shell;
   Map<String, String>? get gitEnv;
   bool get resolved;
@@ -50,8 +48,6 @@ class _StaticToolchain implements ToolchainView {
   @override
   String get pql => _paths.pql ?? 'pql';
   @override
-  String get tmux => _paths.tmux ?? 'tmux';
-  @override
   String get shell => _paths.shell ?? (Platform.isWindows ? 'powershell.exe' : '/bin/bash');
   @override
   Map<String, String>? get gitEnv => _paths.gitEnv;
@@ -60,13 +56,7 @@ class _StaticToolchain implements ToolchainView {
   @override
   bool get allOk => missing.isEmpty;
   @override
-  List<String> get missing => [
-    if (_paths.git == null) 'git',
-    if (_paths.pql == null) 'pql',
-    // tmux has no Windows build; its absence there is the documented
-    // no-tmux mode, not a missing tool.
-    if (_paths.tmux == null && !Platform.isWindows) 'tmux',
-  ];
+  List<String> get missing => [if (_paths.git == null) 'git', if (_paths.pql == null) 'pql'];
 }
 
 /// Top-level function for compute/isolate use. Returns a plain-data
@@ -89,7 +79,7 @@ ResolvedPaths resolveToolchainPaths() {
     git = _findOnPath('git');
   }
 
-  return ResolvedPaths(git: git, pql: _findOnPath('pql'), tmux: _findOnPath('tmux'), shell: _resolveShell(), gitEnv: gitEnv);
+  return ResolvedPaths(git: git, pql: _findOnPath('pql'), shell: _resolveShell(), gitEnv: gitEnv);
 }
 
 /// The user's interactive shell. POSIX honours `$SHELL`; Windows has

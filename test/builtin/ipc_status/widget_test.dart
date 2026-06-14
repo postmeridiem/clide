@@ -39,20 +39,20 @@ void main() {
     });
 
     testWidgets('all-tools-resolved shows a single "application ok" chip', (tester) async {
-      f.services.toolchain.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', tmux: '/usr/bin/tmux', shell: '/bin/bash'));
+      f.services.toolchain.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', shell: '/bin/bash'));
       await tester.pumpWidget(harness(f, const ToolStatusItem()));
       await tester.pumpAndSettle();
       expect(find.text('application ok'), findsOneWidget);
     });
 
     testWidgets('missing tools render a warning chip per missing tool', (tester) async {
-      // git + tmux missing, pql resolved.
-      f.services.toolchain.applyResolved(const ResolvedPaths(pql: '/usr/bin/pql', shell: '/bin/bash'));
+      // git + pql missing, shell resolved → one chip each, nothing else.
+      f.services.toolchain.applyResolved(const ResolvedPaths(shell: '/bin/bash'));
       await tester.pumpWidget(harness(f, const ToolStatusItem()));
       await tester.pumpAndSettle();
       expect(find.text('git not found'), findsOneWidget);
-      expect(find.text('tmux not found'), findsOneWidget);
-      expect(find.text('pql not found'), findsNothing);
+      expect(find.text('pql not found'), findsOneWidget);
+      expect(find.textContaining('not found'), findsNWidgets(2));
     });
 
     testWidgets('StatusItemContribution.build returns a ToolStatusItem', (tester) async {

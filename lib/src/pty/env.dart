@@ -41,7 +41,7 @@ const Map<String, String> clidePtyEnvDefaults = {
   'COLORTERM': 'truecolor',
   // Encourages 24-bit emission from tooling that checks this:
   'CLICOLOR_FORCE': '1',
-  // tmux inherits these when clide spawns tmux; safe to propagate.
+  // UTF-8 locale for the child and anything it spawns; safe to propagate.
   'LANG': 'en_US.UTF-8',
   'LC_ALL': 'en_US.UTF-8',
 };
