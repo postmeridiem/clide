@@ -4780,3 +4780,93 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPAZR4XEV8YW3PVR2XJBFC', 'status', 'backlog', 'ready', NULL, '2026-06-13 11:47:26', '2026-06-13 11:47:26', '2026-06-13 11:47:26', NULL, 'fc555a3966e167d5273a8c8338214070', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'status', 'backlog', 'ready', NULL, '2026-06-13 11:47:31', '2026-06-13 11:47:31', '2026-06-13 11:47:31', NULL, '56abf6590754059d88570072056c5e31', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPD85PFBPJJTQ0WS3PWWXR', 'status', 'in_progress', 'done', NULL, '2026-06-13 12:45:43', '2026-06-13 12:45:43', '2026-06-13 12:45:43', NULL, 'e540413389a0c213369d83a3a75f9706', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPAZR4XEV8YW3PVR2XJBFC', 'description', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Two halves. (1) Add workspace.tab.next / workspace.tab.previous commands in lib/builtin/default_layout/src/extension.dart that cycle the workspace slot''s tab strip with wraparound, with defaultBindings ctrl+pagedown / ctrl+pageup so EVERY preset gains tab cycling. PanelRegistry (lib/kernel/src/panels/registry.dart) confirms the gap — only activateTab(SlotId,tabId), activeTabIn(SlotId), tabsFor(SlotId); no cycle — so compute the wrapped index from tabsFor+activeTabIn, or add a cycleTab method. (2) Bind `g t`→workspace.tab.next and `g shift+t`→workspace.tab.previous, `when: vim.normal`. Half (1) is fully achievable TODAY (single-chord resolveEvent + InvokeCommandIntent→commands.execute bridge in root_shell.dart both exist; pagedown/pageup tokens exist in key_chord.dart). Half (2) shares T-404''s blocker: no global SequenceMatcher, so a `g`-prefixed sequence can''t buffer outside the editor. `g g` (docStart) is already bound vim.normal||vim.visual, so `g t` slots beside it — but only once a matcher runs on the focused surface.
+
+ACCEPTANCE CRITERIA:
+- workspace.tab.next/previous registered in default_layout, cycling Slots.workspace tabs (tabsFor order) with wraparound; no-op at 0/1 tab.
+- defaultBindings ctrl+pagedown / ctrl+pageup so default/vscode/jetbrains cycle workspace tabs without YAML edits; verified via keymap resolution test.
+- vim.yaml binds `g t`→workspace.tab.next, `g shift+t`→workspace.tab.previous, when: vim.normal.
+- gt/gT cycle workspace tabs under vim; the `g` prefix is shared with `g g` docStart without breaking either.
+- Existing alt+1..5 sidebar-section behavior unchanged (those target Slots.sidebar, not workspace).
+- A matcher/loader test covers two sequences sharing the `g` prefix with different finals (g g vs g t) under vim scope.
+- make analyze + format + keymap/panel tests pass; coverage floor holds for default_layout / registry if touched.
+
+FILES: lib/builtin/default_layout/src/extension.dart (two CommandContributions w/ defaultBinding ctrl+pagedown/up + handlers computing wrapped index, following the sidebar.section.N / editor.close pattern); lib/kernel/src/panels/registry.dart (optional cycleTab helper); assets/keymaps/vim.yaml (g t / g shift+t near `g g`); lib/src/shell/root_shell.dart (global path that must buffer `g` — same surface as T-404); test/kernel/src/keymap/{editor_presets_test,sequence_matcher_test}.dart; test/kernel/src/panels/registry_test.dart (verify path before assuming).
+
+DEPENDENCIES: Part 1 (ctrl+pagedown/up) is fully independent and shippable now — needs only the existing single-chord path + InvokeCommandIntent bridge. Part 2 (gt/gT) shares T-404''s hard dependency on a global multi-chord matcher (the structural work T-406 owns). Recommend: land part 1 first (immediate value, every preset), gate part 2 behind whichever ticket introduces the global matcher. Coordinate matcher wiring with T-404 so it isn''t built twice. No conflict with T-407.
+
+OPEN QUESTIONS:
+- Add a cycleTab/activateNext API to PanelRegistry, or compute the wrapped index in the handler from tabsFor(Slots.workspace)+activeTabIn? Registry method is cleaner/reusable but widens coverage surface; handler-local keeps the change in default_layout.
+- Cycle Slots.workspace specifically, or the currently-focused slot''s tab strip (so gt cycles whatever column has focus)? Ticket says workspace; confirm against the cross-pane intent of the epic.
+- Confirm ctrl+pagedown/up don''t collide with terminal/Claude pane passthrough or an existing binding in any of the four presets before claiming "free for every preset".
+- Does gt/gT need a visual-mode guard, or is vim.normal-only correct? (vim allows gt in normal; the gg precedent uses normal||visual.)', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Two halves. (1) Add workspace.tab.next / workspace.tab.previous commands in lib/builtin/default_layout/src/extension.dart that cycle the workspace slot''s tab strip with wraparound, with defaultBindings ctrl+pagedown / ctrl+pageup so EVERY preset gains tab cycling. PanelRegistry (lib/kernel/src/panels/registry.dart) confirms the gap — only activateTab(SlotId,tabId), activeTabIn(SlotId), tabsFor(SlotId); no cycle — so compute the wrapped index from tabsFor+activeTabIn, or add a cycleTab method. (2) Bind `g t`→workspace.tab.next and `g shift+t`→workspace.tab.previous, `when: vim.normal`. Half (1) is fully achievable TODAY (single-chord resolveEvent + InvokeCommandIntent→commands.execute bridge in root_shell.dart both exist; pagedown/pageup tokens exist in key_chord.dart). Half (2) shares T-404''s blocker: no global SequenceMatcher, so a `g`-prefixed sequence can''t buffer outside the editor. `g g` (docStart) is already bound vim.normal||vim.visual, so `g t` slots beside it — but only once a matcher runs on the focused surface.
+
+ACCEPTANCE CRITERIA:
+- workspace.tab.next/previous registered in default_layout, cycling Slots.workspace tabs (tabsFor order) with wraparound; no-op at 0/1 tab.
+- defaultBindings ctrl+pagedown / ctrl+pageup so default/vscode/jetbrains cycle workspace tabs without YAML edits; verified via keymap resolution test.
+- vim.yaml binds `g t`→workspace.tab.next, `g shift+t`→workspace.tab.previous, when: vim.normal.
+- gt/gT cycle workspace tabs under vim; the `g` prefix is shared with `g g` docStart without breaking either.
+- Existing alt+1..5 sidebar-section behavior unchanged (those target Slots.sidebar, not workspace).
+- A matcher/loader test covers two sequences sharing the `g` prefix with different finals (g g vs g t) under vim scope.
+- make analyze + format + keymap/panel tests pass; coverage floor holds for default_layout / registry if touched.
+
+FILES: lib/builtin/default_layout/src/extension.dart (two CommandContributions w/ defaultBinding ctrl+pagedown/up + handlers computing wrapped index, following the sidebar.section.N / editor.close pattern); lib/kernel/src/panels/registry.dart (optional cycleTab helper); assets/keymaps/vim.yaml (g t / g shift+t near `g g`); lib/src/shell/root_shell.dart (global path that must buffer `g` — same surface as T-404); test/kernel/src/keymap/{editor_presets_test,sequence_matcher_test}.dart; test/kernel/src/panels/registry_test.dart (verify path before assuming).
+
+DEPENDENCIES: Part 1 (ctrl+pagedown/up) is fully independent and shippable now — needs only the existing single-chord path + InvokeCommandIntent bridge. Part 2 (gt/gT) shares T-404''s hard dependency on a global multi-chord matcher (the structural work T-406 owns). Recommend: land part 1 first (immediate value, every preset), gate part 2 behind whichever ticket introduces the global matcher. Coordinate matcher wiring with T-404 so it isn''t built twice. No conflict with T-407.
+
+OPEN QUESTIONS:
+- Add a cycleTab/activateNext API to PanelRegistry, or compute the wrapped index in the handler from tabsFor(Slots.workspace)+activeTabIn? Registry method is cleaner/reusable but widens coverage surface; handler-local keeps the change in default_layout.
+- Cycle Slots.workspace specifically, or the currently-focused slot''s tab strip (so gt cycles whatever column has focus)? Ticket says workspace; confirm against the cross-pane intent of the epic.
+- Confirm ctrl+pagedown/up don''t collide with terminal/Claude pane passthrough or an existing binding in any of the four presets before claiming "free for every preset".
+- Does gt/gT need a visual-mode guard, or is vim.normal-only correct? (vim allows gt in normal; the gg precedent uses normal||visual.)
+
+--- PROGRESS (2026-06-13) ---
+PART 1 DONE (commit on main): workspace.tab.next / workspace.tab.previous cycle commands with wraparound + ctrl+pagedown/ctrl+pageup defaultBindings across every preset. Tests in test/builtin/default_layout/widget_test.dart.
+
+PART 2 (gt/gT) STILL OPEN — and harder than the coordination note assumed. T-404 landed a global multi-chord matcher (root_shell), BUT it deliberately only STARTS a sequence on a MODIFIED chord (ctrl+w). Bare-key prefixes (g) are left editor/pane-local on purpose — otherwise the global matcher would steal `g` before the editor sees it, breaking gg/dd. So gt/gT (bare g) CANNOT just ride the global matcher. Options for part 2: (a) the editor/pane matchers grow gt/gT and dispatch command:workspace.tab.* (but then gt only works when the editor/a pane is focused, not globally); (b) a focus-agnostic bare-g disambiguation (g g = local docStart vs g t = global tab) — needs the global matcher to tentatively grab bare g AND coordinate with the editor''s matcher, which is the exact conflict T-404 avoided. Decide before building. The ctrl+pagedown/up commands already give every preset tab-cycling; gt/gT is a vim-affordance nicety on top.', NULL, '2026-06-13 16:38:16', '2026-06-13 16:38:16', '2026-06-13 16:38:16', NULL, '98c4bb26a0ac412c3c3216699555ab16', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP8KFAF526ZNXBQS98DPPG', 'status', 'ready', 'done', NULL, '2026-06-13 19:55:21', '2026-06-13 19:55:21', '2026-06-13 19:55:21', NULL, '359e523cbe3e5019b291b91a92d476ba', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDG3T4A7CYPTG535KVAVH6C', 'description', NULL, '**Symptom.** The git branch shown in the status bar (bottom-left, next to the `⎇` glyph) sometimes displays the branch of a *different* open clide workspace/window — it "bleeds" across windows. Intermittent ("at times"). Screenshot on the originating session shows `main` while a sibling window was on another branch.
+
+**User hypothesis.** Lack of fencing in the message bus between multiple parallel open sessions/windows — events/state from one window reaching another.
+
+**Why this matters.** Showing the wrong branch in a git-centric IDE is a footgun: the user can believe they are on a branch they are not, and act (commit/checkout) on that false premise. It also *contradicts a documented isolation invariant* — see T-269: "Separate clide WINDOWS are isolated (separate process, per-root IPC socket, per-repo deterministic session id), so parallel repos in separate windows are fine." This bug is evidence that invariant is not actually holding for the status-bar branch.
+
+**Investigation (read-only, 2026-06-14).**
+- Status-bar branch widget: `lib/builtin/git/src/git_status_item.dart:8-86` — subscribes to `kernel.events.on<DaemonEvent>()`, fetches branch via `ipc.request(''git.status'')` (sets `_branch = r.data[''branch'']`), and re-fetches on any `git.changed` event.
+- Branch fetch path: `lib/src/git/client.dart:23-65` → `lib/src/daemon/git_commands.dart:46-53` (`git.status` handler).
+- Event emit: `git_commands.dart:295-296` `_emitChanged()` → kernel `DaemonBus`.
+- Kernel bus: `lib/kernel/src/events/bus.dart:5-20` is a single unfiltered `StreamController.broadcast()`; on project open the *same* `daemonBus` instance is reused (`lib/main.dart:110-111, 372-376`). No workspace/window id on events; no per-workspace filtering.
+- Per-workspace socket IS correct: `lib/src/ipc/paths.dart:13-16` hashes (FNV-1a64) the workspace root → distinct socket per root (D-70).
+
+**Two candidate mechanisms — fix work must confirm which (they are NOT the same):**
+1. *Same-process / in-place bleed* — the global `DaemonBus` is shared across dispatchers, so events are not workspace-scoped. This is the in-memory path and overlaps with the now-closed T-367 ("Project switch leaks the entire previous workspace service set"). Only applies if the two surfaces share one process.
+2. *Cross-process / true multi-window bleed* — separate windows are separate processes (per T-269), so an in-memory bus cannot cross them. A process-crossing path is required: most likely the branch widget resolving its IPC endpoint from an **inherited `CLIDE_SOCK`** (see T-215) instead of recomputing the socket from its own workspace root — e.g. window B launched from window A''s integrated terminal inherits A''s `CLIDE_SOCK` and connects to A''s IPC server. Same-root windows sharing one hashed socket is a second possibility.
+
+**Repro info still needed (please confirm):**
+- Were the two windows open on the *same* repo or *different* repos?
+- Was the second window launched from inside the first window''s integrated terminal (i.e. could it have inherited `CLIDE_SOCK`)?
+
+**Proposed direction.**
+- Make the status-bar branch widget resolve its IPC endpoint and filter events strictly by *its own* workspace root, never trusting an ambient/inherited socket.
+- Add a workspace/window identity to `DaemonEvent` (or scope the `DaemonBus` per workspace) so events carry provenance and consumers can fence (kernel/src/events/types.dart + bus.dart).
+- Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
+
+**Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).', NULL, '2026-06-14 15:29:27', '2026-06-14 15:29:27', '2026-06-14 15:29:27', NULL, 'c0706f9ad119d6c1a6efc2c36315ecf0', 2) ON CONFLICT(hash) DO NOTHING;
