@@ -101,6 +101,7 @@ void main() {
     expect(find.text('Open Folder…'), findsOneWidget);
     await tester.tap(find.text('File'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20)); // flush the close under load
     expect(find.text('Open Folder…'), findsNothing);
   });
 

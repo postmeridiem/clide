@@ -24,7 +24,7 @@ void main() {
     test('shows a toast for each message published to the toast channel', () async {
       final (t, bus) = make();
       publishToast(bus, 'builtin.git', 'Pushed to origin/main', severity: ToastSeverity.success, duration: Duration.zero);
-      await Future<void>.delayed(Duration.zero); // let the broadcast stream deliver
+      await pumpEventQueue(); // let the broadcast stream deliver
       expect(t.entries.single.message, 'Pushed to origin/main');
       expect(t.entries.single.severity, ToastSeverity.success);
     });
@@ -33,7 +33,7 @@ void main() {
       final (t, bus) = make();
       bus.publish('x', toastChannel, {'severity': 'error'}); // no message
       bus.publish('x', 'other-channel', {'message': 'nope'}); // wrong channel
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(t.entries, isEmpty);
     });
 
@@ -41,7 +41,7 @@ void main() {
       final (t, bus) = make();
       bus.publish('x', toastChannel, {'message': 'a', 'severity': 'warning', 'durationMs': 0});
       bus.publish('x', toastChannel, {'message': 'b', 'severity': 'bogus', 'durationMs': 0});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(t.entries.map((e) => e.severity), [ToastSeverity.warning, ToastSeverity.info]);
     });
   });

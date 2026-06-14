@@ -120,7 +120,7 @@ void main() {
     });
     c.switchView(PqlView.markdown);
     expect(c.view, PqlView.markdown);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(filesCalls, 1);
     // Switching to the same view is a no-op.
     c.switchView(PqlView.markdown);

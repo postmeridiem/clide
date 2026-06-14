@@ -230,7 +230,7 @@ void main() {
       }
 
       expect(orch.sessions, isEmpty);
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(created.single.killed, isTrue);
     });
 
@@ -247,7 +247,7 @@ void main() {
       }
 
       expect(orch.sessions, isEmpty);
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(created.every((p) => p.killed), isTrue);
     });
 

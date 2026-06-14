@@ -30,7 +30,7 @@ void main() {
       final received = <Message>[];
       final sub = bus.subscribe().listen(received.add);
       bus.publish('git', 'status-changed', {'dirty': true});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(received, hasLength(1));
       expect(received.first.publisher, 'git');
       expect(received.first.channel, 'status-changed');
@@ -44,7 +44,7 @@ void main() {
       bus.publish('git', 'a', const {});
       bus.publish('pty', 'a', const {});
       bus.publish('git', 'b', const {});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(got.map((m) => m.channel), ['a', 'b']);
       await sub.cancel();
     });
@@ -55,7 +55,7 @@ void main() {
       bus.publish('pty', 'output', const {});
       bus.publish('pty', 'exit', const {});
       bus.publish('git', 'output', const {});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(got.map((m) => m.publisher), ['pty', 'git']);
       await sub.cancel();
     });
@@ -66,7 +66,7 @@ void main() {
       bus.publish('git', 'status', const {});
       bus.publish('git', 'other', const {});
       bus.publish('pty', 'status', const {});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(got, hasLength(1));
       await sub.cancel();
     });

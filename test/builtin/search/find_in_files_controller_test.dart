@@ -69,7 +69,7 @@ void main() {
     final c = make();
     await c.run('foo');
     emitMatch('s1', [m('a.dart', 1), m('a.dart', 5), m('b.dart', 2)]);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.matchCount, 3);
     final g = c.grouped();
     expect(g.keys, containsAll(['a.dart', 'b.dart']));
@@ -81,7 +81,7 @@ void main() {
     final c = make();
     await c.run('foo'); // activeSearchId == s1
     emitMatch('OLD', [m('z.dart', 9)]);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.matchCount, 0);
   });
 
@@ -91,7 +91,7 @@ void main() {
     f.services.events.emit(
       DaemonEvent(subsystem: 'search', kind: 'search.done', data: const {'searchId': 's1', 'cancelled': false}, ts: DateTime.now().toUtc()),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.running, isFalse);
     expect(c.done, isTrue);
   });
@@ -102,7 +102,7 @@ void main() {
     f.services.events.emit(
       DaemonEvent(subsystem: 'search', kind: 'search.error', data: const {'searchId': 's1', 'message': 'invalid regex: x'}, ts: DateTime.now().toUtc()),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.error, contains('invalid regex'));
     expect(c.running, isFalse);
   });
@@ -111,7 +111,7 @@ void main() {
     final c = make();
     await c.run('foo');
     emitMatch('s1', [m('a.dart', 1)]);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.matchCount, 1);
     await c.run('bar');
     expect(c.matchCount, 0); // cleared on new run
@@ -125,7 +125,7 @@ void main() {
     });
     final c = make();
     c.openMatch(const SearchMatch(path: 'a.dart', line: 7, matchStart: 0, matchEnd: 3, preview: 'foo'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(sent!['path'], 'a.dart');
     expect(sent!['line'], 7);
   });

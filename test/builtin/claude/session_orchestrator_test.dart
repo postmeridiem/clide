@@ -65,7 +65,7 @@ void main() {
     final m = await orch.spawn(SpawnSpec(id: 'fork-x', role: 'teammate', sessionId: 'placeholder-uuid', cwd: '/repo', forkSourceSessionId: 'source-uuid'));
     expect(m.sessionId, 'placeholder-uuid'); // starts as the placeholder
     created.last.emit(jsonEncode({'type': 'system', 'subtype': 'init', 'session_id': 'real-fork-id', 'model': 'claude-opus-4-8', 'permissionMode': 'default'}));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(m.sessionId, 'real-fork-id'); // updated to the branch's real id
   });
 
@@ -120,7 +120,7 @@ void main() {
     await orch.close('primary');
     expect(orch.byId('primary'), isNull);
     expect(orch.sessions, isEmpty);
-    await Future<void>.delayed(Duration.zero); // session.dispose is async
+    await pumpEventQueue(); // session.dispose is async
     expect(created.single.killed, isTrue);
   });
 
@@ -143,7 +143,7 @@ void main() {
     await orch.spawn(spec('a'));
     await orch.spawn(spec('b'));
     orch.dispose();
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(created.every((p) => p.killed), isTrue);
   });
 
@@ -164,7 +164,7 @@ void main() {
       await orch.spawn(teamSpec('primary', 'lead', 'lead'));
       await orch.spawn(teamSpec('teammate:tyre', 'tyre', 'teammate'));
       orch.broker.sendMessage('primary', 'tyre', 'pick up T-9');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final tyreProc = created[1];
       expect(tyreProc.writes.any((w) => w.contains('[team] lead: pick up T-9')), isTrue);
     });

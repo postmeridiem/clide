@@ -47,14 +47,14 @@ void main() {
     test('a load message loads the ticket', () async {
       c = TicketDetailController(ipc: f.ipc, messages: f.services.messages);
       f.services.messages.publish('builtin.tickets', 'load', {'id': 'T-1'});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(c!.detail?.id, 'T-1');
     });
 
     test('a bare selection does NOT load (the nav re-emits as load)', () async {
       c = TicketDetailController(ipc: f.ipc, messages: f.services.messages);
       f.services.messages.publish('builtin.tickets', 'selection', {'id': 'T-9'});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(c!.detail, isNull);
     });
   });
@@ -78,9 +78,9 @@ void main() {
 
     test('selection reveals + activates the static detail tab without churn', () async {
       f.services.messages.publish('builtin.tickets', 'selection', {'id': 'T-1'});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       f.services.messages.publish('builtin.tickets', 'selection', {'id': 'T-2'});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(f.services.panels.activeTabIn(Slots.contextPanel), 'tickets.detail');
       expect(f.services.panels.tabsFor(Slots.contextPanel).where((t) => t.id == 'tickets.detail').length, 1);
       expect(f.services.arrangement.isVisible(Slots.contextPanel), isTrue);

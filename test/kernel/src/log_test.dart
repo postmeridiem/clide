@@ -46,7 +46,7 @@ void main() {
       final sub = log.records.listen(out.add);
       log.info('s', 'm1');
       log.info('s', 'm2');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(out.map((r) => r.message), ['m1', 'm2']);
       await sub.cancel();
       await log.dispose();

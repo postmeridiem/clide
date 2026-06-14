@@ -287,7 +287,7 @@ void main() {
       // Emit files.changed for a file at root level — parent is ''.
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
       // Give the async refresh a tick.
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, greaterThan(countAfterLoad));
     });
@@ -305,7 +305,7 @@ void main() {
 
       // 'lib' is not in _entries yet, so its parent 'lib/src' won't be there.
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'lib/src/foo.dart'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, countAfterLoad);
     });
@@ -322,7 +322,7 @@ void main() {
       final countAfterLoad = lsCallCount;
 
       f.services.events.emit(DaemonEvent(subsystem: 'editor', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, countAfterLoad);
     });
@@ -339,7 +339,7 @@ void main() {
       final countAfterLoad = lsCallCount;
 
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.opened', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, countAfterLoad);
     });
@@ -352,7 +352,7 @@ void main() {
       final countAfterLoad = 1;
 
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'pubspec.yaml'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       // Root '' is in _entries, so reload fires.
       expect(countAfterLoad, 1); // just confirming test ran
@@ -364,7 +364,7 @@ void main() {
       await c.load();
 
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': null}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // No crash — just checking the null-path guard.
     });
   });
@@ -488,7 +488,7 @@ void main() {
       c.dispose();
       ctrl = null; // prevent tearDown from double-disposing
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // Test passes if no exception.
     });
   });

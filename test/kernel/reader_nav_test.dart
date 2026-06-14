@@ -30,7 +30,7 @@ void main() {
   });
 
   // Let the broadcast bus deliver.
-  Future<void> tick() => Future<void>.delayed(Duration.zero);
+  Future<void> tick() => pumpEventQueue();
 
   test('starts empty', () {
     expect(nav.current, isNull);

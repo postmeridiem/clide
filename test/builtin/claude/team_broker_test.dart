@@ -168,7 +168,7 @@ void main() {
       final events = <void>[];
       final sub = broker.changes.listen((_) => events.add(null));
       broker.removeMember('teammate:tyre');
-      await Future<void>.delayed(Duration.zero); // let the broadcast event deliver
+      await pumpEventQueue(); // let the broadcast event deliver
       await sub.cancel();
       expect(events, hasLength(1));
     });
@@ -177,7 +177,7 @@ void main() {
       var done = false;
       broker.changes.listen(null, onDone: () => done = true);
       broker.dispose();
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(done, isTrue);
     });
   });
@@ -223,7 +223,7 @@ void main() {
       final events = <void>[];
       final sub = broker.changes.listen((_) => events.add(null));
       broker.reassignTask(id, 'primary');
-      await Future<void>.delayed(Duration.zero); // let the broadcast event deliver
+      await pumpEventQueue(); // let the broadcast event deliver
       await sub.cancel();
       expect(events, hasLength(1));
     });
