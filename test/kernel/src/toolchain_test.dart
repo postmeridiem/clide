@@ -56,11 +56,15 @@ void main() {
   });
 
   group('Toolchain.resolvePaths (static)', () {
-    test('returns a ResolvedPaths with pql resolved from PATH', () {
+    test('returns a ResolvedPaths; resolves pql from PATH when present', () {
       final paths = Toolchain.resolvePaths();
       expect(paths, isA<ResolvedPaths>());
-      // On this CI host pql is installed (per repo memory).
-      expect(paths.pql, isNotNull);
+      // pql is resolved from PATH only when it's installed on the host — it is on
+      // the dev box, but GitHub CI runners don't ship it. So accept null, or a
+      // path that really exists (the resolver must never invent one).
+      if (paths.pql != null) {
+        expect(File(paths.pql!).existsSync(), isTrue);
+      }
     });
 
     test('git falls back to PATH when no install-dir dugite is found', () {
