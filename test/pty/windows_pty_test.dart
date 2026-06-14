@@ -101,8 +101,12 @@ void main() {
     });
 
     test('non-existent executable surfaces a PtyException at spawn time', () {
-      // CreateProcessW fails with ERROR_FILE_NOT_FOUND (2) — same code
-      // POSIX ENOENT happens to use, but asserted independently here.
+      // CreateProcessW fails (the file doesn't exist). The GetLastError code
+      // (ERROR_FILE_NOT_FOUND, 2) is intentionally NOT asserted: Dart FFI does
+      // not reliably preserve GetLastError across the lookupFunction boundary —
+      // CI Windows observed errno 0 here — so only the PtyException and the
+      // failing op are dependable. (Same reason the errno-based broken-pipe
+      // check in write() is best-effort; see T-424.)
       expect(
         () => WindowsPty.start(
           executable: 'C:\\clide-no-such-binary-${DateTime.now().microsecondsSinceEpoch}.exe',
@@ -111,7 +115,7 @@ void main() {
           rows: 24,
           environment: {...Platform.environment},
         ),
-        throwsA(isA<PtyException>().having((e) => e.errno, 'errno', 2)),
+        throwsA(isA<PtyException>().having((e) => e.op, 'op', 'CreateProcessW')),
       );
     });
   });
