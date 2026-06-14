@@ -133,7 +133,7 @@ for ($i = 1; $i -le $Iterations; $i++) {
 
   $tag = if ($hung) { 'HANG' } elseif ($orphans -gt 0) { 'LEAK?' } else { 'clean' }
   $col = if ($hung) { 'Red' } elseif ($orphans -gt 0) { 'Yellow' } else { 'Green' }
-  Write-Host ("iter {0,3}/{1}: hosts={2} orphans={3,+4} dart_peak_handles={4} threads={5} exit={6} {7}" -f `
+  Write-Host ("iter {0,3}/{1}: hosts={2} orphans={3,4} dart_peak_handles={4} threads={5} exit={6} {7}" -f `
     $i, $Iterations, $now, $orphans, $peakHandles, $peakThreads, $exit, $tag) -ForegroundColor $col
 }
 
