@@ -26,7 +26,12 @@ jobs:
           channel: stable
       - run: flutter --version
       - run: flutter pub get
-      - run: flutter analyze
+      # No `flutter analyze` here: it's platform-agnostic — the Linux job already
+      # analyzes windows_pty.dart and everything else statically, and the
+      # `flutter build windows` release job catches Windows-specific compile
+      # errors. Skipping it also avoids needing `make gen-build-info`, since the
+      # pty tests import the pty libraries directly, not the build_info-bearing
+      # barrel (lib/clide.dart). This job's unique value is running real ConPTY.
       - name: ConPTY + Windows-arg unit tests
         # windows_pty_test.dart drives real ConPTY (it self-skips off-Windows);
         # the args/size suites are the pure-logic coverage. --timeout 60s so a
