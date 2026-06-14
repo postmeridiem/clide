@@ -46,6 +46,7 @@ import 'package:ffi/ffi.dart';
 
 import 'errors.dart';
 import 'pty_session.dart';
+import 'pty_size.dart';
 
 // -- structs ----------------------------------------------------------------
 
@@ -248,7 +249,7 @@ class WindowsPty implements PtySession {
     String? workingDirectory,
     Map<String, String> environment = const {},
   }) {
-    executable = _resolveExecutable(executable, environment);
+    executable = resolveExecutable(executable, environment);
 
     // ---- Pipes + pseudo console ---------------------------------------
     final ha = calloc<_Handle>();
@@ -275,8 +276,8 @@ class WindowsPty implements PtySession {
     calloc.free(hb);
 
     final size = calloc<_Coord>()
-      ..ref.x = columns
-      ..ref.y = rows;
+      ..ref.x = clampPtyDimension(columns)
+      ..ref.y = clampPtyDimension(rows);
     final hpcOut = calloc<_Handle>();
     final hr = _createPseudoConsole(size.ref, inRead, outWrite, 0, hpcOut);
     calloc.free(size);
@@ -332,8 +333,8 @@ class WindowsPty implements PtySession {
     // parse (which also gives .bat/.cmd their cmd.exe host); the
     // executable is pre-resolved to an absolute path above so no PATH
     // ambiguity is left at this point.
-    final cmdLine = [executable, ...arguments].map(_quoteArg).join(' ').toNativeUtf16(allocator: malloc);
-    final envBlock = _environmentBlock(environment);
+    final cmdLine = [executable, ...arguments].map(quoteArg).join(' ').toNativeUtf16(allocator: malloc);
+    final envBlock = composeEnvironmentBlock(environment).toNativeUtf16(allocator: malloc);
     final cwdN = workingDirectory == null ? ffi.nullptr : workingDirectory.toNativeUtf16(allocator: malloc);
 
     // STARTF_USESTDHANDLES with NULL std handles (calloc zeroes them):
@@ -508,8 +509,8 @@ class WindowsPty implements PtySession {
   void resize({required int cols, required int rows}) {
     if (_dead || _hpc == ffi.nullptr) return;
     final size = calloc<_Coord>()
-      ..ref.x = cols
-      ..ref.y = rows;
+      ..ref.x = clampPtyDimension(cols)
+      ..ref.y = clampPtyDimension(rows);
     _resizePseudoConsole(_hpc, size.ref);
     calloc.free(size);
   }
@@ -587,7 +588,12 @@ class WindowsPty implements PtySession {
   /// Resolve a bare command name against the environment's PATH +
   /// PATHEXT (mirrors what the POSIX side does with `:`-split PATH —
   /// visible/debuggable resolution instead of CreateProcess magic).
-  static String _resolveExecutable(String executable, Map<String, String> environment) {
+  ///
+  /// [exists] overrides the on-disk probe so the resolution logic is
+  /// unit-testable off-Windows; production passes the default. Public for
+  /// that reason — not part of the backend's external contract.
+  static String resolveExecutable(String executable, Map<String, String> environment, {bool Function(String path)? exists}) {
+    final fileExists = exists ?? ((String path) => File(path).existsSync());
     final pathext = (environment['PATHEXT'] ?? Platform.environment['PATHEXT'] ?? '.COM;.EXE;.BAT;.CMD').split(';').where((e) => e.isNotEmpty).toList();
     final hasKnownExt = pathext.any((e) => executable.toLowerCase().endsWith(e.toLowerCase()));
 
@@ -604,7 +610,7 @@ class WindowsPty implements PtySession {
 
     if (executable.contains('\\') || executable.contains('/')) {
       for (final c in candidates(executable)) {
-        if (File(c).existsSync()) return c;
+        if (fileExists(c)) return c;
       }
       return executable;
     }
@@ -612,14 +618,15 @@ class WindowsPty implements PtySession {
     for (final dir in path.split(';')) {
       if (dir.isEmpty) continue;
       for (final c in candidates('$dir\\$executable')) {
-        if (File(c).existsSync()) return c;
+        if (fileExists(c)) return c;
       }
     }
     return executable;
   }
 
-  /// Quote one argument per MSVCRT command-line parsing rules.
-  static String _quoteArg(String arg) {
+  /// Quote one argument per MSVCRT command-line parsing rules. Public so the
+  /// quoting rules can be unit-tested off-Windows; not an external contract.
+  static String quoteArg(String arg) {
     if (arg.isNotEmpty && !arg.contains(RegExp(r'[ \t"\n\v]'))) return arg;
     final b = StringBuffer('"');
     var backslashes = 0;
@@ -646,17 +653,17 @@ class WindowsPty implements PtySession {
     return b.toString();
   }
 
-  /// Compose a CREATE_UNICODE_ENVIRONMENT block: `K=V\0...\0\0`,
-  /// entries sorted case-insensitively by key per CreateProcess docs.
-  static ffi.Pointer<Utf16> _environmentBlock(Map<String, String> environment) {
+  /// Compose the body of a CREATE_UNICODE_ENVIRONMENT block: `K=V\0...\0`
+  /// with one trailing NUL, entries sorted case-insensitively by key per
+  /// CreateProcess docs. The caller nativizes via `toNativeUtf16`, whose own
+  /// terminator completes the required double-NUL ending (which also keeps an
+  /// empty environment block valid). Public for unit testing.
+  static String composeEnvironmentBlock(Map<String, String> environment) {
     final entries = environment.entries.toList()..sort((a, b) => a.key.toUpperCase().compareTo(b.key.toUpperCase()));
     // NUL via fromCharCode — an inline NUL escape in a string literal
     // is invisible in review and trips up text tooling.
     final nul = String.fromCharCode(0);
     final joined = entries.map((e) => '${e.key}=${e.value}$nul').join();
-    // toNativeUtf16 appends the final terminating NUL; the explicit one
-    // after the last entry completes the required double-NUL ending (and
-    // keeps an empty environment block valid too).
-    return '$joined$nul'.toNativeUtf16(allocator: malloc);
+    return '$joined$nul';
   }
 }

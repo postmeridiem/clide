@@ -25,6 +25,7 @@ import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 
 import 'errors.dart';
+import 'pty_size.dart';
 import '../ipc/errno_mapping.dart' show PosixErrno;
 import 'ffi/libc.dart' as libc;
 import 'pty_session.dart';
@@ -310,8 +311,8 @@ class NativePty implements PtySession {
 
     // ---- Set initial winsize on the master ---------------------------
     final ws = calloc<_Winsize>()
-      ..ref.wsRow = rows
-      ..ref.wsCol = columns;
+      ..ref.wsRow = clampPtyDimension(rows)
+      ..ref.wsCol = clampPtyDimension(columns);
     _ioctl(masterFd, _kTiocsWinsz, ws);
     calloc.free(ws);
 
@@ -429,8 +430,8 @@ class NativePty implements PtySession {
   void resize({required int cols, required int rows}) {
     if (_dead) return;
     final ws = calloc<_Winsize>()
-      ..ref.wsRow = rows
-      ..ref.wsCol = cols;
+      ..ref.wsRow = clampPtyDimension(rows)
+      ..ref.wsCol = clampPtyDimension(cols);
     final rc = _ioctl(_fd, _kTiocsWinsz, ws);
     calloc.free(ws);
     if (rc < 0 && libc.errno == PosixErrno.ebadf) {

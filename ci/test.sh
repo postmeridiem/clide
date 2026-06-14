@@ -37,7 +37,10 @@ echo "==> dart test (pty — unreliable under the flutter test runner; serial)"
 # for resource-bound tests, vs. the old per-test `retry:` band-aid. (T-193)
 # windows_pty_test is the ConPTY sibling of session_test; each suite
 # self-skips off-platform, so the union always contributes tests.
-dart test -r "$REPORTER" --concurrency=1 --tags pty test/pty/session_test.dart test/panes/registry_test.dart test/pty/windows_pty_test.dart
+# --timeout 60s matches the flutter lines below: a wedged PTY test (e.g. a
+# ConPTY reader blocked forever in ReadFile) fails fast instead of hanging the
+# whole serial run.
+dart test -r "$REPORTER" --concurrency=1 --timeout 60s --tags pty test/pty/session_test.dart test/panes/registry_test.dart test/pty/windows_pty_test.dart
 
 # The parallel pool excludes both pty (runs under dart test, above) and
 # serial-tagged tests (concurrency-vulnerable — run in their own --concurrency=1
