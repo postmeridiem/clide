@@ -1,21 +1,14 @@
-# Gitea Actions workflow for clide.
-#
-# NOT YET ACTIVATED. Gitea Actions must be enabled in the instance
-# settings before this runs; until then the file is just a ready-made
-# pipeline Claude + the user can review.
-#
-# When the repo eventually lands on GitHub, copy this file verbatim to
-# `.github/workflows/test.yml` — Gitea Actions consumes GitHub-Actions
-# syntax, so no rewrite is needed.
-#
-# Steps go through the make targets (the repo's tooling-discipline rule:
-# the make layer sets up the environment — gen-build-info etc. — and
-# stays correct if a wrapped script moves). T-384 fixed three latent
-# breaks here: a `cd app` into the flattened-away app/ directory, a
-# coverage gate with no coverage run before it, and raw ci/ script
-# invocations that skipped build-info generation.
-
 name: test
+
+# Linux CI for clide (GitHub Actions). Moved here from .gitea/workflows/ when CI
+# consolidated onto GitHub (the primary remote); the Gitea secondary has Actions
+# disabled. Pairs with windows.yml (ConPTY suite on windows-latest) and
+# release.yml (versioned release bundles).
+#
+# Steps go through the make targets (the repo's tooling-discipline rule: the
+# make layer sets up the environment — gen-build-info etc. — and stays correct
+# if a wrapped script moves).
+
 on:
   push:
     branches: [main]
@@ -30,9 +23,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
       - run: flutter pub get
-      # test-coverage runs the full fast suite WITH coverage (it includes
-      # the a11y suite — see the push-check note in the Makefile), which
-      # is what coverage-gate consumes.
+      # test-coverage runs the full fast suite WITH coverage (it includes the
+      # a11y suite — see the push-check note in the Makefile), which is what
+      # coverage-gate consumes.
       - run: make test-coverage
       - run: make coverage-gate
 
@@ -61,13 +54,13 @@ jobs:
       - run: flutter pub get
       - run: make smoke-bundle
 
-  # The web-WASM Playwright job is withheld: `flutter build web --wasm`
-  # cannot compile the tree since the tree-sitter/PTY dart:ffi pivot
-  # (dart:ffi is unavailable on the wasm target). Whether the web target
-  # gets conditional-import fences or is dropped is an open question —
-  # see Q-50 in governance/questions/architecture.md. Re-add the job
-  # (steps: setup-node, npm install + playwright install in tools/ui,
-  # `make test-e2e`) when Q-50 resolves toward keeping it.
+  # The web-WASM Playwright job is withheld: `flutter build web --wasm` cannot
+  # compile the tree since the tree-sitter/PTY dart:ffi pivot (dart:ffi is
+  # unavailable on the wasm target). Whether the web target gets conditional-
+  # import fences or is dropped is an open question — see Q-50 in
+  # governance/questions/architecture.md. Re-add the job (setup-node, npm
+  # install + playwright install in tools/ui, `make test-e2e`) when Q-50
+  # resolves toward keeping it.
 
   docs:
     name: dart doc (lib API)
