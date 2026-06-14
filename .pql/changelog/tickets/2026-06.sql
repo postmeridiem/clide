@@ -5441,3 +5441,128 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 - Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
 
 **Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).', 'backlog', 'high', NULL, NULL, 'D-70', '2026-06-14 15:29:23', '2026-06-14 15:29:27', NULL, '1dc670c4dd0837770970ff5da8c5e464', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDG3T4A7CYPTG535KVAVH6C', 'bug', NULL, 'Git branch in status bar bleeds across parallel windows (cross-window IPC/bus fencing gap)', '**Symptom.** The git branch shown in the status bar (bottom-left, next to the `⎇` glyph) sometimes displays the branch of a *different* open clide workspace/window — it "bleeds" across windows. Intermittent ("at times"). Screenshot on the originating session shows `main` while a sibling window was on another branch.
+
+**User hypothesis.** Lack of fencing in the message bus between multiple parallel open sessions/windows — events/state from one window reaching another.
+
+**Why this matters.** Showing the wrong branch in a git-centric IDE is a footgun: the user can believe they are on a branch they are not, and act (commit/checkout) on that false premise. It also *contradicts a documented isolation invariant* — see T-269: "Separate clide WINDOWS are isolated (separate process, per-root IPC socket, per-repo deterministic session id), so parallel repos in separate windows are fine." This bug is evidence that invariant is not actually holding for the status-bar branch.
+
+**Investigation (read-only, 2026-06-14).**
+- Status-bar branch widget: `lib/builtin/git/src/git_status_item.dart:8-86` — subscribes to `kernel.events.on<DaemonEvent>()`, fetches branch via `ipc.request(''git.status'')` (sets `_branch = r.data[''branch'']`), and re-fetches on any `git.changed` event.
+- Branch fetch path: `lib/src/git/client.dart:23-65` → `lib/src/daemon/git_commands.dart:46-53` (`git.status` handler).
+- Event emit: `git_commands.dart:295-296` `_emitChanged()` → kernel `DaemonBus`.
+- Kernel bus: `lib/kernel/src/events/bus.dart:5-20` is a single unfiltered `StreamController.broadcast()`; on project open the *same* `daemonBus` instance is reused (`lib/main.dart:110-111, 372-376`). No workspace/window id on events; no per-workspace filtering.
+- Per-workspace socket IS correct: `lib/src/ipc/paths.dart:13-16` hashes (FNV-1a64) the workspace root → distinct socket per root (D-70).
+
+**Two candidate mechanisms — fix work must confirm which (they are NOT the same):**
+1. *Same-process / in-place bleed* — the global `DaemonBus` is shared across dispatchers, so events are not workspace-scoped. This is the in-memory path and overlaps with the now-closed T-367 ("Project switch leaks the entire previous workspace service set"). Only applies if the two surfaces share one process.
+2. *Cross-process / true multi-window bleed* — separate windows are separate processes (per T-269), so an in-memory bus cannot cross them. A process-crossing path is required: most likely the branch widget resolving its IPC endpoint from an **inherited `CLIDE_SOCK`** (see T-215) instead of recomputing the socket from its own workspace root — e.g. window B launched from window A''s integrated terminal inherits A''s `CLIDE_SOCK` and connects to A''s IPC server. Same-root windows sharing one hashed socket is a second possibility.
+
+**Repro info still needed (please confirm):**
+- Were the two windows open on the *same* repo or *different* repos?
+- Was the second window launched from inside the first window''s integrated terminal (i.e. could it have inherited `CLIDE_SOCK`)?
+
+**Proposed direction.**
+- Make the status-bar branch widget resolve its IPC endpoint and filter events strictly by *its own* workspace root, never trusting an ambient/inherited socket.
+- Add a workspace/window identity to `DaemonEvent` (or scope the `DaemonBus` per workspace) so events carry provenance and consumers can fence (kernel/src/events/types.dart + bus.dart).
+- Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
+
+**Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).
+
+---
+
+**Repro details confirmed (user, 2026-06-14):**
+- The two windows were on *different repos* (distinct workspace roots → distinct hashed sockets per D-70; rules out same-socket collision).
+- The second window was opened from the **File menu at the top**, not from an integrated terminal.
+
+**Refined root-cause analysis (this changes the leading hypothesis).**
+
+The File menu has two distinct paths (`lib/builtin/menubar/src/file_actions.dart`):
+- `openFolder()`/`openPath()` (l.23-63) → `services.project.open()` = *in-place* switch, same process (the T-269/T-367 class). Produces ONE window, so not this report.
+- `newWindow()` (l.30-32) → `Process.start(Platform.resolvedExecutable, const [], mode: ProcessStartMode.detached)` = a genuinely **separate detached process**. This matches the "parallel windows" symptom.
+
+Two facts narrow it:
+1. `CLIDE_SOCK`/`CLIDE_WORKSPACE` are NOT set in clide''s own process environment — they are a delta overlaid only on spawned Claude/PTY *child* processes (`lib/builtin/claude/src/agent_bootstrap.dart:57-71`, "Process.start keeps the parent environment by default, so this returns only the keys to add/override"). So a clean dock-launched window has no CLIDE_SOCK to leak.
+2. `newWindow()` passes **no `environment:` override**, so the detached child inherits the parent clide process''s full environment verbatim.
+
+**Leading hypothesis now:** environment inheritance through `newWindow()` when clide is self-hosted. If window 1 was itself launched from a clide-hosted terminal or as a clide agent, window 1''s process env already carries *that host''s* `CLIDE_SOCK`/`CLIDE_WORKSPACE`. `newWindow()` then spawns window 2 inheriting those vars — so any code in window 2 that resolves its IPC endpoint (or shells out to the `clide` CLI, which keys off `CLIDE_SOCK`) can bind to the wrong workspace''s server and surface its branch. This is consistent with: different repos, opened from the File menu, intermittent.
+
+**Caveat / not yet pinned:** the in-app status widget reportedly resolves IPC via the computed `workspaceSocketPath(root)` (`lib/main.dart:357`), NOT via `CLIDE_SOCK` — so if that holds, inherited CLIDE_SOCK alone shouldn''t mislead the *in-process* status bar. The exact cross-process channel therefore still needs live confirmation. Do NOT assume; instrument.
+
+**First diagnostic step for the fixer:**
+1. Reproduce: open window 1, then File → New Window, then open a *different* repo in window 2.
+2. Log, in each window at branch-fetch time: the resolved socket path the status client connected to, `Platform.environment[''CLIDE_SOCK'']`, `Platform.environment[''CLIDE_WORKSPACE'']`, and `kernel.project.root`. The window showing the wrong branch will reveal whether it (a) connected to the other window''s socket, (b) read a stale/ambient env var, or (c) received a cross-process event it shouldn''t have.
+
+**Hardening regardless of outcome:** `newWindow()` should spawn the child with an explicit, scrubbed environment — strip `CLIDE_SOCK`/`CLIDE_WORKSPACE` (and not rely on inheriting them) so a fresh window always computes its own per-root socket from its own workspace. A new window must never inherit another workspace''s IPC identity.', 'backlog', 'high', NULL, NULL, 'D-70', '2026-06-14 15:29:23', '2026-06-14 15:41:41', NULL, 'a3a009799c3acada9474e9657a2a89c2', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDKX4CVHWVGDAJC6X09602M', 'epic', NULL, 'Unify workspace lifecycle on a single fenced open primitive (Q-51)', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-14 15:45:57', '2026-06-14 15:45:57', NULL, 'ca426dc83f5cf2d6d98dd92b79583cc4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDKX4CVHWVGDAJC6X09602M', 'epic', NULL, 'Unify workspace lifecycle on a single fenced open primitive (Q-51)', 'Tracks the architectural unification behind Q-51: replace the scattered, per-entry-point workspace-open logic with a single fenced primitive.
+
+**The problem.** There is no "open workspace X" primitive — only two half-primitives in different layers:
+- `project.open(root)` (`lib/kernel/src/project.dart:143`) — the only repo-targeting path, intrinsically *in-place*: rebuilds services in the same process reusing the shared `daemonBus` (`lib/main.dart:372-376`).
+- `newWindow()` (`lib/builtin/menubar/src/file_actions.dart:30-32`) — a blank detached `Process.start` with no repo argument and no env scrubbing.
+
+To open a repo in a new window you spawn a blank window and then run the in-place switch inside it. Every fencing bug to date is a spot where one path forgets what the other remembers.
+
+**Symptoms already filed (same root):** T-421 (status-bar branch bleeds across parallel windows), T-367 (in-place switch leaked the previous service set — closed), T-269 (kept the previous repo''s Claude session — closed).
+
+**Target invariant.** `workspace root ⇒ socket ⇒ bus ⇒ session-id`, one-to-one. Exactly one place derives IPC identity from a root. Every entry point (File menu, project switcher, `clide://` deep link, CLI, recents) routes through `WorkspaceService.open(root, {target: thisWindow | newWindow})`. New-window spawns `Process.start(exe, [''--workspace'', root], environment: <scrubbed>)` — explicit root, no inherited `CLIDE_SOCK`/`CLIDE_WORKSPACE`.
+
+**Open decision (Q-51):** whether in-place switching survives at all, or whether a workspace is always its own window/process. If abolished, the teardown burden that T-367/T-269 patch disappears.
+
+**Acceptance:** Q-51 resolved with a D-record fixing the in-place-vs-window stance; a single workspace-open primitive in place; all entry points routed through it; T-421 no longer reproducible; a regression test that a checkout in one workspace cannot change another''s displayed branch.
+
+See Q-51 (governance/questions/architecture.md), D-70, D-56, D-72.', 'backlog', 'high', NULL, NULL, NULL, '2026-06-14 15:45:57', '2026-06-14 15:47:08', NULL, '86160ba4a7a094bc54b36f9071c4e561', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDM61KAA3GV3CVTE8PAZ8N0', 'task', '06FCDKX4CVHWVGDAJC6X09602M', 'Build WorkspaceService.open(root, target) — single fenced workspace-open primitive; route all entry points through it', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-14 15:47:10', '2026-06-14 15:47:10', NULL, 'b1e5651ed4d4f3f9a59f1baa0f3a72a6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDG3T4A7CYPTG535KVAVH6C', 'bug', '06FCDKX4CVHWVGDAJC6X09602M', 'Git branch in status bar bleeds across parallel windows (cross-window IPC/bus fencing gap)', '**Symptom.** The git branch shown in the status bar (bottom-left, next to the `⎇` glyph) sometimes displays the branch of a *different* open clide workspace/window — it "bleeds" across windows. Intermittent ("at times"). Screenshot on the originating session shows `main` while a sibling window was on another branch.
+
+**User hypothesis.** Lack of fencing in the message bus between multiple parallel open sessions/windows — events/state from one window reaching another.
+
+**Why this matters.** Showing the wrong branch in a git-centric IDE is a footgun: the user can believe they are on a branch they are not, and act (commit/checkout) on that false premise. It also *contradicts a documented isolation invariant* — see T-269: "Separate clide WINDOWS are isolated (separate process, per-root IPC socket, per-repo deterministic session id), so parallel repos in separate windows are fine." This bug is evidence that invariant is not actually holding for the status-bar branch.
+
+**Investigation (read-only, 2026-06-14).**
+- Status-bar branch widget: `lib/builtin/git/src/git_status_item.dart:8-86` — subscribes to `kernel.events.on<DaemonEvent>()`, fetches branch via `ipc.request(''git.status'')` (sets `_branch = r.data[''branch'']`), and re-fetches on any `git.changed` event.
+- Branch fetch path: `lib/src/git/client.dart:23-65` → `lib/src/daemon/git_commands.dart:46-53` (`git.status` handler).
+- Event emit: `git_commands.dart:295-296` `_emitChanged()` → kernel `DaemonBus`.
+- Kernel bus: `lib/kernel/src/events/bus.dart:5-20` is a single unfiltered `StreamController.broadcast()`; on project open the *same* `daemonBus` instance is reused (`lib/main.dart:110-111, 372-376`). No workspace/window id on events; no per-workspace filtering.
+- Per-workspace socket IS correct: `lib/src/ipc/paths.dart:13-16` hashes (FNV-1a64) the workspace root → distinct socket per root (D-70).
+
+**Two candidate mechanisms — fix work must confirm which (they are NOT the same):**
+1. *Same-process / in-place bleed* — the global `DaemonBus` is shared across dispatchers, so events are not workspace-scoped. This is the in-memory path and overlaps with the now-closed T-367 ("Project switch leaks the entire previous workspace service set"). Only applies if the two surfaces share one process.
+2. *Cross-process / true multi-window bleed* — separate windows are separate processes (per T-269), so an in-memory bus cannot cross them. A process-crossing path is required: most likely the branch widget resolving its IPC endpoint from an **inherited `CLIDE_SOCK`** (see T-215) instead of recomputing the socket from its own workspace root — e.g. window B launched from window A''s integrated terminal inherits A''s `CLIDE_SOCK` and connects to A''s IPC server. Same-root windows sharing one hashed socket is a second possibility.
+
+**Repro info still needed (please confirm):**
+- Were the two windows open on the *same* repo or *different* repos?
+- Was the second window launched from inside the first window''s integrated terminal (i.e. could it have inherited `CLIDE_SOCK`)?
+
+**Proposed direction.**
+- Make the status-bar branch widget resolve its IPC endpoint and filter events strictly by *its own* workspace root, never trusting an ambient/inherited socket.
+- Add a workspace/window identity to `DaemonEvent` (or scope the `DaemonBus` per workspace) so events carry provenance and consumers can fence (kernel/src/events/types.dart + bus.dart).
+- Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
+
+**Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).
+
+---
+
+**Repro details confirmed (user, 2026-06-14):**
+- The two windows were on *different repos* (distinct workspace roots → distinct hashed sockets per D-70; rules out same-socket collision).
+- The second window was opened from the **File menu at the top**, not from an integrated terminal.
+
+**Refined root-cause analysis (this changes the leading hypothesis).**
+
+The File menu has two distinct paths (`lib/builtin/menubar/src/file_actions.dart`):
+- `openFolder()`/`openPath()` (l.23-63) → `services.project.open()` = *in-place* switch, same process (the T-269/T-367 class). Produces ONE window, so not this report.
+- `newWindow()` (l.30-32) → `Process.start(Platform.resolvedExecutable, const [], mode: ProcessStartMode.detached)` = a genuinely **separate detached process**. This matches the "parallel windows" symptom.
+
+Two facts narrow it:
+1. `CLIDE_SOCK`/`CLIDE_WORKSPACE` are NOT set in clide''s own process environment — they are a delta overlaid only on spawned Claude/PTY *child* processes (`lib/builtin/claude/src/agent_bootstrap.dart:57-71`, "Process.start keeps the parent environment by default, so this returns only the keys to add/override"). So a clean dock-launched window has no CLIDE_SOCK to leak.
+2. `newWindow()` passes **no `environment:` override**, so the detached child inherits the parent clide process''s full environment verbatim.
+
+**Leading hypothesis now:** environment inheritance through `newWindow()` when clide is self-hosted. If window 1 was itself launched from a clide-hosted terminal or as a clide agent, window 1''s process env already carries *that host''s* `CLIDE_SOCK`/`CLIDE_WORKSPACE`. `newWindow()` then spawns window 2 inheriting those vars — so any code in window 2 that resolves its IPC endpoint (or shells out to the `clide` CLI, which keys off `CLIDE_SOCK`) can bind to the wrong workspace''s server and surface its branch. This is consistent with: different repos, opened from the File menu, intermittent.
+
+**Caveat / not yet pinned:** the in-app status widget reportedly resolves IPC via the computed `workspaceSocketPath(root)` (`lib/main.dart:357`), NOT via `CLIDE_SOCK` — so if that holds, inherited CLIDE_SOCK alone shouldn''t mislead the *in-process* status bar. The exact cross-process channel therefore still needs live confirmation. Do NOT assume; instrument.
+
+**First diagnostic step for the fixer:**
+1. Reproduce: open window 1, then File → New Window, then open a *different* repo in window 2.
+2. Log, in each window at branch-fetch time: the resolved socket path the status client connected to, `Platform.environment[''CLIDE_SOCK'']`, `Platform.environment[''CLIDE_WORKSPACE'']`, and `kernel.project.root`. The window showing the wrong branch will reveal whether it (a) connected to the other window''s socket, (b) read a stale/ambient env var, or (c) received a cross-process event it shouldn''t have.
+
+**Hardening regardless of outcome:** `newWindow()` should spawn the child with an explicit, scrubbed environment — strip `CLIDE_SOCK`/`CLIDE_WORKSPACE` (and not rely on inheriting them) so a fresh window always computes its own per-root socket from its own workspace. A new window must never inherit another workspace''s IPC identity.', 'backlog', 'high', NULL, NULL, 'D-70', '2026-06-14 15:29:23', '2026-06-14 15:47:10', NULL, 'b31a1fda9bb8515f031dee671fd43e85', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
