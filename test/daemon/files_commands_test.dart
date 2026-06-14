@@ -11,6 +11,7 @@ void main() {
   late Directory sandbox;
   late DaemonDispatcher dispatcher;
   late FilesService files;
+  late RecordingEventSink sink;
 
   setUp(() async {
     sandbox = await Directory.systemTemp.createTemp('clide-files-test-');
@@ -22,7 +23,7 @@ void main() {
     Directory('${sandbox.path}/.dart_tool').createSync();
     File('${sandbox.path}/.dart_tool/hidden').writeAsStringSync('x');
 
-    final sink = RecordingEventSink();
+    sink = RecordingEventSink();
     files = FilesService(
       root: sandbox,
       events: sink,
@@ -227,6 +228,27 @@ void main() {
     // FilesService.startWatching wires watcher.stream → events.emit;
     // exercising the emit branch is the goal — the consumer-side
     // assertion is covered in test/files/watcher_test.dart.
+  });
+
+  test('shutdown stops the watcher delivering into the bus (T-367)', () async {
+    // Project switch tears the old workspace's services down; a leaked
+    // watcher would keep emitting the OLD workspace's events into the
+    // new one's bus.
+    final ack = await call('files.watch', const {});
+    expect(ack.ok, isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await files.shutdown();
+    final before = sink.ofKind('files.changed').length;
+    await File('${sandbox.path}/after-shutdown.txt').writeAsString('x');
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(sink.ofKind('files.changed').length, before, reason: 'no events after shutdown');
+  });
+
+  test('shutdown is idempotent and re-watch works after it', () async {
+    await files.shutdown();
+    await files.shutdown();
+    final r = await call('files.watch', const {});
+    expect(r.ok, isTrue);
   });
 
   test('FilesService.atCwd walks parent dirs looking for .git, falls back to CWD if none', () async {

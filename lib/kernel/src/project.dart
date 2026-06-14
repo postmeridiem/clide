@@ -6,10 +6,20 @@ import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/kernel/src/settings.dart';
 import 'package:clide/kernel/src/toolchain.dart';
+import 'package:clide/kernel/src/workspace_ref.dart';
 import 'package:flutter/foundation.dart';
 
 class RecentProject {
-  const RecentProject({required this.path, required this.name, this.branch, required this.lastOpened, this.startupSticky = false});
+  const RecentProject({
+    required this.path,
+    required this.name,
+    this.branch,
+    required this.lastOpened,
+    this.startupSticky = false,
+    this.host,
+    this.port,
+    this.user,
+  });
 
   final String path;
   final String name;
@@ -21,12 +31,27 @@ class RecentProject {
   /// opens it directly; otherwise the welcome screen takes over (T-115).
   final bool startupSticky;
 
+  /// Remote workspace identity (T-332/T-329): the SSH host (or
+  /// `~/.ssh/config` alias) the repo lives on. Absent = local — older
+  /// persisted recents deserialize as local automatically.
+  final String? host;
+  final int? port;
+  final String? user;
+
+  bool get isRemote => host != null;
+
+  /// This recent's location as a [WorkspaceRef].
+  WorkspaceRef get ref => host == null ? WorkspaceRef.local(path) : WorkspaceRef.remote(host: host!, path: path, port: port, user: user);
+
   RecentProject copyWith({bool? startupSticky, DateTime? lastOpened, String? branch}) => RecentProject(
     path: path,
     name: name,
     branch: branch ?? this.branch,
     lastOpened: lastOpened ?? this.lastOpened,
     startupSticky: startupSticky ?? this.startupSticky,
+    host: host,
+    port: port,
+    user: user,
   );
 
   Map<String, dynamic> toJson() => {
@@ -35,6 +60,9 @@ class RecentProject {
     'branch': branch,
     'lastOpened': lastOpened.toIso8601String(),
     if (startupSticky) 'startupSticky': true,
+    if (host != null) 'host': host,
+    if (port != null) 'port': port,
+    if (user != null) 'user': user,
   };
 
   factory RecentProject.fromJson(Map<String, dynamic> json) => RecentProject(
@@ -43,9 +71,13 @@ class RecentProject {
     branch: json['branch'] as String?,
     lastOpened: DateTime.tryParse(json['lastOpened'] as String? ?? '') ?? DateTime.now(),
     startupSticky: json['startupSticky'] as bool? ?? false,
+    host: json['host'] as String?,
+    port: json['port'] as int?,
+    user: json['user'] as String?,
   );
 
   String get relativePath {
+    if (isRemote) return '$host:$path';
     final home = Platform.environment['HOME'] ?? '';
     if (home.isNotEmpty && path.startsWith(home)) return '~${path.substring(home.length)}';
     return path;

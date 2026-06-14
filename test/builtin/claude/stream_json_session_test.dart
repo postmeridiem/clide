@@ -3,12 +3,17 @@ import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:test/test.dart';
 
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>();
   final List<String> writes = [];
   bool killed = false;
+
+  /// Drives the T-361 exit watch; never completes unless a test exits it.
+  final exit = Completer<int>();
+  final List<String> stderr = [];
 
   @override
   Stream<String> get lines => _ctl.stream;
@@ -16,6 +21,10 @@ class _FakeProc implements StreamJsonProcess {
   void writeLine(String line) => writes.add(line);
   @override
   Future<void> kill() async => killed = true;
+  @override
+  Future<int> get exitCode => exit.future;
+  @override
+  List<String> get stderrTail => stderr;
 
   void emit(String line) => _ctl.add(line);
 }
@@ -157,9 +166,111 @@ void main() {
     session.items.listen(items.add);
     session.statusStream.listen(statuses.add);
     session.start();
+    // start() always sends the `initialize` handshake (T-408); drop it so the
+    // write assertions below stay about what each test sends. The handshake
+    // itself is asserted in the 'initialize handshake' group.
+    proc.writes.clear();
   });
 
   tearDown(() => session.dispose());
+
+  group('initialize handshake + model list (T-408)', () {
+    test('start() sends the initialize handshake even with no MCP servers', () {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      final init = jsonDecode(p.writes.single) as Map;
+      expect(init['type'], 'control_request');
+      expect((init['request'] as Map)['subtype'], 'initialize');
+      expect((init['request'] as Map)['sdkMcpServers'], isEmpty);
+    });
+
+    test('the initialize response populates availableModels', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p);
+      addTearDown(s.dispose);
+      s.start();
+      final rid = (jsonDecode(p.writes.single) as Map)['request_id'];
+      expect(s.availableModels, isEmpty);
+      p.emit(
+        jsonEncode({
+          'type': 'control_response',
+          'response': {
+            'subtype': 'success',
+            'request_id': rid,
+            'response': {
+              'commands': <dynamic>[],
+              'models': [
+                {'value': 'default', 'displayName': 'Default', 'description': 'recommended'},
+                {'value': 'sonnet', 'displayName': 'Sonnet'},
+                {'value': 12345}, // malformed entry → skipped
+              ],
+            },
+          },
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(s.availableModels, hasLength(2));
+      expect(s.availableModels[0].value, 'default');
+      expect(s.availableModels[0].description, 'recommended');
+      expect(s.availableModels[1].displayName, 'Sonnet');
+      expect(s.availableModels[1].description, isEmpty);
+    });
+  });
+
+  group('setModel (T-408)', () {
+    test('sends a set_model control_request and optimistically merges status', () async {
+      session.setModel('sonnet');
+      final sent = jsonDecode(proc.writes.single) as Map;
+      expect(sent['type'], 'control_request');
+      expect((sent['request'] as Map)['subtype'], 'set_model');
+      expect((sent['request'] as Map)['model'], 'sonnet');
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'sonnet');
+    });
+
+    test('setModel(default) does not guess the resolved model', () async {
+      session.setModel('default');
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses, isEmpty, reason: 'only the CLI knows what default resolves to');
+    });
+
+    test('an error response rolls the model back and surfaces the message', () async {
+      final errors = <String>[];
+      session.modelErrors.listen(errors.add);
+      proc.emit(initEvent()); // model: claude-opus-4-7
+      await Future<void>.delayed(Duration.zero);
+
+      session.setModel('bogus-model');
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'bogus-model'); // optimistic
+
+      final rid = (jsonDecode(proc.writes.single) as Map)['request_id'];
+      proc.emit(
+        jsonEncode({
+          'type': 'control_response',
+          'response': {'subtype': 'error', 'request_id': rid, 'error': 'Unknown model: bogus-model'},
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'claude-opus-4-7', reason: 'rolled back');
+      expect(errors, ['Unknown model: bogus-model']);
+    });
+
+    test('a success response keeps the optimistic model', () async {
+      session.setModel('opus');
+      final rid = (jsonDecode(proc.writes.single) as Map)['request_id'];
+      proc.emit(
+        jsonEncode({
+          'type': 'control_response',
+          'response': {'subtype': 'success', 'request_id': rid},
+        }),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(statuses.last.model, 'opus');
+    });
+  });
 
   test('parses assistant text + tool_use events into items', () async {
     proc.emit(assistantText('hello there'));
@@ -191,6 +302,21 @@ void main() {
     proc.emit(initEvent()); // identical → no second emit
     await Future<void>.delayed(Duration.zero);
     expect(statuses, hasLength(1));
+  });
+
+  // T-274 root cause: the init event fired before the pane subscribed and
+  // the plain broadcast stream dropped it — the status bar stayed blank.
+  test('subscribing AFTER the init event still yields the status (T-274/T-386)', () async {
+    proc.emit(initEvent());
+    await Future<void>.delayed(Duration.zero);
+
+    final late = <SessionStatus>[];
+    session.statusStream.listen(late.add);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(late, hasLength(1), reason: 'replay-latest delivers the current status to late binders');
+    expect(late.single.model, 'claude-opus-4-7');
+    expect(late.single.permissionMode, 'default');
   });
 
   test('captures the claude session id from the first event carrying it (T-185)', () async {
@@ -515,6 +641,25 @@ void main() {
     expect(statuses.last.permissionMode, 'plan', reason: 'only ExitPlanMode exits plan mode');
   });
 
+  test('noteEffort merges the effort level into the status (T-412)', () async {
+    proc.emit(initEvent());
+    await Future<void>.delayed(Duration.zero);
+    session.noteEffort('xhigh');
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.effort, 'xhigh');
+    expect(statuses.last.model, 'claude-opus-4-7'); // merge, not replace
+  });
+
+  test('addLocalNotice emits a synthetic clide item and sends nothing (T-411)', () async {
+    final before = proc.writes.length;
+    session.addLocalNotice('/status is a Claude Code TUI command');
+    await Future<void>.delayed(Duration.zero);
+    final notice = items.whereType<AssistantTextMessage>().single;
+    expect(notice.synthetic, isTrue);
+    expect(notice.text, contains('/status'));
+    expect(proc.writes.length, before); // nothing went to the CLI
+  });
+
   test('resolvePrompt(deny) writes a deny decision with a message', () async {
     proc.emit(canUseTool('req-3'));
     await Future<void>.delayed(Duration.zero);
@@ -639,7 +784,9 @@ void main() {
     proc.emit(jsonEncode({'type': 'result', 'subtype': 'success'}));
     await Future<void>.delayed(Duration.zero);
     expect(session.busy, isFalse);
-    expect(busy, [true, false]);
+    // Leading false is the replayed seed — busyStream tells a new
+    // subscriber the CURRENT state before the live updates (T-386).
+    expect(busy, [false, true, false]);
   });
 
   test('dispose kills the process', () async {
@@ -743,6 +890,113 @@ void main() {
       final r = mcpResponseOf(mproc.writes.last);
       expect((r['error'] as Map)['code'], -32601);
       expect((r['error'] as Map)['message'], contains('resources/list'));
+    });
+  });
+
+  // T-361: nothing watched the process itself — a crashed claude just
+  // looked thoughtful forever.
+  group('process exit (T-361)', () {
+    test('exit emits SessionEnd with code + stderr tail and clears busy', () async {
+      final ends = <SessionEnd>[];
+      session.endedStream.listen(ends.add);
+      session.send('do something');
+      await Future<void>.delayed(Duration.zero);
+      expect(session.busy, isTrue, reason: 'a send marks the turn in flight');
+
+      proc.stderr.addAll(['boom: stack', 'fatal: died']);
+      proc.exit.complete(70);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(session.busy, isFalse, reason: 'a dead process is not thinking');
+      expect(ends, hasLength(1));
+      expect(ends.single.exitCode, 70);
+      expect(ends.single.stderrTail, ['boom: stack', 'fatal: died']);
+      expect(session.end, same(ends.single), reason: 'late binders replay via the getter');
+    });
+
+    test('exit clears a pending prompt — it can never be answered', () async {
+      final pendings = <ToolPrompt?>[];
+      session.pendingPromptStream.listen(pendings.add);
+      proc.emit(canUseTool('p1'));
+      await Future<void>.delayed(Duration.zero);
+      expect(session.pendingPrompt, isNotNull);
+
+      proc.exit.complete(1);
+      await Future<void>.delayed(Duration.zero);
+      expect(session.pendingPrompt, isNull);
+      expect(pendings.last, isNull, reason: 'the composer swaps back from the prompt UI');
+    });
+
+    test('a deliberate dispose suppresses the exit watch', () async {
+      final p = _FakeProc();
+      final s = StreamJsonSession(p)..start();
+      await s.dispose();
+      p.exit.complete(9); // the kill's exit must not surface as a crash
+      await Future<void>.delayed(Duration.zero);
+      expect(s.end, isNull);
+    });
+  });
+
+  group('BoundedLineBuffer', () {
+    test('keeps only the last cap lines', () {
+      final b = BoundedLineBuffer(cap: 3);
+      for (var i = 0; i < 5; i++) {
+        b.add('line $i');
+      }
+      expect(b.lines, ['line 2', 'line 3', 'line 4']);
+    });
+  });
+
+  group('workflow runs (T-416)', () {
+    test('accumulates a run from system task_* events keyed by tool_use_id', () async {
+      final p = _FakeProc();
+      final session = StreamJsonSession(p)..start();
+      final snapshots = <Map<String, WorkflowRun>>[];
+      session.workflowsStream.listen(snapshots.add);
+
+      p.emit(
+        jsonEncode({
+          'type': 'system',
+          'subtype': 'task_started',
+          'task_id': 'wy01fihjt',
+          'tool_use_id': 'toolu_wf',
+          'description': 'Two agents',
+          'workflow_name': 'parallel-words',
+        }),
+      );
+      p.emit(
+        jsonEncode({
+          'type': 'system',
+          'subtype': 'task_progress',
+          'tool_use_id': 'toolu_wf',
+          'workflow_progress': [
+            {'type': 'workflow_agent', 'index': 1, 'label': 'alpha', 'state': 'start'},
+            {'type': 'workflow_agent', 'index': 2, 'label': 'beta', 'state': 'done'},
+          ],
+        }),
+      );
+      p.emit(jsonEncode({'type': 'system', 'subtype': 'task_notification', 'tool_use_id': 'toolu_wf', 'status': 'completed', 'summary': 'done'}));
+      await Future<void>.delayed(Duration.zero);
+
+      final run = session.workflows['toolu_wf'];
+      expect(run, isNotNull);
+      expect(run!.name, 'parallel-words');
+      expect(run.agentCount, 2);
+      expect(run.doneCount, 1);
+      expect(run.done, isTrue);
+      expect(run.summary, 'done');
+      expect(snapshots, isNotEmpty);
+    });
+
+    test('a workflow system event produces no conversation item', () async {
+      final p = _FakeProc();
+      final session = StreamJsonSession(p)..start();
+      final items = <ConversationItem>[];
+      session.items.listen(items.add);
+      p.emit(jsonEncode({'type': 'system', 'subtype': 'task_progress', 'tool_use_id': 'toolu_wf', 'workflow_progress': const []}));
+      await Future<void>.delayed(Duration.zero);
+      expect(items, isEmpty);
+      expect(session.workflows.containsKey('toolu_wf'), isTrue);
     });
   });
 }

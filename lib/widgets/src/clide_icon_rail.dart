@@ -4,11 +4,16 @@ import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideIconRailItem {
-  const ClideIconRailItem({required this.id, required this.icon, required this.tooltip});
+  const ClideIconRailItem({required this.id, required this.icon, required this.tooltip, this.iconColor});
 
   final String id;
   final ClideIconPainter icon;
   final String tooltip;
+
+  /// Brand/identity tint for this tab's icon (e.g. the Claude accent on the
+  /// Claude tab, T-418). Shown full-strength when active/hovered and slightly
+  /// dimmed when idle; null keeps the normal state colours.
+  final Color? iconColor;
 }
 
 class ClideIconRail extends StatelessWidget {
@@ -60,7 +65,10 @@ class _RailButton extends StatelessWidget {
         onTap: onTap,
         tooltip: item.tooltip,
         builder: (ctx, hovered, _) {
-          final color = active
+          final tint = item.iconColor;
+          final color = tint != null
+              ? (active || hovered ? tint : tint.withValues(alpha: 0.7))
+              : active
               ? tokens.globalForeground
               : hovered
               ? tokens.sidebarForeground

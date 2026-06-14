@@ -14,6 +14,7 @@ import 'clipboard_paste.dart';
 import 'activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey;
 import 'conversation_controller.dart';
 import 'conversation_view.dart';
+import 'model_picker_card.dart';
 import 'permission_mode_control.dart';
 import 'prompt_card.dart';
 import 'session_index.dart';
@@ -24,6 +25,7 @@ import 'slash_commands.dart';
 import 'stream_json_session.dart';
 import 'task_list.dart';
 import 'transcript_reader.dart';
+import 'workflow_run.dart';
 
 /// The Claude conversation pane. Drives `claude` over the stream-json control
 /// protocol (D-77/D-78): a [StreamJsonSession] owns the process, its events
@@ -71,7 +73,11 @@ class ClaudePane extends StatefulWidget {
 
 class _ClaudePaneState extends State<ClaudePane> {
   StreamSubscription<SessionStatus>? _statusSub;
+  StreamSubscription<SessionEnd>? _endSub;
   StreamSubscription<ProjectOpened>? _projectSub;
+  StreamSubscription<Message>? _commandSub;
+  StreamSubscription<String>? _modelErrorSub;
+  StreamSubscription<Map<String, WorkflowRun>>? _workflowsSub;
   ConversationController? _conversation;
   StreamJsonSession? _session;
   SessionStatus _status = const SessionStatus();
@@ -79,6 +85,21 @@ class _ClaudePaneState extends State<ClaudePane> {
   String? _repoRoot;
   String? _error;
   String _statusLine = 'starting…';
+
+  /// One-shot fork source: seeds the first bind, then cleared so /clear,
+  /// /resume, and respawns operate on this pane's own session (T-375).
+  late String? _forkSource = widget.forkSourceId;
+
+  /// Whether a bare `/model` opened the picker in the interaction zone
+  /// (T-408). An open prompt takes precedence; the picker shows once it
+  /// resolves.
+  bool _modelPickerOpen = false;
+  bool _effortPickerOpen = false;
+  bool _permissionPickerOpen = false;
+
+  /// Effort level this pane's session runs at (`--effort`, T-412). Null =
+  /// the CLI default. Set by /effort; carried by every respawn.
+  String? _effort;
 
   bool _spawned = false;
 
@@ -141,6 +162,10 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Cache the kernel for dispose() — ancestor lookups there are illegal,
+    // and the old lookup-and-swallow leaked the settings listener on every
+    // disposed pane (T-366).
+    _kernel = ClideKernel.of(context);
     // Spawn once, after the kernel is available.
     if (!_spawned) {
       _spawned = true;
@@ -155,6 +180,18 @@ class _ClaudePaneState extends State<ClaudePane> {
       // GlobalKey and spawns once, so without this it would keep the previous
       // repo's session after a switch (T-269).
       _projectSub = ClideKernel.of(context).events.on<ProjectOpened>().listen(_onProjectChanged);
+      // Sidebar controls (and any future surface) drive this pane's session by
+      // publishing slash-command text on builtin.claude/command (T-414) —
+      // executed through the exact _send routing the composer uses, so the
+      // control and the typed command are one code path (D-6). Only the
+      // primary pane listens: the controls target the primary session, and a
+      // second listener would double-execute.
+      if (widget.isPrimary) {
+        _commandSub = ClideKernel.of(context).messages.subscribe(publisher: 'builtin.claude', channel: 'command').listen((msg) {
+          final text = msg.data['text'] as String?;
+          if (text != null && text.isNotEmpty) _send(text);
+        });
+      }
       // Re-fold the conversation when the activity fold-level setting changes
       // (claude.activity.fold-level command, T-235).
       ClideKernel.of(context).settings.addListener(_onSettingsChanged);
@@ -168,11 +205,18 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   void dispose() {
     activeClaudeConfig?.removeListener(_onConfigChanged);
-    _kernel()?.settings.removeListener(_onSettingsChanged);
+    _kernel?.settings.removeListener(_onSettingsChanged);
     _projectSub?.cancel();
+    _commandSub?.cancel();
     _projectSub = null;
     _statusSub?.cancel();
     _statusSub = null;
+    _endSub?.cancel();
+    _endSub = null;
+    _modelErrorSub?.cancel();
+    _modelErrorSub = null;
+    _workflowsSub?.cancel();
+    _workflowsSub = null;
     // The orchestrator owns the session, so disposing this pane does NOT kill
     // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
     // A secondary tab being *closed* is a real teardown, so close its session;
@@ -224,6 +268,15 @@ class _ClaudePaneState extends State<ClaudePane> {
   Future<void> _rebindToActiveProject() async {
     _statusSub?.cancel();
     _statusSub = null;
+    _endSub?.cancel();
+    _endSub = null;
+    _modelErrorSub?.cancel();
+    _modelErrorSub = null;
+    _workflowsSub?.cancel();
+    _workflowsSub = null;
+    _modelPickerOpen = false;
+    _effortPickerOpen = false;
+    _permissionPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old repo's session
     _conversation = null;
     _session = null;
@@ -263,7 +316,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     }
 
     final ManagedSession managed;
-    final forkSource = widget.forkSourceId;
+    final forkSource = _forkSource;
     if (forkSource != null) {
       // Fork pane: branch source session into a new clide-managed session.
       // The clide-internal id is a fresh UUID; the real claude session id is
@@ -271,12 +324,23 @@ class _ClaudePaneState extends State<ClaudePane> {
       _sessionId ??= freshSessionId();
       try {
         managed = await orch.spawn(
-          SpawnSpec(id: _orchId, role: 'fork ${widget.secondaryIndex}', sessionId: _sessionId!, cwd: repoRoot, forkSourceSessionId: forkSource),
+          SpawnSpec(
+            id: _orchId,
+            role: 'fork ${widget.secondaryIndex}',
+            sessionId: _sessionId!,
+            cwd: repoRoot,
+            forkSourceSessionId: forkSource,
+            effort: _effort,
+          ),
         );
       } catch (e) {
         if (mounted) setState(() => _error = 'Could not start fork: $e');
         return;
       }
+      // One-shot: the fork source seeds only the FIRST bind. Leaving it set
+      // made /clear re-fork the original conversation instead of clearing —
+      // every later respawn must operate on this pane's own session (T-375).
+      _forkSource = null;
       if (!mounted) return;
       setState(() => _statusLine = 'fork of $forkSource');
     } else {
@@ -298,6 +362,7 @@ class _ClaudePaneState extends State<ClaudePane> {
             cwd: repoRoot,
             resume: resume,
             transcriptPath: resume ? transcriptFile : null,
+            effort: _effort,
           ),
         );
       } catch (e) {
@@ -310,11 +375,14 @@ class _ClaudePaneState extends State<ClaudePane> {
 
     _session = managed.session;
     _conversation = managed.conversation;
+    // The wire never reports effort — record what this session was spawned
+    // with so the status line / sidebar can show it (T-412).
+    if (_effort != null) managed.session.noteEffort(_effort!);
     // Diagnostic (T-274 follow-up): record how this pane bound its session —
     // a fresh spawn vs connecting to existing on-disk history (the seed read
     // from the transcript/sidecar). Surfaces the resume path in `make run`.
     final seeded = _conversation?.items.length ?? 0;
-    _kernel()?.log.info(
+    _kernel?.log.info(
       'claude',
       'pane $_orchId bound session ${_sessionId ?? '?'} in $repoRoot — '
           '${seeded > 0 ? 'connected to history ($seeded seeded item(s))' : 'fresh session (no history)'}',
@@ -323,6 +391,36 @@ class _ClaudePaneState extends State<ClaudePane> {
       if (!mounted) return;
       setState(() => _status = s);
     });
+    // Workflow runs arrive on out-of-band system events that add no
+    // conversation item, so the view won't rebuild on its own — drive a
+    // rebuild as the run map changes so the workflow card updates live (T-416).
+    _workflowsSub = managed.session.workflowsStream.listen((_) {
+      if (!mounted) return;
+      setState(() {});
+    });
+    // A rejected /model change (unknown name) rolls back silently in the
+    // status — say why out loud (T-408).
+    _modelErrorSub = managed.session.modelErrors.listen((msg) {
+      _kernel?.notify.warn(msg, title: 'model');
+    });
+    // Surface a dead process instead of letting it look thoughtful (T-361):
+    // late binders read the replayed end; live sessions stream it.
+    final alreadyEnded = managed.session.end;
+    if (alreadyEnded != null) {
+      _onSessionEnd(alreadyEnded);
+    } else {
+      _endSub = managed.session.endedStream.listen(_onSessionEnd);
+    }
+  }
+
+  /// The claude process exited under this pane's live session. Stop looking
+  /// busy, say so in the status line, and log the drained stderr tail —
+  /// the diagnostics that used to vanish (T-361).
+  void _onSessionEnd(SessionEnd end) {
+    if (!mounted) return;
+    final tail = end.stderrTail.isEmpty ? '' : '; stderr tail:\n${end.stderrTail.join('\n')}';
+    _kernel?.log.warn('claude', 'session $_orchId exited (code ${end.exitCode})$tail');
+    setState(() => _statusLine = 'claude exited (code ${end.exitCode}) — /clear to restart');
   }
 
   // Send composed text to Claude over the stream-json channel. Commands clide
@@ -342,8 +440,150 @@ class _ClaudePaneState extends State<ClaudePane> {
       case 'fork':
         _forkSession();
         return;
+      case 'model':
+        _modelCommand(slashCommandArg(text) ?? '');
+        return;
+      case 'effort':
+        _effortCommand(slashCommandArg(text) ?? '');
+        return;
+      case 'permissions':
+        _permissionsCommand(slashCommandArg(text) ?? '');
+        return;
+      case 'status':
+        _openMetaTab('activity');
+        return;
+      case 'config':
+      case 'mcp':
+      case 'agents':
+      case 'hooks':
+        _openMetaTab('config');
+        return;
+      case 'memory':
+        _openMemory();
+        return;
+      case 'help':
+        _helpCommand();
+        return;
+    }
+    // Route the rest (T-411): a known TUI-only builtin never reaches the
+    // session — forwarded it would error (or, un-advertised, bracket-paste to
+    // the model as literal text, burning a turn). It becomes a local notice
+    // card pointing at the clide-native way instead.
+    final advertised = activeClaudeConfig?.slashCommands ?? kFallbackSlashCommands;
+    if (routeSlashCommand(text, advertised: advertised) == SlashRoute.unavailable) {
+      _session?.addLocalNotice(tuiOnlyNotice(slashCommandToken(text)!));
+      return;
     }
     _session?.send(text);
+  }
+
+  /// clide-owned `/model` (T-408): with an argument, set the model directly;
+  /// bare, open the picker in the interaction zone (D-78).
+  void _modelCommand(String arg) {
+    if (_session == null) return;
+    if (arg.isNotEmpty) {
+      _session!.setModel(arg);
+      return;
+    }
+    setState(() => _modelPickerOpen = true);
+  }
+
+  void _pickModel(String value) {
+    _session?.setModel(value);
+    _closeModelPicker();
+  }
+
+  void _closeModelPicker() {
+    setState(() => _modelPickerOpen = false);
+    _composerFocus.requestFocus();
+  }
+
+  /// clide-owned `/effort` (T-412): with a level, respawn-with-resume carrying
+  /// `--effort`; bare, open the picker. No set_effort control subtype exists
+  /// (probed 2.1.175), so the respawn IS the mechanism — resume keeps the
+  /// conversation, only the process restarts.
+  void _effortCommand(String arg) {
+    if (_session == null) return;
+    if (arg.isEmpty) {
+      setState(() => _effortPickerOpen = true);
+      return;
+    }
+    if (!kEffortLevels.any((l) => l.value == arg)) {
+      _session!.addLocalNotice('unknown effort "$arg" — levels: ${kEffortLevels.map((l) => l.value).join(', ')}');
+      return;
+    }
+    _setEffort(arg);
+  }
+
+  void _pickEffort(String value) {
+    _closeEffortPicker();
+    _setEffort(value);
+  }
+
+  void _closeEffortPicker() {
+    setState(() => _effortPickerOpen = false);
+    _composerFocus.requestFocus();
+  }
+
+  void _setEffort(String level) {
+    final sid = _sessionId;
+    if (sid == null) return;
+    _effort = level;
+    _kernel?.notify.info('effort $level — restarting the session to apply', title: 'effort');
+    unawaited(_respawnWithSession(sid));
+  }
+
+  /// clide-owned `/permissions` (T-413): with a mode, set it directly over
+  /// set_permission_mode; bare, open a picker — the same interaction-zone
+  /// pattern as /model and /effort.
+  void _permissionsCommand(String arg) {
+    final s = _session;
+    if (s == null) return;
+    if (arg.isEmpty) {
+      setState(() => _permissionPickerOpen = true);
+      return;
+    }
+    if (!kPermissionModes.any((m) => m.value == arg)) {
+      s.addLocalNotice('unknown permission mode "$arg" — modes: ${kPermissionModes.map((m) => m.value).join(', ')}');
+      return;
+    }
+    s.setPermissionMode(arg);
+  }
+
+  void _pickPermissionMode(String value) {
+    _closePermissionPicker();
+    _session?.setPermissionMode(value);
+  }
+
+  void _closePermissionPicker() {
+    setState(() => _permissionPickerOpen = false);
+    _composerFocus.requestFocus();
+  }
+
+  /// Navigate to the Claude sidebar and select a sub-tab (T-413): the
+  /// /status//config//mcp//agents//hooks commands land here.
+  void _openMetaTab(String tab) {
+    final k = _kernel;
+    if (k == null) return;
+    k.panels.activateTab(Slots.sidebar, 'claude.meta');
+    k.messages.publish('builtin.claude', 'meta.tab', {'tab': tab});
+  }
+
+  /// clide-owned `/memory` (T-413): open the workspace CLAUDE.md in the editor.
+  void _openMemory() {
+    final root = _repoRoot;
+    if (root == null) return;
+    unawaited(_ipc()?.request('editor.open', args: {'path': '$root/CLAUDE.md'}));
+  }
+
+  /// clide-owned `/help` (T-413): a local summary card — never the CLI's TUI
+  /// help, which doesn't exist headless.
+  void _helpCommand() {
+    final advertised = (activeClaudeConfig?.slashCommands ?? kFallbackSlashCommands).where((c) => !kClideOwnedCommands.contains(c)).toList()..sort();
+    _session?.addLocalNotice(
+      'clide commands: ${(kClideOwnedCommands.toList()..sort()).map((c) => '/$c').join(' ')}\n'
+      'claude commands & skills: ${advertised.map((c) => '/$c').join(' ')}',
+    );
   }
 
   /// Record a submitted prompt in the active session's history (T-163),
@@ -370,7 +610,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// background tap must never pull focus from (or resurrect) the composer
   /// over an open prompt.
   void _focusComposerOnTap() {
-    if (_session?.pendingPrompt != null) return;
+    if (_session?.pendingPrompt != null || _modelPickerOpen || _effortPickerOpen || _permissionPickerOpen) return;
     _composerFocus.requestFocus();
   }
 
@@ -422,7 +662,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// re-bind the pane to it.
   Future<void> _resumeFlow() async {
     final root = _repoRoot;
-    final dialog = _kernel()?.dialog;
+    final dialog = _kernel?.dialog;
     if (root == null || dialog == null) return;
     final dir = Directory(claudeProjectDir(root));
     final sessions = await listSessions(dir);
@@ -440,6 +680,15 @@ class _ClaudePaneState extends State<ClaudePane> {
   Future<void> _respawnWithSession(String sessionId, {bool clearTranscript = false}) async {
     _statusSub?.cancel();
     _statusSub = null;
+    _endSub?.cancel();
+    _endSub = null;
+    _modelErrorSub?.cancel();
+    _modelErrorSub = null;
+    _workflowsSub?.cancel();
+    _workflowsSub = null;
+    _modelPickerOpen = false;
+    _effortPickerOpen = false;
+    _permissionPickerOpen = false;
     await activeSessionOrchestrator?.close(_orchId); // kills the old session
     // Erase only after the process is dead, so claude isn't mid-write.
     final root = _repoRoot;
@@ -455,15 +704,10 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   // -- helpers --------------------------------------------------------------
 
-  DaemonClient? _ipc() => _kernel()?.ipc;
+  DaemonClient? _ipc() => _kernel?.ipc;
 
-  KernelServices? _kernel() {
-    try {
-      return ClideKernel.of(context);
-    } catch (_) {
-      return null;
-    }
-  }
+  /// Cached in didChangeDependencies (T-366); see note there.
+  KernelServices? _kernel;
 
   // -- build ----------------------------------------------------------------
 
@@ -496,10 +740,11 @@ class _ClaudePaneState extends State<ClaudePane> {
                   onTap: _focusComposerOnTap,
                   child: ConversationView(
                     controller: _conversation!,
-                    foldLevel: foldLevelFromName(_kernel()?.settings.get<String>(kActivityFoldLevelKey)),
+                    foldLevel: foldLevelFromName(_kernel?.settings.get<String>(kActivityFoldLevelKey)),
                     hiddenToolUseIds: _session?.promptedToolUseIds ?? const <String>{},
                     toolUseOutcomes: _session?.toolUseOutcomes ?? const <String, bool>{},
                     quietErrorToolUseIds: _session?.quietErrorToolUseIds ?? const <String>{},
+                    workflows: _session?.workflows ?? const <String, WorkflowRun>{},
                     emptyState: ClaudeBanner(
                       role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
                       workspace: _repoRoot,
@@ -516,9 +761,36 @@ class _ClaudePaneState extends State<ClaudePane> {
               ),
               // An open prompt takes the composer's space and hides the text
               // input until it's answered, so interaction stays out of the
-              // conversation stream (D-78).
+              // conversation stream (D-78). The /model picker uses the same
+              // slot; a prompt outranks it (T-408).
               if (prompt != null && _session != null)
                 ToolPromptCard(prompt: prompt, onResolve: _session!.resolvePrompt)
+              else if (_modelPickerOpen && _session != null)
+                ModelPickerCard(
+                  models: _session!.availableModels.isEmpty ? kFallbackModels : _session!.availableModels,
+                  currentModel: _status.model,
+                  onPick: _pickModel,
+                  onCancel: _closeModelPicker,
+                )
+              else if (_effortPickerOpen && _session != null)
+                ModelPickerCard(
+                  title: 'effort',
+                  models: kEffortLevels,
+                  currentModel: _status.effort,
+                  // Exact match — containment would mark `high` inside `xhigh`.
+                  isCurrent: (o, c) => c != null && o.value == c,
+                  onPick: _pickEffort,
+                  onCancel: _closeEffortPicker,
+                )
+              else if (_permissionPickerOpen && _session != null)
+                ModelPickerCard(
+                  title: 'permissions',
+                  models: kPermissionModes,
+                  currentModel: _status.permissionMode,
+                  isCurrent: (o, c) => c != null && o.value == c,
+                  onPick: _pickPermissionMode,
+                  onCancel: _closePermissionPicker,
+                )
               else
                 StreamBuilder<bool>(
                   stream: _session?.busyStream,

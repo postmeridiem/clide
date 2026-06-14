@@ -14,18 +14,20 @@ import 'dart:convert';
 import 'package:clide/builtin/claude/src/claude_composer.dart';
 import 'package:clide/builtin/claude/src/claude_pane.dart';
 import 'package:clide/builtin/claude/src/conversation_view.dart';
+import 'package:clide/builtin/claude/src/model_picker_card.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/session_picker.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
 
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
   final List<String> writes = [];
   bool killed = false;
@@ -52,15 +54,18 @@ void main() {
   late ClaudeSessionOrchestrator orch;
   late String root;
   final created = <_FakeProc>[];
+  final spawnArgs = <List<String>>[];
 
   setUp(() async {
     f = await KernelFixture.create();
     created.clear();
+    spawnArgs.clear();
     root = '/repo-a';
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         final p = _FakeProc();
         created.add(p);
+        spawnArgs.add(sessionArgs);
         return p;
       },
     );
@@ -162,6 +167,44 @@ void main() {
     expect(proc.writes.any((w) => w.contains('hello there')), isTrue);
   });
 
+  testWidgets('a Workflow run renders its dedicated card in the conversation (T-416)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+    final semantics = tester.ensureSemantics();
+
+    await act(tester, () {
+      proc.feed({
+        'type': 'assistant',
+        'uuid': 'a-wf',
+        'message': {
+          'role': 'assistant',
+          'content': [
+            {
+              'type': 'tool_use',
+              'id': 'toolu_wf',
+              'name': 'Workflow',
+              'input': {'script': 'await parallel([])'},
+            },
+          ],
+        },
+      });
+      proc.feed({
+        'type': 'system',
+        'subtype': 'task_progress',
+        'tool_use_id': 'toolu_wf',
+        'workflow_progress': [
+          {'type': 'workflow_agent', 'index': 1, 'label': 'first agent', 'state': 'done'},
+          {'type': 'workflow_agent', 'index': 2, 'label': 'second agent', 'state': 'start'},
+        ],
+      });
+    });
+
+    // The dedicated workflow collapser, with its live done/total agent counter.
+    expect(find.bySemanticsLabel('workflow, 1/2 agents, collapsed'), findsOneWidget);
+
+    semantics.dispose();
+  });
+
   testWidgets('/clear empties the deterministic session in place', (tester) async {
     await mount(tester, const ClaudePane(showChrome: false));
     final firstProc = created.single;
@@ -175,12 +218,72 @@ void main() {
     expect(orch.byId('primary')!.sessionId, id);
   });
 
+  testWidgets('/clear in a fork pane clears instead of re-forking (T-375)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false, isPrimary: false, secondaryIndex: 1, forkSourceId: 'source-session-uuid'));
+    // First bind forks from the source.
+    expect(spawnArgs.single, containsAll(['--fork-session', 'source-session-uuid']));
+
+    await act(tester, () => composer(tester).onSubmit('/clear'));
+
+    // The respawn must NOT fork the original again — the fork source is a
+    // one-shot spawn parameter consumed by the first bind.
+    expect(spawnArgs, hasLength(2));
+    expect(spawnArgs.last, isNot(contains('--fork-session')));
+    expect(spawnArgs.last, isNot(contains('source-session-uuid')));
+  });
+
   testWidgets('/fork delegates to the onFork callback with the session id', (tester) async {
     String? forkedWith;
     await mount(tester, ClaudePane(showChrome: false, onFork: (sid) => forkedWith = sid));
     composer(tester).onSubmit('/fork');
     await tester.pump();
     expect(forkedWith, primarySessionId('/repo-a'));
+  });
+
+  testWidgets('/model with an argument sends set_model, never a user message (T-408)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+
+    await act(tester, () => composer(tester).onSubmit('/model sonnet'));
+
+    final sent = proc.writes.map((w) => jsonDecode(w) as Map).toList();
+    final setModel = sent.where((m) => (m['request'] as Map?)?['subtype'] == 'set_model').toList();
+    expect(setModel, hasLength(1));
+    expect((setModel.single['request'] as Map)['model'], 'sonnet');
+    expect(sent.any((m) => m['type'] == 'user'), isFalse, reason: '/model must not be forwarded as message text');
+    expect(find.byType(ModelPickerCard), findsNothing);
+  });
+
+  testWidgets('bare /model swaps the picker in; picking sends set_model and restores the composer (T-408)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+
+    await act(tester, () => composer(tester).onSubmit('/model'));
+    expect(find.byType(ModelPickerCard), findsOneWidget);
+    expect(find.byType(ClaudeComposer), findsNothing, reason: 'the picker takes the interaction zone (D-78)');
+
+    tester.widget<ModelPickerCard>(find.byType(ModelPickerCard)).onPick('opus');
+    await tester.pump();
+
+    expect(find.byType(ModelPickerCard), findsNothing);
+    expect(find.byType(ClaudeComposer), findsOneWidget);
+    final setModel = proc.writes.map((w) => jsonDecode(w) as Map).where((m) => (m['request'] as Map?)?['subtype'] == 'set_model').toList();
+    expect((setModel.single['request'] as Map)['model'], 'opus');
+  });
+
+  testWidgets('Esc cancels the /model picker without sending (T-408)', (tester) async {
+    await mount(tester, const ClaudePane(showChrome: false));
+    final proc = created.single;
+
+    await act(tester, () => composer(tester).onSubmit('/model'));
+    expect(find.byType(ModelPickerCard), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(find.byType(ModelPickerCard), findsNothing);
+    expect(find.byType(ClaudeComposer), findsOneWidget);
+    expect(proc.writes.any((w) => w.contains('set_model')), isFalse);
   });
 
   testWidgets('cycling permission mode sends a control message', (tester) async {
@@ -273,5 +376,94 @@ void main() {
     expect(find.byType(SessionPickerDialog), findsNothing);
     expect(created, hasLength(1));
     expect(proc.killed, isFalse);
+  });
+
+  // ---- T-410 epic: bus-driven owned commands (T-412/T-413/T-414) ----------
+  // The sidebar controls publish slash-command text on builtin.claude/command;
+  // the primary pane executes it through _send — the same path as typing.
+  group('command bus → owned slash commands', () {
+    Future<void> command(WidgetTester tester, String text) => act(tester, () => f.services.messages.publish('builtin.claude', 'command', {'text': text}));
+
+    testWidgets('/effort <level> respawns the session carrying --effort (T-412)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      expect(created, hasLength(1));
+
+      await command(tester, '/effort xhigh');
+
+      expect(created, hasLength(2), reason: 'effort change = respawn');
+      final args = spawnArgs.last;
+      final i = args.indexOf('--effort');
+      expect(i, isNonNegative, reason: 'args: $args');
+      expect(args[i + 1], 'xhigh');
+      // The pane records the level on the session status (the wire never
+      // reports effort).
+      expect(orch.byId('primary')!.session.status.effort, 'xhigh');
+    });
+
+    testWidgets('/effort with an unknown level notices and does NOT respawn (T-412)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/effort warp9');
+      expect(created, hasLength(1));
+      expect(find.textContaining('unknown effort "warp9"'), findsOneWidget);
+    });
+
+    testWidgets('bare /effort opens the effort picker in the interaction zone (T-412)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/effort');
+      expect(find.byType(ModelPickerCard), findsOneWidget);
+      expect(find.text('effort'), findsOneWidget); // the picker title
+    });
+
+    testWidgets('/permissions <mode> sends set_permission_mode (T-413)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/permissions plan');
+      final proc = created.single;
+      expect(proc.writes.any((w) => w.contains('set_permission_mode') && w.contains('"plan"')), isTrue, reason: proc.writes.join('\n'));
+    });
+
+    testWidgets('bare /permissions opens the mode picker (T-413)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/permissions');
+      expect(find.byType(ModelPickerCard), findsOneWidget);
+      expect(find.text('permissions'), findsOneWidget);
+    });
+
+    testWidgets('/status and /config navigate the Claude sidebar (T-413)', (tester) async {
+      final tabs = <String?>[];
+      final sub = f.services.messages.subscribe(publisher: 'builtin.claude', channel: 'meta.tab').listen((m) => tabs.add(m.data['tab'] as String?));
+      addTearDown(sub.cancel);
+
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/status');
+      await command(tester, '/config');
+      await command(tester, '/mcp');
+      expect(tabs, ['activity', 'config', 'config']);
+    });
+
+    testWidgets('/memory opens CLAUDE.md in the editor (T-413)', (tester) async {
+      final opened = <String?>[];
+      f.ipc.stub('editor.open', (args) async {
+        opened.add(args['path'] as String?);
+        return IpcResponse.ok(id: '', data: const {});
+      });
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/memory');
+      expect(opened, ['/repo-a/CLAUDE.md']);
+    });
+
+    testWidgets('/help renders a local clide summary card (T-413)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      await command(tester, '/help');
+      expect(find.textContaining('clide commands:'), findsOneWidget);
+      expect(find.text('clide'), findsOneWidget); // synthetic card attribution
+    });
+
+    testWidgets('a TUI-only command becomes a notice card, never reaching the session (T-411)', (tester) async {
+      await mount(tester, const ClaudePane(showChrome: false));
+      final before = created.single.writes.length;
+      await command(tester, '/doctor');
+      expect(find.textContaining('/doctor is a Claude Code TUI command'), findsOneWidget);
+      expect(created.single.writes.length, before, reason: 'nothing forwarded');
+    });
   });
 }

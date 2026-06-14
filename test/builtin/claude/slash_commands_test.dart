@@ -43,11 +43,30 @@ void main() {
       expect(clideOwnedCommand('/resume'), 'resume');
     });
 
+    test('recognises /model with and without an argument (T-408)', () {
+      expect(clideOwnedCommand('/model'), 'model');
+      expect(clideOwnedCommand('/model sonnet'), 'model');
+    });
+
     test('returns null for commands clide forwards to Claude', () {
-      expect(clideOwnedCommand('/model sonnet'), isNull);
       expect(clideOwnedCommand('/compact'), isNull);
       expect(clideOwnedCommand('not a command'), isNull);
       expect(clideOwnedCommand('/clearairspace'), isNull); // token must be exactly "clear"
+    });
+  });
+
+  group('slashCommandArg', () {
+    test('returns the trimmed argument after the command token', () {
+      expect(slashCommandArg('/model sonnet'), 'sonnet');
+      expect(slashCommandArg('/model  claude-opus-4-8 '), 'claude-opus-4-8');
+      expect(slashCommandArg('/model\tsonnet'), 'sonnet');
+    });
+
+    test('empty for a bare command, null for non-command input', () {
+      expect(slashCommandArg('/model'), '');
+      expect(slashCommandArg('/model '), '');
+      expect(slashCommandArg('hello'), isNull);
+      expect(slashCommandArg('/foo\nbar'), isNull);
     });
   });
 
@@ -115,6 +134,75 @@ void main() {
       final r = completeSlash('go /mo now', q, 'model');
       expect(r.text, 'go /model  now');
       expect(r.cursor, 10);
+    });
+  });
+
+  group('routeSlashCommand (T-411)', () {
+    // The probed 2.1.175 shape: skills + headless builtins.
+    const advertised = ['compact', 'context', 'usage', 'whats-next', 'git-commit'];
+
+    test('non-command text routes null (normal message send)', () {
+      expect(routeSlashCommand('hello world', advertised: advertised), isNull);
+      expect(routeSlashCommand('multi\n/line', advertised: advertised), isNull);
+    });
+
+    test('a path-like leading slash is an unknown token → forward (stays literal)', () {
+      expect(routeSlashCommand('/tmp/x.log explain', advertised: advertised), SlashRoute.forward);
+    });
+
+    test('owned beats everything', () {
+      for (final t in [
+        '/clear',
+        '/resume',
+        '/fork',
+        '/model opus',
+        '/effort high',
+        '/permissions plan',
+        '/status',
+        '/config',
+        '/mcp',
+        '/agents',
+        '/hooks',
+        '/memory',
+        '/help',
+      ]) {
+        expect(routeSlashCommand(t, advertised: advertised), SlashRoute.owned, reason: t);
+      }
+    });
+
+    test('advertised commands (skills + headless builtins) forward', () {
+      expect(routeSlashCommand('/compact', advertised: advertised), SlashRoute.forward);
+      expect(routeSlashCommand('/usage', advertised: advertised), SlashRoute.forward);
+      expect(routeSlashCommand('/whats-next', advertised: advertised), SlashRoute.forward);
+    });
+
+    test('a known TUI-only builtin routes unavailable', () {
+      for (final t in ['/cost', '/doctor', '/login', '/rewind', '/output-style']) {
+        expect(routeSlashCommand(t, advertised: advertised), SlashRoute.unavailable, reason: t);
+      }
+    });
+
+    test('an advertised name shadows the TUI-only catalog (a skill named like a builtin forwards)', () {
+      // 'cost' is in the catalog but not owned — advertising it wins.
+      expect(routeSlashCommand('/cost', advertised: ['cost']), SlashRoute.forward);
+    });
+
+    test('an unknown token forwards (stays literal text downstream)', () {
+      expect(routeSlashCommand('/no-such-thing', advertised: advertised), SlashRoute.forward);
+    });
+  });
+
+  group('tuiOnlyNotice (T-411)', () {
+    test('carries the clide-native pointer when the catalog has one', () {
+      final n = tuiOnlyNotice('cost');
+      expect(n, contains('/cost is a Claude Code TUI command'));
+      expect(n, contains('Activity tab'));
+    });
+
+    test('plain notice when there is no pointer', () {
+      final n = tuiOnlyNotice('terminal-setup');
+      expect(n, contains('/terminal-setup is a Claude Code TUI command'));
+      expect(n, isNot(contains('→')));
     });
   });
 }

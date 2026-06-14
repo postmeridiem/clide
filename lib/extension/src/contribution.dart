@@ -27,6 +27,7 @@ class TabContribution extends ContributionPoint {
     required this.title,
     required this.build,
     this.icon,
+    this.iconColor,
     this.priority = 0,
     this.fileGlobs = const [],
     this.listenable,
@@ -39,6 +40,9 @@ class TabContribution extends ContributionPoint {
   final String title;
   final WidgetBuilder build;
   final Object? icon;
+
+  /// Optional identity tint for the icon-rail glyph (T-418).
+  final Color? iconColor;
   final int priority;
   final List<String> fileGlobs;
   final Listenable? listenable;

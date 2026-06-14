@@ -20,11 +20,77 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - **Windows desktop support.** clide builds and runs on Windows: ConPTY-backed
   terminals, an AF_UNIX `clide` CLI client, PowerShell as the default shell, and
-  a `make build-windows` target. tmux is optional there (no Windows build).
+  a `make build-windows` target.
+- **Vim `ctrl+w` window commands.** Under the vim preset, `ctrl+w` followed by
+  h/l (focus left/right panel), j (toggle dock), w / ctrl+w (cycle panels),
+  shift+w (cycle back), o (focus mode), or q/c (close editor). A new global
+  multi-chord matcher in the shell resolves these from any focus; bare `ctrl+w`
+  still closes the editor after the ambiguity timeout. (T-404)
+- **Workspace tab cycling with ctrl+pagedown / ctrl+pageup.** New
+  `workspace.tab.next` / `workspace.tab.previous` commands cycle the workspace
+  tab strip with wraparound, bound across every preset. (T-405)
+- **Vim normal-mode navigation works outside the editor.** Under the vim preset,
+  a focused file tree or conversation now responds to j/k, ctrl+d/ctrl+u, gg/G,
+  and (tree) h/l/o — a selection cursor in the tree, scrolling in the
+  conversation. Each pane runs its own sequence matcher; an `editor.focused`
+  flag keeps these keys as buffer motions while the editor holds focus. (T-406)
+- **Claude Code Workflow runs surface in the conversation and sidebar.** A
+  `Workflow` tool-use renders a dedicated run card — phase groups, per-agent
+  rows with live spinner/check status, usage, and the script — driven by the
+  harness's out-of-band progress events. The Activity tab adds a WORKFLOWS
+  section showing each run's done/total agent count. (T-416)
+- **Session controls and live usage in the Claude sidebar Activity tab.** A
+  SESSION strip offers clear/compact/fork/resume buttons (same code path as the
+  typed commands), and a refresh control fetches `/usage` — plan usage renders
+  as a USAGE block (session and weekly percentages). The runtime row now also
+  shows the session's effort level. (T-415)
+- **The Claude sidebar Config tab is a live control panel.** Model, effort, and
+  permission mode are popover controls showing the running session's values;
+  picking an option drives the session through the same path as the typed slash
+  command. The sidebar tables also got a visual pass — larger type, accent
+  section headers, more breathing room. (T-414)
+- **The TUI command family opens clide surfaces.** `/permissions` sets the mode
+  directly or opens a picker; `/status`, `/config`, `/mcp`, `/agents`, `/hooks`
+  jump to the matching Claude sidebar tab; `/memory` opens CLAUDE.md in the
+  editor; `/help` shows clide's own command summary. (T-413)
+- **`/effort` works in the Claude pane.** With a level (`/effort xhigh`) the
+  session restarts in place carrying `--effort` — resume keeps the
+  conversation; bare `/effort` opens a picker with the five levels and the
+  current one marked. The active effort shows in the session status. (T-412)
+- **TUI-only slash commands get a helpful notice instead of failing.** A typed
+  `/cost` or `/doctor` no longer errors raw from the CLI or leaks to the model
+  as literal text — known TUI-only commands route to a muted notice card with
+  the clide-native way. CLI-local output (like `/usage`) renders as a "clide"
+  card, never fake Claude prose. (T-411)
+- **`/model` works in the Claude pane.** With a name (`/model sonnet`) it
+  switches the live session's model over the control channel; bare `/model`
+  opens a picker in the interaction zone with the CLI's model list and the
+  current model marked. A rejected name rolls back and raises a toast. (T-408)
+
+## [2.4.1] — 2026-06-12
+
+### Fixed
+
+- **`Shift+;` types a colon again — double-Shift no longer fires on chorded
+  Shift.** The double-tap detector counted any Shift press as a tap, even
+  mid-chord, and never saw keys the focused editor consumed; a tap now
+  requires a clean press-and-release, observed at the raw-keyboard level.
+  (T-409)
+
+## [2.4.0] — 2026-06-12
+
+### Added
+
 - **Live tail inside expanded Bash activity cards.** A Bash card that follows a
   file (`tail -f …`) now shows a live, scrolling read-only tail of that file
   below the result — connected only while the card is expanded. Commands with no
   followable file show a muted "nothing to follow" note. (T-325)
+
+- **Double-tap-modifier shortcuts (e.g. double-Shift "Search Everywhere").**
+  The keymap can now bind a bare modifier and a double-tap sequence
+  (`shift shift`). All four presets (default, vim, vscode, jetbrains) map
+  double-Shift to the quick-open finder — JetBrains' "Search Everywhere"
+  gesture, aliased to clide's existing fuzzy file finder. (T-341)
 
 ### Changed
 
@@ -33,7 +99,128 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   its own card with its prompt and nested run. Non-agent tool calls still group
   as before. (T-342)
 
+### Removed
+
+- **Dead-code sweep.** The legacy free-function git API (with its latent
+  pipe deadlock), ToolCheck, the fd-passing-era libc bindings, the GraphView
+  placeholder, the superseded ColumnHat widget, the tmux-era
+  TranscriptPublisher, the committed `ptyc` binary, and the unused
+  `mocktail` dev-dependency (D-25 amended) are gone. (T-385)
+
+- **Dead welcome-screen tiles.** "Clone from git…" and "Start a Claude
+  session" did nothing on tap and advertised shortcuts that were never
+  registered; the tips card now lists only shortcuts that exist in the
+  default keymap. Each tile returns when its flow ships. (T-383)
+
 ### Fixed
+
+- **Terminal CSI sequences with intermediate bytes no longer mis-dispatch.**
+  The parser dropped intermediates, so e.g. VT420 scroll-left (`CSI 5 SP @`)
+  executed as "insert 5 blank characters"; such sequences are now reported
+  as unknown instead. (T-123)
+
+- **PTY master fd no longer leaks when a child exits on its own.** Every
+  terminal or Claude pane whose process ended naturally left its pty device
+  open for the life of the app; natural exit now releases the fd. (T-360)
+
+- **Closing a terminal pane now closes its shell.** Pane disposal looked up
+  the kernel illegally and swallowed the failure, so `pane.close` was never
+  sent — the backend PTY and daemon pane leaked on every closed terminal
+  pane, and Claude panes leaked a settings listener the same way. (T-366)
+
+- **Scrolling up during a streaming reply no longer fights the auto-scroll.**
+  The conversation followed the tail on every streamed token regardless of
+  scroll position, dragging a reader back to the bottom; it now follows only
+  while already pinned there. (T-368)
+
+- **The terminal no longer crashes on truncated SGR color sequences.**
+  `ESC[38m` and friends threw a RangeError inside the emulator; incomplete
+  38/48 sequences are now ignored, and colon-form truecolor/256-color
+  sub-parameters (`38:2:r:g:b`, ITU T.416) parse like the semicolon form
+  instead of being mangled. (T-369)
+
+- **File listing flags symlinks again and the workspace walk no longer
+  follows them.** Symlink detection was dead code, so `files.walk` (and the
+  search engine on top of it) silently descended symlinked directories —
+  including ones pointing outside the workspace. (T-365)
+
+- **Search-and-replace now honors its include/exclude globs.** The filters
+  were accepted but never applied, so replace could rewrite files outside
+  the scope the user typed; replace now uses the same glob filtering as
+  search. (T-364)
+
+- **Switching projects releases the previous workspace's services.** The old
+  file watcher, pane PTYs, in-flight searches, and editor buffers were left
+  alive on every project switch, with stale watcher events leaking into the
+  new workspace. (T-367)
+
+- **Expanded activity cards are readable by screen readers again.** The
+  collapser's summarized button semantics excluded the whole card, so
+  expanding a run announced nothing inside it; the exclusion is now scoped
+  to the header and the inner cards stay in the a11y tree. (T-370)
+
+- **A crashed Claude process no longer looks like it's still thinking.**
+  stderr is now drained continuously (an undrained pipe could block the
+  child mid-turn) and the exit code is watched: when the process dies the
+  pane stops spinning, clears any unanswerable permission prompt, reports
+  the exit in the status line, and logs the stderr tail. (T-361)
+
+- **The Claude status bar populates reliably after a session starts.** The
+  session's init event often fired before the pane subscribed and the plain
+  broadcast stream dropped it, leaving the model/mode/context line blank;
+  session state streams now replay their latest value to late subscribers.
+  (T-274, T-386)
+
+- **New terminal panes open in the project root.** The shell spawned in the
+  app process's working directory — `$HOME` for desktop launches, and the
+  wrong repo after a project switch. (T-381)
+
+- **Two simultaneous spawns of the same Claude session no longer leak a
+  process.** Concurrent spawn calls for one pane id both passed the registry
+  check and the loser's live process was orphaned; spawns for an id are now
+  coalesced onto one in-flight future. (T-374)
+
+- **`/clear` in a fork pane clears instead of re-forking.** The fork source
+  took precedence on every respawn, so clearing a fork tab silently branched
+  the original conversation again; the source now seeds only the first
+  bind. (T-375)
+
+- **Pipelined IPC requests are now truly serial and framing-safe.** The
+  server's read handler could interleave concurrent requests (against
+  D-72's contract), drop or double frames split across reads, and corrupt
+  multi-byte characters split across chunks. (T-372)
+
+- **Settings survive nested structures, crashes, and corruption.** Maps
+  inside lists (the keymap overlay shape) were corrupted on save; writes
+  are now atomic (temp file + rename), and a file that fails to parse is
+  preserved as `.broken` with a logged warning instead of being silently
+  reset. (T-376)
+
+- **Markdown hard breaks break lines and images leave a visible trace.**
+  Both rendered as empty text — words on either side of a hard break glued
+  together and images vanished; breaks now emit a newline and images render
+  an italic `[image: alt]` placeholder. (T-379)
+
+- **Extension notifications actually appear on screen.** Messages pushed
+  through the kernel Notifications service (e.g. the CLI-install dogfood
+  warnings) accumulated in a list no surface rendered; they now raise
+  toasts with matching severity. (T-382)
+
+- **Failed `clide claude.*` commands now exit non-zero.** Sixteen handlers
+  reported success with an error message buried in the payload, so scripts
+  could not detect failures like an unknown permission mode; they now
+  return proper error envelopes per the D-6 contract. (T-391)
+
+- **Terminal output no longer garbles multi-byte characters split across
+  reads.** PTY output and live-tail bytes were decoded per chunk, turning a
+  rune split across reads into replacement-character noise; the terminal
+  now ingests bytes through a persistent decoder. (T-373)
+
+- **Extension lifecycle is transactional.** A throw mid-activation now
+  unwinds every contribution it had mounted (a retry no longer
+  double-applies), deactivating an extension is refused while active
+  extensions depend on it, and duplicate contribution/command ids are
+  rejected instead of silently clobbering. (T-377)
 
 - **Accepting ExitPlanMode now leaves plan mode in the conversation panel.**
   Approving Claude's plan (the ExitPlanMode tool) transitioned the underlying
@@ -41,13 +228,17 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   so the mode indicator and composer stayed stuck on "plan". The approval now
   syncs the tracked mode to `default`. (T-337)
 
-### Added
+### Security
 
-- **Double-tap-modifier shortcuts (e.g. double-Shift "Search Everywhere").**
-  The keymap can now bind a bare modifier and a double-tap sequence
-  (`shift shift`). All four presets (default, vim, vscode, jetbrains) map
-  double-Shift to the quick-open finder — JetBrains' "Search Everywhere"
-  gesture, aliased to clide's existing fuzzy file finder. (T-341)
+- **The MCP HTTP server now requires a per-start auth token.** The localhost
+  SSE port served the entire clide command surface unauthenticated,
+  bypassing the unix socket's 0600 gate; requests must now present the
+  token published in the 0600 `/ide` lock file. (T-362)
+
+- **`editor.open` / `editor.save` are now workspace-confined.** Both verbs
+  accepted absolute paths and `..` traversal verbatim — an unconfined read
+  and write primitive over IPC. They now pass the same path-safety guard as
+  `files.read`, including a symlink re-check at save time. (T-363)
 
 ## [2.3.3] — 2026-06-11
 

@@ -154,6 +154,42 @@ void main() {
       expect(s.pid, greaterThan(0));
     });
 
+    test('master fd is released after natural child exit', tags: ['pty'], () async {
+      // Linux-only: counts open fds resolving to /dev/ptmx via /proc.
+      // A naturally-exited child must not leave the master fd open —
+      // _reap() owns the release because close() short-circuits on
+      // _dead (T-360).
+      if (!Platform.isLinux) return;
+
+      int ptmxCount() => Directory('/proc/self/fd').listSync().where((e) {
+        try {
+          return Link(e.path).targetSync() == '/dev/ptmx';
+        } on FileSystemException {
+          return false; // fd vanished between list and readlink
+        }
+      }).length;
+
+      final baseline = ptmxCount();
+      final s = NativePty.start(
+        executable: '/bin/sh',
+        arguments: ['-c', 'exit 0'],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
+      );
+      addTearDown(s.close);
+
+      final done = Completer<void>();
+      s.output.listen((_) {}, onDone: () => done.complete());
+      await done.future.timeout(ioTimeout, onTimeout: () => fail('output stream did not close within ${ioTimeout.inSeconds}s after child exit'));
+
+      // EOF closes the output stream from the same listener callback
+      // that runs _reap(), so the fd is already released here.
+      expect(s.isClosed, isTrue);
+      expect(ptmxCount(), baseline);
+    });
+
     test('resize on a live PTY does not throw', () async {
       final s = NativePty.start(
         executable: '/bin/sh',

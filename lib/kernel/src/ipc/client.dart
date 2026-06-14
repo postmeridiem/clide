@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:clide/clide.dart';
@@ -10,14 +8,24 @@ import 'package:clide/kernel/src/log.dart';
 import 'package:flutter/foundation.dart';
 
 class DaemonClient extends ChangeNotifier {
-  DaemonClient({required String socketPath, required Logger log, required DaemonBus events}) : _socketPath = socketPath, _log = log, _events = events;
+  /// Connects through [transport] (T-331). The local app passes a
+  /// [LocalSocketTransport]; a remote workspace will pass an SSH-backed
+  /// transport without this class changing.
+  DaemonClient({required DaemonTransport transport, required Logger log, required DaemonBus events}) : _transport = transport, _log = log, _events = events;
 
-  String _socketPath;
-  String get socketPath => _socketPath;
+  /// Convenience for the local unix-socket path — today's only
+  /// production shape.
+  DaemonClient.unixSocket({required String socketPath, required Logger log, required DaemonBus events})
+    : this(transport: LocalSocketTransport(socketPath), log: log, events: events);
+
+  DaemonTransport _transport;
+
+  /// The backend endpoint description — the unix socket path locally.
+  String get socketPath => _transport.endpoint;
   final Logger _log;
   final DaemonBus _events;
 
-  Socket? _socket;
+  DaemonConnection? _conn;
   bool _connected = false;
   bool _disposed = false;
   bool _started = false;
@@ -48,30 +56,33 @@ class DaemonClient extends ChangeNotifier {
     _started = false;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    final s = _socket;
-    _socket = null;
-    await s?.close();
+    final c = _conn;
+    _conn = null;
+    await c?.close();
     _failPending('client stopped');
     _wakeConnectWaiters();
     _setConnected(false);
   }
 
-  /// Point the client at a different socket path and reconnect.
+  /// Point the client at a different local socket path and reconnect.
   /// Used on project switch — the workspace-derived socket path
   /// (D-70) changes when the user opens a different project, so the
-  /// client follows. Cancels the reconnect timer, closes the live
-  /// socket (failing in-flight requests with `disconnect`), updates
-  /// the path, and re-arms the connect loop. Idempotent if the new
-  /// path equals the current one.
-  Future<void> reconnectAt(String newPath) async {
-    if (newPath == _socketPath && _connected) return;
-    _socketPath = newPath;
+  /// client follows. Sugar over [reconnectWith].
+  Future<void> reconnectAt(String newPath) => reconnectWith(LocalSocketTransport(newPath));
+
+  /// Swap the backend transport and reconnect. Cancels the reconnect
+  /// timer, closes the live connection (failing in-flight requests with
+  /// `disconnect`), swaps the transport, and re-arms the connect loop.
+  /// Idempotent if the new endpoint equals the current connected one.
+  Future<void> reconnectWith(DaemonTransport transport) async {
+    if (transport.endpoint == _transport.endpoint && _connected) return;
+    _transport = transport;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    final s = _socket;
-    _socket = null;
-    await s?.close();
-    _failPending('socket path changed');
+    final c = _conn;
+    _conn = null;
+    await c?.close();
+    _failPending('backend endpoint changed');
     _setConnected(false);
     _disposed = false;
     _started = true;
@@ -80,7 +91,7 @@ class DaemonClient extends ChangeNotifier {
   }
 
   Future<IpcResponse> request(String cmd, {Map<String, Object?> args = const {}}) async {
-    if (!_connected || _socket == null) {
+    if (!_connected || _conn == null) {
       // A connection attempt is in flight (startup or reconnect) — wait
       // for it rather than failing instantly, so queries issued during
       // the startup window don't get a spurious not-connected error.
@@ -88,7 +99,7 @@ class DaemonClient extends ChangeNotifier {
       if (_started && !_disposed) {
         await _awaitConnected(_connectWait);
       }
-      if (!_connected || _socket == null) {
+      if (!_connected || _conn == null) {
         return IpcResponse.err(
           id: '',
           error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'daemon not connected'),
@@ -99,7 +110,7 @@ class DaemonClient extends ChangeNotifier {
     final completer = Completer<IpcResponse>();
     _pending[id] = completer;
     final req = IpcRequest(id: id, cmd: cmd, args: args);
-    _socket!.writeln(req.encode());
+    _conn!.writeLine(req.encode());
     return completer.future;
   }
 
@@ -126,30 +137,25 @@ class DaemonClient extends ChangeNotifier {
   }
 
   Future<void> _connect() async {
-    // Already connected? Don't open a second socket. Guards against
+    // Already connected? Don't open a second connection. Guards against
     // racing connect attempts (e.g. start() arming the reconnect loop
-    // while swapIpcServer's reconnectAt connects on first boot).
+    // while swapBackend's reconnectAt connects on first boot).
     if (_disposed || _connected) return;
     try {
-      final addr = InternetAddress(_socketPath, type: InternetAddressType.unix);
-      final socket = await Socket.connect(addr, 0);
-      _socket = socket;
+      final conn = await _transport.open();
+      _conn = conn;
       _backoff = const Duration(milliseconds: 200);
       _setConnected(true);
-      _log.info('ipc', 'connected to $_socketPath');
-      socket
-          .cast<List<int>>()
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen(
-            _handleLine,
-            onDone: _handleDisconnect,
-            onError: (Object e) {
-              _log.warn('ipc', 'socket error', error: e);
-              _handleDisconnect();
-            },
-            cancelOnError: true,
-          );
+      _log.info('ipc', 'connected to ${_transport.endpoint}');
+      conn.lines.listen(
+        _handleLine,
+        onDone: _handleDisconnect,
+        onError: (Object e) {
+          _log.warn('ipc', 'socket error', error: e);
+          _handleDisconnect();
+        },
+        cancelOnError: true,
+      );
     } catch (e) {
       _log.debug('ipc', 'connect failed ($e); retry in ${_backoff.inMilliseconds}ms');
       _scheduleReconnect();
@@ -175,7 +181,7 @@ class DaemonClient extends ChangeNotifier {
   }
 
   void _handleDisconnect() {
-    _socket = null;
+    _conn = null;
     _failPending('daemon disconnected');
     _setConnected(false);
     _scheduleReconnect();
@@ -218,8 +224,9 @@ class DaemonClient extends ChangeNotifier {
     _disposed = true;
     _started = false;
     _reconnectTimer?.cancel();
-    unawaited(_socket?.close());
-    _socket = null;
+    final c = _conn;
+    if (c != null) unawaited(c.close());
+    _conn = null;
     _failPending('client disposed');
     _wakeConnectWaiters();
     super.dispose();

@@ -20,7 +20,7 @@ import '../../helpers/widget_harness.dart';
 // ---------------------------------------------------------------------------
 // Minimal fake process so orchestrator tests don't need a real `claude` binary.
 // ---------------------------------------------------------------------------
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
   final List<String> writes = [];
   bool killed = false;
@@ -131,6 +131,72 @@ void main() {
     await tester.pumpWidget(harness(f, sidebar(initialTab: SidebarTab.config)));
     await tester.pumpAndSettle();
     expect(find.text('Claude environment not loaded.'), findsOneWidget);
+  });
+
+  testWidgets('Activity session controls publish their slash commands (T-415)', (tester) async {
+    final published = <Message>[];
+    final sub = f.services.messages.subscribe(publisher: 'builtin.claude', channel: 'command').listen(published.add);
+    addTearDown(sub.cancel);
+
+    await tester.pumpWidget(harness(f, sidebar(stats: stats)));
+    await tester.pumpAndSettle();
+    expect(find.text('SESSION'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('clear session'));
+    await tester.tap(find.bySemanticsLabel('compact session'));
+    await tester.tap(find.bySemanticsLabel('refresh usage session'));
+    await tester.pump();
+    expect(published.map((m) => m.data['text']), ['/clear', '/compact', '/usage']);
+  });
+
+  testWidgets('a settings control publishes its slash command on pick (T-414)', (tester) async {
+    final dir = Directory.systemTemp.createTempSync('cfg');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final config = ClaudeConfig(globalDir: dir, cacheDir: dir);
+    final published = <Message>[];
+    final sub = f.services.messages.subscribe(publisher: 'builtin.claude', channel: 'command').listen(published.add);
+    addTearDown(sub.cancel);
+
+    await tester.pumpWidget(harness(f, sidebar(config: config, initialTab: SidebarTab.config)));
+    await tester.pumpAndSettle();
+
+    // The three live controls render alongside the read-only rows.
+    expect(find.text('model'), findsOneWidget);
+    expect(find.text('effort'), findsOneWidget);
+    expect(find.text('permission mode'), findsOneWidget);
+
+    // Open the effort control and pick a level → the explicit slash command
+    // goes out on the bus (the primary pane executes it via _send, D-6).
+    await tester.tap(find.bySemanticsLabel(RegExp('effort: .*Click to change.')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('xhigh'));
+    await tester.pumpAndSettle();
+
+    expect(published, hasLength(1));
+    expect(published.single.data['text'], '/effort xhigh');
+  });
+
+  testWidgets('a meta.tab message switches the sub-tab (T-413 slash navigation)', (tester) async {
+    await tester.pumpWidget(harness(f, sidebar(stats: stats)));
+    await tester.pumpAndSettle();
+    expect(find.text('TODAY'), findsOneWidget); // starts on Activity
+
+    // /config (and /mcp, /agents, /hooks) publish this from the Claude pane.
+    f.services.messages.publish('builtin.claude', 'meta.tab', {'tab': 'config'});
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Claude environment not loaded.'), findsOneWidget); // Config tab (no env in fixture)
+
+    f.services.messages.publish('builtin.claude', 'meta.tab', {'tab': 'activity'});
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('TODAY'), findsOneWidget); // back on Activity
+
+    // An unknown tab name is ignored.
+    f.services.messages.publish('builtin.claude', 'meta.tab', {'tab': 'bogus'});
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('TODAY'), findsOneWidget);
   });
 
   testWidgets('a team spawn auto-fronts the Team tab', (tester) async {
@@ -1041,6 +1107,37 @@ void main() {
       expect(find.text('HOOKS · 0'), findsOneWidget);
       expect(find.text('PERMISSIONS · 0'), findsOneWidget);
       expect(find.text('MCP SERVERS · 0'), findsOneWidget);
+    });
+  });
+
+  group('T-416 workflow runs in the Activity tab', () {
+    testWidgets('a primary workflow run surfaces as a WORKFLOWS row', (tester) async {
+      _FakeProc? proc;
+      final orch = ClaudeSessionOrchestrator(processFactory: ({required sessionArgs, required cwd, env}) async => proc = _FakeProc());
+      await orch.spawn(const SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
+      await tester.pumpWidget(harness(f, sidebar(orchestrator: orch, initialTab: SidebarTab.activity)));
+      await tester.pump();
+
+      // The harness emits the workflow progress on the primary session's wire.
+      proc!._ctl.add(
+        jsonEncode({
+          'type': 'system',
+          'subtype': 'task_progress',
+          'tool_use_id': 'toolu_wf',
+          'summary': 'orchestrating',
+          'workflow_progress': [
+            {'type': 'workflow_agent', 'index': 1, 'label': 'a', 'state': 'done'},
+            {'type': 'workflow_agent', 'index': 2, 'label': 'b', 'state': 'start'},
+          ],
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('WORKFLOWS'), findsOneWidget);
+      expect(find.text('1/2 agents'), findsOneWidget);
+
+      orch.dispose();
     });
   });
 }

@@ -88,16 +88,24 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: kClideCardGap),
+      child: _expanded ? _expandedFrame(tokens) : _tickerRow(tokens),
+    );
+  }
+
+  /// Summarized button semantics for the toggle. Scoped to the HEADER only —
+  /// wrapping the whole card excluded every expanded child from the a11y
+  /// tree, so a screen-reader user could expand a run and hear nothing
+  /// inside it (T-370). Collapsed, the header summary IS the whole card.
+  Widget _headerSemantics({required Widget child}) {
     final semanticCount = widget.counter == null ? '' : ', ${widget.counter}';
     return Semantics(
       button: true,
       expanded: _expanded,
       label: '${widget.label}$semanticCount, ${_expanded ? 'expanded' : 'collapsed'}',
       excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: kClideCardGap),
-        child: _expanded ? _expandedFrame(tokens) : _tickerRow(tokens),
-      ),
+      child: child,
     );
   }
 
@@ -146,18 +154,20 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
   }
 
   /// Collapsed: the ticker row IS the toggle, focusable for keyboard/AT.
-  Widget _tickerRow(SurfaceTokens tokens) => ClideTappable(
-    focusNode: _controlFocus,
-    onTap: _toggle,
-    tooltip: 'Expand',
-    builder: (context, hovered, focused) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
-      decoration: BoxDecoration(
-        color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
-        border: Border.all(color: widget.color ?? tokens.panelBorder),
-        borderRadius: BorderRadius.circular(kClideCardRadius),
+  Widget _tickerRow(SurfaceTokens tokens) => _headerSemantics(
+    child: ClideTappable(
+      focusNode: _controlFocus,
+      onTap: _toggle,
+      tooltip: 'Expand',
+      builder: (context, hovered, focused) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
+        decoration: BoxDecoration(
+          color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
+          border: Border.all(color: widget.color ?? tokens.panelBorder),
+          borderRadius: BorderRadius.circular(kClideCardRadius),
+        ),
+        child: _headerContent(tokens, expanded: false),
       ),
-      child: _headerContent(tokens, expanded: false),
     ),
   );
 
@@ -172,17 +182,19 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
     child: Stack(
       children: [
         // Background toggle: behind the items, not a whole-card overlay, so
-        // item taps are never intercepted. Excluded from focus traversal —
-        // the header caret is the single keyboard stop.
+        // item taps are never intercepted. Excluded from focus traversal AND
+        // semantics — the header caret is the single keyboard/AT stop.
         Positioned.fill(
           child: ExcludeFocus(
-            child: ClideTappable(onTap: _toggle, tooltip: 'Collapse', builder: (_, _, _) => const SizedBox.expand()),
+            child: ExcludeSemantics(
+              child: ClideTappable(onTap: _toggle, tooltip: 'Collapse', builder: (_, _, _) => const SizedBox.expand()),
+            ),
           ),
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _headerRow(tokens),
+            _headerSemantics(child: _headerRow(tokens)),
             // Even padding around the inner item canvas (T-305): the sides +
             // top match, and each inner item carries a matching bottom margin
             // (so the last item's margin is the bottom inset and items in a

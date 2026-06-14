@@ -23,6 +23,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
@@ -32,6 +33,12 @@ import 'package:clide/src/ipc/envelope.dart';
 /// from the dispatcher registry (D-86). The `mcp__ide__*` pair is the
 /// separate `/ide` minimum (D-68).
 const String _clideToolPrefix = 'mcp__clide__';
+
+/// Auth header Claude Code's `/ide` client sends, populated from the lock
+/// file's `authToken`. Every request must carry it (T-362): the unix socket
+/// is gated by 0600 per D-71, and an unauthenticated localhost HTTP port
+/// would bypass that gate wholesale.
+const String kMcpAuthHeader = 'x-claude-code-ide-authorization';
 
 /// One connected SSE client. Each session has its own response
 /// stream; POST /messages routes back to the right one via the
@@ -89,6 +96,7 @@ class McpServer {
   HttpServer? _http;
   String? _lockFile;
   int? _port;
+  String? _authToken;
   final Map<String, _McpSession> _sessions = {};
   int _sessionCounter = 0;
 
@@ -96,11 +104,16 @@ class McpServer {
   int? get port => _port;
   String? get lockFilePath => _lockFile;
 
+  /// The per-start bearer token clients must present in [kMcpAuthHeader].
+  /// Published to legitimate clients via the 0600 lock file only.
+  String? get authToken => _authToken;
+
   Future<void> start() async {
     if (isRunning) return;
     final server = await HttpServer.bind(bindHost, bindPort);
     _http = server;
     _port = server.port;
+    _authToken = _generateToken();
     _lockFile = await _writeDiscoveryFile();
     server.listen(
       _route,
@@ -136,6 +149,13 @@ class McpServer {
   // -- routing --------------------------------------------------------------
 
   Future<void> _route(HttpRequest req) async {
+    // Token gate first, on every path (T-362). Without it, any local
+    // process could drive the entire dispatcher D-71's 0600 socket guards.
+    if (req.headers.value(kMcpAuthHeader) != _authToken) {
+      req.response.statusCode = HttpStatus.unauthorized;
+      await req.response.close();
+      return;
+    }
     final path = req.uri.path;
     if (path == '/sse' && req.method == 'GET') {
       await _openSseStream(req);
@@ -327,8 +347,39 @@ class McpServer {
       dirHandle.createSync(recursive: true);
     }
     final path = '$dir/$pid.lock';
-    final body = jsonEncode({'pid': pid, 'workspace': workspaceRoot, 'transport': 'sse', 'url': 'http://$bindHost:$_port/sse'});
+    final body = jsonEncode({
+      'pid': pid,
+      'workspace': workspaceRoot,
+      'transport': 'sse',
+      'url': 'http://$bindHost:$_port/sse',
+      // Claude Code's /ide lock format carries the bearer token here; the
+      // 0600 below is what scopes it to this user (T-362).
+      'authToken': _authToken,
+    });
     File(path).writeAsStringSync(body);
+    try {
+      await _chmod(path, '600');
+    } catch (e) {
+      // Not fatal like the socket's chmod (D-71): the lock lives under
+      // ~/.claude which the home-dir perms usually already protect. But say so.
+      log.warn('mcp', 'chmod 600 on $path failed: $e — the auth token may be readable by other local users');
+    }
     return path;
+  }
+
+  /// 32 bytes of CSPRNG entropy, base64url — the per-start bearer token.
+  static String _generateToken() {
+    final rng = Random.secure();
+    final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
+    return base64UrlEncode(bytes).replaceAll('=', '');
+  }
+
+  /// `chmod` via `chmod(1)` — dart:io doesn't expose mode bits (same
+  /// approach as the unix-socket server, D-71).
+  static Future<void> _chmod(String path, String octal) async {
+    final r = await Process.run('chmod', [octal, path]);
+    if (r.exitCode != 0) {
+      throw ProcessException('chmod', [octal, path], r.stderr.toString(), r.exitCode);
+    }
   }
 }

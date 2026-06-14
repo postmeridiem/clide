@@ -33,6 +33,11 @@ class _TerminalPaneState extends State<TerminalPane> {
   String? _error;
   int _pid = 0;
 
+  /// Cached in didChangeDependencies — ancestor lookups are illegal in
+  /// dispose(), and the old lookup-and-swallow there meant pane.close
+  /// was never sent, leaking the backend PTY + daemon pane (T-366).
+  KernelServices? _kernel;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +51,12 @@ class _TerminalPaneState extends State<TerminalPane> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _kernel = ClideKernel.of(context);
+  }
+
+  @override
   void dispose() {
     _eventSub?.cancel();
     _eventSub = null;
@@ -53,14 +64,14 @@ class _TerminalPaneState extends State<TerminalPane> {
     _paneId = null;
     if (id != null) {
       // Fire-and-forget. Daemon-side pane.close is idempotent.
-      unawaited(_kernelIpc()?.request('pane.close', args: {'id': id}));
+      unawaited(_kernel?.ipc.request('pane.close', args: {'id': id}));
     }
     super.dispose();
   }
 
   Future<void> _spawn() async {
     if (!mounted) return;
-    final ipc = _kernelIpc();
+    final ipc = _kernel?.ipc;
     if (ipc == null || !ipc.isConnected) {
       setState(() => _error = 'Backend not connected.');
       return;
@@ -71,7 +82,9 @@ class _TerminalPaneState extends State<TerminalPane> {
     // fallback.
     final shell = Platform.isWindows ? null : (Platform.environment['SHELL'] ?? '/bin/bash');
     final argv = shell != null ? [shell, '-l'] : ['powershell.exe', '-NoLogo'];
-    final cwd = Directory.current.path;
+    // The open workspace, not Directory.current — a desktop launch starts
+    // in $HOME and a project switch doesn't move the process CWD (T-381).
+    final cwd = _kernel?.project.current?.path ?? Directory.current.path;
 
     final response = await ipc.request(
       'pane.spawn',
@@ -90,7 +103,7 @@ class _TerminalPaneState extends State<TerminalPane> {
   }
 
   void _subscribeToPaneEvents() {
-    final kernel = _kernel();
+    final kernel = _kernel;
     if (kernel == null) return;
     _eventSub = kernel.events.on<DaemonEvent>().listen((event) {
       if (event.subsystem != 'pane') return;
@@ -99,8 +112,9 @@ class _TerminalPaneState extends State<TerminalPane> {
         case 'pane.output':
           final b64 = event.data['bytes_b64'];
           if (b64 is String) {
-            final bytes = base64Decode(b64);
-            _terminal.write(utf8.decode(bytes, allowMalformed: true));
+            // writeBytes keeps UTF-8 decode state across chunks — a rune
+            // split across PTY reads must not become U+FFFD (T-373).
+            _terminal.writeBytes(base64Decode(b64));
           }
         case 'pane.exit':
           setState(() => _error = 'Shell exited.');
@@ -115,23 +129,13 @@ class _TerminalPaneState extends State<TerminalPane> {
   void _onTerminalOutput(String text) {
     final id = _paneId;
     if (id == null) return;
-    _kernelIpc()?.request('pane.write', args: {'id': id, 'text': text});
+    _kernel?.ipc.request('pane.write', args: {'id': id, 'text': text});
   }
 
   void _onTerminalResize(int cols, int rows, int pixelWidth, int pixelHeight) {
     final id = _paneId;
     if (id == null) return;
-    _kernelIpc()?.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
-  }
-
-  DaemonClient? _kernelIpc() => _kernel()?.ipc;
-
-  KernelServices? _kernel() {
-    try {
-      return ClideKernel.of(context);
-    } catch (_) {
-      return null;
-    }
+    _kernel?.ipc.request('pane.resize', args: {'id': id, 'cols': cols, 'rows': rows});
   }
 
   @override

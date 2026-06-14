@@ -167,20 +167,37 @@ class KeymapService extends ChangeNotifier {
     return km.match(sequence, _scope).exact;
   }
 
+  /// Scope-flag producers clear their flags from widget dispose() — which
+  /// during app teardown runs AFTER KernelServices.dispose() has disposed
+  /// this notifier. Tolerate that ordering instead of asserting (the same
+  /// fire-and-forget pattern SettingsStore uses).
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _safeNotify() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
   /// Set a named scope flag. Producers should call this when their
   /// state changes so when-clauses re-evaluate correctly. Notifies
   /// listeners when the value actually changes.
   void setScopeFlag(String name, bool value) {
     if (_scope[name] == value) return;
     _scope[name] = value;
-    notifyListeners();
+    _safeNotify();
   }
 
   /// Clear a named scope flag.
   void clearScopeFlag(String name) {
     if (!_scope.containsKey(name)) return;
     _scope.remove(name);
-    notifyListeners();
+    _safeNotify();
   }
 
   /// Switch presets. Persists the new preset name to settings and

@@ -8,16 +8,18 @@ import 'package:clide/src/terminal/src/utils/byte_consumer.dart';
 import 'package:clide/src/terminal/src/utils/char_code.dart';
 import 'package:clide/src/terminal/src/utils/lookup_table.dart';
 
-/// [EscapeParser] translates control characters and escape sequences into
-/// function calls that the terminal can handle.
-///
-/// Design goals:
-///  * Zero object allocation during processing.
-///  * No internal state. Same input will always produce same output.
-class EscapeParser {
-  final EscapeHandler handler;
+part 'csi_handlers.dart';
+part 'mode_handlers.dart';
+part 'osc_handlers.dart';
+part 'sgr_handlers.dart';
 
-  EscapeParser(this.handler);
+/// Shared parser state the handler mixins operate on: the escape
+/// handler sink, the byte queue, token bookkeeping, and the reusable
+/// CSI scratch object (zero-allocation design — see [EscapeParser]).
+abstract class _EscapeParserBase {
+  _EscapeParserBase(this.handler);
+
+  final EscapeHandler handler;
 
   final _queue = ByteConsumer();
 
@@ -26,6 +28,24 @@ class EscapeParser {
 
   /// End of sequence or character being processed. Useful for debugging.
   int get tokenEnd => _queue.totalConsumed;
+
+  /// The last parsed [_Csi]. This is a mutable singletion by design to reduce
+  /// object allocations.
+  final _csi = _Csi(finalByte: 0, params: []);
+}
+
+/// [EscapeParser] translates control characters and escape sequences into
+/// function calls that the terminal can handle.
+///
+/// Design goals:
+///  * Zero object allocation during processing.
+///  * No internal state. Same input will always produce same output.
+///
+/// The handler groups live as mixins in this library's part files
+/// (csi/sgr/mode/osc handlers, T-123); this core owns the byte queue,
+/// the dispatch tables, and the ESC/CSI consumers.
+class EscapeParser extends _EscapeParserBase with _CsiHandlers, _ModeHandlers, _OscHandlers, _SgrHandlers {
+  EscapeParser(super.handler);
 
   void write(String chunk) {
     _queue.unrefConsumedBlocks();
@@ -197,7 +217,11 @@ class EscapeParser {
     final consumed = _consumeCsi();
     if (!consumed) return false;
 
-    final csiHandler = _csiHandlers[_csi.finalByte];
+    // An intermediate byte changes the meaning of the final byte
+    // (`CSI 5 SP @` is scroll-left, not insert-blank). None of the
+    // intermediate forms are implemented, so report them as unknown
+    // rather than mis-dispatching on the bare final byte.
+    final csiHandler = _csi.intermediates.isEmpty ? _csiHandlers[_csi.finalByte] : null;
 
     if (csiHandler == null) {
       handler.unknownCSI(_csi.finalByte);
@@ -208,10 +232,6 @@ class EscapeParser {
     return true;
   }
 
-  /// The last parsed [_Csi]. This is a mutable singletion by design to reduce
-  /// object allocations.
-  final _csi = _Csi(finalByte: 0, params: []);
-
   /// Parse a CSI from the head of the queue. Return false if the CSI isn't
   /// complete. After a CSI is successfully parsed, [_csi] is updated.
   bool _consumeCsi() {
@@ -220,6 +240,8 @@ class EscapeParser {
     }
 
     _csi.params.clear();
+    _csi.subParam.clear();
+    _csi.intermediates.clear();
 
     // test whether the csi is a `CSI ? Ps ...` or `CSI Ps ...`
     final prefix = _queue.peek();
@@ -232,6 +254,11 @@ class EscapeParser {
 
     var param = 0;
     var hasParam = false;
+    // Whether the value being accumulated was attached to its predecessor
+    // with a colon (ECMA-48 sub-parameter separator, ITU T.416 SGR colors).
+    // Before T-369 colons were silently dropped mid-sequence, fusing
+    // `38:2:255:0:0` into one bogus parameter.
+    var linkedToPrev = false;
     while (true) {
       // The sequence isn't completed, just ignore it.
       if (_queue.isEmpty) {
@@ -243,8 +270,21 @@ class EscapeParser {
       if (char == Ascii.semicolon) {
         if (hasParam) {
           _csi.params.add(param);
+          _csi.subParam.add(linkedToPrev);
         }
         param = 0;
+        linkedToPrev = false;
+        continue;
+      }
+
+      if (char == Ascii.colon) {
+        // Push the current value even when empty — `38:2::r:g:b` carries an
+        // empty colorspace slot that must keep its position in the group.
+        _csi.params.add(hasParam ? param : 0);
+        _csi.subParam.add(linkedToPrev);
+        hasParam = true;
+        param = 0;
+        linkedToPrev = true;
         continue;
       }
 
@@ -255,14 +295,20 @@ class EscapeParser {
         continue;
       }
 
+      if (char >= Ascii.space && char <= Ascii.slash) {
+        _csi.intermediates.add(char);
+        continue;
+      }
+
       if (char > Ascii.NULL && char < Ascii.num0) {
-        // intermediates.add(char);
+        // Other C0 controls embedded in a CSI: ignore, as before.
         continue;
       }
 
       if (char >= Ascii.atSign && char <= Ascii.tilde) {
         if (hasParam) {
           _csi.params.add(param);
+          _csi.subParam.add(linkedToPrev);
         }
 
         _csi.finalByte = char;
@@ -302,827 +348,26 @@ class EscapeParser {
     'X'.codeUnitAt(0): _csiHandleEraseCharacters,
     '@'.codeUnitAt(0): _csiHandleInsertBlankCharacters,
   });
-
-  /// `ESC [ Ps a` Cursor Horizontal Position Relative (HPR)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sa/
-  // void _csiHandleCursorHorizontalRelative() {
-  //   if (_csi.params.isEmpty) {
-  //     handler.cursorHorizontal(1);
-  //   } else {
-  //     handler.cursorHorizontal(_csi.params[0]);
-  //   }
-  // }
-
-  /// `ESC [ Ps b` Repeat Previous Character (REP)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sb/
-  void _csiHandleRepeatPreviousCharacter() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.repeatPreviousCharacter(amount);
-  }
-
-  /// `ESC [ Ps c` Device Attributes (DA)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sc/
-  void _csiHandleSendDeviceAttributes() {
-    switch (_csi.prefix) {
-      case Ascii.greaterThan:
-        return handler.sendSecondaryDeviceAttributes();
-      case Ascii.equal:
-        return handler.sendTertiaryDeviceAttributes();
-      default:
-        handler.sendPrimaryDeviceAttributes();
-    }
-  }
-
-  /// `ESC [ Ps d` Cursor Vertical Position Absolute (VPA)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sd/
-  void _csiHandleLinePositionAbsolute() {
-    var y = 1;
-
-    if (_csi.params.isNotEmpty) {
-      y = _csi.params[0];
-    }
-
-    handler.setCursorY(y - 1);
-  }
-
-  /// `ESC [ Ps ; Ps f` Alias: Set Cursor Position
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sf/
-  void _csiHandleCursorPosition() {
-    var row = 1;
-    var col = 1;
-
-    if (_csi.params.length == 2) {
-      row = _csi.params[0];
-      col = _csi.params[1];
-    }
-
-    handler.setCursor(col - 1, row - 1);
-  }
-
-  /// `ESC [ Ps g` Tab Clear (TBC)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sg/
-  void _csiHandelClearTabStop() {
-    var cmd = 0;
-
-    if (_csi.params.length == 1) {
-      cmd = _csi.params[0];
-    }
-
-    switch (cmd) {
-      case 0:
-        return handler.clearTabStopUnderCursor();
-      default:
-        return handler.clearAllTabStops();
-    }
-  }
-
-  /// - `ESC [ [ Pm ] h Set Mode (SM)` https://terminalguide.namepad.de/seq/csi_sm/
-  /// - `ESC [ ? [ Pm ] h` Set Mode (?) (SM) https://terminalguide.namepad.de/seq/csi_sh__p/
-  /// - `ESC [ [ Pm ] l` Reset Mode (RM) https://terminalguide.namepad.de/seq/csi_rm/
-  /// - `ESC [ ? [ Pm ] l` Reset Mode (?) (RM) https://terminalguide.namepad.de/seq/csi_sl__p/
-  void _csiHandleMode() {
-    final isEnabled = _csi.finalByte == Ascii.h;
-
-    final isDecModes = _csi.prefix == Ascii.questionMark;
-
-    if (isDecModes) {
-      for (var mode in _csi.params) {
-        _setDecMode(mode, isEnabled);
-      }
-    } else {
-      for (var mode in _csi.params) {
-        _setMode(mode, isEnabled);
-      }
-    }
-  }
-
-  /// `ESC [ [ Ps ] m` Select Graphic Rendition (SGR)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sm/
-  void _csiHandleSgr() {
-    final params = _csi.params;
-
-    if (params.isEmpty) {
-      return handler.resetCursorStyle();
-    }
-
-    for (var i = 0; i < _csi.params.length; i++) {
-      final param = params[i];
-      switch (param) {
-        case 0:
-          handler.resetCursorStyle();
-          continue;
-        case 1:
-          handler.setCursorBold();
-          continue;
-        case 2:
-          handler.setCursorFaint();
-          continue;
-        case 3:
-          handler.setCursorItalic();
-          continue;
-        case 4:
-          handler.setCursorUnderline();
-          continue;
-        case 5:
-          handler.setCursorBlink();
-          continue;
-        case 7:
-          handler.setCursorInverse();
-          continue;
-        case 8:
-          handler.setCursorInvisible();
-          continue;
-        case 9:
-          handler.setCursorStrikethrough();
-          continue;
-
-        case 21:
-          handler.unsetCursorBold();
-          continue;
-        case 22:
-          handler.unsetCursorFaint();
-          continue;
-        case 23:
-          handler.unsetCursorItalic();
-          continue;
-        case 24:
-          handler.unsetCursorUnderline();
-          continue;
-        case 25:
-          handler.unsetCursorBlink();
-          continue;
-        case 27:
-          handler.unsetCursorInverse();
-          continue;
-        case 28:
-          handler.unsetCursorInvisible();
-          continue;
-        case 29:
-          handler.unsetCursorStrikethrough();
-          continue;
-
-        case 30:
-          handler.setForegroundColor16(NamedColor.black);
-          continue;
-        case 31:
-          handler.setForegroundColor16(NamedColor.red);
-          continue;
-        case 32:
-          handler.setForegroundColor16(NamedColor.green);
-          continue;
-        case 33:
-          handler.setForegroundColor16(NamedColor.yellow);
-          continue;
-        case 34:
-          handler.setForegroundColor16(NamedColor.blue);
-          continue;
-        case 35:
-          handler.setForegroundColor16(NamedColor.magenta);
-          continue;
-        case 36:
-          handler.setForegroundColor16(NamedColor.cyan);
-          continue;
-        case 37:
-          handler.setForegroundColor16(NamedColor.white);
-          continue;
-        case 38:
-          final mode = params[i + 1];
-          switch (mode) {
-            case 2:
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
-              handler.setForegroundColorRgb(r, g, b);
-              i += 4;
-              break;
-            case 5:
-              final index = params[i + 2];
-              handler.setForegroundColor256(index);
-              i += 2;
-              break;
-          }
-          continue;
-        case 39:
-          handler.resetForeground();
-          continue;
-
-        case 40:
-          handler.setBackgroundColor16(NamedColor.black);
-          continue;
-        case 41:
-          handler.setBackgroundColor16(NamedColor.red);
-          continue;
-        case 42:
-          handler.setBackgroundColor16(NamedColor.green);
-          continue;
-        case 43:
-          handler.setBackgroundColor16(NamedColor.yellow);
-          continue;
-        case 44:
-          handler.setBackgroundColor16(NamedColor.blue);
-          continue;
-        case 45:
-          handler.setBackgroundColor16(NamedColor.magenta);
-          continue;
-        case 46:
-          handler.setBackgroundColor16(NamedColor.cyan);
-          continue;
-        case 47:
-          handler.setBackgroundColor16(NamedColor.white);
-          continue;
-        case 48:
-          final mode = params[i + 1];
-          switch (mode) {
-            case 2:
-              final r = params[i + 2];
-              final g = params[i + 3];
-              final b = params[i + 4];
-              handler.setBackgroundColorRgb(r, g, b);
-              i += 4;
-              break;
-            case 5:
-              final index = params[i + 2];
-              handler.setBackgroundColor256(index);
-              i += 2;
-              break;
-          }
-          continue;
-        case 49:
-          handler.resetBackground();
-          continue;
-
-        case 90:
-          handler.setForegroundColor16(NamedColor.brightBlack);
-          continue;
-        case 91:
-          handler.setForegroundColor16(NamedColor.brightRed);
-          continue;
-        case 92:
-          handler.setForegroundColor16(NamedColor.brightGreen);
-          continue;
-        case 93:
-          handler.setForegroundColor16(NamedColor.brightYellow);
-          continue;
-        case 94:
-          handler.setForegroundColor16(NamedColor.brightBlue);
-          continue;
-        case 95:
-          handler.setForegroundColor16(NamedColor.brightMagenta);
-          continue;
-        case 96:
-          handler.setForegroundColor16(NamedColor.brightCyan);
-          continue;
-        case 97:
-          handler.setForegroundColor16(NamedColor.brightWhite);
-          continue;
-
-        case 100:
-          handler.setBackgroundColor16(NamedColor.brightBlack);
-          continue;
-        case 101:
-          handler.setBackgroundColor16(NamedColor.brightRed);
-          continue;
-        case 102:
-          handler.setBackgroundColor16(NamedColor.brightGreen);
-          continue;
-        case 103:
-          handler.setBackgroundColor16(NamedColor.brightYellow);
-          continue;
-        case 104:
-          handler.setBackgroundColor16(NamedColor.brightBlue);
-          continue;
-        case 105:
-          handler.setBackgroundColor16(NamedColor.brightMagenta);
-          continue;
-        case 106:
-          handler.setBackgroundColor16(NamedColor.brightCyan);
-          continue;
-        case 107:
-          handler.setBackgroundColor16(NamedColor.brightWhite);
-          continue;
-
-        default:
-          handler.unsupportedStyle(param);
-          continue;
-      }
-    }
-  }
-
-  /// `ESC [ Ps n` Device Status Report [Dispatch] (DSR)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sn/
-  void _csiHandleDeviceStatusReport() {
-    if (_csi.params.isEmpty) return;
-
-    switch (_csi.params[0]) {
-      case 5:
-        return handler.sendOperatingStatus();
-      case 6:
-        return handler.sendCursorPosition();
-    }
-  }
-
-  /// `ESC [ Ps ; Ps r` Set Top and Bottom Margins (DECSTBM)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_sr/
-  void _csiHandleSetMargins() {
-    var top = 1;
-    int? bottom;
-
-    if (_csi.params.length > 2) return;
-
-    if (_csi.params.isNotEmpty) {
-      top = _csi.params[0];
-
-      if (_csi.params.length == 2) {
-        bottom = _csi.params[1] - 1;
-      }
-    }
-
-    handler.setMargins(top - 1, bottom);
-  }
-
-  /// `ESC [ Ps t` Window operations [DISPATCH]
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_st/
-  void _csiWindowManipulation() {
-    // The sequence needs at least one parameter.
-    if (_csi.params.isEmpty) {
-      return;
-    }
-    // Most the commands in this group are either of the scope of this package,
-    // or should be disabled for security risks.
-    switch (_csi.params.first) {
-      // Window handling is currently not in the scope of the package.
-      case 1: // Restore Terminal Window (show window if minimized)
-      case 2: // Minimize Terminal Window
-      case 3: // Set Terminal Window Position
-      case 4: // Set Terminal Window Size in Pixels
-      case 5: // Raise Terminal Window
-      case 6: // Lower Terminal Window
-      case 7: // Refresh/Redraw Terminal Window
-        return;
-      case 8: // Set Terminal Window Size (in characters)
-        // This CSI contains 2 more parameters: width and height.
-        if (_csi.params.length != 3) {
-          return;
-        }
-        final rows = _csi.params[1];
-        final cols = _csi.params[2];
-        handler.resize(cols, rows);
-        return;
-      // Window handling is currently no in the scope of the package.
-      case 9: // Maximize Terminal Window
-      case 10: // Alias: Maximize Terminal Window
-      case 11: // Report Terminal Window State
-      case 13: // Report Terminal Window Position
-      case 14: // Report Terminal Window Size in Pixels
-      case 15: // Report Screen Size in Pixels
-      case 16: // Report Cell Size in Pixels
-        return;
-      case 18: // Report Terminal Size (in characters)
-        handler.sendSize();
-        return;
-      // Screen handling is currently no in the scope of the package.
-      case 19: // Report Screen Size (in characters)
-      // Disabled as these can a security risk.
-      case 20: // Get Icon Title
-      case 21: // Get Terminal Title
-      // Not implemented.
-      case 22: // Push Terminal Title
-      case 23: // Pop Terminal Title
-        return;
-      // Unknown CSI.
-      default:
-        return;
-    }
-  }
-
-  /// `ESC [ Ps A` Cursor Up (CUU)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_ca/
-  void _csiHandleCursorUp() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.moveCursorY(-amount);
-  }
-
-  /// `ESC [ Ps B` Cursor Down (CUD)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cb/
-  void _csiHandleCursorDown() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.moveCursorY(amount);
-  }
-
-  /// `ESC [ Ps C` Cursor Right (CUF)
-  ///
-  /// Cursor Right (CUF)
-  void _csiHandleCursorForward() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.moveCursorX(amount);
-  }
-
-  /// `ESC [ Ps D` Cursor Left (CUB)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cd/
-  void _csiHandleCursorBackward() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.moveCursorX(-amount);
-  }
-
-  /// `ESC [ Ps E` Cursor Next Line (CNL)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_ce/
-  void _csiHandleCursorNextLine() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.cursorNextLine(amount);
-  }
-
-  /// `ESC [ Ps F` Cursor Previous Line (CPL)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cf/
-  void _csiHandleCursorPrecedingLine() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-      if (amount == 0) amount = 1;
-    }
-
-    handler.cursorPrecedingLine(amount);
-  }
-
-  void _csiHandleCursorHorizontalAbsolute() {
-    var x = 1;
-
-    if (_csi.params.isNotEmpty) {
-      x = _csi.params[0];
-      if (x == 0) x = 1;
-    }
-
-    handler.setCursorX(x - 1);
-  }
-
-  /// ESC [ Ps J Erase Display [Dispatch] (ED)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cj/
-  void _csiHandleEraseDisplay() {
-    var cmd = 0;
-
-    if (_csi.params.length == 1) {
-      cmd = _csi.params[0];
-    }
-
-    switch (cmd) {
-      case 0:
-        return handler.eraseDisplayBelow();
-      case 1:
-        return handler.eraseDisplayAbove();
-      case 2:
-        return handler.eraseDisplay();
-      case 3:
-        return handler.eraseScrollbackOnly();
-    }
-  }
-
-  /// `ESC [ Ps K` Erase Line [Dispatch] (EL)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_ck/
-  void _csiHandleEraseLine() {
-    var cmd = 0;
-
-    if (_csi.params.length == 1) {
-      cmd = _csi.params[0];
-    }
-
-    switch (cmd) {
-      case 0:
-        return handler.eraseLineRight();
-      case 1:
-        return handler.eraseLineLeft();
-      case 2:
-        return handler.eraseLine();
-    }
-  }
-
-  /// `ESC [ Ps L` Insert Line (IL)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cl/
-  void _csiHandleInsertLines() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.insertLines(amount);
-  }
-
-  /// ESC [ Ps M Delete Line (DL)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cm/
-  void _csiHandleDeleteLines() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.deleteLines(amount);
-  }
-
-  /// ESC [ Ps P Delete Character (DCH)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cp/
-  void _csiHandleDelete() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.deleteChars(amount);
-  }
-
-  /// `ESC [ Ps S` Scroll Up (SU)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cs/
-  void _csiHandleScrollUp() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.scrollUp(amount);
-  }
-
-  /// `ESC [ Ps T `Scroll Down (SD)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_ct_1param/
-  void _csiHandleScrollDown() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.scrollDown(amount);
-  }
-
-  /// `ESC [ Ps X` Erase Character (ECH)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_cx/
-  void _csiHandleEraseCharacters() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.eraseChars(amount);
-  }
-
-  /// `ESC [ Ps @` Insert Blanks (ICH)
-  ///
-  /// https://terminalguide.namepad.de/seq/csi_x40_at/
-  ///
-  /// Inserts amount spaces at current cursor position moving existing cell
-  /// contents to the right. The contents of the amount right-most columns in
-  /// the scroll region are lost. The cursor position is not changed.
-  void _csiHandleInsertBlankCharacters() {
-    var amount = 1;
-
-    if (_csi.params.isNotEmpty) {
-      amount = _csi.params[0];
-    }
-
-    handler.insertBlankChars(amount);
-  }
-
-  void _setMode(int mode, bool enabled) {
-    switch (mode) {
-      case 4:
-        return handler.setInsertMode(enabled);
-      case 20:
-        return handler.setLineFeedMode(enabled);
-      default:
-        return handler.setUnknownMode(mode, enabled);
-    }
-  }
-
-  void _setDecMode(int mode, bool enabled) {
-    switch (mode) {
-      case 1:
-        return handler.setCursorKeysMode(enabled);
-      case 3:
-        return handler.setColumnMode(enabled);
-      case 5:
-        return handler.setReverseDisplayMode(enabled);
-      case 6:
-        return handler.setOriginMode(enabled);
-      case 7:
-        return handler.setAutoWrapMode(enabled);
-      case 9:
-        return enabled ? handler.setMouseMode(MouseMode.clickOnly) : handler.setMouseMode(MouseMode.none);
-      case 12:
-      case 13:
-        return handler.setCursorBlinkMode(enabled);
-      case 25:
-        return handler.setCursorVisibleMode(enabled);
-      case 47:
-        if (enabled) {
-          return handler.useAltBuffer();
-        } else {
-          return handler.useMainBuffer();
-        }
-      case 66:
-        return handler.setAppKeypadMode(enabled);
-      case 1000:
-        return enabled ? handler.setMouseMode(MouseMode.upDownScroll) : handler.setMouseMode(MouseMode.none);
-      case 1001:
-        return enabled ? handler.setMouseMode(MouseMode.upDownScroll) : handler.setMouseMode(MouseMode.none);
-      case 1002:
-        return enabled ? handler.setMouseMode(MouseMode.upDownScrollDrag) : handler.setMouseMode(MouseMode.none);
-      case 1003:
-        return enabled ? handler.setMouseMode(MouseMode.upDownScrollMove) : handler.setMouseMode(MouseMode.none);
-      case 1004:
-        return handler.setReportFocusMode(enabled);
-      case 1005:
-        return enabled ? handler.setMouseReportMode(MouseReportMode.utf) : handler.setMouseReportMode(MouseReportMode.normal);
-      case 1006:
-        return enabled ? handler.setMouseReportMode(MouseReportMode.sgr) : handler.setMouseReportMode(MouseReportMode.normal);
-      case 1007:
-        return handler.setAltBufferMouseScrollMode(enabled);
-      case 1015:
-        return enabled ? handler.setMouseReportMode(MouseReportMode.urxvt) : handler.setMouseReportMode(MouseReportMode.normal);
-      case 1047:
-        if (enabled) {
-          handler.useAltBuffer();
-        } else {
-          handler.clearAltBuffer();
-          handler.useMainBuffer();
-        }
-        return;
-      case 1048:
-        if (enabled) {
-          return handler.saveCursor();
-        } else {
-          return handler.restoreCursor();
-        }
-      case 1049:
-        if (enabled) {
-          handler.saveCursor();
-          handler.clearAltBuffer();
-          handler.useAltBuffer();
-        } else {
-          handler.useMainBuffer();
-        }
-        return;
-      case 2004:
-        return handler.setBracketedPasteMode(enabled);
-      default:
-        return handler.setUnknownDecMode(mode, enabled);
-    }
-  }
-
-  /// Parse a OSC sequence from the queue. Returns true if a sequence was
-  /// found and handled.
-  bool _escHandleOSC() {
-    final consumed = _consumeOsc();
-    if (!consumed) {
-      return false;
-    }
-
-    if (_osc.isEmpty) {
-      return true;
-    }
-
-    // Common OSCs
-    if (_osc.length >= 2) {
-      final ps = _osc[0];
-      final pt = _osc[1];
-
-      switch (ps) {
-        case '0':
-          handler.setTitle(pt);
-          handler.setIconName(pt);
-          return true;
-        case '1':
-          handler.setIconName(pt);
-          return true;
-        case '2':
-          handler.setTitle(pt);
-          return true;
-      }
-    }
-
-    // Private extensions
-    handler.unknownOSC(_osc[0], _osc.sublist(1));
-
-    return true;
-  }
-
-  final _osc = <String>[];
-
-  bool _consumeOsc() {
-    _osc.clear();
-    final param = StringBuffer();
-
-    while (true) {
-      if (_queue.isEmpty) {
-        return false;
-      }
-
-      final char = _queue.consume();
-
-      // OSC terminates with BEL
-      if (char == Ascii.BEL) {
-        _osc.add(param.toString());
-        return true;
-      }
-
-      /// OSC terminates with ST
-      if (char == Ascii.ESC) {
-        if (_queue.isEmpty) {
-          return false;
-        }
-
-        if (_queue.consume() == Ascii.backslash) {
-          _osc.add(param.toString());
-        }
-
-        return true;
-      }
-
-      /// Parse next parameter
-      if (char == Ascii.semicolon) {
-        _osc.add(param.toString());
-        param.clear();
-        continue;
-      }
-
-      param.writeCharCode(char);
-    }
-  }
 }
 
 class _Csi {
-  _Csi({
-    required this.params,
-    required this.finalByte,
-    // required this.intermediates,
-  });
+  _Csi({required this.params, required this.finalByte});
 
   int? prefix;
 
   List<int> params;
 
+  /// Parallel to [params]: true when that parameter was attached to its
+  /// predecessor with a colon (ECMA-48 sub-parameter, ITU T.416 — T-369).
+  final List<bool> subParam = [];
+
   int finalByte;
-  // final List<int> intermediates;
+
+  /// Intermediate bytes (0x20–0x2f) between the parameters and the final
+  /// byte — `SP` in `CSI Ps SP q` (DECSCUSR), `!` in `CSI ! p` (DECSTR).
+  /// They change the meaning of the final byte, so dispatch must not fall
+  /// through to the bare-final handler when any are present.
+  final List<int> intermediates = [];
 
   @override
   String toString() {

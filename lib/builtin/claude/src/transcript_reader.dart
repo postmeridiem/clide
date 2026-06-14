@@ -114,12 +114,19 @@ final class AssistantTextMessage extends ConversationItem {
     super.parentUuid,
     super.parentToolUseId,
     required this.text,
+    this.synthetic = false,
   });
 
   final String text;
 
+  /// CLI-local output, not the model: the wire marks it `model: "<synthetic>"`
+  /// (a forwarded local command's response — /usage output, "/x isn't
+  /// available in this environment", …). clide-injected notices use it too.
+  /// Rendered as a muted "clide" card, never coral Claude prose (T-411).
+  final bool synthetic;
+
   @override
-  String toString() => 'AssistantTextMessage(${_shortId(uuid)}, ${text.length} chars)';
+  String toString() => 'AssistantTextMessage(${_shortId(uuid)}, ${text.length} chars${synthetic ? ', synthetic' : ''})';
 }
 
 /// Extended thinking block from an assistant turn.
@@ -426,7 +433,7 @@ class TranscriptReader {
 /// (T-145, T-168). All fields nullable — a chunk only carries what it saw,
 /// and the reader [merge]s deltas into a running status.
 class SessionStatus {
-  const SessionStatus({this.model, this.permissionMode, this.contextTokens, this.cost, this.contextWindow, this.rateLimitInfo});
+  const SessionStatus({this.model, this.permissionMode, this.contextTokens, this.cost, this.contextWindow, this.rateLimitInfo, this.effort});
 
   /// Assistant `message.model`, e.g. `claude-opus-4-7`.
   final String? model;
@@ -451,7 +458,13 @@ class SessionStatus {
   /// `"rate limited — resets 14:32"` (T-168). Null when not rate-limited.
   final String? rateLimitInfo;
 
-  bool get isEmpty => model == null && permissionMode == null && contextTokens == null && cost == null && contextWindow == null && rateLimitInfo == null;
+  /// The session's effort level (`--effort`, T-412). The wire never reports
+  /// it — clide records what it spawned with via [StreamJsonSession.noteEffort];
+  /// null means the CLI default (settings.json `effortLevel`).
+  final String? effort;
+
+  bool get isEmpty =>
+      model == null && permissionMode == null && contextTokens == null && cost == null && contextWindow == null && rateLimitInfo == null && effort == null;
 
   /// Overlay [other]'s non-null fields onto this one.
   SessionStatus merge(SessionStatus other) => SessionStatus(
@@ -461,6 +474,7 @@ class SessionStatus {
     cost: other.cost ?? cost,
     contextWindow: other.contextWindow ?? contextWindow,
     rateLimitInfo: other.rateLimitInfo ?? rateLimitInfo,
+    effort: other.effort ?? effort,
   );
 
   @override
@@ -471,10 +485,11 @@ class SessionStatus {
       other.contextTokens == contextTokens &&
       other.cost == cost &&
       other.contextWindow == contextWindow &&
-      other.rateLimitInfo == rateLimitInfo;
+      other.rateLimitInfo == rateLimitInfo &&
+      other.effort == effort;
 
   @override
-  int get hashCode => Object.hash(model, permissionMode, contextTokens, cost, contextWindow, rateLimitInfo);
+  int get hashCode => Object.hash(model, permissionMode, contextTokens, cost, contextWindow, rateLimitInfo, effort);
 }
 
 /// Result of [parseTranscriptChunk]: items, version-drift warnings, and
@@ -582,7 +597,9 @@ void _extractAssistantStatus(Map<String, dynamic> envelope, _StatusAcc status) {
   final message = envelope['message'] as Map?;
   if (message == null) return;
   final model = message['model'] as String?;
-  if (model != null && model.isNotEmpty) status.model = model;
+  // "<synthetic>" marks CLI-local output (a forwarded local command's
+  // response) — not a model switch; it must not clobber the tracked model.
+  if (model != null && model.isNotEmpty && model != kSyntheticModel) status.model = model;
   final usage = message['usage'] as Map?;
   if (usage != null) {
     int n(String k) => (usage[k] as num?)?.toInt() ?? 0;
@@ -656,6 +673,9 @@ void _parseUserInto(
   }
 }
 
+/// The model marker on CLI-local output (forwarded local-command responses).
+const String kSyntheticModel = '<synthetic>';
+
 void _parseAssistantInto(
   Map<String, dynamic> envelope,
   String uuid,
@@ -669,6 +689,7 @@ void _parseAssistantInto(
   if (message == null) return;
   final content = message['content'];
   if (content is! List) return;
+  final synthetic = (message['model'] as String?) == kSyntheticModel;
 
   for (final item in content) {
     if (item is! Map) continue;
@@ -684,6 +705,7 @@ void _parseAssistantInto(
               parentUuid: parentUuid,
               parentToolUseId: parentToolUseId,
               text: text,
+              synthetic: synthetic,
             ),
           );
         }

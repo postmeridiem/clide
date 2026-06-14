@@ -19,8 +19,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/workflow_run.dart';
+import 'package:clide/src/util/value_stream.dart';
 
 /// The claude subprocess, abstracted so tests drive it without spawning.
+/// Fakes `extend` this and override what they drive; the defaults below
+/// describe a process with no real child behind it.
 abstract class StreamJsonProcess {
   /// stdout, one JSON event per line.
   Stream<String> get lines;
@@ -30,13 +34,43 @@ abstract class StreamJsonProcess {
 
   /// Terminate the process.
   Future<void> kill();
+
+  /// The last lines of the child's stderr, drained continuously so the pipe
+  /// can never fill and block the child mid-turn (T-361). Default: none.
+  List<String> get stderrTail => const [];
+
+  /// Completes with the child's exit code, or null when there is no real
+  /// process to watch (fakes that never "exit").
+  Future<int>? get exitCode => null;
+}
+
+/// A bounded FIFO of the most recent lines — the stderr tail kept for
+/// post-mortem diagnostics while the stream itself is drained and dropped.
+class BoundedLineBuffer {
+  BoundedLineBuffer({this.cap = 100});
+
+  final int cap;
+  final List<String> _lines = [];
+
+  void add(String line) {
+    _lines.add(line);
+    if (_lines.length > cap) _lines.removeAt(0);
+  }
+
+  List<String> get lines => List.unmodifiable(_lines);
 }
 
 /// Production [StreamJsonProcess] backed by a real `claude` process.
-class ClaudeStreamJsonProcess implements StreamJsonProcess {
-  ClaudeStreamJsonProcess._(this._proc);
+class ClaudeStreamJsonProcess extends StreamJsonProcess {
+  ClaudeStreamJsonProcess._(this._proc) {
+    // Drain stderr from the moment the process exists — with --verbose the
+    // CLI chats on stderr, and an undrained 64KB pipe blocks the child
+    // mid-turn with zero diagnostics (T-361). Keep a tail for post-mortems.
+    _proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(_stderr.add, onError: (Object _) {});
+  }
 
   final Process _proc;
+  final BoundedLineBuffer _stderr = BoundedLineBuffer();
 
   /// Spawn `claude` in stream-json mode. [sessionArgs] is `['--session-id', id]`
   /// for a new session or `['--resume', id]` to resume an existing one (T-161).
@@ -75,6 +109,12 @@ class ClaudeStreamJsonProcess implements StreamJsonProcess {
   Future<void> kill() async {
     _proc.kill();
   }
+
+  @override
+  List<String> get stderrTail => _stderr.lines;
+
+  @override
+  Future<int> get exitCode => _proc.exitCode;
 }
 
 /// An in-process MCP server clide hosts for a session, entirely over the
@@ -107,6 +147,53 @@ abstract class McpServer {
   /// (`{content: [{type: 'text', text: ...}], isError: bool}`).
   Future<Map<String, dynamic>> callTool(String name, Map<String, dynamic> arguments);
 }
+
+/// A model selectable for a session, from the `initialize` control_response's
+/// `models[]` (T-408). Pure data, Flutter-free.
+class ModelOption {
+  const ModelOption({required this.value, required this.displayName, this.description = ''});
+
+  /// The id/alias sent in `set_model` — e.g. `default`, `sonnet`, `opus`.
+  final String value;
+
+  /// Human label, e.g. `Sonnet`.
+  final String displayName;
+
+  /// One-line blurb shown muted next to the label.
+  final String description;
+}
+
+/// Effort levels `claude --effort` accepts (probed against 2.1.175). There is
+/// NO set_effort control subtype (probed: rejected), so changing effort
+/// respawns the session with the flag — resume keeps the conversation (T-412).
+/// Expressed as [ModelOption]s so the /effort picker reuses the /model card.
+const List<ModelOption> kEffortLevels = [
+  ModelOption(value: 'low', displayName: 'low', description: 'fastest, minimal thinking'),
+  ModelOption(value: 'medium', displayName: 'medium', description: 'balanced'),
+  ModelOption(value: 'high', displayName: 'high', description: 'thorough'),
+  ModelOption(value: 'xhigh', displayName: 'xhigh', description: 'deeper reasoning'),
+  ModelOption(value: 'max', displayName: 'max', description: 'maximum thinking budget'),
+];
+
+/// Permission modes for the /permissions picker (T-413), set over the
+/// set_permission_mode control request. Bypass is last and explicit — the
+/// footgun stays visible but never the default reach (T-181).
+const List<ModelOption> kPermissionModes = [
+  ModelOption(value: 'default', displayName: 'default', description: 'ask before sensitive tools'),
+  ModelOption(value: 'acceptEdits', displayName: 'acceptEdits', description: 'auto-approve file edits'),
+  ModelOption(value: 'plan', displayName: 'plan', description: 'read-only planning mode'),
+  ModelOption(value: 'bypassPermissions', displayName: 'bypassPermissions', description: 'no prompts at all — careful'),
+];
+
+/// Fallback picker entries for when the `initialize` response hasn't arrived
+/// (or carried no models): the stable aliases every claude build accepts
+/// (T-408). `default` resets to the CLI's configured model.
+const List<ModelOption> kFallbackModels = [
+  ModelOption(value: 'default', displayName: 'Default', description: 'recommended — the CLI\'s configured model'),
+  ModelOption(value: 'sonnet', displayName: 'Sonnet', description: 'fast, great for everyday tasks'),
+  ModelOption(value: 'opus', displayName: 'Opus', description: 'most capable'),
+  ModelOption(value: 'haiku', displayName: 'Haiku', description: 'fastest, lightweight'),
+];
 
 /// An interactive prompt Claude is blocked on, from the stream-json control
 /// channel (a `can_use_tool` control_request) — a tool needing permission, or
@@ -194,6 +281,15 @@ final class DenyTool extends ToolDecision {
 
 /// Parses a [StreamJsonProcess]'s events into conversation items + status,
 /// answers control-channel prompts, and sends user messages.
+/// Terminal session end: the claude process exited (crash or otherwise).
+/// Carries the exit code and the drained stderr tail for diagnostics.
+class SessionEnd {
+  const SessionEnd({required this.exitCode, required this.stderrTail});
+
+  final int exitCode;
+  final List<String> stderrTail;
+}
+
 class StreamJsonSession {
   StreamJsonSession(this._proc, {List<McpServer> mcpServers = const []}) : _mcpServers = mcpServers;
 
@@ -204,12 +300,35 @@ class StreamJsonSession {
   /// round-trips are answered by [_handleMcpMessage].
   final List<McpServer> _mcpServers;
   final _items = StreamController<ConversationItem>.broadcast();
-  final _statusCtl = StreamController<SessionStatus>.broadcast();
+  // State, not events — replay-latest so a subscriber that binds after the
+  // init event still sees the current status (T-386; root cause of T-274).
+  final _statusCtl = ValueStream<SessionStatus>();
   final _sessionIdCtl = StreamController<String>.broadcast();
   StreamSubscription<String>? _sub;
   SessionStatus _status = const SessionStatus();
   String? _claudeSessionId;
   int _localSeq = 0;
+
+  /// The `initialize` handshake's request id — its control_response carries
+  /// the selectable `models[]` (T-408).
+  String? _initRequestId;
+
+  /// In-flight `set_model` request ids → the model the status held before the
+  /// optimistic merge, so an error response can roll it back (T-408).
+  final _pendingSetModel = <String, String?>{};
+
+  List<ModelOption> _availableModels = const [];
+
+  /// Models selectable for this session, from the `initialize` response.
+  /// Empty until that response arrives (callers fall back to
+  /// [kFallbackModels]).
+  List<ModelOption> get availableModels => _availableModels;
+
+  final _modelErrorCtl = StreamController<String>.broadcast();
+
+  /// Errors from rejected `set_model` requests (e.g. an unknown model name),
+  /// for the pane to surface (T-408).
+  Stream<String> get modelErrors => _modelErrorCtl.stream;
 
   /// Token-by-token streaming state (T-168, wire shape verified by T-184).
   ///
@@ -237,7 +356,7 @@ class StreamJsonSession {
   /// Prompts awaiting a [resolvePrompt] decision, in arrival order. The head
   /// is the one currently shown in the composer zone.
   final _queue = <ToolPrompt>[];
-  final _pendingCtl = StreamController<ToolPrompt?>.broadcast();
+  final _pendingCtl = ValueStream<ToolPrompt?>.seeded(null);
 
   /// tool_use_ids that surfaced as a prompt — the view hides their raw
   /// tool-use card while pending (it shows as a prompt) but keeps the result.
@@ -259,10 +378,24 @@ class StreamJsonSession {
   Map<String, bool> get toolUseOutcomes => _toolUseOutcome;
   Set<String> get quietErrorToolUseIds => _quietErrorToolUses;
 
+  /// Live Workflow runs, keyed by their launching `Workflow` tool-use id
+  /// (T-416). Accumulated from the out-of-band `system` task_* events the
+  /// harness emits while a workflow runs in the background; the conversation
+  /// card and the sidebar indicator both read this snapshot. Ephemeral — the
+  /// events aren't in the resumed transcript, so this is empty on reload.
+  final _workflows = <String, WorkflowRun>{};
+  final _workflowsCtl = ValueStream<Map<String, WorkflowRun>>.seeded(const {});
+
+  /// The current workflow runs, keyed by launching tool-use id.
+  Map<String, WorkflowRun> get workflows => Map.unmodifiable(_workflows);
+
+  /// Emits the workflow-run map whenever a `system` task event updates it.
+  Stream<Map<String, WorkflowRun>> get workflowsStream => _workflowsCtl.stream;
+
   /// Whether a turn is in flight (between a send and claude's `result`). Drives
   /// the composer's Stop affordance.
   bool _busy = false;
-  final _busyCtl = StreamController<bool>.broadcast();
+  final _busyCtl = ValueStream<bool>.seeded(false);
   bool get busy => _busy;
   Stream<bool> get busyStream => _busyCtl.stream;
 
@@ -299,25 +432,41 @@ class StreamJsonSession {
   /// The latest known status — the current value [statusStream] last emitted.
   SessionStatus get status => _status;
 
+  /// Non-null once the claude process has exited (T-361). Late binders read
+  /// this; live listeners get [endedStream]. Never set by a deliberate
+  /// [dispose] — only by the process dying underneath a live session.
+  SessionEnd? get end => _end;
+  SessionEnd? _end;
+  final _endCtl = StreamController<SessionEnd>.broadcast();
+  bool _disposed = false;
+
+  /// Fires once when the process exits while the session is still live —
+  /// a crashed/dead session must not just look thoughtful (T-361).
+  Stream<SessionEnd> get endedStream => _endCtl.stream;
+
   /// Begin consuming the process's event stream.
   void start() {
     _sub = _proc.lines.listen(_onLine, onError: (Object _) {});
-    // Declaring our in-process MCP servers in the `initialize` handshake is what
-    // makes claude drive their JSON-RPC over `mcp_message` (T-170). Only sent
-    // when we actually host a server, so a plain session is unchanged.
-    if (_mcpServers.isNotEmpty) {
-      _proc.writeLine(
-        jsonEncode({
-          'type': 'control_request',
-          'request_id': 'init-${_localSeq++}',
-          'request': {
-            'subtype': 'initialize',
-            'hooks': <String, dynamic>{},
-            'sdkMcpServers': [for (final s in _mcpServers) s.name],
-          },
-        }),
-      );
-    }
+    // Watch the process itself: stdout EOF alone is ambiguous, the exit
+    // code is not (T-361).
+    final exit = _proc.exitCode;
+    if (exit != null) unawaited(exit.then(_onExit));
+    // The `initialize` handshake is side-effect-free (verified in the protocol
+    // spike) and does double duty: declaring our in-process MCP servers is what
+    // makes claude drive their JSON-RPC over `mcp_message` (T-170), and the
+    // response's `models[]` feeds the /model picker (T-408).
+    _initRequestId = 'init-${_localSeq++}';
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': _initRequestId,
+        'request': {
+          'subtype': 'initialize',
+          'hooks': <String, dynamic>{},
+          'sdkMcpServers': [for (final s in _mcpServers) s.name],
+        },
+      }),
+    );
   }
 
   void _onLine(String line) {
@@ -345,6 +494,12 @@ class StreamJsonSession {
       _onControlRequest(ev);
       return;
     }
+    // Responses to OUR control requests: the initialize result (models) and
+    // set_model acks/errors (T-408).
+    if (ev['type'] == 'control_response') {
+      _onControlResponse(ev);
+      return;
+    }
     // A `result` ends the turn — clear the busy/interruptible state and reset
     // streaming state so the next turn is fresh.
     if (ev['type'] == 'result') {
@@ -358,6 +513,15 @@ class StreamJsonSession {
     // reply as Anthropic streaming deltas (T-168, shape confirmed by T-184).
     if (ev['type'] == 'stream_event') {
       _onStreamEvent(ev);
+      return;
+    }
+
+    // Workflow run progress (T-416): the harness reports a backgrounded Workflow
+    // tool's fan-out on out-of-band `system` task_* events keyed by the
+    // launching tool-use id. Fold them into the run snapshot and notify; they
+    // carry no conversation item, so don't fall through to the parser.
+    if (isWorkflowSystemEvent(ev)) {
+      _onWorkflowEvent(ev);
       return;
     }
 
@@ -432,6 +596,15 @@ class StreamJsonSession {
       case 'message_stop':
         _streamingMsgId = null;
     }
+  }
+
+  /// Fold one workflow `system` task event into its run snapshot, keyed by the
+  /// launching tool-use id, and publish the updated map (T-416).
+  void _onWorkflowEvent(Map<String, dynamic> ev) {
+    final id = ev['tool_use_id'] as String;
+    final prior = _workflows[id] ?? WorkflowRun(toolUseId: id);
+    _workflows[id] = prior.foldEvent(ev);
+    _workflowsCtl.add(Map.unmodifiable(_workflows));
   }
 
   /// Handle an inbound `control_request`. `can_use_tool` becomes a [ToolPrompt]
@@ -676,6 +849,18 @@ class StreamJsonSession {
     _setBusy(true);
   }
 
+  /// Inject a clide-local notice card into the conversation — nothing is sent
+  /// to claude. Used by the slash-command router for TUI-only commands
+  /// (T-411); renders as the muted synthetic "clide" card.
+  void addLocalNotice(String text) {
+    _items.add(AssistantTextMessage(uuid: 'local-${_localSeq++}', timestamp: DateTime.now(), isSidechain: false, text: text, synthetic: true));
+  }
+
+  /// Record the effort level this session was spawned with (`--effort`,
+  /// T-412). The wire never reports effort, so the spawner tells the status
+  /// what it set; the status line / sidebar read it from [SessionStatus].
+  void noteEffort(String level) => _mergeStatus(SessionStatus(effort: level));
+
   /// Interrupt the running turn (the escape hatch for a runaway — D-78). Sends
   /// the `interrupt` control_request; claude cancels the current turn and ends
   /// it with a `result`, which clears [busy]. Safe to call when idle.
@@ -712,13 +897,85 @@ class StreamJsonSession {
     _mergeStatus(SessionStatus(permissionMode: mode));
   }
 
+  /// Set the model for subsequent turns (T-408). Sends a `set_model`
+  /// control_request; [model] is an alias (`sonnet`, `opus`) or full id, and
+  /// `default` resets to the CLI's configured model. The status merges
+  /// optimistically (mirroring [setPermissionMode]); an error response rolls
+  /// it back and surfaces on [modelErrors].
+  void setModel(String model) {
+    final rid = 'set-model-${_localSeq++}';
+    _pendingSetModel[rid] = _status.model;
+    _proc.writeLine(
+      jsonEncode({
+        'type': 'control_request',
+        'request_id': rid,
+        'request': {'subtype': 'set_model', 'model': model},
+      }),
+    );
+    // `default` resolves to a model only the CLI knows — leave the status to
+    // the next assistant event in that case.
+    if (model != 'default') _mergeStatus(SessionStatus(model: model));
+  }
+
+  /// A `control_response` to one of our requests: capture the initialize
+  /// result's `models[]`, and roll back + surface a rejected set_model (T-408).
+  void _onControlResponse(Map<String, dynamic> ev) {
+    final resp = ev['response'];
+    if (resp is! Map) return;
+    final rid = resp['request_id'] as String?;
+    if (rid == null) return;
+    final isError = resp['subtype'] == 'error';
+    if (rid == _initRequestId && !isError) {
+      final result = resp['response'];
+      final models = result is Map ? result['models'] : null;
+      if (models is List) {
+        _availableModels = List.unmodifiable([
+          for (final m in models)
+            if (m is Map && m['value'] is String)
+              ModelOption(
+                value: m['value'] as String,
+                displayName: m['displayName'] as String? ?? m['value'] as String,
+                description: m['description'] as String? ?? '',
+              ),
+        ]);
+      }
+      return;
+    }
+    if (_pendingSetModel.containsKey(rid)) {
+      final previous = _pendingSetModel.remove(rid);
+      if (isError) {
+        if (previous != null) _mergeStatus(SessionStatus(model: previous));
+        _modelErrorCtl.add(resp['error'] as String? ?? 'model change rejected');
+      }
+    }
+  }
+
+  /// The process exited under a live session. Flip every "in flight"
+  /// surface off so the pane reflects reality instead of spinning forever.
+  void _onExit(int code) {
+    if (_disposed || _end != null) return;
+    _end = SessionEnd(exitCode: code, stderrTail: _proc.stderrTail);
+    _setBusy(false);
+    // A prompt pending against a dead process can never be answered —
+    // clear it so the composer comes back.
+    if (_queue.isNotEmpty) {
+      _queue.clear();
+      _pendingCtl.add(null);
+    }
+    _endCtl.add(_end!);
+  }
+
   Future<void> dispose() async {
+    _disposed = true; // deliberate teardown — suppress the exit-watch path
     await _sub?.cancel();
     await _proc.kill();
     await _items.close();
     await _statusCtl.close();
+    await _workflowsCtl.close();
     await _sessionIdCtl.close();
     await _pendingCtl.close();
     await _busyCtl.close();
+    await _endCtl.close();
+    await _modelErrorCtl.close();
   }
 }

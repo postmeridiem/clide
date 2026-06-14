@@ -49,6 +49,7 @@ class SpawnSpec {
     this.team = false,
     this.memberName,
     this.forkSourceSessionId,
+    this.effort,
   });
 
   final String id;
@@ -80,6 +81,12 @@ class SpawnSpec {
   /// diverges into a NEW claude session without touching the original.
   /// Takes precedence over [resume]/[sessionId] for arg selection.
   final String? forkSourceSessionId;
+
+  /// Effort level passed to `claude --effort` (low/medium/high/xhigh/max,
+  /// T-412). Null spawns without the flag — the CLI uses its configured
+  /// default (settings.json `effortLevel`). No set_effort control subtype
+  /// exists, so changing effort means respawn-with-resume carrying this.
+  final String? effort;
 
   /// Whether this spec spawns a forked session.
   bool get isFork => forkSourceSessionId != null;
@@ -188,7 +195,28 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   /// (T-269): the existing session belongs to the old repo, so it is torn down
   /// and a fresh one spawned for the new repo — a pane must never inherit
   /// another workspace's conversation.
-  Future<ManagedSession> spawn(SpawnSpec spec) async {
+  Future<ManagedSession> spawn(SpawnSpec spec) {
+    // Serialize concurrent spawns per id (T-374): the body check-then-acts
+    // on _sessions across two awaits, so two racing callers would both
+    // pass the check and the loser's live claude process would be orphaned.
+    // The first caller installs the future synchronously; the rest await
+    // it. (A racing different-cwd spawn for the same id also coalesces —
+    // the workspace-switch flow is sequential, so that pair never races.)
+    final inFlight = _spawning[spec.id];
+    if (inFlight != null) return inFlight;
+    final f = _spawn(spec);
+    _spawning[spec.id] = f;
+    unawaited(
+      f.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
+        if (identical(_spawning[spec.id], f)) _spawning.remove(spec.id);
+      }),
+    );
+    return f;
+  }
+
+  final Map<String, Future<ManagedSession>> _spawning = {};
+
+  Future<ManagedSession> _spawn(SpawnSpec spec) async {
     final existing = _sessions[spec.id];
     if (existing != null) {
       if (existing.cwd == spec.cwd) return existing;
@@ -217,7 +245,13 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       preambles.add(_teamSystemPrompt(name, spec.role));
     }
     final bootstrap = agentBootstrap(spec.cwd, base: spec.env);
-    sessionArgs = ['--append-system-prompt', preambles.join('\n\n'), ...bootstrap.extraArgs, ...sessionArgs];
+    sessionArgs = [
+      '--append-system-prompt',
+      preambles.join('\n\n'),
+      ...bootstrap.extraArgs,
+      if (spec.effort != null) ...['--effort', spec.effort!],
+      ...sessionArgs,
+    ];
 
     final proc = await _factory(sessionArgs: sessionArgs, cwd: spec.cwd, env: bootstrap.envDelta);
     final session = StreamJsonSession(proc, mcpServers: mcpServers)..start();

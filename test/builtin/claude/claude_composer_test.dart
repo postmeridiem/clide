@@ -156,11 +156,16 @@ void main() {
     });
 
     testWidgets('arrow-down + Enter completes the selected command (no submit)', (tester) async {
+      // The composer unions kClideOwnedCommands onto the resolver's list
+      // (T-162), so '/m' yields [mcp, memory, model] — 'mcp' joined the owned
+      // set in T-413. Two arrow-downs reach 'model'.
       final submitted = await pumpWithCommands(tester, ['model', 'memory']);
-      await tester.enterText(find.byType(EditableText), '/m'); // → [memory, model]
+      await tester.enterText(find.byType(EditableText), '/m');
       await tester.pump();
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // select 'model'
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // → 'memory'
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown); // → 'model'
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();

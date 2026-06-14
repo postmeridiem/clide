@@ -144,7 +144,7 @@ class KernelServices {
     final messages = MessageBus();
     final filterStates = FilterStateCache(messages: messages);
 
-    final settings = SettingsStore(appDir: appDir);
+    final settings = SettingsStore(appDir: appDir, onError: (m) => log.warn('settings', m));
     await settings.load();
 
     final i18n = I18n(loader: i18nLoader, log: log, defaultLocale: defaultLocale, initialLocale: initialLocale, availableLocales: availableLocales);
@@ -166,7 +166,7 @@ class KernelServices {
     final readerNav = ReaderNavRegistry(messages);
     final clipboard = ClideClipboard();
     final files = FileServices(events);
-    final notify = Notifications();
+    final notify = Notifications(messages: messages);
     final dialog = DialogRouter();
     final tray = TrayRegistry();
     final secrets = SecretsVault();
@@ -191,7 +191,7 @@ class KernelServices {
         isolateClient ??
         (daemonClientFactory != null
             ? daemonClientFactory(log, events, arrangement, panels)
-            : DaemonClient(
+            : DaemonClient.unixSocket(
                 // Legacy socket-client fallback — kept until T-127
                 // replaces it with the in-process socket loopback.
                 // Today nothing in production hits this branch

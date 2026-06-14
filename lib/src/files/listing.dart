@@ -43,6 +43,11 @@ Future<List<FileEntry>> listDir({required Directory root, required String dir, r
   await for (final e in resolved.list(followLinks: false)) {
     final name = e.uri.pathSegments.isNotEmpty ? e.uri.pathSegments.where((s) => s.isNotEmpty).last : '';
     final rel = dir.isEmpty ? name : '$dir/$name';
+    // With followLinks: false the lister yields Link entities for symlinks —
+    // that's the symlink signal. stat() follows the link (target type/size,
+    // notFound for broken links), so its type can never be `link` and must
+    // not be used for detection (T-365).
+    final isLink = e is Link;
     final stat = await e.stat();
     final isDir = stat.type == FileSystemEntityType.directory;
     if (ignore.isIgnored(rel, isDirectory: isDir)) continue;
@@ -51,7 +56,7 @@ Future<List<FileEntry>> listDir({required Directory root, required String dir, r
         name: name,
         path: rel,
         isDirectory: isDir,
-        isSymlink: stat.type == FileSystemEntityType.link,
+        isSymlink: isLink,
         sizeBytes: isDir ? null : stat.size,
         modifiedMs: stat.modified.millisecondsSinceEpoch,
       ),
@@ -79,9 +84,10 @@ class WalkResult {
 
 /// Recursively walk [root], returning every non-ignored *file*
 /// (directories are descended into but not emitted), pruned by
-/// [ignore]. Reuses [listDir] per directory, so ignore filtering,
-/// symlink-escape safety (`followLinks: false`), and per-directory
-/// sorting are inherited.
+/// [ignore]. Reuses [listDir] per directory, so ignore filtering and
+/// per-directory sorting are inherited. Symlinks are never descended —
+/// a symlinked directory would be an escape hatch out of the workspace
+/// and a cycle risk (T-365); symlinks to files are emitted as entries.
 ///
 /// Capped at [maxFiles] to bound work on pathological trees; when the
 /// cap is hit the walk stops early and [WalkResult.truncated] is set so
@@ -97,7 +103,7 @@ Future<WalkResult> walkFiles({required Directory root, required IgnoreSet ignore
     final entries = await listDir(root: root, dir: dir, ignore: ignore);
     for (final e in entries) {
       if (e.isDirectory) {
-        stack.add(e.path);
+        if (!e.isSymlink) stack.add(e.path);
       } else {
         out.add(e);
         if (out.length >= maxFiles) {

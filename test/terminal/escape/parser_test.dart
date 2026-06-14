@@ -676,6 +676,67 @@ void main() {
       f.parser.write('\x1b[123m');
       expect(f.h.named('unsupportedStyle').first.args, [123]);
     });
+
+    // T-369: an emulator must never throw on hostile bytes. The old code did
+    // unguarded params[i+1] lookahead in 38/48 — `\x1b[38m` was a RangeError
+    // inside Terminal.write.
+    test('truncated 38/48 sequences are ignored, never throw', () {
+      final f = _newParser();
+      for (final s in [
+        '\x1b[38m',
+        '\x1b[48m',
+        '\x1b[38;2m',
+        '\x1b[38;2;255m',
+        '\x1b[38;2;255;10m',
+        '\x1b[38;5m',
+        '\x1b[48;5m',
+        '\x1b[38:2m',
+        '\x1b[38:5m',
+        '\x1b[48:2:255m',
+      ]) {
+        f.parser.write(s);
+      }
+      expect(f.h.named('setForegroundColorRgb'), isEmpty);
+      expect(f.h.named('setBackgroundColorRgb'), isEmpty);
+      expect(f.h.named('setForegroundColor256'), isEmpty);
+      expect(f.h.named('setBackgroundColor256'), isEmpty);
+    });
+
+    test('colon-form truecolor matches semicolon form (ITU T.416)', () {
+      final f = _newParser();
+      f.parser.write('\x1b[38:2:10:20:30m\x1b[48:2:100:150:200m');
+      expect(f.h.named('setForegroundColorRgb').first.args, [10, 20, 30]);
+      expect(f.h.named('setBackgroundColorRgb').first.args, [100, 150, 200]);
+    });
+
+    test('colon-form with empty colorspace slot — 38:2::r:g:b', () {
+      final f = _newParser();
+      f.parser.write('\x1b[38:2::10:20:30m');
+      expect(f.h.named('setForegroundColorRgb').first.args, [10, 20, 30]);
+    });
+
+    test('colon-form 256-colour — 38:5:n', () {
+      final f = _newParser();
+      f.parser.write('\x1b[38:5:200m\x1b[48:5:42m');
+      expect(f.h.named('setForegroundColor256').first.args, [200]);
+      expect(f.h.named('setBackgroundColor256').first.args, [42]);
+    });
+
+    test('a malformed colon group is dropped whole, neighbours still apply', () {
+      final f = _newParser();
+      // The bogus 38:2:255 group must not bleed into the following bold.
+      f.parser.write('\x1b[38:2:255;1m');
+      expect(f.h.named('setForegroundColorRgb'), isEmpty);
+      expect(f.h.named('setCursorBold').length, 1);
+    });
+
+    test('extended color followed by more SGR params keeps positions', () {
+      final f = _newParser();
+      f.parser.write('\x1b[1;38;2;10;20;30;4m');
+      expect(f.h.named('setCursorBold').length, 1);
+      expect(f.h.named('setForegroundColorRgb').first.args, [10, 20, 30]);
+      expect(f.h.named('setCursorUnderline').length, 1);
+    });
   });
 
   group('EscapeParser — OSC sequences', () {
@@ -737,6 +798,34 @@ void main() {
       final f = _newParser();
       f.parser.write('\x1b[~'); // ~ has no entry in _csiHandlers
       expect(f.h.named('unknownCSI').first.args, ['~'.codeUnitAt(0)]);
+    });
+  });
+
+  group('EscapeParser — CSI intermediate bytes (T-123)', () {
+    test('CSI 5 SP @ (SL) does not mis-dispatch as insert-blank-chars', () {
+      final f = _newParser();
+      f.parser.write('\x1b[5 @');
+      expect(f.h.named('insertBlankChars'), isEmpty);
+      expect(f.h.named('unknownCSI').first.args, ['@'.codeUnitAt(0)]);
+    });
+
+    test('CSI 4 SP q (DECSCUSR) routes to unknownCSI, not a bare-q handler', () {
+      final f = _newParser();
+      f.parser.write('\x1b[4 q');
+      expect(f.h.named('unknownCSI').first.args, ['q'.codeUnitAt(0)]);
+    });
+
+    test('CSI ! p (DECSTR) routes to unknownCSI', () {
+      final f = _newParser();
+      f.parser.write('\x1b[!p');
+      expect(f.h.named('unknownCSI').first.args, ['p'.codeUnitAt(0)]);
+    });
+
+    test('intermediates reset between sequences', () {
+      final f = _newParser();
+      f.parser.write('\x1b[5 @'); // intermediate form → unknownCSI
+      f.parser.write('\x1b[3@'); // plain form must dispatch normally again
+      expect(f.h.named('insertBlankChars').first.args, [3]);
     });
   });
 

@@ -236,6 +236,58 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('ctrl+w o fires a window command via the global matcher, not editor.close (T-404)', (tester) async {
+    await tester.runAsync(() => f.services.keymap.setPreset('vim'));
+    f.services.keymap.setScopeFlag('vim.normal', true);
+    addTearDown(() => f.services.keymap.clearScopeFlag('vim.normal'));
+    await pumpApp(tester);
+    expect(f.services.arrangement.isInFocusMode, isFalse);
+
+    // ctrl+w (chord) then a BARE o → panel.focusMode. The second chord is
+    // consumed at the hardware level, so a focused pane can't swallow it.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyW);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyO);
+    await tester.pump();
+
+    expect(f.services.arrangement.isInFocusMode, isTrue);
+  });
+
+  testWidgets('bare ctrl+w closes the editor after the ambiguity timeout (T-404)', (tester) async {
+    await tester.runAsync(() => f.services.keymap.setPreset('vim'));
+    f.services.keymap.setScopeFlag('vim.normal', true);
+    addTearDown(() => f.services.keymap.clearScopeFlag('vim.normal'));
+    await pumpApp(tester);
+    f.services.arrangement.openEditor();
+    expect(f.services.arrangement.editorOpen, isTrue);
+
+    // ctrl+w with no completing chord: pends, then the timeout flushes the
+    // exact bare-ctrl+w binding (editor.close from the contributions layer).
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyW);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump(const Duration(milliseconds: 450));
+
+    expect(f.services.arrangement.editorOpen, isFalse);
+  });
+
+  testWidgets('a bare-key sequence prefix (g) is not grabbed by the global matcher (T-404)', (tester) async {
+    await tester.runAsync(() => f.services.keymap.setPreset('vim'));
+    f.services.keymap.setScopeFlag('vim.normal', true);
+    addTearDown(() => f.services.keymap.clearScopeFlag('vim.normal'));
+    await pumpApp(tester);
+    f.services.arrangement.openEditor();
+
+    // `g` is a prefix (gg) but bare → editor/pane-local. The global matcher must
+    // NOT consume it or fire a window command; the editor stays open.
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+    await tester.pump();
+    expect(f.services.arrangement.isInFocusMode, isFalse);
+    expect(f.services.arrangement.editorOpen, isTrue);
+  });
+
   testWidgets('window control buttons render and tap as no-ops in tests', (tester) async {
     await pumpApp(tester);
     // _RightHatContent renders ClideTappable window buttons on non-macOS;
@@ -351,6 +403,44 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('Open Folder…'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('double-tapped bare Shift opens quick-open (T-341)', (tester) async {
+    await pumpApp(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(f.services.quickOpen.isOpen, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('typing colons (Shift+;) never triggers quick-open (T-409)', (tester) async {
+    await pumpApp(tester);
+    // Two rapid `:` keystrokes — the chorded `;` dirties each Shift press.
+    for (var i = 0; i < 2; i++) {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.semicolon);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.semicolon);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    }
+    await tester.pump();
+    expect(f.services.quickOpen.isOpen, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a bare Shift tap followed by a Shift chord does not fire (T-409)', (tester) async {
+    await pumpApp(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft); // clean tap arms
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.semicolon); // chord — old code fired on the down
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.semicolon);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(f.services.quickOpen.isOpen, isFalse);
     expect(tester.takeException(), isNull);
   });
 

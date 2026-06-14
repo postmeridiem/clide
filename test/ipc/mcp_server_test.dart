@@ -31,10 +31,12 @@ void main() {
     if (discoveryDir.existsSync()) discoveryDir.deleteSync(recursive: true);
   });
 
-  Future<HttpClientResponse> openSse() async {
+  Future<HttpClientResponse> openSse({String? token}) async {
     final client = HttpClient();
     addTearDown(client.close);
     final req = await client.getUrl(Uri.parse('http://127.0.0.1:${server.port}/sse'));
+    final t = token ?? server.authToken;
+    if (t != null) req.headers.set(kMcpAuthHeader, t);
     return req.close();
   }
 
@@ -64,6 +66,7 @@ void main() {
     addTearDown(client.close);
     final req = await client.postUrl(Uri.parse('http://127.0.0.1:${server.port}/messages?sessionId=$sessionId'));
     req.headers.contentType = ContentType.json;
+    req.headers.set(kMcpAuthHeader, server.authToken!);
     req.write(jsonEncode(body));
     final resp = await req.close();
     expect(resp.statusCode, HttpStatus.accepted);
@@ -93,8 +96,46 @@ void main() {
       final client = HttpClient();
       addTearDown(client.close);
       final req = await client.getUrl(Uri.parse('http://127.0.0.1:${server.port}/no-such-thing'));
+      req.headers.set(kMcpAuthHeader, server.authToken!);
       final resp = await req.close();
       expect(resp.statusCode, HttpStatus.notFound);
+    });
+  });
+
+  // T-362: D-71's "another user on this host must not drive my IDE" is
+  // enforced with 0600 on the unix socket — the HTTP port must not bypass it.
+  group('McpServer (T-362) auth token', () {
+    test('the lock file publishes the auth token, mode 600', () async {
+      final lock = File(server.lockFilePath!);
+      final payload = jsonDecode(lock.readAsStringSync()) as Map<String, Object?>;
+      expect(payload['authToken'], server.authToken);
+      expect((server.authToken ?? '').length, greaterThanOrEqualTo(32));
+      final mode = lock.statSync().mode & 0xFFF;
+      expect(mode, 0x180, reason: 'lock file must be 0600 — it carries the token');
+    });
+
+    test('a request without the token is rejected with 401', () async {
+      final client = HttpClient();
+      addTearDown(client.close);
+      final sse = await (await client.getUrl(Uri.parse('http://127.0.0.1:${server.port}/sse'))).close();
+      expect(sse.statusCode, HttpStatus.unauthorized);
+
+      final post = await client.postUrl(Uri.parse('http://127.0.0.1:${server.port}/messages?sessionId=s0'));
+      post.write('{"jsonrpc":"2.0","id":1,"method":"initialize"}');
+      final resp = await post.close();
+      expect(resp.statusCode, HttpStatus.unauthorized);
+    });
+
+    test('a request with a wrong token is rejected with 401', () async {
+      final resp = await openSse(token: 'not-the-token');
+      expect(resp.statusCode, HttpStatus.unauthorized);
+    });
+
+    test('the token rotates per start', () async {
+      final first = server.authToken;
+      await server.stop();
+      await server.start();
+      expect(server.authToken, isNot(first));
     });
   });
 
@@ -172,6 +213,7 @@ void main() {
       addTearDown(client.close);
       final req = await client.postUrl(Uri.parse('http://127.0.0.1:${server.port}/messages?sessionId=ghost'));
       req.headers.contentType = ContentType.json;
+      req.headers.set(kMcpAuthHeader, server.authToken!);
       req.write('{"jsonrpc":"2.0","id":1,"method":"initialize"}');
       final resp = await req.close();
       expect(resp.statusCode, HttpStatus.notFound);
@@ -183,6 +225,7 @@ void main() {
       addTearDown(client.close);
       final req = await client.postUrl(Uri.parse('http://127.0.0.1:${server.port}/messages?sessionId=$sessionId'));
       req.headers.contentType = ContentType.json;
+      req.headers.set(kMcpAuthHeader, server.authToken!);
       req.write('{not json');
       final resp = await req.close();
       expect(resp.statusCode, HttpStatus.badRequest);
@@ -224,7 +267,9 @@ void main() {
     Future<(String, Stream<String>)> connect() async {
       final client = HttpClient();
       addTearDown(client.close);
-      final resp = await (await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'))).close();
+      final sseReq = await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'));
+      sseReq.headers.set(kMcpAuthHeader, srv.authToken!);
+      final resp = await sseReq.close();
       final dataLines = resp
           .transform(utf8.decoder)
           .transform(const LineSplitter())
@@ -246,6 +291,7 @@ void main() {
       addTearDown(client.close);
       final req = await client.postUrl(Uri.parse('http://127.0.0.1:${srv.port}/messages?sessionId=$sid'));
       req.headers.contentType = ContentType.json;
+      req.headers.set(kMcpAuthHeader, srv.authToken!);
       req.write(jsonEncode(body));
       final resp = await req.close();
       expect(resp.statusCode, HttpStatus.accepted);
@@ -306,7 +352,9 @@ void main() {
     });
     final client = HttpClient();
     addTearDown(client.close);
-    final resp = await (await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'))).close();
+    final sseReq = await client.getUrl(Uri.parse('http://127.0.0.1:${srv.port}/sse'));
+    sseReq.headers.set(kMcpAuthHeader, srv.authToken!);
+    final resp = await sseReq.close();
     final data = resp
         .transform(utf8.decoder)
         .transform(const LineSplitter())
@@ -323,6 +371,7 @@ void main() {
     final replyFuture = data.firstWhere((s) => s.contains('"id":13'));
     final post = await client.postUrl(Uri.parse('http://127.0.0.1:${srv.port}/messages?sessionId=$sid'));
     post.headers.contentType = ContentType.json;
+    post.headers.set(kMcpAuthHeader, srv.authToken!);
     post.write(
       jsonEncode({
         'jsonrpc': '2.0',

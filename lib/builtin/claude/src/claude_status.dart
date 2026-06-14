@@ -92,3 +92,41 @@ String formatTokenCount(int n) {
   if (n >= 1000) return '${(n / 1000).round()}k';
   return '$n';
 }
+
+/// Parsed `/usage` output (T-415). The CLI answers a forwarded `/usage`
+/// headless and free (probed 2.1.175, num_turns 0) with plain text:
+///
+///   Current session: 15% used · resets Jun 12, 3:39pm (Europe/Amsterdam)
+///   Current week (all models): 53% used · resets Jun 15, 6:59pm (…)
+///   Current week (Sonnet only): 0% used
+class ClaudeUsage {
+  const ClaudeUsage({this.session, this.week, this.weekSonnet});
+
+  /// The value text per line (e.g. `15% used · resets Jun 12, 3:39pm`),
+  /// timezone parenthetical stripped. Null when the line wasn't present.
+  final String? session;
+  final String? week;
+  final String? weekSonnet;
+
+  bool get isEmpty => session == null && week == null && weekSonnet == null;
+}
+
+/// Parse `/usage` response text into a [ClaudeUsage], or null when [text]
+/// isn't usage output. Tolerant of label drift: any `Current …: …% used`
+/// line is matched by its key phrase.
+ClaudeUsage? parseUsageText(String text) {
+  if (!text.contains('% used')) return null;
+  String? valueOf(String keyPhrase) {
+    for (final line in text.split('\n')) {
+      if (!line.contains(keyPhrase)) continue;
+      final colon = line.indexOf(':');
+      if (colon < 0) continue;
+      // Strip the trailing timezone parenthetical — noise at sidebar width.
+      return line.substring(colon + 1).replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '').trim();
+    }
+    return null;
+  }
+
+  final usage = ClaudeUsage(session: valueOf('Current session'), week: valueOf('(all models)'), weekSonnet: valueOf('(Sonnet only)'));
+  return usage.isEmpty ? null : usage;
+}

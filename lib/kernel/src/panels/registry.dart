@@ -30,6 +30,11 @@ class PanelRegistry extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Whether any slot already mounts a contribution with [id]. Used by the
+  /// extension manager to reject duplicate ids instead of silently mounting
+  /// a second copy (T-377).
+  bool hasContribution(String id) => _mounts.values.any((list) => list.any((c) => c.id == id));
+
   void contribute(ContributionPoint point) {
     final slot = point.slot;
     if (slot == null) return;

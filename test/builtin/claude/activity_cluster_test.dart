@@ -76,6 +76,16 @@ void main() {
       expect(groupConversation(const [], FoldLevel.tools), isEmpty);
     });
 
+    test('a Workflow run stays first-class even at L3, never folded (T-416)', () {
+      // At every fold level the Workflow tool-use owns its own card so the live
+      // run card can render — it must not fold into a generic Activity cluster.
+      for (final level in FoldLevel.values) {
+        final groups = groupConversation([_tool('1', 'Workflow'), _result('1')], level);
+        expect(groups.first, isA<StickyItem>(), reason: '$level');
+        expect((groups.first as StickyItem).item, isA<AssistantToolUse>(), reason: '$level');
+      }
+    });
+
     test('an image card stays first-class even at L3 (everything)', () {
       final img = ImageMessage(uuid: 'i${_n++}', timestamp: _ts, isSidechain: false, path: '/abs/shot.png');
       final groups = groupConversation([_tool('1', 'Bash'), _result('1'), img], FoldLevel.everything);

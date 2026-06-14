@@ -56,11 +56,48 @@ Future<String> _tmpSocket() async {
 }
 
 DaemonClient _build(String socketPath, DaemonBus bus) {
-  return DaemonClient(
+  return DaemonClient.unixSocket(
     socketPath: socketPath,
     log: Logger(minLevel: LogLevel.error, sinks: const []),
     events: bus,
   );
+}
+
+/// In-memory transport (T-331): proves DaemonClient runs unmodified over
+/// any [DaemonTransport], not just the unix socket — the seam the remote
+/// backend (T-329) slots into.
+class _MemoryTransport implements DaemonTransport {
+  final toClient = StreamController<String>.broadcast();
+  final fromClient = StreamController<String>.broadcast();
+  int opens = 0;
+
+  @override
+  String get endpoint => 'memory://test';
+
+  @override
+  Future<DaemonConnection> open() async {
+    opens++;
+    return _MemoryConnection(this);
+  }
+
+  Future<void> close() async {
+    await toClient.close();
+    await fromClient.close();
+  }
+}
+
+class _MemoryConnection implements DaemonConnection {
+  _MemoryConnection(this._t);
+  final _MemoryTransport _t;
+
+  @override
+  Stream<String> get lines => _t.toClient.stream;
+
+  @override
+  void writeLine(String line) => _t.fromClient.add(line);
+
+  @override
+  Future<void> close() async {}
 }
 
 void main() {
@@ -339,6 +376,65 @@ void main() {
       daemonB.send(IpcResponse.ok(id: reqJson['id'] as String, data: const {'pong': true}).encode());
       final resp = await responseFuture;
       expect(resp.ok, isTrue);
+    });
+  });
+
+  group('DaemonClient — transport seam (T-331)', () {
+    test('request/response round-trips over a non-socket transport', () async {
+      final transport = _MemoryTransport();
+      addTearDown(transport.close);
+      final bus = DaemonBus();
+      addTearDown(bus.dispose);
+      final client = DaemonClient(
+        transport: transport,
+        log: Logger(minLevel: LogLevel.error, sinks: const []),
+        events: bus,
+      );
+      addTearDown(client.dispose);
+
+      await client.start();
+      expect(transport.opens, 1);
+      expect(client.isConnected, isTrue);
+      expect(client.socketPath, 'memory://test');
+
+      final lineFuture = transport.fromClient.stream.first;
+      final respFuture = client.request('ping', args: {'n': 1});
+      final line = await lineFuture;
+      final req = IpcMessage.decode(line) as IpcRequest;
+      expect(req.cmd, 'ping');
+      transport.toClient.add(IpcResponse.ok(id: req.id, data: const {'pong': true}).encode());
+      final resp = await respFuture.timeout(const Duration(seconds: 2));
+      expect(resp.ok, isTrue);
+      expect(resp.data['pong'], isTrue);
+    });
+
+    test('reconnectWith swaps from a socket transport to another transport', () async {
+      final path = await _tmpSocket();
+      final daemon = _TestDaemon(path);
+      await daemon.start();
+      addTearDown(daemon.close);
+
+      final bus = DaemonBus();
+      addTearDown(bus.dispose);
+      final client = _build(path, bus);
+      addTearDown(client.dispose);
+      await client.start();
+      await daemon.waitForClient();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(client.isConnected, isTrue);
+
+      final transport = _MemoryTransport();
+      addTearDown(transport.close);
+      await client.reconnectWith(transport);
+      expect(client.isConnected, isTrue);
+      expect(client.socketPath, 'memory://test');
+
+      // Requests now flow over the new transport, not the old socket.
+      final lineFuture = transport.fromClient.stream.first;
+      final respFuture = client.request('over-memory');
+      final req = IpcMessage.decode(await lineFuture) as IpcRequest;
+      transport.toClient.add(IpcResponse.ok(id: req.id, data: const {}).encode());
+      expect((await respFuture).ok, isTrue);
     });
   });
 }

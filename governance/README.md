@@ -66,7 +66,7 @@ You might also want, project-permitting:
 - [D-22: WCAG-AA contrast gate on bundled themes](decisions/accessibility.md#d-22-wcag-aa-contrast-gate-on-bundled-themes) — _accessibility_
 - [D-23: Test pyramid — seven layers](decisions/testing.md#d-23-test-pyramid--seven-layers) — _testing_
 - [D-24: Golden tests — primitives only, Alchemist + Ahem](decisions/testing.md#d-24-golden-tests--primitives-only-alchemist--ahem) — _testing_
-- [D-25: Mocks — mocktail at IO, hand-rolled fakes for ChangeNotifiers](decisions/testing.md#d-25-mocks--mocktail-at-io-hand-rolled-fakes-for-changenotifiers) — _testing_
+- [D-25: Mocks — hand-rolled fakes throughout; mocktail dropped](decisions/testing.md#d-25-mocks--hand-rolled-fakes-throughout-mocktail-dropped) — _testing_
 - [D-26: Web driver — raw Playwright + Flutter semantics](decisions/testing.md#d-26-web-driver--raw-playwright--flutter-semantics) — _testing_
 - [D-27: Startup regression gate](decisions/testing.md#d-27-startup-regression-gate) — _testing_
 - [D-28: Test organisation — mirror `lib/` in `test/`](decisions/testing.md#d-28-test-organisation--mirror-lib-in-test) — _testing_
@@ -137,6 +137,10 @@ You might also want, project-permitting:
 - [D-93: clide writes no directories of its own into the workspace](decisions/architecture.md#d-93-clide-writes-no-directories-of-its-own-into-the-workspace) — _architecture_
 - [D-94: Workspace mode is a first-class, extensible declared capability](decisions/architecture.md#d-94-workspace-mode-is-a-first-class-extensible-declared-capability) — _architecture_
 - [D-95: Workspace validity and onboarding flow](decisions/architecture.md#d-95-workspace-validity-and-onboarding-flow) — _architecture_
+- [D-96: Remote-execution footprint — no-install ssh-exec](decisions/architecture.md#d-96-remote-execution-footprint--no-install-ssh-exec) — _architecture_
+- [D-97: ssh:// workspace URI + system-ssh auth](decisions/architecture.md#d-97-ssh-workspace-uri--system-ssh-auth) — _architecture_
+- [D-98: Remote-tool contract + connect preflight](decisions/architecture.md#d-98-remote-tool-contract--connect-preflight) — _architecture_
+- [D-99: Remote session identity keyed on (host, workspace)](decisions/architecture.md#d-99-remote-session-identity-keyed-on-host-workspace) — _architecture_
 
 ## Open questions
 
@@ -156,7 +160,6 @@ You might also want, project-permitting:
 - [Q-17: Icon set growth](questions/process.md#q-17-icon-set-growth) — _process_
 - [Q-18: Theme hot-reload in release builds](questions/process.md#q-18-theme-hot-reload-in-release-builds) — _process_
 - [Q-20: Kernel DB service — namespaced SQL access?](questions/process.md#q-20-kernel-db-service--namespaced-sql-access) — _process_
-- [Q-23: SSH-remote development — run clide against a remote workspace](questions/architecture.md#q-23-ssh-remote-development--run-clide-against-a-remote-workspace) — _architecture_
 - [Q-25: Body text face — mono everywhere vs Josefin Sans UI + mono code](questions/architecture.md#q-25-body-text-face--mono-everywhere-vs-josefin-sans-ui--mono-code) — _architecture_
 - [Q-26: Small screen layout (< 1000px)](questions/architecture.md#q-26-small-screen-layout--1000px) — _architecture_
 - [Q-27: Two-editor split](questions/architecture.md#q-27-two-editor-split) — _architecture_
@@ -164,6 +167,23 @@ You might also want, project-permitting:
 - [Q-30: Focus behavior when editor is dirty and viewer is peeked](questions/architecture.md#q-30-focus-behavior-when-editor-is-dirty-and-viewer-is-peeked) — _architecture_
 - [Q-31: XWayland fallback for frameless — proper Wayland protocol needed](questions/architecture.md#q-31-xwayland-fallback-for-frameless--proper-wayland-protocol-needed) — _architecture_
 - [Q-34: How + when to surface the account/team token budget given upstream doesn't expose it](questions/architecture.md#q-34-how--when-to-surface-the-accountteam-token-budget-given-upstream-doesnt-expose-it) — _architecture_
+- [Q-35: Agent Blame + Session Flight Recorder — implement?](questions/design.md#q-35-agent-blame--session-flight-recorder--implement) — _design_
+- [Q-36: Context X-ray — implement?](questions/design.md#q-36-context-x-ray--implement) — _design_
+- [Q-37: Trust Ledger + decision-aware permission prompts — implement?](questions/design.md#q-37-trust-ledger--decision-aware-permission-prompts--implement) — _design_
+- [Q-38: Agent Activity HUD — implement?](questions/design.md#q-38-agent-activity-hud--implement) — _design_
+- [Q-39: Active Ticket Context — implement?](questions/design.md#q-39-active-ticket-context--implement) — _design_
+- [Q-40: Twin-timeline rewind — implement?](questions/design.md#q-40-twin-timeline-rewind--implement) — _design_
+- [Q-41: Visual Dialog — one bidirectional scene schema — implement?](questions/design.md#q-41-visual-dialog--one-bidirectional-scene-schema--implement) — _design_
+- [Q-42: Immortal terminals — implement?](questions/design.md#q-42-immortal-terminals--implement) — _design_
+- [Q-43: Local cost ledger — implement?](questions/design.md#q-43-local-cost-ledger--implement) — _design_
+- [Q-44: Label-routed work queues / ticket dispatch — implement?](questions/design.md#q-44-label-routed-work-queues--ticket-dispatch--implement) — _design_
+- [Q-45: Semantic terminal — implement?](questions/design.md#q-45-semantic-terminal--implement) — _design_
+- [Q-46: Living codebase map — implement?](questions/design.md#q-46-living-codebase-map--implement) — _design_
+- [Q-47: Live mixed documents — implement?](questions/design.md#q-47-live-mixed-documents--implement) — _design_
+- [Q-48: Sealed-workspace mode — implement?](questions/design.md#q-48-sealed-workspace-mode--implement) — _design_
+- [Q-49: Review honorable mentions — which, if any, get promoted?](questions/design.md#q-49-review-honorable-mentions--which-if-any-get-promoted) — _design_
+- [Q-50: Web/WASM target after the dart:ffi pivot — fence, fix, or drop?](questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop) — _architecture_
+- [Q-51: Unify workspace lifecycle on a single fenced open primitive](questions/architecture.md#q-51-unify-workspace-lifecycle-on-a-single-fenced-open-primitive) — _architecture_
 
 ## Resolved questions
 
@@ -173,6 +193,7 @@ You might also want, project-permitting:
 - [Q-19: (withdrawn)](questions/process.md#q-19-withdrawn) — _process_
 - [Q-21: Pql absorbs planning vs keeps separate](questions/architecture.md#q-21-pql-absorbs-planning-vs-keeps-separate) — _architecture_
 - [Q-22: Ticket persistence strategy](questions/architecture.md#q-22-ticket-persistence-strategy) — _architecture_
+- [Q-23: SSH-remote development — run clide against a remote workspace](questions/architecture.md#q-23-ssh-remote-development--run-clide-against-a-remote-workspace) — _architecture_
 - [Q-28: Terminal strip scope — shell only or logs/errors/tests](questions/architecture.md#q-28-terminal-strip-scope--shell-only-or-logserrorstests) — _architecture_
 - [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
 - [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_

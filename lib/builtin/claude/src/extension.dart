@@ -5,6 +5,7 @@ import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
+import 'package:clide/builtin/claude/src/conversation_view.dart' show claudeAccent;
 import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
@@ -20,6 +21,18 @@ import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
+
+/// D-6 contract (T-391): a failed command returns an ERROR envelope (non-zero
+/// CLI exit), never `ok` with an `error` field a script can't detect.
+IpcResponse _userErr(String msg, {String? hint}) => IpcResponse.err(
+  id: '',
+  error: IpcError(code: IpcExitCode.userError, kind: IpcErrorKind.userError, message: msg, hint: hint),
+);
+
+IpcResponse _notFound(String msg) => IpcResponse.err(
+  id: '',
+  error: IpcError(code: IpcExitCode.notFound, kind: IpcErrorKind.notFound, message: msg),
+);
 
 class ClaudeExtension extends ClideExtension {
   @override
@@ -95,7 +108,7 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: show an agent session pane',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         _orchestrator?.show(id);
         return IpcResponse.ok(id: '', data: {'id': id, 'status': 'shown'});
       },
@@ -106,7 +119,7 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: hide an agent session pane',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         _orchestrator?.hide(id);
         return IpcResponse.ok(id: '', data: {'id': id, 'status': 'hidden'});
       },
@@ -117,7 +130,7 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: close (kill) an agent session',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         await _orchestrator?.close(id);
         return IpcResponse.ok(id: '', data: {'id': id, 'status': 'closed'});
       },
@@ -128,7 +141,7 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: mute broker delivery to an agent session',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         _orchestrator?.mute(id);
         return IpcResponse.ok(id: '', data: {'id': id, 'status': 'muted'});
       },
@@ -139,7 +152,7 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: unmute broker delivery to an agent session',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         _orchestrator?.unmute(id);
         return IpcResponse.ok(id: '', data: {'id': id, 'status': 'unmuted'});
       },
@@ -151,9 +164,9 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: inject a text turn into an agent session',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         final text = args.skip(1).join(' ');
-        if (text.isEmpty) return IpcResponse.ok(id: '', data: const {'error': 'missing message text'});
+        if (text.isEmpty) return _userErr('missing message text');
         _orchestrator?.injectMessage(id, text);
         return IpcResponse.ok(id: '', data: {'id': id, 'status': 'injected'});
       },
@@ -169,12 +182,12 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: set permission mode for an agent session',
       run: (args) async {
         final id = args.firstOrNull;
-        if (id == null) return IpcResponse.ok(id: '', data: const {'error': 'missing session id'});
+        if (id == null) return _userErr('missing session id');
         final mode = args.length >= 2 ? args[1] : null;
-        if (mode == null) return IpcResponse.ok(id: '', data: const {'error': 'missing mode (default|acceptEdits|plan|bypassPermissions)'});
+        if (mode == null) return _userErr('missing mode (default|acceptEdits|plan|bypassPermissions)');
         const valid = {'default', 'acceptEdits', 'plan', 'bypassPermissions'};
         if (!valid.contains(mode)) {
-          return IpcResponse.ok(id: '', data: {'error': 'unknown mode "$mode"; use one of: ${valid.join(', ')}'});
+          return _userErr('unknown mode "$mode"; use one of: ${valid.join(', ')}');
         }
         _orchestrator?.byId(id)?.session.setPermissionMode(mode);
         return IpcResponse.ok(id: '', data: {'id': id, 'mode': mode, 'status': 'sent'});
@@ -188,7 +201,7 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: Cycle permission mode',
       run: (_) async {
         final managed = _orchestrator?.byId('primary');
-        if (managed == null) return IpcResponse.ok(id: '', data: const {'error': 'no primary session'});
+        if (managed == null) return _notFound('no primary session');
         final next = nextSafePermissionMode(managed.session.status.permissionMode ?? 'default');
         managed.session.setPermissionMode(next);
         return IpcResponse.ok(id: '', data: {'mode': next, 'status': 'sent'});
@@ -200,11 +213,12 @@ class ClaudeExtension extends ClideExtension {
       command: 'claude.task.reassign',
       title: 'Claude: reassign a shared task to an agent',
       run: (args) async {
-        if (args.length < 2) return IpcResponse.ok(id: '', data: const {'error': 'usage: <taskId> <sessionId>'});
+        if (args.length < 2) return _userErr('usage: <taskId> <sessionId>');
         final taskId = args[0];
         final toId = args[1];
         final ok = _orchestrator?.broker.reassignTask(taskId, toId) ?? false;
-        return IpcResponse.ok(id: '', data: {'taskId': taskId, 'toId': toId, 'ok': ok});
+        if (!ok) return _notFound('could not reassign task "$taskId" to "$toId"');
+        return IpcResponse.ok(id: '', data: {'taskId': taskId, 'toId': toId, 'ok': true});
       },
     ),
     // T-180: full team chat pane opened as a workspace tab.
@@ -241,7 +255,7 @@ class ClaudeExtension extends ClideExtension {
       command: 'claude.team-chat.post',
       title: 'Claude: post a message into the team channel as the user',
       run: (args) async {
-        if (args.isEmpty) return IpcResponse.ok(id: '', data: const {'error': 'usage: [@name] <text>'});
+        if (args.isEmpty) return _userErr('usage: [@name] <text>');
         final raw = args.join(' ');
         String? recipient;
         String body = raw;
@@ -269,15 +283,18 @@ class ClaudeExtension extends ClideExtension {
       run: (args) async {
         final sourceId = args.firstOrNull;
         if (sourceId == null) {
-          return IpcResponse.ok(id: '', data: const {'error': 'usage: claude.agent.fork <sourceSessionId> [<cwd>]'});
+          return _userErr('usage: claude.agent.fork <sourceSessionId> [<cwd>]');
         }
         final orch = _orchestrator;
         if (orch == null) {
-          return IpcResponse.ok(id: '', data: const {'error': 'orchestrator unavailable'});
+          return IpcResponse.err(
+            id: '',
+            error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'orchestrator unavailable'),
+          );
         }
         final source = orch.byId(sourceId);
         if (source == null) {
-          return IpcResponse.ok(id: '', data: {'error': 'unknown session "$sourceId"'});
+          return _notFound('unknown session "$sourceId"');
         }
         final cwd = args.length >= 2 ? args[1] : source.cwd;
         final forkId = 'fork:$sourceId-${DateTime.now().millisecondsSinceEpoch}';
@@ -292,6 +309,9 @@ class ClaudeExtension extends ClideExtension {
       slot: Slots.sidebar,
       title: 'Activity',
       icon: PhosphorIcons.byName('robot'),
+      // Claude's accent marks Claude's own panel in the rail (T-418) —
+      // nominative use per the licenses.yaml trademark note.
+      iconColor: claudeAccent,
       priority: 60,
       build: (_) => const ClaudeMetaSidebar(),
     ),

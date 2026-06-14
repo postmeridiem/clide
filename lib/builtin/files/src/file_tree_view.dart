@@ -26,6 +26,14 @@ class FileTreeView extends StatefulWidget {
 class _FileTreeViewState extends State<FileTreeView> {
   FileTreeController? _controller;
   String _filter = '';
+  final ScrollController _scroll = ScrollController();
+
+  /// Key on the currently-selected row, so a keyboard move can scroll it into
+  /// view (T-406).
+  final GlobalKey _selectedKey = GlobalKey();
+
+  /// Half-page step for ctrl+d / ctrl+u over the flattened tree.
+  static const int _pageStep = 10;
 
   @override
   void didChangeDependencies() {
@@ -39,7 +47,50 @@ class _FileTreeViewState extends State<FileTreeView> {
   @override
   void dispose() {
     _controller?.dispose();
+    _scroll.dispose();
     super.dispose();
+  }
+
+  void _onNav(NavIntent intent, int count, FileTreeController c) {
+    switch (intent) {
+      case NavDownIntent():
+        c.moveSelection(count);
+      case NavUpIntent():
+        c.moveSelection(-count);
+      case NavPageDownIntent():
+        c.moveSelection(_pageStep);
+      case NavPageUpIntent():
+        c.moveSelection(-_pageStep);
+      case NavTopIntent():
+        c.selectEdge(top: true);
+      case NavBottomIntent():
+        c.selectEdge(top: false);
+      case NavExpandOrRightIntent():
+        unawaited(c.expandOrInto());
+      case NavCollapseOrLeftIntent():
+        unawaited(c.collapseOrOut());
+      case NavActivateIntent():
+        _activateSelected(c);
+    }
+  }
+
+  void _activateSelected(FileTreeController c) {
+    final t = c.activateTarget();
+    if (t == null) return;
+    if (t.isDirectory) {
+      unawaited(c.toggle(t.path));
+    } else {
+      openWorkspaceFile(ClideKernel.of(context), t.path);
+    }
+  }
+
+  /// Scroll the selected row into view after the frame it's laid out in.
+  void _ensureSelectedVisible() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _selectedKey.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(ctx, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd, duration: const Duration(milliseconds: 80));
+    });
   }
 
   @override
@@ -57,6 +108,23 @@ class _FileTreeViewState extends State<FileTreeView> {
           return const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true));
         }
         final rootName = root.split(Platform.pathSeparator).last;
+        final selected = c.selectedPath;
+        if (_filter.isEmpty && selected != null) _ensureSelectedVisible();
+        final scroller = SingleChildScrollView(
+          controller: _scroll,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_filter.isEmpty) ...[
+                _DirRow(name: rootName, path: '', controller: c, depth: 0, selectedPath: selected, selectedKey: _selectedKey),
+                if (c.isExpanded('')) _Children(path: '', controller: c, depth: 1, selectedPath: selected, selectedKey: _selectedKey),
+              ] else
+                ..._filteredEntries(c),
+            ],
+          ),
+        );
         return Column(
           children: [
             ClideFilterBox(address: 'files.tree', hint: 'Filter files…', onChanged: (v) => setState(() => _filter = v)),
@@ -65,20 +133,10 @@ class _FileTreeViewState extends State<FileTreeView> {
                 label: 'file tree — $rootName',
                 container: true,
                 explicitChildNodes: true,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_filter.isEmpty) ...[
-                        _DirRow(name: rootName, path: '', controller: c, depth: 0),
-                        if (c.isExpanded('')) _Children(path: '', controller: c, depth: 1),
-                      ] else
-                        ..._filteredEntries(c),
-                    ],
-                  ),
-                ),
+                // Vim nav (j/k/h/l/gg/G/o) drives a selection cursor while this
+                // region holds focus under the vim preset (T-406). The filter
+                // box sits outside it, so typing a filter is never intercepted.
+                child: _filter.isEmpty ? PaneKeyNav(onNav: (intent, count) => _onNav(intent, count, c), child: scroller) : scroller,
               ),
             ),
           ],
@@ -97,11 +155,13 @@ class _FileTreeViewState extends State<FileTreeView> {
 }
 
 class _Children extends StatelessWidget {
-  const _Children({required this.path, required this.controller, required this.depth});
+  const _Children({required this.path, required this.controller, required this.depth, this.selectedPath, this.selectedKey});
 
   final String path;
   final FileTreeController controller;
   final int depth;
+  final String? selectedPath;
+  final Key? selectedKey;
 
   @override
   Widget build(BuildContext context) {
@@ -117,58 +177,67 @@ class _Children extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _DirRow(name: e.name, path: e.path, controller: controller, depth: depth),
-                if (controller.isExpanded(e.path)) _Children(path: e.path, controller: controller, depth: depth + 1),
+                _DirRow(name: e.name, path: e.path, controller: controller, depth: depth, selectedPath: selectedPath, selectedKey: selectedKey),
+                if (controller.isExpanded(e.path))
+                  _Children(path: e.path, controller: controller, depth: depth + 1, selectedPath: selectedPath, selectedKey: selectedKey),
               ],
             )
           else
-            _FileRow(name: e.name, path: e.path, depth: depth),
+            _FileRow(name: e.name, path: e.path, depth: depth, selectedPath: selectedPath, selectedKey: selectedKey),
       ],
     );
   }
 }
 
 class _DirRow extends StatelessWidget {
-  const _DirRow({required this.name, required this.path, required this.controller, required this.depth});
+  const _DirRow({required this.name, required this.path, required this.controller, required this.depth, this.selectedPath, this.selectedKey});
 
   final String name;
   final String path;
   final FileTreeController controller;
   final int depth;
+  final String? selectedPath;
+  final Key? selectedKey;
 
   @override
   Widget build(BuildContext context) {
     final expanded = controller.isExpanded(path);
     final tokens = ClideTheme.of(context).surface;
+    final selected = path == selectedPath;
     return Semantics(
       button: true,
       label: '${expanded ? 'Collapse' : 'Expand'} $name',
       onTap: () => controller.toggle(path),
       child: _Row(
+        key: selected ? selectedKey : null,
         depth: depth,
         onTap: () => controller.toggle(path),
         leading: ClideIcon(const ChevronRightIcon(), size: 10, color: tokens.sidebarForeground),
         label: name,
         rotateLeading: expanded,
+        selected: selected,
       ),
     );
   }
 }
 
 class _FileRow extends StatelessWidget {
-  const _FileRow({required this.name, required this.path, required this.depth});
+  const _FileRow({required this.name, required this.path, required this.depth, this.selectedPath, this.selectedKey});
 
   final String name;
   final String path;
   final int depth;
+  final String? selectedPath;
+  final Key? selectedKey;
 
   @override
   Widget build(BuildContext context) {
+    final selected = path == selectedPath;
     return Semantics(
       button: true,
       label: 'Open $name',
       onTap: () => _openFile(context, path),
-      child: _Row(depth: depth, onTap: () => _openFile(context, path), label: name),
+      child: _Row(key: selected ? selectedKey : null, depth: depth, onTap: () => _openFile(context, path), label: name, selected: selected),
     );
   }
 
@@ -180,13 +249,17 @@ class _FileRow extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row({required this.depth, required this.onTap, required this.label, this.leading, this.rotateLeading = false});
+  const _Row({super.key, required this.depth, required this.onTap, required this.label, this.leading, this.rotateLeading = false, this.selected = false});
 
   final int depth;
   final VoidCallback onTap;
   final String label;
   final Widget? leading;
   final bool rotateLeading;
+
+  /// True when the keyboard selection cursor is on this row (T-406) — draws a
+  /// persistent highlight + accent ring, distinct from transient hover.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +268,12 @@ class _Row extends StatelessWidget {
     return ClideTappable(
       onTap: onTap,
       builder: (context, hovered, _) => Container(
-        color: hovered ? tokens.sidebarItemHover : null,
+        decoration: selected
+            ? BoxDecoration(
+                color: tokens.sidebarItemHover,
+                border: Border.all(color: tokens.globalFocus, width: 1),
+              )
+            : (hovered ? BoxDecoration(color: tokens.sidebarItemHover) : null),
         padding: EdgeInsets.only(left: leftPadding, right: 8, top: 3, bottom: 3),
         child: Row(
           children: [

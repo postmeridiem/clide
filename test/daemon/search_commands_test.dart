@@ -11,13 +11,14 @@ void main() {
   late Directory dir;
   late RecordingEventSink sink;
   late DaemonDispatcher d;
+  late SearchService service;
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('clide-search-cmd-');
     File('${dir.path}/a.dart').writeAsStringSync('final answer = 42;\n');
     File('${dir.path}/b.dart').writeAsStringSync('// no hits here\n');
     sink = RecordingEventSink();
-    final service = SearchService(root: dir, ignore: IgnoreSet([]), events: sink, useIsolates: false);
+    service = SearchService(root: dir, ignore: IgnoreSet([]), events: sink, useIsolates: false);
     d = DaemonDispatcher();
     registerSearchCommands(d, service);
   });
@@ -76,6 +77,19 @@ void main() {
     final r = await call('search.cancel', const {'searchId': 'search-0'});
     expect(r.ok, isTrue);
     expect(r.data['cancelled'], 'search-0');
+  });
+
+  test('shutdown cancels in-flight searches and is idempotent (T-367)', () async {
+    // Subscribe before dispatching — the done event is broadcast.
+    final doneFuture = sink.stream.firstWhere((e) => e.kind == 'search.done');
+    final r = await call('search.grep', const {'pattern': 'answer'});
+    expect(r.ok, isTrue);
+    await service.shutdown();
+    await service.shutdown();
+    // The search still terminates (cancelled or already complete,
+    // depending on timing) — shutdown must not wedge the stream.
+    final done = await doneFuture;
+    expect(done.data['searchId'], r.data['searchId']);
   });
 
   test('search.replace preview reports edits without touching disk', () async {

@@ -13,7 +13,7 @@ description: >-
   subsystem handlers (pane, files, editor, git, pql), and the
   extension framework.
 publish_to: none
-version: 2.3.3
+version: 2.4.1
 repository: https://github.com/postmeridiem/clide
 # Short user-facing tagline (the welcome subtitle, web meta
 # description, etc.). Baked into lib/src/build_info.g.dart by
@@ -69,7 +69,6 @@ dev_dependencies:
   # Held at 1.31.0: flutter_test SDK-locks the resolvable ceiling here
   # (1.31.1 is latest but not reachable under our Flutter pin).
   test: 1.31.0
-  mocktail: 1.0.5
   # Held at 0.12.1: 0.13.0 disabled anti-aliasing on text painting, which
   # churns every golden. Dev-only, no advisory — defer the golden re-baseline
   # to its own change (T-353).

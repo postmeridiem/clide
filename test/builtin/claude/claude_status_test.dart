@@ -106,4 +106,33 @@ void main() {
       expect(seg.trailing, isNull);
     });
   });
+
+  group('parseUsageText (T-415)', () {
+    // The probed 2.1.175 /usage response shape.
+    const probed =
+        'You are currently using your subscription to power your Claude Code usage\n'
+        '\n'
+        'Current session: 15% used · resets Jun 12, 3:39pm (Europe/Amsterdam)\n'
+        'Current week (all models): 53% used · resets Jun 15, 6:59pm (Europe/Amsterdam)\n'
+        'Current week (Sonnet only): 0% used';
+
+    test('parses the probed response, stripping timezone parentheticals', () {
+      final u = parseUsageText(probed)!;
+      expect(u.session, '15% used · resets Jun 12, 3:39pm');
+      expect(u.week, '53% used · resets Jun 15, 6:59pm');
+      expect(u.weekSonnet, '0% used');
+    });
+
+    test('tolerates missing lines', () {
+      final u = parseUsageText('Current session: 9% used')!;
+      expect(u.session, '9% used');
+      expect(u.week, isNull);
+      expect(u.weekSonnet, isNull);
+    });
+
+    test('non-usage text parses to null', () {
+      expect(parseUsageText("/effort isn't available in this environment."), isNull);
+      expect(parseUsageText('plain prose'), isNull);
+    });
+  });
 }

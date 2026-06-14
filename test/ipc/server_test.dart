@@ -201,6 +201,55 @@ void main() {
       await c.close();
     });
 
+    // T-372: the old async onData never paused its subscription, so
+    // pipelined requests interleaved mid-handler; per-chunk decode also
+    // corrupted runes split across socket writes.
+    test('two requests pipelined in one write are handled serially, in order (T-372/D-72)', () async {
+      final order = <String>[];
+      dispatcher.register('slow', (req) async {
+        order.add('${req.id}:start');
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        order.add('${req.id}:end');
+        return IpcResponse.ok(id: req.id);
+      });
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
+      // Single write carrying both frames.
+      c.write('${IpcRequest(id: 'p1', cmd: 'slow').encode()}\n${IpcRequest(id: 'p2', cmd: 'slow').encode()}\n');
+      await c.flush();
+      final replies = c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter());
+      final got = await replies.take(2).toList().timeout(const Duration(seconds: 5));
+      await c.close();
+      expect((IpcMessage.decode(got[0]) as IpcResponse).id, 'p1');
+      expect((IpcMessage.decode(got[1]) as IpcResponse).id, 'p2');
+      expect(order, ['p1:start', 'p1:end', 'p2:start', 'p2:end'], reason: 'D-72: dispatch is serial, never interleaved');
+    });
+
+    test('a request split mid-UTF-8-rune across two writes decodes intact (T-372)', () async {
+      String? gotText;
+      dispatcher.register('echo', (req) async {
+        gotText = req.args['text'] as String?;
+        return IpcResponse.ok(id: req.id, data: {'echo': gotText});
+      });
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+      final c = await Socket.connect(InternetAddress(server.socketPath, type: InternetAddressType.unix), 0);
+      final frame = utf8.encode('${IpcRequest(id: 'u1', cmd: 'echo', args: const {'text': 'héllo — ünïcode'}).encode()}\n');
+      // Split inside the multi-byte 'é' (the first non-ASCII rune).
+      final cut = frame.indexWhere((b) => b > 0x7f) + 1;
+      c.add(frame.sublist(0, cut));
+      await c.flush();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      c.add(frame.sublist(cut));
+      await c.flush();
+      final line = await c.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 2));
+      await c.close();
+      final reply = IpcMessage.decode(line) as IpcResponse;
+      expect(reply.ok, isTrue);
+      expect(gotText, 'héllo — ünïcode', reason: 'persistent decoder must join the split rune');
+    });
+
     test('socketPath returns the resolved path before start (no bind)', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       // Before start, the getter falls back to workspaceSocketPath; it

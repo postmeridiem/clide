@@ -7,7 +7,7 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
   final List<String> writes = [];
   bool killed = false;
@@ -22,20 +22,36 @@ class _FakeProc implements StreamJsonProcess {
 
 void main() {
   late List<_FakeProc> created;
+  late List<List<String>> spawnedArgs;
   late ClaudeSessionOrchestrator orch;
 
   setUp(() {
     created = [];
+    spawnedArgs = [];
     orch = ClaudeSessionOrchestrator(
       processFactory: ({required sessionArgs, required cwd, env}) async {
         final p = _FakeProc();
         created.add(p);
+        spawnedArgs.add(sessionArgs);
         return p;
       },
     );
   });
 
   SpawnSpec spec(String id, {bool visible = true}) => SpawnSpec(id: id, role: id, sessionId: '$id-uuid', cwd: '/repo', visible: visible);
+
+  test('a spec with effort spawns claude with --effort <level> (T-412)', () async {
+    await orch.spawn(SpawnSpec(id: 'e1', role: 'primary', sessionId: 'e1-uuid', cwd: '/repo', effort: 'xhigh'));
+    final args = spawnedArgs.single;
+    final i = args.indexOf('--effort');
+    expect(i, isNonNegative, reason: 'sessionArgs: $args');
+    expect(args[i + 1], 'xhigh');
+  });
+
+  test('a spec without effort spawns without the flag (CLI default applies)', () async {
+    await orch.spawn(spec('primary'));
+    expect(spawnedArgs.single, isNot(contains('--effort')));
+  });
 
   test('spawns multiple concurrent sessions, each with its own process', () async {
     await orch.spawn(spec('primary'));
@@ -58,6 +74,32 @@ void main() {
     final b = await orch.spawn(spec('primary'));
     expect(identical(a, b), isTrue);
     expect(created, hasLength(1));
+  });
+
+  // T-374: spawn() check-then-acts across awaits; without the in-flight
+  // map, two CONCURRENT spawns both passed the registry check and the
+  // loser's live claude process was orphaned.
+  test('two concurrent spawns for one id share one session and one process (T-374)', () async {
+    final (a, b) = await (orch.spawn(spec('primary')), orch.spawn(spec('primary'))).wait;
+    expect(identical(a, b), isTrue);
+    expect(created, hasLength(1));
+  });
+
+  test('a failed spawn clears the in-flight entry so a retry can proceed (T-374)', () async {
+    var calls = 0;
+    final flaky = ClaudeSessionOrchestrator(
+      processFactory: ({required sessionArgs, required cwd, env}) async {
+        calls++;
+        if (calls == 1) throw StateError('spawn blew up');
+        final p = _FakeProc();
+        created.add(p);
+        return p;
+      },
+    );
+    await expectLater(flaky.spawn(spec('primary')), throwsStateError);
+    final m = await flaky.spawn(spec('primary'));
+    expect(m.id, 'primary');
+    expect(calls, 2);
   });
 
   test('hide keeps the process alive and in the registry; show restores it', () async {

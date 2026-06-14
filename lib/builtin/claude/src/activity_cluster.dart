@@ -171,6 +171,9 @@ bool _isFoldable(ConversationItem item, FoldLevel level, Map<String, String> too
       // breaks the cluster at every level, including L3, so parallel agents
       // never merge into one Activity card.
       if (isAgentTool(name)) return false;
+      // A Workflow run is a first-class orchestration card too (T-416): it owns
+      // the live agent fan-out, so it never folds into a generic Activity card.
+      if (name == 'Workflow') return false;
       // The Edit/Write call stays first-class with its diff at L1/L2.
       if (level == FoldLevel.everything) return true;
       return !isDiffTool(name);

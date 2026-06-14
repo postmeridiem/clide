@@ -144,10 +144,17 @@ class ExtensionManager extends ChangeNotifier {
       }
     }
     final ctx = _ExtensionContext(manager: this, id: ext.id);
+    // Transactional: a throw mid-activation must leave NOTHING mounted —
+    // the old path left earlier contributions live while the extension
+    // recorded as failed, and a retry double-applied them (T-377).
+    final applied = <ContributionPoint>[];
+    var extActivated = false;
     try {
       await ext.activate(ctx);
+      extActivated = true;
       for (final c in ext.contributions) {
         _applyContribution(c);
+        applied.add(c);
       }
       // Eagerly load the i18n catalog for any localized tab this extension
       // contributes, so its title resolves without a "namespace not
@@ -165,6 +172,22 @@ class ExtensionManager extends ChangeNotifier {
       notifyListeners();
       log.info('extensions', 'activated $id');
     } catch (e, st) {
+      for (final c in applied.reversed) {
+        try {
+          _removeContribution(c);
+        } catch (e2) {
+          log.warn('extensions', 'unwind of ${c.id} failed during $id rollback: $e2');
+        }
+      }
+      if (extActivated) {
+        // The extension's own activate() succeeded — give it the matching
+        // teardown so it doesn't hold resources for a failed activation.
+        try {
+          await ext.deactivate();
+        } catch (e2) {
+          log.warn('extensions', 'deactivate during $id rollback failed: $e2');
+        }
+      }
       _failed[id] = e;
       log.error('extensions', 'activate failed for $id', error: e, stackTrace: st);
       notifyListeners();
@@ -175,6 +198,17 @@ class ExtensionManager extends ChangeNotifier {
     if (!_activated.contains(id)) return;
     final ext = _known[id];
     if (ext == null) return;
+    // Refuse while active extensions depend on this one — deactivating
+    // underneath them leaves them running against missing services (T-377).
+    // Disable the dependents first.
+    final dependents = [
+      for (final e in _known.values)
+        if (_activated.contains(e.id) && e.dependsOn.contains(id)) e.id,
+    ];
+    if (dependents.isNotEmpty) {
+      log.warn('extensions', 'refusing to deactivate $id: active dependents: ${dependents.join(', ')}');
+      return;
+    }
     try {
       await ext.deactivate();
       for (final c in ext.contributions) {
@@ -196,8 +230,17 @@ class ExtensionManager extends ChangeNotifier {
       case TabContribution _:
       case StatusItemContribution _:
       case ToolbarButtonContribution _:
+        // Reject duplicates instead of silently mounting a second copy —
+        // benign among curated builtins, hazardous once third-party
+        // extensions land (T-377). The throw rolls the activation back.
+        if (panels.hasContribution(c.id)) {
+          throw StateError('duplicate contribution id: ${c.id}');
+        }
         panels.contribute(c);
       case CommandContribution cmd:
+        if (commands.get(cmd.command) != null) {
+          throw StateError('duplicate command id: ${cmd.command}');
+        }
         commands.register(cmd);
         final binding = cmd.defaultBinding;
         if (binding != null) {

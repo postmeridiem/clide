@@ -15,13 +15,17 @@ import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/bash_tail_source.dart';
+import 'package:clide/builtin/claude/src/claude_status.dart' show shortModelLabel;
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/file_tail_follower.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/kernel/src/facade.dart';
+import 'package:clide/kernel/src/keymap/intents.dart';
+import 'package:clide/kernel/src/keymap/pane_key_nav.dart';
 import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
@@ -38,10 +42,17 @@ class ConversationView extends StatefulWidget {
     this.hiddenToolUseIds = const <String>{},
     this.toolUseOutcomes = const <String, bool>{},
     this.quietErrorToolUseIds = const <String>{},
+    this.workflows = const <String, WorkflowRun>{},
     this.foldLevel = FoldLevel.tools,
   });
 
   final ConversationController controller;
+
+  /// Live Workflow runs keyed by their launching `Workflow` tool-use id
+  /// (T-416). A `Workflow` tool-use card with a matching run renders the
+  /// dedicated run card (phases, agent rows, status) instead of the generic
+  /// tool card; absent (pre-progress, or on reload) it falls back to generic.
+  final Map<String, WorkflowRun> workflows;
 
   /// How aggressively consecutive meta items (tool calls/results, thinking)
   /// fold into collapsible activity cards (T-230). Default L1 ([FoldLevel.tools]).
@@ -268,9 +279,13 @@ class _ConversationViewState extends State<ConversationView> {
   void _onChanged() {
     if (!mounted) return;
     setState(() {});
-    // Follow the tail — jump to the bottom after the new item lays out.
+    // Follow the tail — but only when already pinned to it. New items arrive
+    // on every streamed token; jumping unconditionally yanks a reader who
+    // scrolled up back to the bottom for the whole reply (T-368, twin of the
+    // T-297 resize gate).
+    if (!_atBottom) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
+      if (_scroll.hasClients && _atBottom) {
         _scroll.jumpTo(_scroll.position.maxScrollExtent);
       }
     });
@@ -328,6 +343,7 @@ class _ConversationViewState extends State<ConversationView> {
               resultByToolUseId: resultByToolUseId,
               promptsByToolUseId: fold.promptsByToolUseId,
               runByToolUseId: fold.runByToolUseId,
+              workflows: widget.workflows,
             ),
             FoldedCluster(:final items) => _ActivityCard(
               key: ValueKey('cluster.${items.first.uuid}'),
@@ -339,6 +355,7 @@ class _ConversationViewState extends State<ConversationView> {
               resultByToolUseId: resultByToolUseId,
               promptsByToolUseId: fold.promptsByToolUseId,
               runByToolUseId: fold.runByToolUseId,
+              workflows: widget.workflows,
             ),
             EditRun(:final edits) => _EditRunCard(
               key: ValueKey('edits.${edits.first.uuid}'),
@@ -372,10 +389,48 @@ class _ConversationViewState extends State<ConversationView> {
         return list;
       },
     );
-    return ColoredBox(
+    final body = ColoredBox(
       color: tokens.panelBackground,
       child: widget.wrapInSelectionArea ? ClideSelectionArea(child: sized) : sized,
     );
+    // Vim nav scrolls the conversation while this region holds focus under the
+    // vim preset (T-406): j/k by a line, ctrl+d/u by half a viewport, gg/G to
+    // the ends — G also re-arms follow-tail so new output keeps it pinned.
+    return PaneKeyNav(onNav: _onNav, child: body);
+  }
+
+  /// One "line" of scroll for j/k — a few text rows' worth.
+  static const double _lineScroll = 48;
+
+  void _onNav(NavIntent intent, int count) {
+    if (!_scroll.hasClients) return;
+    final p = _scroll.position;
+    final half = p.viewportDimension / 2;
+    switch (intent) {
+      case NavDownIntent():
+        _scrollBy(_lineScroll * count);
+      case NavUpIntent():
+        _scrollBy(-_lineScroll * count);
+      case NavPageDownIntent():
+        _scrollBy(half);
+      case NavPageUpIntent():
+        _scrollBy(-half);
+      case NavTopIntent():
+        _scroll.jumpTo(0);
+        _atBottom = false;
+      case NavBottomIntent():
+        _scroll.jumpTo(p.maxScrollExtent);
+        _atBottom = true; // re-arm follow-tail (T-297)
+      case NavExpandOrRightIntent() || NavCollapseOrLeftIntent() || NavActivateIntent():
+        break; // a reader pane has no expand/activate semantics
+    }
+  }
+
+  void _scrollBy(double delta) {
+    final p = _scroll.position;
+    final target = (p.pixels + delta).clamp(0.0, p.maxScrollExtent);
+    _scroll.jumpTo(target);
+    _atBottom = (p.maxScrollExtent - target) <= _bottomEpsilon;
   }
 }
 
@@ -459,7 +514,9 @@ class _BashLiveTailState extends State<_BashLiveTail> {
     if (source == null) return; // no file-backed source → muted note in build
     final term = Terminal(maxLines: 1000);
     _terminal = term;
-    _follower = FileTailFollower(source, onData: (bytes) => term.write(utf8.decode(bytes, allowMalformed: true)));
+    // writeBytes: the follower's chunk boundaries are arbitrary (it can even
+    // start mid-rune by construction) — keep decode state across reads (T-373).
+    _follower = FileTailFollower(source, onData: term.writeBytes);
     unawaited(_follower!.start());
   }
 
@@ -497,6 +554,7 @@ class _ConversationTurn extends StatelessWidget {
     this.resultByToolUseId = const <String, ToolResultMessage>{},
     this.promptsByToolUseId = const <String, List<UserMessage>>{},
     this.runByToolUseId = const <String, List<ConversationItem>>{},
+    this.workflows = const <String, WorkflowRun>{},
   });
 
   final ConversationItem item;
@@ -531,6 +589,9 @@ class _ConversationTurn extends StatelessWidget {
   /// Index from an Agent/Task toolUseId → the sidechain run items (prose,
   /// thinking, tool cards) nested under the Agent card in a holder (T-264).
   final Map<String, List<ConversationItem>> runByToolUseId;
+
+  /// Live Workflow runs keyed by launching tool-use id (T-416).
+  final Map<String, WorkflowRun> workflows;
 
   @override
   Widget build(BuildContext context) {
@@ -570,6 +631,17 @@ class _ConversationTurn extends StatelessWidget {
           resolveFileRef: (p) => _resolveRepoFile(context, p),
           onOpenFile: (path, line) => _openFile(context, path, line),
         ),
+      ),
+      // CLI-local output (model "<synthetic>": a forwarded local command's
+      // response or a clide-injected notice, T-411) is not Claude speaking —
+      // framed + muted like the context card (T-306), attributed to clide.
+      AssistantTextMessage() when i.synthetic => ConversationCard(
+        variant: ConversationCardVariant.bordered,
+        accent: tokens.globalTextMuted,
+        label: 'clide',
+        copyText: i.text,
+        margin: _childMargin,
+        body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
       ),
       // Sub-agent (sidechain) prose is NOT the main Claude — attribute it to the
       // agent with a muted accent, never the coral "claude" brand (T-265). The
@@ -680,6 +752,13 @@ class _ConversationTurn extends StatelessWidget {
   /// and its own per-item mark. An Agent/Task call also nests its visible
   /// sub-agent run in a second collapser below (T-264).
   Widget _toolUseCollapser(AssistantToolUse t) {
+    // A Workflow tool-use with a live run (T-416) renders the dedicated run
+    // card — phases, agent rows, status — instead of the generic tool card. No
+    // run yet (pre-progress, or on reload where the system events are gone)
+    // falls through to the generic collapser below.
+    if (t.name == 'Workflow' && workflows[t.toolUseId] != null) {
+      return _workflowCard(t, workflows[t.toolUseId]!);
+    }
     final outcome = toolUseOutcomes[t.toolUseId];
     final color = outcome == null ? tokens.globalFocus : (outcome ? tokens.statusSuccess : tokens.statusError);
     final collapser = ClideCollapserCard(
@@ -720,6 +799,99 @@ class _ConversationTurn extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// A dedicated card for a Workflow run (T-416): the harness's multi-agent
+  /// orchestration. The collapser header carries the run's live status (spinner
+  /// while running, check when done) and a `done/total agents` counter; the body
+  /// lists each fanned-out agent — grouped under phase headers when the workflow
+  /// declared phases — plus the run's usage and the orchestration script.
+  Widget _workflowCard(AssistantToolUse t, WorkflowRun run) {
+    final title = run.name ?? 'workflow';
+    final color = run.done ? tokens.statusSuccess : tokens.globalFocus;
+    final counter = run.agentCount == 0 ? 'starting' : '${run.doneCount}/${run.agentCount} agents';
+    final detail = run.done ? (run.summary ?? run.description) : run.description;
+    final collapsedSummary = (detail == null || detail == title) ? title : '$title · $detail';
+    return ClideCollapserCard(
+      label: 'workflow',
+      color: color,
+      collapsedSummary: collapsedSummary,
+      counter: counter,
+      status: run.done ? ClideRunStatus.success : ClideRunStatus.running,
+      children: [_workflowBody(t, run)],
+    );
+  }
+
+  Widget _workflowBody(AssistantToolUse t, WorkflowRun run) {
+    final agents = run.orderedAgents;
+    final phases = run.orderedPhases;
+    final rows = <Widget>[];
+    if (phases.isEmpty) {
+      rows.addAll(agents.map(_workflowAgentRow));
+    } else {
+      for (final p in phases) {
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: ClideText(p.title.toUpperCase(), muted: true, fontSize: clideFontMeta - 1, fontWeight: FontWeight.w600),
+          ),
+        );
+        rows.addAll(agents.where((a) => a.phaseIndex == p.index).map(_workflowAgentRow));
+      }
+      // Agents the deltas never tagged with a phase still render, after the
+      // phased groups, so nothing fanned out is silently dropped.
+      rows.addAll(agents.where((a) => a.phaseIndex == null).map(_workflowAgentRow));
+    }
+    if (rows.isEmpty) {
+      rows.add(ClideText('Launching…', muted: true, fontSize: clideFontMeta));
+    }
+
+    final script = t.input['script'];
+    return ConversationCard(
+      variant: ConversationCardVariant.bordered,
+      accent: run.done ? tokens.statusSuccess : tokens.globalFocus,
+      label: run.name ?? 'workflow',
+      copyText: script is String ? script : const JsonEncoder.withIndent('  ').convert(t.input),
+      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
+      extraSegments: [
+        if (run.totalTokens != null && run.totalTokens! > 0)
+          CardSegment(
+            label: 'usage',
+            child: ClideText('${run.totalTokens} tokens${run.durationMs != null ? ' · ${run.durationMs} ms' : ''}', muted: true, fontSize: clideFontMeta),
+          ),
+        if (script is String)
+          CardSegment(
+            label: 'script',
+            child: ClideCodeBlock(source: script, language: 'javascript'),
+          ),
+      ],
+      margin: const EdgeInsets.only(bottom: kClideCardHeaderPadH),
+    );
+  }
+
+  /// One agent row in a workflow card: a state glyph (spinner while running, a
+  /// muted check once done), the agent's label, and its model (T-416).
+  Widget _workflowAgentRow(WorkflowAgent a) {
+    final done = a.state == WorkflowAgentState.done;
+    final Widget glyph = done
+        ? ClideIcon(PhosphorIcons.byName('check'), size: 12, color: tokens.statusSuccess)
+        : ClideSpinner(size: 12, color: tokens.globalTextMuted);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(width: 16, child: Center(child: glyph)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: ClideText(a.label, fontSize: clideFontMeta, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          if (a.model != null && a.model!.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            ClideText(shortModelLabel(a.model!), muted: true, fontSize: clideFontMeta - 1),
+          ],
+        ],
+      ),
     );
   }
 
@@ -890,6 +1062,7 @@ class _ActivityCard extends StatelessWidget {
     required this.resultByToolUseId,
     required this.promptsByToolUseId,
     required this.runByToolUseId,
+    this.workflows = const <String, WorkflowRun>{},
   });
 
   final List<ConversationItem> items;
@@ -900,6 +1073,7 @@ class _ActivityCard extends StatelessWidget {
   final Map<String, ToolResultMessage> resultByToolUseId;
   final Map<String, List<UserMessage>> promptsByToolUseId;
   final Map<String, List<ConversationItem>> runByToolUseId;
+  final Map<String, WorkflowRun> workflows;
 
   @override
   Widget build(BuildContext context) {
@@ -921,6 +1095,7 @@ class _ActivityCard extends StatelessWidget {
             resultByToolUseId: resultByToolUseId,
             promptsByToolUseId: promptsByToolUseId,
             runByToolUseId: runByToolUseId,
+            workflows: workflows,
           ),
       ],
     );

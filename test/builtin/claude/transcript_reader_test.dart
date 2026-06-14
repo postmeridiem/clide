@@ -522,6 +522,61 @@ void main() {
       expect(const SessionStatus(contextWindow: 0).isEmpty, isFalse);
       expect(const SessionStatus(rateLimitInfo: 'rate limited').isEmpty, isFalse);
     });
+
+    test('effort merges, compares, and flips isEmpty (T-412)', () {
+      const a = SessionStatus(model: 'm1');
+      final m = a.merge(const SessionStatus(effort: 'high'));
+      expect(m.effort, 'high');
+      expect(m.model, 'm1');
+      expect(const SessionStatus(effort: 'high'), const SessionStatus(effort: 'high'));
+      expect(const SessionStatus(effort: 'high'), isNot(const SessionStatus(effort: 'max')));
+      expect(const SessionStatus(effort: 'low').isEmpty, isFalse);
+    });
+  });
+
+  group('synthetic CLI-local output (T-411)', () {
+    String syntheticEvent(String text) => jsonEncode({
+      'type': 'assistant',
+      'uuid': 'syn1',
+      'timestamp': '2026-06-12T10:00:00.000Z',
+      'message': {
+        'role': 'assistant',
+        'model': '<synthetic>',
+        'content': [
+          {'type': 'text', 'text': text},
+        ],
+      },
+    });
+
+    test('a "<synthetic>" assistant message parses with synthetic: true', () {
+      final parsed = parseTranscriptChunk(syntheticEvent("/effort isn't available in this environment."));
+      final msg = parsed.items.whereType<AssistantTextMessage>().single;
+      expect(msg.synthetic, isTrue);
+      expect(msg.text, contains("isn't available"));
+    });
+
+    test('"<synthetic>" never clobbers the tracked model', () {
+      final parsed = parseTranscriptChunk(syntheticEvent('usage text'));
+      expect(parsed.status.model, isNull);
+    });
+
+    test('a real assistant message stays non-synthetic', () {
+      final chunk = jsonEncode({
+        'type': 'assistant',
+        'uuid': 'a2',
+        'timestamp': '2026-06-12T10:00:00.000Z',
+        'message': {
+          'role': 'assistant',
+          'model': 'claude-fable-5',
+          'content': [
+            {'type': 'text', 'text': 'hello'},
+          ],
+        },
+      });
+      final parsed = parseTranscriptChunk(chunk);
+      expect(parsed.items.whereType<AssistantTextMessage>().single.synthetic, isFalse);
+      expect(parsed.status.model, 'claude-fable-5');
+    });
   });
 
   group('TranscriptReader — append streaming (filesystem)', () {

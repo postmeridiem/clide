@@ -39,7 +39,7 @@ self:
   # Auto-synced from pubspec.yaml `version:` by `make gen-build-info`
   # (runs implicitly on every build/run/test). Don't hand-edit; bump
   # pubspec instead.
-  version: "2.3.3"
+  version: "2.4.1"
   homepage: https://github.com/postmeridiem/clide
   license: MIT
   license_file: assets/LICENSE
@@ -205,15 +205,6 @@ dependencies:
 # Build-time-only dependencies — test runners, mocks, lints. Tracked
 # here for audit completeness; NOT rendered in the About screen.
 dev_dependencies:
-  - name: mocktail
-    kind: dart-package
-    version: "1.0.5"
-    homepage: https://pub.dev/packages/mocktail
-    license: MIT
-    purpose: >-
-      Mocks at IO / IPC boundaries. ChangeNotifier facades use
-      hand-rolled fakes instead of mocks (D-025).
-
   - name: alchemist
     kind: dart-package
     version: "0.12.1"

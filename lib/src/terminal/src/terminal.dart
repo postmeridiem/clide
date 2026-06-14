@@ -1,5 +1,6 @@
 // Based on xterm.dart v4.0.0 by xuty (MIT). See LICENSE in this directory.
 
+import 'dart:convert' show ByteConversionSink, Utf8Decoder;
 import 'dart:math' show max;
 
 import 'package:clide/src/terminal/src/base/observable.dart';
@@ -215,9 +216,26 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Writes the data from the underlying program to the terminal. Calling this
   /// updates the states of the terminal and emits events such as [onBell] or
   /// [onTitleChange] when the escape sequences in [data] request it.
+  ///
+  /// Byte-stream consumers (PTY output, file tails) should use [writeBytes]
+  /// instead — decoding per-chunk corrupts a multi-byte rune split across
+  /// reads (T-373). This String entry point stays for tests and
+  /// programmatic writes.
   void write(String data) {
     _parser.write(data);
     notifyListeners();
+  }
+
+  /// Persistent chunked UTF-8 decoder feeding [write] — carries partial
+  /// rune state across [writeBytes] calls so a glyph split across two PTY
+  /// reads still renders as one glyph (T-373).
+  late final ByteConversionSink _byteSink = const Utf8Decoder(allowMalformed: true).startChunkedConversion(_WriteSink(this));
+
+  /// Byte-stream twin of [write]: decodes UTF-8 with state retained across
+  /// calls, so chunk boundaries can never split a rune into U+FFFD garbage.
+  void writeBytes(List<int> bytes) {
+    if (bytes.isEmpty) return;
+    _byteSink.add(bytes);
   }
 
   /// Sends a key event to the underlying program.
@@ -862,4 +880,16 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   void unknownOSC(String ps, List<String> pt) {
     onPrivateOSC?.call(ps, pt);
   }
+}
+
+/// Routes the chunked UTF-8 decoder's output into [Terminal.write] (T-373).
+class _WriteSink implements Sink<String> {
+  _WriteSink(this._terminal);
+  final Terminal _terminal;
+
+  @override
+  void add(String data) => _terminal.write(data);
+
+  @override
+  void close() {}
 }

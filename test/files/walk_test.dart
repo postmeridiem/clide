@@ -56,4 +56,46 @@ void main() {
     expect(r.files, isEmpty);
     expect(r.truncated, isFalse);
   });
+
+  // T-365: stat() follows links, so the old detection (stat.type == link)
+  // was always false and walkFiles descended symlinked directories —
+  // an escape hatch out of the workspace.
+  group('symlinks (T-365)', () {
+    test('listDir reports a symlinked directory as a symlink', () async {
+      final outside = await Directory.systemTemp.createTemp('clide-walk-outside-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      File('${outside.path}/secret.txt').writeAsStringSync('s');
+      Link('${root.path}/linked').createSync(outside.path);
+
+      final entries = await listDir(root: root, dir: '', ignore: IgnoreSet([]));
+      final linked = entries.singleWhere((e) => e.name == 'linked');
+      expect(linked.isSymlink, isTrue);
+      expect(linked.isDirectory, isTrue, reason: 'target type still reported for the UI');
+    });
+
+    test('walkFiles does not descend a symlinked directory', () async {
+      final outside = await Directory.systemTemp.createTemp('clide-walk-outside-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      File('${outside.path}/secret.txt').writeAsStringSync('s');
+      Link('${root.path}/linked').createSync(outside.path);
+
+      final r = await walkFiles(root: root, ignore: IgnoreSet([]));
+      expect(r.files.map((e) => e.path), isNot(contains('linked/secret.txt')));
+    });
+
+    test('a symlink cycle does not hang the walk', () async {
+      Link('${root.path}/lib/loop').createSync(root.path);
+      final r = await walkFiles(root: root, ignore: IgnoreSet([]));
+      expect(r.truncated, isFalse);
+      expect(r.files.map((e) => e.path), contains('README.md'));
+    });
+
+    test('a symlink to a file is emitted as a file entry, flagged', () async {
+      Link('${root.path}/readme-link').createSync('${root.path}/README.md');
+      final r = await walkFiles(root: root, ignore: IgnoreSet([]));
+      final e = r.files.singleWhere((e) => e.path == 'readme-link');
+      expect(e.isSymlink, isTrue);
+      expect(e.isDirectory, isFalse);
+    });
+  });
 }

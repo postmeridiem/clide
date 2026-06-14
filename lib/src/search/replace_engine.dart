@@ -16,6 +16,7 @@ import 'dart:io';
 
 import '../files/ignore.dart';
 import '../files/listing.dart';
+import 'grep_engine.dart' show acceptGlobs, globToRegExp;
 import 'match.dart';
 
 /// One changed line within a file.
@@ -133,9 +134,14 @@ Future<List<FileReplacement>> computeReplacements({
 
   final walk = await walkFiles(root: root, ignore: ignore);
   final rootPath = root.absolute.path;
+  // Same compiled glob filters as the grep engine — replace must never
+  // touch a file the equivalent search wouldn't have matched (T-364).
+  final includes = [for (final g in query.include) globToRegExp(g)];
+  final excludes = [for (final g in query.exclude) globToRegExp(g)];
   final out = <FileReplacement>[];
   for (final entry in walk.files) {
     if (out.length >= maxFiles) break;
+    if (!acceptGlobs(entry.path, includes, excludes)) continue;
     final fr = _replaceInFile(rootPath, entry.path, query, replacement);
     if (fr != null) out.add(fr);
   }

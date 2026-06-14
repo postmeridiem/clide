@@ -18,7 +18,7 @@ import 'package:test/test.dart';
 // Minimal fake process — same as session_orchestrator_test.dart.
 // ---------------------------------------------------------------------------
 
-class _FakeProc implements StreamJsonProcess {
+class _FakeProc extends StreamJsonProcess {
   final _ctl = StreamController<String>.broadcast();
   final List<String> writes = [];
   bool killed = false;
