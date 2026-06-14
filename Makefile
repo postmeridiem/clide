@@ -148,7 +148,7 @@ changelog-gate: ## Changelog concision gate — fails on `## [Unreleased]` bulle
 	ci/changelog_gate.sh
 
 .PHONY: smoke-bundle
-smoke-bundle: ## Build Linux release bundle and run it under xvfb for 5s.
+smoke-bundle: gen-build-info ## Build Linux release bundle and run it under xvfb for 5s.
 	ci/smoke_bundle.sh
 
 # -- web UI harness ------------------------------------------------------
