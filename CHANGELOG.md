@@ -73,6 +73,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   session persistence moved to `--resume` (D-77); the toolchain no longer probes
   for it or warns when it's absent, on any platform.
 
+### Fixed
+
+- **`ClaudeConfig` no longer crashes on a project switch that races teardown.**
+  `setProjectDir` / `refresh` / `ensureProbe` now skip `notifyListeners()` if the
+  config was disposed during their async load (the guard `load()` already had).
+
 ## [2.4.1] — 2026-06-12
 
 ### Fixed
