@@ -6073,3 +6073,43 @@ The Gitea premise is overtaken by events: CI migrated to **GitHub Actions** (`8e
 3. *D-32 matches reality* — done now: D-32 amended to "GitHub Actions, active".
 
 The one live remnant — the dead `make test-e2e` / `ui-dev` / `ui-smoke` targets — was a pending **decision**, now made: Q-50 resolved → **fence** (D-100). The actual fencing implementation (and re-enabling the e2e targets + CI job) is tracked in **T-438**. Nothing left to do under this ticket.', 'done', 'medium', NULL, NULL, NULL, '2026-06-11 22:00:29', '2026-06-15 14:25:10', NULL, 'dca5c8eb7b213f4a65642bc845fe4ac7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQ8HB61N3TWVJ8YSMHH2TJ4', 'task', NULL, 'Implement D-100: fence dart:ffi behind web stubs so flutter build web --wasm compiles; restore e2e/ui targets', 'Implements the D-100 fence decision (resolving Q-50): keep the web/WASM "happy accident" build compiling so the e2e/Playwright UI harness (D-26) can run again.
+
+**Problem.** `flutter build web --wasm` cannot compile the tree — 12 modules import `dart:ffi` unconditionally, which the wasm target forbids. This kills `make test-e2e` / `ui-dev` / `ui-smoke` and the GitHub Actions web-WASM e2e job (currently withheld with a pointer to Q-50).
+
+**dart:ffi importers to fence (as of 2026-06-15):**
+- Native PTY: `lib/src/pty/ffi/libc.dart`, `lib/src/pty/native_pty.dart`, `lib/src/pty/windows_pty.dart`
+- Tree-sitter: `lib/kernel/src/syntax/tree_sitter_ffi.dart`, `lib/kernel/src/syntax/tree_sitter_service.dart`
+- Lua (Tier 6): `lib/lua/lua.dart`, `lib/lua/src/host.dart`
+- Windows watchdog: `lib/kernel/src/watchdog_windows.dart`
+- Consumers / barrels: `lib/clide.dart`, `lib/src/panes/pane.dart`, `lib/builtin/claude/src/agent_bootstrap.dart`, `lib/test_app.dart`
+
+**Approach (per D-100).** Put each native capability behind a conditional-import facade — `import ''x_native.dart'' if (dart.library.ffi) ''x_native.dart'' ... else ''x_stub.dart''` (io/ffi → real impl; web → stub). Web stubs degrade gracefully and never throw at import time: no PTY/terminal, no native git, no tree-sitter highlighting on web — the web build is a UI/e2e surface, not a functional desktop replacement. Desktop builds keep the real FFI impls unchanged (no fidelity loss — the CLAUDE.md guardrail holds).
+
+**Acceptance.**
+- `flutter build web --wasm` compiles the tree.
+- `make test-e2e` / `ui-dev` / `ui-smoke` run again.
+- A `flutter build web --wasm` compile gate is added to CI so the fence can''t silently rot, and the withheld web-WASM e2e job in `.github/workflows/test.yml` is re-enabled.
+- Desktop unit/widget/golden/integration suites stay green; no desktop behavior change.
+
+**Refs:** D-100, Q-50, D-32 (the withheld e2e job), D-26 (Playwright driver), T-384 (the dead-targets bug this finishes).', 'in_progress', 'medium', NULL, NULL, 'D-100', '2026-06-15 14:14:23', '2026-06-15 14:32:22', NULL, 'c6c24fce14496683e22a503f5e053518', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQ8HB61N3TWVJ8YSMHH2TJ4', 'task', NULL, 'Implement D-100: fence dart:ffi behind web stubs so flutter build web --wasm compiles; restore e2e/ui targets', 'Implements the D-100 fence decision (resolving Q-50): keep the web/WASM "happy accident" build compiling so the e2e/Playwright UI harness (D-26) can run again.
+
+**Problem.** `flutter build web --wasm` cannot compile the tree — 12 modules import `dart:ffi` unconditionally, which the wasm target forbids. This kills `make test-e2e` / `ui-dev` / `ui-smoke` and the GitHub Actions web-WASM e2e job (currently withheld with a pointer to Q-50).
+
+**dart:ffi importers to fence (as of 2026-06-15):**
+- Native PTY: `lib/src/pty/ffi/libc.dart`, `lib/src/pty/native_pty.dart`, `lib/src/pty/windows_pty.dart`
+- Tree-sitter: `lib/kernel/src/syntax/tree_sitter_ffi.dart`, `lib/kernel/src/syntax/tree_sitter_service.dart`
+- Lua (Tier 6): `lib/lua/lua.dart`, `lib/lua/src/host.dart`
+- Windows watchdog: `lib/kernel/src/watchdog_windows.dart`
+- Consumers / barrels: `lib/clide.dart`, `lib/src/panes/pane.dart`, `lib/builtin/claude/src/agent_bootstrap.dart`, `lib/test_app.dart`
+
+**Approach (per D-100).** Put each native capability behind a conditional-import facade — `import ''x_native.dart'' if (dart.library.ffi) ''x_native.dart'' ... else ''x_stub.dart''` (io/ffi → real impl; web → stub). Web stubs degrade gracefully and never throw at import time: no PTY/terminal, no native git, no tree-sitter highlighting on web — the web build is a UI/e2e surface, not a functional desktop replacement. Desktop builds keep the real FFI impls unchanged (no fidelity loss — the CLAUDE.md guardrail holds).
+
+**Acceptance.**
+- `flutter build web --wasm` compiles the tree.
+- `make test-e2e` / `ui-dev` / `ui-smoke` run again.
+- A `flutter build web --wasm` compile gate is added to CI so the fence can''t silently rot, and the withheld web-WASM e2e job in `.github/workflows/test.yml` is re-enabled.
+- Desktop unit/widget/golden/integration suites stay green; no desktop behavior change.
+
+**Refs:** D-100, Q-50, D-32 (the withheld e2e job), D-26 (Playwright driver), T-384 (the dead-targets bug this finishes).', 'in_progress', 'medium', NULL, NULL, 'D-100', '2026-06-15 14:14:23', '2026-06-15 14:33:11', NULL, '6733711cd4992646502b3d765eb107be', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

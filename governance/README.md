@@ -73,7 +73,7 @@ You might also want, project-permitting:
 - [D-29: Pre-push gate — fast layer only](decisions/testing.md#d-29-pre-push-gate--fast-layer-only) — _testing_
 - [D-30: Tests are client-side only](decisions/testing.md#d-30-tests-are-client-side-only) — _testing_
 - [D-31: Prefer-zero-deps, exact-pin](decisions/tooling.md#d-31-prefer-zero-deps-exact-pin) — _tooling_
-- [D-32: CI — Gitea primary, Linux-only runners, not yet activated](decisions/tooling.md#d-32-ci--gitea-primary-linux-only-runners-not-yet-activated) — _tooling_
+- [D-32: CI — GitHub Actions, Linux + Windows runners, active](decisions/tooling.md#d-32-ci--github-actions-linux--windows-runners-active) — _tooling_
 - [D-33: Golden-output ignore pattern — `coverage.*` excludes output, not scripts](decisions/tooling.md#d-33-golden-output-ignore-pattern--coverage-excludes-output-not-scripts) — _tooling_
 - [D-34: Q&D record system](decisions/process.md#d-34-qd-record-system) — _process_
 - [D-35: Kanban / waterfall, not Scrum](decisions/process.md#d-35-kanban--waterfall-not-scrum) — _process_
@@ -141,6 +141,7 @@ You might also want, project-permitting:
 - [D-97: ssh:// workspace URI + system-ssh auth](decisions/architecture.md#d-97-ssh-workspace-uri--system-ssh-auth) — _architecture_
 - [D-98: Remote-tool contract + connect preflight](decisions/architecture.md#d-98-remote-tool-contract--connect-preflight) — _architecture_
 - [D-99: Remote session identity keyed on (host, workspace)](decisions/architecture.md#d-99-remote-session-identity-keyed-on-host-workspace) — _architecture_
+- [D-100: Fence `dart:ffi` behind conditional imports + web stubs to keep the web/WASM target compiling](decisions/tooling.md#d-100-fence-dartffi-behind-conditional-imports--web-stubs-to-keep-the-webwasm-target-compiling) — _tooling_
 
 ## Open questions
 
@@ -182,7 +183,6 @@ You might also want, project-permitting:
 - [Q-47: Live mixed documents — implement?](questions/design.md#q-47-live-mixed-documents--implement) — _design_
 - [Q-48: Sealed-workspace mode — implement?](questions/design.md#q-48-sealed-workspace-mode--implement) — _design_
 - [Q-49: Review honorable mentions — which, if any, get promoted?](questions/design.md#q-49-review-honorable-mentions--which-if-any-get-promoted) — _design_
-- [Q-50: Web/WASM target after the dart:ffi pivot — fence, fix, or drop?](questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop) — _architecture_
 - [Q-51: Unify workspace lifecycle on a single fenced open primitive](questions/architecture.md#q-51-unify-workspace-lifecycle-on-a-single-fenced-open-primitive) — _architecture_
 
 ## Resolved questions
@@ -197,6 +197,7 @@ You might also want, project-permitting:
 - [Q-28: Terminal strip scope — shell only or logs/errors/tests](questions/architecture.md#q-28-terminal-strip-scope--shell-only-or-logserrorstests) — _architecture_
 - [Q-32: MCP tool surface — minimum slash-ide or extended clide tools?](questions/architecture.md#q-32-mcp-tool-surface--minimum-slash-ide-or-extended-clide-tools) — _architecture_
 - [Q-33: MCP transport — SSE, WebSocket, stdio, or all?](questions/architecture.md#q-33-mcp-transport--sse-websocket-stdio-or-all) — _architecture_
+- [Q-50: Web/WASM target after the dart:ffi pivot — fence, fix, or drop?](questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop) — _architecture_
 
 ## Rejected
 
