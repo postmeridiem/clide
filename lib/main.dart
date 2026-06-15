@@ -40,6 +40,7 @@ import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/image_commands.dart';
+import 'package:clide/src/daemon/log_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/ui_command.dart';
@@ -144,6 +145,9 @@ Future<void> main() async {
   // The kernel Logger, captured in the factory so a post-boot project switch
   // can rebuild the dispatcher with PTY breadcrumbs wired (T-434).
   Logger? kernelLog;
+  // The kernel settings store, captured post-boot so `clide log level` can
+  // persist app.log.level (T-433).
+  SettingsStore? kernelSettings;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -274,6 +278,12 @@ Future<void> main() async {
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
     registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement));
+    // `clide log level [<level>]` — the live verbosity toggle's CLI half (T-433,
+    // D-6 parity with the output-dock Level chip). Persists via the kernel
+    // settings, captured post-boot.
+    if (log != null) {
+      registerLogCommands(dispatcher, log, (name) async => await kernelSettings?.set<String>('app.log.level', name));
+    }
     // Trusted read-only roots beyond the workspace: the global Claude
     // config dir (~/.claude), so the reader can open user-scope skill /
     // agent / command markdown the Config tab surfaces (D-80, T-195).
@@ -423,6 +433,7 @@ Future<void> main() async {
   kernelReaderNav = services.readerNav;
   kernelMessages = services.messages;
   kernelFilterStates = services.filterStates;
+  kernelSettings = services.settings;
   // Tee the IPC/MCP logger into the shared ring so the output dock (T-54)
   // shows socket-side logs alongside kernel/extension ones.
   ipcLog.addSink(services.logRing.add);

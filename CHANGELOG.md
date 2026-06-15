@@ -35,6 +35,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   thread / handle / child-host / RSS counts to `clide-watchdog.log` — a climbing
   child or thread count is the leak signature. Survives a frozen main isolate;
   spawn failure is non-fatal. (T-435)
+- **Live log-verbosity toggle.** The output dock's Level chip now sets the
+  running logger's level and persists `app.log.level` (not just a view filter),
+  and `clide log level [<level>]` does the same from the CLI — D-6 parity. The
+  choice survives restart. (T-433)
 
 ## [2.5.0] — 2026-06-14
 

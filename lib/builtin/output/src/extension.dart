@@ -2,6 +2,8 @@
 /// merged health/toggle status-bar widget, and the `dock.toggle` command.
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/output/src/dock_status_item.dart';
 import 'package:clide/builtin/output/src/output_view.dart';
 import 'package:clide/clide.dart';
@@ -35,7 +37,20 @@ class OutputExtension extends ClideExtension {
       slot: Slots.dock,
       title: 'Output',
       priority: -100, // sort before Problems in the dock tab bar
-      build: (ctx) => OutputView(ring: ClideKernel.of(ctx).logRing),
+      build: (ctx) {
+        // The Level chip is the live verbosity toggle (T-433): drive the kernel
+        // logger + persist app.log.level so the choice survives restart and
+        // matches the `clide log level` CLI (D-6 parity).
+        final k = ClideKernel.of(ctx);
+        return OutputView(
+          ring: k.logRing,
+          initialLevel: k.log.minLevel,
+          onMinLevelChanged: (level) {
+            k.log.minLevel = level;
+            unawaited(k.settings.set('app.log.level', level.name));
+          },
+        );
+      },
     ),
     StatusItemContribution(
       id: 'output.dock-toggle',
