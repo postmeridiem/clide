@@ -25,6 +25,7 @@ library;
 
 import 'dart:io';
 
+import 'package:clide/src/pty/pty_log.dart';
 import 'package:clide/src/pty/windows_pty.dart';
 
 Future<void> main(List<String> args) async {
@@ -33,6 +34,13 @@ Future<void> main(List<String> args) async {
     exit(2);
   }
   final count = args.isNotEmpty ? (int.tryParse(args.first) ?? 1) : 1;
+
+  // When CLIDE_LOG_DIR is set (the soak workflow sets it), emit FFI breadcrumbs
+  // so that when soak-conpty-kill.ps1 force-kills this process mid-life, the
+  // reader/waiter isolates' LAST crumb (e.g. "ReadFile enter") is on disk —
+  // CI then uploads it, naming what the reader was doing when killed (T-436).
+  final logDir = Platform.environment['CLIDE_LOG_DIR'];
+  final ptyLog = (logDir == null || logDir.isEmpty) ? PtyLog.none : PtyLog(crumbPath: '$logDir/clide-pty.crumbs.log', verbose: true);
 
   final sessions = <WindowsPty>[];
   for (var i = 0; i < count; i++) {
@@ -44,6 +52,7 @@ Future<void> main(List<String> args) async {
       columns: 80,
       rows: 24,
       environment: {...Platform.environment, 'TERM': 'xterm-256color'},
+      log: ptyLog,
     );
     // Drain output so the reader isolate is actively pumping, closest to a
     // real live pane. Discard the bytes.

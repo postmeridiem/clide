@@ -65,18 +65,26 @@ String socketDirectory() {
 /// on logout/reboot — this is a DURABLE location. The whole point of the
 /// FileLogSink is that a freeze's last breadcrumbs survive the power-cycle, so
 /// the log dir must outlive a reboot.
-String logDirectory() {
+///
+/// `CLIDE_LOG_DIR` overrides everything: CI points it at a workspace dir
+/// outside the build tree so a wedged run's logs can be uploaded as an
+/// artifact (T-436), and tests redirect it to a temp dir.
+/// [env] defaults to [Platform.environment]; injectable for tests.
+String logDirectory([Map<String, String>? env]) {
+  final e = env ?? Platform.environment;
+  final override = e['CLIDE_LOG_DIR'];
+  if (override != null && override.isNotEmpty) return override;
   if (Platform.isWindows) {
-    final local = Platform.environment['LOCALAPPDATA'];
-    final base = (local != null && local.isNotEmpty) ? local : '${Platform.environment['USERPROFILE'] ?? r'C:\'}\\AppData\\Local';
+    final local = e['LOCALAPPDATA'];
+    final base = (local != null && local.isNotEmpty) ? local : '${e['USERPROFILE'] ?? r'C:\'}\\AppData\\Local';
     return '$base\\clide\\logs';
   }
   if (Platform.isMacOS) {
-    final home = Platform.environment['HOME'] ?? '/tmp';
+    final home = e['HOME'] ?? '/tmp';
     return '$home/Library/Logs/clide';
   }
-  final state = Platform.environment['XDG_STATE_HOME'];
-  final base = (state != null && state.isNotEmpty) ? state : '${Platform.environment['HOME'] ?? '/tmp'}/.local/state';
+  final state = e['XDG_STATE_HOME'];
+  final base = (state != null && state.isNotEmpty) ? state : '${e['HOME'] ?? '/tmp'}/.local/state';
   return '$base/clide/logs';
 }
 

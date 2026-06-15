@@ -22,8 +22,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   persistent per-platform dir (Windows `%LOCALAPPDATA%`, macOS `~/Library/Logs`,
   Linux `$XDG_STATE_HOME`), fsyncing warn/error + pty/ffi records immediately so
   a freeze leaves on-disk evidence. `CLIDE_LOG` (dart-define / env) or the
-  `app.log.level` setting sets verbosity (warn in release, info in debug).
-  (T-432)
+  `app.log.level` setting sets verbosity (warn in release, info in debug);
+  `CLIDE_LOG_DIR` redirects where the logs land. (T-432, T-436)
 - **PTY FFI breadcrumbs.** Each PTY backend drops a breadcrumb before/after
   every risky syscall (`CreatePseudoConsole`/`CreateProcessW`/`ReadFile`,
   `posix_spawn`/`read`); the reader/waiter isolates fsync their OWN file handle

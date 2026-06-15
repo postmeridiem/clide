@@ -80,6 +80,13 @@ jobs:
       - run: flutter pub get
       - name: ConPTY abrupt-death orphan probe
         shell: pwsh
+        # CLIDE_LOG_DIR makes the probe emit FFI breadcrumbs (T-436): when a
+        # parent is force-killed mid-life, its reader/waiter isolates' last
+        # crumb ("ReadFile enter" / "WaitForSingleObject enter") is fsynced to
+        # clide-pty.crumbs.log and uploaded below — naming what the wedged
+        # isolate was doing at the instant of death.
+        env:
+          CLIDE_LOG_DIR: ${{ github.workspace }}/kill-crumbs
         run: |
           $iters = "${{ github.event.inputs.kill_iterations }}"
           if (-not $iters) { $iters = "15" }
@@ -99,3 +106,10 @@ jobs:
           name: conpty-kill-probe
           path: kill-out
           if-no-files-found: warn
+      - name: Upload FFI breadcrumbs (last act of each killed reader/waiter)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conpty-kill-crumbs
+          path: ${{ github.workspace }}/kill-crumbs
+          if-no-files-found: ignore

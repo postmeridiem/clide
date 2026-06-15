@@ -62,6 +62,12 @@ void main() {
       final home = Platform.environment['HOME']!;
       expect(logDirectory(), '$home/Library/Logs/clide');
     });
+
+    test('CLIDE_LOG_DIR overrides everything (CI artifact / test redirect)', () {
+      expect(logDirectory({'CLIDE_LOG_DIR': '/tmp/ci-logs'}), '/tmp/ci-logs');
+      // Empty override is ignored — falls through to the platform default.
+      expect(logDirectory({'CLIDE_LOG_DIR': '', 'XDG_STATE_HOME': '/x', 'HOME': '/h'}), isNot('/'));
+    });
   });
 
   group('fnv1a64Hex (T-126 cross-check)', () {

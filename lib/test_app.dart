@@ -31,6 +31,7 @@ import 'kernel/kernel.dart';
 import 'src/pty/ffi/libc.dart' as libc;
 import 'src/daemon/pane_commands.dart';
 import 'src/ipc/envelope.dart';
+import 'src/ipc/paths.dart' show logDirectory;
 import 'src/panes/event_sink.dart';
 import 'src/panes/registry.dart';
 import 'src/daemon/dispatcher.dart';
@@ -59,11 +60,34 @@ class _ClideTestAppState extends State<ClideTestApp> {
   @override
   void initState() {
     super.initState();
+    _attachCrashLogging();
     WidgetsBinding.instance.addPostFrameCallback((_) => _runTests());
     Timer(_timeout, () {
       _say('timeout reached — exiting');
       exit(1);
     });
+  }
+
+  /// Opt-in crash evidence for testmode (T-436): when `CLIDE_LOG_DIR` is set
+  /// (CI / a manual Windows repro), tee this harness's logger to a
+  /// FileLogSink and spawn the watchdog, so a wedged testmode run leaves the
+  /// same log + watchdog files the real app would. `_say` breadcrumbs each
+  /// test through the logger, so they land in the file too. Off by default —
+  /// normal `make run-testmode` keeps the stderr-only path, no isolate.
+  void _attachCrashLogging() {
+    final dir = Platform.environment['CLIDE_LOG_DIR'];
+    if (dir == null || dir.isEmpty) return;
+    final logDir = logDirectory();
+    try {
+      _logger.addSink(FileLogSink(dir: Directory(logDir)).call);
+    } catch (_) {}
+    unawaited(_spawnWatchdog(logDir));
+  }
+
+  Future<void> _spawnWatchdog(String logDir) async {
+    try {
+      await Isolate.spawn(watchdogEntry, ('$logDir/clide-watchdog.log', 500, 2000));
+    } catch (_) {}
   }
 
   Future<void> _runTests() async {

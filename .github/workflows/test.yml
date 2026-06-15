@@ -97,7 +97,22 @@ jobs:
           # (tickets come from the changelog; decisions from `decisions sync`).
           pql plan import
           pql decisions sync
-      - run: make smoke-bundle
+      # Point the real release app's crash logs at an uploadable workspace dir
+      # (T-436): if the bundle wedges on boot, the watchdog heartbeat/sample +
+      # FileLogSink land here and get uploaded below. CLIDE_LOG=debug so the
+      # file sink captures info/debug, not just the release-default warn.
+      - name: bundle smoke (logs → artifact)
+        env:
+          CLIDE_LOG: debug
+          CLIDE_LOG_DIR: ${{ github.workspace }}/clide-logs
+        run: make smoke-bundle
+      - name: Upload crash logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-crash-logs
+          path: ${{ github.workspace }}/clide-logs
+          if-no-files-found: ignore
 
   # The web-WASM Playwright job is withheld: `flutter build web --wasm` cannot
   # compile the tree since the tree-sitter/PTY dart:ffi pivot (dart:ffi is
