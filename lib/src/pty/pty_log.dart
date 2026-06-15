@@ -65,7 +65,12 @@ class IsolateCrumbFile {
   IsolateCrumbFile(String? path, this.source, {int capBytes = 256 * 1024}) : _capBytes = capBytes {
     if (path == null) return;
     try {
-      final raf = File(path).openSync(mode: FileMode.append);
+      final f = File(path);
+      // Create the parent dir ourselves — a standalone caller (the soak probe)
+      // may point us at a dir nothing else has made yet. In the app the
+      // FileLogSink already created logDirectory(), so this is a no-op there.
+      f.parent.createSync(recursive: true);
+      final raf = f.openSync(mode: FileMode.append);
       _raf = raf;
       _size = raf.lengthSync();
     } catch (_) {

@@ -44,6 +44,14 @@ void main() {
       c.close();
     });
 
+    test('creates a missing parent directory (standalone soak probe case)', () {
+      final nested = '${dir.path}${Platform.pathSeparator}a${Platform.pathSeparator}b${Platform.pathSeparator}crumbs.log';
+      final c = IsolateCrumbFile(nested, 'conpty.reader')..crumb('ReadFile enter');
+      c.close();
+      expect(File(nested).existsSync(), isTrue);
+      expect(File(nested).readAsStringSync(), contains('ReadFile enter'));
+    });
+
     test('writes one tagged, timestamped line per crumb', () {
       final c = IsolateCrumbFile(path(), 'pty.reader');
       expect(c.enabled, isTrue);
