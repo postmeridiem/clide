@@ -23,20 +23,16 @@ void main() {
     });
   });
 
-  group('expandedPath', () {
-    test('returns a non-empty string on every platform', () {
+  group('expandedPath (delegates to the shared resolver, T-439)', () {
+    test('non-empty on every platform', () {
       expect(expandedPath, isNotEmpty);
     });
 
-    test('on Linux/Windows, equals Platform.environment[PATH]', () {
-      if (Platform.isMacOS) return; // macOS path-merge tested separately.
-      expect(expandedPath, Platform.environment['PATH']);
-    });
-
-    test('on macOS, includes the well-known extras', () {
-      if (!Platform.isMacOS) return;
-      // Homebrew is the canonical one; at least one of these should appear.
-      expect(expandedPath, anyOf(contains('/opt/homebrew/bin'), contains('/usr/local/bin')));
+    test('is a superset of the process PATH (never drops entries)', () {
+      final got = expandedPath.split(':').toSet();
+      for (final dir in (Platform.environment['PATH'] ?? '').split(':').where((e) => e.isNotEmpty)) {
+        expect(got, contains(dir));
+      }
     });
   });
 

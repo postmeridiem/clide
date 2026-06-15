@@ -58,6 +58,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   added to CI so the fence can't silently rot. Desktop builds are unchanged — the
   web target degrades (no terminal, no native git, no syntax highlighting), it
   does not compromise desktop fidelity. (T-438, D-100, Q-50)
+- **Desktop-launched clide finds your installed tools.** A dock/launcher start
+  inherits a sparse `PATH` (no `~/.local/bin`, brew, nvm, …), so pql/git/claude
+  and terminal tools could go missing. clide now resolves the real login-shell
+  `PATH` once at startup (`$SHELL -l -c`, bounded + graceful fallback) and routes
+  every spawn site — PTY children, git, the toolchain probe, hosted claude —
+  through one shared resolver, replacing three divergent (and partly macOS-only)
+  PATH expanders. (T-439, follows T-347)
 
 ## [2.5.0] — 2026-06-14
 

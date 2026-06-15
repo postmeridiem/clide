@@ -130,23 +130,8 @@ void main() {
     });
   });
 
-  group('expandedPath', () {
-    test('non-macOS returns PATH unchanged', () {
-      expect(expandedPath('/a:/b', macOS: false, home: '/home/x'), '/a:/b');
-    });
-
-    test('macOS prepends missing user + homebrew bins', () {
-      final out = expandedPath('/usr/bin', macOS: true, home: '/home/x').split(':');
-      expect(out, contains('/home/x/.local/bin'));
-      expect(out, contains('/opt/homebrew/bin'));
-      expect(out.last, '/usr/bin');
-    });
-
-    test('macOS does not duplicate entries already on PATH', () {
-      final out = expandedPath('/opt/homebrew/bin:/usr/bin', macOS: true, home: '');
-      expect('/opt/homebrew/bin'.allMatches(out).length, 1);
-    });
-  });
+  // PATH expansion moved to the shared resolver (T-439); its logic is covered by
+  // expandToolPath in toolchain_paths_test + shell_env_test.
 
   group('install', () {
     test('fails clearly when no bundled client is present', () {

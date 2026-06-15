@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:typed_data';
 
+import '../env/shell_env.dart' show resolvedToolPath;
 import '../ipc/envelope.dart';
 import '../pty/pty_log.dart';
 import '../pty/pty_session.dart';
@@ -53,6 +54,9 @@ class PaneRegistry {
     // Terminal defaults for the PTY child.
     final fullEnv = <String, String>{
       ...Platform.environment,
+      // The login-shell-resolved PATH so PTY children find user-installed tools
+      // even on a desktop launch (T-439); an explicit caller PATH still wins.
+      'PATH': resolvedToolPath(),
       'TERM': 'xterm-256color',
       'COLORTERM': 'truecolor',
       'LANG': 'en_US.UTF-8',

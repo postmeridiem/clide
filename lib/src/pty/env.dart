@@ -8,29 +8,14 @@
 /// the renderer can do true colour.
 library;
 
-import 'dart:io';
+import 'package:clide/src/env/shell_env.dart' show resolvedToolPath;
 
-/// On macOS, GUI apps inherit a minimal PATH that omits Homebrew,
-/// ~/.local/bin, and similar directories. This getter returns the
-/// platform PATH with those well-known directories merged in.
-/// On Linux/Windows it returns the PATH unchanged.
-String get expandedPath {
-  _cachedPath ??= _buildExpandedPath();
-  return _cachedPath!;
-}
-
-String? _cachedPath;
-
-String _buildExpandedPath() {
-  final base = Platform.environment['PATH'] ?? '';
-  if (!Platform.isMacOS) return base;
-  final home = Platform.environment['HOME'] ?? '';
-  final extras = <String>[if (home.isNotEmpty) '$home/.local/bin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin'];
-  final existing = base.split(':').toSet();
-  final missing = extras.where((p) => !existing.contains(p));
-  if (missing.isEmpty) return base;
-  return [...missing, ...existing].join(':');
-}
+/// The full tool search PATH for PTY children and PATH-resolved subprocess
+/// lookup — delegates to the shared resolver ([resolvedToolPath], T-439) so
+/// every spawn site agrees: the login-shell PATH (probed once at startup)
+/// unioned with the well-known user/local bin dirs. Previously this was a
+/// macOS-only merge, so a Linux desktop launch left tools unresolvable.
+String get expandedPath => resolvedToolPath();
 
 /// Base env clide builds for every PTY child. Callers merge with the
 /// user's environment — a child that needs user env like `HOME` /

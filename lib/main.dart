@@ -51,6 +51,7 @@ import 'package:clide/src/daemon/search_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
+import 'package:clide/src/env/shell_env.dart' show primeLoginShellPath;
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/mcp_server.dart';
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath, logDirectory;
@@ -100,6 +101,11 @@ Future<void> main() async {
   LogLevel bootLogLevel = kReleaseMode ? LogLevel.warn : LogLevel.info;
   List<LogSink> bootLogSinks = const [];
   if (!kIsWeb) {
+    // Resolve the user's real login-shell PATH once, before any tool resolution
+    // or spawn — a desktop/dock launch inherits a sparse PATH that misses
+    // ~/.local/bin, brew, nvm, etc. (T-439). Bounded + graceful: a slow/failed
+    // probe just falls back to the process PATH + well-known dirs.
+    await primeLoginShellPath();
     final bootSettings = SettingsStore(appDir: appDir);
     await bootSettings.load();
     startupWorkRoot = resolveStartupWorkspace(

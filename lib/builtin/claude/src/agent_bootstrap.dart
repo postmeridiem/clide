@@ -23,6 +23,7 @@ library;
 
 import 'dart:io';
 
+import 'package:clide/src/env/shell_env.dart' show resolvedToolPath;
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
 
 // Web fence (T-438, D-100): `Abi.current()` (dart:ffi) is desktop-only; the web
@@ -108,7 +109,10 @@ class AgentBootstrap {
 /// orchestrator merges both into one `--append-system-prompt`.
 AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base}) {
   final home = Platform.environment['HOME'];
-  final currentPath = (base ?? Platform.environment)['PATH'] ?? Platform.environment['PATH'];
+  // The login-shell-resolved PATH (T-439) so a hosted claude — and the tools it
+  // shells out to — find user-installed components on a desktop launch, not just
+  // the sparse GUI PATH. agentEnvDelta still prepends the clide-CLI dir.
+  final currentPath = resolvedToolPath();
   final candidates = <String>[
     if (home != null && home.isNotEmpty) '$home/.local/bin',
     '$workspaceRoot/native/${currentNativeDirName()}',

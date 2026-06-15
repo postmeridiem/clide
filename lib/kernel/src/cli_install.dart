@@ -14,6 +14,8 @@ library;
 
 import 'dart:io';
 
+import 'package:clide/src/env/shell_env.dart' show expandToolPath;
+
 /// State of the `clide` shell command relative to the running GUI.
 enum CliInstallState {
   /// No `clide` resolves on PATH.
@@ -209,7 +211,7 @@ class CliInstaller {
 
   static String get _pathSep => Platform.isWindows ? ';' : ':';
 
-  String _expandedPath() => expandedPath(env['PATH'] ?? '', macOS: Platform.isMacOS, home: env['HOME'] ?? '');
+  String _expandedPath() => expandToolPath(env['PATH'] ?? '', isMac: Platform.isMacOS, isLinux: Platform.isLinux, home: env['HOME'] ?? '');
 
   /// `~/.local/bin` on every platform — on Windows that is
   /// `%USERPROFILE%\.local\bin`, the same convention the claude and
@@ -234,16 +236,3 @@ final RegExp _devTreeClient = RegExp(r'(^|/)native/(linux|macos|windows)-(x64|ar
 /// PATH; it's a working client but not a packaged production install, so it's
 /// classified separately (T-256) rather than as a clean install.
 bool isDevTreeClient(String path) => _devTreeClient.hasMatch(path.replaceAll('\\', '/'));
-
-/// Expand a `PATH` value. Mirrors `toolchain_paths.dart`: macOS GUI apps
-/// launch with a sparse PATH that omits the usual user/homebrew bins, so on
-/// macOS we prepend those (de-duplicated) before scanning. A top-level,
-/// platform-parameterized function so both branches are testable off-platform.
-String expandedPath(String base, {required bool macOS, String home = ''}) {
-  if (!macOS) return base;
-  final extras = <String>[if (home.isNotEmpty) '$home/.local/bin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin'];
-  final existing = base.split(':').toSet();
-  final missing = extras.where((p) => !existing.contains(p));
-  if (missing.isEmpty) return base;
-  return [...missing, ...existing].join(':');
-}
