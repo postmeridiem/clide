@@ -25,6 +25,7 @@ import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 
 import 'errors.dart';
+import 'pty_log.dart';
 import 'pty_size.dart';
 import '../ipc/errno_mapping.dart' show PosixErrno;
 import 'ffi/libc.dart' as libc;
@@ -153,7 +154,12 @@ class NativePty implements PtySession {
   ReceivePort? _readerPort;
   Completer<void>? _readerExited;
 
-  NativePty._(this._fd, this.pid);
+  /// Breadcrumb file path + verbosity threaded into the reader isolate (T-434).
+  /// Plain values so they survive `Isolate.spawn`.
+  final String? _crumbPath;
+  final bool _verbose;
+
+  NativePty._(this._fd, this.pid, this._crumbPath, this._verbose);
 
   /// Byte stream of data produced by the child.
   @override
@@ -177,7 +183,9 @@ class NativePty implements PtySession {
     required int rows,
     String? workingDirectory,
     Map<String, String> environment = const {},
+    PtyLog log = PtyLog.none,
   }) {
+    log.crumb('native: start exe=$executable');
     // Resolve bare command names via PATH (posix_spawn requires an absolute
     // or relative path — posix_spawnp would search PATH for us but we want
     // resolution to be visible/debuggable from Dart).
@@ -296,8 +304,10 @@ class NativePty implements PtySession {
     }
 
     // ---- Spawn -------------------------------------------------------
+    log.crumb('native: posix_spawn enter');
     final spawnRc = _posixSpawn(pidOut, exeN, fa, attr, argvN, envpN);
     final pid = pidOut.value;
+    log.crumb('native: posix_spawn -> rc=$spawnRc pid=$pid');
 
     _faDestroy(fa);
     _spawnattrDestroy(attr);
@@ -318,7 +328,7 @@ class NativePty implements PtySession {
 
     freeAllInputs();
 
-    final pty = NativePty._(masterFd, pid);
+    final pty = NativePty._(masterFd, pid, log.crumbPath, log.verbose);
     pty._spawnReader();
     return pty;
   }
@@ -349,7 +359,7 @@ class NativePty implements PtySession {
       }
     });
     try {
-      _readerIsolate = await Isolate.spawn(_readLoop, (rp.sendPort, _fd));
+      _readerIsolate = await Isolate.spawn(_readLoop, (rp.sendPort, _fd, _crumbPath, _verbose));
     } catch (e) {
       // Surface the spawn failure instead of leaving the PTY in a
       // half-alive state where output never flows but isClosed=false.
@@ -363,8 +373,13 @@ class NativePty implements PtySession {
   }
 
   /// Isolate entry — polls then reads until EOF/error/fd-closed.
-  static void _readLoop((SendPort, int) msg) {
-    final (port, fd) = msg;
+  static void _readLoop((SendPort, int, String?, bool) msg) {
+    final (port, fd, crumbPath, verbose) = msg;
+    // The reader runs in a SPAWNED isolate with no Logger; it opens its own
+    // append handle so a wedge in read()/poll() leaves its last crumb on disk
+    // even if the main isolate is frozen too (T-434).
+    final crumbs = IsolateCrumbFile(crumbPath, 'pty.reader');
+    crumbs.crumb('reader started fd=$fd');
     final dl = ffi.DynamicLibrary.process();
     final rd = dl.lookupFunction<ffi.IntPtr Function(ffi.Int32, ffi.Pointer<ffi.Void>, ffi.IntPtr), int Function(int, ffi.Pointer<ffi.Void>, int)>('read');
     final poll = dl.lookupFunction<ffi.Int32 Function(ffi.Pointer<_Pollfd>, ffi.Uint32, ffi.Int32), int Function(ffi.Pointer<_Pollfd>, int, int)>('poll');
@@ -374,24 +389,36 @@ class NativePty implements PtySession {
     pfd.ref.fd = fd;
     pfd.ref.events = libc.pollin;
 
+    var reason = 'eof';
     try {
       while (true) {
         final ready = poll(pfd, 1, 100);
-        if (ready < 0) break;
+        if (ready < 0) {
+          reason = 'poll<0';
+          break;
+        }
         if (ready == 0) continue;
         // Slave closed (POLLHUP / POLLERR / POLLNVAL) with no buffered
         // bytes left to read — caller loop exits and we send EOF.
         if (pfd.ref.revents & libc.pollAnyErr != 0 && pfd.ref.revents & libc.pollin == 0) {
+          reason = 'pollhup';
           break;
         }
+        if (verbose) crumbs.crumb('read enter fd=$fd');
         final n = rd(fd, buf.cast(), 65536);
-        if (n <= 0) break;
+        if (verbose) crumbs.crumb('read -> n=$n');
+        if (n <= 0) {
+          reason = 'read<=0 ($n)';
+          break;
+        }
         port.send(Uint8List.fromList(buf.asTypedList(n)));
       }
     } finally {
       calloc.free(pfd);
       malloc.free(buf);
     }
+    crumbs.crumb('reader exiting ($reason)');
+    crumbs.close();
     port.send(null);
   }
 

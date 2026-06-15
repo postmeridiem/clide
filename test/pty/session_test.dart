@@ -18,6 +18,7 @@ import 'dart:io';
 
 import 'package:clide/src/pty/errors.dart';
 import 'package:clide/src/pty/native_pty.dart';
+import 'package:clide/src/pty/pty_log.dart';
 import 'package:test/test.dart';
 
 import '../helpers/timeouts.dart';
@@ -39,6 +40,40 @@ void main() {
 
       final got = await _readUntil(s, 'hello-pty', ioTimeout);
       expect(got, contains('hello-pty'));
+    });
+
+    test('emits FFI breadcrumbs to the main callback + the reader isolate crumb file (T-434)', tags: ['pty'], () async {
+      final dir = Directory.systemTemp.createTempSync('clide-pty-crumb-');
+      addTearDown(() {
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+      final crumbPath = '${dir.path}/pty.crumbs';
+      final mainCrumbs = <String>[];
+
+      final s = NativePty.start(
+        executable: '/bin/sh',
+        arguments: ['-c', 'echo crumb-test'],
+        columns: 80,
+        rows: 24,
+        workingDirectory: '/',
+        environment: {...Platform.environment, 'TERM': 'xterm-256color'},
+        log: PtyLog(onCrumb: mainCrumbs.add, crumbPath: crumbPath, verbose: true),
+      );
+      addTearDown(s.close);
+
+      // Drain to EOF so the reader isolate runs its full lifecycle (it writes
+      // its 'exiting' crumb + closes the file before sending the EOF we await).
+      await s.output.drain<void>().timeout(ioTimeout, onTimeout: () {});
+
+      // Main-isolate crumbs captured the spawn syscall sequence.
+      expect(mainCrumbs.join('\n'), contains('posix_spawn'));
+
+      // The SPAWNED reader isolate wrote its own crumbs to its own handle.
+      final crumbs = File(crumbPath).readAsStringSync();
+      expect(crumbs, contains('[pty.reader] reader started'));
+      expect(crumbs, contains('[pty.reader] reader exiting'));
+      // verbose:true → per-read crumbs around the (potentially blocking) read.
+      expect(crumbs, contains('[pty.reader] read -> n='));
     });
 
     test('write sends keystrokes to child', tags: ['pty'], () async {

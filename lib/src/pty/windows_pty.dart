@@ -45,6 +45,7 @@ import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 
 import 'errors.dart';
+import 'pty_log.dart';
 import 'pty_session.dart';
 import 'pty_size.dart';
 
@@ -259,6 +260,11 @@ class WindowsPty implements PtySession {
   Completer<void>? _readerExited;
   ReceivePort? _waiterPort;
 
+  /// Breadcrumb file path + verbosity threaded into the reader/waiter isolates
+  /// (T-434). Plain values so they survive `Isolate.spawn`.
+  String? _crumbPath;
+  bool _verbose = false;
+
   @override
   Stream<Uint8List> get output => _out.stream;
 
@@ -277,7 +283,9 @@ class WindowsPty implements PtySession {
     required int rows,
     String? workingDirectory,
     Map<String, String> environment = const {},
+    PtyLog log = PtyLog.none,
   }) {
+    log.crumb('conpty: start exe=$executable');
     executable = resolveExecutable(executable, environment);
 
     // ---- Pipes + pseudo console ---------------------------------------
@@ -308,7 +316,9 @@ class WindowsPty implements PtySession {
       ..ref.x = clampPtyDimension(columns)
       ..ref.y = clampPtyDimension(rows);
     final hpcOut = calloc<_Handle>();
+    log.crumb('conpty: CreatePseudoConsole enter');
     final hr = _createPseudoConsole(size.ref, inRead, outWrite, 0, hpcOut);
+    log.crumb('conpty: CreatePseudoConsole -> hr=$hr');
     calloc.free(size);
     if (hr != 0) {
       _closeHandle(inRead);
@@ -375,6 +385,7 @@ class WindowsPty implements PtySession {
       ..ref.lpAttributeList = attrList;
     final pi = calloc<_ProcessInformation>();
 
+    log.crumb('conpty: CreateProcessW enter');
     final ok = _createProcessW(
       ffi.nullptr,
       cmdLine,
@@ -388,6 +399,7 @@ class WindowsPty implements PtySession {
       pi,
     );
     final spawnErr = ok == 0 ? _getLastError() : 0;
+    log.crumb('conpty: CreateProcessW -> ok=$ok err=$spawnErr');
 
     _deleteAttrList(attrList);
     freeAttrs();
@@ -411,7 +423,10 @@ class WindowsPty implements PtySession {
     final childPid = pi.ref.dwProcessId;
     calloc.free(pi);
 
-    final pty = WindowsPty._(hpc, hProcess, hThread, inWrite, outRead, inRead, outWrite, childPid);
+    final pty = WindowsPty._(hpc, hProcess, hThread, inWrite, outRead, inRead, outWrite, childPid)
+      .._crumbPath = log.crumbPath
+      .._verbose = log.verbose;
+    log.crumb('conpty: spawned pid=$childPid');
     pty._spawnReader();
     pty._spawnWaiter();
     return pty;
@@ -439,7 +454,7 @@ class WindowsPty implements PtySession {
       }
     });
     try {
-      _readerIsolate = await Isolate.spawn(_readLoop, (rp.sendPort, _outRead.address));
+      _readerIsolate = await Isolate.spawn(_readLoop, (rp.sendPort, _outRead.address, _crumbPath, _verbose));
     } catch (e) {
       _dead = true;
       if (!_out.isClosed) _out.addError(PtyException('reader-spawn', '$e'));
@@ -450,8 +465,15 @@ class WindowsPty implements PtySession {
   }
 
   /// Isolate entry — blocking ReadFile until the ConPTY side closes.
-  static void _readLoop((SendPort, int) msg) {
-    final (port, handleAddr) = msg;
+  static void _readLoop((SendPort, int, String?, bool) msg) {
+    final (port, handleAddr, crumbPath, verbose) = msg;
+    // This isolate is the prime suspect for the freeze: ReadFile blocks
+    // forever if the ConPTY host never closes the pipe, and Isolate.kill
+    // can't interrupt the FFI (dart-lang/sdk#46680). It opens its OWN append
+    // handle so its last "ReadFile enter" crumb survives even a frozen main
+    // isolate — the breadcrumb that NAMES the wedge after a power-cycle (T-434).
+    final crumbs = IsolateCrumbFile(crumbPath, 'conpty.reader');
+    crumbs.crumb('reader started handle=$handleAddr');
     final handle = ffi.Pointer<ffi.Void>.fromAddress(handleAddr);
     final k32 = ffi.DynamicLibrary.open('kernel32.dll');
     final readFile = k32
@@ -462,20 +484,31 @@ class WindowsPty implements PtySession {
 
     final buf = malloc<ffi.Uint8>(65536);
     final nRead = calloc<ffi.Uint32>();
+    var reason = 'eof';
     try {
       while (true) {
         // Blocks until data, broken pipe (ConPTY closed), or invalid
         // handle (close() already released it).
+        if (verbose) crumbs.crumb('ReadFile enter');
         final ok = readFile(handle, buf, 65536, nRead, ffi.nullptr);
-        if (ok == 0) break;
+        if (verbose) crumbs.crumb('ReadFile -> ok=$ok n=${nRead.value}');
+        if (ok == 0) {
+          reason = 'broken-pipe/invalid';
+          break;
+        }
         final n = nRead.value;
-        if (n == 0) break;
+        if (n == 0) {
+          reason = 'n=0';
+          break;
+        }
         port.send(Uint8List.fromList(buf.asTypedList(n)));
       }
     } finally {
       calloc.free(nRead);
       malloc.free(buf);
     }
+    crumbs.crumb('reader exiting ($reason)');
+    crumbs.close();
     port.send(null);
   }
 
@@ -490,7 +523,7 @@ class WindowsPty implements PtySession {
       _waiterPort = null;
       _closeConsole();
     });
-    Isolate.spawn(_waitLoop, (wp.sendPort, _hProcess.address)).catchError((Object e) {
+    Isolate.spawn(_waitLoop, (wp.sendPort, _hProcess.address, _crumbPath)).catchError((Object e) {
       // Fall back to close()-driven teardown; the child just won't be
       // auto-reaped on self-exit.
       wp.close();
@@ -499,11 +532,15 @@ class WindowsPty implements PtySession {
     });
   }
 
-  static void _waitLoop((SendPort, int) msg) {
-    final (port, handleAddr) = msg;
+  static void _waitLoop((SendPort, int, String?) msg) {
+    final (port, handleAddr, crumbPath) = msg;
+    final crumbs = IsolateCrumbFile(crumbPath, 'conpty.waiter');
+    crumbs.crumb('waiter started; WaitForSingleObject(INFINITE) enter');
     final k32 = ffi.DynamicLibrary.open('kernel32.dll');
     final wait = k32.lookupFunction<ffi.Uint32 Function(_Handle, ffi.Uint32), int Function(_Handle, int)>('WaitForSingleObject');
-    wait(ffi.Pointer<ffi.Void>.fromAddress(handleAddr), _kInfinite);
+    final r = wait(ffi.Pointer<ffi.Void>.fromAddress(handleAddr), _kInfinite);
+    crumbs.crumb('WaitForSingleObject -> $r (child exited)');
+    crumbs.close();
     port.send(null);
   }
 

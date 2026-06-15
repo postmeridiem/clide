@@ -12,6 +12,7 @@ import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'native_pty.dart';
+import 'pty_log.dart';
 import 'windows_pty.dart';
 
 abstract interface class PtySession {
@@ -49,6 +50,7 @@ PtySession startPtySession({
   required int rows,
   String? workingDirectory,
   Map<String, String> environment = const {},
+  PtyLog log = PtyLog.none,
 }) {
   if (Platform.isWindows) {
     return WindowsPty.start(
@@ -58,6 +60,7 @@ PtySession startPtySession({
       rows: rows,
       workingDirectory: workingDirectory,
       environment: environment,
+      log: log,
     );
   }
   return NativePty.start(
@@ -67,5 +70,6 @@ PtySession startPtySession({
     rows: rows,
     workingDirectory: workingDirectory,
     environment: environment,
+    log: log,
   );
 }

@@ -24,6 +24,12 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   a freeze leaves on-disk evidence. `CLIDE_LOG` (dart-define / env) or the
   `app.log.level` setting sets verbosity (warn in release, info in debug).
   (T-432)
+- **PTY FFI breadcrumbs.** Each PTY backend drops a breadcrumb before/after
+  every risky syscall (`CreatePseudoConsole`/`CreateProcessW`/`ReadFile`,
+  `posix_spawn`/`read`); the reader/waiter isolates fsync their OWN file handle
+  so a wedged isolate's last crumb survives a freeze that also froze the main
+  isolate — naming the wedge after the fact. Per-syscall crumbs at debug level.
+  (T-434)
 
 ## [2.5.0] — 2026-06-14
 

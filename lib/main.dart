@@ -52,6 +52,7 @@ import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/mcp_server.dart';
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath, logDirectory;
+import 'package:clide/src/pty/pty_log.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
 import 'package:clide/src/panes/registry.dart';
@@ -131,6 +132,9 @@ Future<void> main() async {
   // The filter-state cache, captured post-boot so `ui.filter` can read a
   // box's current value back — the observe-half of D-6 (T-270).
   FilterStateCache? kernelFilterStates;
+  // The kernel Logger, captured in the factory so a post-boot project switch
+  // can rebuild the dispatcher with PTY breadcrumbs wired (T-434).
+  Logger? kernelLog;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -240,11 +244,23 @@ Future<void> main() async {
     Toolchain tc,
     Directory workRoot,
     LayoutArrangement arrangement,
-    PanelRegistry panels,
-  ) {
+    PanelRegistry panels, {
+    Logger? log,
+  }) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
-    final paneRegistry = PaneRegistry(events: eventSink);
+    // FFI breadcrumbs (T-434): route PTY crumbs to the kernel Logger (source
+    // 'conpty', an eager FileLogSink source) and a sendable crumb file the
+    // reader/waiter isolates open themselves. Verbose (per-syscall) crumbs only
+    // when the log level is debug/trace.
+    final ptyLog = (log == null || kIsWeb)
+        ? PtyLog.none
+        : PtyLog(
+            onCrumb: (m) => log.trace('conpty', m),
+            crumbPath: '${logDirectory()}/clide-pty.crumbs.log',
+            verbose: log.minLevel.index <= LogLevel.debug.index,
+          );
+    final paneRegistry = PaneRegistry(events: eventSink, ptyLog: ptyLog);
     // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
@@ -361,8 +377,9 @@ Future<void> main() async {
             daemonBus = events;
             kernelArrangement = arrangement;
             kernelPanels = panels;
+            kernelLog = log;
             final workRoot = startupWorkRoot;
-            final (dispatcher, teardown) = buildDispatcher(events, toolchain, workRoot, arrangement, panels);
+            final (dispatcher, teardown) = buildDispatcher(events, toolchain, workRoot, arrangement, panels, log: log);
             // Build the client at the workspace's socket path. The
             // server is started below (swapBackend) which the
             // client will then auto-connect to via its reconnect
@@ -387,7 +404,7 @@ Future<void> main() async {
             final arrangement = kernelArrangement;
             final panels = kernelPanels;
             if (bus == null || arrangement == null || panels == null) return;
-            final (dispatcher, teardown) = buildDispatcher(bus, toolchain, Directory(path), arrangement, panels);
+            final (dispatcher, teardown) = buildDispatcher(bus, toolchain, Directory(path), arrangement, panels, log: kernelLog);
             await swapBackend(dispatcher, teardown, Directory(path));
           },
   );

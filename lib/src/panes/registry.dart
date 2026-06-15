@@ -12,14 +12,19 @@ import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import '../ipc/envelope.dart';
+import '../pty/pty_log.dart';
 import '../pty/pty_session.dart';
 import 'event_sink.dart';
 import 'pane.dart';
 
 class PaneRegistry {
-  PaneRegistry({required this.events});
+  PaneRegistry({required this.events, this.ptyLog = PtyLog.none});
 
   final DaemonEventSink events;
+
+  /// Breadcrumb hook handed to every PTY this registry spawns (T-434). Default
+  /// no-op; production wires it to the kernel Logger + a crumb file.
+  final PtyLog ptyLog;
   final Map<String, Pane> _panes = {};
   final Map<String, PtySession> _sessions = {};
   final Map<String, StreamSubscription<Uint8List>> _subs = {};
@@ -55,7 +60,15 @@ class PaneRegistry {
       ...?env,
     };
 
-    final session = startPtySession(executable: executable, arguments: arguments, columns: cols, rows: rows, workingDirectory: cwd, environment: fullEnv);
+    final session = startPtySession(
+      executable: executable,
+      arguments: arguments,
+      columns: cols,
+      rows: rows,
+      workingDirectory: cwd,
+      environment: fullEnv,
+      log: ptyLog,
+    );
     final pane = Pane(id: id, kind: kind, pid: session.pid, argv: argv, cwd: cwd, title: title);
     _panes[id] = pane;
     _sessions[id] = session;
