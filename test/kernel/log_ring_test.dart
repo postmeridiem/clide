@@ -74,7 +74,7 @@ void main() {
     final sub = ring.changes.listen(events.add);
     ring.add(_rec(LogLevel.info, 'x', 'a'));
     ring.clear();
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(events.length, 2);
     await sub.cancel();
     ring.dispose();
@@ -85,7 +85,7 @@ void main() {
     final events = <void>[];
     final sub = ring.changes.listen(events.add);
     ring.clear();
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(events, isEmpty);
     await sub.cancel();
     ring.dispose();

@@ -4385,3 +4385,706 @@ PLAN: parse system task_* into a WorkflowRun model keyed by tool_use_id in Strea
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBPQ8QNGJFFK7G24CBWQAR2C', 'status', 'ready', 'in_progress', NULL, '2026-06-12 14:22:45', '2026-06-12 14:22:45', '2026-06-12 14:22:45', NULL, 'bff47e0f2b4ebfbf5a4ca6b9c7b45825', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBPQ8QNGJFFK7G24CBWQAR2C', 'status', 'in_progress', 'done', NULL, '2026-06-12 14:52:31', '2026-06-12 14:52:31', '2026-06-12 14:52:31', NULL, 'd05d502773832fcfb5c8baf19a606b1c', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBP3EZC7AJANXZVF3D91QYWM', 'status', 'ready', 'done', NULL, '2026-06-12 19:44:20', '2026-06-12 19:44:20', '2026-06-12 19:44:20', NULL, '3637ac53f5fc94698f604db89fdcb7e0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP67X1Y1FEE9T5R0E5DA9C', 'status', 'backlog', 'ready', NULL, '2026-06-12 19:54:32', '2026-06-12 19:54:32', '2026-06-12 19:54:32', NULL, 'b70e45fbed6d4ad8d2c6e0e6abc5b443', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP8KFAF526ZNXBQS98DPPG', 'description', 'Bind vim''s window-command prefix in assets/keymaps/vim.yaml, guarded `when: vim.normal` (and probably `|| vim.visual`), mapping onto the existing panel commands — no new services:
+
+- `ctrl+w h` → command:panel.focus.left; `ctrl+w l` → command:panel.focus.right (clide''s three-column layout has no vertical pane stack, so j/k map to the dock: `ctrl+w j` → command:dock.toggle — document the approximation in the YAML comment)
+- `ctrl+w w` and `ctrl+w ctrl+w` → focus.nextPanel; `ctrl+w shift+w` → focus.previousPanel
+- `ctrl+w o` → command:panel.focusMode (vim "only" — exact semantic match)
+- `ctrl+w q` and `ctrl+w c` → command:editor.close
+
+Conflict to resolve (the real work): editor.close carries defaultBinding ''ctrl+w'' globally. Verify how preset bindings + defaultBindings merge in KeymapService, and that the sequence matcher''s pending-exact path (sequence_matcher.dart, _pendingExact + timeout flush) makes bare ctrl+w wait for a possible second chord under the vim preset — bare ctrl+w should still close the editor after the ambiguity timeout, prefix completions should win immediately. Add matcher tests for chord-prefixed sequences (existing tests cover `d d` letter sequences; `ctrl+w h` adds a modified first chord).
+
+Done when: all bindings above work under the vim preset with editor focused AND with tree/conversation focused (they''re global commands, not editor.vim.*); bare ctrl+w still closes the editor after the timeout; no behavior change under default/vscode/jetbrains presets; keymap loader + matcher tests cover the new shapes.', 'Bind vim''s window-command prefix in assets/keymaps/vim.yaml, guarded `when: vim.normal` (and probably `|| vim.visual`), mapping onto the existing panel commands — no new services:
+
+- `ctrl+w h` → command:panel.focus.left; `ctrl+w l` → command:panel.focus.right (clide''s three-column layout has no vertical pane stack, so j/k map to the dock: `ctrl+w j` → command:dock.toggle — document the approximation in the YAML comment)
+- `ctrl+w w` and `ctrl+w ctrl+w` → focus.nextPanel; `ctrl+w shift+w` → focus.previousPanel
+- `ctrl+w o` → command:panel.focusMode (vim "only" — exact semantic match)
+- `ctrl+w q` and `ctrl+w c` → command:editor.close
+
+Conflict to resolve (the real work): editor.close carries defaultBinding ''ctrl+w'' globally. Verify how preset bindings + defaultBindings merge in KeymapService, and that the sequence matcher''s pending-exact path (sequence_matcher.dart, _pendingExact + timeout flush) makes bare ctrl+w wait for a possible second chord under the vim preset — bare ctrl+w should still close the editor after the ambiguity timeout, prefix completions should win immediately. Add matcher tests for chord-prefixed sequences (existing tests cover `d d` letter sequences; `ctrl+w h` adds a modified first chord).
+
+Done when: all bindings above work under the vim preset with editor focused AND with tree/conversation focused (they''re global commands, not editor.vim.*); bare ctrl+w still closes the editor after the timeout; no behavior change under default/vscode/jetbrains presets; keymap loader + matcher tests cover the new shapes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Bind the vim ctrl+w window-command family onto existing panel commands — but the "YAML + small command, no new services" framing is WRONG: no surface can match a ctrl+w-prefixed sequence today. The global handler (lib/src/shell/root_shell.dart _onKey → KeymapService.resolveEvent → Keymap.resolve) is single-chord only and explicitly skips `b.isSequence` bindings — it has no SequenceMatcher. The only SequenceMatcher lives in the editor (lib/builtin/editor/src/editor_view.dart:68), and its _onKey returns KeyEventResult.ignored for any non-shift-modified chord (lines 213-215), so even editor-focused the matcher never sees ctrl+w. The real work is a global/shared SequenceMatcher (with D-82 pending-exact + timeout flush) so ctrl+w buffers and `ctrl+w h` resolves, while bare ctrl+w still fires editor.close after the timeout. The YAML bindings + matcher tests are the small part.
+
+ACCEPTANCE CRITERIA:
+- vim.yaml gains ctrl+w bindings: `ctrl+w h`→panel.focus.left, `ctrl+w l`→panel.focus.right, `ctrl+w j`→dock.toggle (comment the 3-column approximation), `ctrl+w w`/`ctrl+w ctrl+w`→focus.nextPanel, `ctrl+w shift+w`→focus.previousPanel, `ctrl+w o`→panel.focusMode, `ctrl+w q`/`ctrl+w c`→editor.close, all `when: vim.normal || vim.visual`.
+- A global (non-editor) key path matches multi-chord sequences: `ctrl+w h` fires panel.focus.left with the file tree / conversation focused (those panes have no Focus key handler today), not just editor-focused.
+- Bare ctrl+w still closes the editor after the ambiguity timeout under vim (editor.close''s contributions-layer ctrl+w binding preserved); a completed prefix (ctrl+w o) fires immediately and suppresses bare ctrl+w.
+- No resolution change under default/vscode/jetbrains — editor_presets_test.dart `ctrl+w → editor.close` (e.g. line 60) stays green.
+- sequence_matcher / loader tests cover a modified first chord (ctrl+w h) and the ctrl+w-vs-ctrl+w-h exact-plus-prefix ambiguity, paralleling the `d d` / `ctrl+k ctrl+s` cases.
+- make analyze + format + keymap suite pass; 95% coverage floor holds.
+
+FILES: assets/keymaps/vim.yaml; lib/src/shell/root_shell.dart (_onKey — single-chord today, needs buffering); lib/kernel/src/keymap/keymap_service.dart (resolveEvent single-chord; may need a sequence-aware surface); lib/kernel/src/keymap/sequence_matcher.dart (reuse as-is); lib/builtin/editor/src/editor_view.dart (lines 213-215 drop ctrl chords — decide intercept here vs globally); test/kernel/src/keymap/{sequence_matcher_test,editor_presets_test,shipped_presets_test}.dart.
+
+DEPENDENCIES: Hard dependency on the global-matcher wiring that T-406 ("the structural one") is scoped to own — non-editor panes have NO key handling today, so "works with tree/conversation focused" is unachievable until that lands. Build the global SequenceMatcher once, in one place; sequence with T-406. Independent of T-405/T-407 at the binding level, but all four share the global key-routing surface — coordinate ordering to avoid three matcher rewires.
+
+OPEN QUESTIONS:
+- Where does the global multi-chord matcher live — a buffer in root_shell._onKey, a sequence-aware KeymapService method, or is it explicitly T-406''s deliverable that T-404 consumes? Determines whether T-404 is "small" or carries the structural lift.
+- ctrl+w must be intercepted before the editor''s _onKey discards it AND before the global single-chord resolveEvent fires editor.close immediately — confirm timeout/pending-exact ordering so bare ctrl+w isn''t swallowed when no second chord arrives.
+- No ctrl+w mapping to the middle/workspace panel though panel.focus.middle (ctrl+2) exists — intentional for the 3-column model, or add `ctrl+w k`? (j is taken by dock.toggle.)
+- Should the family also fire in vim.insert (it shouldn''t — ctrl chords pass through there); does guarding on vim.normal||vim.visual leave insert alone correctly?', NULL, '2026-06-12 20:03:16', '2026-06-12 20:03:16', '2026-06-12 20:03:16', NULL, '7171f5ba9998c641743b8a0341f32364', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPAZR4XEV8YW3PVR2XJBFC', 'description', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Two halves. (1) Add workspace.tab.next / workspace.tab.previous commands in lib/builtin/default_layout/src/extension.dart that cycle the workspace slot''s tab strip with wraparound, with defaultBindings ctrl+pagedown / ctrl+pageup so EVERY preset gains tab cycling. PanelRegistry (lib/kernel/src/panels/registry.dart) confirms the gap — only activateTab(SlotId,tabId), activeTabIn(SlotId), tabsFor(SlotId); no cycle — so compute the wrapped index from tabsFor+activeTabIn, or add a cycleTab method. (2) Bind `g t`→workspace.tab.next and `g shift+t`→workspace.tab.previous, `when: vim.normal`. Half (1) is fully achievable TODAY (single-chord resolveEvent + InvokeCommandIntent→commands.execute bridge in root_shell.dart both exist; pagedown/pageup tokens exist in key_chord.dart). Half (2) shares T-404''s blocker: no global SequenceMatcher, so a `g`-prefixed sequence can''t buffer outside the editor. `g g` (docStart) is already bound vim.normal||vim.visual, so `g t` slots beside it — but only once a matcher runs on the focused surface.
+
+ACCEPTANCE CRITERIA:
+- workspace.tab.next/previous registered in default_layout, cycling Slots.workspace tabs (tabsFor order) with wraparound; no-op at 0/1 tab.
+- defaultBindings ctrl+pagedown / ctrl+pageup so default/vscode/jetbrains cycle workspace tabs without YAML edits; verified via keymap resolution test.
+- vim.yaml binds `g t`→workspace.tab.next, `g shift+t`→workspace.tab.previous, when: vim.normal.
+- gt/gT cycle workspace tabs under vim; the `g` prefix is shared with `g g` docStart without breaking either.
+- Existing alt+1..5 sidebar-section behavior unchanged (those target Slots.sidebar, not workspace).
+- A matcher/loader test covers two sequences sharing the `g` prefix with different finals (g g vs g t) under vim scope.
+- make analyze + format + keymap/panel tests pass; coverage floor holds for default_layout / registry if touched.
+
+FILES: lib/builtin/default_layout/src/extension.dart (two CommandContributions w/ defaultBinding ctrl+pagedown/up + handlers computing wrapped index, following the sidebar.section.N / editor.close pattern); lib/kernel/src/panels/registry.dart (optional cycleTab helper); assets/keymaps/vim.yaml (g t / g shift+t near `g g`); lib/src/shell/root_shell.dart (global path that must buffer `g` — same surface as T-404); test/kernel/src/keymap/{editor_presets_test,sequence_matcher_test}.dart; test/kernel/src/panels/registry_test.dart (verify path before assuming).
+
+DEPENDENCIES: Part 1 (ctrl+pagedown/up) is fully independent and shippable now — needs only the existing single-chord path + InvokeCommandIntent bridge. Part 2 (gt/gT) shares T-404''s hard dependency on a global multi-chord matcher (the structural work T-406 owns). Recommend: land part 1 first (immediate value, every preset), gate part 2 behind whichever ticket introduces the global matcher. Coordinate matcher wiring with T-404 so it isn''t built twice. No conflict with T-407.
+
+OPEN QUESTIONS:
+- Add a cycleTab/activateNext API to PanelRegistry, or compute the wrapped index in the handler from tabsFor(Slots.workspace)+activeTabIn? Registry method is cleaner/reusable but widens coverage surface; handler-local keeps the change in default_layout.
+- Cycle Slots.workspace specifically, or the currently-focused slot''s tab strip (so gt cycles whatever column has focus)? Ticket says workspace; confirm against the cross-pane intent of the epic.
+- Confirm ctrl+pagedown/up don''t collide with terminal/Claude pane passthrough or an existing binding in any of the four presets before claiming "free for every preset".
+- Does gt/gT need a visual-mode guard, or is vim.normal-only correct? (vim allows gt in normal; the gg precedent uses normal||visual.)', NULL, '2026-06-12 20:03:43', '2026-06-12 20:03:43', '2026-06-12 20:03:43', NULL, 'e6a5c7b4074b0e097a4fc5ee1d359ae6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPD85PFBPJJTQ0WS3PWWXR', 'description', 'The structural piece: make vim NORMAL mode mean something in panes that aren''t the editor. Today the file tree, ticket board, git panel, and conversation view have no keyboard handling at all (mouse-only — verified 2026-06-12); under the vim preset, j/k outside the editor are dead keys.
+
+Mechanism (follow the ActivateIntent pattern from default.yaml — intents dispatched via Actions.maybeInvoke against the FOCUSED context, so only opted-in widgets respond and there''s no global-flag confusion):
+
+1. New typed intents in kernel/src/keymap/intents.dart: nav.down / nav.up / nav.pageDown / nav.pageUp / nav.top / nav.bottom / nav.expandOrRight / nav.collapseOrLeft / nav.activate (ids in builtinIntents).
+2. vim.yaml binds them when "vim.normal && !editor.focused": j/k, ctrl+d/ctrl+u, "g g"/shift+g, l/h, [o, enter]. Needs an editor.focused scope flag if none exists — check what the editor publishes today; the editor''s own key handler consumes j/k first when focused, so the guard may even be unnecessary — verify dispatch order and document it.
+3. Panes opt in with Actions handlers:
+   - file tree (lib/builtin/files/src/file_tree_view.dart): selection cursor + j/k move, h/l collapse/expand-or-step-into, o/enter open (the NERDTree idiom)
+   - conversation view (lib/builtin/claude/src/conversation_view.dart): j/k line scroll, ctrl+d/u half page, G jump-to-bottom AND re-arm follow-tail (_atBottom), gg top
+   - ticket board + git panel lists: selection cursor + activate
+4. default/vscode/jetbrains presets can bind the same intents to arrows/page keys later — the intents are preset-neutral; this ticket only wires vim.
+
+Scope guard: this is keyboard NAVIGATION only — no editing semantics outside the editor. Start with tree + conversation (highest value), lists can trail in a follow-up commit on the same ticket.
+
+Done when: with the vim preset active and the tree/conversation focused, j/k/ctrl+d/ctrl+u/gg/G work as above; widget tests per pane; zero behavior change under other presets and in insert mode.', 'The structural piece: make vim NORMAL mode mean something in panes that aren''t the editor. Today the file tree, ticket board, git panel, and conversation view have no keyboard handling at all (mouse-only — verified 2026-06-12); under the vim preset, j/k outside the editor are dead keys.
+
+Mechanism (follow the ActivateIntent pattern from default.yaml — intents dispatched via Actions.maybeInvoke against the FOCUSED context, so only opted-in widgets respond and there''s no global-flag confusion):
+
+1. New typed intents in kernel/src/keymap/intents.dart: nav.down / nav.up / nav.pageDown / nav.pageUp / nav.top / nav.bottom / nav.expandOrRight / nav.collapseOrLeft / nav.activate (ids in builtinIntents).
+2. vim.yaml binds them when "vim.normal && !editor.focused": j/k, ctrl+d/ctrl+u, "g g"/shift+g, l/h, [o, enter]. Needs an editor.focused scope flag if none exists — check what the editor publishes today; the editor''s own key handler consumes j/k first when focused, so the guard may even be unnecessary — verify dispatch order and document it.
+3. Panes opt in with Actions handlers:
+   - file tree (lib/builtin/files/src/file_tree_view.dart): selection cursor + j/k move, h/l collapse/expand-or-step-into, o/enter open (the NERDTree idiom)
+   - conversation view (lib/builtin/claude/src/conversation_view.dart): j/k line scroll, ctrl+d/u half page, G jump-to-bottom AND re-arm follow-tail (_atBottom), gg top
+   - ticket board + git panel lists: selection cursor + activate
+4. default/vscode/jetbrains presets can bind the same intents to arrows/page keys later — the intents are preset-neutral; this ticket only wires vim.
+
+Scope guard: this is keyboard NAVIGATION only — no editing semantics outside the editor. Start with tree + conversation (highest value), lists can trail in a follow-up commit on the same ticket.
+
+Done when: with the vim preset active and the tree/conversation focused, j/k/ctrl+d/ctrl+u/gg/G work as above; widget tests per pane; zero behavior change under other presets and in insert mode.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Make vim normal-mode keys mean navigation in panes that are mouse-only today (verified: file_tree_view.dart, conversation_view.dart, git_panel_view.dart, tickets_view.dart all use ClideTappable rows with no nav-key handling). Add typed nav.* intents to lib/kernel/src/keymap/intents.dart + builtinIntents, bind them in vim.yaml under vim.normal, then have each pane opt in. CRITICAL structural finding the ticket understates: the global key path (RootShell._onKey) is a passive KeyboardListener doing single-chord resolveEvent only — it CANNOT consume events or run sequences. Multi-key motions (gg, disambiguating bare j/k from text) require each pane to host its OWN SequenceMatcher inside a Focus.onKeyEvent handler, exactly like the editor (editor_view.dart _onKey + _matcher, lines 169-227). So the real work per pane is a focusable key handler + matcher, with nav.* as the dispatched vocabulary; YAML bindings alone are insufficient. Start with file tree (NERDTree idiom: a NEW flat-index selection-cursor model over the recursive _Children tree + FileTreeController) and conversation (j/k scroll _scroll by a line, ctrl+d/u half-page, G→maxScrollExtent AND re-arm _atBottom follow-tail, gg→0). Lists (tickets/git) trail in a follow-up commit. Navigation only — no editing semantics outside the editor.
+
+THIS IS T-403''s STRUCTURAL CHILD: it establishes whether non-editor panes can run sequence matchers at all. T-404 (ctrl+w) and T-405 part 2 (gt/gT) consume that capability — land/decide this first.
+
+ACCEPTANCE CRITERIA:
+- nav.down/up/pageDown/pageUp/top/bottom/expandOrRight/collapseOrLeft/activate intent classes added to intents.dart + registered in builtinIntents by id.
+- vim.yaml binds j/k/ctrl+d/ctrl+u/`g g`/shift+g/l/h/`o`,`enter` to those intents under vim.normal, with zero resolution under default/vscode/jetbrains and in vim.insert/vim.visual.
+- file tree (file_tree_view.dart + file_tree_controller.dart): j/k move a visible selection cursor over the flattened expanded tree, h collapses-or-steps-out, l expands-or-steps-in, o/enter opens via openWorkspaceFile; selection/focus ring visible.
+- conversation (conversation_view.dart): j/k scroll ~one line, ctrl+d/u half a viewport, gg→offset 0, G→_scroll.position.maxScrollExtent and sets _atBottom=true so follow-tail re-arms.
+- each opted-in pane handles motions via its own Focus.onKeyEvent + SequenceMatcher (mirroring editor_view.dart) so gg and bare j/k resolve without leaking to text or other panes.
+- widget tests per pane (tree, conversation) prove the motions; editor vim tests + other-preset behavior unchanged.
+- git panel + ticket board list nav delivered OR explicitly deferred to a follow-up commit on this ticket.
+
+FILES: lib/kernel/src/keymap/intents.dart; assets/keymaps/vim.yaml (mind the `g g` docStart prefix); lib/builtin/files/src/file_tree_view.dart; lib/builtin/files/src/file_tree_controller.dart (NEW flat visible-index + selection model); lib/builtin/claude/src/conversation_view.dart (reuse _atBottom/_trackBottom/jumpTo, lines ~90-114, 280-290); lib/builtin/git/src/git_panel_view.dart + lib/builtin/tickets/src/tickets_view.dart (follow-up); test/builtin/editor/vim_preset_test.dart + new per-pane widget tests under test/builtin/files and test/builtin/claude.
+
+DEPENDENCIES: Should land before T-404/T-405 conceptually (it decides whether non-editor panes can run matchers), but technically independent (different intents/files). Shares the vim.yaml `g`-prefix space with T-405 (g t / g shift+t) and the existing `g g` docStart — coordinate the shared `g` sequence-prefix tests. No code conflict with T-404 (ctrl+w) or T-407 (`:` overlay).
+
+OPEN QUESTIONS:
+- The `vim.normal && !editor.focused` guard assumes an editor.focused scope flag — VERIFIED it does NOT exist (only in comments; vscode.yaml notes it "has no producer yet"). Decide: (a) create the producer (FocusTracker.setActive in lib/kernel/src/focus.dart publishing editor.focused via KeymapService.setScopeFlag), or (b) rely on the editor''s own _onKey consuming bare j/k first when focused and drop the guard — (b) only works because each pane owns its handler.
+- File-tree selection needs a flat index over a recursive, lazily-loaded widget tree (_Children recursion). Confirm the cursor model lives in FileTreeController (flattening _expanded + entriesFor) vs recomputed in the view — affects testability + scroll-into-view.
+- Conversation uses ListView.builder with grouped/coalesced items; j/k "line scroll" is pixel-offset, not item selection. Confirm pixel-scroll (reader-pane semantic) is intended vs card-by-card selection.
+- Should focusing a pane via F6/ctrl+1..3 (FocusTracker.focusSlot) also focus the inner nav handler so j/k work immediately, or must the user click in first?', NULL, '2026-06-12 20:03:58', '2026-06-12 20:03:58', '2026-06-12 20:03:58', NULL, 'f7e4047127e864a5a20f1b3c5d7578a3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'description', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?', NULL, '2026-06-12 20:04:07', '2026-06-12 20:04:07', '2026-06-12 20:04:07', NULL, '916ff113755b114298ca32762fa815b0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP67X1Y1FEE9T5R0E5DA9C', 'description', 'From the 2026-06-12 vim keybind review (user: "we are leaving opportunities on the table" for cross-pane vim interactions). Findings:
+
+TODAY the vim layer (T-65) is editor-only. vim.normal/insert/visual scope flags are global (VimModeService), but every binding in vim.yaml either targets editor.vim.* (applied by the focused editor''s key handler, editor_view.dart _dispatchVim) or is a copy of the default preset''s app chords. Outside the editor, the vim preset offers nothing vim-shaped: no ctrl+w window family, no gt/gT, no j/k in the file tree / ticket list / git panel / conversation (those panes have NO key handling at all — mouse-only), no ex command line (vim_mode_service.dart explicitly defers it as "a transient overlay").
+
+EXISTING primitives to map onto: focus.nextPanel/previousPanel (F6/shift+F6), panel.focus.left/middle/right (ctrl+1/2/3), panel.focusMode (ctrl+. — semantically EXACTLY vim''s ctrl+w o "only"), editor.open/close (ctrl+e/ctrl+w), dock.toggle (ctrl+j), sidebar.collapse/context.collapse, quickOpen, alt+1..5 sidebar sections. The D-82 sequence matcher already resolves exact-vs-longer ambiguity with a pending-exact + timeout (sequence_matcher.dart _pendingExact), so chord-prefixed sequences like "ctrl+w h" are expressible in preset YAML today.
+
+GAP also found: no workspace tab next/prev cycling command exists for ANY preset (only direct alt+N for sidebar sections) — child ticket adds the commands, vim binds gt/gT to them.
+
+Children: T-404 (ctrl+w window-command family), T-405 (tab cycle commands + gt/gT), T-406 (normal-mode list/scroll nav intents for non-editor panes), T-407 (ex command-line overlay). 404/405 are YAML+small-command work; 406 is the structural one; 407 is the most visible.', 'From the 2026-06-12 vim keybind review (user: "we are leaving opportunities on the table" for cross-pane vim interactions). Findings:
+
+TODAY the vim layer (T-65) is editor-only. vim.normal/insert/visual scope flags are global (VimModeService), but every binding in vim.yaml either targets editor.vim.* (applied by the focused editor''s key handler, editor_view.dart _dispatchVim) or is a copy of the default preset''s app chords. Outside the editor, the vim preset offers nothing vim-shaped: no ctrl+w window family, no gt/gT, no j/k in the file tree / ticket list / git panel / conversation (those panes have NO key handling at all — mouse-only), no ex command line (vim_mode_service.dart explicitly defers it as "a transient overlay").
+
+EXISTING primitives to map onto: focus.nextPanel/previousPanel (F6/shift+F6), panel.focus.left/middle/right (ctrl+1/2/3), panel.focusMode (ctrl+. — semantically EXACTLY vim''s ctrl+w o "only"), editor.open/close (ctrl+e/ctrl+w), dock.toggle (ctrl+j), sidebar.collapse/context.collapse, quickOpen, alt+1..5 sidebar sections. The D-82 sequence matcher already resolves exact-vs-longer ambiguity with a pending-exact + timeout (sequence_matcher.dart _pendingExact), so chord-prefixed sequences like "ctrl+w h" are expressible in preset YAML today.
+
+GAP also found: no workspace tab next/prev cycling command exists for ANY preset (only direct alt+N for sidebar sections) — child ticket adds the commands, vim binds gt/gT to them.
+
+Children: T-404 (ctrl+w window-command family), T-405 (tab cycle commands + gt/gT), T-406 (normal-mode list/scroll nav intents for non-editor panes), T-407 (ex command-line overlay). 404/405 are YAML+small-command work; 406 is the structural one; 407 is the most visible.
+
+--- COORDINATION NOTE (2026-06-12, from the parallel refinement of T-404–407) ---
+SHARED BLOCKER: all four children assume vim-shaped multi-chord sequences (ctrl+w …, g t, g g, : ) can be matched outside the editor. They CANNOT today. The global key path (lib/src/shell/root_shell.dart _onKey → KeymapService.resolveEvent) is single-chord only and skips `isSequence` bindings; the only SequenceMatcher lives inside the editor (editor_view.dart) and even there drops non-shift ctrl chords. So a global/shared multi-chord matcher (D-82 pending-exact + timeout flush) is the real structural lift — and it must be built ONCE, in one place, not three times.
+
+RECOMMENDED SEQUENCING:
+1. T-406 (the structural child) FIRST — it establishes whether non-editor panes can run sequence matchers at all (per-pane Focus.onKeyEvent + matcher). T-404 and T-405''s gt/gT consume that capability.
+2. T-405 part 1 (ctrl+pagedown/up tab-cycle commands) is independent and shippable NOW on the existing single-chord path — land it anytime for immediate value across every preset.
+3. T-404 (ctrl+w family) and T-405 part 2 (gt/gT) after the global matcher exists.
+4. T-407 (ex `:` overlay) after T-404, so :q reuses whatever editor.close semantics T-404 settles (note: editor.close closes the whole split, not a single tab; and NO editor.save command exists yet — T-407 must add one).
+
+All four share assets/keymaps/vim.yaml and the `g`-prefix space (g g docStart vs g t) — coordinate the shared-prefix matcher tests.', NULL, '2026-06-12 20:05:16', '2026-06-12 20:05:16', '2026-06-12 20:05:16', NULL, 'a7ce9c91b076f4f1ba94691d8cbcd631', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'description', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?
+
+--- DECISION: :q / ZZ close semantics (2026-06-12, user) ---
+RESOLVED (was the open "split vs tab" question): `:q` closes the ACTIVE TAB, not the whole editor split. After closing it focuses the next editor tab, so repeated `:q` walks the tabs and the LAST `:q` ends up collapsing the split (the "ends up doing editor.close in the end" behavior the user wants).
+
+KEY MECHANISM (verified in code) — this falls out of existing wiring, so `:q` should NOT map to command:editor.close at all:
+- `:q` → EditorController.closeBuffer(activeId) (lib/builtin/editor/src/editor_controller.dart:90) — the same per-tab close the tab-strip X already uses (editor_view.dart:306-322 onCloseRequested).
+- Server registry close(id) (lib/src/editor/registry.dart:178-187) removes the buffer and, when it was active, re-activates another and emits editor.active-changed; when the LAST buffer closes it emits editor.active-changed{id:null}.
+- The editor extension already turns that null-active event into arrangement.closeEditor() (lib/builtin/editor/src/extension.dart:22-45 → lib/kernel/src/panels/arrangement.dart:108-112). So the split self-collapses on the final tab — no explicit editor.close needed, and command:editor.close (the whole-split close, default_layout extension.dart:244-252) stays the ctrl+w binding only.
+
+THE ONE REAL GAP: registry close() re-focuses `_buffers.values.first` (registry.dart:182), i.e. the FIRST remaining buffer, not the NEXT tab in visual order. Vim `:q` wants focus to move to the tab to the RIGHT of the closed one (else the LEFT if it was last). Two options:
+  (a) UI-side: before closeBuffer, compute the next tab from _tabs.entries (editor_view.dart) and activate it, then close — no protocol change; keeps tab-visual-order knowledge in the view that owns it.
+  (b) Server-side: teach registry.close() a focus-direction (next-not-first), so the tab-strip X button also gets vim-correct next-focus. Wider blast radius (protocol + all close callers) but fixes the focus order everywhere, not just for :q.
+RECOMMEND (a) for the :q scope, and file (b) separately if we want the X button to match. Confirm before building.
+
+ACCEPTANCE CRITERIA (supersede the earlier ":q closes the split" line):
+- `:q` closes the active editor tab; focus moves to the next tab (right, else left). With one tab open, `:q` closes it and the editor split collapses (via the existing null-active → closeEditor path) — no separate editor.close dispatch.
+- N tabs open + N `:q` in a row closes them left-to-focus-order and ends with the split collapsed.
+- `:wq` / `:x` / `ZZ` save the active buffer then run the same close-active-tab path.
+- `:q` with no editor buffer active (tree/conversation focused, editor closed) no-ops or flashes — does NOT touch other panes (still an open question below).
+
+STILL OPEN: when no editor buffer is active, does `:q` no-op, flash, or close the focused workspace tab? (Cross-pane angle — keep v1 editor-targeted.)', NULL, '2026-06-13 11:39:41', '2026-06-13 11:39:41', '2026-06-13 11:39:41', NULL, '658b0d19c0265ea4d753c1d8e9d52dcf', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'description', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?
+
+--- DECISION: :q / ZZ close semantics (2026-06-12, user) ---
+RESOLVED (was the open "split vs tab" question): `:q` closes the ACTIVE TAB, not the whole editor split. After closing it focuses the next editor tab, so repeated `:q` walks the tabs and the LAST `:q` ends up collapsing the split (the "ends up doing editor.close in the end" behavior the user wants).
+
+KEY MECHANISM (verified in code) — this falls out of existing wiring, so `:q` should NOT map to command:editor.close at all:
+- `:q` → EditorController.closeBuffer(activeId) (lib/builtin/editor/src/editor_controller.dart:90) — the same per-tab close the tab-strip X already uses (editor_view.dart:306-322 onCloseRequested).
+- Server registry close(id) (lib/src/editor/registry.dart:178-187) removes the buffer and, when it was active, re-activates another and emits editor.active-changed; when the LAST buffer closes it emits editor.active-changed{id:null}.
+- The editor extension already turns that null-active event into arrangement.closeEditor() (lib/builtin/editor/src/extension.dart:22-45 → lib/kernel/src/panels/arrangement.dart:108-112). So the split self-collapses on the final tab — no explicit editor.close needed, and command:editor.close (the whole-split close, default_layout extension.dart:244-252) stays the ctrl+w binding only.
+
+THE ONE REAL GAP: registry close() re-focuses `_buffers.values.first` (registry.dart:182), i.e. the FIRST remaining buffer, not the NEXT tab in visual order. Vim `:q` wants focus to move to the tab to the RIGHT of the closed one (else the LEFT if it was last). Two options:
+  (a) UI-side: before closeBuffer, compute the next tab from _tabs.entries (editor_view.dart) and activate it, then close — no protocol change; keeps tab-visual-order knowledge in the view that owns it.
+  (b) Server-side: teach registry.close() a focus-direction (next-not-first), so the tab-strip X button also gets vim-correct next-focus. Wider blast radius (protocol + all close callers) but fixes the focus order everywhere, not just for :q.
+RECOMMEND (a) for the :q scope, and file (b) separately if we want the X button to match. Confirm before building.
+
+ACCEPTANCE CRITERIA (supersede the earlier ":q closes the split" line):
+- `:q` closes the active editor tab; focus moves to the next tab (right, else left). With one tab open, `:q` closes it and the editor split collapses (via the existing null-active → closeEditor path) — no separate editor.close dispatch.
+- N tabs open + N `:q` in a row closes them left-to-focus-order and ends with the split collapsed.
+- `:wq` / `:x` / `ZZ` save the active buffer then run the same close-active-tab path.
+- `:q` with no editor buffer active (tree/conversation focused, editor closed) no-ops or flashes — does NOT touch other panes (still an open question below).
+
+STILL OPEN: when no editor buffer is active, does `:q` no-op, flash, or close the focused workspace tab? (Cross-pane angle — keep v1 editor-targeted.)', 'The deferred piece vim_mode_service.dart already names: "command-line is surfaced separately as a transient overlay rather than a persistent mode." Minimal ex line, not a vimscript interpreter:
+
+- `:` (shift+semicolon) when vim.normal opens a one-line overlay (reuse the quick-open overlay chrome/widgets; it is NOT a mode — Esc dismisses back to normal, no scope-flag churn beyond an exline.open flag for its own enter/escape bindings).
+- v1 grammar, one table, no parsing cleverness:
+  :w → editor save (find the editor''s save command id; check editor_commands.dart _save), :q → command:editor.close, :wq / :x → save then close, :e <text> → quickOpen.open pre-seeded with <text> (check QuickOpenIntent for a seed param; add one if absent), :<digits> → editor goto-line (editor has a goto? if not, smallest possible addition to editor.vim ops), :<unknown> → shake/flash + stay open.
+- ZZ ("shift+z shift+z" sequence) → save-close, riding the same plumbing — include it here, it''s one YAML line once :wq exists.
+- Cross-pane angle: the ex line is GLOBAL under vim.normal (works with tree/conversation focused — :q closes the focused tab via editor.close fallback to active workspace tab; keep v1 simple: editor-targeted only, document it).
+
+Done when: : opens the overlay from any pane under the vim preset; the v1 table works with widget tests; unknown commands don''t execute anything; ZZ saves+closes.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Build the transient ex-line overlay vim_mode_service.dart already names as deferred. `:` (shift+semicolon under vim.normal) opens a one-line overlay modeled on the quick-open chrome (lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart); it is NOT a vim mode — an overlay with its own exline.open scope flag for enter/escape, Esc dismissing to normal. v1 is a fixed dispatch table, no parser. GROUNDING FINDINGS that reshape scope: (1) `:q`→editor.close exists (default_layout extension _closeEditor) but closes the ENTIRE editor split via arrangement.closeEditor(), NOT a single buffer/tab — document this; a true single-tab :q needs new wiring (EditorController.closeBuffer is per-id but not a registry command). (2) There is NO editor.save CommandRegistry command — save exists only as an IPC verb (editor.save in lib/src/daemon/editor_commands.dart) and EditorController.save()/the editor''s ctrl+S. So `:w` cannot just dispatch command:editor.save today — this ticket must ADD a save command (real work, not one YAML line). (3) :e <text>→quick-open seeded with text: QuickOpenController.open() takes NO seed param (verified quick_open.dart:45) — add one. (4) :<digits> goto-line: editor_commands.dart supports a `line` arg on editor.open (IPC, lines 79-90) but there''s no registry goto-line for the OPEN buffer — smallest addition needed. Keep v1 editor-targeted and document it. ZZ (`shift+z shift+z`) rides the :wq plumbing once save+close exist.
+
+ACCEPTANCE CRITERIA:
+- `:` (shift+semicolon) under vim.normal opens a one-line ex overlay reusing quick-open chrome; an exline.open scope flag gates its enter/escape; Esc dismisses to normal with no vim-mode churn.
+- Fixed v1 table: :w saves the active buffer, :q closes (documented: closes the editor split via editor.close), :wq/:x save then close, :e <text> opens quick-open seeded with <text>, :<digits> jumps the active buffer to that line.
+- :<unknown> executes nothing and flashes/shakes + stays open (no silent command:foo dispatch).
+- ZZ (`shift+z shift+z`) under vim.normal saves and closes, sharing the :wq path.
+- A save command reachable from the keymap is added (none exists today), and an editor goto-line registry command is added (or the smallest editor.vim op extension).
+- QuickOpenController.open() gains a seed/initialQuery parameter and the overlay honors it.
+- Widget tests cover overlay open/dismiss + each table row; bindings asserted under the vim preset only; no behavior change under other presets.
+
+FILES: assets/keymaps/vim.yaml (`:` open under vim.normal; exline enter/escape under exline.open; ZZ as `shift+z shift+z`); lib/builtin/vim/src/vim_mode_service.dart (the deferral point; may host overlay open state); lib/builtin/vim/src/extension.dart (register ex-line command(s)/overlay as CommandContributions, like _modeCommand); lib/widgets/src/quick_open_overlay.dart + lib/kernel/src/quick_open.dart (reuse chrome; ADD seed/initialQuery to open()); lib/builtin/default_layout/src/extension.dart (editor.close is here, closes the split — for :q; add editor.save/goto-line registry command here or in editor ext); lib/builtin/editor/src/editor_controller.dart (save()/closeBuffer() the per-buffer ops); lib/src/daemon/editor_commands.dart (editor.save / editor.open `line` arg IPC-only — reference for goto-line _offsetForLine); NEW lib/builtin/vim/src/ex_line_overlay.dart + tests under test/builtin/vim/.
+
+DEPENDENCIES: Depends on / overlaps T-404 — both reference command:editor.close. T-404 settles the bare-ctrl+w vs ctrl+w-prefix ambiguity and exercises editor.close cross-pane; T-407''s :q should reuse whatever close semantics T-404 settles (and surface the split-vs-tab close question). Shares vim.yaml. The `z` prefix (ZZ) is new and collides with nothing; `:` (shift+semicolon) is free. Independent of T-405/T-406 except the common vim.yaml. Best sequenced after T-404 so close semantics are fixed first.
+
+OPEN QUESTIONS:
+- :q today→editor.close closes the whole split (arrangement.closeEditor), not the focused tab — acceptable v1, or must :q close only the active buffer (new per-tab close command wrapping EditorController.closeBuffer)? Surprises vim users.
+- No save command in CommandRegistry (only IPC editor.save + the editor''s ctrl+S). Confirm the :w mechanism — a new CommandContribution reaching the active EditorController.save() vs dispatching the IPC verb — and where it lives (editor ext vs vim ext).
+- Cross-pane: ZZ/:w/:q only make sense with an editor buffer active. When tree/conversation is focused and no editor is open, should :w/:q no-op, flash, or close the focused workspace tab? Ticket says "editor-targeted only, document it" — confirm the no-buffer behavior.
+- Should the ex overlay live in the vim builtin (inert under non-vim presets), gated by VimModeService.enabled, matching how mode commands are gated?
+- goto-line for the OPEN buffer: editor.open accepts a `line` arg but reopening isn''t right for an already-open buffer — add an editor.vim.gotoLine op (vim_edit_ops.dart) or a registry command that sets selection on the active buffer?
+
+--- DECISION: :q / ZZ close semantics (2026-06-12, user) ---
+RESOLVED (was the open "split vs tab" question): `:q` closes the ACTIVE TAB, not the whole editor split. After closing it focuses the next editor tab, so repeated `:q` walks the tabs and the LAST `:q` ends up collapsing the split (the "ends up doing editor.close in the end" behavior the user wants).
+
+KEY MECHANISM (verified in code) — this falls out of existing wiring, so `:q` should NOT map to command:editor.close at all:
+- `:q` → EditorController.closeBuffer(activeId) (lib/builtin/editor/src/editor_controller.dart:90) — the same per-tab close the tab-strip X already uses (editor_view.dart:306-322 onCloseRequested).
+- Server registry close(id) (lib/src/editor/registry.dart:178-187) removes the buffer and, when it was active, re-activates another and emits editor.active-changed; when the LAST buffer closes it emits editor.active-changed{id:null}.
+- The editor extension already turns that null-active event into arrangement.closeEditor() (lib/builtin/editor/src/extension.dart:22-45 → lib/kernel/src/panels/arrangement.dart:108-112). So the split self-collapses on the final tab — no explicit editor.close needed, and command:editor.close (the whole-split close, default_layout extension.dart:244-252) stays the ctrl+w binding only.
+
+THE ONE REAL GAP: registry close() re-focuses `_buffers.values.first` (registry.dart:182), i.e. the FIRST remaining buffer, not the NEXT tab in visual order. Vim `:q` wants focus to move to the tab to the RIGHT of the closed one (else the LEFT if it was last). Two options:
+  (a) UI-side: before closeBuffer, compute the next tab from _tabs.entries (editor_view.dart) and activate it, then close — no protocol change; keeps tab-visual-order knowledge in the view that owns it.
+  (b) Server-side: teach registry.close() a focus-direction (next-not-first), so the tab-strip X button also gets vim-correct next-focus. Wider blast radius (protocol + all close callers) but fixes the focus order everywhere, not just for :q.
+RECOMMEND (a) for the :q scope, and file (b) separately if we want the X button to match. Confirm before building.
+
+ACCEPTANCE CRITERIA (supersede the earlier ":q closes the split" line):
+- `:q` closes the active editor tab; focus moves to the next tab (right, else left). With one tab open, `:q` closes it and the editor split collapses (via the existing null-active → closeEditor path) — no separate editor.close dispatch.
+- N tabs open + N `:q` in a row closes them left-to-focus-order and ends with the split collapsed.
+- `:wq` / `:x` / `ZZ` save the active buffer then run the same close-active-tab path.
+- `:q` with no editor buffer active (tree/conversation focused, editor closed) no-ops or flashes — does NOT touch other panes (still an open question below).
+
+STILL OPEN: when no editor buffer is active, does `:q` no-op, flash, or close the focused workspace tab? (Cross-pane angle — keep v1 editor-targeted.)
+
+--- DECISION: no-active-buffer behavior (2026-06-13, user) ---
+RESOLVED (was the last STILL OPEN question): when no editor buffer is active (tree/conversation focused, editor split closed), `:q` / `:w` / `:wq` / `:x` / `ZZ` NO-OP for v1 — they do nothing, touch no other pane, and don''t close the focused workspace tab. (A flash/shake is optional polish, not required.) Keeps v1 strictly editor-targeted; closing non-editor workspace tabs via `:q` is explicitly out of scope and can be revisited later if wanted.', NULL, '2026-06-13 11:41:23', '2026-06-13 11:41:23', '2026-06-13 11:41:23', NULL, '526f24177bfa0f09ca59c571d9e84705', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPD85PFBPJJTQ0WS3PWWXR', 'status', 'backlog', 'in_progress', NULL, '2026-06-13 11:42:26', '2026-06-13 11:42:26', '2026-06-13 11:42:26', NULL, 'a4b28821b462cd1fadab05c4e159b66b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP67X1Y1FEE9T5R0E5DA9C', 'status', 'ready', 'in_progress', NULL, '2026-06-13 11:45:19', '2026-06-13 11:45:19', '2026-06-13 11:45:19', NULL, '7467127de4d8f29ed0e76b8a01489af9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP8KFAF526ZNXBQS98DPPG', 'status', 'backlog', 'ready', NULL, '2026-06-13 11:47:21', '2026-06-13 11:47:21', '2026-06-13 11:47:21', NULL, 'dd46fa777ff5fbb42396fe4037288165', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPAZR4XEV8YW3PVR2XJBFC', 'status', 'backlog', 'ready', NULL, '2026-06-13 11:47:26', '2026-06-13 11:47:26', '2026-06-13 11:47:26', NULL, 'fc555a3966e167d5273a8c8338214070', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPFTC7H5NY0XHBTEGF8XQ4', 'status', 'backlog', 'ready', NULL, '2026-06-13 11:47:31', '2026-06-13 11:47:31', '2026-06-13 11:47:31', NULL, '56abf6590754059d88570072056c5e31', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPD85PFBPJJTQ0WS3PWWXR', 'status', 'in_progress', 'done', NULL, '2026-06-13 12:45:43', '2026-06-13 12:45:43', '2026-06-13 12:45:43', NULL, 'e540413389a0c213369d83a3a75f9706', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKPAZR4XEV8YW3PVR2XJBFC', 'description', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Two halves. (1) Add workspace.tab.next / workspace.tab.previous commands in lib/builtin/default_layout/src/extension.dart that cycle the workspace slot''s tab strip with wraparound, with defaultBindings ctrl+pagedown / ctrl+pageup so EVERY preset gains tab cycling. PanelRegistry (lib/kernel/src/panels/registry.dart) confirms the gap — only activateTab(SlotId,tabId), activeTabIn(SlotId), tabsFor(SlotId); no cycle — so compute the wrapped index from tabsFor+activeTabIn, or add a cycleTab method. (2) Bind `g t`→workspace.tab.next and `g shift+t`→workspace.tab.previous, `when: vim.normal`. Half (1) is fully achievable TODAY (single-chord resolveEvent + InvokeCommandIntent→commands.execute bridge in root_shell.dart both exist; pagedown/pageup tokens exist in key_chord.dart). Half (2) shares T-404''s blocker: no global SequenceMatcher, so a `g`-prefixed sequence can''t buffer outside the editor. `g g` (docStart) is already bound vim.normal||vim.visual, so `g t` slots beside it — but only once a matcher runs on the focused surface.
+
+ACCEPTANCE CRITERIA:
+- workspace.tab.next/previous registered in default_layout, cycling Slots.workspace tabs (tabsFor order) with wraparound; no-op at 0/1 tab.
+- defaultBindings ctrl+pagedown / ctrl+pageup so default/vscode/jetbrains cycle workspace tabs without YAML edits; verified via keymap resolution test.
+- vim.yaml binds `g t`→workspace.tab.next, `g shift+t`→workspace.tab.previous, when: vim.normal.
+- gt/gT cycle workspace tabs under vim; the `g` prefix is shared with `g g` docStart without breaking either.
+- Existing alt+1..5 sidebar-section behavior unchanged (those target Slots.sidebar, not workspace).
+- A matcher/loader test covers two sequences sharing the `g` prefix with different finals (g g vs g t) under vim scope.
+- make analyze + format + keymap/panel tests pass; coverage floor holds for default_layout / registry if touched.
+
+FILES: lib/builtin/default_layout/src/extension.dart (two CommandContributions w/ defaultBinding ctrl+pagedown/up + handlers computing wrapped index, following the sidebar.section.N / editor.close pattern); lib/kernel/src/panels/registry.dart (optional cycleTab helper); assets/keymaps/vim.yaml (g t / g shift+t near `g g`); lib/src/shell/root_shell.dart (global path that must buffer `g` — same surface as T-404); test/kernel/src/keymap/{editor_presets_test,sequence_matcher_test}.dart; test/kernel/src/panels/registry_test.dart (verify path before assuming).
+
+DEPENDENCIES: Part 1 (ctrl+pagedown/up) is fully independent and shippable now — needs only the existing single-chord path + InvokeCommandIntent bridge. Part 2 (gt/gT) shares T-404''s hard dependency on a global multi-chord matcher (the structural work T-406 owns). Recommend: land part 1 first (immediate value, every preset), gate part 2 behind whichever ticket introduces the global matcher. Coordinate matcher wiring with T-404 so it isn''t built twice. No conflict with T-407.
+
+OPEN QUESTIONS:
+- Add a cycleTab/activateNext API to PanelRegistry, or compute the wrapped index in the handler from tabsFor(Slots.workspace)+activeTabIn? Registry method is cleaner/reusable but widens coverage surface; handler-local keeps the change in default_layout.
+- Cycle Slots.workspace specifically, or the currently-focused slot''s tab strip (so gt cycles whatever column has focus)? Ticket says workspace; confirm against the cross-pane intent of the epic.
+- Confirm ctrl+pagedown/up don''t collide with terminal/Claude pane passthrough or an existing binding in any of the four presets before claiming "free for every preset".
+- Does gt/gT need a visual-mode guard, or is vim.normal-only correct? (vim allows gt in normal; the gg precedent uses normal||visual.)', 'Two halves; the first benefits every preset (the review found NO tab-cycling command exists anywhere — only alt+1..5 direct sidebar-section picks):
+
+1. New commands in the default-layout extension (or panels host): workspace.tab.next / workspace.tab.previous — cycle the workspace slot''s tab strip (PanelRegistry/MultitabPane activate-next/previous with wraparound). Give them defaultBindings ctrl+pagedown / ctrl+pageup (the GTK/VS Code convention) so default/vscode/jetbrains presets gain tab cycling for free. Check lib/kernel/src/panels/registry.dart for the activation API; add one if only direct activateTab(id) exists.
+
+2. vim.yaml: `g t` → command:workspace.tab.next, `g shift+t` → command:workspace.tab.previous, when vim.normal. Watch the existing `g g` (docStart) prefix — the matcher already buffers `g`, so `g t` slots in beside it; add a matcher/loader test for two sequences sharing the `g` prefix with different finals.
+
+Done when: ctrl+pagedown/up cycle workspace tabs under every preset; gt/gT cycle under vim; shared-prefix sequence test green; alt+N behavior unchanged.
+
+--- REFINEMENT (2026-06-12, parallel workflow refine-t403-tickets) ---
+SHARPENED: Two halves. (1) Add workspace.tab.next / workspace.tab.previous commands in lib/builtin/default_layout/src/extension.dart that cycle the workspace slot''s tab strip with wraparound, with defaultBindings ctrl+pagedown / ctrl+pageup so EVERY preset gains tab cycling. PanelRegistry (lib/kernel/src/panels/registry.dart) confirms the gap — only activateTab(SlotId,tabId), activeTabIn(SlotId), tabsFor(SlotId); no cycle — so compute the wrapped index from tabsFor+activeTabIn, or add a cycleTab method. (2) Bind `g t`→workspace.tab.next and `g shift+t`→workspace.tab.previous, `when: vim.normal`. Half (1) is fully achievable TODAY (single-chord resolveEvent + InvokeCommandIntent→commands.execute bridge in root_shell.dart both exist; pagedown/pageup tokens exist in key_chord.dart). Half (2) shares T-404''s blocker: no global SequenceMatcher, so a `g`-prefixed sequence can''t buffer outside the editor. `g g` (docStart) is already bound vim.normal||vim.visual, so `g t` slots beside it — but only once a matcher runs on the focused surface.
+
+ACCEPTANCE CRITERIA:
+- workspace.tab.next/previous registered in default_layout, cycling Slots.workspace tabs (tabsFor order) with wraparound; no-op at 0/1 tab.
+- defaultBindings ctrl+pagedown / ctrl+pageup so default/vscode/jetbrains cycle workspace tabs without YAML edits; verified via keymap resolution test.
+- vim.yaml binds `g t`→workspace.tab.next, `g shift+t`→workspace.tab.previous, when: vim.normal.
+- gt/gT cycle workspace tabs under vim; the `g` prefix is shared with `g g` docStart without breaking either.
+- Existing alt+1..5 sidebar-section behavior unchanged (those target Slots.sidebar, not workspace).
+- A matcher/loader test covers two sequences sharing the `g` prefix with different finals (g g vs g t) under vim scope.
+- make analyze + format + keymap/panel tests pass; coverage floor holds for default_layout / registry if touched.
+
+FILES: lib/builtin/default_layout/src/extension.dart (two CommandContributions w/ defaultBinding ctrl+pagedown/up + handlers computing wrapped index, following the sidebar.section.N / editor.close pattern); lib/kernel/src/panels/registry.dart (optional cycleTab helper); assets/keymaps/vim.yaml (g t / g shift+t near `g g`); lib/src/shell/root_shell.dart (global path that must buffer `g` — same surface as T-404); test/kernel/src/keymap/{editor_presets_test,sequence_matcher_test}.dart; test/kernel/src/panels/registry_test.dart (verify path before assuming).
+
+DEPENDENCIES: Part 1 (ctrl+pagedown/up) is fully independent and shippable now — needs only the existing single-chord path + InvokeCommandIntent bridge. Part 2 (gt/gT) shares T-404''s hard dependency on a global multi-chord matcher (the structural work T-406 owns). Recommend: land part 1 first (immediate value, every preset), gate part 2 behind whichever ticket introduces the global matcher. Coordinate matcher wiring with T-404 so it isn''t built twice. No conflict with T-407.
+
+OPEN QUESTIONS:
+- Add a cycleTab/activateNext API to PanelRegistry, or compute the wrapped index in the handler from tabsFor(Slots.workspace)+activeTabIn? Registry method is cleaner/reusable but widens coverage surface; handler-local keeps the change in default_layout.
+- Cycle Slots.workspace specifically, or the currently-focused slot''s tab strip (so gt cycles whatever column has focus)? Ticket says workspace; confirm against the cross-pane intent of the epic.
+- Confirm ctrl+pagedown/up don''t collide with terminal/Claude pane passthrough or an existing binding in any of the four presets before claiming "free for every preset".
+- Does gt/gT need a visual-mode guard, or is vim.normal-only correct? (vim allows gt in normal; the gg precedent uses normal||visual.)
+
+--- PROGRESS (2026-06-13) ---
+PART 1 DONE (commit on main): workspace.tab.next / workspace.tab.previous cycle commands with wraparound + ctrl+pagedown/ctrl+pageup defaultBindings across every preset. Tests in test/builtin/default_layout/widget_test.dart.
+
+PART 2 (gt/gT) STILL OPEN — and harder than the coordination note assumed. T-404 landed a global multi-chord matcher (root_shell), BUT it deliberately only STARTS a sequence on a MODIFIED chord (ctrl+w). Bare-key prefixes (g) are left editor/pane-local on purpose — otherwise the global matcher would steal `g` before the editor sees it, breaking gg/dd. So gt/gT (bare g) CANNOT just ride the global matcher. Options for part 2: (a) the editor/pane matchers grow gt/gT and dispatch command:workspace.tab.* (but then gt only works when the editor/a pane is focused, not globally); (b) a focus-agnostic bare-g disambiguation (g g = local docStart vs g t = global tab) — needs the global matcher to tentatively grab bare g AND coordinate with the editor''s matcher, which is the exact conflict T-404 avoided. Decide before building. The ctrl+pagedown/up commands already give every preset tab-cycling; gt/gT is a vim-affordance nicety on top.', NULL, '2026-06-13 16:38:16', '2026-06-13 16:38:16', '2026-06-13 16:38:16', NULL, '98c4bb26a0ac412c3c3216699555ab16', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBKP8KFAF526ZNXBQS98DPPG', 'status', 'ready', 'done', NULL, '2026-06-13 19:55:21', '2026-06-13 19:55:21', '2026-06-13 19:55:21', NULL, '359e523cbe3e5019b291b91a92d476ba', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDG3T4A7CYPTG535KVAVH6C', 'description', NULL, '**Symptom.** The git branch shown in the status bar (bottom-left, next to the `⎇` glyph) sometimes displays the branch of a *different* open clide workspace/window — it "bleeds" across windows. Intermittent ("at times"). Screenshot on the originating session shows `main` while a sibling window was on another branch.
+
+**User hypothesis.** Lack of fencing in the message bus between multiple parallel open sessions/windows — events/state from one window reaching another.
+
+**Why this matters.** Showing the wrong branch in a git-centric IDE is a footgun: the user can believe they are on a branch they are not, and act (commit/checkout) on that false premise. It also *contradicts a documented isolation invariant* — see T-269: "Separate clide WINDOWS are isolated (separate process, per-root IPC socket, per-repo deterministic session id), so parallel repos in separate windows are fine." This bug is evidence that invariant is not actually holding for the status-bar branch.
+
+**Investigation (read-only, 2026-06-14).**
+- Status-bar branch widget: `lib/builtin/git/src/git_status_item.dart:8-86` — subscribes to `kernel.events.on<DaemonEvent>()`, fetches branch via `ipc.request(''git.status'')` (sets `_branch = r.data[''branch'']`), and re-fetches on any `git.changed` event.
+- Branch fetch path: `lib/src/git/client.dart:23-65` → `lib/src/daemon/git_commands.dart:46-53` (`git.status` handler).
+- Event emit: `git_commands.dart:295-296` `_emitChanged()` → kernel `DaemonBus`.
+- Kernel bus: `lib/kernel/src/events/bus.dart:5-20` is a single unfiltered `StreamController.broadcast()`; on project open the *same* `daemonBus` instance is reused (`lib/main.dart:110-111, 372-376`). No workspace/window id on events; no per-workspace filtering.
+- Per-workspace socket IS correct: `lib/src/ipc/paths.dart:13-16` hashes (FNV-1a64) the workspace root → distinct socket per root (D-70).
+
+**Two candidate mechanisms — fix work must confirm which (they are NOT the same):**
+1. *Same-process / in-place bleed* — the global `DaemonBus` is shared across dispatchers, so events are not workspace-scoped. This is the in-memory path and overlaps with the now-closed T-367 ("Project switch leaks the entire previous workspace service set"). Only applies if the two surfaces share one process.
+2. *Cross-process / true multi-window bleed* — separate windows are separate processes (per T-269), so an in-memory bus cannot cross them. A process-crossing path is required: most likely the branch widget resolving its IPC endpoint from an **inherited `CLIDE_SOCK`** (see T-215) instead of recomputing the socket from its own workspace root — e.g. window B launched from window A''s integrated terminal inherits A''s `CLIDE_SOCK` and connects to A''s IPC server. Same-root windows sharing one hashed socket is a second possibility.
+
+**Repro info still needed (please confirm):**
+- Were the two windows open on the *same* repo or *different* repos?
+- Was the second window launched from inside the first window''s integrated terminal (i.e. could it have inherited `CLIDE_SOCK`)?
+
+**Proposed direction.**
+- Make the status-bar branch widget resolve its IPC endpoint and filter events strictly by *its own* workspace root, never trusting an ambient/inherited socket.
+- Add a workspace/window identity to `DaemonEvent` (or scope the `DaemonBus` per workspace) so events carry provenance and consumers can fence (kernel/src/events/types.dart + bus.dart).
+- Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
+
+**Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).', NULL, '2026-06-14 15:29:27', '2026-06-14 15:29:27', '2026-06-14 15:29:27', NULL, 'c0706f9ad119d6c1a6efc2c36315ecf0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDG3T4A7CYPTG535KVAVH6C', 'description', '**Symptom.** The git branch shown in the status bar (bottom-left, next to the `⎇` glyph) sometimes displays the branch of a *different* open clide workspace/window — it "bleeds" across windows. Intermittent ("at times"). Screenshot on the originating session shows `main` while a sibling window was on another branch.
+
+**User hypothesis.** Lack of fencing in the message bus between multiple parallel open sessions/windows — events/state from one window reaching another.
+
+**Why this matters.** Showing the wrong branch in a git-centric IDE is a footgun: the user can believe they are on a branch they are not, and act (commit/checkout) on that false premise. It also *contradicts a documented isolation invariant* — see T-269: "Separate clide WINDOWS are isolated (separate process, per-root IPC socket, per-repo deterministic session id), so parallel repos in separate windows are fine." This bug is evidence that invariant is not actually holding for the status-bar branch.
+
+**Investigation (read-only, 2026-06-14).**
+- Status-bar branch widget: `lib/builtin/git/src/git_status_item.dart:8-86` — subscribes to `kernel.events.on<DaemonEvent>()`, fetches branch via `ipc.request(''git.status'')` (sets `_branch = r.data[''branch'']`), and re-fetches on any `git.changed` event.
+- Branch fetch path: `lib/src/git/client.dart:23-65` → `lib/src/daemon/git_commands.dart:46-53` (`git.status` handler).
+- Event emit: `git_commands.dart:295-296` `_emitChanged()` → kernel `DaemonBus`.
+- Kernel bus: `lib/kernel/src/events/bus.dart:5-20` is a single unfiltered `StreamController.broadcast()`; on project open the *same* `daemonBus` instance is reused (`lib/main.dart:110-111, 372-376`). No workspace/window id on events; no per-workspace filtering.
+- Per-workspace socket IS correct: `lib/src/ipc/paths.dart:13-16` hashes (FNV-1a64) the workspace root → distinct socket per root (D-70).
+
+**Two candidate mechanisms — fix work must confirm which (they are NOT the same):**
+1. *Same-process / in-place bleed* — the global `DaemonBus` is shared across dispatchers, so events are not workspace-scoped. This is the in-memory path and overlaps with the now-closed T-367 ("Project switch leaks the entire previous workspace service set"). Only applies if the two surfaces share one process.
+2. *Cross-process / true multi-window bleed* — separate windows are separate processes (per T-269), so an in-memory bus cannot cross them. A process-crossing path is required: most likely the branch widget resolving its IPC endpoint from an **inherited `CLIDE_SOCK`** (see T-215) instead of recomputing the socket from its own workspace root — e.g. window B launched from window A''s integrated terminal inherits A''s `CLIDE_SOCK` and connects to A''s IPC server. Same-root windows sharing one hashed socket is a second possibility.
+
+**Repro info still needed (please confirm):**
+- Were the two windows open on the *same* repo or *different* repos?
+- Was the second window launched from inside the first window''s integrated terminal (i.e. could it have inherited `CLIDE_SOCK`)?
+
+**Proposed direction.**
+- Make the status-bar branch widget resolve its IPC endpoint and filter events strictly by *its own* workspace root, never trusting an ambient/inherited socket.
+- Add a workspace/window identity to `DaemonEvent` (or scope the `DaemonBus` per workspace) so events carry provenance and consumers can fence (kernel/src/events/types.dart + bus.dart).
+- Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
+
+**Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).', '**Symptom.** The git branch shown in the status bar (bottom-left, next to the `⎇` glyph) sometimes displays the branch of a *different* open clide workspace/window — it "bleeds" across windows. Intermittent ("at times"). Screenshot on the originating session shows `main` while a sibling window was on another branch.
+
+**User hypothesis.** Lack of fencing in the message bus between multiple parallel open sessions/windows — events/state from one window reaching another.
+
+**Why this matters.** Showing the wrong branch in a git-centric IDE is a footgun: the user can believe they are on a branch they are not, and act (commit/checkout) on that false premise. It also *contradicts a documented isolation invariant* — see T-269: "Separate clide WINDOWS are isolated (separate process, per-root IPC socket, per-repo deterministic session id), so parallel repos in separate windows are fine." This bug is evidence that invariant is not actually holding for the status-bar branch.
+
+**Investigation (read-only, 2026-06-14).**
+- Status-bar branch widget: `lib/builtin/git/src/git_status_item.dart:8-86` — subscribes to `kernel.events.on<DaemonEvent>()`, fetches branch via `ipc.request(''git.status'')` (sets `_branch = r.data[''branch'']`), and re-fetches on any `git.changed` event.
+- Branch fetch path: `lib/src/git/client.dart:23-65` → `lib/src/daemon/git_commands.dart:46-53` (`git.status` handler).
+- Event emit: `git_commands.dart:295-296` `_emitChanged()` → kernel `DaemonBus`.
+- Kernel bus: `lib/kernel/src/events/bus.dart:5-20` is a single unfiltered `StreamController.broadcast()`; on project open the *same* `daemonBus` instance is reused (`lib/main.dart:110-111, 372-376`). No workspace/window id on events; no per-workspace filtering.
+- Per-workspace socket IS correct: `lib/src/ipc/paths.dart:13-16` hashes (FNV-1a64) the workspace root → distinct socket per root (D-70).
+
+**Two candidate mechanisms — fix work must confirm which (they are NOT the same):**
+1. *Same-process / in-place bleed* — the global `DaemonBus` is shared across dispatchers, so events are not workspace-scoped. This is the in-memory path and overlaps with the now-closed T-367 ("Project switch leaks the entire previous workspace service set"). Only applies if the two surfaces share one process.
+2. *Cross-process / true multi-window bleed* — separate windows are separate processes (per T-269), so an in-memory bus cannot cross them. A process-crossing path is required: most likely the branch widget resolving its IPC endpoint from an **inherited `CLIDE_SOCK`** (see T-215) instead of recomputing the socket from its own workspace root — e.g. window B launched from window A''s integrated terminal inherits A''s `CLIDE_SOCK` and connects to A''s IPC server. Same-root windows sharing one hashed socket is a second possibility.
+
+**Repro info still needed (please confirm):**
+- Were the two windows open on the *same* repo or *different* repos?
+- Was the second window launched from inside the first window''s integrated terminal (i.e. could it have inherited `CLIDE_SOCK`)?
+
+**Proposed direction.**
+- Make the status-bar branch widget resolve its IPC endpoint and filter events strictly by *its own* workspace root, never trusting an ambient/inherited socket.
+- Add a workspace/window identity to `DaemonEvent` (or scope the `DaemonBus` per workspace) so events carry provenance and consumers can fence (kernel/src/events/types.dart + bus.dart).
+- Add a regression test: two workspace contexts; a `git.changed`/checkout in one must not mutate the other''s displayed branch.
+
+**Related:** T-269 (closed — documents the isolation invariant this breaks), T-367 (closed — shared-bus/service-set leak on in-place switch), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE export), D-70 (per-workspace socket path).
+
+---
+
+**Repro details confirmed (user, 2026-06-14):**
+- The two windows were on *different repos* (distinct workspace roots → distinct hashed sockets per D-70; rules out same-socket collision).
+- The second window was opened from the **File menu at the top**, not from an integrated terminal.
+
+**Refined root-cause analysis (this changes the leading hypothesis).**
+
+The File menu has two distinct paths (`lib/builtin/menubar/src/file_actions.dart`):
+- `openFolder()`/`openPath()` (l.23-63) → `services.project.open()` = *in-place* switch, same process (the T-269/T-367 class). Produces ONE window, so not this report.
+- `newWindow()` (l.30-32) → `Process.start(Platform.resolvedExecutable, const [], mode: ProcessStartMode.detached)` = a genuinely **separate detached process**. This matches the "parallel windows" symptom.
+
+Two facts narrow it:
+1. `CLIDE_SOCK`/`CLIDE_WORKSPACE` are NOT set in clide''s own process environment — they are a delta overlaid only on spawned Claude/PTY *child* processes (`lib/builtin/claude/src/agent_bootstrap.dart:57-71`, "Process.start keeps the parent environment by default, so this returns only the keys to add/override"). So a clean dock-launched window has no CLIDE_SOCK to leak.
+2. `newWindow()` passes **no `environment:` override**, so the detached child inherits the parent clide process''s full environment verbatim.
+
+**Leading hypothesis now:** environment inheritance through `newWindow()` when clide is self-hosted. If window 1 was itself launched from a clide-hosted terminal or as a clide agent, window 1''s process env already carries *that host''s* `CLIDE_SOCK`/`CLIDE_WORKSPACE`. `newWindow()` then spawns window 2 inheriting those vars — so any code in window 2 that resolves its IPC endpoint (or shells out to the `clide` CLI, which keys off `CLIDE_SOCK`) can bind to the wrong workspace''s server and surface its branch. This is consistent with: different repos, opened from the File menu, intermittent.
+
+**Caveat / not yet pinned:** the in-app status widget reportedly resolves IPC via the computed `workspaceSocketPath(root)` (`lib/main.dart:357`), NOT via `CLIDE_SOCK` — so if that holds, inherited CLIDE_SOCK alone shouldn''t mislead the *in-process* status bar. The exact cross-process channel therefore still needs live confirmation. Do NOT assume; instrument.
+
+**First diagnostic step for the fixer:**
+1. Reproduce: open window 1, then File → New Window, then open a *different* repo in window 2.
+2. Log, in each window at branch-fetch time: the resolved socket path the status client connected to, `Platform.environment[''CLIDE_SOCK'']`, `Platform.environment[''CLIDE_WORKSPACE'']`, and `kernel.project.root`. The window showing the wrong branch will reveal whether it (a) connected to the other window''s socket, (b) read a stale/ambient env var, or (c) received a cross-process event it shouldn''t have.
+
+**Hardening regardless of outcome:** `newWindow()` should spawn the child with an explicit, scrubbed environment — strip `CLIDE_SOCK`/`CLIDE_WORKSPACE` (and not rely on inheriting them) so a fresh window always computes its own per-root socket from its own workspace. A new window must never inherit another workspace''s IPC identity.', NULL, '2026-06-14 15:41:41', '2026-06-14 15:41:41', '2026-06-14 15:41:41', NULL, 'd69c8cc3a9a120dc3e91f074921bfe7b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDKX4CVHWVGDAJC6X09602M', 'description', NULL, 'Tracks the architectural unification behind Q-51: replace the scattered, per-entry-point workspace-open logic with a single fenced primitive.
+
+**The problem.** There is no "open workspace X" primitive — only two half-primitives in different layers:
+- `project.open(root)` (`lib/kernel/src/project.dart:143`) — the only repo-targeting path, intrinsically *in-place*: rebuilds services in the same process reusing the shared `daemonBus` (`lib/main.dart:372-376`).
+- `newWindow()` (`lib/builtin/menubar/src/file_actions.dart:30-32`) — a blank detached `Process.start` with no repo argument and no env scrubbing.
+
+To open a repo in a new window you spawn a blank window and then run the in-place switch inside it. Every fencing bug to date is a spot where one path forgets what the other remembers.
+
+**Symptoms already filed (same root):** T-421 (status-bar branch bleeds across parallel windows), T-367 (in-place switch leaked the previous service set — closed), T-269 (kept the previous repo''s Claude session — closed).
+
+**Target invariant.** `workspace root ⇒ socket ⇒ bus ⇒ session-id`, one-to-one. Exactly one place derives IPC identity from a root. Every entry point (File menu, project switcher, `clide://` deep link, CLI, recents) routes through `WorkspaceService.open(root, {target: thisWindow | newWindow})`. New-window spawns `Process.start(exe, [''--workspace'', root], environment: <scrubbed>)` — explicit root, no inherited `CLIDE_SOCK`/`CLIDE_WORKSPACE`.
+
+**Open decision (Q-51):** whether in-place switching survives at all, or whether a workspace is always its own window/process. If abolished, the teardown burden that T-367/T-269 patch disappears.
+
+**Acceptance:** Q-51 resolved with a D-record fixing the in-place-vs-window stance; a single workspace-open primitive in place; all entry points routed through it; T-421 no longer reproducible; a regression test that a checkout in one workspace cannot change another''s displayed branch.
+
+See Q-51 (governance/questions/architecture.md), D-70, D-56, D-72.', NULL, '2026-06-14 15:47:08', '2026-06-14 15:47:08', '2026-06-14 15:47:08', NULL, 'dded9e79fec698c14986e50f4b642e1e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCDG3T4A7CYPTG535KVAVH6C', 'parent_id', NULL, 'T-422', NULL, '2026-06-14 15:47:10', '2026-06-14 15:47:10', '2026-06-14 15:47:10', NULL, '331b502dff0de7123762ab8efbf1b488', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCENXW1VF7VXQX64982X171R', 'description', NULL, 'Rank-1 culprit from the Windows test-freeze analysis (2026-06-14). On Windows, each WindowsPty.start() (lib/src/pty/windows_pty.dart) pairs the child with its own conhost.exe/OpenConsole.exe. TerminateProcess + ClosePseudoConsole do NOT reliably reap that conhost — it lingers until the PARENT process exits (microsoft/terminal#4050) — and the child is not placed in a Windows Job Object, so dart:io children survive parent death (dart-lang/sdk#49234). Across repeated test runs the orphaned conhost/cmd processes accumulate at the session level and are a credible bridge to the whole-OS resource starvation that ends in a hard power-cycle (cf. anthropics/claude-code#63043: ~1088 leaked conhost.exe).
+
+Fix: create a Windows Job Object per WindowsPty (CreateJobObject) with JOBOBJECT_EXTENDED_LIMIT_INFORMATION.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; AssignProcessToJobObject(job, hProcess) immediately after CreateProcessW; close the job handle on teardown so the child AND its conhost die when the session (or the test process) exits. Add a tearDownAll backstop in test/pty/windows_pty_test.dart that sweeps stray cmd.exe/conhost.exe children of the test pid.
+
+Verify with tools/windows-verify/soak-conpty.ps1 — the orphaned ConPTY-host count must stop climbing across iterations.
+
+Sibling ConPTY-teardown fixes surfaced by the same analysis (fold in here or file separately): CancelIoEx/overlapped reader instead of Isolate.kill (the reader isolate blocks forever in ReadFile and Isolate.kill cannot interrupt FFI — dart-lang/sdk#46680); clamp cols/rows >= 2 before CreatePseudoConsole/ResizePseudoConsole (microsoft/terminal#19922 narrow-terminal CRLF spin); fix close()/_closeConsole() teardown order (terminate -> drain to EOF -> ClosePseudoConsole -> release); add --timeout to the dart-test pty line in ci/test.sh.', NULL, '2026-06-14 18:15:41', '2026-06-14 18:15:41', '2026-06-14 18:15:41', NULL, 'f22e1791da77972912976b1ce27cd0be', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCENXXZFBZ0HVD1VCW4ZASCC', 'description', NULL, 'From the Windows test-freeze analysis (2026-06-14): the freeze left NO evidence because every log sink is volatile — stderrSink dies with the console and the in-RAM LogRing dies with the power-cycle. clide already has the logger scaffolding (lib/kernel/src/log.dart: Logger, LogLevel{trace..error}, pluggable LogSink; lib/kernel/src/log_ring.dart; the output dock + Level chip), so this epic does not add a framework — it bolts on a crash-survivable sink, FFI breadcrumbs, a watchdog, and the dev/prod verbosity toggle so the NEXT freeze (Windows or otherwise) leaves on-disk evidence that names the wedged call.
+
+Child work (each filed as a task under this epic):
+1. FileLogSink — synchronous-fsync JSON-lines sink to %LOCALAPPDATA%\clide\logs (reuse ipc/paths.dart socket-dir helper); tiered flush (warn/error + any pty/ffi record flush immediately, info/debug batch on a timer); first sink in the chain so a crash cannot lose the tail; size-capped with rotation.
+2. FFI breadcrumbs in windows_pty.dart — inject a no-op-by-default log callback; emit BEFORE/AFTER every risky Win32 call with the return value + GetLastError read immediately; the reader/waiter SPAWNED isolates each open their OWN append handle to the log file and flushSync per breadcrumb, so the wedged isolate''s last line survives a frozen main isolate.
+3. Watchdog heartbeat + resource sampler — a DEDICATED isolate (NOT a main-isolate Timer, which would freeze with it) appending+fsyncing a heartbeat every ~500ms and sampling live ConPTY child count / process handle count / thread count / memory load every ~2s. A monotonically climbing child count is the leak signature; the last heartbeat bounds the freeze window to ~500ms.
+4. Dev/prod verbosity toggle (the requested switch) — resolve Logger.minLevel once at boot: CLIDE_LOG dart-define -> CLIDE_LOG env var -> settings.json log.level -> default warn (release) / info (debug). Level also gates FileLogSink flush-eagerness (debug = lose nothing in a repro). Live changes via a /loglevel command + `clide log level <level>` CLI (D-6 parity); the output-dock Level chip is the in-UI affordance.
+5. Wire into the testmode harness + ci/test.sh — attach FileLogSink in lib/test_app.dart with per-test start/end breadcrumbs; export CLIDE_LOG=debug and a log dir OUTSIDE the build tree in ci/test.sh; upload that dir as a CI artifact in an always() step so a CI freeze leaves evidence.
+
+Verification kit for the leak this telemetry is meant to catch: tools/windows-verify/.', NULL, '2026-06-14 18:15:42', '2026-06-14 18:15:42', '2026-06-14 18:15:42', NULL, '2add8cbe3d2e0255d15010aa9fd8527b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCENXW1VF7VXQX64982X171R', 'description', 'Rank-1 culprit from the Windows test-freeze analysis (2026-06-14). On Windows, each WindowsPty.start() (lib/src/pty/windows_pty.dart) pairs the child with its own conhost.exe/OpenConsole.exe. TerminateProcess + ClosePseudoConsole do NOT reliably reap that conhost — it lingers until the PARENT process exits (microsoft/terminal#4050) — and the child is not placed in a Windows Job Object, so dart:io children survive parent death (dart-lang/sdk#49234). Across repeated test runs the orphaned conhost/cmd processes accumulate at the session level and are a credible bridge to the whole-OS resource starvation that ends in a hard power-cycle (cf. anthropics/claude-code#63043: ~1088 leaked conhost.exe).
+
+Fix: create a Windows Job Object per WindowsPty (CreateJobObject) with JOBOBJECT_EXTENDED_LIMIT_INFORMATION.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; AssignProcessToJobObject(job, hProcess) immediately after CreateProcessW; close the job handle on teardown so the child AND its conhost die when the session (or the test process) exits. Add a tearDownAll backstop in test/pty/windows_pty_test.dart that sweeps stray cmd.exe/conhost.exe children of the test pid.
+
+Verify with tools/windows-verify/soak-conpty.ps1 — the orphaned ConPTY-host count must stop climbing across iterations.
+
+Sibling ConPTY-teardown fixes surfaced by the same analysis (fold in here or file separately): CancelIoEx/overlapped reader instead of Isolate.kill (the reader isolate blocks forever in ReadFile and Isolate.kill cannot interrupt FFI — dart-lang/sdk#46680); clamp cols/rows >= 2 before CreatePseudoConsole/ResizePseudoConsole (microsoft/terminal#19922 narrow-terminal CRLF spin); fix close()/_closeConsole() teardown order (terminate -> drain to EOF -> ClosePseudoConsole -> release); add --timeout to the dart-test pty line in ci/test.sh.', 'Rank-1 culprit from the Windows test-freeze analysis (2026-06-14). On Windows, each WindowsPty.start() (lib/src/pty/windows_pty.dart) pairs the child with its own conhost.exe/OpenConsole.exe. TerminateProcess + ClosePseudoConsole do NOT reliably reap that conhost — it lingers until the PARENT process exits (microsoft/terminal#4050) — and the child is not placed in a Windows Job Object, so dart:io children survive parent death (dart-lang/sdk#49234). Across repeated test runs the orphaned conhost/cmd processes accumulate at the session level and are a credible bridge to the whole-OS resource starvation that ends in a hard power-cycle (cf. anthropics/claude-code#63043: ~1088 leaked conhost.exe).
+
+Fix: create a Windows Job Object per WindowsPty (CreateJobObject) with JOBOBJECT_EXTENDED_LIMIT_INFORMATION.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; AssignProcessToJobObject(job, hProcess) immediately after CreateProcessW; close the job handle on teardown so the child AND its conhost die when the session (or the test process) exits. Add a tearDownAll backstop in test/pty/windows_pty_test.dart that sweeps stray cmd.exe/conhost.exe children of the test pid.
+
+Verify with tools/windows-verify/soak-conpty.ps1 — the orphaned ConPTY-host count must stop climbing across iterations.
+
+Sibling ConPTY-teardown fixes surfaced by the same analysis (fold in here or file separately): CancelIoEx/overlapped reader instead of Isolate.kill (the reader isolate blocks forever in ReadFile and Isolate.kill cannot interrupt FFI — dart-lang/sdk#46680); clamp cols/rows >= 2 before CreatePseudoConsole/ResizePseudoConsole (microsoft/terminal#19922 narrow-terminal CRLF spin); fix close()/_closeConsole() teardown order (terminate -> drain to EOF -> ClosePseudoConsole -> release); add --timeout to the dart-test pty line in ci/test.sh.
+
+Progress (commit 606d3df, pre-VM hardening): two sibling quick-wins landed on the branch — cols/rows clamped to >= 2 in both PTY backends (lib/src/pty/pty_size.dart; microsoft/terminal#19922) and --timeout 60s on the dart-test pty line in ci/test.sh. Also made windows_pty.dart''s pure helpers (quoteArg / composeEnvironmentBlock / resolveExecutable) public + unit-tested off-Windows.
+
+Still open and VM-gated (new/changed FFI, can''t validate off-Windows): the Job Object reaping (this ticket''s core), CancelIoEx/overlapped reader, and the close()/_closeConsole() teardown reorder. Do these in the Windows VM session and validate each with tools/windows-verify/soak-conpty.ps1 (orphan host count must go flat).', NULL, '2026-06-14 18:55:21', '2026-06-14 18:55:21', '2026-06-14 18:55:21', NULL, 'db48d5823487e2c93ecc0b1c1dd8ce25', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCGJ30V24BJB001GZCR5QKTC', 'description', NULL, 'From the PTY testability audit (2026-06-14), prompted by the question "is any of the Windows FFI code testable on a pure I/O basis without Windows, and vice-versa?" Answer: yes on both backends, but the pure fragments are entangled with the syscall layer and need extraction before they can be unit-tested. Each claim below was adversarially verified (default-reject; rejected the rest of the proposed fragments because their output IS a syscall return, e.g. GetLastError, WriteFile byte count).
+
+Context: lib/src/pty/windows_pty.dart wraps its FFI span in `// coverage:ignore-start/end` (Linux runner has no kernel32; the syscall sites are genuinely uncoverable off-Windows, and the bindings resolve through one DynamicLibrary.open so a method touching a binding can''t be entered on Linux). That exclusion is correct for the gate, but it hides a few pure transforms at file granularity. native_pty.dart (POSIX) has the mirror problem: it runs on Linux at ~78.9% but its pure marshalling is only covered incidentally by real spawns, never unit-tested.
+
+## Windows (windows_pty.dart) — extract + unit-test on Linux
+Confirmed pure (verifier-approved), currently untested:
+- `_Coord` struct packing (69-74) — two clamped int16s into COORD; allocate via calloc, set x/y, read back.
+- `_StartupInfoExW` field assembly in start() (358-361) — cb / dwFlags=STARTF_USESTDHANDLES / lpAttributeList; deterministic field writes over calloc-zeroed memory.
+- `write()` empty/length guard (497-498) — returns 0 when `_dead` or `bytes.isEmpty`, before any WriteFile.
+
+Plan: pull the COORD/STARTUPINFOEXW packing into free functions (e.g. `packCoord(cols, rows)`, `buildStartupInfoEx(attrList)`) that take/return plain values and don''t reference the kernel32 bindings; assert field layout in a Linux unit test. Keep the empty-guard logic in a tiny pure predicate.
+
+## POSIX (native_pty.dart) — extract + unit-test directly (closes part of the 21% gap, adds gate margin)
+Confirmed pure (verifier-approved), currently only covered incidentally by integration spawns:
+- argv marshalling (222-228) — String list -> native UTF8 pointer array + null terminator.
+- envp marshalling (230-235) — Map<String,String> -> native ''KEY=VALUE'' UTF8 array.
+- write() buffer copy (406-408) — bytes[i] -> buf[i].
+- resize() Winsize init + clamp (432-435) — cols/rows -> ws.wsCol/wsRow (clamp already tested in pty_size_test).
+
+Plan: extract marshalling into free helpers returning the pointer structures (inject the allocator so a test can read them back and free them); unit-test the round-trip and null-termination off any real spawn.
+
+## NOT in scope (genuinely host-bound — leave excluded/uncovered)
+All the raw syscalls and anything whose output is a syscall return or that has no injection seam: CreatePipe / CreatePseudoConsole / CreateProcessW / ReadFile / WaitForSingleObject / WriteFile / ResizePseudoConsole / TerminateProcess / CloseHandle / GetLastError; the attribute-list APIs; the read/wait isolate bodies; and on POSIX the openpt/grantpt/unlockpt/ptsname + posix_spawn failure paths, EINTR/EBADF/EPIPE handling, and reader-isolate EOF reaping (~32 lines that need real OS error/timing state).
+
+## Acceptance
+- New Linux unit tests for the fragments above (both backends).
+- windows_pty.dart `coverage:ignore` span narrowed to only the syscall sites (struct-packing helpers move out and are measured).
+- Coverage floor holds (or ratchets up from the added native_pty coverage).
+
+## Related / separate finding (file or fold as decided)
+windows.yml runs the real ConPTY suite (start/write/resize/kill/errors) on windows-latest but collects NO coverage (no --coverage flag). So the FFI spawn path has functional validation on Windows + the VM soak (tools/windows-verify/) but no line-coverage metric anywhere. Decide whether to (a) accept functional-only validation explicitly, or (b) collect coverage on the Windows runner and merge it so the FFI path is measured. Cross-platform lcov merge is non-trivial (the gate reads one file) — may warrant a Q-record.
+
+Audit detail: full per-fragment findings + adversarial verdicts in the workflow result for run wf_a3cacb2c-2c7.', NULL, '2026-06-14 22:38:01', '2026-06-14 22:38:01', '2026-06-14 22:38:01', NULL, 'd8cafbc05c3a83c1041c29ba25e4ed83', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCENXW1VF7VXQX64982X171R', 'description', 'Rank-1 culprit from the Windows test-freeze analysis (2026-06-14). On Windows, each WindowsPty.start() (lib/src/pty/windows_pty.dart) pairs the child with its own conhost.exe/OpenConsole.exe. TerminateProcess + ClosePseudoConsole do NOT reliably reap that conhost — it lingers until the PARENT process exits (microsoft/terminal#4050) — and the child is not placed in a Windows Job Object, so dart:io children survive parent death (dart-lang/sdk#49234). Across repeated test runs the orphaned conhost/cmd processes accumulate at the session level and are a credible bridge to the whole-OS resource starvation that ends in a hard power-cycle (cf. anthropics/claude-code#63043: ~1088 leaked conhost.exe).
+
+Fix: create a Windows Job Object per WindowsPty (CreateJobObject) with JOBOBJECT_EXTENDED_LIMIT_INFORMATION.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; AssignProcessToJobObject(job, hProcess) immediately after CreateProcessW; close the job handle on teardown so the child AND its conhost die when the session (or the test process) exits. Add a tearDownAll backstop in test/pty/windows_pty_test.dart that sweeps stray cmd.exe/conhost.exe children of the test pid.
+
+Verify with tools/windows-verify/soak-conpty.ps1 — the orphaned ConPTY-host count must stop climbing across iterations.
+
+Sibling ConPTY-teardown fixes surfaced by the same analysis (fold in here or file separately): CancelIoEx/overlapped reader instead of Isolate.kill (the reader isolate blocks forever in ReadFile and Isolate.kill cannot interrupt FFI — dart-lang/sdk#46680); clamp cols/rows >= 2 before CreatePseudoConsole/ResizePseudoConsole (microsoft/terminal#19922 narrow-terminal CRLF spin); fix close()/_closeConsole() teardown order (terminate -> drain to EOF -> ClosePseudoConsole -> release); add --timeout to the dart-test pty line in ci/test.sh.
+
+Progress (commit 606d3df, pre-VM hardening): two sibling quick-wins landed on the branch — cols/rows clamped to >= 2 in both PTY backends (lib/src/pty/pty_size.dart; microsoft/terminal#19922) and --timeout 60s on the dart-test pty line in ci/test.sh. Also made windows_pty.dart''s pure helpers (quoteArg / composeEnvironmentBlock / resolveExecutable) public + unit-tested off-Windows.
+
+Still open and VM-gated (new/changed FFI, can''t validate off-Windows): the Job Object reaping (this ticket''s core), CancelIoEx/overlapped reader, and the close()/_closeConsole() teardown reorder. Do these in the Windows VM session and validate each with tools/windows-verify/soak-conpty.ps1 (orphan host count must go flat).', 'Rank-1 culprit from the Windows test-freeze analysis (2026-06-14). On Windows, each WindowsPty.start() (lib/src/pty/windows_pty.dart) pairs the child with its own conhost.exe/OpenConsole.exe. TerminateProcess + ClosePseudoConsole do NOT reliably reap that conhost — it lingers until the PARENT process exits (microsoft/terminal#4050) — and the child is not placed in a Windows Job Object, so dart:io children survive parent death (dart-lang/sdk#49234). Across repeated test runs the orphaned conhost/cmd processes accumulate at the session level and are a credible bridge to the whole-OS resource starvation that ends in a hard power-cycle (cf. anthropics/claude-code#63043: ~1088 leaked conhost.exe).
+
+Fix: create a Windows Job Object per WindowsPty (CreateJobObject) with JOBOBJECT_EXTENDED_LIMIT_INFORMATION.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; AssignProcessToJobObject(job, hProcess) immediately after CreateProcessW; close the job handle on teardown so the child AND its conhost die when the session (or the test process) exits. Add a tearDownAll backstop in test/pty/windows_pty_test.dart that sweeps stray cmd.exe/conhost.exe children of the test pid.
+
+Verify with tools/windows-verify/soak-conpty.ps1 — the orphaned ConPTY-host count must stop climbing across iterations.
+
+Sibling ConPTY-teardown fixes surfaced by the same analysis (fold in here or file separately): CancelIoEx/overlapped reader instead of Isolate.kill (the reader isolate blocks forever in ReadFile and Isolate.kill cannot interrupt FFI — dart-lang/sdk#46680); clamp cols/rows >= 2 before CreatePseudoConsole/ResizePseudoConsole (microsoft/terminal#19922 narrow-terminal CRLF spin); fix close()/_closeConsole() teardown order (terminate -> drain to EOF -> ClosePseudoConsole -> release); add --timeout to the dart-test pty line in ci/test.sh.
+
+Progress (commit 606d3df, pre-VM hardening): two sibling quick-wins landed on the branch — cols/rows clamped to >= 2 in both PTY backends (lib/src/pty/pty_size.dart; microsoft/terminal#19922) and --timeout 60s on the dart-test pty line in ci/test.sh. Also made windows_pty.dart''s pure helpers (quoteArg / composeEnvironmentBlock / resolveExecutable) public + unit-tested off-Windows.
+
+Still open and VM-gated (new/changed FFI, can''t validate off-Windows): the Job Object reaping (this ticket''s core), CancelIoEx/overlapped reader, and the close()/_closeConsole() teardown reorder. Do these in the Windows VM session and validate each with tools/windows-verify/soak-conpty.ps1 (orphan host count must go flat).
+
+## Soak results on GitHub windows-latest (Server 2022) — orphan-accumulation NOT reproduced (2026-06-14)
+
+Ran both halves of the windows-verify soak on GitHub-hosted Windows (no VM needed — windows-latest runs the ConPTY suite green, so the soak just wraps it):
+
+1. Clean-path soak (soak-conpty.ps1, 25 iters): orphans stayed at 0, dart handles flat ~152, threads flat at 7. Orderly close() reaps everything. NOT REPRODUCED.
+2. Abrupt-death probe (soak-conpty-kill.ps1 + conpty_orphan_probe.dart, 15 iters x 2 PTYs): start real WindowsPty sessions on long-lived children, block WITHOUT close(), then taskkill /F the parent dart.exe (no /T). Every cycle reaped to baseline — survivors=0, cum=0. When the parent dies the OS breaks the pipes and conhost exits on its own. NOT REPRODUCED.
+
+**Implication:** the conhost-orphan-accumulation mechanism this ticket is premised on does NOT hold on Server 2022, under clean OR abrupt teardown. The Job Object fix may still be worthwhile as defense-in-depth, but its justification (a reproduced leak) is not confirmed.
+
+**Caveats / what''s still untested:**
+- OS mismatch: the real crashes were on desktop Win10/11; this is headless Server 2022. terminal#4050 was a desktop report. A desktop-specific behavior may be unreproducible on CI.
+- Both probes let the process DIE, so within-process accumulation (culprit #2: reader isolates blocked forever in ReadFile, threads/handles climbing within one long-lived process) is reclaimed at exit and never measured. A long-lived-process probe (one dart.exe spawning + abandoning PTYs, watching its OWN handle/thread count climb) would test that — the more likely freeze mode for a long-running app. Not yet built.
+
+Diagnostics live in tools/windows-verify/ and run via .github/workflows/windows-soak.yml (workflow_dispatch). The same kill-probe will validate the fix if/when it lands (survivors should stay 0 — though they already do, which is the problem).', NULL, '2026-06-15 07:11:41', '2026-06-15 07:11:41', '2026-06-15 07:11:41', NULL, 'dadb5e43a8a9b44b2c4be4b7d4528beb', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9ER04JVFW8CN3JW1AWYA8', 'status', 'backlog', 'in_progress', NULL, '2026-06-15 07:19:13', '2026-06-15 07:19:13', '2026-06-15 07:19:13', NULL, '55a53ab84e2a10fd52fe6853bd32dc55', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9ER04JVFW8CN3JW1AWYA8', 'status', 'in_progress', 'done', NULL, '2026-06-15 07:29:45', '2026-06-15 07:29:45', '2026-06-15 07:29:45', NULL, 'ab3371153c8037fe287c07c4f34d1575', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9FHC8VX50759X35VNER1R', 'status', 'backlog', 'done', NULL, '2026-06-15 07:56:56', '2026-06-15 07:56:56', '2026-06-15 07:56:56', NULL, 'ff37484d4920968d13bdafa85336cd66', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9FYDEXCM15FXTER032K84', 'status', 'backlog', 'done', NULL, '2026-06-15 08:15:52', '2026-06-15 08:15:52', '2026-06-15 08:15:52', NULL, '59248f388c7cc5fd834eb1b384b6cab1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9GAQ2G0KCVMZS67SK3324', 'status', 'backlog', 'in_progress', NULL, '2026-06-15 08:49:49', '2026-06-15 08:49:49', '2026-06-15 08:49:49', NULL, '23fbf6cd85b51eebea4a6f503399df7e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9GAQ2G0KCVMZS67SK3324', 'status', 'in_progress', 'done', NULL, '2026-06-15 08:58:55', '2026-06-15 08:58:55', '2026-06-15 08:58:55', NULL, '6d8fd42bc14bd668553da75acf9a2b83', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCM9F446MZFXVHH65Q6CKTPM', 'status', 'backlog', 'done', NULL, '2026-06-15 10:33:01', '2026-06-15 10:33:01', '2026-06-15 10:33:01', NULL, '15ad99803d60c7fbfd396f684fa3f7fe', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP60AS6AF654SWA189A5ZR', 'description', NULL, 'Duplicate of the T-425 breakdown — I re-filed this as T-432 (FileLogSink) and implemented + closed that. Cancelling as duplicate; work is done.', NULL, '2026-06-15 10:34:06', '2026-06-15 10:34:06', '2026-06-15 10:34:06', NULL, '5815d71c306bd9d0010964be15b1437d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP642C8ZZ1T20RXQQ3143M', 'description', NULL, 'Duplicate — re-filed + implemented + closed as T-434 (FFI breadcrumbs). Cancelling as duplicate; work is done.', NULL, '2026-06-15 10:34:12', '2026-06-15 10:34:12', '2026-06-15 10:34:12', NULL, 'a0609a97452cb0c43377d8b9afd233ef', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP67ZHMBFW0GRH9JKDMQ7R', 'description', NULL, 'Duplicate — re-filed + implemented + closed as T-435 (watchdog). Cancelling as duplicate; work is done.', NULL, '2026-06-15 10:34:16', '2026-06-15 10:34:16', '2026-06-15 10:34:16', NULL, '328d3c9842ab73ea9404361c874a7973', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP6BDBHGMK9VCRV6JQ00TW', 'description', NULL, 'Duplicate — re-filed + implemented + closed as T-433 (verbosity toggle: dock chip + clide log level CLI). Cancelling as duplicate; work is done.', NULL, '2026-06-15 10:34:20', '2026-06-15 10:34:20', '2026-06-15 10:34:20', NULL, 'ce21cfebab0ff7680e396553aa1b49a9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP6EVN9S35T02MHA2AS7YW', 'description', NULL, 'Duplicate — re-filed + implemented + closed as T-436 (CI crash-evidence artifacts). Cancelling as duplicate; work is done.', NULL, '2026-06-15 10:34:25', '2026-06-15 10:34:25', '2026-06-15 10:34:25', NULL, '1b7ec591f720837b8cbc709e2beb1823', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP6EVN9S35T02MHA2AS7YW', 'status', 'backlog', 'cancelled', NULL, '2026-06-15 10:34:28', '2026-06-15 10:34:28', '2026-06-15 10:34:28', NULL, '27bae65c0f89d9f5b996b0872c2c3454', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP67ZHMBFW0GRH9JKDMQ7R', 'status', 'backlog', 'cancelled', NULL, '2026-06-15 10:34:28', '2026-06-15 10:34:28', '2026-06-15 10:34:28', NULL, '4d001b92a3c33be245bcd3fa3ed89eef', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP60AS6AF654SWA189A5ZR', 'status', 'backlog', 'cancelled', NULL, '2026-06-15 10:34:28', '2026-06-15 10:34:28', '2026-06-15 10:34:28', NULL, '8940e515fde31e83ef1a551997a80be0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP642C8ZZ1T20RXQQ3143M', 'status', 'backlog', 'cancelled', NULL, '2026-06-15 10:34:28', '2026-06-15 10:34:28', '2026-06-15 10:34:28', NULL, 'cce7ddffbd88447be319407f9cc7ce91', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCEP6BDBHGMK9VCRV6JQ00TW', 'status', 'backlog', 'cancelled', NULL, '2026-06-15 10:34:28', '2026-06-15 10:34:28', '2026-06-15 10:34:28', NULL, 'f9a33140c03031c10ca45fecb2edb277', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCENXXZFBZ0HVD1VCW4ZASCC', 'status', 'backlog', 'done', NULL, '2026-06-15 10:34:31', '2026-06-15 10:34:31', '2026-06-15 10:34:31', NULL, 'b9cda82863c37a365e7aa5fc8230256a', 2) ON CONFLICT(hash) DO NOTHING;

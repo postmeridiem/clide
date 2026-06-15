@@ -6,7 +6,7 @@
 ///   and   := unary ('&&' unary)*
 ///   unary := '!' unary | atom
 ///   atom  := IDENT | '(' expr ')'
-///   IDENT := [a-zA-Z_][a-zA-Z0-9._-]*
+///   IDENT := `[a-zA-Z_][a-zA-Z0-9._-]*`
 ///
 /// Identifiers resolve against a `Map<String, bool>` context. A missing
 /// identifier evaluates to `false` — bindings can assume any required

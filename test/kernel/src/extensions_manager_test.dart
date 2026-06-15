@@ -175,9 +175,9 @@ void main() {
       final s2 = f.services.events.on<ExtensionDeactivated>().listen((e) => deactivated.add(e.id));
       f.services.extensions.register(_Ext(id: 'e'));
       await f.services.extensions.activateAll();
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       await f.services.extensions.deactivate('e');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(activated, ['e']);
       expect(deactivated, ['e']);
       await s1.cancel();

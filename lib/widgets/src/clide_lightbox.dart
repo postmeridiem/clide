@@ -1,5 +1,5 @@
 /// Full-screen zoom + pan overlay (T-252 / D-78). A reusable primitive: it
-/// takes any [child] and shows it over the [DialogRouter]'s dimmed backdrop
+/// takes any `child` and shows it over the [DialogRouter]'s dimmed backdrop
 /// (the host supplies the backdrop + outside-click dismiss). The image card is
 /// its first consumer; canvas / graph / diff previews can adopt it later.
 ///

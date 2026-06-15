@@ -13,26 +13,17 @@ void main() {
       final t = Toolchain();
       expect(t.git, 'git');
       expect(t.pql, 'pql');
-      expect(t.tmux, 'tmux');
       expect(t.shell, '/bin/bash');
       expect(t.resolved, isFalse);
       expect(t.allOk, isFalse);
-      expect(t.missing, ['git', 'pql', 'tmux']);
+      expect(t.missing, ['git', 'pql']);
     });
 
     test('applyResolved with full paths flips resolved + allOk + clears missing', () {
       final t = Toolchain();
       var calls = 0;
       t.addListener(() => calls++);
-      t.applyResolved(
-        const ResolvedPaths(
-          git: '/usr/bin/git',
-          pql: '/usr/bin/pql',
-          tmux: '/usr/bin/tmux',
-          shell: '/bin/bash',
-          gitEnv: {'GIT_EXEC_PATH': '/usr/lib/git-core'},
-        ),
-      );
+      t.applyResolved(const ResolvedPaths(git: '/usr/bin/git', pql: '/usr/bin/pql', shell: '/bin/bash', gitEnv: {'GIT_EXEC_PATH': '/usr/lib/git-core'}));
       expect(t.resolved, isTrue);
       expect(t.allOk, isTrue);
       expect(t.missing, isEmpty);
@@ -46,7 +37,7 @@ void main() {
       t.applyResolved(const ResolvedPaths(pql: '/usr/bin/pql'));
       expect(t.resolved, isTrue);
       expect(t.allOk, isFalse);
-      expect(t.missing, ['git', 'tmux']);
+      expect(t.missing, ['git']);
     });
 
     test('waitForResolution completes immediately when already resolved', () async {
@@ -65,11 +56,15 @@ void main() {
   });
 
   group('Toolchain.resolvePaths (static)', () {
-    test('returns a ResolvedPaths with pql resolved from PATH', () {
+    test('returns a ResolvedPaths; resolves pql from PATH when present', () {
       final paths = Toolchain.resolvePaths();
       expect(paths, isA<ResolvedPaths>());
-      // On this CI host pql is installed (per repo memory).
-      expect(paths.pql, isNotNull);
+      // pql is resolved from PATH only when it's installed on the host — it is on
+      // the dev box, but GitHub CI runners don't ship it. So accept null, or a
+      // path that really exists (the resolver must never invent one).
+      if (paths.pql != null) {
+        expect(File(paths.pql!).existsSync(), isTrue);
+      }
     });
 
     test('git falls back to PATH when no install-dir dugite is found', () {

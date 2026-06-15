@@ -18,6 +18,49 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Crash-survivable logging.** clide writes a durable JSON-lines log to a
+  persistent per-platform dir (Windows `%LOCALAPPDATA%`, macOS `~/Library/Logs`,
+  Linux `$XDG_STATE_HOME`), fsyncing warn/error + pty/ffi records immediately so
+  a freeze leaves on-disk evidence. `CLIDE_LOG` (dart-define / env) or the
+  `app.log.level` setting sets verbosity (warn in release, info in debug);
+  `CLIDE_LOG_DIR` redirects where the logs land. (T-432, T-436)
+- **PTY FFI breadcrumbs.** Each PTY backend drops a breadcrumb before/after
+  every risky syscall (`CreatePseudoConsole`/`CreateProcessW`/`ReadFile`,
+  `posix_spawn`/`read`); the reader/waiter isolates fsync their OWN file handle
+  so a wedged isolate's last crumb survives a freeze that also froze the main
+  isolate — naming the wedge after the fact. Per-syscall crumbs at debug level.
+  (T-434)
+- **Crash-diagnostic watchdog.** A dedicated isolate fsyncs a heartbeat every
+  ~500ms (bounding a freeze to ~500ms) and every ~2s samples this process's
+  thread / handle / child-host / RSS counts to `clide-watchdog.log` — a climbing
+  child or thread count is the leak signature. Survives a frozen main isolate;
+  spawn failure is non-fatal. (T-435)
+- **Live log-verbosity toggle.** The output dock's Level chip now sets the
+  running logger's level and persists `app.log.level` (not just a view filter),
+  and `clide log level [<level>]` does the same from the CLI — D-6 parity. The
+  choice survives restart. (T-433)
+
+## [2.5.0] — 2026-06-14
+
+### Added
+
+- **Experimental Windows desktop support.** clide builds and runs on Windows —
+  ConPTY-backed terminals, an AF_UNIX `clide` CLI client, PowerShell as the
+  default shell, and a `make build-windows` target. Preview quality: ConPTY
+  child-process reaping under sustained use is still being hardened. (T-424)
+- **Vim `ctrl+w` window commands.** Under the vim preset, `ctrl+w` followed by
+  h/l (focus left/right panel), j (toggle dock), w / ctrl+w (cycle panels),
+  shift+w (cycle back), o (focus mode), or q/c (close editor). A new global
+  multi-chord matcher in the shell resolves these from any focus; bare `ctrl+w`
+  still closes the editor after the ambiguity timeout. (T-404)
+- **Workspace tab cycling with ctrl+pagedown / ctrl+pageup.** New
+  `workspace.tab.next` / `workspace.tab.previous` commands cycle the workspace
+  tab strip with wraparound, bound across every preset. (T-405)
+- **Vim normal-mode navigation works outside the editor.** Under the vim preset,
+  a focused file tree or conversation now responds to j/k, ctrl+d/ctrl+u, gg/G,
+  and (tree) h/l/o — a selection cursor in the tree, scrolling in the
+  conversation. Each pane runs its own sequence matcher; an `editor.focused`
+  flag keeps these keys as buffer motions while the editor holds focus. (T-406)
 - **Claude Code Workflow runs surface in the conversation and sidebar.** A
   `Workflow` tool-use renders a dedicated run card — phase groups, per-agent
   rows with live spinner/check status, usage, and the script — driven by the
@@ -50,6 +93,18 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   switches the live session's model over the control channel; bare `/model`
   opens a picker in the interaction zone with the CLI's model list and the
   current model marked. A rejected name rolls back and raises a toast. (T-408)
+
+### Removed
+
+- **tmux is no longer a required tool.** clide stopped spawning tmux when Claude
+  session persistence moved to `--resume` (D-77); the toolchain no longer probes
+  for it or warns when it's absent, on any platform.
+
+### Fixed
+
+- **`ClaudeConfig` no longer crashes on a project switch that races teardown.**
+  `setProjectDir` / `refresh` / `ensureProbe` now skip `notifyListeners()` if the
+  config was disposed during their async load (the guard `load()` already had).
 
 ## [2.4.1] — 2026-06-12
 

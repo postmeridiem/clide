@@ -9,8 +9,8 @@
 ///
 /// Headless and clock-injected: the caller (the root shell's raw-keyboard
 /// handler) passes the event time so it neither reads a clock nor consumes
-/// events. Feed every [KeyDownEvent] to [down] and every [KeyUpEvent] to
-/// [up], passing the event's [KeyModifier] (null for non-modifier keys).
+/// events. Feed every [KeyDownEvent] to `down` and every [KeyUpEvent] to
+/// `up`, passing the event's [KeyModifier] (null for non-modifier keys).
 library;
 
 import 'key_chord.dart';

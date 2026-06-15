@@ -13,7 +13,7 @@
 ///
 /// Scope context is a `Map<String, bool>` keyed by named flags (e.g.
 /// `palette.open`, `editor.focused`). Producing services call
-/// [setScopeFlag] when their state changes; consumers reference the
+/// `setScopeFlag` when their state changes; consumers reference the
 /// flag name in when-clauses.
 library;
 

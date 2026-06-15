@@ -13,7 +13,7 @@ import 'vim_edit_ops.dart';
 
 /// Tier-2 editor pane. Shows one tab per open buffer via the shared
 /// [MultitabPane] (the same strip the Claude pane uses); the body
-/// reflects the daemon's active buffer. The daemon ([EditorRegistry])
+/// reflects the daemon's active buffer. The daemon (`EditorRegistry`)
 /// is the source of truth for which buffers are open and which is
 /// active — the local [MultitabController] is reconciled from it, and
 /// tab gestures (select / close) are routed back as `editor.activate`
@@ -54,9 +54,15 @@ class _EditorViewState extends State<EditorView> {
     super.initState();
     _text = SyntaxTextController(syntax: _syntax);
     _focus = FocusNode();
+    _focus.addListener(_onFocusChanged);
     _text.addListener(_onTextChanged);
     _tabs.addListener(_onTabsChanged);
   }
+
+  /// Publish `editor.focused` so non-editor panes can guard their vim nav
+  /// bindings (`!editor.focused`) — when the editor holds focus, j/k/h/l/gg/G
+  /// stay buffer motions; when a pane holds focus they become nav (T-406).
+  void _onFocusChanged() => _keymap?.setScopeFlag('editor.focused', _focus.hasFocus);
 
   @override
   void didChangeDependencies() {
@@ -75,12 +81,14 @@ class _EditorViewState extends State<EditorView> {
   void dispose() {
     _text.removeListener(_onTextChanged);
     _text.dispose();
+    _focus.removeListener(_onFocusChanged);
     _focus.dispose();
     _tabs.removeListener(_onTabsChanged);
     _tabs.dispose();
     _controller?.removeListener(_onControllerChanged);
     _controller?.dispose();
     _keymap?.removeListener(_onModeChanged);
+    _keymap?.clearScopeFlag('editor.focused');
     super.dispose();
   }
 

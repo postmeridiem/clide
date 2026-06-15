@@ -5,15 +5,15 @@
 /// re-derive the same four things: a [LayerLink] + [CompositedTransformFollower]
 /// (or a hand-rolled `Positioned`), a full-screen tap-away barrier, the
 /// `Overlay.insert` / `OverlayEntry` bookkeeping, and post-frame focus capture.
-/// This widget owns all of it; callers supply the trigger ([anchor]) and the
-/// floating content ([overlayBuilder]). Modal, centred dialogs stay on the
+/// This widget owns all of it; callers supply the trigger (`anchor`) and the
+/// floating content (`overlayBuilder`). Modal, centred dialogs stay on the
 /// kernel `DialogRouter` — this is for anchored, non-modal popovers.
 library;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// Primary placement of the floating panel relative to the [anchor].
+/// Primary placement of the floating panel relative to the `anchor`.
 enum ClideAnchorSide { below, above, left, right }
 
 /// Cross-axis alignment of the panel's edge to the anchor's edge.
@@ -41,8 +41,8 @@ class ClideOverlayController extends ChangeNotifier {
   void toggle() => _open ? close() : open();
 }
 
-/// Wraps [anchor] with a [CompositedTransformTarget] and, while [controller] is
-/// open, inserts an [OverlayEntry] built from [overlayBuilder], positioned
+/// Wraps `anchor` with a [CompositedTransformTarget] and, while [controller] is
+/// open, inserts an [OverlayEntry] built from `overlayBuilder`, positioned
 /// relative to the anchor (or centred when [centered]).
 class ClideAnchoredOverlay extends StatefulWidget {
   const ClideAnchoredOverlay({

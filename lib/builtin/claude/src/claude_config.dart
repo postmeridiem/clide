@@ -257,6 +257,7 @@ class ClaudeConfig extends ChangeNotifier {
       if (probe == null) return; // stay on the static fallback
       _probe = probe;
       await _writeProbeCache(probe);
+      if (_disposed) return; // a slow probe racing a teardown mustn't notify a disposed notifier
       notifyListeners();
     } finally {
       _probing = false;
@@ -268,6 +269,7 @@ class ClaudeConfig extends ChangeNotifier {
   /// not re-resolved (the binary doesn't change under us at runtime).
   Future<void> refresh() async {
     await _loadDiskConfig();
+    if (_disposed) return; // a watcher-driven refresh racing a teardown mustn't notify a disposed notifier
     notifyListeners();
   }
 
@@ -278,6 +280,7 @@ class ClaudeConfig extends ChangeNotifier {
     _stopWatching();
     _projectDir = dir;
     await _loadDiskConfig();
+    if (_disposed) return; // a project switch racing a teardown mustn't notify a disposed notifier
     _startWatchers();
     notifyListeners();
   }

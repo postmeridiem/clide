@@ -21,8 +21,8 @@ void main() {
     bus.dispose();
   });
 
-  // Bus delivery is async (broadcast stream), so settle a turn after publish.
-  Future<void> settle() => Future<void>.delayed(Duration.zero);
+  // Bus delivery is async (broadcast stream), so drain the queue after publish.
+  Future<void> settle() => pumpEventQueue();
 
   test('returns null for an address that never reported', () {
     expect(cache.get('decisions.panel'), isNull);

@@ -4,6 +4,8 @@
 /// of app.dart (T-394).
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/menubar/menubar.dart';
 import 'package:clide/builtin/welcome/src/welcome_view.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -31,17 +33,33 @@ class RootShellState extends State<RootShell> {
   // (T-341, T-409).
   final ModifierTapTracker _modTap = ModifierTapTracker();
 
+  // Global multi-chord matcher for window/tab commands (ctrl+w h, gt …) (T-404).
+  // The passive KeyboardListener can't run sequences or consume the second
+  // chord (a focused editor/pane swallows it), so this lives at the
+  // HardwareKeyboard level where returning true consumes the event before focus
+  // dispatch. It only engages for chords that START a multi-chord binding in the
+  // active keymap, so single-chord presets (default/vscode/jetbrains) are
+  // untouched.
+  late final SequenceMatcher _globalSeq;
+  Timer? _seqTimeout;
+
   @override
   void initState() {
     super.initState();
     _keyFocus = FocusNode()..requestFocus();
     widget.services.textZoom.addListener(_onZoom);
+    _globalSeq = SequenceMatcher(
+      keymap: () => widget.services.keymap.keymap ?? Keymap(const []),
+      context: () => widget.services.keymap.scope,
+      captureCounts: false,
+    );
     HardwareKeyboard.instance.addHandler(_onRawKey);
   }
 
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onRawKey);
+    _seqTimeout?.cancel();
     widget.services.textZoom.removeListener(_onZoom);
     _menuBar.dispose();
     _keyFocus.dispose();
@@ -171,6 +189,9 @@ class RootShellState extends State<RootShell> {
   /// (the `;` of `Shift+;`) still dirties the press (T-341, T-409). Fires on
   /// the second clean *release*; never consumes anything.
   bool _onRawKey(KeyEvent event) {
+    // Global window/tab sequences (ctrl+w h, gt …) get first claim — handled
+    // here so a focused editor/pane can't swallow the second chord (T-404).
+    if (_handleGlobalSequence(event)) return true;
     if (event is KeyDownEvent) {
       var mod = KeyChord.modifierForLogicalKey(event.logicalKey);
       // A modifier pressed while a non-modifier is already held (rolled
@@ -189,6 +210,62 @@ class RootShellState extends State<RootShell> {
   }
 
   bool _nonModifierHeld() => HardwareKeyboard.instance.logicalKeysPressed.any((k) => KeyChord.modifierForLogicalKey(k) == null);
+
+  /// Feed one key into the global multi-chord matcher (T-404). Returns true to
+  /// CONSUME the event (suppressing focus dispatch) while a sequence is being
+  /// built or completes; false leaves the normal single-chord [_onKey] path
+  /// untouched. Only KeyDown events drive it — a held key must not re-fire a
+  /// window command.
+  bool _handleGlobalSequence(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    final chord = KeyChord.fromKeyEvent(event, HardwareKeyboard.instance);
+    if (chord == null) return false;
+    final km = widget.services.keymap.keymap;
+    if (km == null) return false;
+    final scope = widget.services.keymap.scope;
+    // Not mid-sequence: only START on a MODIFIED chord that's a sequence prefix
+    // (ctrl+w …). Bare-key sequences (gg, dd) are editor/pane-local — the
+    // focused widget owns them, so a global grab would steal the first chord
+    // before the editor ever saw it. Once pending, the bare second chord (the
+    // `h` of `ctrl+w h`) is consumed normally. Single-chord presets are
+    // untouched (no prefix → no engage).
+    if (!_globalSeq.hasPending) {
+      final modified = chord.modifiers.any((m) => m != KeyModifier.shift);
+      if (!modified || !km.match([chord], scope).isPrefix) return false;
+    }
+    final r = _globalSeq.feed(chord);
+    switch (r.outcome) {
+      case SeqOutcome.pending:
+        _armSeqTimeout();
+        return true;
+      case SeqOutcome.fired:
+        _cancelSeqTimeout();
+        _dispatchIntent(r.intent!);
+        return true;
+      case SeqOutcome.unmatched:
+        // The sequence broke — drop the buffer and let this lone key through to
+        // normal handling (the abandoned prefix, e.g. a bare ctrl+w, simply
+        // does nothing rather than firing late).
+        _cancelSeqTimeout();
+        return false;
+    }
+  }
+
+  /// After a pending prefix, fire its buffered exact match (bare ctrl+w →
+  /// editor.close) if no completing chord arrives in time — the d-vs-dd timeout
+  /// (D-82), applied globally.
+  void _armSeqTimeout() {
+    _seqTimeout?.cancel();
+    _seqTimeout = Timer(const Duration(milliseconds: 400), () {
+      final r = _globalSeq.flush();
+      if (r.outcome == SeqOutcome.fired) _dispatchIntent(r.intent!);
+    });
+  }
+
+  void _cancelSeqTimeout() {
+    _seqTimeout?.cancel();
+    _seqTimeout = null;
+  }
 
   void _dispatchIntent(Intent intent) {
     // Try the focused context first so feature widgets (palette, editor, …)

@@ -9,7 +9,7 @@
 /// the `vim.yaml` preset (T-65) guards its bindings with `when: vim.normal`
 /// etc. Nothing reaches into this object across the builtin boundary.
 ///
-/// The whole layer is gated by [enabled], which the Vim extension ties to
+/// The whole layer is gated by `enabled`, which the Vim extension ties to
 /// the active preset: under a non-Vim preset the flags are cleared so they
 /// can never affect another preset's bindings.
 library;
@@ -47,7 +47,7 @@ class VimModeService extends ChangeNotifier {
   /// Whether the Vim layer is live. False under non-Vim presets.
   bool get enabled => _enabled;
 
-  /// The active mode. Meaningful only while [enabled]; defaults to
+  /// The active mode. Meaningful only while `enabled`; defaults to
   /// [VimMode.normal] and resets to it whenever the layer is enabled.
   VimMode get mode => _mode;
 

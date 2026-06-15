@@ -1,7 +1,7 @@
 /// Snapshots the kernel's live tabs into [ViewPane]s so `pane list` reflects
 /// the panes the user actually sees in the GUI (T-219, D-6 parity / D-83).
 ///
-/// Read-at-request-time: no state is mirrored into the IPC [PaneRegistry], so
+/// Read-at-request-time: no state is mirrored into the IPC `PaneRegistry`, so
 /// nothing can drift from the live UI. Lives in the kernel (not `lib/src/panes/`)
 /// because it reads Flutter-coupled kernel state; it produces the Flutter-free
 /// [ViewPane] the pane command serialises.

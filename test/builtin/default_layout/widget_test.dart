@@ -1,6 +1,7 @@
 import 'package:clide/builtin/default_layout/default_layout.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -150,6 +151,46 @@ void main() {
       expect(r.ok, isTrue);
       // Sidebar auto-expanded.
       expect(f.services.arrangement.isCollapsed(Slots.sidebar), isFalse);
+    });
+
+    test('workspace.tab.next/previous cycle the workspace tabs with wraparound (T-405)', () async {
+      f.services.extensions.register(DefaultLayoutExtension());
+      await f.services.extensions.activateAll();
+      final panels = f.services.panels;
+      for (final id in ['wt.a', 'wt.b', 'wt.c']) {
+        panels.contribute(TabContribution(id: id, slot: Slots.workspace, title: id, build: (_) => const SizedBox.shrink()));
+      }
+      panels.setTabOrder(Slots.workspace, ['wt.a', 'wt.b', 'wt.c']);
+      panels.activateTab(Slots.workspace, 'wt.a');
+
+      await f.services.commands.execute('workspace.tab.next');
+      expect(panels.activeTabIn(Slots.workspace), 'wt.b');
+      await f.services.commands.execute('workspace.tab.next');
+      expect(panels.activeTabIn(Slots.workspace), 'wt.c');
+      await f.services.commands.execute('workspace.tab.next'); // wrap forward
+      expect(panels.activeTabIn(Slots.workspace), 'wt.a');
+      await f.services.commands.execute('workspace.tab.previous'); // wrap backward
+      expect(panels.activeTabIn(Slots.workspace), 'wt.c');
+    });
+
+    test('ctrl+pagedown/up resolve to the workspace tab-cycle commands across presets (T-405)', () async {
+      f.services.extensions.register(DefaultLayoutExtension());
+      await f.services.extensions.activateAll();
+      final km = f.services.keymap.keymap;
+      expect((km?.resolve(KeyChord.parse('ctrl+pagedown'), const {}) as InvokeCommandIntent?)?.commandId, 'workspace.tab.next');
+      expect((km?.resolve(KeyChord.parse('ctrl+pageup'), const {}) as InvokeCommandIntent?)?.commandId, 'workspace.tab.previous');
+    });
+
+    test('workspace tab cycle is a no-op with fewer than two tabs (T-405)', () async {
+      f.services.extensions.register(DefaultLayoutExtension());
+      await f.services.extensions.activateAll();
+      final panels = f.services.panels;
+      panels.contribute(TabContribution(id: 'only', slot: Slots.workspace, title: 'only', build: (_) => const SizedBox.shrink()));
+      panels.activateTab(Slots.workspace, 'only');
+      final r = await f.services.commands.execute('workspace.tab.next');
+      expect(r.ok, isTrue);
+      expect(r.data['cycled'], isFalse);
+      expect(panels.activeTabIn(Slots.workspace), 'only');
     });
   });
 }

@@ -210,7 +210,7 @@ void main() {
           },
         }),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(s.availableModels, hasLength(2));
       expect(s.availableModels[0].value, 'default');
       expect(s.availableModels[0].description, 'recommended');
@@ -226,13 +226,13 @@ void main() {
       expect(sent['type'], 'control_request');
       expect((sent['request'] as Map)['subtype'], 'set_model');
       expect((sent['request'] as Map)['model'], 'sonnet');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.model, 'sonnet');
     });
 
     test('setModel(default) does not guess the resolved model', () async {
       session.setModel('default');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses, isEmpty, reason: 'only the CLI knows what default resolves to');
     });
 
@@ -240,10 +240,10 @@ void main() {
       final errors = <String>[];
       session.modelErrors.listen(errors.add);
       proc.emit(initEvent()); // model: claude-opus-4-7
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       session.setModel('bogus-model');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.model, 'bogus-model'); // optimistic
 
       final rid = (jsonDecode(proc.writes.single) as Map)['request_id'];
@@ -253,7 +253,7 @@ void main() {
           'response': {'subtype': 'error', 'request_id': rid, 'error': 'Unknown model: bogus-model'},
         }),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.model, 'claude-opus-4-7', reason: 'rolled back');
       expect(errors, ['Unknown model: bogus-model']);
     });
@@ -267,7 +267,7 @@ void main() {
           'response': {'subtype': 'success', 'request_id': rid},
         }),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.model, 'opus');
     });
   });
@@ -275,7 +275,7 @@ void main() {
   test('parses assistant text + tool_use events into items', () async {
     proc.emit(assistantText('hello there'));
     proc.emit(assistantToolUse());
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(items, hasLength(2));
     expect(items[0], isA<AssistantTextMessage>());
@@ -290,7 +290,7 @@ void main() {
   test('derives status: model + tokens from assistant, permission-mode from init', () async {
     proc.emit(initEvent());
     proc.emit(assistantText('hi'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(statuses.last.model, 'claude-opus-4-7');
     expect(statuses.last.permissionMode, 'default');
@@ -300,7 +300,7 @@ void main() {
   test('only emits status on change', () async {
     proc.emit(initEvent());
     proc.emit(initEvent()); // identical → no second emit
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses, hasLength(1));
   });
 
@@ -308,11 +308,11 @@ void main() {
   // the plain broadcast stream dropped it — the status bar stayed blank.
   test('subscribing AFTER the init event still yields the status (T-274/T-386)', () async {
     proc.emit(initEvent());
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     final late = <SessionStatus>[];
     session.statusStream.listen(late.add);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(late, hasLength(1), reason: 'replay-latest delivers the current status to late binders');
     expect(late.single.model, 'claude-opus-4-7');
@@ -323,7 +323,7 @@ void main() {
     final ids = <String>[];
     session.sessionIdResolved.listen(ids.add);
     proc.emit(jsonEncode({'type': 'system', 'subtype': 'init', 'session_id': 'sess-abc', 'model': 'claude-opus-4-7', 'permissionMode': 'default'}));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(session.claudeSessionId, 'sess-abc');
     expect(ids, ['sess-abc']);
   });
@@ -331,7 +331,7 @@ void main() {
   group('live cost/context from result events (T-168)', () {
     test('result event with total_cost_usd populates cost field', () async {
       proc.emit(resultEvent(cost: 0.042));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.cost, closeTo(0.042, 1e-9));
     });
 
@@ -344,7 +344,7 @@ void main() {
           },
         ),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.contextWindow, 1000000);
     });
 
@@ -352,7 +352,7 @@ void main() {
       proc.emit(initEvent());
       proc.emit(assistantText('hi'));
       proc.emit(resultEvent(cost: 0.05));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.model, 'claude-opus-4-7');
       expect(statuses.last.permissionMode, 'default');
       expect(statuses.last.cost, closeTo(0.05, 1e-9));
@@ -361,7 +361,7 @@ void main() {
     test('result event without cost or modelUsage emits nothing', () async {
       final before = statuses.length;
       proc.emit(jsonEncode({'type': 'result', 'result': '', 'usage': <String, dynamic>{}}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.length, before); // no change → no emit
     });
   });
@@ -369,14 +369,14 @@ void main() {
   group('rate_limit_event status (T-168)', () {
     test('rate_limit_event with status populates rateLimitInfo', () async {
       proc.emit(rateLimitEvent(status: 'rate_limited'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.rateLimitInfo, contains('rate limited'));
     });
 
     test('rate_limit_event with an ISO resetsAt includes the time', () async {
       // 2026-05-30T14:32:00Z → shows 14:32 (UTC, local may differ but contains digits)
       proc.emit(rateLimitEvent(status: 'rate_limited', resetsAt: '2026-05-30T14:32:00Z'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.rateLimitInfo, contains('rate limited'));
       expect(statuses.last.rateLimitInfo, contains('resets'));
     });
@@ -390,7 +390,7 @@ void main() {
           'rate_limit_info': {'status': 'rate_limited', 'resetsAt': 1780000000},
         }),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(statuses.last.rateLimitInfo, contains('rate limited'));
       expect(statuses.last.rateLimitInfo, contains('resets'));
     });
@@ -401,7 +401,7 @@ void main() {
       proc.emit(streamMessageStart('msg-1'));
       proc.emit(streamTextDelta('one '));
       proc.emit(streamTextDelta('two three'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final parts = items.whereType<AssistantTextMessage>().toList();
       // Each delta emits an upserting placeholder; all share the stable uuid and
       // the latest carries the accumulated text.
@@ -414,7 +414,7 @@ void main() {
       proc.emit(streamMessageStart('msg-2'));
       proc.emit(streamTextDelta('hel'));
       proc.emit(assistantTextWithId('msg-2', 'hello there'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final parts = items.whereType<AssistantTextMessage>().toList();
       // The final, complete text reuses the placeholder uuid so the controller
       // replaces rather than appends — no duplicate.
@@ -427,7 +427,7 @@ void main() {
       proc.emit(streamTextDelta('working'));
       proc.emit(assistantTextWithId('msg-3', 'working on it')); // finalises partial-msg-3
       proc.emit(assistantToolUse()); // separate block, own uuid
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final tool = items.whereType<AssistantToolUse>().single;
       expect(tool.uuid, isNot('partial-msg-3'));
       expect(items.last, isA<AssistantToolUse>());
@@ -438,11 +438,11 @@ void main() {
       proc.emit(streamTextDelta('first'));
       proc.emit(streamMessageStop());
       proc.emit(jsonEncode({'type': 'result', 'result': '', 'usage': <String, dynamic>{}}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // A new turn reusing the same id still streams (no leftover finalised flag).
       proc.emit(streamMessageStart('msg-4'));
       proc.emit(streamTextDelta('second'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final parts = items.whereType<AssistantTextMessage>().toList();
       expect(parts.last.text, 'second');
     });
@@ -452,14 +452,14 @@ void main() {
     proc.emit('');
     proc.emit('not json');
     proc.emit('   ');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(items, isEmpty);
     expect(statuses, isEmpty);
   });
 
   test('send writes a stream-json user message and echoes it locally', () async {
     session.send('do the thing');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(proc.writes, hasLength(1));
     final sent = jsonDecode(proc.writes.single) as Map<String, Object?>;
@@ -484,7 +484,7 @@ void main() {
         },
       }),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     final u = items.whereType<UserMessage>().single;
     expect(u.injected, isTrue);
   });
@@ -501,7 +501,7 @@ void main() {
         },
       }),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(items.whereType<UserMessage>().single.injected, isFalse);
   });
 
@@ -509,7 +509,7 @@ void main() {
     final emitted = <ToolPrompt?>[];
     session.pendingPromptStream.listen(emitted.add);
     proc.emit(canUseTool('req-1'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     final p = session.pendingPrompt;
     expect(p, isNotNull);
@@ -526,7 +526,7 @@ void main() {
 
   test('resolvePrompt(allow) writes success+updatedInput and clears the pending prompt', () async {
     proc.emit(canUseTool('req-2'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     final p = session.pendingPrompt!;
     session.resolvePrompt(p.promptId, AllowTool(p.input));
@@ -557,13 +557,13 @@ void main() {
         },
       }),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(session.pendingPrompt!.permissionSuggestions, hasLength(1));
   });
 
   test('resolvePrompt(allow with updatedPermissions) echoes them in the response', () async {
     proc.emit(canUseTool('rp'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt(
       'rp',
       AllowTool(
@@ -580,7 +580,7 @@ void main() {
 
   test('resolvePrompt(allow with a follow-up note) sends the note as a user message', () async {
     proc.emit(canUseTool('rn'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt('rn', AllowTool(const {'x': 1}, followUpNote: 'use docs/ instead'));
 
     // first write = control_response (allow), second = the follow-up message
@@ -592,14 +592,14 @@ void main() {
 
   test('resolvePrompt records the tool outcome — allow', () async {
     proc.emit(canUseTool('o1'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt('o1', AllowTool(const {}));
     expect(session.toolUseOutcomes['toolu_1'], isTrue);
   });
 
   test('resolvePrompt records the tool outcome — deny', () async {
     proc.emit(canUseTool('o2'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt('o2', const DenyTool('no'));
     expect(session.toolUseOutcomes['toolu_1'], isFalse);
   });
@@ -608,44 +608,44 @@ void main() {
 
   test('approving ExitPlanMode leaves plan mode (T-337)', () async {
     proc.emit(planInit());
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.permissionMode, 'plan');
 
     proc.emit(canUseTool('exit-1', tool: 'ExitPlanMode', input: {'plan': 'do the thing'}));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     final p = session.pendingPrompt!;
     expect(p.toolName, 'ExitPlanMode');
 
     session.resolvePrompt(p.promptId, AllowTool(p.input));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.permissionMode, 'default', reason: 'approving ExitPlanMode must exit plan mode');
   });
 
   test('denying ExitPlanMode stays in plan mode (T-337)', () async {
     proc.emit(planInit());
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     proc.emit(canUseTool('exit-2', tool: 'ExitPlanMode', input: {'plan': 'x'}));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt(session.pendingPrompt!.promptId, const DenyTool('keep planning'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.permissionMode, 'plan', reason: 'a denied plan-exit keeps plan mode');
   });
 
   test('approving a non-ExitPlanMode tool does not change plan mode (T-337)', () async {
     proc.emit(planInit());
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     proc.emit(canUseTool('w1')); // a Write
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt(session.pendingPrompt!.promptId, AllowTool(const {}));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.permissionMode, 'plan', reason: 'only ExitPlanMode exits plan mode');
   });
 
   test('noteEffort merges the effort level into the status (T-412)', () async {
     proc.emit(initEvent());
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.noteEffort('xhigh');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.effort, 'xhigh');
     expect(statuses.last.model, 'claude-opus-4-7'); // merge, not replace
   });
@@ -653,7 +653,7 @@ void main() {
   test('addLocalNotice emits a synthetic clide item and sends nothing (T-411)', () async {
     final before = proc.writes.length;
     session.addLocalNotice('/status is a Claude Code TUI command');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     final notice = items.whereType<AssistantTextMessage>().single;
     expect(notice.synthetic, isTrue);
     expect(notice.text, contains('/status'));
@@ -662,7 +662,7 @@ void main() {
 
   test('resolvePrompt(deny) writes a deny decision with a message', () async {
     proc.emit(canUseTool('req-3'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     session.resolvePrompt('req-3', const DenyTool('nope'));
     final decision = ((jsonDecode(proc.writes.single) as Map)['response'] as Map)['response'] as Map;
@@ -682,14 +682,14 @@ void main() {
         },
       }),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     session.resolvePrompt(
       'aq',
       AllowTool(const {
         'answers': {'Pet': 'Dogs'},
       }),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     final echo = items.whereType<UserMessage>().toList();
     expect(echo, hasLength(1));
@@ -699,7 +699,7 @@ void main() {
   test('prompts queue: resolving the head surfaces the next', () async {
     proc.emit(canUseTool('q1'));
     proc.emit(canUseTool('q2'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(session.pendingPrompt!.promptId, 'q1');
     session.resolvePrompt('q1', AllowTool(const {}));
@@ -710,7 +710,7 @@ void main() {
 
   test('resolvePrompt is a no-op for an unknown / already-resolved id', () async {
     proc.emit(canUseTool('req-4'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     session.resolvePrompt('req-4', AllowTool(const {})); // resolves
     session.resolvePrompt('req-4', AllowTool(const {})); // already gone
@@ -726,7 +726,7 @@ void main() {
         'request': {'subtype': 'mystery_subtype'},
       }),
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(items, isEmpty);
     final resp = (jsonDecode(proc.writes.single) as Map)['response'] as Map;
@@ -767,11 +767,11 @@ void main() {
     // The control_request itself emits no status event; without an optimistic
     // update the badge stayed stale. Each call must surface the new mode.
     session.setPermissionMode('plan');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.permissionMode, 'plan');
 
     session.setPermissionMode('acceptEdits');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(statuses.last.permissionMode, 'acceptEdits');
   });
 
@@ -782,7 +782,7 @@ void main() {
     expect(session.busy, isTrue);
 
     proc.emit(jsonEncode({'type': 'result', 'subtype': 'success'}));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(session.busy, isFalse);
     // Leading false is the replayed seed — busyStream tells a new
     // subscriber the CURRENT state before the live updates (T-386).
@@ -796,14 +796,14 @@ void main() {
 
   test('promptedToolUseIds contains the tool_use_id after a can_use_tool arrives', () async {
     proc.emit(canUseTool('p1'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     // promptedToolUseIds exposes the set of prompted tool use ids.
     expect(session.promptedToolUseIds, contains('toolu_1'));
   });
 
   test('rate_limit_event with a non-ISO resetsAt shows the raw string', () async {
     proc.emit(rateLimitEvent(status: 'rate_limited', resetsAt: 'soon'));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     // Non-ISO resetsAt → DateTime.tryParse returns null → raw string is used.
     expect(statuses.last.rateLimitInfo, 'rate limited — resets soon');
   });
@@ -841,14 +841,14 @@ void main() {
           'id': 0,
         }),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final r = mcpResponseOf(mproc.writes.last);
       expect((r['result'] as Map)['serverInfo'], {'name': 'clide-team', 'version': '9.9.9'});
     });
 
     test('answers tools/list with the server tools', () async {
       mproc.emit(mcpMessage('m2', {'method': 'tools/list', 'jsonrpc': '2.0', 'id': 1}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final r = mcpResponseOf(mproc.writes.last);
       final tools = (r['result'] as Map)['tools'] as List;
       expect(tools.single['name'], 'ping');
@@ -863,7 +863,7 @@ void main() {
           'id': 2,
         }),
       );
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(server.calls, ['ping']);
       final r = mcpResponseOf(mproc.writes.last);
       final content = (r['result'] as Map)['content'] as List;
@@ -872,21 +872,21 @@ void main() {
 
     test('an mcp_message for an unknown server is answered with an error', () async {
       mproc.emit(mcpMessage('m4', {'method': 'tools/list', 'jsonrpc': '2.0', 'id': 3}, server: 'nope'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final r = mcpResponseOf(mproc.writes.last);
       expect(r['error'], isNotNull);
     });
 
     test('answers notifications/initialized with an empty result', () async {
       mproc.emit(mcpMessage('m5', {'method': 'notifications/initialized', 'jsonrpc': '2.0', 'id': 4}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final r = mcpResponseOf(mproc.writes.last);
       expect(r['result'], isA<Map>());
     });
 
     test('answers unknown MCP method with a JSON-RPC error -32601', () async {
       mproc.emit(mcpMessage('m6', {'method': 'resources/list', 'jsonrpc': '2.0', 'id': 5}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final r = mcpResponseOf(mproc.writes.last);
       expect((r['error'] as Map)['code'], -32601);
       expect((r['error'] as Map)['message'], contains('resources/list'));
@@ -900,12 +900,12 @@ void main() {
       final ends = <SessionEnd>[];
       session.endedStream.listen(ends.add);
       session.send('do something');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(session.busy, isTrue, reason: 'a send marks the turn in flight');
 
       proc.stderr.addAll(['boom: stack', 'fatal: died']);
       proc.exit.complete(70);
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(session.busy, isFalse, reason: 'a dead process is not thinking');
       expect(ends, hasLength(1));
@@ -918,11 +918,11 @@ void main() {
       final pendings = <ToolPrompt?>[];
       session.pendingPromptStream.listen(pendings.add);
       proc.emit(canUseTool('p1'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(session.pendingPrompt, isNotNull);
 
       proc.exit.complete(1);
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(session.pendingPrompt, isNull);
       expect(pendings.last, isNull, reason: 'the composer swaps back from the prompt UI');
     });
@@ -932,7 +932,7 @@ void main() {
       final s = StreamJsonSession(p)..start();
       await s.dispose();
       p.exit.complete(9); // the kill's exit must not surface as a crash
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(s.end, isNull);
     });
   });
@@ -976,7 +976,7 @@ void main() {
         }),
       );
       p.emit(jsonEncode({'type': 'system', 'subtype': 'task_notification', 'tool_use_id': 'toolu_wf', 'status': 'completed', 'summary': 'done'}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       final run = session.workflows['toolu_wf'];
       expect(run, isNotNull);
@@ -994,7 +994,7 @@ void main() {
       final items = <ConversationItem>[];
       session.items.listen(items.add);
       p.emit(jsonEncode({'type': 'system', 'subtype': 'task_progress', 'tool_use_id': 'toolu_wf', 'workflow_progress': const []}));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(items, isEmpty);
       expect(session.workflows.containsKey('toolu_wf'), isTrue);
     });

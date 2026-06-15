@@ -1,0 +1,17 @@
+# dartdoc configuration.
+#
+# clide is an application, not a published library — its lib/ API docs are not
+# a consumed surface. The dart-doc CI gate (.github/workflows/test.yml) exists
+# to catch real doc-comment defects: unresolved [symbol] references. That check
+# stays strict (unresolved-doc-reference is NOT ignored).
+#
+# The "broken-link" category, by contrast, is pure rendering noise here:
+#   - The README is dartdoc's landing page; its repo-relative links
+#     ([CLAUDE.md], [docs/…], [LICENSE]) are correct on GitHub but don't resolve
+#     once copied into the generated API site.
+#   - The generated Phosphor icon font (lib/widgets/src/icons/phosphor_glyphs.g.dart,
+#     1512 glyphs) produces broken cross-links to its own library page.
+# Neither is a fixable doc-quality problem, so the category is ignored.
+dartdoc:
+  ignore:
+    - broken-link

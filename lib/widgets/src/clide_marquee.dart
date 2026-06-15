@@ -1,6 +1,6 @@
-/// Horizontal marquee (T-150). Shows [child] statically when it fits the
+/// Horizontal marquee (T-150). Shows `child` statically when it fits the
 /// available width; when it's wider, scrolls it leftward in a seamless
-/// loop (a second copy follows after [gap]). Clips to its box. Used by
+/// loop (a second copy follows after `gap`). Clips to its box. Used by
 /// the status-bar slot so a long pane status doesn't get truncated.
 ///
 /// Own-the-stack: a `Ticker`-driven `SingleChildScrollView`, no package.

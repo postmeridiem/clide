@@ -1,0 +1,48 @@
+name: windows
+
+# Windows CI on GitHub-hosted runners — the only hosted Windows available, and
+# GitHub is clide's primary remote (the Gitea secondary is self-hosted Linux and
+# keeps running the Linux suite). This is the first real execution of the ConPTY
+# backend (lib/src/pty/windows_pty.dart), so expect genuine failures until the
+# Windows fixes land (T-424). Keep this OUT of required status checks until it's
+# reliably green — it reports + uploads artifacts without blocking merges. Each
+# run is a fresh, discarded runner, so the accumulation freeze (which needs
+# repeated runs on one machine) can't build up here.
+
+on:
+  push:
+    branches: [main, windows-support]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows-pty:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter --version
+      - run: flutter pub get
+      # No `flutter analyze` here: it's platform-agnostic — the Linux job already
+      # analyzes windows_pty.dart and everything else statically, and the
+      # `flutter build windows` release job catches Windows-specific compile
+      # errors. Skipping it also avoids needing `make gen-build-info`, since the
+      # pty tests import the pty libraries directly, not the build_info-bearing
+      # barrel (lib/clide.dart). This job's unique value is running real ConPTY.
+      - name: ConPTY + Windows-arg unit tests
+        # windows_pty_test.dart drives real ConPTY (it self-skips off-Windows);
+        # the args/size suites are the pure-logic coverage. --timeout 60s so a
+        # wedged reader fails fast instead of hanging the runner.
+        run: dart test --concurrency=1 --timeout 60s test/pty/windows_pty_test.dart test/pty/windows_pty_args_test.dart test/pty/pty_size_test.dart
+      - name: Upload test output / logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-output
+          # T-425 (crash-survivable FileLogSink) writes under %LOCALAPPDATA%\clide\logs;
+          # add that path here once it lands so a freeze leaves a downloadable log.
+          path: test/.test-output
+          if-no-files-found: ignore

@@ -10,18 +10,23 @@ import 'package:flutter/widgets.dart';
 import 'output_controller.dart';
 
 class OutputView extends StatefulWidget {
-  const OutputView({super.key, required this.ring});
+  const OutputView({super.key, required this.ring, this.initialLevel, this.onMinLevelChanged});
 
   /// The retained log buffer to render. The view owns a controller over it
   /// but never the ring itself (the app owns that).
   final LogRing ring;
+
+  /// Initial verbosity (the kernel logger's current level) + the sink that
+  /// applies a chip change to the kernel + persists it (T-433).
+  final LogLevel? initialLevel;
+  final void Function(LogLevel)? onMinLevelChanged;
 
   @override
   State<OutputView> createState() => _OutputViewState();
 }
 
 class _OutputViewState extends State<OutputView> {
-  late final OutputController _c = OutputController(widget.ring);
+  late final OutputController _c = OutputController(widget.ring, initialLevel: widget.initialLevel, onMinLevelChanged: widget.onMinLevelChanged);
   final ScrollController _scroll = ScrollController();
 
   /// Follow the tail until the user scrolls up; resumes when they return to

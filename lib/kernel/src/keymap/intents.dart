@@ -98,6 +98,63 @@ class TextScaleResetIntent extends Intent {
   const TextScaleResetIntent();
 }
 
+// -- Pane navigation (vim normal-mode motions outside the editor) ------------
+
+/// Base for the preset-neutral navigation intents (T-406). A focused non-editor
+/// pane (file tree, conversation, lists) runs its own [SequenceMatcher] and
+/// dispatches the resolved [NavIntent] to its own handler — the vim preset binds
+/// j/k/etc. to these; default/vscode/jetbrains can later bind arrows/page keys
+/// to the same ids. Marker base so a pane's key handler can tell a nav motion
+/// apart from any other fired intent.
+sealed class NavIntent extends Intent {
+  const NavIntent();
+}
+
+/// Move the selection / scroll down one step (vim `j`).
+class NavDownIntent extends NavIntent {
+  const NavDownIntent();
+}
+
+/// Move the selection / scroll up one step (vim `k`).
+class NavUpIntent extends NavIntent {
+  const NavUpIntent();
+}
+
+/// Scroll down half a viewport (vim `ctrl+d`).
+class NavPageDownIntent extends NavIntent {
+  const NavPageDownIntent();
+}
+
+/// Scroll up half a viewport (vim `ctrl+u`).
+class NavPageUpIntent extends NavIntent {
+  const NavPageUpIntent();
+}
+
+/// Jump to the first item / top (vim `gg`).
+class NavTopIntent extends NavIntent {
+  const NavTopIntent();
+}
+
+/// Jump to the last item / bottom (vim `G`).
+class NavBottomIntent extends NavIntent {
+  const NavBottomIntent();
+}
+
+/// Expand the focused node, or step into it / move right (vim `l`).
+class NavExpandOrRightIntent extends NavIntent {
+  const NavExpandOrRightIntent();
+}
+
+/// Collapse the focused node, or step out of it / move left (vim `h`).
+class NavCollapseOrLeftIntent extends NavIntent {
+  const NavCollapseOrLeftIntent();
+}
+
+/// Activate the focused item — open the file, run the row (vim `o` / `enter`).
+class NavActivateIntent extends NavIntent {
+  const NavActivateIntent();
+}
+
 // -- Command bridge ---------------------------------------------------------
 
 /// Generic "invoke this CommandRegistry command id" intent. Used for
@@ -136,6 +193,16 @@ final Map<String, Intent Function()> builtinIntents = {
   'quickOpen.selectPrevious': () => const QuickOpenSelectPreviousIntent(),
   'quickOpen.accept': () => const QuickOpenAcceptIntent(),
   'findInFiles.open': () => const FindInFilesIntent(),
+  // Pane navigation (T-406) — preset-neutral; the vim preset binds j/k/etc.
+  'nav.down': () => const NavDownIntent(),
+  'nav.up': () => const NavUpIntent(),
+  'nav.pageDown': () => const NavPageDownIntent(),
+  'nav.pageUp': () => const NavPageUpIntent(),
+  'nav.top': () => const NavTopIntent(),
+  'nav.bottom': () => const NavBottomIntent(),
+  'nav.expandOrRight': () => const NavExpandOrRightIntent(),
+  'nav.collapseOrLeft': () => const NavCollapseOrLeftIntent(),
+  'nav.activate': () => const NavActivateIntent(),
   'text.scaleIncrease': () => const TextScaleIncreaseIntent(),
   'text.scaleDecrease': () => const TextScaleDecreaseIntent(),
   'text.scaleReset': () => const TextScaleResetIntent(),

@@ -7,7 +7,7 @@
 /// This file is pure (no Flutter): it turns a flat [ConversationItem] list
 /// into a list of [RenderGroup]s — each either a first-class [StickyItem] or
 /// a foldable [FoldedCluster]. The widget layer renders sticky items as
-/// before and clusters as one [activity card]. Kept separate + unit-tested
+/// before and clusters as one `activity card`. Kept separate + unit-tested
 /// because the fold rules are the load-bearing part.
 library;
 

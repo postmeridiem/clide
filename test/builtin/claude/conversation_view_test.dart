@@ -14,10 +14,11 @@ import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/claude/src/workflow_run.dart';
+import 'package:clide/kernel/kernel.dart' show PaneKeyNav;
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show Builder, Image, FileImage, MediaQuery, ValueKey;
+import 'package:flutter/widgets.dart' show Builder, Focus, Image, FileImage, MediaQuery, Scrollable, ScrollableState, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -197,6 +198,61 @@ void main() {
     testWidgets('empty controller shows the waiting hint', (tester) async {
       await pumpWith(tester, const []);
       expect(find.text('Waiting for Claude…'), findsOneWidget);
+    });
+
+    testWidgets('vim G / gg / j scroll the conversation under vim.normal (T-406)', (tester) async {
+      await tester.runAsync(() => f.services.keymap.setPreset('vim'));
+      f.services.keymap.setScopeFlag('vim.normal', true);
+      addTearDown(() => f.services.keymap.clearScopeFlag('vim.normal'));
+
+      // Enough prose to overflow the 700px viewport so there's room to scroll.
+      await pumpWith(tester, [for (var i = 0; i < 40; i++) AssistantTextMessage(uuid: 'a$i', timestamp: _t, isSidechain: false, text: 'line number $i')]);
+
+      // Focus the pane's nav region (its own Focus is PaneKeyNav's outermost).
+      final node = tester.widget<Focus>(find.descendant(of: find.byType(PaneKeyNav), matching: find.byType(Focus)).first).focusNode!;
+      node.requestFocus();
+      await tester.pump();
+
+      final pos = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+      expect(pos.maxScrollExtent, greaterThan(0), reason: 'content must overflow to scroll');
+
+      // G → jump to the bottom.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(pos.pixels, pos.maxScrollExtent);
+
+      // gg → jump to the top.
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+      await tester.pump();
+      expect(pos.pixels, 0);
+
+      // j → down one line (48px); k → back up.
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+      await tester.pump();
+      expect(pos.pixels, 48);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+      await tester.pump();
+      expect(pos.pixels, 0);
+
+      // ctrl+d / ctrl+u → half a viewport down then back up.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyD);
+      await tester.pump();
+      expect(pos.pixels, greaterThan(0));
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyU);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      expect(pos.pixels, 0);
+
+      // h / l / o have no reader-pane semantics — they don't move the scroll.
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyO);
+      await tester.pump();
+      expect(pos.pixels, 0);
     });
 
     testWidgets('a Workflow tool-use with a live run renders the workflow card (T-416)', (tester) async {

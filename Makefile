@@ -148,7 +148,7 @@ changelog-gate: ## Changelog concision gate — fails on `## [Unreleased]` bulle
 	ci/changelog_gate.sh
 
 .PHONY: smoke-bundle
-smoke-bundle: ## Build Linux release bundle and run it under xvfb for 5s.
+smoke-bundle: gen-build-info ## Build Linux release bundle and run it under xvfb for 5s.
 	ci/smoke_bundle.sh
 
 # -- web UI harness ------------------------------------------------------
@@ -182,6 +182,10 @@ build-linux: gen-build-info ## flutter build linux (desktop bundle).
 build-macos: gen-build-info ## flutter build macos (desktop bundle).
 	flutter build macos
 
+.PHONY: build-windows
+build-windows: gen-build-info ## flutter build windows (desktop bundle).
+	flutter build windows
+
 # -- install / uninstall -----------------------------------------------------
 
 # Install prefix. Bundle lands at $(INSTALL_PREFIX)/clide/ with a
@@ -196,6 +200,9 @@ ifeq ($(FLUTTER_OS),linux)
 else ifeq ($(FLUTTER_OS),macos)
   BUNDLE_DIR := build/macos/Build/Products/Release/clide.app
   CLI_BUNDLE_DEST := $(BUNDLE_DIR)/Contents/MacOS/clide-cli
+else ifeq ($(FLUTTER_OS),windows)
+  BUNDLE_DIR := build/windows/x64/runner/Release
+  CLI_BUNDLE_DEST := $(BUNDLE_DIR)/clide-cli.exe
 endif
 
 ICON_SIZES := 16 32 48 128 192 256 512
@@ -291,7 +298,11 @@ dugite-clean: ## Remove the dugite-native directory.
 # target picks up whatever `cc` is on PATH.
 
 CLIDE_CLI_SRC := native/clide-cli/clide.c
-CLIDE_CLI_BIN := native/$(if $(filter Darwin,$(shell uname -s)),macos,linux)-$(shell uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')/clide
+ifeq ($(FLUTTER_OS),windows)
+  CLIDE_CLI_BIN := native/windows-x64/clide.exe
+else
+  CLIDE_CLI_BIN := native/$(if $(filter Darwin,$(shell uname -s)),macos,linux)-$(shell uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')/clide
+endif
 CC ?= cc
 
 .PHONY: clide-cli
@@ -299,7 +310,11 @@ clide-cli: $(CLIDE_CLI_BIN) ## Compile the C `clide` shell client.
 
 $(CLIDE_CLI_BIN): $(CLIDE_CLI_SRC)
 	@mkdir -p $(dir $(CLIDE_CLI_BIN))
+ifeq ($(FLUTTER_OS),windows)
+	ci/build_cli_windows.sh
+else
 	$(CC) -std=c99 -O2 -Wall -Wextra -o $(CLIDE_CLI_BIN) $(CLIDE_CLI_SRC)
+endif
 	@echo "==> built $(CLIDE_CLI_BIN)"
 
 .PHONY: clide-cli-clean

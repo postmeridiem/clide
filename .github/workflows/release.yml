@@ -1,0 +1,104 @@
+name: release
+
+# Build + publish versioned Windows and Linux release bundles when the version
+# in pubspec.yaml changes on main. The `version` job only proceeds when the
+# v<version> tag doesn't already exist, so an unrelated pubspec edit is a no-op.
+#
+# FIRST CUT — neither build has run in CI yet (Windows has never been built at
+# all), so expect to iterate on these from the first run's logs. The repo's own
+# `make` targets are the build contract (gen-build-info + clide-cli + flutter
+# build, all wired in `make build`).
+
+on:
+  push:
+    branches: [main]
+    paths: ['pubspec.yaml']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the tag + the release
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      fresh: ${{ steps.v.outputs.fresh }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # tags, to tell new vs. already-released
+      - id: v
+        shell: bash
+        run: |
+          version=$(awk -F': *' '/^version:/ {gsub(/[" ]/,"",$2); print $2; exit}' pubspec.yaml)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+            echo "v$version already tagged — nothing to release."
+          else
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+            echo "v$version is new — building."
+          fi
+
+  build-linux:
+    needs: version
+    if: needs.version.outputs.fresh == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev
+      - run: make dugite-fetch
+      - run: make build            # gen-build-info + clide-cli + flutter build linux
+      - name: package
+        run: tar -C build/linux/x64/release/bundle -czf clide-linux-x64-${{ needs.version.outputs.version }}.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with: { name: linux, path: clide-linux-x64-*.tar.gz }
+
+  build-windows:
+    needs: version
+    if: needs.version.outputs.fresh == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: choco install -y make
+      - name: build
+        shell: bash
+        run: make dugite-fetch && make build   # MSVC + bash already on windows-latest
+      - name: package
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath clide-windows-x64-${{ needs.version.outputs.version }}.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: clide-windows-x64-*.zip }
+
+  publish:
+    needs: [version, build-linux, build-windows]
+    if: needs.version.outputs.fresh == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: changelog notes for this version
+        shell: bash
+        run: |
+          ver="${{ needs.version.outputs.version }}"
+          # Pull the entries under `## [<version>]` — the changelog cut that the
+          # version-bump commit lands per the changelog discipline — as the
+          # release body; fall back to a one-liner if the section is absent.
+          awk -v ver="$ver" '
+            $0 ~ "^## \\[" ver "\\]" {grab=1; next}
+            grab && /^## \[/ {exit}
+            grab {print}
+          ' CHANGELOG.md > release-notes.md
+          [ -s release-notes.md ] || echo "Release v$ver." > release-notes.md
+      - uses: actions/download-artifact@v4
+        with: { path: dist }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: clide v${{ needs.version.outputs.version }}
+          body_path: release-notes.md     # the version's CHANGELOG section
+          generate_release_notes: true    # + auto commit list appended
+          files: dist/**/*                # the built versioned bundles

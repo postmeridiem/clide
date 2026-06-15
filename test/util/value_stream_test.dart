@@ -11,7 +11,7 @@ void main() {
     v.add(2);
     final got = <int>[];
     v.stream.listen(got.add);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [2]);
   });
 
@@ -19,10 +19,10 @@ void main() {
     final v = ValueStream<int>();
     final got = <int>[];
     v.stream.listen(got.add);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, isEmpty);
     v.add(7);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [7]);
   });
 
@@ -32,7 +32,7 @@ void main() {
     expect(v.value, isFalse);
     final got = <bool>[];
     v.stream.listen(got.add);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [false]);
   });
 
@@ -42,7 +42,7 @@ void main() {
     v.stream.listen(got.add);
     v.add('a');
     v.add('b');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, ['a', 'b']);
   });
 
@@ -53,7 +53,7 @@ void main() {
     v.stream.listen(a.add);
     v.stream.listen(b.add);
     v.add(6);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(a, [5, 6]);
     expect(b, [5, 6]);
   });
@@ -71,7 +71,7 @@ void main() {
     expect(v.valueOrNull, isNull);
     final got = <String?>[];
     v.stream.listen(got.add);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [null]);
   });
 
@@ -81,14 +81,14 @@ void main() {
     final done = <String>[];
     v.stream.listen((_) {}, onDone: () => done.add('a'));
     await v.close();
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(done, ['a']);
     expect(v.isClosed, isTrue);
 
     final got = <int>[];
     var closed = false;
     v.stream.listen(got.add, onDone: () => closed = true);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [3], reason: 'the last value survives close for late readers');
     expect(closed, isTrue);
   });
@@ -105,13 +105,13 @@ void main() {
     final got = <int>[];
     final sub = v.stream.listen(got.add);
     v.add(1);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     sub.pause();
     v.add(2);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [1]);
     sub.resume();
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(got, [1, 2]);
   });
 }

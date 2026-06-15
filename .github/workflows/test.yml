@@ -1,0 +1,144 @@
+name: test
+
+# Linux CI for clide (GitHub Actions). Moved here from .gitea/workflows/ when CI
+# consolidated onto GitHub (the primary remote); the Gitea secondary has Actions
+# disabled. Pairs with windows.yml (ConPTY suite on windows-latest) and
+# release.yml (versioned release bundles).
+#
+# Steps go through the make targets (the repo's tooling-discipline rule: the
+# make layer sets up the environment — gen-build-info etc. — and stays correct
+# if a wrapped script moves).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    name: unit + widget + golden + a11y + coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - name: install pql
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo postmeridiem/pql --pattern 'pql_*_Linux_x86_64.tar.gz' --output /tmp/pql.tgz
+          tar -xzf /tmp/pql.tgz -C /tmp
+          sudo install -m 0755 /tmp/pql /usr/local/bin/pql
+          pql --version
+          # The pql tests query the repo's vault, but .pql/pql.db is gitignored
+          # (the post-checkout hook rebuilds it from the committed changelog).
+          # A fresh CI checkout has the changelog but no db — materialize it,
+          # and sync decision records from the governance/ DQR markdown tree
+          # (tickets come from the changelog; decisions from `decisions sync`).
+          pql plan import
+          pql decisions sync
+      # test-coverage runs the full fast suite WITH coverage (it includes the
+      # a11y suite — see the push-check note in the Makefile), which is what
+      # coverage-gate consumes.
+      - run: make test-coverage
+      - run: make coverage-gate
+
+  integration:
+    name: integration_test (xvfb)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: sudo apt-get update && sudo apt-get install -y xvfb ninja-build libgtk-3-dev
+      - run: flutter pub get
+      - name: install pql
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo postmeridiem/pql --pattern 'pql_*_Linux_x86_64.tar.gz' --output /tmp/pql.tgz
+          tar -xzf /tmp/pql.tgz -C /tmp
+          sudo install -m 0755 /tmp/pql /usr/local/bin/pql
+          pql --version
+          # The pql tests query the repo's vault, but .pql/pql.db is gitignored
+          # (the post-checkout hook rebuilds it from the committed changelog).
+          # A fresh CI checkout has the changelog but no db — materialize it,
+          # and sync decision records from the governance/ DQR markdown tree
+          # (tickets come from the changelog; decisions from `decisions sync`).
+          pql plan import
+          pql decisions sync
+      - uses: coactions/setup-xvfb@v1
+        with: { run: make test-integration }
+
+  startup-bundle:
+    name: bundle smoke (xvfb 5s)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: sudo apt-get update && sudo apt-get install -y xvfb ninja-build libgtk-3-dev
+      - run: flutter pub get
+      - name: install pql
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo postmeridiem/pql --pattern 'pql_*_Linux_x86_64.tar.gz' --output /tmp/pql.tgz
+          tar -xzf /tmp/pql.tgz -C /tmp
+          sudo install -m 0755 /tmp/pql /usr/local/bin/pql
+          pql --version
+          # The pql tests query the repo's vault, but .pql/pql.db is gitignored
+          # (the post-checkout hook rebuilds it from the committed changelog).
+          # A fresh CI checkout has the changelog but no db — materialize it,
+          # and sync decision records from the governance/ DQR markdown tree
+          # (tickets come from the changelog; decisions from `decisions sync`).
+          pql plan import
+          pql decisions sync
+      # Point the real release app's crash logs at an uploadable workspace dir
+      # (T-436): if the bundle wedges on boot, the watchdog heartbeat/sample +
+      # FileLogSink land here and get uploaded below. CLIDE_LOG=debug so the
+      # file sink captures info/debug, not just the release-default warn.
+      - name: bundle smoke (logs → artifact)
+        env:
+          CLIDE_LOG: debug
+          CLIDE_LOG_DIR: ${{ github.workspace }}/clide-logs
+        run: make smoke-bundle
+      - name: Upload crash logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-crash-logs
+          path: ${{ github.workspace }}/clide-logs
+          if-no-files-found: ignore
+
+  # The web-WASM Playwright job is withheld: `flutter build web --wasm` cannot
+  # compile the tree since the tree-sitter/PTY dart:ffi pivot (dart:ffi is
+  # unavailable on the wasm target). Whether the web target gets conditional-
+  # import fences or is dropped is an open question — see Q-50 in
+  # governance/questions/architecture.md. Re-add the job (setup-node, npm
+  # install + playwright install in tools/ui, `make test-e2e`) when Q-50
+  # resolves toward keeping it.
+
+  docs:
+    name: dart doc (lib API)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - name: dart doc --validate-links (fail on warning)
+        run: |
+          set -o pipefail
+          dart doc --validate-links 2>&1 | tee dartdoc.log
+          if grep -q "^  warning:" dartdoc.log; then
+            echo "::error::dartdoc emitted warnings — see log above"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dart-api-docs
+          path: doc/api/

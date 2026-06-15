@@ -59,7 +59,7 @@ void main() {
     await orch.spawn(SpawnSpec(id: 'primary', role: 'primary', sessionId: 'p-uuid', cwd: '/repo'));
 
     final accepted = await applyTicketPickUp(payload(), orchestrator: orch, ipc: ipc, messages: messages);
-    await Future<void>.delayed(Duration.zero); // let the bus deliver 'changed'
+    await pumpEventQueue(); // let the bus deliver 'changed'
 
     expect(accepted, isTrue);
     expect(statusCalls, hasLength(1));
@@ -71,7 +71,7 @@ void main() {
   test('no live session: nothing injected, ticket untouched (T-339)', () async {
     // Orchestrator has no sessions → quiet no-op.
     final accepted = await applyTicketPickUp(payload(), orchestrator: orch, ipc: ipc, messages: messages);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(accepted, isFalse);
     expect(statusCalls, isEmpty);
@@ -87,7 +87,7 @@ void main() {
       ipc: ipc,
       messages: messages,
     );
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
 
     expect(accepted, isTrue); // prompt still delivered
     expect(statusCalls, isEmpty); // but no transition

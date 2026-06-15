@@ -1,3 +1,9 @@
 #!/bin/sh
-# pql: source .pql/hooks/post-checkout (rebuild pql.db on branch checkout)
-. "$(git rev-parse --show-toplevel)/.pql/hooks/post-checkout"
+# pql: source .pql/hooks/post-checkout (rebuild pql.db on branch checkout).
+# The pql hook is untracked (a local `pql init` install), so a fresh
+# `git worktree add` has no .pql/hooks — source it only when present, and
+# always exit 0: post-checkout is best-effort and must never abort the
+# checkout / worktree creation.
+hook="$(git rev-parse --show-toplevel)/.pql/hooks/post-checkout"
+if [ -f "$hook" ]; then . "$hook"; fi
+exit 0

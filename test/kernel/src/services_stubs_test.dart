@@ -283,7 +283,7 @@ void main() {
       addTearDown(n.dispose);
 
       n.warn('clide CLI not on PATH', title: 'dogfood');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(toasts.entries, hasLength(1));
       expect(toasts.entries.single.message, 'dogfood — clide CLI not on PATH');
@@ -299,7 +299,7 @@ void main() {
 
       n.error('boom');
       n.success('done');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(toasts.entries.map((e) => e.severity), [ToastSeverity.error, ToastSeverity.success]);
     });

@@ -127,7 +127,7 @@ class CliInstaller {
             '`make build` so the C client ships inside the app bundle.',
       );
     }
-    final dest = '${_normalize(installDir)}/clide';
+    final dest = '${_normalize(installDir)}/clide${Platform.isWindows ? '.exe' : ''}';
     try {
       Directory(installDir).createSync(recursive: true);
       // Delete any existing entry first so a stale symlink (e.g. one into
@@ -180,42 +180,60 @@ class CliInstaller {
 
   bool _dirOnPath(String dir) {
     final norm = _normalize(dir);
-    return _expandedPath().split(':').any((d) => d.isNotEmpty && _normalize(d) == norm);
+    return _expandedPath().split(_pathSep).any((d) => d.isNotEmpty && _normalize(d) == norm);
   }
 
-  String _normalize(String p) => p.length > 1 && p.endsWith('/') ? p.substring(0, p.length - 1) : p;
+  /// Trim a trailing slash; on Windows also fold separators and case so
+  /// `C:\Users\x/.local/bin` and `c:\users\x\.local\bin` compare equal.
+  String _normalize(String p) {
+    var s = p;
+    if (Platform.isWindows) s = s.replaceAll('\\', '/').toLowerCase();
+    return s.length > 1 && s.endsWith('/') ? s.substring(0, s.length - 1) : s;
+  }
 
   String? _findOnPath(String name) {
-    for (final dir in _expandedPath().split(':')) {
+    for (final dir in _expandedPath().split(_pathSep)) {
       if (dir.isEmpty) continue;
-      final f = File('$dir/$name');
-      if (f.existsSync()) return f.path;
+      if (Platform.isWindows) {
+        for (final ext in const ['.exe', '.bat', '.cmd', '']) {
+          final f = File('$dir\\$name$ext');
+          if (f.existsSync()) return f.path;
+        }
+      } else {
+        final f = File('$dir/$name');
+        if (f.existsSync()) return f.path;
+      }
     }
     return null;
   }
 
+  static String get _pathSep => Platform.isWindows ? ';' : ':';
+
   String _expandedPath() => expandedPath(env['PATH'] ?? '', macOS: Platform.isMacOS, home: env['HOME'] ?? '');
 
-  static String _defaultInstallDir(Map<String, String> env) => '${env['HOME'] ?? ''}/.local/bin';
+  /// `~/.local/bin` on every platform — on Windows that is
+  /// `%USERPROFILE%\.local\bin`, the same convention the claude and
+  /// pql installers use there.
+  static String _defaultInstallDir(Map<String, String> env) => '${env['HOME'] ?? env['USERPROFILE'] ?? ''}/.local/bin';
 
   /// Where to find the C client to install from: a `CLIDE_CLI_BIN` dev
   /// override first, then `<exe-dir>/clide-cli` — where `make build` drops it
-  /// inside the bundle (next to the GUI runner on Linux, in
+  /// inside the bundle (next to the GUI runner on Linux and Windows, in
   /// `Contents/MacOS/` on macOS).
   static List<String> _defaultBundledCandidates(String resolvedExecutable, Map<String, String> env) {
     final exeDir = File(resolvedExecutable).parent.path;
-    return [if ((env['CLIDE_CLI_BIN'] ?? '').isNotEmpty) env['CLIDE_CLI_BIN']!, '$exeDir/clide-cli'];
+    return [if ((env['CLIDE_CLI_BIN'] ?? '').isNotEmpty) env['CLIDE_CLI_BIN']!, if (Platform.isWindows) '$exeDir/clide-cli.exe' else '$exeDir/clide-cli'];
   }
 }
 
-final RegExp _devTreeClient = RegExp(r'(^|/)native/(linux|macos)-(x64|arm64)/clide$');
+final RegExp _devTreeClient = RegExp(r'(^|/)native/(linux|macos|windows)-(x64|arm64)/clide(\.exe)?$');
 
 /// True when [path] is a dev-tree C-client build artifact —
 /// `native/<platform>/clide`, the Makefile's `CLIDE_CLI_BIN` output. On a clide
 /// checkout `make run` points `CLIDE_CLI_BIN` there and a dev may put it on
 /// PATH; it's a working client but not a packaged production install, so it's
 /// classified separately (T-256) rather than as a clean install.
-bool isDevTreeClient(String path) => _devTreeClient.hasMatch(path);
+bool isDevTreeClient(String path) => _devTreeClient.hasMatch(path.replaceAll('\\', '/'));
 
 /// Expand a `PATH` value. Mirrors `toolchain_paths.dart`: macOS GUI apps
 /// launch with a sparse PATH that omits the usual user/homebrew bins, so on

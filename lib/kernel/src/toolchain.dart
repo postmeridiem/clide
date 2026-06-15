@@ -10,6 +10,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 
@@ -20,7 +21,6 @@ export 'toolchain_paths.dart';
 class Toolchain extends ChangeNotifier implements ToolchainView {
   String? _git;
   String? _pql;
-  String? _tmux;
   String? _shell;
   Map<String, String>? _gitEnv;
   bool _resolved = false;
@@ -30,9 +30,7 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   @override
   String get pql => _pql ?? 'pql';
   @override
-  String get tmux => _tmux ?? 'tmux';
-  @override
-  String get shell => _shell ?? '/bin/bash';
+  String get shell => _shell ?? (Platform.isWindows ? 'powershell.exe' : '/bin/bash');
 
   /// Extra environment variables for git (e.g. GIT_EXEC_PATH for dugite).
   @override
@@ -44,7 +42,7 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   bool get allOk => _resolved && missing.isEmpty;
 
   @override
-  List<String> get missing => [if (_git == null) 'git', if (_pql == null) 'pql', if (_tmux == null) 'tmux'];
+  List<String> get missing => [if (_git == null) 'git', if (_pql == null) 'pql'];
 
   /// Returns a Future that completes when resolution finishes.
   Future<void> waitForResolution() {
@@ -65,7 +63,6 @@ class Toolchain extends ChangeNotifier implements ToolchainView {
   void applyResolved(ResolvedPaths p) {
     _git = p.git;
     _pql = p.pql;
-    _tmux = p.tmux;
     _shell = p.shell;
     _gitEnv = p.gitEnv;
     _resolved = true;

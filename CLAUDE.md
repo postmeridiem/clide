@@ -9,7 +9,7 @@ An IDE for Claude Code CLI. Single Flutter package at the repo root.
 - **`lib/`** — all Dart code. Subsystem handlers (`lib/src/daemon/`, `lib/src/pty/`, `lib/src/ipc/`, `lib/src/git/`, `lib/src/pql/`), kernel services (`lib/kernel/`), UI widgets (`lib/widgets/`), built-in extensions (`lib/builtin/`), and the extension framework (`lib/extension/`). The Flutter app hosts the IPC server in-process (D-56). PTY spawning uses Dart FFI `posix_openpt()` + `posix_spawn()` directly.
 - **[`pql`](https://github.com/postmeridiem/pql)** — external supporter tool. Clide wraps it for every query surface; never re-implements it.
 
-tmux owns Claude session persistence (D-41) — the app re-attaches on restart via `tmux new-session -A`. Native rendering — markdown, canvas, graph — is Dart/Flutter (`CustomPaint` + widgets), not third-party packages.
+Claude session persistence is `--resume <session-id>` against Claude Code's transcript files (D-77, superseding the original tmux-backed D-41) — the app re-attaches on restart, no tmux required. Native rendering — markdown, canvas, graph — is Dart/Flutter (`CustomPaint` + widgets), not third-party packages.
 
 Design doc: [`docs/initial-plan.md`](docs/initial-plan.md). Decisions: [`governance/`](governance/) (`D-NNN` confirmed, `Q-NNN` open, `R-NNN` rejected — see [`governance/README.md`](governance/README.md)). Python Textual predecessor under [`legacy/`](legacy/).
 

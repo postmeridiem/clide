@@ -28,8 +28,8 @@ class ConversationController extends ChangeNotifier {
   }
 
   /// Build a controller fed from the kernel [MessageBus] — it consumes
-  /// the [ConversationItem]s a [TranscriptPublisher] writes onto
-  /// [publisher]/[channel]. Decouples the view from the reader so several
+  /// the [ConversationItem]s a `TranscriptPublisher` writes onto
+  /// `publisher`/[channel]. Decouples the view from the reader so several
   /// panels can render the same conversation (team work, T-139/T-140).
   factory ConversationController.fromBus({required MessageBus messages, String channel = ClaudeConversation.leadChannel, Future<void> Function()? onDispose}) {
     final stream = messages

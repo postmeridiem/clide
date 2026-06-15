@@ -122,18 +122,18 @@ void main() {
     test('an image-show message with no live session is dropped silently (T-249)', () async {
       f.services.messages.publish('test', imageShowChannel, {'path': '/tmp/x.png'});
       f.services.messages.publish('test', imageShowChannel, {'path': ''});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // Nothing to assert beyond "no throw" — there is no conversation to
       // receive the card and the CLI already acked at publish time.
     });
 
     test('a project switch closes sessions that belong to the old root (T-269)', () async {
       f.services.events.emit(const ProjectOpened(path: '/repo-one'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       f.services.events.emit(const ProjectOpened(path: '/repo-one'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       f.services.events.emit(const ProjectOpened(path: '/repo-two'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // No live sessions in this fixture — the sweep runs over an empty set.
       expect(activeSessionOrchestrator!.sessions, isEmpty);
     });

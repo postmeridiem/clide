@@ -31,6 +31,7 @@ import 'kernel/kernel.dart';
 import 'src/pty/ffi/libc.dart' as libc;
 import 'src/daemon/pane_commands.dart';
 import 'src/ipc/envelope.dart';
+import 'src/ipc/paths.dart' show logDirectory;
 import 'src/panes/event_sink.dart';
 import 'src/panes/registry.dart';
 import 'src/daemon/dispatcher.dart';
@@ -59,11 +60,34 @@ class _ClideTestAppState extends State<ClideTestApp> {
   @override
   void initState() {
     super.initState();
+    _attachCrashLogging();
     WidgetsBinding.instance.addPostFrameCallback((_) => _runTests());
     Timer(_timeout, () {
       _say('timeout reached — exiting');
       exit(1);
     });
+  }
+
+  /// Opt-in crash evidence for testmode (T-436): when `CLIDE_LOG_DIR` is set
+  /// (CI / a manual Windows repro), tee this harness's logger to a
+  /// FileLogSink and spawn the watchdog, so a wedged testmode run leaves the
+  /// same log + watchdog files the real app would. `_say` breadcrumbs each
+  /// test through the logger, so they land in the file too. Off by default —
+  /// normal `make run-testmode` keeps the stderr-only path, no isolate.
+  void _attachCrashLogging() {
+    final dir = Platform.environment['CLIDE_LOG_DIR'];
+    if (dir == null || dir.isEmpty) return;
+    final logDir = logDirectory();
+    try {
+      _logger.addSink(FileLogSink(dir: Directory(logDir)).call);
+    } catch (_) {}
+    unawaited(_spawnWatchdog(logDir));
+  }
+
+  Future<void> _spawnWatchdog(String logDir) async {
+    try {
+      await Isolate.spawn(watchdogEntry, ('$logDir/clide-watchdog.log', 500, 2000));
+    } catch (_) {}
   }
 
   Future<void> _runTests() async {
@@ -113,27 +137,29 @@ class _ClideTestAppState extends State<ClideTestApp> {
     _say('--- toolchain ---');
     _log('toolchain.git', tc.git);
     _log('toolchain.pql', tc.pql);
-    _log('toolchain.tmux', tc.tmux);
     _log('toolchain.shell', tc.shell);
     _log('toolchain.missing', tc.missing.isEmpty ? 'none' : tc.missing.join(', '));
     _say('');
 
     await _testExists('git', tc.git);
     await _testExists('pql', tc.pql);
-    await _testExists('tmux', tc.tmux);
     await _testExists('shell', tc.shell);
     _say('');
 
     await _testExec('git --version', tc.git, ['--version'], workDir);
     await _testExec('pql --version', tc.pql, ['--version'], workDir);
-    await _testExec('tmux -V', tc.tmux, ['-V'], workDir);
-    await _testExec('shell --version', tc.shell, ['--version'], workDir);
+    // PowerShell has no --version flag; ask for the version variable
+    // through the same -c path the passthrough tests use.
+    await _testExec('shell --version', tc.shell, Platform.isWindows ? ['-c', r'$PSVersionTable.PSVersion.ToString()'] : ['--version'], workDir);
     _say('');
 
     // Shell passthrough — use the resolved shell, not a hardcoded path
-    await _testExec('shell -c git', tc.shell, ['-c', '${tc.git} --version'], workDir);
-    await _testExec('shell -c pql', tc.shell, ['-c', '${tc.pql} --version'], workDir);
-    await _testExec('shell -c tmux', tc.shell, ['-c', '${tc.tmux} -V'], workDir);
+    // (-c works for POSIX shells and as PowerShell's -Command alias).
+    // PowerShell needs the & call operator to run a quoted path; POSIX
+    // shells take the bare path.
+    String shellCall(String exe, String args) => Platform.isWindows ? "& '$exe' $args" : '$exe $args';
+    await _testExec('shell -c git', tc.shell, ['-c', shellCall(tc.git, '--version')], workDir);
+    await _testExec('shell -c pql', tc.shell, ['-c', shellCall(tc.pql, '--version')], workDir);
     await _testExec('shell -c git (bare)', tc.shell, ['-c', 'git --version'], workDir);
     _say('');
 

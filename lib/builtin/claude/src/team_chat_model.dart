@@ -5,8 +5,8 @@
 /// and the full workspace pane read from this one model — they share state,
 /// they do NOT each hold their own copy.
 ///
-/// [postAsUser] is the user's write path: it routes by @tag (one agent or
-/// broadcast) and, when the interrupt flag is set, calls [interrupt()] on the
+/// `postAsUser` is the user's write path: it routes by @tag (one agent or
+/// broadcast) and, when the interrupt flag is set, calls `interrupt()` on the
 /// target session THEN delivers the message.
 ///
 /// Flutter-free on purpose: this module (like [TeamBroker]) runs under

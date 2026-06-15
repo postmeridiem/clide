@@ -24,6 +24,8 @@ import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/kernel/src/facade.dart';
+import 'package:clide/kernel/src/keymap/intents.dart';
+import 'package:clide/kernel/src/keymap/pane_key_nav.dart';
 import 'package:clide/kernel/src/syntax/language_map.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
@@ -387,10 +389,48 @@ class _ConversationViewState extends State<ConversationView> {
         return list;
       },
     );
-    return ColoredBox(
+    final body = ColoredBox(
       color: tokens.panelBackground,
       child: widget.wrapInSelectionArea ? ClideSelectionArea(child: sized) : sized,
     );
+    // Vim nav scrolls the conversation while this region holds focus under the
+    // vim preset (T-406): j/k by a line, ctrl+d/u by half a viewport, gg/G to
+    // the ends — G also re-arms follow-tail so new output keeps it pinned.
+    return PaneKeyNav(onNav: _onNav, child: body);
+  }
+
+  /// One "line" of scroll for j/k — a few text rows' worth.
+  static const double _lineScroll = 48;
+
+  void _onNav(NavIntent intent, int count) {
+    if (!_scroll.hasClients) return;
+    final p = _scroll.position;
+    final half = p.viewportDimension / 2;
+    switch (intent) {
+      case NavDownIntent():
+        _scrollBy(_lineScroll * count);
+      case NavUpIntent():
+        _scrollBy(-_lineScroll * count);
+      case NavPageDownIntent():
+        _scrollBy(half);
+      case NavPageUpIntent():
+        _scrollBy(-half);
+      case NavTopIntent():
+        _scroll.jumpTo(0);
+        _atBottom = false;
+      case NavBottomIntent():
+        _scroll.jumpTo(p.maxScrollExtent);
+        _atBottom = true; // re-arm follow-tail (T-297)
+      case NavExpandOrRightIntent() || NavCollapseOrLeftIntent() || NavActivateIntent():
+        break; // a reader pane has no expand/activate semantics
+    }
+  }
+
+  void _scrollBy(double delta) {
+    final p = _scroll.position;
+    final target = (p.pixels + delta).clamp(0.0, p.maxScrollExtent);
+    _scroll.jumpTo(target);
+    _atBottom = (p.maxScrollExtent - target) <= _bottomEpsilon;
   }
 }
 

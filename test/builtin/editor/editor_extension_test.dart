@@ -34,36 +34,36 @@ void main() {
   test('editor.opened opens the editor split', () async {
     expect(f.services.arrangement.editorOpen, isFalse);
     emitEditor('editor.opened', id: 'b_1');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(f.services.arrangement.editorOpen, isTrue);
   });
 
   test('editor.active-changed with a buffer keeps the split open', () async {
     emitEditor('editor.active-changed', id: 'b_2');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(f.services.arrangement.editorOpen, isTrue);
   });
 
   test('editor.active-changed with a null id collapses the split', () async {
     emitEditor('editor.opened', id: 'b_1');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(f.services.arrangement.editorOpen, isTrue);
 
     emitEditor('editor.active-changed', id: null);
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(f.services.arrangement.editorOpen, isFalse);
   });
 
   test('a non-editor event does not open the split', () async {
     f.services.events.emit(DaemonEvent(subsystem: 'git', kind: 'changed', data: const {}, ts: DateTime.now().toUtc()));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(f.services.arrangement.editorOpen, isFalse);
   });
 
   test('after deactivate, editor events no longer open the split', () async {
     await f.services.extensions.deactivate('builtin.editor');
     emitEditor('editor.opened', id: 'b_9');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(f.services.arrangement.editorOpen, isFalse);
   });
 }

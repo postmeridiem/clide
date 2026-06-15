@@ -97,9 +97,9 @@ void main() {
 
     test('decisions.detail tab count stays at 1 after multiple selections', () async {
       _select(f, 'D-1');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       _select(f, 'D-2');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       final tabs = f.services.panels.tabsFor(Slots.contextPanel);
       expect(tabs.where((t) => t.id == 'decisions.detail').length, 1, reason: 'no per-click re-contribution — exactly one decisions.detail tab');
@@ -107,25 +107,25 @@ void main() {
 
     test('selection activates decisions.detail tab', () async {
       _select(f, 'D-1');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(f.services.panels.activeTabIn(Slots.contextPanel), 'decisions.detail');
     });
 
     test('second selection switches to decisions.detail (already active, stays)', () async {
       _select(f, 'D-1');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       _select(f, 'D-2');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(f.services.panels.activeTabIn(Slots.contextPanel), 'decisions.detail');
     });
 
     test('clicking the same decision twice leaves decisions.detail active', () async {
       _select(f, 'D-5');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       _select(f, 'D-5');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(f.services.panels.activeTabIn(Slots.contextPanel), 'decisions.detail');
       expect(f.services.panels.tabsFor(Slots.contextPanel).where((t) => t.id == 'decisions.detail').length, 1);
@@ -139,7 +139,7 @@ void main() {
       f.services.arrangement.setCollapsed(Slots.contextPanel, true);
 
       _select(f, 'D-3');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(f.services.arrangement.isVisible(Slots.contextPanel), isTrue, reason: 'panel must be made visible on selection');
       expect(f.services.arrangement.isCollapsed(Slots.contextPanel), isFalse, reason: 'panel must be un-collapsed on selection');
@@ -149,7 +149,7 @@ void main() {
       for (var i = 1; i <= 10; i++) {
         _select(f, 'D-$i');
       }
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(f.services.panels.activeTabIn(Slots.contextPanel), 'decisions.detail');
       expect(f.services.panels.tabsFor(Slots.contextPanel).where((t) => t.id == 'decisions.detail').length, 1);
@@ -158,11 +158,11 @@ void main() {
     test('null id in selection message is ignored', () async {
       // Seed a valid tab selection first.
       _select(f, 'D-1');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       // Then send a bad message.
       f.services.messages.publish('builtin.decisions', 'selection', {'id': null});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       // Tab still active, still only one.
       expect(f.services.panels.activeTabIn(Slots.contextPanel), 'decisions.detail');
@@ -176,7 +176,7 @@ void main() {
       // tab at all — but the panel activation path must not fire either.
       f.services.panels.registerSlot(const SlotDefinition(id: Slots.contextPanel, position: SlotPosition.right));
       f.services.messages.publish('builtin.decisions', 'selection', {'id': 'D-99'});
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(
         f.services.panels.activeTabIn(Slots.contextPanel),

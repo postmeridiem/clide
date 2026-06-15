@@ -12,7 +12,7 @@ void main() {
       final events = <ClideEventEnvelope>[];
       final sub = bus.stream.listen(events.add);
       bus.emit(const ThemeChanged(themeName: 'summer-night'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(events, hasLength(1));
       expect(events.first.event, isA<ThemeChanged>());
       await sub.cancel();
@@ -26,7 +26,7 @@ void main() {
       bus.emit(const ThemeChanged(themeName: 'a'));
       bus.emit(const ExtensionActivated(id: 'builtin.git'));
       bus.emit(const ThemeChanged(themeName: 'b'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(themes.map((e) => e.themeName), ['a', 'b']);
       expect(extensions.map((e) => e.id), ['builtin.git']);
       await s1.cancel();
@@ -39,7 +39,7 @@ void main() {
       final s1 = bus.stream.listen((e) => a.add(e.event));
       final s2 = bus.stream.listen((e) => b.add(e.event));
       bus.emit(const ThemeChanged(themeName: 'x'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(a, hasLength(1));
       expect(b, hasLength(1));
       await s1.cancel();
@@ -57,7 +57,7 @@ void main() {
       final sub = bus.stream.listen(capture.add);
       final before = DateTime.now().toUtc();
       bus.emit(const ThemeChanged(themeName: 'n'));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       final after = DateTime.now().toUtc();
       expect(capture, hasLength(1));
       final ts = capture.first.timestamp;

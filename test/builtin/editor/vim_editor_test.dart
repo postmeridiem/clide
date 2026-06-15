@@ -56,6 +56,13 @@ void main() {
     await tester.pump();
   }
 
+  testWidgets('focusing the editor publishes editor.focused (T-406)', (tester) async {
+    stubOneBuffer('hello');
+    expect(f.services.keymap.scope['editor.focused'], isNot(true));
+    await pumpEditor(tester); // taps into the editor → focus
+    expect(f.services.keymap.scope['editor.focused'], isTrue, reason: 'pane nav guards on !editor.focused');
+  });
+
   testWidgets('normal-mode x deletes the char under the caret', (tester) async {
     String? sentText;
     f.ipc.stub('editor.set-content', (a) async {

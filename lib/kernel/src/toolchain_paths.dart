@@ -12,11 +12,10 @@ import 'dart:io';
 
 /// Serializable result of tool resolution (crosses isolate boundary).
 class ResolvedPaths {
-  const ResolvedPaths({this.git, this.pql, this.tmux, this.shell, this.gitEnv});
+  const ResolvedPaths({this.git, this.pql, this.shell, this.gitEnv});
 
   final String? git;
   final String? pql;
-  final String? tmux;
   final String? shell;
   final Map<String, String>? gitEnv;
 }
@@ -32,7 +31,6 @@ abstract class ToolchainView {
 
   String get git;
   String get pql;
-  String get tmux;
   String get shell;
   Map<String, String>? get gitEnv;
   bool get resolved;
@@ -50,9 +48,7 @@ class _StaticToolchain implements ToolchainView {
   @override
   String get pql => _paths.pql ?? 'pql';
   @override
-  String get tmux => _paths.tmux ?? 'tmux';
-  @override
-  String get shell => _paths.shell ?? '/bin/bash';
+  String get shell => _paths.shell ?? (Platform.isWindows ? 'powershell.exe' : '/bin/bash');
   @override
   Map<String, String>? get gitEnv => _paths.gitEnv;
   @override
@@ -60,7 +56,7 @@ class _StaticToolchain implements ToolchainView {
   @override
   bool get allOk => missing.isEmpty;
   @override
-  List<String> get missing => [if (_paths.git == null) 'git', if (_paths.pql == null) 'pql', if (_paths.tmux == null) 'tmux'];
+  List<String> get missing => [if (_paths.git == null) 'git', if (_paths.pql == null) 'pql'];
 }
 
 /// Top-level function for compute/isolate use. Returns a plain-data
@@ -83,13 +79,17 @@ ResolvedPaths resolveToolchainPaths() {
     git = _findOnPath('git');
   }
 
-  return ResolvedPaths(
-    git: git,
-    pql: _findOnPath('pql'),
-    tmux: _findOnPath('tmux'),
-    shell: _findOnPath(Platform.environment['SHELL']?.split('/').last ?? 'bash'),
-    gitEnv: gitEnv,
-  );
+  return ResolvedPaths(git: git, pql: _findOnPath('pql'), shell: _resolveShell(), gitEnv: gitEnv);
+}
+
+/// The user's interactive shell. POSIX honours `$SHELL`; Windows has
+/// no such convention — prefer PowerShell 7 (`pwsh`), fall back to
+/// Windows PowerShell (present on every supported Windows).
+String? _resolveShell() {
+  if (Platform.isWindows) {
+    return _findOnPath('pwsh') ?? _findOnPath('powershell');
+  }
+  return _findOnPath(Platform.environment['SHELL']?.split('/').last ?? 'bash');
 }
 
 /// Locate the dugite-bundled git binary in trusted install locations
@@ -104,6 +104,10 @@ ResolvedPaths resolveToolchainPaths() {
 ///
 /// Returns null if no dugite is found; caller falls back to PATH git.
 String? _resolveDugiteGit() {
+  // dugite-native's Windows layout differs (cmd\git.exe, mingw64
+  // libexec) and isn't wired up yet — PATH git serves Windows until
+  // the bundle work lands.
+  if (Platform.isWindows) return null;
   final candidates = <String>[];
   final envDir = Platform.environment['CLIDE_DUGITE_DIR'];
   if (envDir != null && envDir.isNotEmpty) {
@@ -116,10 +120,19 @@ String? _resolveDugiteGit() {
 }
 
 String? _findOnPath(String name) {
-  for (final dir in _expandedPath().split(':')) {
+  final sep = Platform.isWindows ? ';' : ':';
+  for (final dir in _expandedPath().split(sep)) {
     if (dir.isEmpty) continue;
-    final f = File('$dir/$name');
-    if (f.existsSync()) return f.path;
+    if (Platform.isWindows) {
+      // PATHEXT-style probe — a bare `pql` on PATH is really pql.exe.
+      for (final ext in const ['.exe', '.bat', '.cmd', '.com', '']) {
+        final f = File('$dir\\$name$ext');
+        if (f.existsSync()) return f.path;
+      }
+    } else {
+      final f = File('$dir/$name');
+      if (f.existsSync()) return f.path;
+    }
   }
   return null;
 }

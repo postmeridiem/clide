@@ -287,7 +287,7 @@ void main() {
       // Emit files.changed for a file at root level — parent is ''.
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
       // Give the async refresh a tick.
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, greaterThan(countAfterLoad));
     });
@@ -305,7 +305,7 @@ void main() {
 
       // 'lib' is not in _entries yet, so its parent 'lib/src' won't be there.
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'lib/src/foo.dart'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, countAfterLoad);
     });
@@ -322,7 +322,7 @@ void main() {
       final countAfterLoad = lsCallCount;
 
       f.services.events.emit(DaemonEvent(subsystem: 'editor', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, countAfterLoad);
     });
@@ -339,7 +339,7 @@ void main() {
       final countAfterLoad = lsCallCount;
 
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.opened', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       expect(lsCallCount, countAfterLoad);
     });
@@ -352,7 +352,7 @@ void main() {
       final countAfterLoad = 1;
 
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'pubspec.yaml'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
 
       // Root '' is in _entries, so reload fires.
       expect(countAfterLoad, 1); // just confirming test ran
@@ -364,7 +364,7 @@ void main() {
       await c.load();
 
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': null}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // No crash — just checking the null-path guard.
     });
   });
@@ -382,6 +382,99 @@ void main() {
     });
   });
 
+  group('FileTreeController — keyboard selection (T-406)', () {
+    // Tree:  '' (root) → [lib/ (→ app.dart), main.dart]
+    Future<FileTreeController> tree({bool expandLib = false}) async {
+      f.ipc.stub('files.root', (_) async => _ok({'path': '/ws'}));
+      f.ipc.stub('files.watch', (_) async => _ok(const {}));
+      f.ipc.stub('files.ls', (args) async {
+        final path = args['path'] as String? ?? '';
+        if (path == '') {
+          return _ok({
+            'entries': [_fileEntry(name: 'lib', path: 'lib', isDirectory: true), _fileEntry(name: 'main.dart', path: 'main.dart')],
+          });
+        }
+        if (path == 'lib') {
+          return _ok({
+            'entries': [_fileEntry(name: 'app.dart', path: 'lib/app.dart')],
+          });
+        }
+        return _ok({'entries': <Object?>[]});
+      });
+      final c = makeCtrl();
+      await c.load();
+      if (expandLib) await c.toggle('lib');
+      return c;
+    }
+
+    test('visibleNodes flattens the root + expanded children in render order', () async {
+      final c = await tree(expandLib: true);
+      expect(c.visibleNodes().map((n) => n.path), ['', 'lib', 'lib/app.dart', 'main.dart']);
+      expect(c.visibleNodes().map((n) => n.depth), [0, 1, 2, 1]);
+    });
+
+    test('a collapsed directory hides its children from the visible list', () async {
+      final c = await tree();
+      expect(c.visibleNodes().map((n) => n.path), ['', 'lib', 'main.dart']);
+    });
+
+    test('moveSelection walks the visible list and clamps at the ends', () async {
+      final c = await tree(expandLib: true);
+      expect(c.selectedPath, isNull);
+      c.moveSelection(1);
+      expect(c.selectedPath, ''); // first move lands on the root
+      c.moveSelection(1);
+      expect(c.selectedPath, 'lib');
+      c.moveSelection(2);
+      expect(c.selectedPath, 'main.dart'); // lib/app.dart skipped over by +2
+      c.moveSelection(5); // clamp at the bottom
+      expect(c.selectedPath, 'main.dart');
+      c.moveSelection(-100); // clamp at the top
+      expect(c.selectedPath, '');
+    });
+
+    test('selectEdge jumps to the first / last visible row (gg / G)', () async {
+      final c = await tree(expandLib: true);
+      c.selectEdge(top: false);
+      expect(c.selectedPath, 'main.dart');
+      c.selectEdge(top: true);
+      expect(c.selectedPath, '');
+    });
+
+    test('expandOrInto expands a collapsed dir, then steps into its first child', () async {
+      final c = await tree();
+      c.moveSelection(1); // root
+      c.moveSelection(1); // lib (collapsed)
+      expect(c.isExpanded('lib'), isFalse);
+      await c.expandOrInto(); // expands
+      expect(c.isExpanded('lib'), isTrue);
+      expect(c.selectedPath, 'lib'); // selection stays on the dir
+      await c.expandOrInto(); // steps into first child
+      expect(c.selectedPath, 'lib/app.dart');
+    });
+
+    test('collapseOrOut collapses an expanded dir, then steps out to the parent', () async {
+      final c = await tree(expandLib: true);
+      c.selectEdge(top: true);
+      c.moveSelection(2); // lib/app.dart
+      expect(c.selectedPath, 'lib/app.dart');
+      await c.collapseOrOut(); // a file → step to parent
+      expect(c.selectedPath, 'lib');
+      await c.collapseOrOut(); // an expanded dir → collapse in place
+      expect(c.isExpanded('lib'), isFalse);
+      expect(c.selectedPath, 'lib');
+    });
+
+    test('activateTarget reports the selected row as dir-or-file for the view', () async {
+      final c = await tree(expandLib: true);
+      c.selectEdge(top: true);
+      c.moveSelection(1); // lib
+      expect(c.activateTarget(), (isDirectory: true, path: 'lib'));
+      c.moveSelection(2); // main.dart
+      expect(c.activateTarget(), (isDirectory: false, path: 'main.dart'));
+    });
+  });
+
   group('FileTreeController — dispose()', () {
     test('dispose cancels event subscription without error', () async {
       f.ipc.stub('files.root', (_) async => _ok({'path': '/ws'}));
@@ -395,7 +488,7 @@ void main() {
       c.dispose();
       ctrl = null; // prevent tearDown from double-disposing
       f.services.events.emit(DaemonEvent(subsystem: 'files', kind: 'files.changed', data: {'path': 'README.md'}, ts: DateTime.now().toUtc()));
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       // Test passes if no exception.
     });
   });

@@ -137,9 +137,13 @@ class KernelServices {
     Future<void> Function(String path)? onProjectOpen,
     Future<String?> Function(String path)? onValidateProject,
     DaemonBus? sharedBus,
+    List<LogSink> additionalSinks = const [],
+    LogLevel? minLogLevel,
   }) async {
     final logRing = LogRing();
-    final log = Logger(sinks: [stderrSink, logRing.add]);
+    // additionalSinks lead the chain so a crash-survivable sink (FileLogSink,
+    // T-425) records the tail before the volatile stderr/ring sinks run.
+    final log = Logger(minLevel: minLogLevel ?? LogLevel.info, sinks: [...additionalSinks, stderrSink, logRing.add]);
     final events = sharedBus ?? DaemonBus();
     final messages = MessageBus();
     final filterStates = FilterStateCache(messages: messages);

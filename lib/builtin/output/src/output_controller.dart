@@ -10,15 +10,23 @@ import 'package:clide/kernel/src/log_ring.dart';
 import 'package:flutter/foundation.dart';
 
 class OutputController extends ChangeNotifier {
-  OutputController(this.ring) {
+  OutputController(this.ring, {LogLevel? initialLevel, this.onMinLevelChanged}) : minLevel = initialLevel ?? LogLevel.debug {
     _sub = ring.changes.listen((_) => notifyListeners());
   }
 
   final LogRing ring;
   late final StreamSubscription<void> _sub;
 
-  /// Minimum level shown. Defaults to debug (trace is firehose-noise).
-  LogLevel minLevel = LogLevel.debug;
+  /// Invoked when the Level chip changes the level — the dock chip is the live
+  /// dev/prod verbosity toggle (T-433), not just a view filter. The owner wires
+  /// this to set the kernel `Logger.minLevel` and persist `app.log.level`. Null
+  /// in tests / when no kernel is attached, leaving the chip a pure view filter.
+  final void Function(LogLevel)? onMinLevelChanged;
+
+  /// Minimum level shown — initialized from the kernel logger's level so the
+  /// chip reflects the real verbosity (which a `clide log level` CLI may have
+  /// already set), defaulting to debug (trace is firehose-noise).
+  LogLevel minLevel;
 
   /// Source filter; null = all sources.
   String? source;
@@ -29,6 +37,7 @@ class OutputController extends ChangeNotifier {
   void setMinLevel(LogLevel level) {
     if (minLevel == level) return;
     minLevel = level;
+    onMinLevelChanged?.call(level);
     notifyListeners();
   }
 

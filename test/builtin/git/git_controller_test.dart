@@ -33,7 +33,7 @@ void main() {
   );
 
   // Let the broadcast streams (bus / events) deliver.
-  Future<void> settle() => Future<void>.delayed(Duration.zero);
+  Future<void> settle() => pumpEventQueue();
 
   group('load + status parsing', () {
     test('hydrates branch / counts / file lists from git.status', () async {

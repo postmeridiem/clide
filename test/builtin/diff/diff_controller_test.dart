@@ -54,7 +54,7 @@ void main() {
     expect(c.focusPath, 'lib/b.dart');
     expect(notified, greaterThan(0));
     // focus() reloads so the latest edits to that file are present.
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(diffCalls, greaterThan(before));
   });
 
@@ -62,13 +62,13 @@ void main() {
     c.focus('lib/gone.dart');
     expect(c.focusPath, 'lib/gone.dart');
     // The reload triggered by focus() returns a list without that file.
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.focusPath, isNull);
   });
 
   test('a focus that stays in the diff survives reload', () async {
     c.focus('lib/a.dart');
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(c.focusPath, 'lib/a.dart');
   });
 
@@ -76,7 +76,7 @@ void main() {
     await c.load();
     final before = diffCalls;
     bus.emit(DaemonEvent(subsystem: 'git', kind: 'git.changed', data: const {}, ts: DateTime.now().toUtc()));
-    await Future<void>.delayed(Duration.zero);
+    await pumpEventQueue();
     expect(diffCalls, greaterThan(before));
   });
 

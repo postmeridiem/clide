@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:clide/app.dart';
 import 'package:clide/test_app.dart';
@@ -39,6 +40,7 @@ import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/image_commands.dart';
+import 'package:clide/src/daemon/log_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
 import 'package:clide/src/daemon/ui_command.dart';
@@ -51,7 +53,8 @@ import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/mcp_server.dart';
-import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
+import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath, logDirectory;
+import 'package:clide/src/pty/pty_log.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
 import 'package:clide/src/panes/registry.dart';
@@ -89,6 +92,11 @@ Future<void> main() async {
   // at the last project instead so the daemon targets the real repo from the
   // first request. (T-352)
   Directory startupWorkRoot = resolveWorkspaceRoot(Directory.current);
+  // Crash-survivable logging (T-425): resolve the dev/prod verbosity once and
+  // attach a FileLogSink as the leading sink so a freeze leaves on-disk
+  // breadcrumbs. Desktop-only — the sink uses dart:io.
+  LogLevel bootLogLevel = kReleaseMode ? LogLevel.warn : LogLevel.info;
+  List<LogSink> bootLogSinks = const [];
   if (!kIsWeb) {
     final bootSettings = SettingsStore(appDir: appDir);
     await bootSettings.load();
@@ -97,6 +105,21 @@ Future<void> main() async {
       lastProject: bootSettings.get<String>('app.lastProject'),
       isGitRepo: (d) => Directory('${d.path}/.git').existsSync(),
     );
+    bootLogLevel = resolveLogLevel(
+      isRelease: kReleaseMode,
+      dartDefine: const String.fromEnvironment('CLIDE_LOG'),
+      envVar: Platform.environment['CLIDE_LOG'],
+      settingValue: bootSettings.get<String>('app.log.level'),
+    );
+    bootLogSinks = [FileLogSink(dir: Directory(logDirectory())).call];
+    // Crash-diagnostic watchdog in its own isolate (T-435): heartbeats +
+    // resource samples that survive a frozen main isolate. Non-fatal — a
+    // leak-detector that breaks startup is worse than a missing one. The OS
+    // reaps the isolate on exit; every line is fsynced, so abrupt death loses
+    // nothing.
+    try {
+      await Isolate.spawn(watchdogEntry, ('${logDirectory()}/clide-watchdog.log', 500, 2000));
+    } catch (_) {}
   }
 
   // Resolve toolchain + boot daemon inline — same as Linux.
@@ -119,6 +142,12 @@ Future<void> main() async {
   // The filter-state cache, captured post-boot so `ui.filter` can read a
   // box's current value back — the observe-half of D-6 (T-270).
   FilterStateCache? kernelFilterStates;
+  // The kernel Logger, captured in the factory so a post-boot project switch
+  // can rebuild the dispatcher with PTY breadcrumbs wired (T-434).
+  Logger? kernelLog;
+  // The kernel settings store, captured post-boot so `clide log level` can
+  // persist app.log.level (T-433).
+  SettingsStore? kernelSettings;
   // IPC socket server (T-99 / T-124, per D-70/71/72). One server per
   // workspace; restarted when the active project switches because the
   // socket path is workspace-derived. The local DaemonClient connects
@@ -228,15 +257,33 @@ Future<void> main() async {
     Toolchain tc,
     Directory workRoot,
     LayoutArrangement arrangement,
-    PanelRegistry panels,
-  ) {
+    PanelRegistry panels, {
+    Logger? log,
+  }) {
     final dispatcher = DaemonDispatcher();
     final eventSink = _BusEventSink(events);
-    final paneRegistry = PaneRegistry(events: eventSink);
+    // FFI breadcrumbs (T-434): route PTY crumbs to the kernel Logger (source
+    // 'conpty', an eager FileLogSink source) and a sendable crumb file the
+    // reader/waiter isolates open themselves. Verbose (per-syscall) crumbs only
+    // when the log level is debug/trace.
+    final ptyLog = (log == null || kIsWeb)
+        ? PtyLog.none
+        : PtyLog(
+            onCrumb: (m) => log.trace('conpty', m),
+            crumbPath: '${logDirectory()}/clide-pty.crumbs.log',
+            verbose: log.minLevel.index <= LogLevel.debug.index,
+          );
+    final paneRegistry = PaneRegistry(events: eventSink, ptyLog: ptyLog);
     // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
     registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement));
+    // `clide log level [<level>]` — the live verbosity toggle's CLI half (T-433,
+    // D-6 parity with the output-dock Level chip). Persists via the kernel
+    // settings, captured post-boot.
+    if (log != null) {
+      registerLogCommands(dispatcher, log, (name) async => await kernelSettings?.set<String>('app.log.level', name));
+    }
     // Trusted read-only roots beyond the workspace: the global Claude
     // config dir (~/.claude), so the reader can open user-scope skill /
     // agent / command markdown the Config tab surfaces (D-80, T-195).
@@ -341,14 +388,17 @@ Future<void> main() async {
     preloadNamespaces: _tier0Namespaces,
     autoStartDaemonClient: false,
     toolchain: toolchain,
+    minLogLevel: bootLogLevel,
+    additionalSinks: bootLogSinks,
     daemonClientFactory: kIsWeb
         ? null
         : (log, events, arrangement, panels) {
             daemonBus = events;
             kernelArrangement = arrangement;
             kernelPanels = panels;
+            kernelLog = log;
             final workRoot = startupWorkRoot;
-            final (dispatcher, teardown) = buildDispatcher(events, toolchain, workRoot, arrangement, panels);
+            final (dispatcher, teardown) = buildDispatcher(events, toolchain, workRoot, arrangement, panels, log: log);
             // Build the client at the workspace's socket path. The
             // server is started below (swapBackend) which the
             // client will then auto-connect to via its reconnect
@@ -373,7 +423,7 @@ Future<void> main() async {
             final arrangement = kernelArrangement;
             final panels = kernelPanels;
             if (bus == null || arrangement == null || panels == null) return;
-            final (dispatcher, teardown) = buildDispatcher(bus, toolchain, Directory(path), arrangement, panels);
+            final (dispatcher, teardown) = buildDispatcher(bus, toolchain, Directory(path), arrangement, panels, log: kernelLog);
             await swapBackend(dispatcher, teardown, Directory(path));
           },
   );
@@ -383,6 +433,7 @@ Future<void> main() async {
   kernelReaderNav = services.readerNav;
   kernelMessages = services.messages;
   kernelFilterStates = services.filterStates;
+  kernelSettings = services.settings;
   // Tee the IPC/MCP logger into the shared ring so the output dock (T-54)
   // shows socket-side logs alongside kernel/extension ones.
   ipcLog.addSink(services.logRing.add);

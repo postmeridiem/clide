@@ -165,4 +165,10 @@ ticket persistence.
 - **Context:** Surfaced 2026-06-12 while fixing T-384 (dead make targets). The mechanical path fixes (post app/-flattening) are done; the Gitea workflow's e2e job is withheld with a pointer here. The startup-regression gate (D-27) and integration tests are unaffected — only the browser/Playwright surface is blocked.
 - **Source:** T-384 / 2026-06-11 Fable review (epic T-359).
 
+### Q-51: Unify workspace lifecycle on a single fenced open primitive
+- **Status:** Open
+- **Question:** There is no single "open workspace X" primitive — only two half-primitives in different layers. `project.open(root)` (`lib/kernel/src/project.dart`) is the only repo-targeting path and is intrinsically *in-place*: it rebuilds services in the same process, reusing the shared `daemonBus`. `newWindow()` (`lib/builtin/menubar/src/file_actions.dart`) spawns a blank detached `Process.start` with no repo argument and no env scrubbing. To open a repo in a *new* window you must spawn a blank window and then run the in-place switch inside it. Should both fold behind one `WorkspaceService.open(root, {target: thisWindow | newWindow})` that is the *sole* deriver of IPC identity from a root — and, more fundamentally, should in-place switching survive at all, or should `workspace ⇒ window ⇒ process ⇒ socket ⇒ bus ⇒ session-id` be strictly one-to-one so the leak/bleed class becomes structurally impossible?
+- **Context:** Surfaced 2026-06-14 from [T-421](../../) (status-bar branch bleeds across parallel windows). The same root cause — scattered, per-entry-point workspace lifecycle with no single fencing owner — already produced T-367 (in-place switch leaked the entire previous service set) and T-269 (kept the previous repo's Claude session). If in-place switching is abolished, the teardown burden those tickets patch disappears entirely. Relevant decisions: [D-70](../decisions/architecture.md) (per-workspace socket path), [D-56](../decisions/architecture.md) (one server per workspace), [D-72](../decisions/architecture.md) (multi-connection serial dispatch).
+- **Source:** T-421 / 2026-06-14 user review.
+
 ---
