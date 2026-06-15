@@ -20,9 +20,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
-- **Windows desktop support.** clide builds and runs on Windows: ConPTY-backed
-  terminals, an AF_UNIX `clide` CLI client, PowerShell as the default shell, and
-  a `make build-windows` target.
+- **Experimental Windows desktop support.** clide builds and runs on Windows —
+  ConPTY-backed terminals, an AF_UNIX `clide` CLI client, PowerShell as the
+  default shell, and a `make build-windows` target. Preview quality: ConPTY
+  child-process reaping under sustained use is still being hardened. (T-424)
 - **Vim `ctrl+w` window commands.** Under the vim preset, `ctrl+w` followed by
   h/l (focus left/right panel), j (toggle dock), w / ctrl+w (cycle panels),
   shift+w (cycle back), o (focus mode), or q/c (close editor). A new global
