@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-06-14
+
 ### Added
 
 - **Windows desktop support.** clide builds and runs on Windows: ConPTY-backed
