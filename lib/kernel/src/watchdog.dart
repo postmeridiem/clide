@@ -13,7 +13,7 @@
 ///
 /// Output is JSON-lines in `logDirectory()/clide-watchdog.log`, matching
 /// [FileLogSink] so it greps/parses the same way, bounded by the same
-/// truncate-on-cap scheme as [IsolateCrumbFile]. Everything is synchronous and
+/// truncate-on-cap scheme as `IsolateCrumbFile`. Everything is synchronous and
 /// swallows its own errors — the watchdog must never add a second hang or take
 /// the app down.
 ///
@@ -112,7 +112,7 @@ class PosixResourceSampler implements ResourceSampler {
 
 /// The watchdog's on-disk writer: bounded, synchronously-fsynced JSON-lines
 /// (heartbeats + samples). Separated from the loop so it unit-tests in
-/// isolation. Mirrors [IsolateCrumbFile]'s truncate-on-cap bound.
+/// isolation. Mirrors `IsolateCrumbFile`'s truncate-on-cap bound.
 class WatchdogFile {
   WatchdogFile(String? path, {int capBytes = 256 * 1024}) : _capBytes = capBytes {
     if (path == null) return;
