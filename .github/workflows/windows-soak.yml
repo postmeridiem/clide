@@ -19,8 +19,14 @@ on:
   workflow_dispatch:
     inputs:
       iterations:
-        description: How many times to run the ConPTY suite
+        description: How many times to run the ConPTY suite (clean-path soak)
         default: "25"
+      kill_iterations:
+        description: Spawn+force-kill cycles (abrupt-death orphan probe)
+        default: "15"
+      ptys_per_iter:
+        description: WindowsPty sessions spawned per kill cycle
+        default: "2"
   push:
     branches: [windows-support]
     paths:
@@ -56,4 +62,40 @@ jobs:
         with:
           name: conpty-soak
           path: soak-out
+          if-no-files-found: warn
+
+  conpty-kill-probe:
+    # Abrupt-death half: force-kill the parent dart.exe mid-life (no close(),
+    # no Job Object) and count the ConPTY hosts that survive. This is the path
+    # the freeze hypothesis (T-424) actually implicates — the clean-path soak
+    # above never exercises it. Diagnostic only; always succeeds.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter --version
+      - run: flutter pub get
+      - name: ConPTY abrupt-death orphan probe
+        shell: pwsh
+        run: |
+          $iters = "${{ github.event.inputs.kill_iterations }}"
+          if (-not $iters) { $iters = "15" }
+          $ptys = "${{ github.event.inputs.ptys_per_iter }}"
+          if (-not $ptys) { $ptys = "2" }
+          tools/windows-verify/soak-conpty-kill.ps1 -Iterations ([int]$iters) -PtysPerIter ([int]$ptys) -OutDir "$env:GITHUB_WORKSPACE/kill-out"
+      - name: Publish verdict to job summary
+        if: always()
+        shell: pwsh
+        run: |
+          $s = Get-ChildItem "$env:GITHUB_WORKSPACE/kill-out/*.summary.txt" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($s) { Get-Content $s.FullName | Add-Content $env:GITHUB_STEP_SUMMARY }
+      - name: Upload kill-probe CSV + summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conpty-kill-probe
+          path: kill-out
           if-no-files-found: warn
