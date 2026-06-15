@@ -11,11 +11,12 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Cost:** Longer PR descriptions for deps; occasional reinvention of a convenience. Accepted.
 - **Raised by:** 2026-04-21 planning; reinforced by user feedback memory.
 
-### D-32: CI — Gitea primary, Linux-only runners, not yet activated
-- **Date:** 2026-04-21
-- **Decision:** CI config lives at `.gitea/workflows/test.yml` (Gitea Actions consumes GitHub-Actions syntax). Runners are Linux only; macOS is tested locally. The workflow is ready but Gitea Actions is not yet activated on the instance — the file is a staged pipeline for review. If the repo moves to GitHub, the file copies to `.github/workflows/test.yml` verbatim.
-- **Rationale:** We want the CI story defined before we turn CI on — lower blast radius on early red builds. GitHub portability is free because the syntax is shared.
-- **Cost:** PRs don't run CI yet; `make push-check` is the gate until activation.
+### D-32: CI — GitHub Actions, Linux + Windows runners, active
+- **Date:** 2026-04-21 (amended 2026-06-15)
+- **Decision:** CI runs on **GitHub Actions** under `.github/workflows/`: `test.yml` (Linux — analyze + format + unit/widget/golden + coverage gate, with `pql` installed and `pql.db` rebuilt from the changelog), `windows.yml` + `windows-soak.yml` (ConPTY tests + the orphan-leak soak), and `release.yml` (version-tagged builds, the CHANGELOG section as release notes). macOS is tested locally (no macOS runner). The web-WASM Playwright e2e job is withheld pending the `dart:ffi` fence (D-100 / Q-50). Every job goes through `make` targets.
+- **Rationale:** The repo moved to GitHub (origin `postmeridiem/clide`); GitHub Actions consumes the same workflow syntax the staged Gitea pipeline used, so the move was near-verbatim. Defining the CI story before flipping it on kept early red builds low-blast-radius.
+- **Cost:** macOS coverage is local-only; the browser/e2e surface stays dark until D-100's fence lands.
+- **Amended (2026-06-15):** Superseded the original "Gitea primary, not yet activated" posture — the Gitea staging pipeline was never activated and is gone (only `legacy/.gitea/`, the frozen Python tree, remains); CI is live on GitHub Actions (commits `8e0f33b` Linux, `45aa2d9` Windows/release). Reconciled while closing out T-384.
 - **Raised by:** 2026-04-21 planning.
 
 ### D-42: Dependencies documented in `licenses.yaml`
@@ -101,3 +102,11 @@ Toolchain, supply chain, CI, ignore strategy.
 - **Raised by:** 2026-06-11 — user: "pql updates live outside this repo and people have to first update the pql binaries and install them."
 
 ---
+
+### D-100: Fence `dart:ffi` behind conditional imports + web stubs to keep the web/WASM target compiling
+- **Date:** 2026-06-15
+- **Decision:** Resolve [Q-50](../questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop) by **fencing** (option a): every module that imports `dart:ffi` — the native PTY (`lib/src/pty/`), tree-sitter (`lib/kernel/src/syntax/`), the Lua host (`lib/lua/`), the Windows watchdog, and the FFI `libc` shim — moves behind a conditional-import facade: `import 'x_native.dart' if (dart.library.ffi) 'x_native.dart' ... else 'x_stub.dart'` (io/ffi → native impl; web → a stub). Web stubs degrade gracefully (no PTY/terminal, no native git, no tree-sitter highlighting — the web target is a UI/e2e surface, not a functional desktop replacement) and never throw at import time. A `flutter build web --wasm` compile step is added to CI so the fence can't silently rot.
+- **Rationale:** Keep the web/WASM build a live "happy accident" — a hopeful future target the maintainer wants to reach eventually — rather than letting the dart:ffi pivot quietly amputate it (option c, drop) or leaving it dark and rotting (option b, park). Crucially this does **not** compromise desktop fidelity (the CLAUDE.md guardrail): stubs exist only on the web target; the desktop build keeps the real FFI impls unchanged. Fencing is reversible and additive; dropping the target is effectively one-way.
+- **Cost:** An ongoing tax — every new native binding needs a web stub + conditional import, and the wasm compile gate must stay green. Accepted deliberately: the maintainer values keeping the door open over avoiding that tax. Functional web parity is explicitly **not** promised — only that the tree compiles to wasm and the Playwright/e2e harness ([D-26](process.md)) can run again.
+- **Cross-reference:** [Q-50](../questions/architecture.md#q-50-webwasm-target-after-the-dartffi-pivot--fence-fix-or-drop), [D-32](#d-32-ci--github-actions-linux--windows-runners-active) (the withheld web-WASM e2e job lands once this fence is implemented), the tree-sitter FFI pivot.
+- **Raised by:** 2026-06-15 — user, reconciling T-384: "a happy accident for the web-based UI lives a bit more hopeful for me than it does in CLAUDE.md … let's fence dart:ffi with web stubs."
