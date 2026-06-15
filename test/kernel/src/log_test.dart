@@ -75,4 +75,46 @@ void main() {
       expect(got, isEmpty);
     });
   });
+
+  group('parseLogLevel', () {
+    test('parses each level name case-insensitively, trimmed', () {
+      for (final l in LogLevel.values) {
+        expect(parseLogLevel(l.name), l);
+        expect(parseLogLevel(l.name.toUpperCase()), l);
+        expect(parseLogLevel('  ${l.name}  '), l);
+      }
+    });
+
+    test('null / blank / unknown → null', () {
+      expect(parseLogLevel(null), isNull);
+      expect(parseLogLevel(''), isNull);
+      expect(parseLogLevel('   '), isNull);
+      expect(parseLogLevel('verbose'), isNull);
+    });
+  });
+
+  group('resolveLogLevel (dev/prod verbosity toggle)', () {
+    test('build-mode default when no source is set: warn release / info debug', () {
+      expect(resolveLogLevel(isRelease: true), LogLevel.warn);
+      expect(resolveLogLevel(isRelease: false), LogLevel.info);
+    });
+
+    test('precedence: dartDefine > env > setting > default', () {
+      // setting only
+      expect(resolveLogLevel(isRelease: true, settingValue: 'debug'), LogLevel.debug);
+      // env beats setting
+      expect(resolveLogLevel(isRelease: true, envVar: 'error', settingValue: 'debug'), LogLevel.error);
+      // dartDefine beats both
+      expect(resolveLogLevel(isRelease: false, dartDefine: 'trace', envVar: 'error', settingValue: 'debug'), LogLevel.trace);
+    });
+
+    test('an unknown/blank higher source falls through to the next', () {
+      // empty dart-define (the String.fromEnvironment default) is skipped
+      expect(resolveLogLevel(isRelease: true, dartDefine: '', envVar: 'info'), LogLevel.info);
+      // garbage env falls through to the setting
+      expect(resolveLogLevel(isRelease: true, envVar: 'loud', settingValue: 'warn'), LogLevel.warn);
+      // all invalid → build-mode default
+      expect(resolveLogLevel(isRelease: false, dartDefine: 'x', envVar: 'y', settingValue: 'z'), LogLevel.info);
+    });
+  });
 }

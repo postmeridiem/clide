@@ -54,6 +54,32 @@ String socketDirectory() {
   return '$base/clide';
 }
 
+/// Persistent per-platform directory for crash-survivable logs (T-425).
+///
+///   Linux:   `$XDG_STATE_HOME/clide/logs` (else `$HOME/.local/state/...`)
+///   macOS:   `$HOME/Library/Logs/clide`
+///   Windows: `%LOCALAPPDATA%\clide\logs`
+///
+/// Unlike [socketDirectory] — which intentionally lives in an EPHEMERAL
+/// runtime dir (`$XDG_RUNTIME_DIR`, `~/Library/Caches`) that the OS may wipe
+/// on logout/reboot — this is a DURABLE location. The whole point of the
+/// FileLogSink is that a freeze's last breadcrumbs survive the power-cycle, so
+/// the log dir must outlive a reboot.
+String logDirectory() {
+  if (Platform.isWindows) {
+    final local = Platform.environment['LOCALAPPDATA'];
+    final base = (local != null && local.isNotEmpty) ? local : '${Platform.environment['USERPROFILE'] ?? r'C:\'}\\AppData\\Local';
+    return '$base\\clide\\logs';
+  }
+  if (Platform.isMacOS) {
+    final home = Platform.environment['HOME'] ?? '/tmp';
+    return '$home/Library/Logs/clide';
+  }
+  final state = Platform.environment['XDG_STATE_HOME'];
+  final base = (state != null && state.isNotEmpty) ? state : '${Platform.environment['HOME'] ?? '/tmp'}/.local/state';
+  return '$base/clide/logs';
+}
+
 /// FNV-1a 64-bit hash of [s] as a 16-char lower-case hex string.
 /// The C client (T-126) reproduces the same algorithm byte-for-byte
 /// so server + client always agree on socket path. Not cryptographic

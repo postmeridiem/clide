@@ -51,7 +51,7 @@ import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/mcp_server.dart';
-import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
+import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath, logDirectory;
 import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
 import 'package:clide/src/panes/registry.dart';
@@ -89,6 +89,11 @@ Future<void> main() async {
   // at the last project instead so the daemon targets the real repo from the
   // first request. (T-352)
   Directory startupWorkRoot = resolveWorkspaceRoot(Directory.current);
+  // Crash-survivable logging (T-425): resolve the dev/prod verbosity once and
+  // attach a FileLogSink as the leading sink so a freeze leaves on-disk
+  // breadcrumbs. Desktop-only — the sink uses dart:io.
+  LogLevel bootLogLevel = kReleaseMode ? LogLevel.warn : LogLevel.info;
+  List<LogSink> bootLogSinks = const [];
   if (!kIsWeb) {
     final bootSettings = SettingsStore(appDir: appDir);
     await bootSettings.load();
@@ -97,6 +102,13 @@ Future<void> main() async {
       lastProject: bootSettings.get<String>('app.lastProject'),
       isGitRepo: (d) => Directory('${d.path}/.git').existsSync(),
     );
+    bootLogLevel = resolveLogLevel(
+      isRelease: kReleaseMode,
+      dartDefine: const String.fromEnvironment('CLIDE_LOG'),
+      envVar: Platform.environment['CLIDE_LOG'],
+      settingValue: bootSettings.get<String>('app.log.level'),
+    );
+    bootLogSinks = [FileLogSink(dir: Directory(logDirectory())).call];
   }
 
   // Resolve toolchain + boot daemon inline — same as Linux.
@@ -341,6 +353,8 @@ Future<void> main() async {
     preloadNamespaces: _tier0Namespaces,
     autoStartDaemonClient: false,
     toolchain: toolchain,
+    minLogLevel: bootLogLevel,
+    additionalSinks: bootLogSinks,
     daemonClientFactory: kIsWeb
         ? null
         : (log, events, arrangement, panels) {

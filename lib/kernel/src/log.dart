@@ -62,3 +62,32 @@ void stderrSink(LogRecord r) {
   stderr.writeln(r);
   if (r.stackTrace != null) stderr.writeln(r.stackTrace);
 }
+
+/// Parse a level name (case-insensitive, trimmed) to a [LogLevel], or null if
+/// it is absent/blank/unknown — so an invalid source falls through to the next
+/// one in [resolveLogLevel] rather than crashing the boot.
+LogLevel? parseLogLevel(String? name) {
+  if (name == null) return null;
+  final n = name.trim().toLowerCase();
+  if (n.isEmpty) return null;
+  for (final l in LogLevel.values) {
+    if (l.name == n) return l;
+  }
+  return null;
+}
+
+/// Resolve the effective [Logger.minLevel] at boot — the dev/prod verbosity
+/// toggle (T-425). Highest precedence first:
+///
+///   1. `--dart-define=CLIDE_LOG=<level>` (baked into the build)
+///   2. the `CLIDE_LOG` environment variable
+///   3. the `app.log.level` setting
+///   4. a build-mode default: `warn` in release (a shipped app stays quiet),
+///      `info` in debug.
+///
+/// Each named source is parsed leniently; an unknown name is skipped, not
+/// fatal. The build-mode flag is passed in (rather than read here) to keep
+/// this Flutter-free — `main.dart` supplies `kReleaseMode`.
+LogLevel resolveLogLevel({required bool isRelease, String? dartDefine, String? envVar, String? settingValue}) {
+  return parseLogLevel(dartDefine) ?? parseLogLevel(envVar) ?? parseLogLevel(settingValue) ?? (isRelease ? LogLevel.warn : LogLevel.info);
+}

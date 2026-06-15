@@ -39,6 +39,31 @@ void main() {
     });
   });
 
+  group('logDirectory (T-425)', () {
+    test('is a persistent, non-ephemeral location distinct from the socket dir', () {
+      // The freeze evidence must survive a reboot, so logs must NOT live in
+      // the ephemeral socket/runtime dir.
+      expect(logDirectory(), isNot(socketDirectory()));
+    });
+
+    test('Linux: XDG_STATE_HOME/clide/logs when set, else ~/.local/state/...', () {
+      if (Platform.isMacOS || Platform.isWindows) return;
+      final state = Platform.environment['XDG_STATE_HOME'];
+      if (state != null && state.isNotEmpty) {
+        expect(logDirectory(), '$state/clide/logs');
+      } else {
+        final home = Platform.environment['HOME'] ?? '/tmp';
+        expect(logDirectory(), '$home/.local/state/clide/logs');
+      }
+    });
+
+    test('macOS: ~/Library/Logs/clide (not Caches)', () {
+      if (!Platform.isMacOS) return;
+      final home = Platform.environment['HOME']!;
+      expect(logDirectory(), '$home/Library/Logs/clide');
+    });
+  });
+
   group('fnv1a64Hex (T-126 cross-check)', () {
     // Reference values from <http://isthe.com/chongo/tech/comp/fnv/>.
     // The C client in native/clide-cli/clide.c MUST produce the same

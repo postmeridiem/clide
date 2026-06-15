@@ -16,6 +16,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- **Crash-survivable logging.** clide writes a durable JSON-lines log to a
+  persistent per-platform dir (Windows `%LOCALAPPDATA%`, macOS `~/Library/Logs`,
+  Linux `$XDG_STATE_HOME`), fsyncing warn/error + pty/ffi records immediately so
+  a freeze leaves on-disk evidence. `CLIDE_LOG` (dart-define / env) or the
+  `app.log.level` setting sets verbosity (warn in release, info in debug).
+  (T-432)
+
 ## [2.5.0] — 2026-06-14
 
 ### Added
