@@ -6490,3 +6490,36 @@ The only way real clide hit "already in use": the **old process was still alive*
 - Probed 2.1.177 advertised `slash_commands` (31): no drift that breaks the routing table — none of clide''s `kTuiOnlyCommands` became advertised, and new entries (skills/builtins) correctly fall through to `forward`.
 
 **Verification status.** Unit-tested (the teardown ordering + reason surfacing) and validated against the live CLI via probes. `make test` green. NOT yet exercised in the running GUI (would need `make run` + an interactive `/clear`) — recommend a quick live confirm before closing.', 'done', 'high', NULL, NULL, 'D-77', '2026-06-15 11:12:36', '2026-06-15 15:59:15', NULL, '6f6aef16d3596682edc2c42d10fc4226', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQHWQ40AY6SNVRJ86YWA0J8', 'bug', NULL, 'Consolidate PATH resolution: one login-shell-derived PATH for every spawned tool (git/pql/claude/PTY)', '**Symptom (user, recurring).** When clide is launched from a desktop/dock launcher (not a terminal), it doesn''t see the normal interactive-shell `PATH`, so spawned tools and installed components go missing — pql, git, claude-invoked CLIs, etc. Launching from a terminal works (the shell PATH is inherited).
+
+**Root cause.** A GUI/desktop-launched process inherits a minimal `PATH` (roughly `/usr/bin:/bin`) — it never sources `~/.bashrc` / `~/.zprofile` / `/etc/profile.d` / brew shellenv, so `~/.local/bin`, `/opt/homebrew/bin`, and any user-customized dirs (nvm, pyenv, cargo, …) are absent. clide builds the environment for everything it spawns from `Platform.environment`, so that impoverished PATH propagates everywhere.
+
+**Why it keeps happening — divergent, partial PATH expansion.** There are THREE separate PATH-augmentation implementations, fixed inconsistently:
+1. `lib/src/pty/env.dart` → `expandedPath` — **still macOS-only** (`if (!Platform.isMacOS) return base;`). Used by `lib/src/git/operations.dart:24` (git resolution) → on Linux desktop-launch, git gets the raw PATH.
+2. `lib/kernel/src/toolchain_paths.dart` → `_expandedPath()` — augments on Linux too (this is what **T-347** fixed, for pql).
+3. `lib/kernel/src/cli_install.dart` → `expandedPath(base, {macOS, home})` — a third copy.
+
+So T-347 fixed the *toolchain/pql* path on Linux, but the `env.dart` copy (git, PTY env defaults) is still macOS-only, and claude''s spawn (`agent_bootstrap.agentEnvDelta` → `Process.start(environment:)` merged over `Platform.environment`) only prepends the clide-CLI dir — the rest of PATH stays un-enriched. Net: the same class of breakage recurs per spawn site because there''s no single source of truth.
+
+**Also:** all three use a **hardcoded dir list** (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`). That misses arbitrary user customizations (nvm/pyenv/cargo/asdf/custom dirs) — the user''s "normal bash PATH" is whatever their login shell actually produces, not a fixed list.
+
+**Proposed fix (two parts).**
+1. *Robust resolution:* derive the real login-shell PATH once at startup — spawn the user''s `$SHELL -l -i -c ''printf %s "$PATH"''` (or `-l -c` to avoid interactive side-effects), with a short timeout and a graceful fallback to the current hardcoded-merge behavior. Cache it for the process. This is the established approach (VS Code''s `resolveShellEnv`, the `fix-path` pattern) and captures the user''s actual PATH, not a guess.
+2. *Consolidation:* collapse the three `expandedPath`/`_expandedPath` copies into ONE source of truth (e.g. in `lib/src/pty/env.dart` or a small `kernel` env service) that every spawn site uses — PTY/terminal (`registry.dart:55` currently passes raw `Platform.environment`), git (`operations.dart`), toolchain (`toolchain_paths.dart`), claude (`agent_bootstrap.dart`), and any other `Process.start`. One resolver, applied everywhere.
+
+**Acceptance.** Desktop-launched clide on Linux + macOS resolves the same PATH the user''s login shell has; pql/git/claude and PTY children all find user-installed tools; the three divergent expanders are unified into one; graceful fallback when the shell probe fails or times out; covered by a test for the resolver + the fallback.
+
+**Related:** T-347 (done — fixed the Linux toolchain/pql path, but only `toolchain_paths.dart`), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE + clide on the child PATH), T-211/T-212 (clide-on-PATH install), D-59 (bundled git) / D-92 (bundled pql) — bundling covers git/pql specifically, but not the general "user''s installed tools" PATH this addresses.
+
+---
+
+**Implemented 2026-06-15.** One shared resolver `lib/src/env/shell_env.dart`:
+- `primeLoginShellPath()` — probes `$SHELL -l -c` once at startup (sentinel-framed, 4s timeout, graceful fallback to the process PATH on Windows/empty-SHELL/non-zero/timeout/spawn-failure). Primed in `main.dart`''s `!kIsWeb` boot.
+- `expandToolPath()` — the canonical user/local-dir merge (moved from toolchain_paths, which re-exports it for its tests).
+- `resolvedToolPath()` — the single call every spawn site uses.
+
+Routed through it: PTY children (`registry.dart` overrides PATH), git (`env.dart` → `operations.dart`), the toolchain probe (`toolchain_paths.dart`), hosted claude (`agent_bootstrap.dart`). Deleted the macOS-only `env.dart` expander and the `cli_install.dart` copy — three expanders → one.
+
+Verified: `flutter analyze` clean; new `shell_env_test.dart` covers the probe + every fallback + the merge; `env_test`/`cli_install_test` updated; `make test` green; `flutter build web --wasm` still green (resolver is web-safe, probe is `!kIsWeb`).
+
+**Why `review`, not `done`:** logic + tests cover Linux and macOS, but the real *desktop/dock-launch* behavior (the actual GUI process inheriting a sparse PATH) can only be confirmed by launching a packaged build from the launcher — recommend a quick live confirm (open clide from the dock, check pql/git/a `~/.local/bin` tool resolve). macOS Homebrew path is code-correct but unverified on a Mac.', 'done', 'high', NULL, NULL, NULL, '2026-06-15 14:55:15', '2026-06-15 16:03:07', NULL, 'e9e65365ca2c33edecd72e30a76c3e67', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
