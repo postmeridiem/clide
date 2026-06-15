@@ -8,12 +8,13 @@
 /// in → EOF on child exit → close() reaps.
 library;
 
-import 'dart:io' show Platform;
 import 'dart:typed_data';
 
-import 'native_pty.dart';
+// Web fence (T-438, D-100): the FFI-backed backends are reachable only when
+// `dart.library.ffi` is available; the web build gets a throwing stub, so
+// `dart:ffi` never enters the wasm compile graph.
+import 'pty_backend_web.dart' if (dart.library.ffi) 'pty_backend_io.dart';
 import 'pty_log.dart';
-import 'windows_pty.dart';
 
 abstract interface class PtySession {
   /// OS process id of the spawned child.
@@ -51,25 +52,12 @@ PtySession startPtySession({
   String? workingDirectory,
   Map<String, String> environment = const {},
   PtyLog log = PtyLog.none,
-}) {
-  if (Platform.isWindows) {
-    return WindowsPty.start(
-      executable: executable,
-      arguments: arguments,
-      columns: columns,
-      rows: rows,
-      workingDirectory: workingDirectory,
-      environment: environment,
-      log: log,
-    );
-  }
-  return NativePty.start(
-    executable: executable,
-    arguments: arguments,
-    columns: columns,
-    rows: rows,
-    workingDirectory: workingDirectory,
-    environment: environment,
-    log: log,
-  );
-}
+}) => startPtyBackend(
+  executable: executable,
+  arguments: arguments,
+  columns: columns,
+  rows: rows,
+  workingDirectory: workingDirectory,
+  environment: environment,
+  log: log,
+);

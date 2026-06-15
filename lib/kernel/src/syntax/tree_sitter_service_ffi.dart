@@ -1,0 +1,269 @@
+/// FFI-backed tree-sitter highlighter (T-438 web fence, D-100). Selected by the
+/// [tree_sitter_service.dart] facade when `dart.library.ffi` is available; the
+/// web build gets [tree_sitter_service_stub.dart] instead. Pure result types
+/// live in [syntax_result.dart] (re-exported so consumers import only the
+/// facade).
+library;
+
+import 'dart:convert' show utf8;
+import 'dart:ffi';
+import 'dart:ui' show Color;
+
+import 'package:clide/kernel/src/syntax/language_map.dart';
+import 'package:clide/kernel/src/syntax/syntax_result.dart';
+import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
+import 'package:clide/kernel/src/theme/tokens.dart';
+import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
+export 'package:clide/kernel/src/syntax/syntax_result.dart';
+
+class _LoadedGrammar {
+  _LoadedGrammar({required this.language, required this.query, required this.captureNames});
+
+  final Pointer<Void> language;
+  final Pointer<TSQuery> query;
+  final List<String> captureNames;
+}
+
+class TreeSitterService {
+  static final TreeSitterService shared = TreeSitterService();
+
+  /// Production constructor: uses the dlopen'd [TreeSitterLib.instance] and
+  /// the Flutter [rootBundle]. Tests pass [lib] / [grammarBytes] /
+  /// [grammarQuery] to substitute a fake FFI surface and in-memory assets.
+  TreeSitterService({TreeSitterLib? lib, GrammarBytesLoader? grammarBytes, GrammarQueryLoader? grammarQuery})
+    : _injectedLib = lib,
+      _grammarBytes = grammarBytes ?? _defaultGrammarBytes,
+      _grammarQuery = grammarQuery ?? _defaultGrammarQuery;
+
+  final TreeSitterLib? _injectedLib;
+  final GrammarBytesLoader _grammarBytes;
+  final GrammarQueryLoader _grammarQuery;
+
+  TreeSitterLib? get _lib => _injectedLib ?? TreeSitterLib.instance;
+
+  static Future<Uint8List> _defaultGrammarBytes(String language) async {
+    final data = await rootBundle.load('assets/grammars/$language.wasm');
+    return data.buffer.asUint8List();
+  }
+
+  static Future<String?> _defaultGrammarQuery(String language) async {
+    try {
+      return await rootBundle.loadString('assets/queries/$language.scm');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  final Map<String, _LoadedGrammar> _grammars = {};
+  final Set<String> _unavailable = {};
+
+  Pointer<TSWasmStore>? _store;
+  Pointer<TSParser>? _parser;
+  Pointer<TSQueryCursor>? _cursor;
+
+  bool _initDone = false;
+
+  bool _init() {
+    if (_initDone) return _parser != null;
+    _initDone = true;
+
+    final lib = _lib;
+    if (lib == null) return false;
+
+    final engine = lib.wasmEngineNew();
+    if (engine == nullptr) return false;
+
+    final error = calloc<TSWasmError>();
+    _store = lib.wasmStoreNew(engine, error);
+    lib.wasmEngineDelete(engine);
+
+    if (_store == null || _store == nullptr) {
+      calloc.free(error);
+      return false;
+    }
+    calloc.free(error);
+
+    _parser = lib.parserNew();
+    if (_parser == null || _parser == nullptr) return false;
+    lib.parserSetWasmStore(_parser!, _store!);
+
+    _cursor = lib.queryCursorNew();
+    return true;
+  }
+
+  Future<_LoadedGrammar?> _loadGrammar(String language) async {
+    if (_unavailable.contains(language)) return null;
+    final cached = _grammars[language];
+    if (cached != null) return cached;
+
+    if (!_init()) {
+      _unavailable.add(language);
+      return null;
+    }
+
+    final lib = _lib!;
+
+    try {
+      // Load grammar WASM bytes.
+      final wasmBytes = await _grammarBytes(language);
+
+      // Load into WASM store.
+      final nameNative = language.toNativeUtf8();
+      final wasmNative = calloc<Uint8>(wasmBytes.length);
+      wasmNative.asTypedList(wasmBytes.length).setAll(0, wasmBytes);
+      final error = calloc<TSWasmError>();
+
+      final lang = lib.wasmStoreLoadLanguage(_store!, nameNative.cast(), wasmNative, wasmBytes.length, error);
+
+      calloc.free(wasmNative);
+      calloc.free(nameNative);
+
+      if (lang == nullptr) {
+        final msg = error.ref.message;
+        if (msg != nullptr) calloc.free(msg);
+        calloc.free(error);
+        _unavailable.add(language);
+        return null;
+      }
+      calloc.free(error);
+
+      // Load highlight query.
+      final querySource = await _grammarQuery(language);
+
+      Pointer<TSQuery> query = nullptr;
+      List<String> captureNames = [];
+
+      if (querySource != null) {
+        final queryNative = querySource.toNativeUtf8();
+        final queryLen = utf8.encode(querySource).length;
+        final errorOffset = calloc<Uint32>();
+        final errorType = calloc<Int32>();
+
+        query = lib.queryNew(lang, queryNative.cast(), queryLen, errorOffset, errorType);
+
+        calloc.free(queryNative);
+        calloc.free(errorOffset);
+        calloc.free(errorType);
+
+        if (query != nullptr) {
+          final count = lib.queryCaptureCount(query);
+          final lenOut = calloc<Uint32>();
+          for (var i = 0; i < count; i++) {
+            final namePtr = lib.queryCaptureNameForId(query, i, lenOut);
+            final len = lenOut.value;
+            captureNames.add(namePtr.cast<Utf8>().toDartString(length: len));
+          }
+          calloc.free(lenOut);
+        }
+      }
+
+      final grammar = _LoadedGrammar(language: lang, query: query, captureNames: captureNames);
+      _grammars[language] = grammar;
+      return grammar;
+    } catch (_) {
+      _unavailable.add(language);
+      return null;
+    }
+  }
+
+  Future<bool> hasGrammar(String path) async {
+    final lang = grammarForPath(path);
+    if (lang == null) return false;
+    return (await _loadGrammar(lang)) != null;
+  }
+
+  Future<String?> languageFor(String path) async {
+    final lang = grammarForPath(path);
+    if (lang == null) return null;
+    return (await _loadGrammar(lang)) != null ? lang : null;
+  }
+
+  List<String> get loadedLanguages => _grammars.keys.toList();
+
+  Future<SyntaxResult> highlight(String path, String source) async {
+    final lang = grammarForPath(path);
+    if (lang == null) return SyntaxResult.empty;
+
+    final grammar = await _loadGrammar(lang);
+    if (grammar == null || grammar.query == nullptr) {
+      return SyntaxResult.empty;
+    }
+
+    final lib = _lib!;
+    final parser = _parser!;
+    final cursor = _cursor!;
+
+    // Set language on parser for this parse.
+    lib.parserSetLanguage(parser, grammar.language);
+
+    // Parse source.
+    final sourceNative = source.toNativeUtf8();
+    final sourceLen = utf8.encode(source).length;
+    final tree = lib.parserParseString(parser, nullptr, sourceNative.cast(), sourceLen);
+
+    if (tree == nullptr) {
+      calloc.free(sourceNative);
+      return SyntaxResult.empty;
+    }
+
+    final root = lib.treeRootNode(tree);
+
+    // Run highlight query.
+    lib.queryCursorExec(cursor, grammar.query, root);
+
+    final match = calloc<TSQueryMatch>();
+    final spans = <SyntaxSpan>[];
+
+    while (lib.queryCursorNextMatch(cursor, match)) {
+      final m = match.ref;
+      for (var i = 0; i < m.captureCount; i++) {
+        final cap = m.captures[i];
+        final captureIndex = cap.index;
+        if (captureIndex < grammar.captureNames.length) {
+          spans.add(SyntaxSpan(start: lib.nodeStartByte(cap.node), end: lib.nodeEndByte(cap.node), role: grammar.captureNames[captureIndex]));
+        }
+      }
+    }
+
+    calloc.free(match);
+    lib.treeDelete(tree);
+    calloc.free(sourceNative);
+
+    return SyntaxResult(spans);
+  }
+
+  void dispose() {
+    final lib = _lib;
+    if (lib == null) return;
+
+    for (final grammar in _grammars.values) {
+      if (grammar.query != nullptr) lib.queryDelete(grammar.query);
+    }
+    _grammars.clear();
+
+    if (_cursor != null && _cursor != nullptr) lib.queryCursorDelete(_cursor!);
+    // Parser and WASM store are cleaned up together — deleting the parser
+    // does not delete the store, but the store owns the languages.
+    if (_parser != null && _parser != nullptr) lib.parserDelete(_parser!);
+    if (_store != null && _store != nullptr) lib.wasmStoreDelete(_store!);
+
+    _parser = null;
+    _store = null;
+    _cursor = null;
+    _unavailable.clear();
+  }
+
+  /// Resets the service to a pre-init state. Tests use this to re-exercise
+  /// `_init()` without constructing a new singleton; production code never
+  /// needs it.
+  @visibleForTesting
+  void resetForTests() {
+    dispose();
+    _initDone = false;
+  }
+
+  static Color colorForRole(String role, SurfaceTokens tokens) => syntaxColorForRole(role, tokens);
+}

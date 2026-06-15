@@ -49,6 +49,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   teardown now awaits the process's real death (SIGTERM, escalating to SIGKILL)
   before clearing the transcript and respawning. A dead pane also now shows the
   CLI's own reason instead of a bare "exited (code 1)". (T-437)
+- **Web/WASM build compiles again.** `flutter build web --wasm` (and the
+  `test-e2e` / `ui-dev` / `ui-smoke` harness) had been broken since the
+  tree-sitter/PTY `dart:ffi` pivot. Every native binding (PTY, tree-sitter, the
+  Lua host, the Windows watchdog, the ABI/fd-inheritance probes) now sits behind
+  a `dart.library.ffi` conditional import with a graceful web stub, and the FNV
+  hash constants are dart2js-safe. A `flutter build web --wasm` compile gate was
+  added to CI so the fence can't silently rot. Desktop builds are unchanged — the
+  web target degrades (no terminal, no native git, no syntax highlighting), it
+  does not compromise desktop fidelity. (T-438, D-100, Q-50)
 
 ## [2.5.0] — 2026-06-14
 

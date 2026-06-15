@@ -8,7 +8,9 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
-import 'package:clide/kernel/src/syntax/tree_sitter_service.dart';
+// The FFI impl directly (not the facade): these tests inject a fake
+// TreeSitterLib via the FFI-only constructor params (T-438).
+import 'package:clide/kernel/src/syntax/tree_sitter_service_ffi.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 

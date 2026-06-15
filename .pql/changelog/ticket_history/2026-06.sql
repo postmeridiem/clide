@@ -5373,3 +5373,84 @@ The one live remnant — the dead `make test-e2e` / `ui-dev` / `ui-smoke` target
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHCVPGCKEGDC54KKQ120SRM', 'status', 'review', 'done', NULL, '2026-06-15 14:25:10', '2026-06-15 14:25:10', '2026-06-15 14:25:10', NULL, 'fba93f08e50b81ab6c3c4b5d1dd4f1d9', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQ8HB61N3TWVJ8YSMHH2TJ4', 'status', 'backlog', 'in_progress', NULL, '2026-06-15 14:32:22', '2026-06-15 14:32:22', '2026-06-15 14:32:22', NULL, '80f8ce4f94230fe7c842bd25e1b7f131', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQ8HB61N3TWVJ8YSMHH2TJ4', 'status', 'in_progress', 'in_progress', NULL, '2026-06-15 14:33:11', '2026-06-15 14:33:11', '2026-06-15 14:33:11', NULL, '783dee14da908512f766c8d9b0351e1d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQHWQ40AY6SNVRJ86YWA0J8', 'description', NULL, '**Symptom (user, recurring).** When clide is launched from a desktop/dock launcher (not a terminal), it doesn''t see the normal interactive-shell `PATH`, so spawned tools and installed components go missing — pql, git, claude-invoked CLIs, etc. Launching from a terminal works (the shell PATH is inherited).
+
+**Root cause.** A GUI/desktop-launched process inherits a minimal `PATH` (roughly `/usr/bin:/bin`) — it never sources `~/.bashrc` / `~/.zprofile` / `/etc/profile.d` / brew shellenv, so `~/.local/bin`, `/opt/homebrew/bin`, and any user-customized dirs (nvm, pyenv, cargo, …) are absent. clide builds the environment for everything it spawns from `Platform.environment`, so that impoverished PATH propagates everywhere.
+
+**Why it keeps happening — divergent, partial PATH expansion.** There are THREE separate PATH-augmentation implementations, fixed inconsistently:
+1. `lib/src/pty/env.dart` → `expandedPath` — **still macOS-only** (`if (!Platform.isMacOS) return base;`). Used by `lib/src/git/operations.dart:24` (git resolution) → on Linux desktop-launch, git gets the raw PATH.
+2. `lib/kernel/src/toolchain_paths.dart` → `_expandedPath()` — augments on Linux too (this is what **T-347** fixed, for pql).
+3. `lib/kernel/src/cli_install.dart` → `expandedPath(base, {macOS, home})` — a third copy.
+
+So T-347 fixed the *toolchain/pql* path on Linux, but the `env.dart` copy (git, PTY env defaults) is still macOS-only, and claude''s spawn (`agent_bootstrap.agentEnvDelta` → `Process.start(environment:)` merged over `Platform.environment`) only prepends the clide-CLI dir — the rest of PATH stays un-enriched. Net: the same class of breakage recurs per spawn site because there''s no single source of truth.
+
+**Also:** all three use a **hardcoded dir list** (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`). That misses arbitrary user customizations (nvm/pyenv/cargo/asdf/custom dirs) — the user''s "normal bash PATH" is whatever their login shell actually produces, not a fixed list.
+
+**Proposed fix (two parts).**
+1. *Robust resolution:* derive the real login-shell PATH once at startup — spawn the user''s `$SHELL -l -i -c ''printf %s "$PATH"''` (or `-l -c` to avoid interactive side-effects), with a short timeout and a graceful fallback to the current hardcoded-merge behavior. Cache it for the process. This is the established approach (VS Code''s `resolveShellEnv`, the `fix-path` pattern) and captures the user''s actual PATH, not a guess.
+2. *Consolidation:* collapse the three `expandedPath`/`_expandedPath` copies into ONE source of truth (e.g. in `lib/src/pty/env.dart` or a small `kernel` env service) that every spawn site uses — PTY/terminal (`registry.dart:55` currently passes raw `Platform.environment`), git (`operations.dart`), toolchain (`toolchain_paths.dart`), claude (`agent_bootstrap.dart`), and any other `Process.start`. One resolver, applied everywhere.
+
+**Acceptance.** Desktop-launched clide on Linux + macOS resolves the same PATH the user''s login shell has; pql/git/claude and PTY children all find user-installed tools; the three divergent expanders are unified into one; graceful fallback when the shell probe fails or times out; covered by a test for the resolver + the fallback.
+
+**Related:** T-347 (done — fixed the Linux toolchain/pql path, but only `toolchain_paths.dart`), T-215 (CLIDE_SOCK/CLIDE_WORKSPACE + clide on the child PATH), T-211/T-212 (clide-on-PATH install), D-59 (bundled git) / D-92 (bundled pql) — bundling covers git/pql specifically, but not the general "user''s installed tools" PATH this addresses.', NULL, '2026-06-15 15:23:47', '2026-06-15 15:23:47', '2026-06-15 15:23:47', NULL, 'c5a27e255cd62d26167231269985ba39', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQ8HB61N3TWVJ8YSMHH2TJ4', 'description', 'Implements the D-100 fence decision (resolving Q-50): keep the web/WASM "happy accident" build compiling so the e2e/Playwright UI harness (D-26) can run again.
+
+**Problem.** `flutter build web --wasm` cannot compile the tree — 12 modules import `dart:ffi` unconditionally, which the wasm target forbids. This kills `make test-e2e` / `ui-dev` / `ui-smoke` and the GitHub Actions web-WASM e2e job (currently withheld with a pointer to Q-50).
+
+**dart:ffi importers to fence (as of 2026-06-15):**
+- Native PTY: `lib/src/pty/ffi/libc.dart`, `lib/src/pty/native_pty.dart`, `lib/src/pty/windows_pty.dart`
+- Tree-sitter: `lib/kernel/src/syntax/tree_sitter_ffi.dart`, `lib/kernel/src/syntax/tree_sitter_service.dart`
+- Lua (Tier 6): `lib/lua/lua.dart`, `lib/lua/src/host.dart`
+- Windows watchdog: `lib/kernel/src/watchdog_windows.dart`
+- Consumers / barrels: `lib/clide.dart`, `lib/src/panes/pane.dart`, `lib/builtin/claude/src/agent_bootstrap.dart`, `lib/test_app.dart`
+
+**Approach (per D-100).** Put each native capability behind a conditional-import facade — `import ''x_native.dart'' if (dart.library.ffi) ''x_native.dart'' ... else ''x_stub.dart''` (io/ffi → real impl; web → stub). Web stubs degrade gracefully and never throw at import time: no PTY/terminal, no native git, no tree-sitter highlighting on web — the web build is a UI/e2e surface, not a functional desktop replacement. Desktop builds keep the real FFI impls unchanged (no fidelity loss — the CLAUDE.md guardrail holds).
+
+**Acceptance.**
+- `flutter build web --wasm` compiles the tree.
+- `make test-e2e` / `ui-dev` / `ui-smoke` run again.
+- A `flutter build web --wasm` compile gate is added to CI so the fence can''t silently rot, and the withheld web-WASM e2e job in `.github/workflows/test.yml` is re-enabled.
+- Desktop unit/widget/golden/integration suites stay green; no desktop behavior change.
+
+**Refs:** D-100, Q-50, D-32 (the withheld e2e job), D-26 (Playwright driver), T-384 (the dead-targets bug this finishes).', 'Implements the D-100 fence decision (resolving Q-50): keep the web/WASM "happy accident" build compiling so the e2e/Playwright UI harness (D-26) can run again.
+
+**Problem.** `flutter build web --wasm` cannot compile the tree — 12 modules import `dart:ffi` unconditionally, which the wasm target forbids. This kills `make test-e2e` / `ui-dev` / `ui-smoke` and the GitHub Actions web-WASM e2e job (currently withheld with a pointer to Q-50).
+
+**dart:ffi importers to fence (as of 2026-06-15):**
+- Native PTY: `lib/src/pty/ffi/libc.dart`, `lib/src/pty/native_pty.dart`, `lib/src/pty/windows_pty.dart`
+- Tree-sitter: `lib/kernel/src/syntax/tree_sitter_ffi.dart`, `lib/kernel/src/syntax/tree_sitter_service.dart`
+- Lua (Tier 6): `lib/lua/lua.dart`, `lib/lua/src/host.dart`
+- Windows watchdog: `lib/kernel/src/watchdog_windows.dart`
+- Consumers / barrels: `lib/clide.dart`, `lib/src/panes/pane.dart`, `lib/builtin/claude/src/agent_bootstrap.dart`, `lib/test_app.dart`
+
+**Approach (per D-100).** Put each native capability behind a conditional-import facade — `import ''x_native.dart'' if (dart.library.ffi) ''x_native.dart'' ... else ''x_stub.dart''` (io/ffi → real impl; web → stub). Web stubs degrade gracefully and never throw at import time: no PTY/terminal, no native git, no tree-sitter highlighting on web — the web build is a UI/e2e surface, not a functional desktop replacement. Desktop builds keep the real FFI impls unchanged (no fidelity loss — the CLAUDE.md guardrail holds).
+
+**Acceptance.**
+- `flutter build web --wasm` compiles the tree.
+- `make test-e2e` / `ui-dev` / `ui-smoke` run again.
+- A `flutter build web --wasm` compile gate is added to CI so the fence can''t silently rot, and the withheld web-WASM e2e job in `.github/workflows/test.yml` is re-enabled.
+- Desktop unit/widget/golden/integration suites stay green; no desktop behavior change.
+
+**Refs:** D-100, Q-50, D-32 (the withheld e2e job), D-26 (Playwright driver), T-384 (the dead-targets bug this finishes).
+
+---
+
+**Implemented 2026-06-15 — dart:ffi fence done, web/WASM build compiles.**
+
+`flutter build web --wasm` → `✓ Built build/web`. Desktop `flutter analyze` clean; `make test` (analyze + format + unit + widget + golden) green; UUID/socket-hash determinism unchanged.
+
+**What was done.** Every `dart:ffi` importer now sits behind a `dart.library.ffi` conditional import with a graceful web stub (discriminator is `dart.library.ffi`, NOT `dart.library.io` — dart2wasm provides `dart:io`, so only FFI is the blocker):
+- PTY: `pty_session.dart` → `pty_backend_io.dart` / `pty_backend_web.dart` (stub throws).
+- tree-sitter: pure types extracted to `syntax_result.dart`; `tree_sitter_service.dart` is now a facade over `_ffi`/`_stub`; `tree_sitter_boot_io/stub.dart` fences `TreeSitterLib.init()` in main.dart. Web = no highlighting (plain text).
+- watchdog: `watchdog_windows_stub.dart` (all-`-1` sampler).
+- claude ABI probe: `native_abi_io/stub.dart` (replaces `dart:ffi show Abi`).
+- testmode fd-check: `fd_check_io/stub.dart`.
+- Two FFI-constructing tree-sitter tests now import `_ffi.dart` directly (the analyzer resolves the conditional facade to the stub branch).
+
+**Second, distinct web-incompat fixed:** the dart2js fallback (built alongside wasm) rejected the 64-bit FNV literals (`0xcbf29ce484222325`) in `session_naming.dart` + `paths.dart` — split into 32-bit halves; dropped a no-op `& 0xFFFFFFFFFFFFFFFF` mask. Desktop/wasm values unchanged.
+
+**CI:** added a `web-wasm` job (`flutter build web --wasm`) to `.github/workflows/test.yml` so the fence can''t silently rot (replaces the withheld-job comment).
+
+**Remaining (why this is `review`, not `done`):** the *compile* gate is in CI, but the full web-WASM **Playwright e2e** (`make test-e2e` / `ui-smoke`: setup-node + `playwright install` in `tools/ui` + serve) is not yet wired into CI — it needs browser/node provisioning on the runner, separate from the fence. `make ui-dev` (build + serve) works now; the Playwright smoke is the follow-on. Acceptance items 1, 3a (compile gate), 4 met; 2/3b (full Playwright e2e) pending that harness wiring.', NULL, '2026-06-15 15:30:48', '2026-06-15 15:30:48', '2026-06-15 15:30:48', NULL, '0cf096a810a7a075307c8df8321b5c33', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQ8HB61N3TWVJ8YSMHH2TJ4', 'status', 'in_progress', 'review', NULL, '2026-06-15 15:30:48', '2026-06-15 15:30:48', '2026-06-15 15:30:48', NULL, 'a7d81444607b6ec3aa8440fcbc9abee3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCQHWQ40AY6SNVRJ86YWA0J8', 'status', 'backlog', 'in_progress', NULL, '2026-06-15 15:31:15', '2026-06-15 15:31:15', '2026-06-15 15:31:15', NULL, '5fed82be61479c8191ed8d0663507cad', 2) ON CONFLICT(hash) DO NOTHING;

@@ -21,10 +21,13 @@
 /// IO wrapper the orchestrator calls. Flutter-free by design.
 library;
 
-import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
+
+// Web fence (T-438, D-100): `Abi.current()` (dart:ffi) is desktop-only; the web
+// build gets a default dir name with no FFI introspection.
+import 'native_abi_stub.dart' if (dart.library.ffi) 'native_abi_io.dart';
 
 /// The `--allowedTools` rule that pre-approves `clide …` Bash calls for a
 /// hosted session (T-217), so the agent isn't prompted on every IDE call.
@@ -90,26 +93,6 @@ String? resolveClideCliDir({required String? currentPath, required List<String> 
   return null;
 }
 
-/// The `native/<os>-<arch>/` directory name the Makefile builds the C client
-/// into (e.g. `linux-x64`, `macos-arm64`) — used to find the dev-tree binary
-/// when clide runs un-installed (dogfooding clide-on-clide).
-String nativeClideDirName({Abi? abi}) {
-  switch (abi ?? Abi.current()) {
-    case Abi.macosArm64:
-      return 'macos-arm64';
-    case Abi.macosX64:
-      return 'macos-x64';
-    case Abi.linuxArm64:
-      return 'linux-arm64';
-    case Abi.linuxX64:
-      return 'linux-x64';
-    default:
-      // Windows / other — clide is desktop linux/macos today; fall back to a
-      // best-effort name so the probe simply misses rather than throwing.
-      return Platform.isMacOS ? 'macos-x64' : 'linux-x64';
-  }
-}
-
 /// The result of [agentBootstrap]: the env delta to overlay and the extra
 /// spawn args (context note + allow rule) to prepend to a session's argv.
 class AgentBootstrap {
@@ -128,7 +111,7 @@ AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base})
   final currentPath = (base ?? Platform.environment)['PATH'] ?? Platform.environment['PATH'];
   final candidates = <String>[
     if (home != null && home.isNotEmpty) '$home/.local/bin',
-    '$workspaceRoot/native/${nativeClideDirName()}',
+    '$workspaceRoot/native/${currentNativeDirName()}',
     File(Platform.resolvedExecutable).parent.path,
   ];
   final cliDir = resolveClideCliDir(currentPath: currentPath, candidateDirs: candidates, isExecutableFile: _isExecutableFile);

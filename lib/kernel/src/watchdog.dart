@@ -25,7 +25,9 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'watchdog_windows.dart';
+// Web fence (T-438, D-100): the FFI-backed Windows sampler is reachable only
+// when `dart.library.ffi` is available; the web build gets an all-`-1` stub.
+import 'watchdog_windows_stub.dart' if (dart.library.ffi) 'watchdog_windows.dart';
 
 /// One resource sample of the current process. A field of `-1` means "not
 /// available on this platform or the probe failed" — never an error.

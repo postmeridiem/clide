@@ -13,7 +13,9 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
-import 'package:clide/kernel/src/syntax/tree_sitter_service.dart';
+// The FFI impl directly (not the facade): the smoke test injects a fake
+// TreeSitterLib via the FFI-only constructor params (T-438).
+import 'package:clide/kernel/src/syntax/tree_sitter_service_ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _libPath = 'native/linux-x64/libtree-sitter.so';

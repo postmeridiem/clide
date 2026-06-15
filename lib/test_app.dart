@@ -25,10 +25,11 @@ import 'builtin/files/files.dart';
 import 'builtin/git/git.dart';
 import 'builtin/terminal/terminal.dart';
 import 'extension/extension.dart' show ClideExtension;
-import 'dart:ffi' as ffi;
-import 'package:ffi/ffi.dart' as pkg_ffi;
 import 'kernel/kernel.dart';
-import 'src/pty/ffi/libc.dart' as libc;
+
+// Web fence (T-438, D-100): the FFI fd-inheritance probe is desktop-only; the
+// web build gets a no-op stub so dart:ffi / package:ffi / libc stay out.
+import 'fd_check_stub.dart' if (dart.library.ffi) 'fd_check_io.dart';
 import 'src/daemon/pane_commands.dart';
 import 'src/ipc/envelope.dart';
 import 'src/ipc/paths.dart' show logDirectory;
@@ -375,20 +376,9 @@ class _ClideTestAppState extends State<ClideTestApp> {
       return output.isNotEmpty ? 'got ${output.length} chars' : 'no output (0 chars)';
     });
 
-    // Test: does Dart's Process.start inherit socket fds on macOS?
-    await _testAsync('fd inheritance check', () async {
-      final sv = pkg_ffi.calloc<ffi.Int32>(2);
-      libc.socketpair(1, 1, 0, sv); // AF_UNIX, SOCK_STREAM
-      final parent = sv[0];
-      final child = sv[1];
-      pkg_ffi.calloc.free(sv);
-      final proc = await Process.start('/tmp/checkfd', [], environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
-      final stderr = await proc.stderr.transform(utf8.decoder).join();
-      final exit = await proc.exitCode;
-      libc.close(parent);
-      libc.close(child);
-      return 'exit=$exit stderr=${stderr.trim()}';
-    });
+    // Test: does Dart's Process.start inherit socket fds on macOS? (T-438: the
+    // FFI body lives in fd_check_io.dart so the web build can stub it out.)
+    await _testAsync('fd inheritance check', fdInheritanceCheck);
 
     _say('');
   }

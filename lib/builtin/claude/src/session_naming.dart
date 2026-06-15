@@ -130,12 +130,18 @@ String freshSessionId() {
 /// same id). Expands an FNV-1a stream into 16 bytes.
 String _deterministicUuid(String seed) {
   final bytes = <int>[];
-  var h = 0xcbf29ce484222325;
+  // FNV-1a 64-bit offset basis, split into two 32-bit halves so the dart2js
+  // web fallback accepts it (a full 64-bit literal "can't be represented
+  // exactly in JavaScript" — T-438). Correct on the VM/wasm; web never derives
+  // a session id (no claude process there).
+  var h = (0xcbf29ce4 << 32) | 0x84222325;
   const prime = 0x100000001b3;
   for (var i = 0; i < 16; i++) {
     for (final c in utf8.encode('$seed:$i')) {
       h ^= c;
-      h = (h * prime) & 0xFFFFFFFFFFFFFFFF;
+      // 64-bit modular wrap is implicit on the VM/wasm; the explicit
+      // `& 0xFFFFFFFFFFFFFFFF` was a no-op and a dart2js-incompatible literal.
+      h = h * prime;
     }
     bytes.add(h & 0xff);
   }

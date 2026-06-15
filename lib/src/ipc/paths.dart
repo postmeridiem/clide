@@ -101,7 +101,11 @@ String logDirectory([Map<String, String>? env]) {
 String fnv1a64Hex(String s) {
   // Desktop-only (the IPC server is desktop-only per D-56). Dart VM
   // ints are 64-bit; arithmetic wraps modulo 2^64 naturally.
-  var h = 0xcbf29ce484222325;
+  // FNV-1a 64-bit offset basis. Split into two 32-bit halves so the dart2js
+  // web fallback accepts it — a 0xcbf2…2325 literal "can't be represented
+  // exactly in JavaScript" (T-438). Correct on the VM/wasm (int64); the web
+  // build never hashes a socket path (the IPC server is desktop-only).
+  var h = (0xcbf29ce4 << 32) | 0x84222325;
   const prime = 0x100000001b3;
   final bytes = utf8.encode(s);
   for (final b in bytes) {

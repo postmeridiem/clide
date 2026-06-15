@@ -114,13 +114,21 @@ jobs:
           path: ${{ github.workspace }}/clide-logs
           if-no-files-found: ignore
 
-  # The web-WASM Playwright job is withheld: `flutter build web --wasm` cannot
-  # compile the tree since the tree-sitter/PTY dart:ffi pivot (dart:ffi is
-  # unavailable on the wasm target). Whether the web target gets conditional-
-  # import fences or is dropped is an open question — see Q-50 in
-  # governance/questions/architecture.md. Re-add the job (setup-node, npm
-  # install + playwright install in tools/ui, `make test-e2e`) when Q-50
-  # resolves toward keeping it.
+  web-wasm:
+    name: web build (wasm compile gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      # Compile gate for the dart:ffi web fence (D-100 / T-438, resolving Q-50):
+      # every native binding lives behind a `dart.library.ffi` conditional import
+      # with a web stub. If a new one lands without its stub, this fails — the
+      # fence can't silently rot. Build-only for now; the full web-WASM Playwright
+      # e2e (`make test-e2e`: setup-node + playwright install in tools/ui +
+      # serve) is the follow-on once the harness is wired back up.
+      - run: flutter build web --wasm
 
   docs:
     name: dart doc (lib API)

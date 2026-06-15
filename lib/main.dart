@@ -59,7 +59,9 @@ import 'package:clide/src/ipc/server.dart';
 import 'package:clide/src/panes/event_sink.dart';
 import 'package:clide/src/panes/registry.dart';
 import 'package:clide/src/pql/client.dart';
-import 'package:clide/kernel/src/syntax/tree_sitter_ffi.dart';
+// Web fence (T-438, D-100): tree-sitter init is FFI-backed on desktop, a no-op
+// on web (highlighting degrades to plain text there).
+import 'package:clide/kernel/src/syntax/tree_sitter_boot_stub.dart' if (dart.library.ffi) 'package:clide/kernel/src/syntax/tree_sitter_boot_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
@@ -81,7 +83,7 @@ Future<void> main() async {
 
   binding.ensureSemantics();
 
-  TreeSitterLib.init();
+  initTreeSitter();
 
   final appDir = await _resolveAppDir();
   final themes = await _loadBundledThemes();
