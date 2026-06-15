@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:clide/app.dart';
 import 'package:clide/test_app.dart';
@@ -110,6 +111,14 @@ Future<void> main() async {
       settingValue: bootSettings.get<String>('app.log.level'),
     );
     bootLogSinks = [FileLogSink(dir: Directory(logDirectory())).call];
+    // Crash-diagnostic watchdog in its own isolate (T-435): heartbeats +
+    // resource samples that survive a frozen main isolate. Non-fatal — a
+    // leak-detector that breaks startup is worse than a missing one. The OS
+    // reaps the isolate on exit; every line is fsynced, so abrupt death loses
+    // nothing.
+    try {
+      await Isolate.spawn(watchdogEntry, ('${logDirectory()}/clide-watchdog.log', 500, 2000));
+    } catch (_) {}
   }
 
   // Resolve toolchain + boot daemon inline — same as Linux.

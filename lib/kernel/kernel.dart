@@ -18,6 +18,7 @@ export 'src/events/types.dart';
 export 'src/ipc/client.dart';
 export 'src/log.dart';
 export 'src/file_log_sink.dart';
+export 'src/watchdog.dart';
 export 'src/settings.dart';
 export 'src/facade.dart';
 export 'src/clipboard.dart';

@@ -30,6 +30,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   so a wedged isolate's last crumb survives a freeze that also froze the main
   isolate — naming the wedge after the fact. Per-syscall crumbs at debug level.
   (T-434)
+- **Crash-diagnostic watchdog.** A dedicated isolate fsyncs a heartbeat every
+  ~500ms (bounding a freeze to ~500ms) and every ~2s samples this process's
+  thread / handle / child-host / RSS counts to `clide-watchdog.log` — a climbing
+  child or thread count is the leak signature. Survives a frozen main isolate;
+  spawn failure is non-fatal. (T-435)
 
 ## [2.5.0] — 2026-06-14
 
