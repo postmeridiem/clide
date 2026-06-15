@@ -5204,3 +5204,125 @@ Beyond the `/clear` fix, T-437 also owns bringing clide''s CLI characterization 
 - Audit other session-lifecycle assumptions that may have drifted with the registry addition (resume/fork id handling, `--session-id` vs `--resume` selection).
 
 **Acceptance (updated):** `/clear` clears the primary pane to an empty conversation on CLI 2.1.177 without exiting; `claude` stderr/exit reason is surfaced in the pane + logs; init cache + routing table refreshed for 2.1.177; the `sessions/` registry lifecycle documented in this ticket (or a D-record if it changes a decision).', NULL, '2026-06-15 11:30:26', '2026-06-15 11:30:26', '2026-06-15 11:30:26', NULL, '2ab7f67318159b7b9a8b26eeefa2ed8d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCNYXXH5AAHZR7WV0550J3RC', 'status', 'backlog', 'in_progress', NULL, '2026-06-15 11:38:50', '2026-06-15 11:38:50', '2026-06-15 11:38:50', NULL, 'c0d2e8bddc695f3cc0afdfd728aed3a6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCNYXXH5AAHZR7WV0550J3RC', 'status', 'in_progress', 'in_progress', NULL, '2026-06-15 11:40:04', '2026-06-15 11:40:04', '2026-06-15 11:40:04', NULL, 'd858bb1bd89be62a0d00d564229a2517', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCNYXXH5AAHZR7WV0550J3RC', 'description', '**Symptom.** Typing `/clear` in the primary Claude pane kills the session: the pane shows `claude exited (code 1) — /clear to restart` and the "Warming up — your conversation will appear here." banner, instead of clearing to a fresh empty conversation. Screenshot taken in workspace `/var/mnt/data/projects/settled-reach`.
+
+**Environment.** `claude` CLI **2.1.177** (`~/.local/bin/claude`). The codebase''s init-probe cache and the last probe task only cover ≤ **2.1.175** — the CLI has moved past what clide last characterized. This is almost certainly a CLI-version regression, not a clide code change.
+
+**`/clear` code path (read-only trace, 2026-06-15):**
+- `lib/builtin/claude/src/slash_commands.dart:42` — `clear` is in `kClideOwnedCommands`; clide handles it natively (T-156), does not forward it.
+- `lib/builtin/claude/src/claude_pane.dart:651-659` — `_clearSession()`: primary pane → `_respawnWithSession(primarySessionId(root), clearTranscript: true)`.
+- `claude_pane.dart:680-703` — `_respawnWithSession()`: kills the old session (`activeSessionOrchestrator.close(_orchId)`), then `clearSessionTranscript(...)`, then `_spawn()`.
+- `lib/builtin/claude/src/session_naming.dart:109-114` — `clearSessionTranscript()` deletes ONLY `~/.claude/projects/<munged-root>/<id>.jsonl` and the sidecar `<id>/` dir.
+- `session_naming.dart:75` — respawn uses `claudeLaunchArgs(id, resume: false)` = `[''--session-id'', <id>]`, where `<id>` is the **same deterministic `primarySessionId(root)`** (derived from the repo path, `session_naming.dart:68`).
+- `session_naming.dart:72-74` (the load-bearing comment): "`--session-id` REFUSES an id that already exists (''Session ID … is already in use'')."
+
+**Root cause (strong hypothesis — see caveat).** T-268 built `/clear` on the assumption that the per-project transcript file (`<id>.jsonl` + sidecar) is the *only* thing the CLI uses to decide whether a `--session-id` is "in use". The current CLI tracks session ids in **additional** state beyond that transcript:
+- `~/.claude/sessions/<pid>.json` — a live-session registry. Confirmed contents (2.1.177): `{"pid":…,"sessionId":"e7dad3cf-…","cwd":"/var/mnt/data/projects/clide","version":"2.1.177","status":"idle",…}`. Keyed by PID, carries the clide session UUID + cwd.
+- `~/.claude/history.jsonl` (2.8 MB, append-only).
+
+So `/clear` deletes the transcript and respawns with the *same deterministic* `--session-id`, but the killed session''s id is still registered (the registry entry is keyed by the now-dead PID and is the CLI''s own state — clide''s purge doesn''t touch it, and an abrupt kill leaves no chance for the CLI to clean it). The new `claude` rejects the id as already-in-use and **exits 1 at startup validation, before any model turn**. Reusing a fixed deterministic id is inherently brittle against the CLI adding new id-tracking surfaces.
+
+**Caveat — not yet pinned.** The actual `claude` stderr was NOT captured: the pane only surfaces `exited (code 1)`, swallowing the CLI''s error string. The above is inferred from (a) the documented `--session-id` refusal, (b) the confirmed new registry, (c) the version gap. It must be confirmed against the real stderr before the fix is chosen. **That clide shows an opaque "code 1" with no underlying reason is itself a defect** (see fix #3).
+
+**Fix directions (ranked):**
+1. **Stop reusing a fixed `--session-id` on clear.** Mint a fresh id (as secondary panes already do) and persist it as the pane''s *current* primary id, decoupling "current primary session" from the path-derived default so cross-restart continuity (T-268''s goal) survives without colliding. Robust against any CLI-internal id tracking — the right long-term fix and aligns with D-75 (avoid version-pinned coupling to CC internals).
+2. **Make the old id reusable before respawn:** graceful-shutdown the old process (SIGTERM, give the CLI a chance to clean its `sessions/<pid>.json`) and/or sweep `~/.claude/sessions/*.json` for entries whose `sessionId == target` before reuse. Fragile — reaches into CLI private state; D-75 caution.
+3. **Surface `claude`''s stderr/exit reason in the pane** (and logs) so "code 1" is never opaque again. Do this regardless of 1/2 — it''s what makes this diagnosable.
+
+**Also:** re-probe the CLI for 2.1.177 and refresh the init cache / the slash-command routing table (T-410/T-411 territory) — the `~/.claude/sessions/` registry is new behavior worth characterizing; other session-lifecycle assumptions may have shifted too.
+
+**Diagnostic step for the fixer:**
+1. Reproduce `/clear` in a primary pane with CLI 2.1.177.
+2. Capture the spawned `claude`''s stderr/stdout on the failed respawn (the `--session-id <id>` invocation). Confirm whether it is "Session ID … is already in use" vs another error.
+3. Inspect `~/.claude/sessions/*.json` immediately after the kill — does an entry with the target `sessionId` linger?
+
+**Files a fix would touch:** `claude_pane.dart` (`_clearSession` 651-659, `_respawnWithSession` 680-703, exit-status handler ~423), `session_naming.dart` (`claudeLaunchArgs` 75, `clearSessionTranscript` 109-114, id derivation 68), `session_orchestrator.dart` (`_spawn` 219-283, `close`), `slash_commands.dart` (routing).
+
+**Related:** T-268 (done — built the delete-transcript-then-reuse-`--session-id` mechanism that just regressed), T-156 (clide-owned `/clear`), T-161 (`--resume` vs `--session-id` selection), D-77 (stream-json session model), D-75 (version-pinned coupling to CC internals — the risk this realizes).
+
+---
+
+**Folded-in scope (2026-06-15): CLI 2.1.177 re-probe — part of this ticket, not a follow-up.**
+
+Beyond the `/clear` fix, T-437 also owns bringing clide''s CLI characterization up to the running version:
+- Re-run the stream-json `initialize` probe against `claude` **2.1.177** and refresh the per-version init cache (`~/.config/clide/claude/init-<version>.json`, T-151). The codebase was last probed at ≤ 2.1.175 (probe task + `kClideOwnedCommands`/routing assumptions).
+- Refresh the slash-command routing table (T-410/T-411) from the new probe: re-confirm advertised vs TUI-only vs owned for 2.1.177, so nothing regresses to a raw harness error.
+- Characterize the new `~/.claude/sessions/<pid>.json` live-session registry (fields, lifecycle: when written, updated, removed — esp. whether a killed PID''s entry is cleaned). This directly informs which `/clear` fix is viable.
+- Audit other session-lifecycle assumptions that may have drifted with the registry addition (resume/fork id handling, `--session-id` vs `--resume` selection).
+
+**Acceptance (updated):** `/clear` clears the primary pane to an empty conversation on CLI 2.1.177 without exiting; `claude` stderr/exit reason is surfaced in the pane + logs; init cache + routing table refreshed for 2.1.177; the `sessions/` registry lifecycle documented in this ticket (or a D-record if it changes a decision).', '**Symptom.** Typing `/clear` in the primary Claude pane kills the session: the pane shows `claude exited (code 1) — /clear to restart` and the "Warming up — your conversation will appear here." banner, instead of clearing to a fresh empty conversation. Screenshot taken in workspace `/var/mnt/data/projects/settled-reach`.
+
+**Environment.** `claude` CLI **2.1.177** (`~/.local/bin/claude`). The codebase''s init-probe cache and the last probe task only cover ≤ **2.1.175** — the CLI has moved past what clide last characterized. This is almost certainly a CLI-version regression, not a clide code change.
+
+**`/clear` code path (read-only trace, 2026-06-15):**
+- `lib/builtin/claude/src/slash_commands.dart:42` — `clear` is in `kClideOwnedCommands`; clide handles it natively (T-156), does not forward it.
+- `lib/builtin/claude/src/claude_pane.dart:651-659` — `_clearSession()`: primary pane → `_respawnWithSession(primarySessionId(root), clearTranscript: true)`.
+- `claude_pane.dart:680-703` — `_respawnWithSession()`: kills the old session (`activeSessionOrchestrator.close(_orchId)`), then `clearSessionTranscript(...)`, then `_spawn()`.
+- `lib/builtin/claude/src/session_naming.dart:109-114` — `clearSessionTranscript()` deletes ONLY `~/.claude/projects/<munged-root>/<id>.jsonl` and the sidecar `<id>/` dir.
+- `session_naming.dart:75` — respawn uses `claudeLaunchArgs(id, resume: false)` = `[''--session-id'', <id>]`, where `<id>` is the **same deterministic `primarySessionId(root)`** (derived from the repo path, `session_naming.dart:68`).
+- `session_naming.dart:72-74` (the load-bearing comment): "`--session-id` REFUSES an id that already exists (''Session ID … is already in use'')."
+
+**Root cause (strong hypothesis — see caveat).** T-268 built `/clear` on the assumption that the per-project transcript file (`<id>.jsonl` + sidecar) is the *only* thing the CLI uses to decide whether a `--session-id` is "in use". The current CLI tracks session ids in **additional** state beyond that transcript:
+- `~/.claude/sessions/<pid>.json` — a live-session registry. Confirmed contents (2.1.177): `{"pid":…,"sessionId":"e7dad3cf-…","cwd":"/var/mnt/data/projects/clide","version":"2.1.177","status":"idle",…}`. Keyed by PID, carries the clide session UUID + cwd.
+- `~/.claude/history.jsonl` (2.8 MB, append-only).
+
+So `/clear` deletes the transcript and respawns with the *same deterministic* `--session-id`, but the killed session''s id is still registered (the registry entry is keyed by the now-dead PID and is the CLI''s own state — clide''s purge doesn''t touch it, and an abrupt kill leaves no chance for the CLI to clean it). The new `claude` rejects the id as already-in-use and **exits 1 at startup validation, before any model turn**. Reusing a fixed deterministic id is inherently brittle against the CLI adding new id-tracking surfaces.
+
+**Caveat — not yet pinned.** The actual `claude` stderr was NOT captured: the pane only surfaces `exited (code 1)`, swallowing the CLI''s error string. The above is inferred from (a) the documented `--session-id` refusal, (b) the confirmed new registry, (c) the version gap. It must be confirmed against the real stderr before the fix is chosen. **That clide shows an opaque "code 1" with no underlying reason is itself a defect** (see fix #3).
+
+**Fix directions (ranked):**
+1. **Stop reusing a fixed `--session-id` on clear.** Mint a fresh id (as secondary panes already do) and persist it as the pane''s *current* primary id, decoupling "current primary session" from the path-derived default so cross-restart continuity (T-268''s goal) survives without colliding. Robust against any CLI-internal id tracking — the right long-term fix and aligns with D-75 (avoid version-pinned coupling to CC internals).
+2. **Make the old id reusable before respawn:** graceful-shutdown the old process (SIGTERM, give the CLI a chance to clean its `sessions/<pid>.json`) and/or sweep `~/.claude/sessions/*.json` for entries whose `sessionId == target` before reuse. Fragile — reaches into CLI private state; D-75 caution.
+3. **Surface `claude`''s stderr/exit reason in the pane** (and logs) so "code 1" is never opaque again. Do this regardless of 1/2 — it''s what makes this diagnosable.
+
+**Also:** re-probe the CLI for 2.1.177 and refresh the init cache / the slash-command routing table (T-410/T-411 territory) — the `~/.claude/sessions/` registry is new behavior worth characterizing; other session-lifecycle assumptions may have shifted too.
+
+**Diagnostic step for the fixer:**
+1. Reproduce `/clear` in a primary pane with CLI 2.1.177.
+2. Capture the spawned `claude`''s stderr/stdout on the failed respawn (the `--session-id <id>` invocation). Confirm whether it is "Session ID … is already in use" vs another error.
+3. Inspect `~/.claude/sessions/*.json` immediately after the kill — does an entry with the target `sessionId` linger?
+
+**Files a fix would touch:** `claude_pane.dart` (`_clearSession` 651-659, `_respawnWithSession` 680-703, exit-status handler ~423), `session_naming.dart` (`claudeLaunchArgs` 75, `clearSessionTranscript` 109-114, id derivation 68), `session_orchestrator.dart` (`_spawn` 219-283, `close`), `slash_commands.dart` (routing).
+
+**Related:** T-268 (done — built the delete-transcript-then-reuse-`--session-id` mechanism that just regressed), T-156 (clide-owned `/clear`), T-161 (`--resume` vs `--session-id` selection), D-77 (stream-json session model), D-75 (version-pinned coupling to CC internals — the risk this realizes).
+
+---
+
+**Folded-in scope (2026-06-15): CLI 2.1.177 re-probe — part of this ticket, not a follow-up.**
+
+Beyond the `/clear` fix, T-437 also owns bringing clide''s CLI characterization up to the running version:
+- Re-run the stream-json `initialize` probe against `claude` **2.1.177** and refresh the per-version init cache (`~/.config/clide/claude/init-<version>.json`, T-151). The codebase was last probed at ≤ 2.1.175 (probe task + `kClideOwnedCommands`/routing assumptions).
+- Refresh the slash-command routing table (T-410/T-411) from the new probe: re-confirm advertised vs TUI-only vs owned for 2.1.177, so nothing regresses to a raw harness error.
+- Characterize the new `~/.claude/sessions/<pid>.json` live-session registry (fields, lifecycle: when written, updated, removed — esp. whether a killed PID''s entry is cleaned). This directly informs which `/clear` fix is viable.
+- Audit other session-lifecycle assumptions that may have drifted with the registry addition (resume/fork id handling, `--session-id` vs `--resume` selection).
+
+**Acceptance (updated):** `/clear` clears the primary pane to an empty conversation on CLI 2.1.177 without exiting; `claude` stderr/exit reason is surfaced in the pane + logs; init cache + routing table refreshed for 2.1.177; the `sessions/` registry lifecycle documented in this ticket (or a D-record if it changes a decision).
+
+---
+
+**RESOLUTION (2026-06-15) — root cause confirmed, fixed.**
+
+**Actual cause (confirmed against real stderr, NOT the original collision-vs-registry guess).** Captured from clide''s own crash log (`~/.local/state/clide/logs/clide.log`):
+`session primary exited (code 1); stderr tail: Error: Session ID <id> is already in use.`
+
+But the "in use" is a **lifecycle race**, not a persistent registry/transcript collision. Isolated probes against claude 2.1.177 proved:
+- `--session-id` reuse SUCCEEDS once the prior holder is dead — even immediately after SIGTERM (the `~/.claude/sessions/<pid>.json` entry is cleaned on a SIGTERM exit), and even with another *live* duplicate in `-p` mode.
+- A transcript-absent id never collides.
+The only way real clide hit "already in use": the **old process was still alive** at respawn. `ClaudeSessionOrchestrator.close()` called `conversation.dispose()` (unawaited) and `ClaudeStreamJsonProcess.kill()` sent SIGTERM **without awaiting `exitCode`** — so `/clear` deleted the transcript and respawned on the same deterministic `--session-id` while the old `claude` was still alive (and re-flushing its transcript). 2.1.177 then rejects the id → exit 1.
+
+**Fix shipped (chose await-death over the ticket''s tentative "mint a fresh id").** Awaiting the old process''s real death is the targeted root-cause fix and *preserves T-268''s deterministic-id continuity* (fresh-id would have required persisting a per-repo current-id and changing the continuity model). Changes:
+- `stream_json_session.dart`: `kill()` now awaits `exitCode` (SIGTERM → 2s → SIGKILL → await); `dispose()` is idempotent (cached future) so the conversation''s unawaited dispose and the orchestrator''s awaited one share one teardown; new `SessionEnd.reason` getter (last non-empty stderr line, capped).
+- `session_orchestrator.dart`: `close()` awaits `session.dispose()` → returns only once the process is truly dead, so the transcript clear + respawn happen after death.
+- `claude_pane.dart`: `_onSessionEnd` surfaces `end.reason` in the status line — no more opaque "code 1" (fix #3).
+- `session_naming.dart`: corrected the stale `clearSessionTranscript` doc (the real sidecar is the shared `memory/` dir, not `<id>/`; left untouched) + the await-death precondition.
+- Tests: `close()` blocks until process exit (gated fake); `SessionEnd.reason` extraction/cap/empty.
+
+**Folded-in CLI 2.1.177 re-probe — done, no code change needed.**
+- `~/.claude/sessions/<pid>.json` registry characterized: PID-keyed, carries `{sessionId, cwd, version, kind:"interactive", entrypoint:"sdk-cli", status}`; written at start, **removed on a SIGTERM/clean exit**. So once clide awaits death, the id is free.
+- Init cache (`init-<version>.json`) auto-refreshes at runtime per version — nothing to hand-edit.
+- Probed 2.1.177 advertised `slash_commands` (31): no drift that breaks the routing table — none of clide''s `kTuiOnlyCommands` became advertised, and new entries (skills/builtins) correctly fall through to `forward`.
+
+**Verification status.** Unit-tested (the teardown ordering + reason surfacing) and validated against the live CLI via probes. `make test` green. NOT yet exercised in the running GUI (would need `make run` + an interactive `/clear`) — recommend a quick live confirm before closing.', NULL, '2026-06-15 13:30:11', '2026-06-15 13:30:11', '2026-06-15 13:30:11', NULL, 'ca1b8cc05faf1bf385494030cbc9eb2f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FCNYXXH5AAHZR7WV0550J3RC', 'status', 'in_progress', 'review', NULL, '2026-06-15 13:30:21', '2026-06-15 13:30:21', '2026-06-15 13:30:21', NULL, '2f16ac8313a7e627166ae842ba7c096c', 2) ON CONFLICT(hash) DO NOTHING;

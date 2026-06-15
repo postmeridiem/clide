@@ -33,6 +33,26 @@ class _FakeProc extends StreamJsonProcess {
   Future<void> kill() async => killed = true;
 }
 
+/// A fake whose [kill] blocks until [gate] completes — models a real `claude`
+/// that hasn't actually exited yet, so a test can prove `close()` waits for the
+/// process's real death before returning (T-437).
+class _GatedProc extends StreamJsonProcess {
+  _GatedProc(this._gate);
+  final Completer<void> _gate;
+  final _ctl = StreamController<String>.broadcast();
+  int killCount = 0;
+
+  @override
+  Stream<String> get lines => _ctl.stream;
+  @override
+  void writeLine(String line) {}
+  @override
+  Future<void> kill() async {
+    killCount++;
+    await _gate.future;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -204,6 +224,37 @@ void main() {
       final managed = await orch.spawn(picked);
       expect(managed.sessionId, 'picked-past-uuid');
       expect(created, hasLength(2));
+    });
+  });
+
+  // ---- close awaits the process's real death (T-437) ----------------------
+
+  group('close — awaits real process death before returning (T-437)', () {
+    test('close() does not complete until the process exit resolves', () async {
+      final gate = Completer<void>();
+      final created = <_GatedProc>[];
+      final orch = ClaudeSessionOrchestrator(
+        processFactory: ({required sessionArgs, required cwd, env}) async {
+          final p = _GatedProc(gate);
+          created.add(p);
+          return p;
+        },
+      );
+      await orch.spawn(_spec('primary'));
+
+      var closed = false;
+      final closing = orch.close('primary').then((_) => closed = true);
+      await pumpEventQueue();
+      // The process hasn't exited yet, so /clear must not have proceeded to
+      // delete the transcript + respawn — close() is still awaiting death.
+      expect(closed, isFalse, reason: 'close must block until the old process is truly dead');
+
+      gate.complete(); // the claude process finally exits
+      await closing;
+      expect(closed, isTrue);
+      expect(created.single.killCount, 1, reason: 'idempotent dispose kills exactly once');
+
+      orch.dispose();
     });
   });
 

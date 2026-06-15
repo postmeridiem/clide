@@ -107,7 +107,20 @@ class ClaudeStreamJsonProcess extends StreamJsonProcess {
 
   @override
   Future<void> kill() async {
+    // Await the process's ACTUAL death, not just the signal (T-437). clide
+    // respawns the primary on the SAME deterministic --session-id right after
+    // /clear; if the old process is still alive (or still flushing its
+    // transcript) when the new one starts, claude 2.1.177 rejects the id with
+    // "Session ID … is already in use" and the respawn exits 1. SIGTERM first
+    // (claude cleans its session registry on it), escalate to SIGKILL if it
+    // doesn't go, and only return once exitCode has resolved.
     _proc.kill();
+    try {
+      await _proc.exitCode.timeout(const Duration(seconds: 2));
+    } on TimeoutException {
+      _proc.kill(ProcessSignal.sigkill);
+      await _proc.exitCode;
+    }
   }
 
   @override
@@ -288,6 +301,20 @@ class SessionEnd {
 
   final int exitCode;
   final List<String> stderrTail;
+
+  /// The most recent non-empty stderr line — the CLI's own error message when
+  /// it dies (e.g. "Session ID … is already in use") — for surfacing in the
+  /// pane so a non-zero exit is never an opaque "code 1" (T-437). Empty when
+  /// stderr was silent; capped so a stray long line can't blow out the status
+  /// line.
+  String get reason {
+    for (final line in stderrTail.reversed) {
+      final t = line.trim();
+      if (t.isEmpty) continue;
+      return t.length > 200 ? '${t.substring(0, 200)}…' : t;
+    }
+    return '';
+  }
 }
 
 class StreamJsonSession {
@@ -965,10 +992,17 @@ class StreamJsonSession {
     _endCtl.add(_end!);
   }
 
-  Future<void> dispose() async {
+  /// Idempotent: the conversation controller's [dispose] fires this
+  /// unawaited while a caller (the orchestrator's [ClaudeSessionOrchestrator.close])
+  /// awaits it to know the process is truly dead (T-437). Caching the future
+  /// makes both paths share one teardown rather than killing/closing twice.
+  Future<void> dispose() => _disposeFuture ??= _dispose();
+  Future<void>? _disposeFuture;
+
+  Future<void> _dispose() async {
     _disposed = true; // deliberate teardown — suppress the exit-watch path
     await _sub?.cancel();
-    await _proc.kill();
+    await _proc.kill(); // awaits the process's real exit (T-437)
     await _items.close();
     await _statusCtl.close();
     await _workflowsCtl.close();

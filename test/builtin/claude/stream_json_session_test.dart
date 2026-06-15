@@ -937,6 +937,24 @@ void main() {
     });
   });
 
+  group('SessionEnd.reason (T-437)', () {
+    test('is the last non-empty stderr line — the CLI error', () {
+      const end = SessionEnd(exitCode: 1, stderrTail: ['warming up', '', 'Error: Session ID abc is already in use.', '  ']);
+      expect(end.reason, 'Error: Session ID abc is already in use.');
+    });
+
+    test('is empty when stderr was silent', () {
+      expect(const SessionEnd(exitCode: 1, stderrTail: []).reason, isEmpty);
+      expect(const SessionEnd(exitCode: 1, stderrTail: ['', '   ']).reason, isEmpty);
+    });
+
+    test('caps a very long line so it cannot blow out the status line', () {
+      final end = SessionEnd(exitCode: 1, stderrTail: ['x' * 500]);
+      expect(end.reason.length, 201); // 200 chars + ellipsis
+      expect(end.reason.endsWith('…'), isTrue);
+    });
+  });
+
   group('BoundedLineBuffer', () {
     test('keeps only the last cap lines', () {
       final b = BoundedLineBuffer(cap: 3);

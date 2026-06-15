@@ -420,7 +420,10 @@ class _ClaudePaneState extends State<ClaudePane> {
     if (!mounted) return;
     final tail = end.stderrTail.isEmpty ? '' : '; stderr tail:\n${end.stderrTail.join('\n')}';
     _kernel?.log.warn('claude', 'session $_orchId exited (code ${end.exitCode})$tail');
-    setState(() => _statusLine = 'claude exited (code ${end.exitCode}) — /clear to restart');
+    // Surface the CLI's own reason (e.g. "Session ID … is already in use")
+    // instead of an opaque "code 1" (T-437).
+    final why = end.reason.isEmpty ? '' : ' — ${end.reason}';
+    setState(() => _statusLine = 'claude exited (code ${end.exitCode})$why · /clear to restart');
   }
 
   // Send composed text to Claude over the stream-json channel. Commands clide

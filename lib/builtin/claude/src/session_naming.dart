@@ -102,10 +102,16 @@ String claudeTranscriptPath(String repoRoot, String sessionId) => '${claudeProje
 
 /// Erase [sessionId]'s transcript under [projectDir] so a subsequent
 /// `claude --session-id <sessionId>` re-creates it empty — the in-place
-/// `/clear` path for the primary pane (T-268). Removes both the `<id>.jsonl`
-/// and the sidecar `<id>/` directory claude keeps beside it. Best-effort:
-/// missing entries are not an error. The caller MUST have killed the session's
-/// process first, so claude is not mid-write.
+/// `/clear` path for the primary pane (T-268). Removes the `<id>.jsonl`, plus
+/// a per-session `<id>/` sidecar dir if one exists (best-effort; missing
+/// entries are not an error). Note the shared per-project `memory/` dir that
+/// claude 2.1.x keeps beside transcripts is deliberately left alone — it is
+/// not per-session.
+///
+/// The caller MUST have AWAITED the session's process death first (T-437): a
+/// still-live claude re-flushes its transcript and keeps the id registered, so
+/// the respawn's `--session-id` is rejected as "already in use" (exit 1).
+/// [ClaudeSessionOrchestrator.close] now awaits that death before this runs.
 Future<void> clearSessionTranscript(String projectDir, String sessionId) async {
   final file = File('$projectDir/$sessionId.jsonl');
   if (await file.exists()) await file.delete();

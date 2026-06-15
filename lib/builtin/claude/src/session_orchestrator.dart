@@ -313,12 +313,18 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   }
 
   /// Kill and forget a session (the real teardown). The conversation's
-  /// onDispose kills the process + closes its streams.
+  /// onDispose kills the process + closes its streams; we then AWAIT the
+  /// session's teardown so the `claude` process is genuinely dead before we
+  /// return (T-437). Callers respawn the primary on the same deterministic
+  /// `--session-id` right after /clear — if the old process were still alive,
+  /// claude 2.1.177 would reject the id as "already in use" and the respawn
+  /// would exit 1.
   Future<void> close(String id) async {
     final m = _sessions.remove(id);
     if (m == null) return;
     broker.removeMember(id);
-    m.conversation.dispose();
+    m.conversation.dispose(); // cancels the item subscription; kicks off session teardown
+    await m.session.dispose(); // idempotent — awaits the real process exit
     notifyListeners();
   }
 

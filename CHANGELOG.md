@@ -40,6 +40,16 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   and `clide log level [<level>]` does the same from the CLI — D-6 parity. The
   choice survives restart. (T-433)
 
+### Fixed
+
+- **`/clear` no longer kills the Claude pane.** Clearing the primary pane tore
+  the session down and respawned on the same deterministic `--session-id`
+  *before the old `claude` process had actually exited*, so claude 2.1.177
+  rejected the id as "already in use" and the respawn exited 1. The session
+  teardown now awaits the process's real death (SIGTERM, escalating to SIGKILL)
+  before clearing the transcript and respawning. A dead pane also now shows the
+  CLI's own reason instead of a bare "exited (code 1)". (T-437)
+
 ## [2.5.0] — 2026-06-14
 
 ### Added
