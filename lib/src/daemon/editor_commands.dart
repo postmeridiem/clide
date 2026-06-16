@@ -3,7 +3,7 @@
 /// Verb list matches CLAUDE.md's tier-2 surface:
 ///   editor.open editor.active editor.activate editor.insert
 ///   editor.replace-selection editor.save editor.close editor.list
-///   editor.read editor.set-selection editor.set-content
+///   editor.read editor.set-selection editor.set-content editor.goto-line
 ///
 /// Single-word CLI shortcuts (`clide open`, `clide active`, …) map
 /// one-to-one onto these via the IPC dispatch layer.
@@ -50,6 +50,14 @@ void registerEditorCommands(DaemonDispatcher d, EditorRegistry registry) {
   d.register('editor.set-content', (req) => _setContent(req, registry));
   d.register('editor.save', (req) => _save(req, registry), schema: _idArg);
   d.register('editor.close', (req) => _close(req, registry), schema: _idArg);
+  d.register(
+    'editor.goto-line',
+    (req) => _gotoLine(req, registry),
+    schema: const CommandSchema(
+      positional: ['line'],
+      args: {'line': ArgSpec(type: ArgType.number)},
+    ),
+  );
 }
 
 IpcResponse _userErr(String id, String msg, {String? hint}) => IpcResponse.err(
@@ -219,4 +227,20 @@ Future<IpcResponse> _close(IpcRequest req, EditorRegistry r) async {
   if (r.get(id) == null) return _notFound(req.id, 'no such buffer: $id');
   r.close(id);
   return IpcResponse.ok(id: req.id, data: {'id': id});
+}
+
+/// Jump the active (or [id]'d) buffer's caret to the start of a 1-based line —
+/// the ex-line `:N` goto (T-407) and the CLI `clide editor goto-line <n>`.
+/// Reuses the [_offsetForLine] mapping `editor.open --line` uses; out-of-range
+/// lines clamp to the buffer end via setSelection.
+Future<IpcResponse> _gotoLine(IpcRequest req, EditorRegistry r) async {
+  final id = _resolveId(req, r);
+  if (id == null) return _notFound(req.id, 'no active buffer');
+  final buf = r.get(id);
+  if (buf == null) return _notFound(req.id, 'no such buffer: $id');
+  final rawLine = req.args['line'];
+  final line = rawLine is num ? rawLine.toInt() : int.tryParse('$rawLine');
+  if (line == null || line < 1) return _userErr(req.id, 'line must be a positive integer');
+  r.setSelection(id, Selection.collapsed(_offsetForLine(buf.content, line)));
+  return IpcResponse.ok(id: req.id, data: {'id': id, 'line': line});
 }

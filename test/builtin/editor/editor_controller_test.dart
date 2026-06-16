@@ -187,6 +187,59 @@ void main() {
       expect(c.activeId, isNull); // cleared until an active-changed arrives
     });
 
+    test('editor.selection-changed mirrors an external caret move onto the active buffer (T-407)', () async {
+      ipc.stub(
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
+      ipc.stub(
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'line1\nline2')));
+      await c.hydrate();
+      expect(c.selection.start, 0);
+
+      // An external setSelection (ex-line :N goto) jumps the caret server-side.
+      emitEditor(bus, 'editor.selection-changed', {
+        'id': 'b_1',
+        'selection': {'start': 6, 'end': 6},
+      });
+      await pumpEventQueue();
+
+      expect(c.selection.start, 6);
+      expect(c.selection.end, 6);
+    });
+
+    test('editor.selection-changed for a non-active buffer is ignored', () async {
+      ipc.stub(
+        'editor.list',
+        (_) async => _ok({
+          'buffers': [_buf('b_1', 'a.dart')],
+        }),
+      );
+      ipc.stub(
+        'editor.active',
+        (_) async => _ok({
+          'active': {'id': 'b_1'},
+        }),
+      );
+      ipc.stub('editor.read', (_) async => _ok(_read('b_1', 'a.dart', 'hello')));
+      await c.hydrate();
+
+      emitEditor(bus, 'editor.selection-changed', {
+        'id': 'b_other',
+        'selection': {'start': 3, 'end': 3},
+      });
+      await pumpEventQueue();
+
+      expect(c.selection.start, 0); // untouched
+    });
+
     test('editor.saved clears the dirty marker on the buffer', () async {
       ipc.stub(
         'editor.list',

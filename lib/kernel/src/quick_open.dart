@@ -42,10 +42,12 @@ class QuickOpenController extends ChangeNotifier {
     return _selectedIndex.clamp(0, n - 1);
   }
 
-  void open() {
+  /// Open the picker. An optional [seed] pre-fills the filter — used by the
+  /// ex-line `:e <path>` command (T-407) to jump straight to a query.
+  void open({String? seed}) {
     if (_open) return;
     _open = true;
-    _filter = '';
+    _filter = seed ?? '';
     _selectedIndex = 0;
     notifyListeners();
   }

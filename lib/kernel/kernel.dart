@@ -34,6 +34,7 @@ export 'src/keymap/pane_key_nav.dart';
 export 'src/keymap/sequence_matcher.dart';
 export 'src/keymap/when_clause.dart';
 export 'src/dialog.dart';
+export 'src/ex_line.dart';
 export 'src/extensions_manager.dart';
 export 'src/file_open.dart';
 export 'src/files.dart';

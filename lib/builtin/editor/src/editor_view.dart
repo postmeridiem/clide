@@ -108,11 +108,19 @@ class _EditorViewState extends State<EditorView> {
     final c = _controller!;
     _syncTabs(c);
     _text.updatePath(c.activePath);
+    final sel = TextSelection(baseOffset: c.selection.start.clamp(0, c.content.length), extentOffset: c.selection.end.clamp(0, c.content.length));
     if (c.content != _lastRemoteContent) {
       _lastRemoteContent = c.content;
-      final sel = TextSelection(baseOffset: c.selection.start.clamp(0, c.content.length), extentOffset: c.selection.end.clamp(0, c.content.length));
       _text.removeListener(_onTextChanged);
       _text.value = TextEditingValue(text: c.content, selection: sel);
+      _text.addListener(_onTextChanged);
+    } else if (sel != _text.value.selection) {
+      // Selection-only change from an external setSelection (ex-line `:N` goto,
+      // find-in-files line jump on the already-active buffer) — content is
+      // unchanged, so move just the caret. The focused field scrolls it into
+      // view (T-407).
+      _text.removeListener(_onTextChanged);
+      _text.value = _text.value.copyWith(selection: sel);
       _text.addListener(_onTextChanged);
     }
     setState(() {}); // tab/title refresh
@@ -274,7 +282,13 @@ class _EditorViewState extends State<EditorView> {
   }
 
   void _dispatchVim(Intent intent, int count, KernelServices kernel, {required bool visual}) {
-    if (intent is! InvokeCommandIntent) return;
+    if (intent is! InvokeCommandIntent) {
+      // A typed app intent the matcher fired (e.g. the ex-line `:` open or ZZ).
+      // The editor only owns editor.vim.* / mode commands; bubble anything else
+      // to the app-root Actions so it reaches its global handler (T-407).
+      Actions.maybeInvoke(context, intent);
+      return;
+    }
     final id = intent.commandId;
     if (!id.startsWith('editor.vim.')) {
       // Mode change (vim.mode.*) or any other command.

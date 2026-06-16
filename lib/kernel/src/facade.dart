@@ -26,6 +26,7 @@ import 'package:clide/kernel/src/notify.dart';
 import 'package:clide/kernel/src/os.dart';
 import 'package:clide/kernel/src/panels/arrangement.dart';
 import 'package:clide/kernel/src/panels/registry.dart';
+import 'package:clide/kernel/src/ex_line.dart';
 import 'package:clide/kernel/src/project.dart';
 import 'package:clide/kernel/src/quick_open.dart';
 import 'package:clide/kernel/src/reader_nav.dart';
@@ -58,6 +59,7 @@ class KernelServices {
     required this.commands,
     required this.palette,
     required this.quickOpen,
+    required this.exLine,
     required this.recentFiles,
     required this.readerNav,
     required this.keybindings,
@@ -97,6 +99,9 @@ class KernelServices {
   final CommandRegistry commands;
   final PaletteController palette;
   final QuickOpenController quickOpen;
+
+  /// Transient Vim ex command-line overlay state (T-407).
+  final ExLineController exLine;
   final RecentFilesService recentFiles;
   final ReaderNavRegistry readerNav;
   final KeybindingResolver keybindings;
@@ -167,6 +172,7 @@ class KernelServices {
     final palette = PaletteController(commands);
     final recentFiles = RecentFilesService();
     final quickOpen = QuickOpenController(recentPaths: () => recentFiles.paths);
+    final exLine = ExLineController();
     final readerNav = ReaderNavRegistry(messages);
     final clipboard = ClideClipboard();
     final files = FileServices(events);
@@ -253,6 +259,7 @@ class KernelServices {
       commands: commands,
       palette: palette,
       quickOpen: quickOpen,
+      exLine: exLine,
       recentFiles: recentFiles,
       readerNav: readerNav,
       keybindings: keybindings,
@@ -286,6 +293,7 @@ class KernelServices {
     commands.dispose();
     palette.dispose();
     quickOpen.dispose();
+    exLine.dispose();
     toast.dispose();
     recentFiles.dispose();
     readerNav.dispose();

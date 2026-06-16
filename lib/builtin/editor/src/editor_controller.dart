@@ -204,6 +204,19 @@ class EditorController extends ChangeNotifier {
           _dirty = false;
           notifyListeners();
         }
+      case 'editor.selection-changed':
+        // An external setSelection moved the caret server-side (find-in-files
+        // line jump, ex-line `:N` goto — T-407). Mirror it onto the active
+        // buffer so the view's caret follows. Skipped while our own local edits
+        // are in flight — their echo already carries the authoritative caret.
+        final id = e.data['id'] as String?;
+        if (id != null && id == _activeId && _pendingLocalEdits == 0) {
+          final sel = e.data['selection'];
+          if (sel is Map) {
+            _selection = Selection.fromJson(sel.cast<String, Object?>());
+            notifyListeners();
+          }
+        }
       case 'editor.settings-changed':
         // A source (e.g. a saved .editorconfig) re-resolved the buffer's
         // settings. Refresh the active buffer's copy so indent/ruler update.

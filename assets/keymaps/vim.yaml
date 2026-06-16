@@ -50,6 +50,11 @@ bindings:
   - intent: dismiss
     keys: escape
     when: quickOpen.open
+  # Ex command-line overlay (T-407): Esc dismisses it back to normal mode (the
+  # overlay's own EditableText handles Enter via onSubmitted).
+  - intent: dismiss
+    keys: escape
+    when: exline.open
   - intent: findInFiles.open
     keys: [ctrl+shift+f, meta+shift+f]
   - intent: focus.nextPanel
@@ -127,6 +132,18 @@ bindings:
   - intent: command:editor.close
     keys: [ctrl+w q, ctrl+w c]
     when: "vim.normal || vim.visual"
+
+  # ---- Ex command-line (T-407) -----------------------------------------
+  # `:` opens the transient ex overlay (`:w` `:q` `:wq` `:x` `:e <path>` `:N`);
+  # `ZZ` runs `:wq` directly. Both are typed app intents the editor's command
+  # matcher and a pane's nav matcher bubble to the app-root Actions, so they
+  # fire from any focus. Editor-targeted: no-op when no buffer is active.
+  - intent: exline.open
+    keys: shift+semicolon # :
+    when: vim.normal
+  - intent: exline.writeQuit
+    keys: shift+z shift+z # ZZ
+    when: vim.normal
 
   # ---- Mode transitions ------------------------------------------------
   - intent: command:vim.mode.visual

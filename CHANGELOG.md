@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Vim ex command-line (`:`).** Under the Vim preset, `:` opens a transient
+  one-line overlay running a fixed table — `:w` save, `:q` close the active tab
+  (the split self-collapses on the last one), `:wq`/`:x` and `ZZ` save+close,
+  `:e <path>` jump to quick-open seeded with the path, `:<n>` goto-line. Unknown
+  commands flash and stay open; with no active buffer it no-ops. Opens from the
+  editor or a focused pane; Esc dismisses. Adds the `editor.goto-line` CLI/IPC
+  verb. (T-407)
+
 - **Crash-survivable logging.** clide writes a durable JSON-lines log to a
   persistent per-platform dir (Windows `%LOCALAPPDATA%`, macOS `~/Library/Logs`,
   Linux `$XDG_STATE_HOME`), fsyncing warn/error + pty/ffi records immediately so

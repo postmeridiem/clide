@@ -102,9 +102,16 @@ class _PaneKeyNavState extends State<PaneKeyNav> {
     switch (r.outcome) {
       case SeqOutcome.fired:
         // The vim preset also binds these keys to editor.vim.* motions; in a
-        // pane only nav.* applies. A non-nav fired intent (e.g. a stray
-        // editor.vim.* with no focus guard) is swallowed, never executed here.
-        if (r.intent is NavIntent) widget.onNav(r.intent! as NavIntent, r.count);
+        // pane only nav.* applies, and editor.vim.* (an InvokeCommandIntent) is
+        // swallowed — never run buffer edits from a pane. A typed *app* intent
+        // (e.g. the ex-line `:` / ZZ) bubbles to the app-root Actions for its
+        // global handler (T-407).
+        final fired = r.intent;
+        if (fired is NavIntent) {
+          widget.onNav(fired, r.count);
+        } else if (fired != null && fired is! InvokeCommandIntent) {
+          Actions.maybeInvoke(context, fired);
+        }
         return KeyEventResult.handled;
       case SeqOutcome.pending:
         return KeyEventResult.handled;

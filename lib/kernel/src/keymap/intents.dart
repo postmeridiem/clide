@@ -77,6 +77,22 @@ class QuickOpenAcceptIntent extends Intent {
   const QuickOpenAcceptIntent();
 }
 
+// -- Vim ex command-line (T-407) --------------------------------------------
+
+/// Open the Vim ex command-line overlay (`:`). A typed intent (not a
+/// `command:` bridge) so it survives the editor's command-mode matcher and a
+/// focused pane's nav matcher, both of which bubble unhandled typed intents to
+/// the app-root Actions where this resolves to `services.exLine.open()`.
+class ExLineOpenIntent extends Intent {
+  const ExLineOpenIntent();
+}
+
+/// Save the active buffer and close its tab (`ZZ`), without opening the
+/// overlay — shares the `:wq` execution path.
+class ExLineWriteQuitIntent extends Intent {
+  const ExLineWriteQuitIntent();
+}
+
 // -- Find in files ----------------------------------------------------------
 
 /// Reveal the find-in-files search panel in the sidebar.
@@ -193,6 +209,8 @@ final Map<String, Intent Function()> builtinIntents = {
   'quickOpen.selectPrevious': () => const QuickOpenSelectPreviousIntent(),
   'quickOpen.accept': () => const QuickOpenAcceptIntent(),
   'findInFiles.open': () => const FindInFilesIntent(),
+  'exline.open': () => const ExLineOpenIntent(),
+  'exline.writeQuit': () => const ExLineWriteQuitIntent(),
   // Pane navigation (T-406) — preset-neutral; the vim preset binds j/k/etc.
   'nav.down': () => const NavDownIntent(),
   'nav.up': () => const NavUpIntent(),

@@ -6,6 +6,7 @@ library;
 
 import 'package:clide/builtin/editor/src/editor_view.dart';
 import 'package:clide/clide.dart';
+import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -74,6 +75,32 @@ void main() {
       await tester.pumpWidget(harness(f, const EditorView()));
       await tester.pumpAndSettle();
       expect(find.text('Open a file to begin editing.'), findsOneWidget);
+    });
+
+    testWidgets('an external selection-changed moves the caret without retyping (T-407)', (tester) async {
+      stubBuffers([_buf('b_1', 'lib/a.dart')], active: 'b_1');
+      await tester.pumpWidget(harness(f, const EditorView()));
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.selection.baseOffset, 0);
+
+      // An ex-line `:N` goto sets the selection server-side; the buffer content
+      // is unchanged, so only the caret should move (the selection-only branch).
+      f.services.events.emit(
+        DaemonEvent(
+          subsystem: 'editor',
+          kind: 'editor.selection-changed',
+          data: const {
+            'id': 'b_1',
+            'selection': {'start': 5, 'end': 5},
+          },
+          ts: DateTime.now().toUtc(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<EditableText>(find.byType(EditableText));
+      expect(field.controller.selection.baseOffset, 5);
+      expect(field.controller.text, 'content of lib/a.dart'); // unchanged
     });
 
     testWidgets('tapping an inactive tab routes to editor.activate', (tester) async {

@@ -89,6 +89,49 @@ void main() {
     expect((r.data['selection'] as Map)['start'], 8);
   });
 
+  test('editor.goto-line jumps the active buffer to a 1-based line (T-407)', () async {
+    await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\nthree\n');
+    await call('editor.open', {'path': 'multi.txt'});
+    final r = await call('editor.goto-line', {'line': 3});
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['line'], 3);
+    // Line 3 starts after 'one\n' + 'two\n' = 8 characters.
+    final read = await call('editor.read');
+    expect((read.data['selection'] as Map)['start'], 8);
+  });
+
+  test('editor.goto-line clamps an out-of-range line to the content end', () async {
+    await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\n'); // 8 chars
+    await call('editor.open', {'path': 'multi.txt'});
+    final r = await call('editor.goto-line', {'line': 999});
+    expect(r.ok, isTrue);
+    final read = await call('editor.read');
+    expect((read.data['selection'] as Map)['start'], 8);
+  });
+
+  test('editor.goto-line rejects a non-positive line', () async {
+    await call('editor.open', {'path': 'doc.md'});
+    final r = await call('editor.goto-line', {'line': 0});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'user_error');
+  });
+
+  test('editor.goto-line with no active buffer is not-found', () async {
+    final r = await call('editor.goto-line', {'line': 2});
+    expect(r.ok, isFalse);
+    expect(r.error!.kind, 'not_found');
+  });
+
+  test('CLI positional line binds to editor.goto-line (T-232)', () async {
+    await File('${sandbox.path}/multi.txt').writeAsString('one\ntwo\nthree\n');
+    await call('editor.open', {'path': 'multi.txt'});
+    final r = await call('editor.goto-line', {
+      'positional': ['2'],
+    });
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['line'], 2);
+  });
+
   test('editor.insert without id targets the active buffer', () async {
     await call('editor.open', {'path': 'doc.md'});
     final r = await call('editor.insert', {'text': 'X '});

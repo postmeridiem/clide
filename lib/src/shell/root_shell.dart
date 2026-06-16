@@ -120,6 +120,19 @@ class RootShellState extends State<RootShell> {
                 return null;
               },
             ),
+            ExLineOpenIntent: CallbackAction<ExLineOpenIntent>(
+              onInvoke: (_) {
+                widget.services.exLine.open();
+                return null;
+              },
+            ),
+            ExLineWriteQuitIntent: CallbackAction<ExLineWriteQuitIntent>(
+              onInvoke: (_) {
+                // ZZ — save+close the active tab without opening the overlay.
+                unawaited(exWriteQuitActive(widget.services.ipc));
+                return null;
+              },
+            ),
             FindInFilesIntent: CallbackAction<FindInFilesIntent>(
               onInvoke: (_) {
                 widget.services.arrangement.setVisible(Slots.sidebar, true);
@@ -160,6 +173,7 @@ class RootShellState extends State<RootShell> {
                             const Positioned.fill(child: RootLayout()),
                             const ClidePalette(),
                             const QuickOpenOverlay(),
+                            const ExLineOverlay(),
                             const Positioned.fill(child: _WelcomeOverlay()),
                             const ToastOverlay(),
                           ],
