@@ -6816,3 +6816,79 @@ RECOMMENDED SEQUENCING:
 4. T-407 (ex `:` overlay) after T-404, so :q reuses whatever editor.close semantics T-404 settles (note: editor.close closes the whole split, not a single tab; and NO editor.save command exists yet — T-407 must add one).
 
 All four share assets/keymaps/vim.yaml and the `g`-prefix space (g g docStart vs g t) — coordinate the shared-prefix matcher tests.', 'done', 'medium', NULL, NULL, NULL, '2026-06-12 03:20:52', '2026-06-16 10:08:00', NULL, '90921bced174269b827a991909e792bd', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'task', '06FB0TNQM6T6580D8ABDVTMNZW', 'Frame0 wireframe: settings screen design', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.
+
+## Scope-tag icon decision (review, 2026-06-10)
+
+The per-field scope tag is an ICON, not a text label (space + cognitive load).
+Chosen trio (location→global reach ladder), keeping the colour coding + a
+tooltip with the word for clarity/a11y; tapping opens the scope menu:
+
+- Project (this repo)  = `folder`        0xe24a  (teal)   — already wired
+- Always (all clide)   = `globe`         0xe288  (amber)  — add const
+- Default (unset)      = `circle-dashed` 0xe602  (grey)   — add const
+
+Alternatives considered: house (warmer home↔world pair), user-circle (mirrors
+the real .clide vs ~/.clide files), gear (collides with "settings"). Note that
+every Phosphor glyph already renders via PhosphorIconPainter(0xNNNN); only named
+consts need adding. Preview/picking is blocked on a native glyph card (see the
+new ticket) — goldens render the font as Ahem boxes.', 'ready', 'medium', NULL, NULL, NULL, '2026-06-09 20:24:54', '2026-06-16 10:08:46', NULL, '0791f81082715db7fd0bad2d2eb226e4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM7H8JWCP59WQVD0FW4', 'task', '06FB0TNQM6T6580D8ABDVTMNZW', 'Frame0 wireframe: settings screen design', 'Design the app''s settings screen as a Frame0 wireframe before building `builtin.settings-ui` (see Tier 6 epic T-8). Output is a wireframe to align on layout/IA, not implementation.
+
+**Deliverable**
+- Frame0 wireframe authored via the frame0-wireframe skill: local JSON source-of-truth synced to Frame0, exported for review.
+- Covers the settings screen shell + at least one fully-rendered category so the form-field patterns are concrete.
+
+**Scope to frame (from T-8)**
+- Schema-driven panel: form fields keyed off the schema each subsystem registers against the kernel SettingsStore; edits write back to `.clide/settings.yaml`.
+- Navigation/IA: how categories are grouped and selected (sidebar list? sections? search?).
+- Field types to mock: toggle, enum/select (e.g. keymap preset), text/number, and a ''opens external file'' affordance (e.g. editor `.editorconfig` per T-290).
+- Known consumers to account for: keymap preset switching (T-115/T-64/T-65/T-66), editor settings (T-290), activity fold level (T-183), theme picker (Tier 6 theming UI).
+
+**Open design questions for the wireframe to answer**
+- Settings as a full-screen view, a pane/tab, or a modal?
+- Per-project (`.clide/settings.yaml`) vs. user-global scope — shown together or switched?
+- Search/filter across all settings.
+- How schema-driven fields render labels, help text, defaults, and reset.
+
+**Constraints**
+- Follow clide visual language — pull theme tokens / control geometry from the ui-design skill so the wireframe maps cleanly to real widgets (no Material/Cupertino).
+
+This is the design step; implementation of the actual settings UI is separate child work under T-8.
+
+## Scope-tag icon decision (review, 2026-06-10)
+
+The per-field scope tag is an ICON, not a text label (space + cognitive load).
+Chosen trio (location→global reach ladder), keeping the colour coding + a
+tooltip with the word for clarity/a11y; tapping opens the scope menu:
+
+- Project (this repo)  = `folder`        0xe24a  (teal)   — already wired
+- Always (all clide)   = `globe`         0xe288  (amber)  — add const
+- Default (unset)      = `circle-dashed` 0xe602  (grey)   — add const
+
+Alternatives considered: house (warmer home↔world pair), user-circle (mirrors
+the real .clide vs ~/.clide files), gear (collides with "settings"). Note that
+every Phosphor glyph already renders via PhosphorIconPainter(0xNNNN); only named
+consts need adding. Preview/picking is blocked on a native glyph card (see the
+new ticket) — goldens render the font as Ahem boxes.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-09 20:24:54', '2026-06-16 10:09:07', NULL, 'ad0504d2e30938d0597029852df3e3aa', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
