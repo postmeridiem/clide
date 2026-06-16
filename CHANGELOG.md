@@ -16,6 +16,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+## [2.6.0] — 2026-06-16
+
 ### Added
 
 - **Vim `gt` / `gT` tab motions.** Under the Vim preset, `gt`/`gT` cycle the
