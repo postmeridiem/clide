@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Vim `gt` / `gT` tab motions.** Under the Vim preset, `gt`/`gT` cycle the
+  workspace tab strip (the same `workspace.tab.*` commands as `ctrl+pagedown`/
+  `ctrl+pageup`), resolved by the focused editor or pane and sharing the `g`
+  prefix with `gg`. Completes the T-403 cross-pane vim layer. (T-405)
+
 - **Vim ex command-line (`:`).** Under the Vim preset, `:` opens a transient
   one-line overlay running a fixed table — `:w` save, `:q` close the active tab
   (the split self-collapses on the last one), `:wq`/`:x` and `ZZ` save+close,

@@ -3,6 +3,8 @@
 /// end-to-end against the real vim preset and scope flags.
 library;
 
+import 'package:clide/clide.dart';
+import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -65,6 +67,47 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
     // j/k now resolve to editor.vim.* — not NavIntents — so onNav never fires.
     expect(got, isEmpty);
+  });
+
+  testWidgets('gt executes a non-editor command (workspace.tab.next) from a focused pane (T-405)', (tester) async {
+    var ran = 0;
+    f.services.commands.register(
+      CommandContribution(
+        id: 'workspace.tab.next',
+        command: 'workspace.tab.next',
+        title: 'Next Workspace Tab',
+        run: (_) async {
+          ran++;
+          return IpcResponse.ok(id: '', data: const {});
+        },
+      ),
+    );
+    await pump(tester, scope: {'vim.normal': true});
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
+    await tester.pump();
+    expect(ran, 1);
+  });
+
+  testWidgets('editor.vim.* buffer edits never execute from a pane (T-405 guard)', (tester) async {
+    var ran = 0;
+    // If the pane wrongly ran editor.vim.*, this would fire on `d d`.
+    f.services.commands.register(
+      CommandContribution(
+        id: 'editor.vim.deleteLine',
+        command: 'editor.vim.deleteLine',
+        title: 'vim: delete line',
+        run: (_) async {
+          ran++;
+          return IpcResponse.ok(id: '', data: const {});
+        },
+      ),
+    );
+    await pump(tester, scope: {'vim.normal': true});
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyD);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyD);
+    await tester.pump();
+    expect(ran, 0);
   });
 
   testWidgets('keys pass through outside vim normal mode', (tester) async {

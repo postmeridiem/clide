@@ -79,6 +79,27 @@ void main() {
     });
   });
 
+  group('vim preset tab motions (T-405)', () {
+    bool seqEq(List<KeyChord> seq, List<String> chords) {
+      if (seq.length != chords.length) return false;
+      for (var i = 0; i < chords.length; i++) {
+        if (seq[i] != KeyChord.parse(chords[i])) return false;
+      }
+      return true;
+    }
+
+    bool hasSeq(KeymapService svc, List<String> chords, String cmd) =>
+        svc.keymap!.effectiveBindings.any((b) => seqEq(b.sequence, chords) && isCommand(b.intent, cmd));
+
+    test('gt / gT bind workspace tab cycling, sharing the g prefix with gg', () async {
+      final svc = await activate('vim');
+      expect(hasSeq(svc, ['g', 't'], 'workspace.tab.next'), isTrue, reason: 'gt → workspace.tab.next');
+      expect(hasSeq(svc, ['g', 'shift+t'], 'workspace.tab.previous'), isTrue, reason: 'gT → workspace.tab.previous');
+      // The shared `g` prefix must not break gg (docStart) — different final.
+      expect(hasSeq(svc, ['g', 'g'], 'editor.vim.docStart'), isTrue, reason: 'gg → docStart intact');
+    });
+  });
+
   group('jetbrains preset (T-66)', () {
     test('setPreset activates it and the representative subset resolves', () async {
       final svc = await activate('jetbrains');

@@ -133,6 +133,19 @@ bindings:
     keys: [ctrl+w q, ctrl+w c]
     when: "vim.normal || vim.visual"
 
+  # ---- Tab motions (T-405) ---------------------------------------------
+  # gt / gT cycle the workspace tab strip via the preset-neutral
+  # workspace.tab.* commands (also on ctrl+pagedown/up everywhere). Bare-`g`
+  # sequences are editor/pane-local — the focused editor's matcher or a pane's
+  # PaneKeyNav resolves them and runs the command; they share the `g` prefix
+  # with `g g` (docStart / nav.top), distinguished by the final chord.
+  - intent: command:workspace.tab.next
+    keys: g t # gt
+    when: vim.normal
+  - intent: command:workspace.tab.previous
+    keys: g shift+t # gT
+    when: vim.normal
+
   # ---- Ex command-line (T-407) -----------------------------------------
   # `:` opens the transient ex overlay (`:w` `:q` `:wq` `:x` `:e <path>` `:N`);
   # `ZZ` runs `:wq` directly. Both are typed app intents the editor's command

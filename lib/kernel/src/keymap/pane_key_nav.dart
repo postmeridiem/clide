@@ -21,6 +21,8 @@
 /// intent here and to the editor motion in the editor — see vim.yaml.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -101,15 +103,20 @@ class _PaneKeyNavState extends State<PaneKeyNav> {
     final r = _matcher!.feed(chord);
     switch (r.outcome) {
       case SeqOutcome.fired:
-        // The vim preset also binds these keys to editor.vim.* motions; in a
-        // pane only nav.* applies, and editor.vim.* (an InvokeCommandIntent) is
-        // swallowed — never run buffer edits from a pane. A typed *app* intent
-        // (e.g. the ex-line `:` / ZZ) bubbles to the app-root Actions for its
-        // global handler (T-407).
+        // The vim preset binds these keys to several intent kinds. In a pane:
+        //   - nav.* drives the pane (onNav);
+        //   - editor.vim.* buffer edits are swallowed — never edit from a pane;
+        //   - other commands (workspace.tab.* gt/gT, panel.*) execute (T-405);
+        //   - a typed app intent (ex-line `:` / ZZ) bubbles to the app-root
+        //     Actions for its global handler (T-407).
         final fired = r.intent;
         if (fired is NavIntent) {
           widget.onNav(fired, r.count);
-        } else if (fired != null && fired is! InvokeCommandIntent) {
+        } else if (fired is InvokeCommandIntent) {
+          if (!fired.commandId.startsWith('editor.vim.')) {
+            unawaited(kernel.commands.execute(fired.commandId));
+          }
+        } else if (fired != null) {
           Actions.maybeInvoke(context, fired);
         }
         return KeyEventResult.handled;
