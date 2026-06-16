@@ -39,7 +39,7 @@ self:
   # Auto-synced from pubspec.yaml `version:` by `make gen-build-info`
   # (runs implicitly on every build/run/test). Don't hand-edit; bump
   # pubspec instead.
-  version: "2.5.0"
+  version: "2.6.0"
   homepage: https://github.com/postmeridiem/clide
   license: MIT
   license_file: assets/LICENSE
