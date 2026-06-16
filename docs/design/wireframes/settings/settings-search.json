@@ -1,0 +1,70 @@
+{
+  "name": "Settings — Search",
+  "shapes": {
+    "app-bg": { "type": "Rectangle", "left": 0, "top": 0, "width": 1180, "height": 720, "fillColor": "#17171E", "strokeColor": "#17171E" },
+    "app-hat": { "type": "Rectangle", "left": 0, "top": 0, "width": 1180, "height": 28, "fillColor": "#1B1B22", "strokeColor": "#1B1B22" },
+    "app-sidebar": { "type": "Rectangle", "left": 0, "top": 28, "width": 54, "height": 692, "fillColor": "#1B1B22", "strokeColor": "#1B1B22" },
+
+    "modal-shadow": { "type": "Rectangle", "left": 134, "top": 66, "width": 920, "height": 600, "fillColor": "#101015", "strokeColor": "#101015", "corners": [12, 12, 12, 12] },
+    "modal": { "type": "Rectangle", "left": 130, "top": 60, "width": 920, "height": 600, "fillColor": "#20202C", "strokeColor": "#3C445C", "corners": [10, 10, 10, 10] },
+
+    "modal-title": { "type": "Text", "left": 154, "top": 76, "text": "Settings", "fontColor": "#E6E8F2", "fontSize": 18 },
+    "modal-close": { "type": "Text", "left": 1020, "top": 74, "text": "✕", "fontColor": "#8890AC", "fontSize": 16 },
+    "header-divider": { "type": "Rectangle", "left": 130, "top": 104, "width": 920, "height": 1, "fillColor": "#343850", "strokeColor": "#343850" },
+
+    "rail": { "type": "Rectangle", "left": 130, "top": 105, "width": 228, "height": 554, "fillColor": "#1A1A24", "strokeColor": "#1A1A24", "corners": [0, 0, 0, 10] },
+    "rail-divider": { "type": "Rectangle", "left": 358, "top": 105, "width": 1, "height": 554, "fillColor": "#343850", "strokeColor": "#343850" },
+
+    "search-box": { "type": "Rectangle", "left": 144, "top": 118, "width": 200, "height": 28, "fillColor": "#242838", "strokeColor": "#78A0F8", "corners": [4, 4, 4, 4] },
+    "search-icon": { "type": "Ellipse", "left": 154, "top": 124, "width": 11, "height": 11, "fillColor": "#242838", "strokeColor": "#B1BBE3" },
+    "search-icon-handle": { "type": "Rectangle", "left": 163, "top": 133, "width": 4, "height": 1, "fillColor": "#B1BBE3", "strokeColor": "#B1BBE3" },
+    "search-text": { "type": "Text", "left": 176, "top": 124, "text": "tab", "fontColor": "#E6E8F2", "fontSize": 13 },
+    "search-caret": { "type": "Rectangle", "left": 198, "top": 123, "width": 1, "height": 16, "fillColor": "#78A0F8", "strokeColor": "#78A0F8" },
+    "search-clear": { "type": "Text", "left": 328, "top": 124, "text": "✕", "fontColor": "#78809C", "fontSize": 12 },
+
+    "rail-hint": { "type": "Text", "left": 152, "top": 164, "text": "Searching all categories", "fontColor": "#545C84", "fontSize": 12 },
+    "cat-editor": { "type": "Text", "left": 152, "top": 196, "text": "Editor", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-editor-n": { "type": "Text", "left": 326, "top": 196, "text": "2", "fontColor": "#545C84", "fontSize": 13 },
+    "cat-keymap": { "type": "Text", "left": 152, "top": 228, "text": "Keymap", "fontColor": "#545C84", "fontSize": 14 },
+    "cat-appearance": { "type": "Text", "left": 152, "top": 260, "text": "Appearance", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-appearance-n": { "type": "Text", "left": 326, "top": 260, "text": "1", "fontColor": "#545C84", "fontSize": 13 },
+    "cat-claude": { "type": "Text", "left": 152, "top": 292, "text": "Claude", "fontColor": "#545C84", "fontSize": 14 },
+    "cat-activity": { "type": "Text", "left": 152, "top": 324, "text": "Activity", "fontColor": "#545C84", "fontSize": 14 },
+    "cat-terminal": { "type": "Text", "left": 152, "top": 356, "text": "Terminal", "fontColor": "#545C84", "fontSize": 14 },
+    "cat-extensions": { "type": "Text", "left": 152, "top": 388, "text": "Extensions", "fontColor": "#545C84", "fontSize": 14 },
+
+    "results-head": { "type": "Text", "left": 382, "top": 120, "text": "3 settings match  “tab”", "fontColor": "#B1BBE3", "fontSize": 14 },
+
+    "grp-editor": { "type": "Text", "left": 382, "top": 160, "text": "EDITOR", "fontColor": "#78809C", "fontSize": 12 },
+    "card-editor": { "type": "Rectangle", "left": 382, "top": 178, "width": 648, "height": 132, "fillColor": "#242838", "strokeColor": "#343850", "corners": [6, 6, 6, 6] },
+
+    "r1-label": { "type": "Text", "left": 398, "top": 194, "text": "Tab width", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r1-help": { "type": "Text", "left": 398, "top": 218, "text": "Columns per indent level.", "fontColor": "#78809C", "fontSize": 13 },
+    "r1-number": { "type": "Rectangle", "left": 934, "top": 194, "width": 56, "height": 26, "fillColor": "#20202C", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "r1-number-text": { "type": "Text", "left": 956, "top": 199, "text": "2", "fontColor": "#E6E8F2", "fontSize": 14 },
+    "r1-scope-body": { "type": "Rectangle", "left": 1004, "top": 198, "width": 15, "height": 10, "fillColor": "#242838", "strokeColor": "#7DD3A8", "corners": [2, 2, 2, 2] },
+    "r1-scope-tab": { "type": "Rectangle", "left": 1004, "top": 195, "width": 7, "height": 3, "fillColor": "#7DD3A8", "strokeColor": "#7DD3A8" },
+
+    "r2-label": { "type": "Text", "left": 398, "top": 260, "text": "Indent style", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r2-help": { "type": "Text", "left": 398, "top": 284, "text": "Spaces or tabs for new indentation.", "fontColor": "#78809C", "fontSize": 13 },
+    "r2-select": { "type": "Rectangle", "left": 870, "top": 260, "width": 120, "height": 26, "fillColor": "#20202C", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "r2-select-text": { "type": "Text", "left": 882, "top": 265, "text": "Spaces", "fontColor": "#E6E8F2", "fontSize": 14 },
+    "r2-select-chevron": { "type": "Text", "left": 974, "top": 265, "text": "▾", "fontColor": "#8890AC", "fontSize": 14 },
+    "r2-scope-circle": { "type": "Ellipse", "left": 1004, "top": 264, "width": 14, "height": 14, "fillColor": "#242838", "strokeColor": "#E6C370" },
+    "r2-scope-eq": { "type": "Rectangle", "left": 1004, "top": 270, "width": 14, "height": 1, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+    "r2-scope-mer": { "type": "Rectangle", "left": 1010, "top": 264, "width": 1, "height": 14, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+
+    "grp-appearance": { "type": "Text", "left": 382, "top": 330, "text": "APPEARANCE", "fontColor": "#78809C", "fontSize": 12 },
+    "card-appearance": { "type": "Rectangle", "left": 382, "top": 348, "width": 648, "height": 66, "fillColor": "#242838", "strokeColor": "#343850", "corners": [6, 6, 6, 6] },
+    "r3-label": { "type": "Text", "left": 398, "top": 364, "text": "Workspace tab density", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r3-help": { "type": "Text", "left": 398, "top": 388, "text": "Spacing of the workspace tab strip.", "fontColor": "#78809C", "fontSize": 13 },
+    "r3-select": { "type": "Rectangle", "left": 870, "top": 364, "width": 120, "height": 26, "fillColor": "#20202C", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "r3-select-text": { "type": "Text", "left": 882, "top": 369, "text": "Compact", "fontColor": "#E6E8F2", "fontSize": 14 },
+    "r3-select-chevron": { "type": "Text", "left": 974, "top": 369, "text": "▾", "fontColor": "#8890AC", "fontSize": 14 },
+    "r3-scope-circle": { "type": "Ellipse", "left": 1004, "top": 368, "width": 14, "height": 14, "fillColor": "#242838", "strokeColor": "#E6C370" },
+    "r3-scope-eq": { "type": "Rectangle", "left": 1004, "top": 374, "width": 14, "height": 1, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+    "r3-scope-mer": { "type": "Rectangle", "left": 1010, "top": 368, "width": 1, "height": 14, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+
+    "footer-note": { "type": "Text", "left": 382, "top": 444, "text": "Results span every category — edit a field inline, or open its category for the full list.", "fontColor": "#545C84", "fontSize": 12 }
+  }
+}

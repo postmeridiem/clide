@@ -112,9 +112,37 @@ tooltip      → tooltipBackground / tooltipForeground / tooltipBorder
 dropdown     → dropdownBackground / dropdownForeground / dropdownBorder
 ```
 
+## Settings & grouped lists — sectioned cards
+
+Settings surfaces and any long grouped list (e.g. the Claude config lists)
+read as **sectioned cards**, not bare rows floating on the panel. Each logical
+group gets its own card; the small-caps section label (+ optional count) sits
+just **above** the card.
+
+```
+panel bg      → panelBackground (#20202C)
+card surface  → surface (#242838) fill + dividerColor/border (1px), ~6px corners
+section head  → sidebarSectionHeader (small-caps), with the count muted to its right
+control inset → inputs INSIDE a card recede to panelBackground, so they still
+                read as fields against the elevated card
+```
+
+- **One card per group** — a settings table, each config list. The card's
+  elevated fill + border do the visual separation; don't rely on spacing alone.
+- **Field row inside a card:** label (`globalForeground`) + help
+  (`globalTextMuted`) + the control right-aligned, with the per-field scope tag
+  in the far-right column.
+- **Scroll, don't cram:** when stacked cards exceed the modal/pane viewport, the
+  pane scrolls vertically (sticky header, scrolling body) — prefer that over
+  shrinking content to fit one screen.
+- Pattern reference: the settings wireframes under
+  `docs/design/wireframes/settings/` (T-302).
+
 ## Anti-patterns
 
 - `globalBackground` for panel fill → use `panelBackground`
+- Bare settings rows on the panel where a group of them should be one card →
+  see "Settings & grouped lists".
 - `listItemHoverBackground` in sidebar → use `sidebarItemHover`
 - Tab active bg = `panelBackground` → use `panelHeader` (elevated chrome)
 - Tab active border = `globalFocus` → use `panelActiveBorder`

@@ -1,0 +1,89 @@
+{
+  "name": "Settings — Editor",
+  "shapes": {
+    "app-bg": { "type": "Rectangle", "left": 0, "top": 0, "width": 1180, "height": 720, "fillColor": "#17171E", "strokeColor": "#17171E" },
+    "app-hat": { "type": "Rectangle", "left": 0, "top": 0, "width": 1180, "height": 28, "fillColor": "#1B1B22", "strokeColor": "#1B1B22" },
+    "app-sidebar": { "type": "Rectangle", "left": 0, "top": 28, "width": 54, "height": 692, "fillColor": "#1B1B22", "strokeColor": "#1B1B22" },
+
+    "modal-shadow": { "type": "Rectangle", "left": 134, "top": 66, "width": 920, "height": 600, "fillColor": "#101015", "strokeColor": "#101015", "corners": [12, 12, 12, 12] },
+    "modal": { "type": "Rectangle", "left": 130, "top": 60, "width": 920, "height": 600, "fillColor": "#20202C", "strokeColor": "#3C445C", "corners": [10, 10, 10, 10] },
+
+    "modal-title": { "type": "Text", "left": 154, "top": 76, "text": "Settings", "fontColor": "#E6E8F2", "fontSize": 18 },
+    "modal-close": { "type": "Text", "left": 1020, "top": 74, "text": "✕", "fontColor": "#8890AC", "fontSize": 16 },
+    "header-divider": { "type": "Rectangle", "left": 130, "top": 104, "width": 920, "height": 1, "fillColor": "#343850", "strokeColor": "#343850" },
+
+    "rail": { "type": "Rectangle", "left": 130, "top": 105, "width": 228, "height": 554, "fillColor": "#1A1A24", "strokeColor": "#1A1A24", "corners": [0, 0, 0, 10] },
+    "rail-divider": { "type": "Rectangle", "left": 358, "top": 105, "width": 1, "height": 554, "fillColor": "#343850", "strokeColor": "#343850" },
+
+    "search-box": { "type": "Rectangle", "left": 144, "top": 118, "width": 200, "height": 28, "fillColor": "#242838", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "search-icon": { "type": "Ellipse", "left": 154, "top": 124, "width": 11, "height": 11, "fillColor": "#242838", "strokeColor": "#78809C" },
+    "search-icon-handle": { "type": "Rectangle", "left": 163, "top": 133, "width": 4, "height": 1, "fillColor": "#78809C", "strokeColor": "#78809C" },
+    "search-text": { "type": "Text", "left": 176, "top": 124, "text": "Search all settings…", "fontColor": "#78809C", "fontSize": 13 },
+
+    "cat-editor-sel": { "type": "Rectangle", "left": 130, "top": 156, "width": 228, "height": 32, "fillColor": "#2C3046", "strokeColor": "#2C3046" },
+    "cat-editor-stripe": { "type": "Rectangle", "left": 130, "top": 156, "width": 3, "height": 32, "fillColor": "#78A0F8", "strokeColor": "#78A0F8" },
+    "cat-editor": { "type": "Text", "left": 152, "top": 164, "text": "Editor", "fontColor": "#E6E8F2", "fontSize": 14 },
+    "cat-keymap": { "type": "Text", "left": 152, "top": 200, "text": "Keymap", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-appearance": { "type": "Text", "left": 152, "top": 236, "text": "Appearance", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-claude": { "type": "Text", "left": 152, "top": 272, "text": "Claude", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-activity": { "type": "Text", "left": 152, "top": 308, "text": "Activity", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-terminal": { "type": "Text", "left": 152, "top": 344, "text": "Terminal", "fontColor": "#8890AC", "fontSize": 14 },
+    "cat-extensions": { "type": "Text", "left": 152, "top": 380, "text": "Extensions", "fontColor": "#8890AC", "fontSize": 14 },
+
+    "panel-title": { "type": "Text", "left": 382, "top": 120, "text": "Editor", "fontColor": "#E6E8F2", "fontSize": 18 },
+    "panel-sub": { "type": "Text", "left": 382, "top": 148, "text": "Buffer formatting, indentation, and per-folder overrides.", "fontColor": "#78809C", "fontSize": 13 },
+
+    "grp-fmt": { "type": "Text", "left": 382, "top": 186, "text": "FORMATTING", "fontColor": "#78809C", "fontSize": 12 },
+    "card-fmt": { "type": "Rectangle", "left": 382, "top": 206, "width": 648, "height": 268, "fillColor": "#242838", "strokeColor": "#343850", "corners": [6, 6, 6, 6] },
+
+    "r1-label": { "type": "Text", "left": 398, "top": 222, "text": "Format on save", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r1-help": { "type": "Text", "left": 398, "top": 246, "text": "Run the formatter on every buffer save.", "fontColor": "#78809C", "fontSize": 13 },
+    "r1-toggle": { "type": "Rectangle", "left": 950, "top": 224, "width": 40, "height": 22, "fillColor": "#78A0F8", "strokeColor": "#78A0F8", "corners": [11, 11, 11, 11] },
+    "r1-knob": { "type": "Ellipse", "left": 970, "top": 226, "width": 18, "height": 18, "fillColor": "#E6E8F2", "strokeColor": "#E6E8F2" },
+    "r1-scope-body": { "type": "Rectangle", "left": 1004, "top": 228, "width": 15, "height": 10, "fillColor": "#242838", "strokeColor": "#7DD3A8", "corners": [2, 2, 2, 2] },
+    "r1-scope-tab": { "type": "Rectangle", "left": 1004, "top": 225, "width": 7, "height": 3, "fillColor": "#7DD3A8", "strokeColor": "#7DD3A8" },
+
+    "r2-label": { "type": "Text", "left": 398, "top": 288, "text": "Indent style", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r2-help": { "type": "Text", "left": 398, "top": 312, "text": "Spaces or tabs for new indentation.", "fontColor": "#78809C", "fontSize": 13 },
+    "r2-select": { "type": "Rectangle", "left": 870, "top": 288, "width": 120, "height": 26, "fillColor": "#20202C", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "r2-select-text": { "type": "Text", "left": 882, "top": 293, "text": "Spaces", "fontColor": "#E6E8F2", "fontSize": 14 },
+    "r2-select-chevron": { "type": "Text", "left": 974, "top": 293, "text": "▾", "fontColor": "#8890AC", "fontSize": 14 },
+    "r2-scope-circle": { "type": "Ellipse", "left": 1004, "top": 292, "width": 14, "height": 14, "fillColor": "#242838", "strokeColor": "#E6C370" },
+    "r2-scope-eq": { "type": "Rectangle", "left": 1004, "top": 298, "width": 14, "height": 1, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+    "r2-scope-mer": { "type": "Rectangle", "left": 1010, "top": 292, "width": 1, "height": 14, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+
+    "r3-label": { "type": "Text", "left": 398, "top": 354, "text": "Tab width", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r3-help": { "type": "Text", "left": 398, "top": 378, "text": "Columns per indent level.", "fontColor": "#78809C", "fontSize": 13 },
+    "r3-number": { "type": "Rectangle", "left": 934, "top": 354, "width": 56, "height": 26, "fillColor": "#20202C", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "r3-number-text": { "type": "Text", "left": 956, "top": 359, "text": "2", "fontColor": "#E6E8F2", "fontSize": 14 },
+    "r3-scope-body": { "type": "Rectangle", "left": 1004, "top": 358, "width": 15, "height": 10, "fillColor": "#242838", "strokeColor": "#7DD3A8", "corners": [2, 2, 2, 2] },
+    "r3-scope-tab": { "type": "Rectangle", "left": 1004, "top": 355, "width": 7, "height": 3, "fillColor": "#7DD3A8", "strokeColor": "#7DD3A8" },
+
+    "r4-label": { "type": "Text", "left": 398, "top": 420, "text": "Ruler column", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r4-help": { "type": "Text", "left": 398, "top": 444, "text": "Wrap-guide position. Unset — inherits the default (120).", "fontColor": "#78809C", "fontSize": 13 },
+    "r4-number": { "type": "Rectangle", "left": 934, "top": 420, "width": 56, "height": 26, "fillColor": "#20202C", "strokeColor": "#343850", "corners": [4, 4, 4, 4] },
+    "r4-number-text": { "type": "Text", "left": 950, "top": 425, "text": "120", "fontColor": "#545C84", "fontSize": 14 },
+    "r4-scope-circle": { "type": "Ellipse", "left": 1004, "top": 424, "width": 14, "height": 14, "fillColor": "#242838", "strokeColor": "#78809C" },
+
+    "grp-files": { "type": "Text", "left": 382, "top": 494, "text": "FILE OVERRIDES", "fontColor": "#78809C", "fontSize": 12 },
+    "card-files": { "type": "Rectangle", "left": 382, "top": 514, "width": 648, "height": 66, "fillColor": "#242838", "strokeColor": "#343850", "corners": [6, 6, 6, 6] },
+    "r5-label": { "type": "Text", "left": 398, "top": 530, "text": "Project .editorconfig", "fontColor": "#E6E8F2", "fontSize": 15 },
+    "r5-help": { "type": "Text", "left": 398, "top": 554, "text": "Per-folder overrides. Opens the file in the editor.", "fontColor": "#78809C", "fontSize": 13 },
+    "r5-button": { "type": "Rectangle", "left": 846, "top": 530, "width": 144, "height": 28, "fillColor": "#20202C", "strokeColor": "#3C445C", "corners": [4, 4, 4, 4] },
+    "r5-button-text": { "type": "Text", "left": 858, "top": 537, "text": "Open .editorconfig  ↗", "fontColor": "#B1BBE3", "fontSize": 13 },
+    "r5-scope-body": { "type": "Rectangle", "left": 1004, "top": 534, "width": 15, "height": 10, "fillColor": "#242838", "strokeColor": "#7DD3A8", "corners": [2, 2, 2, 2] },
+    "r5-scope-tab": { "type": "Rectangle", "left": 1004, "top": 531, "width": 7, "height": 3, "fillColor": "#7DD3A8", "strokeColor": "#7DD3A8" },
+
+    "legend-rule": { "type": "Rectangle", "left": 382, "top": 600, "width": 648, "height": 1, "fillColor": "#343850", "strokeColor": "#343850" },
+    "legend-title": { "type": "Text", "left": 382, "top": 616, "text": "Scope", "fontColor": "#78809C", "fontSize": 13 },
+    "lg-proj-body": { "type": "Rectangle", "left": 438, "top": 618, "width": 15, "height": 10, "fillColor": "#20202C", "strokeColor": "#7DD3A8", "corners": [2, 2, 2, 2] },
+    "lg-proj-tab": { "type": "Rectangle", "left": 438, "top": 615, "width": 7, "height": 3, "fillColor": "#7DD3A8", "strokeColor": "#7DD3A8" },
+    "lg-proj-text": { "type": "Text", "left": 462, "top": 614, "text": "folder · Project", "fontColor": "#8890AC", "fontSize": 12 },
+    "lg-always-circle": { "type": "Ellipse", "left": 600, "top": 615, "width": 14, "height": 14, "fillColor": "#20202C", "strokeColor": "#E6C370" },
+    "lg-always-eq": { "type": "Rectangle", "left": 600, "top": 621, "width": 14, "height": 1, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+    "lg-always-mer": { "type": "Rectangle", "left": 606, "top": 615, "width": 1, "height": 14, "fillColor": "#E6C370", "strokeColor": "#E6C370" },
+    "lg-always-text": { "type": "Text", "left": 622, "top": 614, "text": "globe · Always", "fontColor": "#8890AC", "fontSize": 12 },
+    "lg-default-circle": { "type": "Ellipse", "left": 752, "top": 615, "width": 14, "height": 14, "fillColor": "#20202C", "strokeColor": "#78809C" },
+    "lg-default-text": { "type": "Text", "left": 774, "top": 614, "text": "circle-dashed · Default", "fontColor": "#8890AC", "fontSize": 12 }
+  }
+}
