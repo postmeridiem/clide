@@ -5877,3 +5877,19 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 **Files:** `pubspec.yaml` (fonts:), `assets/fonts/inter/`, `assets/licenses.yaml`, `lib/widgets/src/typography.dart`, `lib/src/shell/root_shell.dart` (DefaultTextStyle), mono consumers (editor / terminal / markdown / code-block), the Appearance settings category (T-452) + schema registration.
 
 **Related:** T-444 (epic), T-452 (Appearance category — where these render), T-448 (field renderer), T-449 (scope), ui-design `theme.md` (typography section: clideUiFamily / clideMonoFamily / clideFont* sizes), D-42 (bundled-dep documentation), D-44 (theming).', NULL, '2026-06-17 07:39:55', '2026-06-17 07:39:55.628', '2026-06-17 07:39:55.628', NULL, '316143b93910994fac553f6f515f6645', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FD91RWDWZPHFPJ72FHHHWS08', 'description', NULL, 'User report 2026-06-16 (screenshot ~/.cache/clide/pasted/paste-1781681999949.png). An API error renders as a plain conversation card with no error styling:
+
+    clide
+    API Error: Server is temporarily limiting requests (not your usage limit) · Rate limited
+
+It should be visually flagged with a **red error border** on the card so it stands out from normal turns.
+
+**Already supported — just needs wiring.** `lib/builtin/claude/src/conversation_card.dart`:
+- `ConversationCardStatus.error` exists (line ~302 → `tokens.statusError`) but today only tints the header status tick, not the border.
+- The `bordered` variant draws `Border.all(color: widget.borderColor ?? tokens.panelBorder)` (lines ~61 / ~224) — so the border defaults to the neutral `panelBorder`.
+
+**Fix:** render the API-error card as `variant: bordered, status: error, borderColor: tokens.statusError` (or, cleaner, have the card derive the border from `status == error → tokens.statusError` so any error card gets the red border without each caller passing it). Wire the producer — the error / system message that carries the "API Error …" text (in `conversation_view.dart` / `transcript_reader.dart`, e.g. the stream error / `SessionEnd.reason` path) — to mark the card as an error.
+
+**Acceptance:** an API error (rate-limit, server error, etc.) renders a card with a red `statusError` border; normal cards unchanged; a widget test asserts the error card''s border colour.
+
+**Files:** lib/builtin/claude/src/conversation_card.dart (border from error status), the error/system-message rendering in lib/builtin/claude/src/conversation_view.dart / transcript_reader.dart.', NULL, '2026-06-17 07:41:47', '2026-06-17 07:41:47.267', '2026-06-17 07:41:47.267', NULL, 'aa0330e9165b9b9fc3f1c516abc3a07c', 2) ON CONFLICT(hash) DO NOTHING;
