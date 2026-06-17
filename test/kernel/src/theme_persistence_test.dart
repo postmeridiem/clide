@@ -61,8 +61,13 @@ void main() {
       await settings.setProjectDir(repoTmp);
       theme.select('forest');
       expect(settings.get<String>('project.theme'), 'forest');
-      await pumpEventQueue(); // let the unawaited file write flush
-      expect(await File('${repoTmp.path}/.clide/settings.yaml').exists(), isTrue);
+      // The on-disk write is fire-and-forget; poll for it instead of assuming a
+      // single event-queue drain flushes the real I/O (flaked under load).
+      final file = File('${repoTmp.path}/.clide/settings.yaml');
+      for (var i = 0; i < 100 && !file.existsSync(); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      expect(file.existsSync(), isTrue);
     });
 
     test('the high-contrast variant persists (the name encodes -hc)', () async {
