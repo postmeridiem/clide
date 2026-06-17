@@ -4,6 +4,8 @@
   "modal.close.hint": { "translation": "Close settings without changing anything" },
   "rail.header": { "translation": "Categories" },
   "panel.empty": { "translation": "No settings categories are registered yet." },
+  "search.hint": { "translation": "Search settings…" },
+  "search.empty": { "translation": "No settings match your search." },
   "scope.project": { "translation": "This project" },
   "scope.always": { "translation": "All clide" },
   "scope.default": { "translation": "Default" },

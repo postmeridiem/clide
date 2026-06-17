@@ -1,6 +1,7 @@
 import 'package:clide/builtin/settings_ui/settings_ui.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,7 +22,10 @@ const _category = SettingsCategory(
           kind: SettingsFieldKind.select,
           label: 'Level',
           defaultValue: 'info',
-          options: [SettingsOption(value: 'info', label: 'Info'), SettingsOption(value: 'debug', label: 'Debug')],
+          options: [
+            SettingsOption(value: 'info', label: 'Info'),
+            SettingsOption(value: 'debug', label: 'Debug'),
+          ],
         ),
         SettingsField(key: 'app.demo.name', kind: SettingsFieldKind.text, label: 'Name', defaultValue: ''),
         SettingsField(key: 'app.demo.size', kind: SettingsFieldKind.number, label: 'Size', defaultValue: 4, min: 1, max: 8),
@@ -101,7 +105,6 @@ void main() {
       await tester.pump();
       expect(f.services.settings.get<String>('app.demo.level'), 'debug');
     });
-
   });
 
   group('scope tag (T-449)', () {
@@ -149,6 +152,21 @@ void main() {
       await tester.pump();
       expect(find.text('OtherFlag'), findsOneWidget);
       expect(find.text('Flag'), findsNothing);
+    });
+
+    testWidgets('searching filters fields across categories with rail counts', (tester) async {
+      f.services.settingsRegistry.register(_category);
+      f.services.settingsRegistry.register(_other);
+      await tester.pumpWidget(harness(f, SettingsModal(onDismiss: () {})));
+      final box = find.descendant(of: find.byType(ClideFilterBox), matching: find.byType(EditableText));
+      await tester.enterText(box, 'Other');
+      await tester.pump(const Duration(milliseconds: 250)); // past the filter debounce
+      await tester.pump();
+      // Only the matching field (in the Other category) is shown.
+      expect(find.text('OtherFlag'), findsOneWidget);
+      expect(find.text('Flag'), findsNothing);
+      // The rail shows the Other category's match count.
+      expect(find.text('1'), findsOneWidget);
     });
   });
 }

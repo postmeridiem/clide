@@ -44,6 +44,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `effectiveLayer`/`writableLayers`); `ext.*` keys layer project-over-app,
   `app.*`/`project.*` keys live in their prefix's file. (T-449)
 
+- **Cross-category settings search.** A search box atop the rail filters fields
+  across every category; the panel shows the matches grouped under category
+  subheaders (editable inline), and each rail row shows its match count with
+  zero-match categories dimmed. (T-450)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

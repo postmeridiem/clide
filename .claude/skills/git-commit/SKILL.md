@@ -14,12 +14,16 @@ Follow these conventions whenever you create a commit in this repository. These 
 
 ## Message style
 
-- **First line:** imperative mood, ≤ 70 characters. Examples: `add sidecar PTY scaffold`, `fix IPC reconnect after app reload`, `update CLI exit-code contract`.
+This repo uses [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/) (per [D-37](../../../governance/decisions/process.md#d-37)).
+
+- **First line:** `type(scope): imperative subject`, ≤ 72 characters **including** the prefix. Examples: `feat(settings): add Appearance font picker (T-460)`, `fix(ipc): reconnect after app reload`, `docs(readme): drop brittle version line`.
+- **Type:** one of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `chore`. Use `feat`/`fix` for user-visible behavior; `chore` for bookkeeping (`chore(plan)` is the convention for pql ticket housekeeping). Append `!` after the scope for a breaking change (`feat(ipc)!: …`).
+- **Scope (optional but preferred):** the subsystem the change lives in — `settings`, `vim`, `pty`, `git`, `plan`, etc. Lower-case, no spaces.
+- **Ticket ref:** keep a trailing `(T-NNN)` on the subject when the work has a ticket — `feat(settings): category rail + navigation (T-447)`.
 - **Body (optional):** wrap at ~72 chars. Explain the *why* — the reason this change exists. The diff already shows the *what*; don't restate it in prose.
 - **No emojis.** Anywhere.
-- **Don't prefix with types** like `feat:` or `fix:` — this repo isn't Conventional Commits. (The Python-era clide under `legacy/` used Conventional Commits; the Flutter rebuild at the repo root does not.)
 - **Don't reference the current task or flow** (`for the v2.0 milestone`, `used by the canvas panel`) — that context belongs in the PR description and rots as the repo evolves.
-- **Naming:** the project is `clide`. The Flutter desktop app lives at the repo root; the Go sidecar/CLI binary is `clide`. The supporter project is `pql` (referenced, not part of this repo). The archived Python implementation lives under `legacy/`.
+- **Naming:** the project is `clide`. The Flutter desktop app lives at the repo root; the `clide` CLI is a thin C client (`native/clide-cli/`). The supporter project is `pql` (referenced, not part of this repo). The archived Python implementation lives under `legacy/`.
 
 ## Logically-separated commits
 

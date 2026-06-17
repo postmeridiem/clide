@@ -31,6 +31,7 @@ Q&D record system itself, kanban, commit conventions, changelog.
 - **Rationale:** Python-era clide under `legacy/` used Conventional Commits; the Flutter rebuild does not. Imperative mood reads better for a project-governance log; types are noise when every commit is scoped to a subsystem already.
 - **Cost:** Contributors with Conventional Commits muscle memory adjust.
 - **Raised by:** 2026-04-21 planning.
+- **Amendment (2026-06-17):** Reversed — the rebuild **does** use [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/) after all. Format is `type(scope): imperative subject`, with the standard type set (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `chore`); `scope` is the subsystem (`settings`, `vim`, `pty`, `plan`, …); append `!` after the scope for a breaking change; keep a trailing `(T-NNN)` ticket ref where one applies. Subject (prefix included) stays ≤ 72 chars; the no-emoji, body, HEREDOC, and attribution-trailer rules from the original decision are unchanged. Practice had already drifted to this form (`feat(settings): category rail + navigation (T-447)`); the decision now matches it. `.claude/skills/git-commit/SKILL.md`, `CONTRIBUTING.md`, and `POLICY.md` updated to suit. **Why the reversal:** the original "types are noise" call didn't hold up — scoped types make `git log` skimmable and the changelog subsection (Added/Fixed/…) maps cleanly onto the commit type.
 
 ### D-38: Changelog discipline — Keep a Changelog 1.1.0
 - **Date:** 2026-04-21

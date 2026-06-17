@@ -44,6 +44,9 @@ class _SettingsModalState extends State<SettingsModal> {
   /// The rail sets this in T-447.
   String? _selectedId;
 
+  /// Cross-category search query (T-450); non-empty swaps the panel to results.
+  String _query = '';
+
   @override
   Widget build(BuildContext context) {
     final i = ClideKernel.of(context).i18n;
@@ -82,11 +85,18 @@ class _SettingsModalState extends State<SettingsModal> {
                       width: SettingsModal._railWidth,
                       child: _CategoryRail(
                         selectedId: _selectedId,
+                        query: _query,
                         onSelect: (id) => setState(() => _selectedId = id),
+                        onQueryChanged: (q) => setState(() => _query = q),
                       ),
                     ),
                     const ClideDivider(axis: Axis.vertical),
-                    Expanded(child: _SettingsPanel(selectedId: _selectedId)),
+                    Expanded(
+                      child: ColoredBox(
+                        color: tokens.panelBackground,
+                        child: _query.trim().isEmpty ? _SettingsPanel(selectedId: _selectedId) : SettingsSearchResults(query: _query),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -144,10 +154,7 @@ class _CloseButton extends StatelessWidget {
         onTap: onTap,
         builder: (ctx, hovered, pressed) => Container(
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: hovered ? tokens.listItemHoverBackground : null,
-            borderRadius: BorderRadius.circular(4),
-          ),
+          decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(4)),
           child: ClideIcon(const CloseIcon(), size: 16, color: tokens.globalForeground),
         ),
       ),
@@ -155,21 +162,25 @@ class _CloseButton extends StatelessWidget {
   }
 }
 
-/// Left rail — the registered categories, data-driven from the
-/// [SettingsRegistry]. Selecting one swaps the panel (T-447). The cross-category
-/// search box sits atop the rail in T-450.
+/// Left rail — a cross-category search box atop the registered categories,
+/// data-driven from the [SettingsRegistry]. Selecting one swaps the panel
+/// (T-447); while searching, each row shows its match count and zero-match
+/// rows dim (T-450).
 class _CategoryRail extends StatelessWidget {
-  const _CategoryRail({required this.selectedId, required this.onSelect});
+  const _CategoryRail({required this.selectedId, required this.query, required this.onSelect, required this.onQueryChanged});
 
   /// The modal's chosen category id (null → the first category).
   final String? selectedId;
+  final String query;
   final void Function(String id) onSelect;
+  final ValueChanged<String> onQueryChanged;
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     final i = ClideKernel.of(context).i18n;
     final registry = ClideKernel.of(context).settingsRegistry;
+    final searching = query.trim().isNotEmpty;
     return ListenableBuilder(
       listenable: registry,
       builder: (context, _) {
@@ -179,7 +190,14 @@ class _CategoryRail extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 12, 6),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+              child: ClideFilterBox(
+                hint: i.string('search.hint', namespace: SettingsModal.ns, placeholder: 'Search settings…'),
+                onChanged: onQueryChanged,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 2, 12, 6),
               child: ClideText(
                 i.string('rail.header', namespace: SettingsModal.ns, placeholder: 'Categories'),
                 fontSize: clideFontCaption,
@@ -193,7 +211,12 @@ class _CategoryRail extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (final c in categories)
-                      _RailRow(category: c, selected: c.id == effectiveId, onTap: () => onSelect(c.id)),
+                      _RailRow(
+                        category: c,
+                        selected: !searching && c.id == effectiveId,
+                        matchCount: searching ? settingsMatchCount(c, query) : null,
+                        onTap: () => onSelect(c.id),
+                      ),
                   ],
                 ),
               ),
@@ -206,18 +229,21 @@ class _CategoryRail extends StatelessWidget {
 }
 
 /// One category row: optional glyph + title, accent left-stripe + surfaceHi
-/// fill when selected (surface.md side panels).
+/// fill when selected (surface.md side panels). When [matchCount] is non-null
+/// (searching) it shows the count and dims to muted on zero matches (T-450).
 class _RailRow extends StatelessWidget {
-  const _RailRow({required this.category, required this.selected, required this.onTap});
+  const _RailRow({required this.category, required this.selected, required this.matchCount, required this.onTap});
 
   final SettingsCategory category;
   final bool selected;
+  final int? matchCount;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final fg = selected ? tokens.globalForeground : tokens.sidebarForeground;
+    final dim = matchCount == 0;
+    final fg = dim ? tokens.globalTextMuted : (selected ? tokens.globalForeground : tokens.sidebarForeground);
     return Semantics(
       button: true,
       selected: selected,
@@ -239,11 +265,11 @@ class _RailRow extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
                   child: Row(
                     children: [
-                      if (category.iconName != null) ...[
-                        ClideIcon(PhosphorIcons.byName(category.iconName!), size: 15, color: fg),
-                        const SizedBox(width: 8),
-                      ],
-                      Expanded(child: ClideText(category.title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      if (category.iconName != null) ...[ClideIcon(PhosphorIcons.byName(category.iconName!), size: 15, color: fg), const SizedBox(width: 8)],
+                      Expanded(
+                        child: ClideText(category.title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                      if (matchCount != null) ClideText('$matchCount', fontSize: clideFontCaption, color: tokens.globalTextMuted),
                     ],
                   ),
                 ),
@@ -258,8 +284,8 @@ class _RailRow extends StatelessWidget {
 
 /// Right panel — renders the selected category's schema (or the first
 /// registered one) via [SettingsCategoryView]; the empty state shows when no
-/// category is registered. The region recedes to panelBackground so the
-/// panelHeader cards pop (surface.md).
+/// category is registered. The region recedes to panelBackground (set by the
+/// modal) so the panelHeader cards pop (surface.md).
 class _SettingsPanel extends StatelessWidget {
   const _SettingsPanel({required this.selectedId});
 
@@ -267,19 +293,15 @@ class _SettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
     final registry = ClideKernel.of(context).settingsRegistry;
-    return ColoredBox(
-      color: tokens.panelBackground,
-      child: ListenableBuilder(
-        listenable: registry,
-        builder: (context, _) {
-          final categories = registry.categories;
-          if (categories.isEmpty) return const _EmptyState();
-          final selected = (selectedId == null ? null : registry.byId(selectedId!)) ?? categories.first;
-          return SettingsCategoryView(category: selected);
-        },
-      ),
+    return ListenableBuilder(
+      listenable: registry,
+      builder: (context, _) {
+        final categories = registry.categories;
+        if (categories.isEmpty) return const _EmptyState();
+        final selected = (selectedId == null ? null : registry.byId(selectedId!)) ?? categories.first;
+        return SettingsCategoryView(category: selected);
+      },
     );
   }
 }

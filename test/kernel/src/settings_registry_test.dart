@@ -1,8 +1,7 @@
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-SettingsCategory _cat(String id, {String? title, int priority = 0}) =>
-    SettingsCategory(id: id, title: title ?? id, priority: priority, sections: const []);
+SettingsCategory _cat(String id, {String? title, int priority = 0}) => SettingsCategory(id: id, title: title ?? id, priority: priority, sections: const []);
 
 void main() {
   group('SettingsRegistry', () {

@@ -199,7 +199,7 @@ Adding a dependency means updating the license manifest in the same PR. No excep
 
 ## Changelog and commit conventions
 
-clide follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/) for `CHANGELOG.md` and [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages. Enforcement is handled by the project's git skill; this section exists so human contributors know the standard before their first PR, and so the connection between these conventions and the rest of the policy is explicit.
+clide follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/) for `CHANGELOG.md` and [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages (see [D-37](governance/decisions/process.md#d-37)). Enforcement is handled by the project's git skill; this section exists so human contributors know the standard before their first PR, and so the connection between these conventions and the rest of the policy is explicit.
 
 Security-relevant changes — CVE responses, dependency-driven vulnerability fixes, the removal of a phoning-home transitive dep, anything where the rules in this document were the reason for the change — go under the `Security` heading of the release's changelog entry, regardless of whether the code change itself looks security-shaped. That heading is the trail future-us follows to reconstruct why a dep was bumped or removed. Lumping security fixes under `Fixed` because the diff looks like a normal bug fix loses that signal and is the wrong choice even when it's technically accurate.
 

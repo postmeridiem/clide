@@ -181,14 +181,18 @@ tickets before the diff lands. Trivial typo fixes don't need one.
 See [D-37](governance/decisions/process.md#d-37) and the bundled
 [`git-commit` skill](.claude/skills/git-commit/SKILL.md). In short:
 
-- Imperative subject ≤ 70 chars, no Conventional Commits prefix
-  (this isn't a Conventional Commits repo — the archived Python
-  predecessor under [`legacy/`](legacy/) is, but the rebuild isn't).
+- [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/):
+  `type(scope): imperative subject`, ≤ 72 chars including the prefix.
+  Types are `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+  `test`, `build`, `chore`; scope is the subsystem (`settings`,
+  `vim`, `pty`…); keep a trailing `(T-NNN)` ticket ref where one
+  applies — e.g. `feat(settings): category rail + navigation (T-447)`.
 - One logical change per commit. If the subject needs "and", split it.
 - Every user-visible commit adds an entry to `CHANGELOG.md` under
   `[Unreleased]` in the right subsection (Added, Changed, Deprecated,
   Removed, Fixed, Security). Keep entries to one or two short
-  sentences — the 60-word cap is enforced by `ci/changelog_gate.sh`.
+  sentences — the 60-word cap is enforced by the pre-push gate
+  (`make changelog-gate`).
 - Co-author trailer:
   `Co-Authored-By: Claude <noreply@anthropic.com>` when Claude wrote
   any of the diff.

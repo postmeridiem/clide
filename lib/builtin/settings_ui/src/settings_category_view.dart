@@ -10,8 +10,8 @@ const _settingsNs = 'builtin.settings-ui';
 /// `SettingsStore` key — read with `get` (falling back to the schema default),
 /// written with `set` on edit. Rebuilds live as the store changes.
 ///
-/// Per-field scope tags (T-449) and cross-category search (T-450) layer onto
-/// the row in their own tickets; the trailing slot here is the reset control.
+/// Each row ends in a per-field scope tag (T-449) whose menu also resets the
+/// value; cross-category search lives in [SettingsSearchResults] (T-450).
 /// Carded layout follows ui-design `surface.md` ("sectioned cards").
 class SettingsCategoryView extends StatelessWidget {
   const SettingsCategoryView({super.key, required this.category});
@@ -28,11 +28,84 @@ class SettingsCategoryView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final section in category.sections) _SectionCard(section: section, store: store),
-          ],
+          children: [for (final section in category.sections) _SectionCard(section: section, store: store)],
         ),
       ),
+    );
+  }
+}
+
+/// True when [field] matches [query] (case-insensitive; label or help). An
+/// empty query matches everything.
+bool settingsFieldMatches(SettingsField field, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return true;
+  return field.label.toLowerCase().contains(q) || (field.help?.toLowerCase().contains(q) ?? false);
+}
+
+/// [category]'s sections holding only the fields matching [query]; empty
+/// sections are dropped.
+List<SettingsSection> settingsMatchingSections(SettingsCategory category, String query) {
+  final out = <SettingsSection>[];
+  for (final s in category.sections) {
+    final fields = s.fields.where((f) => settingsFieldMatches(f, query)).toList();
+    if (fields.isNotEmpty) out.add(SettingsSection(label: s.label, fields: fields));
+  }
+  return out;
+}
+
+/// How many fields in [category] match [query] (the rail's per-category count).
+int settingsMatchCount(SettingsCategory category, String query) =>
+    category.sections.fold(0, (n, s) => n + s.fields.where((f) => settingsFieldMatches(f, query)).length);
+
+/// Cross-category search results (T-450): every matching field across ALL
+/// registered categories, grouped under a category subheader, rendered with the
+/// same carded field rows and editable inline.
+class SettingsSearchResults extends StatelessWidget {
+  const SettingsSearchResults({super.key, required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final i = ClideKernel.of(context).i18n;
+    final store = ClideKernel.of(context).settings;
+    final registry = ClideKernel.of(context).settingsRegistry;
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final blocks = <Widget>[];
+        for (final c in registry.categories) {
+          final sections = settingsMatchingSections(c, query);
+          if (sections.isEmpty) continue;
+          blocks.add(
+            Padding(
+              padding: EdgeInsets.only(top: blocks.isEmpty ? 0 : 14, bottom: 8),
+              child: ClideText(c.title, fontSize: 13, fontWeight: FontWeight.w600, color: tokens.globalForeground),
+            ),
+          );
+          for (final s in sections) {
+            blocks.add(_SectionCard(section: s, store: store));
+          }
+        }
+        if (blocks.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: ClideText(
+                i.string('search.empty', namespace: _settingsNs, placeholder: 'No settings match your search.'),
+                color: tokens.globalTextMuted,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: blocks),
+        );
+      },
     );
   }
 }
@@ -54,12 +127,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 2, bottom: 6),
-            child: ClideText(
-              section.label.toUpperCase(),
-              fontSize: clideFontCaption,
-              color: tokens.sidebarSectionHeader,
-              fontFamily: clideMonoFamily,
-            ),
+            child: ClideText(section.label.toUpperCase(), fontSize: clideFontCaption, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
           ),
           ClideSurface(
             // Card surface (surface.md): panelHeader resolves to the `surface`
@@ -71,10 +139,7 @@ class _SectionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var i = 0; i < section.fields.length; i++) ...[
-                  if (i > 0) const ClideDivider(),
-                  _FieldRow(field: section.fields[i], store: store),
-                ],
+                for (var i = 0; i < section.fields.length; i++) ...[if (i > 0) const ClideDivider(), _FieldRow(field: section.fields[i], store: store)],
               ],
             ),
           ),
@@ -399,8 +464,7 @@ class _ScopeTagState extends State<_ScopeTag> {
     super.dispose();
   }
 
-  String _ns(String key, String fallback) =>
-      ClideKernel.of(context).i18n.string(key, namespace: _settingsNs, placeholder: fallback);
+  String _ns(String key, String fallback) => ClideKernel.of(context).i18n.string(key, namespace: _settingsNs, placeholder: fallback);
 
   ({String glyph, Color color, String tip, String label}) _appearance(SettingsScope? layer) {
     final tokens = ClideTheme.of(context).surface;
@@ -452,12 +516,7 @@ class _ScopeTagState extends State<_ScopeTag> {
       overlayBuilder: (ctx, c) => ClideMenu(
         onClose: c.close,
         entries: [
-          for (final layer in layers)
-            ClideMenuItem(
-              label: _appearance(layer).label,
-              active: layer == current,
-              onSelect: () => _moveTo(layer),
-            ),
+          for (final layer in layers) ClideMenuItem(label: _appearance(layer).label, active: layer == current, onSelect: () => _moveTo(layer)),
           const ClideMenuSeparator(),
           ClideMenuItem(label: _ns('scope.reset', 'Reset to default'), active: false, enabled: current != null, onSelect: _reset),
         ],
