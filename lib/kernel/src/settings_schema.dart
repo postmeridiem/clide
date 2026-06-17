@@ -52,6 +52,7 @@ class SettingsField {
     this.min,
     this.max,
     this.fileCommand,
+    this.applyCommandPrefix,
   });
 
   final String key;
@@ -73,6 +74,13 @@ class SettingsField {
 
   /// For [SettingsFieldKind.file]: the command id the row's button invokes.
   final String? fileCommand;
+
+  /// For [SettingsFieldKind.select]: when set, picking option `<value>` runs
+  /// the command `<applyCommandPrefix><value>` instead of writing [key]
+  /// directly — for settings a subsystem applies via a command (and only then
+  /// persists). The current value is still read from [key], so the scope tag
+  /// and selection still work. Example: `'keymap.preset.'` → `keymap.preset.vim`.
+  final String? applyCommandPrefix;
 }
 
 /// A carded group of fields (surface.md "sectioned cards"). [label] is the

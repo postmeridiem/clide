@@ -48,6 +48,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   conversation fold level (none / tools / thinking / everything) as a schema
   field; picking a level applies live to the activity stream. (T-453)
 
+- **Settings → Keymap category.** A preset select (Default / Vim / VS Code /
+  JetBrains); picking one switches the active keymap live via the preset
+  command. (T-451)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

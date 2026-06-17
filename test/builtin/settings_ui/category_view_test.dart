@@ -1,4 +1,5 @@
 import 'package:clide/builtin/settings_ui/settings_ui.dart';
+import 'package:clide/clide.dart' show IpcResponse;
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -104,6 +105,47 @@ void main() {
       await tester.tap(find.text('Debug'));
       await tester.pump();
       expect(f.services.settings.get<String>('app.demo.level'), 'debug');
+    });
+
+    testWidgets('a select with applyCommandPrefix runs the command, not a key write', (tester) async {
+      var ran = '';
+      f.services.commands.register(
+        CommandContribution(
+          id: 'test.apply.vim',
+          command: 'test.apply.vim',
+          run: (_) async {
+            ran = 'vim';
+            return IpcResponse.ok(id: '', data: const {});
+          },
+        ),
+      );
+      const cat = SettingsCategory(
+        id: 'k',
+        title: 'K',
+        sections: [
+          SettingsSection(
+            label: 'P',
+            fields: [
+              SettingsField(
+                key: 'app.k.preset',
+                kind: SettingsFieldKind.select,
+                label: 'Preset',
+                defaultValue: 'default',
+                applyCommandPrefix: 'test.apply.',
+                options: [SettingsOption(value: 'default', label: 'Default'), SettingsOption(value: 'vim', label: 'Vim')],
+              ),
+            ],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: cat))));
+      await tester.tap(find.bySemanticsLabel(RegExp(r'^Preset:')));
+      await tester.pump();
+      await tester.tap(find.text('Vim'));
+      await tester.pump();
+      expect(ran, 'vim');
+      // The key is applied by the command, not written directly by the engine.
+      expect(f.services.settings.get<String>('app.k.preset'), isNull);
     });
   });
 

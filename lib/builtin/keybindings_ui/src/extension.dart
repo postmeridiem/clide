@@ -42,5 +42,39 @@ class KeybindingsUiExtension extends ClideExtension {
           return IpcResponse.ok(id: '', data: {'preset': entry.key});
         },
       ),
+    // Keymap settings category (T-451). The select reads the active preset
+    // from kKeymapPresetSetting; picking one runs `keymap.preset.<value>`
+    // (applyCommandPrefix), which calls KeymapService.setPreset — persisting
+    // and reloading the layered keymap live.
+    const SettingsCategoryContribution(
+      id: 'keymap',
+      category: SettingsCategory(
+        id: 'keymap',
+        title: 'Keymap',
+        iconName: 'keyboard',
+        priority: 20,
+        sections: [
+          SettingsSection(
+            label: 'Preset',
+            fields: [
+              SettingsField(
+                key: kKeymapPresetSetting,
+                kind: SettingsFieldKind.select,
+                label: 'Active preset',
+                help: 'Keyboard layout for the whole app.',
+                defaultValue: 'default',
+                applyCommandPrefix: 'keymap.preset.',
+                options: [
+                  SettingsOption(value: 'default', label: 'Default'),
+                  SettingsOption(value: 'vim', label: 'Vim'),
+                  SettingsOption(value: 'vscode', label: 'VS Code'),
+                  SettingsOption(value: 'jetbrains', label: 'JetBrains'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
   ];
 }

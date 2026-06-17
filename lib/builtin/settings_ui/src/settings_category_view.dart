@@ -206,7 +206,19 @@ class _Control extends StatelessWidget {
       case SettingsFieldKind.toggle:
         return _ToggleControl(checked: value == true, onChanged: _set);
       case SettingsFieldKind.select:
-        return _SelectControl(field: field, value: value?.toString(), onPick: _set);
+        return _SelectControl(
+          field: field,
+          value: value?.toString(),
+          onPick: (v) {
+            final prefix = field.applyCommandPrefix;
+            if (prefix != null) {
+              // Value selects a command (the subsystem applies + persists).
+              ClideKernel.of(context).commands.execute('$prefix$v');
+            } else {
+              _set(v);
+            }
+          },
+        );
       case SettingsFieldKind.text:
         return _EditControl(field: field, value: value?.toString() ?? '', numeric: false, onCommit: _set);
       case SettingsFieldKind.number:

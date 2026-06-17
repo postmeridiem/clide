@@ -3,6 +3,7 @@
 library;
 
 import 'package:clide/builtin/keybindings_ui/keybindings_ui.dart';
+import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,5 +46,17 @@ void main() {
     await f.services.commands.execute('keymap.preset.vim');
     await f.services.commands.execute('keymap.preset.default');
     expect(f.services.settings.get<String>(kKeymapPresetSetting), 'default');
+  });
+
+  test('contributes a Keymap settings category routed through the preset commands (T-451)', () {
+    final category = KeybindingsUiExtension().contributions
+        .whereType<SettingsCategoryContribution>()
+        .firstWhere((c) => c.id == 'keymap')
+        .category;
+    expect(category.title, 'Keymap');
+    final field = category.sections.expand((s) => s.fields).firstWhere((f) => f.key == kKeymapPresetSetting);
+    expect(field.kind, SettingsFieldKind.select);
+    expect(field.applyCommandPrefix, 'keymap.preset.');
+    expect(field.options.map((o) => o.value), containsAll(['default', 'vim', 'vscode', 'jetbrains']));
   });
 }
