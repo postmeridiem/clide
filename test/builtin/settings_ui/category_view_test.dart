@@ -30,6 +30,17 @@ const _category = SettingsCategory(
   ],
 );
 
+const _other = SettingsCategory(
+  id: 'other',
+  title: 'Other',
+  sections: [
+    SettingsSection(
+      label: 'Misc',
+      fields: [SettingsField(key: 'app.other.x', kind: SettingsFieldKind.toggle, label: 'OtherFlag', defaultValue: false)],
+    ),
+  ],
+);
+
 /// Tiny extension that registers [_category] via the contribution.
 class _DemoSettingsExt extends ClideExtension {
   @override
@@ -108,6 +119,22 @@ void main() {
       await tester.pumpWidget(harness(f, SettingsModal(onDismiss: () {})));
       expect(find.text('Flag'), findsOneWidget);
       expect(find.text('No settings categories are registered yet.'), findsNothing);
+    });
+
+    testWidgets('rail lists categories and selecting one swaps the panel', (tester) async {
+      f.services.settingsRegistry.register(_category);
+      f.services.settingsRegistry.register(_other);
+      await tester.pumpWidget(harness(f, SettingsModal(onDismiss: () {})));
+      // Rail shows both titles; first (alphabetical) category's panel is shown.
+      expect(find.text('Demo'), findsOneWidget);
+      expect(find.text('Other'), findsOneWidget);
+      expect(find.text('Flag'), findsOneWidget);
+      expect(find.text('OtherFlag'), findsNothing);
+      // Selecting the second category swaps the panel.
+      await tester.tap(find.text('Other'));
+      await tester.pump();
+      expect(find.text('OtherFlag'), findsOneWidget);
+      expect(find.text('Flag'), findsNothing);
     });
   });
 }

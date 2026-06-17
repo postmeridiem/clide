@@ -32,6 +32,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   `panelBackground` inside the elevated `panelHeader` cards (ui-design
   surface.md). Categories are data; registering one surfaces a new tab. (T-448)
 
+- **Settings category rail.** The modal's left rail lists the registered
+  categories (icon + title, data-driven from the registry) with an accent
+  left-stripe + surfaceHi selection; picking one swaps the panel. (T-447)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

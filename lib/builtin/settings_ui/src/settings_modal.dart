@@ -78,7 +78,13 @@ class _SettingsModalState extends State<SettingsModal> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(width: SettingsModal._railWidth, child: _CategoryRail()),
+                    SizedBox(
+                      width: SettingsModal._railWidth,
+                      child: _CategoryRail(
+                        selectedId: _selectedId,
+                        onSelect: (id) => setState(() => _selectedId = id),
+                      ),
+                    ),
                     const ClideDivider(axis: Axis.vertical),
                     Expanded(child: _SettingsPanel(selectedId: _selectedId)),
                   ],
@@ -149,27 +155,93 @@ class _CloseButton extends StatelessWidget {
   }
 }
 
-/// Left rail. The interactive category list lands in T-447; for now it shows
-/// only its section header.
+/// Left rail — the registered categories, data-driven from the
+/// [SettingsRegistry]. Selecting one swaps the panel (T-447). The cross-category
+/// search box sits atop the rail in T-450.
 class _CategoryRail extends StatelessWidget {
-  const _CategoryRail();
+  const _CategoryRail({required this.selectedId, required this.onSelect});
+
+  /// The modal's chosen category id (null → the first category).
+  final String? selectedId;
+  final void Function(String id) onSelect;
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
     final i = ClideKernel.of(context).i18n;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClideText(
-            i.string('rail.header', namespace: SettingsModal.ns, placeholder: 'Categories'),
-            fontSize: clideFontCaption,
-            color: tokens.sidebarSectionHeader,
-            fontFamily: clideMonoFamily,
+    final registry = ClideKernel.of(context).settingsRegistry;
+    return ListenableBuilder(
+      listenable: registry,
+      builder: (context, _) {
+        final categories = registry.categories;
+        final effectiveId = selectedId ?? (categories.isEmpty ? null : categories.first.id);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 6),
+              child: ClideText(
+                i.string('rail.header', namespace: SettingsModal.ns, placeholder: 'Categories'),
+                fontSize: clideFontCaption,
+                color: tokens.sidebarSectionHeader,
+                fontFamily: clideMonoFamily,
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final c in categories)
+                      _RailRow(category: c, selected: c.id == effectiveId, onTap: () => onSelect(c.id)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One category row: optional glyph + title, accent left-stripe + surfaceHi
+/// fill when selected (surface.md side panels).
+class _RailRow extends StatelessWidget {
+  const _RailRow({required this.category, required this.selected, required this.onTap});
+
+  final SettingsCategory category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final fg = selected ? tokens.globalForeground : tokens.sidebarForeground;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: category.title,
+      excludeSemantics: true,
+      child: ClideTappable(
+        cursor: SystemMouseCursors.click,
+        onTap: onTap,
+        builder: (ctx, hovered, _) => Container(
+          decoration: BoxDecoration(
+            color: selected ? tokens.sidebarItemSelected : (hovered ? tokens.sidebarItemHover : null),
+            border: Border(left: BorderSide(color: selected ? tokens.panelActiveBorder : const Color(0x00000000), width: 2)),
           ),
-        ],
+          padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
+          child: Row(
+            children: [
+              if (category.iconName != null) ...[
+                ClideIcon(PhosphorIcons.byName(category.iconName!), size: 15, color: fg),
+                const SizedBox(width: 8),
+              ],
+              Expanded(child: ClideText(category.title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+        ),
       ),
     );
   }
