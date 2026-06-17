@@ -5853,3 +5853,27 @@ In the main column (the center "workspace" slot), the editor renders as a **top 
 ## Tests
 
 Existing coverage (`test/builtin/editor/editor_extension_test.dart`, `test/builtin/default_layout/widget_test.dart`, `test/app_test.dart`) asserts the `editorOpen` flag toggles but does **not** assert the rendered split actually collapses with no leftover region. Add a widget test that opens the editor top split, closes the last panel, and asserts the workspace renders only the primary pane (no empty split / drag handle remaining).', NULL, '2026-06-16 14:15:54', '2026-06-16 14:15:54.344', '2026-06-16 14:15:54.344', NULL, '2dbe866fe833666db5afbc7430c0d9c8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FD91A7VEW3VCY7QX1END2Z3G', 'description', NULL, 'Add two font pickers to the **Appearance** tab of the new settings UI (renders alongside the theme picker, T-452; uses the schema field renderer T-448 and the sectioned-card layout from T-302 / ui-design `surface.md`). Part of the builtin.settings-ui epic (T-444).
+
+**Two controls (enum/select fields in the Appearance "TYPOGRAPHY" card):**
+- **UI font** — the proportional/sans face used for app chrome + prose (today `clideUiFamily`, currently JosefinSans Light 300 via `DefaultTextStyle`).
+- **Monospace font** — the code/paths/IDs/terminal/editor face (today `clideMonoFamily` = JetBrainsMono).
+- Each option renders its label **in its own face** as an inline preview.
+
+**Bake in Inter as the default UI font.**
+- Bundle **Inter** (https://fonts.google.com/specimen/Inter — SIL Open Font License 1.1, Rasmus Andersson) under `assets/fonts/inter/`, register it in `pubspec.yaml` `fonts:`, and add the `assets/licenses.yaml` entry in the SAME commit (D-42 two-step rule). Make Inter the default UI font, replacing JosefinSans Light as the shipped default. Keep **JetBrainsMono** as the default mono.
+
+**Font registry + wiring (the real work):**
+- A small curated registry of bundled faces per role (UI: Inter + 1–2 others; mono: JetBrainsMono + 1–2 others) so the pickers have real options without a system-font crawl (v1 = bundled-only; system-font enumeration can be a follow-up).
+- `lib/widgets/src/typography.dart` `clideUiFamily` / `clideMonoFamily` are constants today — make them resolve from the active setting (and update `root_shell.dart`''s `DefaultTextStyle` + every `fontFamily: clideMonoFamily` consumer: editor, terminal, code blocks, markdown, path/ID text). The terminal (`xterm.dart` fork) takes its own font config — route the mono setting there too.
+- Persist as settings keys (e.g. `appearance.font.ui`, `appearance.font.mono`) through the SettingsStore schema the renderer reads; scope via the standard model (Always/global default, project override allowed) — see T-449.
+
+**Acceptance:**
+- Inter ships and is the default UI font on a fresh install; JetBrainsMono remains default mono. licenses.yaml documents Inter (+ any other added faces).
+- UI + mono pickers in the Appearance tab change the live app font and persist across restart, at the chosen scope.
+- Each picker previews options in-face; unknown/removed font falls back gracefully to the default.
+- No contrast/a11y regression (re-run the contrast gate; faces are metric-different but token colours unchanged).
+
+**Files:** `pubspec.yaml` (fonts:), `assets/fonts/inter/`, `assets/licenses.yaml`, `lib/widgets/src/typography.dart`, `lib/src/shell/root_shell.dart` (DefaultTextStyle), mono consumers (editor / terminal / markdown / code-block), the Appearance settings category (T-452) + schema registration.
+
+**Related:** T-444 (epic), T-452 (Appearance category — where these render), T-448 (field renderer), T-449 (scope), ui-design `theme.md` (typography section: clideUiFamily / clideMonoFamily / clideFont* sizes), D-42 (bundled-dep documentation), D-44 (theming).', NULL, '2026-06-17 07:39:55', '2026-06-17 07:39:55.628', '2026-06-17 07:39:55.628', NULL, '316143b93910994fac553f6f515f6645', 2) ON CONFLICT(hash) DO NOTHING;
