@@ -100,6 +100,38 @@ class ClaudeExtension extends ClideExtension {
       title: 'Claude: cycle activity fold level',
       run: _cycleFoldLevel,
     ),
+    // Activity settings category (T-453) — the fold level as a schema field,
+    // written to kActivityFoldLevelKey; the panes already rebuild off the
+    // settings notifier, so picking a level applies live.
+    const SettingsCategoryContribution(
+      id: 'activity',
+      category: SettingsCategory(
+        id: 'activity',
+        title: 'Activity',
+        iconName: 'cards-three',
+        priority: 50,
+        sections: [
+          SettingsSection(
+            label: 'Conversation',
+            fields: [
+              SettingsField(
+                key: kActivityFoldLevelKey,
+                kind: SettingsFieldKind.select,
+                label: 'Fold level',
+                help: 'How aggressively the conversation folds tool calls, thinking, and results.',
+                defaultValue: 'tools',
+                options: [
+                  SettingsOption(value: 'none', label: 'Show everything'),
+                  SettingsOption(value: 'tools', label: 'Fold tool calls'),
+                  SettingsOption(value: 'thinking', label: 'Fold tools + thinking'),
+                  SettingsOption(value: 'everything', label: 'Fold all but prose'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
     // T-171: agent roster controls (D-6 CLI/UI parity).
     // Usage: clide claude.agent.show <sessionId>
     CommandContribution(

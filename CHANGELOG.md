@@ -25,29 +25,28 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   ✕, Esc, or a barrier tap. (T-445)
 
 - **Schema-driven settings engine.** Subsystems register a `SettingsCategory`
-  (a `SettingsCategoryContribution` routed into the kernel `SettingsRegistry`);
-  the panel renders it as carded sections of field rows — toggle, select,
-  text, number, and an "opens external file" button — each bound to a
-  `SettingsStore` key with help text and reset-to-default. Inputs recede to
-  `panelBackground` inside the elevated `panelHeader` cards (ui-design
-  surface.md). Categories are data; registering one surfaces a new tab. (T-448)
+  (via `SettingsCategoryContribution` → the kernel `SettingsRegistry`); the
+  panel renders it as carded sections of toggle/select/text/number/file rows,
+  each bound to a `SettingsStore` key with help and reset-to-default.
+  Registering a category surfaces a new tab. (T-448)
 
 - **Settings category rail.** The modal's left rail lists the registered
   categories (icon + title, data-driven from the registry) with an accent
   left-stripe + surfaceHi selection; picking one swaps the panel. (T-447)
 
-- **Per-field scope tags.** Each settings field shows where its value lives —
-  folder = Project (`.clide`), globe = Always (`~/.clide`), circle-dashed =
-  Default/unset — colour-coded with a tooltip. Tapping opens a menu to move the
-  value between the scopes the key supports or reset it to default. Backed by
-  scope-explicit `SettingsStore` access (`rawAt`/`setAt`/`removeAt`/
-  `effectiveLayer`/`writableLayers`); `ext.*` keys layer project-over-app,
-  `app.*`/`project.*` keys live in their prefix's file. (T-449)
+- **Per-field scope tags.** Each field shows where its value lives — folder =
+  Project (`.clide`), globe = Always (`~/.clide`), circle-dashed =
+  Default/unset — with a tooltip and a menu to move the value between scopes or
+  reset it. Backed by scope-explicit `SettingsStore` access. (T-449)
 
 - **Cross-category settings search.** A search box atop the rail filters fields
   across every category; the panel shows the matches grouped under category
   subheaders (editable inline), and each rail row shows its match count with
   zero-match categories dimmed. (T-450)
+
+- **Settings → Activity category.** The first real settings tab: the
+  conversation fold level (none / tools / thinking / everything) as a schema
+  field; picking a level applies live to the activity stream. (T-453)
 
 ### Changed
 

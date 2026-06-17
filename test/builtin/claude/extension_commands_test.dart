@@ -145,4 +145,16 @@ void main() {
       expect(activeClaudeConfig, isNull);
     });
   });
+
+  group('Activity settings category (T-453)', () {
+    final category = ext.contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'activity').category;
+
+    test('contributes an Activity category with the fold-level field', () {
+      expect(category.title, 'Activity');
+      final field = category.sections.expand((s) => s.fields).firstWhere((f) => f.key == kActivityFoldLevelKey);
+      expect(field.kind, SettingsFieldKind.select);
+      expect(field.defaultValue, 'tools');
+      expect(field.options.map((o) => o.value), containsAll(['none', 'tools', 'thinking', 'everything']));
+    });
+  });
 }
