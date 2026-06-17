@@ -132,7 +132,10 @@ void main() {
                 label: 'Preset',
                 defaultValue: 'default',
                 applyCommandPrefix: 'test.apply.',
-                options: [SettingsOption(value: 'default', label: 'Default'), SettingsOption(value: 'vim', label: 'Vim')],
+                options: [
+                  SettingsOption(value: 'default', label: 'Default'),
+                  SettingsOption(value: 'vim', label: 'Vim'),
+                ],
               ),
             ],
           ),

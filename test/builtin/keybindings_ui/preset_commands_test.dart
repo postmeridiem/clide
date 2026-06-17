@@ -49,10 +49,7 @@ void main() {
   });
 
   test('contributes a Keymap settings category routed through the preset commands (T-451)', () {
-    final category = KeybindingsUiExtension().contributions
-        .whereType<SettingsCategoryContribution>()
-        .firstWhere((c) => c.id == 'keymap')
-        .category;
+    final category = KeybindingsUiExtension().contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'keymap').category;
     expect(category.title, 'Keymap');
     final field = category.sections.expand((s) => s.fields).firstWhere((f) => f.key == kKeymapPresetSetting);
     expect(field.kind, SettingsFieldKind.select);
