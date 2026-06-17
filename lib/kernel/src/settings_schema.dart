@@ -24,6 +24,12 @@ enum SettingsFieldKind {
   /// of editing a value inline — the action is a command id, keeping the
   /// schema widget-free.
   file,
+
+  /// A bespoke control rendered by a widget the owning subsystem registers
+  /// (via `SettingsControlContribution`) under [SettingsField.customId]. Keeps
+  /// the schema widget-free while allowing the one-off controls the generic
+  /// kinds can't express (e.g. the Appearance theme picker).
+  custom,
 }
 
 /// One choice in a [SettingsFieldKind.select] field.
@@ -53,6 +59,7 @@ class SettingsField {
     this.max,
     this.fileCommand,
     this.applyCommandPrefix,
+    this.customId,
   });
 
   final String key;
@@ -81,6 +88,10 @@ class SettingsField {
   /// persists). The current value is still read from [key], so the scope tag
   /// and selection still work. Example: `'keymap.preset.'` → `keymap.preset.vim`.
   final String? applyCommandPrefix;
+
+  /// For [SettingsFieldKind.custom]: the id the renderer looks up in the
+  /// `SettingsControlRegistry` to find the widget that draws this field.
+  final String? customId;
 }
 
 /// A carded group of fields (surface.md "sectioned cards"). [label] is the

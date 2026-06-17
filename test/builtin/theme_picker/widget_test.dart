@@ -187,5 +187,21 @@ void main() {
       expect(resp.ok, isTrue);
       expect(resp.data['selected'], 'forest');
     });
+
+    test('contributes an Appearance category + theme.picker control (T-452)', () {
+      final ext = ThemePickerExtension();
+      final cat = ext.contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'appearance').category;
+      expect(cat.title, 'Appearance');
+      expect(ext.contributions.whereType<SettingsControlContribution>().any((c) => c.customId == 'theme.picker'), isTrue);
+    });
+
+    testWidgets('AppearanceThemeControl lists base themes and applies a pick (T-452)', (tester) async {
+      await tester.pumpWidget(harness(f, const SizedBox(width: 420, child: AppearanceThemeControl())));
+      expect(find.text('summer-night'), findsOneWidget);
+      expect(find.text('forest'), findsOneWidget);
+      await tester.tap(find.text('forest'));
+      await tester.pump();
+      expect(f.services.theme.currentName, 'forest');
+    });
   });
 }

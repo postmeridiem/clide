@@ -52,6 +52,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   JetBrains); picking one switches the active keymap live via the preset
   command. (T-451)
 
+- **Settings → Appearance category.** A theme picker in the panel — base-theme
+  chips + a high-contrast toggle, applied live. Adds the engine's custom-control
+  escape hatch (`SettingsControlContribution` / `SettingsControlRegistry`) for
+  one-off controls the generic field kinds can't express. (T-452)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

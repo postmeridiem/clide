@@ -149,3 +149,15 @@ class SettingsCategoryContribution extends ContributionPoint {
 
   final SettingsCategory category;
 }
+
+/// A bespoke widget for a `SettingsFieldKind.custom` field (T-452). The kernel
+/// routes it into the `SettingsControlRegistry` under [customId]; the settings
+/// renderer draws it when a field names that [customId]. Lets a subsystem ship
+/// a one-off control (e.g. the theme picker) without leaking widgets into the
+/// pure-data schema.
+class SettingsControlContribution extends ContributionPoint {
+  const SettingsControlContribution({required super.id, required this.customId, required this.builder});
+
+  final String customId;
+  final WidgetBuilder builder;
+}

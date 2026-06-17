@@ -22,6 +22,7 @@ export 'src/watchdog.dart';
 export 'src/settings.dart';
 export 'src/settings_schema.dart';
 export 'src/settings_registry.dart';
+export 'src/settings_control_registry.dart';
 export 'src/facade.dart';
 export 'src/clipboard.dart';
 export 'src/commands/keybindings.dart';

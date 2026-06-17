@@ -159,27 +159,44 @@ class _FieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
+    final label = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClideText(field.label, color: tokens.globalForeground),
+        if (field.help != null && field.help!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: ClideText(field.help!, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+          ),
+      ],
+    );
+
+    // Custom controls own their layout, persistence, and scope — render them
+    // full-width under the label rather than in the narrow control slot.
+    if (field.kind == SettingsFieldKind.custom) {
+      final id = field.customId;
+      final builder = id == null ? null : ClideKernel.of(context).settingsControlRegistry.builderFor(id);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            label,
+            const SizedBox(height: 10),
+            builder?.call(context) ?? const SizedBox.shrink(),
+          ],
+        ),
+      );
+    }
+
     final raw = store.get<Object>(field.key);
     final effective = raw ?? field.defaultValue;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClideText(field.label, color: tokens.globalForeground),
-                if (field.help != null && field.help!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: ClideText(field.help!, fontSize: clideFontCaption, color: tokens.globalTextMuted),
-                  ),
-              ],
-            ),
-          ),
+          Expanded(child: label),
           const SizedBox(width: 16),
           _Control(field: field, value: effective, store: store),
           const SizedBox(width: 10),
@@ -225,6 +242,9 @@ class _Control extends StatelessWidget {
         return _EditControl(field: field, value: value?.toString() ?? '', numeric: true, onCommit: _set);
       case SettingsFieldKind.file:
         return _FileControl(field: field);
+      case SettingsFieldKind.custom:
+        // Custom fields are rendered full-width by _FieldRow; never here.
+        return const SizedBox.shrink();
     }
   }
 }

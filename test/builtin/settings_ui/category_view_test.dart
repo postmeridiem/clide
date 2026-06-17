@@ -149,6 +149,25 @@ void main() {
     });
   });
 
+  group('custom field (T-452)', () {
+    testWidgets('renders the control registered for its customId, full-width with its label', (tester) async {
+      f.services.settingsControlRegistry.register('probe', (_) => const ClideText('PROBE-CONTROL'));
+      const cat = SettingsCategory(
+        id: 'c',
+        title: 'C',
+        sections: [
+          SettingsSection(
+            label: 'S',
+            fields: [SettingsField(key: 'app.c.x', kind: SettingsFieldKind.custom, label: 'Custom', customId: 'probe')],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: cat))));
+      expect(find.text('PROBE-CONTROL'), findsOneWidget);
+      expect(find.text('Custom'), findsOneWidget);
+    });
+  });
+
   group('scope tag (T-449)', () {
     testWidgets('an unset field shows the Default scope tag', (tester) async {
       await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));

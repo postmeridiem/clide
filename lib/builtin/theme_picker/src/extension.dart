@@ -1,7 +1,9 @@
 import 'package:clide/clide.dart';
+import 'package:clide/builtin/theme_picker/src/appearance_control.dart';
 import 'package:clide/builtin/theme_picker/src/settings_view.dart';
 import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/extension/extension.dart';
+import 'package:clide/kernel/kernel.dart';
 
 class ThemePickerExtension extends ClideExtension {
   @override
@@ -30,6 +32,32 @@ class ThemePickerExtension extends ClideExtension {
     // priority >= 100 places it in the right group; registered after
     // ipc-status so it sits to its right.
     StatusItemContribution(id: 'theme-picker.switcher', priority: 110, build: (_) => const ThemeSwitcherStatusItem()),
+    // Appearance settings category (T-452) — the theme picker as the schema
+    // engine's one custom control, registered against the control registry.
+    SettingsControlContribution(id: 'theme-picker.appearance-control', customId: 'theme.picker', builder: (_) => const AppearanceThemeControl()),
+    const SettingsCategoryContribution(
+      id: 'appearance',
+      category: SettingsCategory(
+        id: 'appearance',
+        title: 'Appearance',
+        iconName: 'palette',
+        priority: 10,
+        sections: [
+          SettingsSection(
+            label: 'Theme',
+            fields: [
+              SettingsField(
+                key: 'app.theme',
+                kind: SettingsFieldKind.custom,
+                label: 'Theme',
+                help: 'Color theme; high contrast switches to the accessible variant.',
+                customId: 'theme.picker',
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
   ];
 
   Future<IpcResponse> _pick(List<String> args) async {

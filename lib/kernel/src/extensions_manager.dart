@@ -26,6 +26,7 @@ import 'package:clide/kernel/src/project.dart';
 import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
 import 'package:clide/kernel/src/settings_registry.dart';
+import 'package:clide/kernel/src/settings_control_registry.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/tray.dart';
 import 'package:flutter/foundation.dart';
@@ -57,6 +58,7 @@ class ExtensionManager extends ChangeNotifier {
     required this.project,
     required this.ipc,
     required this.settingsRegistry,
+    required this.settingsControlRegistry,
   });
 
   final Logger log;
@@ -84,6 +86,7 @@ class ExtensionManager extends ChangeNotifier {
   final ProjectManager project;
   final DaemonClient ipc;
   final SettingsRegistry settingsRegistry;
+  final SettingsControlRegistry settingsControlRegistry;
 
   final Map<String, ClideExtension> _known = {};
   final Set<String> _activated = {};
@@ -262,6 +265,8 @@ class ExtensionManager extends ChangeNotifier {
       case SettingsCategoryContribution s:
         // register() throws on a duplicate id, rolling activation back.
         settingsRegistry.register(s.category);
+      case SettingsControlContribution s:
+        settingsControlRegistry.register(s.customId, s.builder);
     }
   }
 
@@ -284,6 +289,8 @@ class ExtensionManager extends ChangeNotifier {
         break;
       case SettingsCategoryContribution s:
         settingsRegistry.unregister(s.category.id);
+      case SettingsControlContribution s:
+        settingsControlRegistry.unregister(s.customId);
     }
   }
 
