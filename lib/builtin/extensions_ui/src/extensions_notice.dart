@@ -18,7 +18,7 @@ class ExtensionsNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

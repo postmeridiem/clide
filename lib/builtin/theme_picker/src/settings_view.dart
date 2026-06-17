@@ -45,9 +45,8 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    final kernel = ClideKernel.of(context);
     final tokens = ClideTheme.of(context).surface;
-    final i = kernel.i18n;
+    final i = ClideSettings.i18n.of(context);
     final themes = baseThemes(widget.controller.available);
     final currentBase = baseThemeName(widget.controller.currentName);
     final title = i.string('modal.title', namespace: SettingsView.ns, placeholder: 'Settings');

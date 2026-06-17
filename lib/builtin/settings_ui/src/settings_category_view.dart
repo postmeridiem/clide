@@ -69,7 +69,7 @@ class SettingsSearchResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     final store = ClideKernel.of(context).settings;
     final registry = ClideKernel.of(context).settingsRegistry;
     return ListenableBuilder(
@@ -501,7 +501,7 @@ class _ScopeTagState extends State<_ScopeTag> {
     super.dispose();
   }
 
-  String _ns(String key, String fallback) => ClideKernel.of(context).i18n.string(key, namespace: _settingsNs, placeholder: fallback);
+  String _ns(String key, String fallback) => ClideSettings.i18n.of(context).string(key, namespace: _settingsNs, placeholder: fallback);
 
   ({String glyph, Color color, String tip, String label}) _appearance(SettingsScope? layer) {
     final tokens = ClideTheme.of(context).surface;

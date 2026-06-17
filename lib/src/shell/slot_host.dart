@@ -368,5 +368,5 @@ String resolveTabTitle(BuildContext context, TabContribution t) {
   final key = t.titleKey;
   final ns = t.i18nNamespace;
   if (key == null || ns == null) return t.title;
-  return ClideKernel.of(context).i18n.string(key, namespace: ns, placeholder: t.title);
+  return ClideSettings.i18n.of(context).string(key, namespace: ns, placeholder: t.title);
 }

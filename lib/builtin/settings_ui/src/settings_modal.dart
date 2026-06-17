@@ -49,7 +49,7 @@ class _SettingsModalState extends State<SettingsModal> {
 
   @override
   Widget build(BuildContext context) {
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     final tokens = ClideTheme.of(context).surface;
     final title = i.string('modal.title', namespace: SettingsModal.ns, placeholder: 'Settings');
 
@@ -140,7 +140,7 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     final label = i.string('modal.close', namespace: SettingsModal.ns, placeholder: 'Close');
     final hint = i.string('modal.close.hint', namespace: SettingsModal.ns, placeholder: 'Close settings');
     return Semantics(
@@ -178,7 +178,7 @@ class _CategoryRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     final registry = ClideKernel.of(context).settingsRegistry;
     final searching = query.trim().isNotEmpty;
     return ListenableBuilder(
@@ -312,7 +312,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),

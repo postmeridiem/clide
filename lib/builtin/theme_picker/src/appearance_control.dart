@@ -19,7 +19,7 @@ class AppearanceThemeControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = ClideKernel.of(context).theme;
-    final i = ClideKernel.of(context).i18n;
+    final i = ClideSettings.i18n.of(context);
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
