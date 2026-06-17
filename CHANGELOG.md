@@ -79,6 +79,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   changed from "Settings…" to "Theme…" so it no longer collides with the new
   Settings panel in the palette; behaviour is unchanged. (T-445)
 
+### Fixed
+
+- **Monospace setting now applies everywhere.** Eleven context-free render
+  helpers (Claude tool bodies + results, inline markdown code/refs, search
+  previews, welcome tips) hard-coded JetBrains Mono and ignored the Monospace
+  font setting; they now honour it live. (T-472)
+
 ## [2.6.0] — 2026-06-16
 
 ### Added

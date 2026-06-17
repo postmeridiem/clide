@@ -2,6 +2,7 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_code_block.dart';
 import 'package:clide/widgets/src/clide_divider.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -35,7 +36,7 @@ typedef FileTapCallback = void Function(String path, int? line);
 /// inert (the text renders, just not interactive).
 @immutable
 class ClideMarkdownHooks {
-  const ClideMarkdownHooks({this.onRecordTap, this.onImageToken, this.onLinkTap, this.resolveFileRef, this.onOpenFile});
+  const ClideMarkdownHooks({this.onRecordTap, this.onImageToken, this.onLinkTap, this.resolveFileRef, this.onOpenFile, this.mono = clideMonoFamily});
 
   /// Tap a governance/ticket ref (T-281, D-77, …) → open the record (T-279).
   final RecordTapCallback? onRecordTap;
@@ -52,6 +53,12 @@ class ClideMarkdownHooks {
 
   /// Open a resolved workspace file in the editor (T-300).
   final FileTapCallback? onOpenFile;
+
+  /// The live monospace family (Settings → Appearance, T-471). Resolved once
+  /// from context at the widget entry and threaded through the static span
+  /// chain via this carrier, so inline `code` and ref spans honour the setting
+  /// even though the span builders are context-free statics (T-472).
+  final String mono;
 
   static const none = ClideMarkdownHooks();
 }
@@ -116,6 +123,7 @@ class ClideMarkdown extends StatelessWidget {
       onLinkTap: onLinkTap,
       resolveFileRef: resolveFileRef,
       onOpenFile: onOpenFile,
+      mono: ClideSettings.fonts.monoOf(context),
     );
     final widgets = _buildNodes(nodes, tokens, hooks);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: widgets);
@@ -372,16 +380,16 @@ class ClideMarkdown extends StatelessWidget {
         // editor (T-300); other inline code renders verbatim.
         if (hooks.resolveFileRef != null && hooks.onOpenFile != null) {
           final ref = _codeFileRef(raw, hooks.resolveFileRef!);
-          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, mono: true);
+          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, hooks.mono, mono: true);
         }
         return TextSpan(
           text: raw,
-          style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.syntaxString, backgroundColor: tokens.panelBackground),
+          style: TextStyle(fontFamily: hooks.mono, fontSize: clideFontMono, color: tokens.syntaxString, backgroundColor: tokens.panelBackground),
         );
       case 'a':
         final text = _unescapeHtml(el.textContent);
         if (hooks.onRecordTap != null && _recordPattern.hasMatch(text)) {
-          return _recordLinkSpan(text, tokens, hooks.onRecordTap!);
+          return _recordLinkSpan(text, tokens, hooks.onRecordTap!, hooks.mono);
         }
         // An http(s) link (explicit or autolinked) → tappable, opens via the
         // caller's handler (T-253). Non-http schemes stay coloured-but-inert.
@@ -394,7 +402,7 @@ class ClideMarkdown extends StatelessWidget {
         if (hooks.resolveFileRef != null && hooks.onOpenFile != null && href != null) {
           final (path, line) = _splitFileRef(href);
           final abs = hooks.resolveFileRef!(path);
-          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!);
+          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!, hooks.mono);
         }
         return TextSpan(
           text: text,
@@ -467,7 +475,7 @@ class ClideMarkdown extends StatelessWidget {
     final hits = <_LinkHit>[];
     if (wantRecords) {
       for (final m in _bareRecordPattern.allMatches(text)) {
-        hits.add(_LinkHit(m.start, m.end, _recordLinkSpan(m[0]!, tokens, hooks.onRecordTap!)));
+        hits.add(_LinkHit(m.start, m.end, _recordLinkSpan(m[0]!, tokens, hooks.onRecordTap!, hooks.mono)));
       }
     }
     if (wantFiles) {
@@ -475,7 +483,7 @@ class ClideMarkdown extends StatelessWidget {
         final abs = hooks.resolveFileRef!(m.group(1)!);
         if (abs == null) continue;
         final line = m.group(2) == null ? null : int.tryParse(m.group(2)!);
-        hits.add(_LinkHit(m.start, m.end, _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!)));
+        hits.add(_LinkHit(m.start, m.end, _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!, hooks.mono)));
       }
     }
     if (hits.isEmpty) return [TextSpan(text: text)];
@@ -517,7 +525,7 @@ class ClideMarkdown extends StatelessWidget {
   /// A clickable record-reference span: [id] rendered in the focus accent with
   /// a hover underline, firing [onRecordTap] on tap (T-279). Shared by bare-text
   /// refs and record-shaped markdown links so both look and behave alike.
-  static InlineSpan _recordLinkSpan(String id, SurfaceTokens tokens, RecordTapCallback onRecordTap) {
+  static InlineSpan _recordLinkSpan(String id, SurfaceTokens tokens, RecordTapCallback onRecordTap, String mono) {
     return WidgetSpan(
       alignment: PlaceholderAlignment.baseline,
       baseline: TextBaseline.alphabetic,
@@ -529,7 +537,7 @@ class ClideMarkdown extends StatelessWidget {
             color: tokens.globalFocus,
             fontSize: _fontSize,
             height: _lineHeight,
-            fontFamily: clideMonoFamily,
+            fontFamily: mono,
             decoration: hovered ? TextDecoration.underline : null,
             decorationColor: tokens.globalFocus,
           ),
@@ -547,7 +555,15 @@ class ClideMarkdown extends StatelessWidget {
   /// the focus accent, underlined on hover, opening the resolved [absPath] at
   /// [line] (when present) in the editor via [onOpenFile]. The [mono] flag keeps
   /// backticked refs in the monospace face; prose refs use the UI face.
-  static InlineSpan _fileLinkSpan(String display, String absPath, int? line, SurfaceTokens tokens, FileTapCallback onOpenFile, {bool mono = false}) {
+  static InlineSpan _fileLinkSpan(
+    String display,
+    String absPath,
+    int? line,
+    SurfaceTokens tokens,
+    FileTapCallback onOpenFile,
+    String monoFamily, {
+    bool mono = false,
+  }) {
     return WidgetSpan(
       alignment: PlaceholderAlignment.baseline,
       baseline: TextBaseline.alphabetic,
@@ -560,7 +576,7 @@ class ClideMarkdown extends StatelessWidget {
             color: tokens.globalFocus,
             fontSize: mono ? clideFontMono : _fontSize,
             height: _lineHeight,
-            fontFamily: mono ? clideMonoFamily : clideUiFamily,
+            fontFamily: mono ? monoFamily : clideUiFamily,
             fontFamilyFallback: mono ? null : clideUiFamilyFallback,
             decoration: hovered ? TextDecoration.underline : null,
             decorationColor: tokens.globalFocus,

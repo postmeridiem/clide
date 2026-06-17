@@ -346,7 +346,7 @@ class _MatchRow extends StatelessWidget {
                 width: 36,
                 child: ClideText('${match.line}', fontSize: clideFontCaption, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted),
               ),
-              Expanded(child: replacement.isEmpty ? _highlighted() : _preview()),
+              Expanded(child: replacement.isEmpty ? _highlighted(ClideSettings.fonts.monoOf(context)) : _preview(ClideSettings.fonts.monoOf(context))),
             ],
           ),
         ),
@@ -354,9 +354,9 @@ class _MatchRow extends StatelessWidget {
     );
   }
 
-  TextStyle get _base => TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontCaption, color: tokens.sidebarForeground);
+  TextStyle _base(String mono) => TextStyle(fontFamily: mono, fontSize: clideFontCaption, color: tokens.sidebarForeground);
 
-  Widget _highlighted() {
+  Widget _highlighted(String mono) {
     final line = match.preview;
     final start = match.matchStart.clamp(0, line.length);
     final end = match.matchEnd.clamp(start, line.length);
@@ -364,12 +364,12 @@ class _MatchRow extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       text: TextSpan(
-        style: _base,
+        style: _base(mono),
         children: [
           TextSpan(text: line.substring(0, start)),
           TextSpan(
             text: line.substring(start, end),
-            style: _base.copyWith(color: tokens.globalFocus, fontWeight: FontWeight.bold),
+            style: _base(mono).copyWith(color: tokens.globalFocus, fontWeight: FontWeight.bold),
           ),
           TextSpan(text: line.substring(end)),
         ],
@@ -379,7 +379,7 @@ class _MatchRow extends StatelessWidget {
 
   /// Replace-preview: the original line struck through, then the
   /// rewritten line (computed with the same engine the apply uses).
-  Widget _preview() {
+  Widget _preview(String mono) {
     final after = applyToText(match.preview, query, replacement).text;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,7 +389,7 @@ class _MatchRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           text: TextSpan(
             text: match.preview,
-            style: _base.copyWith(decoration: TextDecoration.lineThrough, color: tokens.globalTextMuted),
+            style: _base(mono).copyWith(decoration: TextDecoration.lineThrough, color: tokens.globalTextMuted),
           ),
         ),
         RichText(
@@ -397,7 +397,7 @@ class _MatchRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           text: TextSpan(
             text: after,
-            style: _base.copyWith(color: tokens.globalFocus),
+            style: _base(mono).copyWith(color: tokens.globalFocus),
           ),
         ),
       ],

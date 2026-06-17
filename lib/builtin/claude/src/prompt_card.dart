@@ -259,7 +259,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
         // or file body is visible but doesn't swamp the composer zone (D-78).
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 200),
-          child: SingleChildScrollView(child: _inputBody(tokens, p)),
+          child: SingleChildScrollView(child: _inputBody(tokens, ClideSettings.fonts.monoOf(context), p)),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -284,7 +284,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 
   /// Render the tool input in the shape that best fits the tool. Delegates to
   /// the shared top-level helpers (also used by ConversationView — T-168).
-  Widget _inputBody(SurfaceTokens tokens, ToolPrompt p) => toolInputBody(tokens, p.toolName, p.input);
+  Widget _inputBody(SurfaceTokens tokens, String mono, ToolPrompt p) => toolInputBody(tokens, p.toolName, p.input, mono);
 
   // -- AskUserQuestion: single = bare, multi = stepper + review --------------
 
@@ -492,19 +492,19 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 ///
 /// Shared between [ToolPromptCard] (permission prompt body) and the
 /// [ConversationView] tool-use card bodies (T-168).
-Widget toolInputBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input) {
+Widget toolInputBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input, String mono) {
   switch (toolName) {
     case 'Bash':
       return toolBashBody(tokens, input);
     case 'Write':
-      return toolWriteBody(tokens, input);
+      return toolWriteBody(tokens, input, mono);
     case 'Edit':
     case 'MultiEdit':
-      return toolEditBody(tokens, input);
+      return toolEditBody(tokens, input, mono);
     case 'Read':
     case 'Grep':
     case 'LS':
-      return toolReadLikeBody(tokens, toolName, input);
+      return toolReadLikeBody(tokens, toolName, input, mono);
     default:
       return ClideCodeBlock(source: const JsonEncoder.withIndent('  ').convert(input), language: 'json');
   }
@@ -530,21 +530,21 @@ Widget toolBashBody(SurfaceTokens tokens, Map<String, dynamic> input) {
 }
 
 /// Write tool body: the file path + content with syntax highlighting.
-Widget toolWriteBody(SurfaceTokens tokens, Map<String, dynamic> input) {
+Widget toolWriteBody(SurfaceTokens tokens, Map<String, dynamic> input, String mono) {
   final path = input['file_path'] as String? ?? '';
   final content = input['content'] as String? ?? '';
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     mainAxisSize: MainAxisSize.min,
     children: [
-      if (path.isNotEmpty) toolPathLine(tokens, path),
+      if (path.isNotEmpty) toolPathLine(tokens, path, mono),
       ClideCodeBlock(source: content, language: grammarForPath(path)),
     ],
   );
 }
 
 /// Edit / MultiEdit tool body: before/after diff view.
-Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input) {
+Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input, String mono) {
   final path = input['file_path'] as String? ?? '';
   final oldStr = input['old_string'] as String? ?? '';
   final newStr = input['new_string'] as String? ?? '';
@@ -553,12 +553,12 @@ Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input) {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     mainAxisSize: MainAxisSize.min,
     children: [
-      if (path.isNotEmpty) toolPathLine(tokens, path),
-      ClideText('— before', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+      if (path.isNotEmpty) toolPathLine(tokens, path, mono),
+      ClideText('— before', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: mono),
       const SizedBox(height: 4),
       ClideCodeBlock(source: oldStr, language: lang),
       const SizedBox(height: 8),
-      ClideText('+ after', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+      ClideText('+ after', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: mono),
       const SizedBox(height: 4),
       ClideCodeBlock(source: newStr, language: lang),
     ],
@@ -568,7 +568,7 @@ Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input) {
 /// Read / Grep / LS body: show the file path or pattern as a one-liner label
 /// so the card stays compact. These tools produce the interesting output in the
 /// result card rather than their input.
-Widget toolReadLikeBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input) {
+Widget toolReadLikeBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input, String mono) {
   final path = input['file_path'] ?? input['path'] ?? input['pattern'] ?? '';
   final extra = <String>[];
   if (toolName == 'Grep') {
@@ -576,13 +576,13 @@ Widget toolReadLikeBody(SurfaceTokens tokens, String toolName, Map<String, dynam
     if (pat != null && pat.isNotEmpty) extra.add('"$pat"');
   }
   final label = [path.toString(), ...extra].where((s) => s.isNotEmpty).join('  ');
-  return ClideText(label.isNotEmpty ? label : toolName, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground);
+  return ClideText(label.isNotEmpty ? label : toolName, fontSize: clideFontMeta, fontFamily: mono, color: tokens.globalForeground);
 }
 
 /// A muted file path line, shared across tool bodies.
-Widget toolPathLine(SurfaceTokens tokens, String path) => Padding(
+Widget toolPathLine(SurfaceTokens tokens, String path, String mono) => Padding(
   padding: const EdgeInsets.only(bottom: 6),
-  child: ClideText(path, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+  child: ClideText(path, fontSize: clideFontMeta, fontFamily: mono, color: tokens.globalTextMuted),
 );
 
 // -- shared note / free-text field -------------------------------------------

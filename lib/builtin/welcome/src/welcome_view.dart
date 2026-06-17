@@ -107,16 +107,16 @@ class _TipsCard extends StatelessWidget {
           children: [
             ClideText('TIPS', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: ClideSettings.fonts.monoOf(context)),
             const SizedBox(height: 14),
-            _tipRow(firstRow),
+            _tipRow(firstRow, ClideSettings.fonts.monoOf(context)),
             const SizedBox(height: 8),
-            _tipRow(secondRow),
+            _tipRow(secondRow, ClideSettings.fonts.monoOf(context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _tipRow(List<(String, String)> tips) {
+  Widget _tipRow(List<(String, String)> tips, String mono) {
     return Row(
       children: [
         for (var i = 0; i < tips.length; i++) ...[
@@ -126,7 +126,7 @@ class _TipsCard extends StatelessWidget {
                 Expanded(
                   child: ClideText(tips[i].$1, fontSize: clideFontMeta, color: tokens.globalTextMuted),
                 ),
-                ClideText(tips[i].$2, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily),
+                ClideText(tips[i].$2, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: mono),
               ],
             ),
           ),

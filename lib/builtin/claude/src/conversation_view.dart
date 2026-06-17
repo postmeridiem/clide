@@ -336,6 +336,7 @@ class _ConversationViewState extends State<ConversationView> {
               key: ValueKey('turn.${item.uuid}'),
               item: item,
               tokens: tokens,
+              mono: ClideSettings.fonts.monoOf(context),
               collapseTools: true,
               toolUseOutcomes: widget.toolUseOutcomes,
               quietErrorToolUseIds: widget.quietErrorToolUseIds,
@@ -547,6 +548,7 @@ class _ConversationTurn extends StatelessWidget {
     super.key,
     required this.item,
     required this.tokens,
+    required this.mono,
     this.collapseTools = false,
     this.toolUseOutcomes = const <String, bool>{},
     this.quietErrorToolUseIds = const <String>{},
@@ -559,6 +561,11 @@ class _ConversationTurn extends StatelessWidget {
 
   final ConversationItem item;
   final SurfaceTokens tokens;
+
+  /// The live monospace family (T-471/T-472), resolved from context by the
+  /// parent and threaded in so the context-free tool-body/result helpers honour
+  /// the Settings → Appearance choice.
+  final String mono;
 
   /// When true (top-level stream items), a tool use renders as its own
   /// collapser over a one-item list (T-305). When false (already inside a run /
@@ -788,6 +795,7 @@ class _ConversationTurn extends StatelessWidget {
                   key: ValueKey('run.${r.uuid}'),
                   item: r,
                   tokens: tokens,
+                  mono: mono,
                   toolUseOutcomes: toolUseOutcomes,
                   quietErrorToolUseIds: quietErrorToolUseIds,
                   toolUseById: toolUseById,
@@ -948,7 +956,7 @@ class _ConversationTurn extends StatelessWidget {
       label: t.name,
       copyText: const JsonEncoder.withIndent('  ').convert(t.input),
       status: status,
-      body: toolInputBody(tokens, t.name, t.input),
+      body: toolInputBody(tokens, t.name, t.input, mono),
       extraSegments: segments,
       // Inside a collapser the surrounding padding is even on all sides
       // (T-305): a matching bottom margin is the canvas's bottom inset and the
@@ -1005,7 +1013,7 @@ class _ConversationTurn extends StatelessWidget {
         collapsible: quiet || multiline,
         collapsedByDefault: quiet, // genuine errors stay expanded; a denial folds
         collapsedSummary: (quiet || multiline) ? _firstLine(t.content) : null,
-        body: ClideText(t.content, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: quiet ? tokens.globalTextMuted : tokens.statusError),
+        body: ClideText(t.content, fontSize: clideFontMeta, fontFamily: mono, color: quiet ? tokens.globalTextMuted : tokens.statusError),
       );
     }
 
@@ -1026,7 +1034,7 @@ class _ConversationTurn extends StatelessWidget {
       collapsedSummary: multiline ? _firstLine(t.content) : null,
       body: isOutputTool
           ? ClideCodeBlock(source: t.content, language: 'text')
-          : ClideText(t.content, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground),
+          : ClideText(t.content, fontSize: clideFontMeta, fontFamily: mono, color: tokens.globalForeground),
     );
   }
 
@@ -1089,6 +1097,7 @@ class _ActivityCard extends StatelessWidget {
             key: ValueKey('step.${item.uuid}'),
             item: item,
             tokens: tokens,
+            mono: ClideSettings.fonts.monoOf(context),
             toolUseOutcomes: toolUseOutcomes,
             quietErrorToolUseIds: quietErrorToolUseIds,
             toolUseById: toolUseById,
@@ -1154,6 +1163,7 @@ class _EditRunCard extends StatelessWidget {
             key: ValueKey('edit.${item.uuid}'),
             item: item,
             tokens: tokens,
+            mono: ClideSettings.fonts.monoOf(context),
             toolUseOutcomes: toolUseOutcomes,
             quietErrorToolUseIds: quietErrorToolUseIds,
             toolUseById: toolUseById,
