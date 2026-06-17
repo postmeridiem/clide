@@ -125,10 +125,11 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 6),
-            child: ClideText(section.label.toUpperCase(), fontSize: clideFontCaption, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
-          ),
+          if (section.label.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 6),
+              child: ClideText(section.label.toUpperCase(), fontSize: clideFontCaption, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+            ),
           ClideSurface(
             // Card surface (surface.md): panelHeader resolves to the `surface`
             // palette key (the elevated card tone); inputs inside recede to
@@ -181,8 +182,7 @@ class _FieldRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            label,
-            const SizedBox(height: 10),
+            if (field.label.isNotEmpty) ...[label, const SizedBox(height: 10)],
             builder?.call(context) ?? const SizedBox.shrink(),
           ],
         ),

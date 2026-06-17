@@ -57,6 +57,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   escape hatch (`SettingsControlContribution` / `SettingsControlRegistry`) for
   one-off controls the generic field kinds can't express. (T-452)
 
+- **Settings → Extensions tab.** A "watch this space" notice — installing and
+  toggling extensions arrives with third-party (Lua) support; built-ins stay
+  always-on for now. (T-456)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title
