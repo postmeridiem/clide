@@ -59,7 +59,10 @@
       "Bash(git checkout -- *)",
       "Bash(git restore .*)",
       "Bash(chmod -R 777 *)",
-      "Bash(chmod 777 *)"
+      "Bash(chmod 777 *)",
+      "Bash(git add -A*)",
+      "Bash(git add --all*)",
+      "Bash(git add .)"
     ]
   }
 }
