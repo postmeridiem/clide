@@ -89,6 +89,8 @@ Shell hygiene (keeps commands inside the permission allowlist, so they don't get
 
 Commit and push directly to `main` for routine work — this is a solo-dev repo and does not use a branch-first / feature-branch flow. Do **not** create a working branch just to land a change. (This overrides the generic "branch before committing on the default branch" assistant default.) The usual safety rules still hold: never `--no-verify`, never force-push `main`, and let the pre-push gate run.
 
+**Never `git add -A` or `git add .` — stage explicit paths every time (`git add <file> …`), no exceptions.** This worktree can host concurrent Claude sessions: a blanket add vacuums another session's in-progress files — and your own unrelated edits — into your commit, mislabeling work and entangling history (this has happened). If `git status` shows files you didn't touch this turn, they are not yours to stage. **Always create commits through the [`git-commit` skill](.claude/skills/git-commit/SKILL.md)** — it encodes the message format (Conventional Commits, per [D-37](governance/decisions/process.md#d-37)), the explicit-staging rule, changelog discipline, and the safety reminders. Don't hand-roll a commit that skips it.
+
 The pre-commit hook auto-exports and stages `.pql/changelog/` (the pql ticket DB) on every commit — don't hand-stage it. A ticket change only persists if the turn makes at least one commit; with no commit the hook never fires and a later branch switch can drop it.
 
 ## Changelog discipline
