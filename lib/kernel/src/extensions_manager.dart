@@ -25,6 +25,7 @@ import 'package:clide/kernel/src/panels/registry.dart';
 import 'package:clide/kernel/src/project.dart';
 import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
+import 'package:clide/kernel/src/settings_registry.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/tray.dart';
 import 'package:flutter/foundation.dart';
@@ -55,6 +56,7 @@ class ExtensionManager extends ChangeNotifier {
     required this.focus,
     required this.project,
     required this.ipc,
+    required this.settingsRegistry,
   });
 
   final Logger log;
@@ -81,6 +83,7 @@ class ExtensionManager extends ChangeNotifier {
   final FocusTracker focus;
   final ProjectManager project;
   final DaemonClient ipc;
+  final SettingsRegistry settingsRegistry;
 
   final Map<String, ClideExtension> _known = {};
   final Set<String> _activated = {};
@@ -256,6 +259,9 @@ class ExtensionManager extends ChangeNotifier {
         // Presets are consumed by the default-layout extension in its
         // own activate(); nothing for the kernel to do here.
         break;
+      case SettingsCategoryContribution s:
+        // register() throws on a duplicate id, rolling activation back.
+        settingsRegistry.register(s.category);
     }
   }
 
@@ -276,6 +282,8 @@ class ExtensionManager extends ChangeNotifier {
         tray.remove(t.id);
       case LayoutPresetContribution _:
         break;
+      case SettingsCategoryContribution s:
+        settingsRegistry.unregister(s.category.id);
     }
   }
 

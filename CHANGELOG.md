@@ -24,6 +24,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   category rail and scrolling carded panel that later work fills in; closes on
   ✕, Esc, or a barrier tap. (T-445)
 
+- **Schema-driven settings engine.** Subsystems register a `SettingsCategory`
+  (a `SettingsCategoryContribution` routed into the kernel `SettingsRegistry`);
+  the panel renders it as carded sections of field rows — toggle, select,
+  text, number, and an "opens external file" button — each bound to a
+  `SettingsStore` key with help text and reset-to-default. Inputs recede to
+  `panelBackground` inside the elevated `panelHeader` cards (ui-design
+  surface.md). Categories are data; registering one surfaces a new tab. (T-448)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

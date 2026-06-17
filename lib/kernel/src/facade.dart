@@ -34,6 +34,7 @@ import 'package:clide/kernel/src/recent_files.dart';
 import 'package:clide/kernel/src/scheduler.dart';
 import 'package:clide/kernel/src/secrets.dart';
 import 'package:clide/kernel/src/settings.dart';
+import 'package:clide/kernel/src/settings_registry.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/loader.dart';
 import 'package:clide/kernel/src/toolchain.dart';
@@ -81,10 +82,14 @@ class KernelServices {
     required this.textZoom,
     required this.toast,
     required this.logRing,
+    required this.settingsRegistry,
   });
 
   final Logger log;
   final SettingsStore settings;
+
+  /// Categories registered for the Settings panel (T-444).
+  final SettingsRegistry settingsRegistry;
   final DaemonBus events;
   final MessageBus messages;
 
@@ -155,6 +160,7 @@ class KernelServices {
 
     final settings = SettingsStore(appDir: appDir, onError: (m) => log.warn('settings', m));
     await settings.load();
+    final settingsRegistry = SettingsRegistry();
 
     final i18n = I18n(loader: i18nLoader, log: log, defaultLocale: defaultLocale, initialLocale: initialLocale, availableLocales: availableLocales);
     for (final ns in preloadNamespaces) {
@@ -238,6 +244,7 @@ class KernelServices {
       focus: focus,
       project: project,
       ipc: ipc,
+      settingsRegistry: settingsRegistry,
     );
 
     if (autoStartDaemonClient) {
@@ -248,6 +255,7 @@ class KernelServices {
       log: log,
       logRing: logRing,
       settings: settings,
+      settingsRegistry: settingsRegistry,
       events: events,
       messages: messages,
       filterStates: filterStates,
@@ -287,6 +295,7 @@ class KernelServices {
     await ipc.stop();
     ipc.dispose();
     settings.dispose();
+    settingsRegistry.dispose();
     theme.dispose();
     panels.dispose();
     arrangement.dispose();

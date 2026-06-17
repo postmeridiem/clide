@@ -1,3 +1,4 @@
+import 'package:clide/builtin/settings_ui/src/settings_category_view.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
@@ -7,19 +8,19 @@ import 'package:flutter/widgets.dart';
 ///
 /// A centered modal over the dimmed app (hosted by [DialogHost] via
 /// `ctx.dialog.show`), built from the `modalSurface*` tokens (D-7, no
-/// Material). It frames the two regions the rest of the epic fills in:
+/// Material). It frames the two regions the epic fills in:
 ///
-/// - the **category rail** on the left (navigation lands in T-447; the
-///   list is data-driven from the schemas each subsystem registers), and
-/// - the **scrolling carded panel** on the right (the schema field
-///   renderer is T-448).
+/// - the **category rail** on the left (interactive navigation lands in
+///   T-447; the list is data-driven from the registered schemas), and
+/// - the **scrolling carded panel** on the right (the schema field renderer
+///   is [SettingsCategoryView], T-448).
 ///
-/// Until any category registers a schema the panel shows its empty state —
-/// that is the correct runtime state, not a placeholder. Dismiss with the
-/// close button, Esc, or a barrier tap (the last handled by [DialogHost]).
+/// Categories come from the kernel [SettingsRegistry]; until one registers a
+/// schema the panel shows its empty state. Dismiss with the close button, Esc,
+/// or a barrier tap (the last handled by [DialogHost]).
 ///
 /// Wireframe: `docs/design/wireframes/settings/settings-screen.png`.
-class SettingsModal extends StatelessWidget {
+class SettingsModal extends StatefulWidget {
   const SettingsModal({super.key, required this.onDismiss});
 
   /// Closes the modal. Wired to the dialog router's `dismiss` by the
@@ -35,16 +36,25 @@ class SettingsModal extends StatelessWidget {
   static const double _railWidth = 196;
 
   @override
+  State<SettingsModal> createState() => _SettingsModalState();
+}
+
+class _SettingsModalState extends State<SettingsModal> {
+  /// Selected category id; null falls back to the first registered category.
+  /// The rail sets this in T-447.
+  String? _selectedId;
+
+  @override
   Widget build(BuildContext context) {
     final i = ClideKernel.of(context).i18n;
     final tokens = ClideTheme.of(context).surface;
-    final title = i.string('modal.title', namespace: ns, placeholder: 'Settings');
+    final title = i.string('modal.title', namespace: SettingsModal.ns, placeholder: 'Settings');
 
     return Focus(
       autofocus: true,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          onDismiss();
+          widget.onDismiss();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -54,23 +64,23 @@ class SettingsModal extends StatelessWidget {
         label: title,
         explicitChildNodes: true,
         child: ClideSurface(
-          width: _width,
-          height: _height,
+          width: SettingsModal._width,
+          height: SettingsModal._height,
           color: tokens.modalSurfaceBackground,
           border: tokens.modalSurfaceBorder,
           borderRadius: BorderRadius.circular(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(title: title, onClose: onDismiss),
+              _Header(title: title, onClose: widget.onDismiss),
               const ClideDivider(),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(width: _railWidth, child: const _CategoryRail()),
+                    const SizedBox(width: SettingsModal._railWidth, child: _CategoryRail()),
                     const ClideDivider(axis: Axis.vertical),
-                    const Expanded(child: _SettingsPanel()),
+                    Expanded(child: _SettingsPanel(selectedId: _selectedId)),
                   ],
                 ),
               ),
@@ -128,7 +138,10 @@ class _CloseButton extends StatelessWidget {
         onTap: onTap,
         builder: (ctx, hovered, pressed) => Container(
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+            color: hovered ? tokens.listItemHoverBackground : null,
+            borderRadius: BorderRadius.circular(4),
+          ),
           child: ClideIcon(const CloseIcon(), size: 16, color: tokens.globalForeground),
         ),
       ),
@@ -136,8 +149,8 @@ class _CloseButton extends StatelessWidget {
   }
 }
 
-/// Left rail. The category list is populated from registered schemas in
-/// T-447; for now it shows only its section header.
+/// Left rail. The interactive category list lands in T-447; for now it shows
+/// only its section header.
 class _CategoryRail extends StatelessWidget {
   const _CategoryRail();
 
@@ -162,10 +175,36 @@ class _CategoryRail extends StatelessWidget {
   }
 }
 
-/// Right panel. The schema-driven field renderer fills this in T-448; with
-/// no category registered yet it shows the empty state.
+/// Right panel — renders the selected category's schema (or the first
+/// registered one) via [SettingsCategoryView]; the empty state shows when no
+/// category is registered. The region recedes to panelBackground so the
+/// panelHeader cards pop (surface.md).
 class _SettingsPanel extends StatelessWidget {
-  const _SettingsPanel();
+  const _SettingsPanel({required this.selectedId});
+
+  final String? selectedId;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideTheme.of(context).surface;
+    final registry = ClideKernel.of(context).settingsRegistry;
+    return ColoredBox(
+      color: tokens.panelBackground,
+      child: ListenableBuilder(
+        listenable: registry,
+        builder: (context, _) {
+          final categories = registry.categories;
+          if (categories.isEmpty) return const _EmptyState();
+          final selected = (selectedId == null ? null : registry.byId(selectedId!)) ?? categories.first;
+          return SettingsCategoryView(category: selected);
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {

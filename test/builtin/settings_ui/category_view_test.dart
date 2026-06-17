@@ -1,0 +1,113 @@
+import 'package:clide/builtin/settings_ui/settings_ui.dart';
+import 'package:clide/extension/extension.dart';
+import 'package:clide/kernel/kernel.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers/kernel_fixture.dart';
+import '../../helpers/widget_harness.dart';
+
+const _category = SettingsCategory(
+  id: 'demo',
+  title: 'Demo',
+  iconName: 'gear',
+  sections: [
+    SettingsSection(
+      label: 'Group',
+      fields: [
+        SettingsField(key: 'app.demo.flag', kind: SettingsFieldKind.toggle, label: 'Flag', defaultValue: false),
+        SettingsField(
+          key: 'app.demo.level',
+          kind: SettingsFieldKind.select,
+          label: 'Level',
+          defaultValue: 'info',
+          options: [SettingsOption(value: 'info', label: 'Info'), SettingsOption(value: 'debug', label: 'Debug')],
+        ),
+        SettingsField(key: 'app.demo.name', kind: SettingsFieldKind.text, label: 'Name', defaultValue: ''),
+        SettingsField(key: 'app.demo.size', kind: SettingsFieldKind.number, label: 'Size', defaultValue: 4, min: 1, max: 8),
+      ],
+    ),
+  ],
+);
+
+/// Tiny extension that registers [_category] via the contribution.
+class _DemoSettingsExt extends ClideExtension {
+  @override
+  String get id => 'test.demo-settings';
+  @override
+  String get title => 'Demo settings';
+  @override
+  String get version => '1.0.0';
+  @override
+  List<ContributionPoint> get contributions => const [SettingsCategoryContribution(id: 'demo', category: _category)];
+}
+
+Widget _bounded(Widget child) => SizedBox(width: 620, height: 520, child: child);
+
+Finder get _toggle => find.byWidgetPredicate((w) => w is Semantics && w.properties.checked != null);
+
+void main() {
+  late KernelFixture f;
+
+  setUp(() async {
+    f = await KernelFixture.create();
+  });
+  tearDown(() async => f.dispose());
+
+  group('SettingsCategoryContribution routing', () {
+    test('an activated extension registers its category in the registry', () async {
+      f.services.extensions.register(_DemoSettingsExt());
+      await f.services.extensions.activateAll();
+      expect(f.services.settingsRegistry.byId('demo')?.title, 'Demo');
+    });
+  });
+
+  group('SettingsCategoryView', () {
+    testWidgets('renders the section header, field labels, and current values', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      expect(find.text('GROUP'), findsOneWidget); // small-caps section header
+      expect(find.text('Flag'), findsOneWidget);
+      expect(find.text('Level'), findsOneWidget);
+      expect(find.text('Name'), findsOneWidget);
+      expect(find.text('Size'), findsOneWidget);
+      // Select shows the default option's label when the key is unset.
+      expect(find.text('Info'), findsOneWidget);
+    });
+
+    testWidgets('tapping the toggle writes the flipped value to the store', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      expect(_toggle, findsOneWidget);
+      await tester.tap(_toggle);
+      await tester.pump();
+      expect(f.services.settings.get<bool>('app.demo.flag'), isTrue);
+    });
+
+    testWidgets('picking a select option writes it to the store', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      await tester.tap(find.bySemanticsLabel(RegExp(r'^Level:')));
+      await tester.pump();
+      await tester.tap(find.text('Debug'));
+      await tester.pump();
+      expect(f.services.settings.get<String>('app.demo.level'), 'debug');
+    });
+
+    testWidgets('reset control appears for a non-default value and restores the default', (tester) async {
+      await tester.runAsync(() => f.services.settings.set('app.demo.flag', true));
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      final reset = find.bySemanticsLabel('Reset to default');
+      expect(reset, findsOneWidget);
+      await tester.tap(reset);
+      await tester.pump();
+      expect(f.services.settings.get<bool>('app.demo.flag'), isFalse);
+    });
+  });
+
+  group('SettingsModal with a registered category', () {
+    testWidgets('renders the category instead of the empty state', (tester) async {
+      f.services.settingsRegistry.register(_category);
+      await tester.pumpWidget(harness(f, SettingsModal(onDismiss: () {})));
+      expect(find.text('Flag'), findsOneWidget);
+      expect(find.text('No settings categories are registered yet.'), findsNothing);
+    });
+  });
+}

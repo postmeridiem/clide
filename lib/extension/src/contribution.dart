@@ -1,5 +1,6 @@
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/src/panels/slot_id.dart';
+import 'package:clide/kernel/src/settings_schema.dart';
 import 'package:flutter/widgets.dart';
 
 /// One atom contributed by a [ClideExtension]. Extensions declare N of
@@ -137,4 +138,14 @@ class LayoutSlot {
   final double? minSize;
   final double? maxSize;
   final bool visible;
+}
+
+/// A category in the Settings panel (epic T-444). The kernel routes it into the
+/// `SettingsRegistry`; `builtin.settings-ui` renders its [SettingsCategory]
+/// schema into carded field rows (T-448). Categories are data — register one to
+/// surface a new settings tab.
+class SettingsCategoryContribution extends ContributionPoint {
+  const SettingsCategoryContribution({required super.id, required this.category});
+
+  final SettingsCategory category;
 }
