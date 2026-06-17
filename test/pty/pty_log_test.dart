@@ -3,7 +3,7 @@
 import 'dart:io';
 
 import 'package:clide/src/pty/pty_log.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('PtyLog', () {
