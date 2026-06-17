@@ -20,10 +20,12 @@ class ThemePickerExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-    // Opens the settings modal (T-238). Command id kept as `theme.pick`
-    // (the welcome theme-link and other callers reference it); ⌘K opens
-    // Settings, whose only section today is the theme picker.
-    CommandContribution(id: 'theme.pick', command: 'theme.pick', title: 'Settings…', defaultBinding: 'ctrl+k', run: _pick),
+    // Opens the theme picker modal (T-238). Command id kept as `theme.pick`
+    // (the welcome theme-link and other callers reference it). Titled
+    // "Theme…" to disambiguate from the schema-driven Settings panel's
+    // `settings.open` (T-444); the theme picker folds into that panel's
+    // Appearance category in T-452.
+    CommandContribution(id: 'theme.pick', command: 'theme.pick', title: 'Theme…', defaultBinding: 'ctrl+k', run: _pick),
     // Always-visible switcher in the far-right status bar (T-234).
     // priority >= 100 places it in the right group; registered after
     // ipc-status so it sits to its right.

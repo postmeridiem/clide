@@ -1,17 +1,44 @@
+import 'package:clide/builtin/settings_ui/src/settings_modal.dart';
+import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
 
-/// Tier-0 stub. Real implementation lands in a later tier; the extension
-/// is registered so the extensions-ui surface can list it as "installed,
-/// not yet implemented" and its id is reserved.
+/// Schema-driven Settings UI (epic T-444). T-445 lands the foundation: the
+/// `settings.open` command and the modal shell it opens. The category rail
+/// (T-447), schema field renderer (T-448), scope tags (T-449), search
+/// (T-450) and the per-subsystem categories fill the shell in later tickets.
 class SettingsUiExtension extends ClideExtension {
   @override
   String get id => 'builtin.settings-ui';
   @override
   String get title => 'Settings UI';
   @override
-  String get version => '0.0.0-stub';
+  String get version => '0.1.0';
   @override
   List<String> get dependsOn => const [];
+
+  ClideExtensionContext? _ctx;
+
   @override
-  List<ContributionPoint> get contributions => const [];
+  Future<void> activate(ClideExtensionContext ctx) async {
+    _ctx = ctx;
+  }
+
+  @override
+  List<ContributionPoint> get contributions => [
+    // Opens the Settings panel. Palette + File-menu entry come for free off
+    // the title; ctrl+, is the conventional settings shortcut.
+    CommandContribution(id: 'settings.open', command: 'settings.open', title: 'Settings…', defaultBinding: 'ctrl+,', run: _open),
+  ];
+
+  Future<IpcResponse> _open(List<String> args) async {
+    final ctx = _ctx;
+    if (ctx == null) {
+      return IpcResponse.err(
+        id: '',
+        error: IpcError(code: IpcExitCode.toolError, kind: IpcErrorKind.toolError, message: 'settings-ui not activated'),
+      );
+    }
+    await ctx.dialog.show<Object>((context, dismiss) => SettingsModal(onDismiss: () => dismiss()));
+    return IpcResponse.ok(id: '', data: const {});
+  }
 }

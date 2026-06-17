@@ -75,6 +75,8 @@ List<TopMenu> buildClideMenuTree() => [
       const MenuCommandItem('file.openFolder', fallbackTitle: 'Open Folder…'),
       const MenuCommandItem('file.newWindow', fallbackTitle: 'New Window'),
       const MenuSeparator(),
+      const MenuCommandItem('settings.open', fallbackTitle: 'Settings…'),
+      const MenuSeparator(),
       MenuCommandItem('file.closeWorkspace', fallbackTitle: 'Close Project', enabledWhen: (s) => s.project.isOpen),
     ],
   ),

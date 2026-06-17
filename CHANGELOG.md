@@ -16,6 +16,20 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ## [Unreleased]
 
+### Added
+
+- **Settings panel shell.** A new `settings.open` command (⌘`,`, plus a File
+  menu and command-palette entry) opens a centered Settings modal over the
+  dimmed app — the foundation of the schema-driven settings UI. It frames the
+  category rail and scrolling carded panel that later work fills in; closes on
+  ✕, Esc, or a barrier tap. (T-445)
+
+### Changed
+
+- **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title
+  changed from "Settings…" to "Theme…" so it no longer collides with the new
+  Settings panel in the palette; behaviour is unchanged. (T-445)
+
 ## [2.6.0] — 2026-06-16
 
 ### Added

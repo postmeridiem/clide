@@ -1,0 +1,7 @@
+{
+  "modal.title": { "translation": "Settings" },
+  "modal.close": { "translation": "Close" },
+  "modal.close.hint": { "translation": "Close settings without changing anything" },
+  "rail.header": { "translation": "Categories" },
+  "panel.empty": { "translation": "No settings categories are registered yet." }
+}
