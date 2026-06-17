@@ -46,7 +46,7 @@ class ReaderActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -90,7 +90,7 @@ class ReaderPinButton extends StatelessWidget {
       enabled: onTap != null,
       active: pinned,
       onTap: onTap,
-      tokens: ClideTheme.of(context).surface,
+      tokens: ClideSettings.theme.of(context).surface,
     );
   }
 }

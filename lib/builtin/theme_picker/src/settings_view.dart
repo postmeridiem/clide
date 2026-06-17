@@ -45,7 +45,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final i = ClideSettings.i18n.of(context);
     final themes = baseThemes(widget.controller.available);
     final currentBase = baseThemeName(widget.controller.currentName);
@@ -140,7 +140,7 @@ class _HighContrastToggleState extends State<_HighContrastToggle> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       checked: widget.checked,
       label: widget.label,
@@ -200,7 +200,7 @@ class _ThemeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final bg = selected ? tokens.listItemSelectedBackground : (hovered ? tokens.listItemHoverBackground : tokens.listItemBackground);
     final fg = selected ? tokens.listItemSelectedForeground : tokens.listItemForeground;
     return Semantics(

@@ -4,7 +4,6 @@
 library;
 
 import 'package:clide/builtin/claude/src/meta_sidebar/models.dart';
-import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -16,7 +15,7 @@ class SidebarTabStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(

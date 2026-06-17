@@ -8,7 +8,6 @@
 library;
 
 import 'package:clide/builtin/claude/src/task_list.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
@@ -30,7 +29,7 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
     final tasks = widget.tasks;
     if (tasks.isEmpty) return const SizedBox.shrink(); // no chrome when empty
 
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final done = tasks.where((t) => t.status == TaskStatus.completed).length;
     final inProgress = tasks.where((t) => t.status == TaskStatus.inProgress);
     final current = inProgress.isEmpty ? null : inProgress.first.text;

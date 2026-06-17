@@ -73,7 +73,7 @@ class _TeamPanelHostState extends State<TeamPanelHost> {
   @override
   Widget build(BuildContext context) {
     if (_members.isEmpty) return widget.lead;
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
 
     return LayoutBuilder(
       builder: (context, constraints) {

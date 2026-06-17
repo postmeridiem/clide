@@ -3,7 +3,6 @@
 /// lib/widgets/ only when a second consumer appears.
 library;
 
-import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -29,7 +28,7 @@ class MetaIconButton extends StatelessWidget {
         onTap: onTap,
         builder: (ctx, hovered, _) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-          child: ClideIcon(painter, size: 12, color: hovered ? ClideTheme.of(ctx).surface.globalForeground : color),
+          child: ClideIcon(painter, size: 12, color: hovered ? ClideSettings.theme.of(ctx).surface.globalForeground : color),
         ),
       ),
     );

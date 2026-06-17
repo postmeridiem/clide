@@ -8,7 +8,7 @@ class ToolStatusItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.toolchain,
       builder: (ctx, _) {

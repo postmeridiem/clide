@@ -50,7 +50,7 @@ class _SettingsModalState extends State<SettingsModal> {
   @override
   Widget build(BuildContext context) {
     final i = ClideSettings.i18n.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final title = i.string('modal.title', namespace: SettingsModal.ns, placeholder: 'Settings');
 
     return Focus(
@@ -117,7 +117,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
       child: Row(
@@ -139,7 +139,7 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final i = ClideSettings.i18n.of(context);
     final label = i.string('modal.close', namespace: SettingsModal.ns, placeholder: 'Close');
     final hint = i.string('modal.close.hint', namespace: SettingsModal.ns, placeholder: 'Close settings');
@@ -177,7 +177,7 @@ class _CategoryRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final i = ClideSettings.i18n.of(context);
     final registry = ClideKernel.of(context).settingsRegistry;
     final searching = query.trim().isNotEmpty;
@@ -241,7 +241,7 @@ class _RailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final dim = matchCount == 0;
     final fg = dim ? tokens.globalTextMuted : (selected ? tokens.globalForeground : tokens.sidebarForeground);
     return Semantics(
@@ -311,7 +311,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final i = ClideSettings.i18n.of(context);
     return Center(
       child: Padding(

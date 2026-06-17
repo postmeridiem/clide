@@ -1,4 +1,4 @@
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:flutter/widgets.dart';
 
 import 'clide_divider.dart';
@@ -39,7 +39,7 @@ class ClidePaneChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ColoredBox(
       color: tokens.panelBackground,
       child: Column(
@@ -59,7 +59,7 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
       label: 'Close pane',
@@ -90,7 +90,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       container: true,
       explicitChildNodes: true,

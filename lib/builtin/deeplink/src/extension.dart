@@ -9,7 +9,6 @@ library;
 import 'package:clide/builtin/deeplink/src/deep_link.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
-import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -68,7 +67,7 @@ class _DeepLinkConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = ClideTheme.of(context).surface;
+    final t = ClideSettings.theme.of(context).surface;
     return ClideSurface(
       width: 440,
       color: t.modalSurfaceBackground,

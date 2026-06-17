@@ -1,4 +1,3 @@
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_code_block.dart';
 import 'package:clide/widgets/src/clide_divider.dart';
@@ -114,7 +113,7 @@ class ClideMarkdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final doc = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored);
     final nodes = doc.parseLines(source.split('\n'));
     final hooks = ClideMarkdownHooks(

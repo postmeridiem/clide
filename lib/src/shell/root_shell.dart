@@ -73,7 +73,7 @@ class RootShellState extends State<RootShell> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     // Resolve the user-selected fonts once (Settings → Appearance, T-460/T-471)
     // and publish them via ClideFonts; the settings listener rebuilds this on a
     // change so descendants re-read live. The UI font flows through the
@@ -326,7 +326,7 @@ class _WelcomeOverlay extends StatelessWidget {
       listenable: kernel.project,
       builder: (ctx, _) {
         if (kernel.project.isOpen) return const SizedBox.shrink();
-        final tokens = ClideTheme.of(ctx).surface;
+        final tokens = ClideSettings.theme.of(ctx).surface;
         return ColoredBox(color: tokens.globalBackground, child: const WelcomeView());
       },
     );

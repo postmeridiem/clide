@@ -1,4 +1,4 @@
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
@@ -105,7 +105,7 @@ class _TabStrip<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final entries = controller.entries;
     final activeId = controller.activeId;
 
@@ -185,7 +185,7 @@ class _ReorderableTabState<T> extends State<_ReorderableTab<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
 
     final tabContent = _Tab<T>(entry: widget.entry, active: widget.active, onSelect: widget.onSelect, onClose: widget.onClose, tabHeight: widget.tabHeight);
 
@@ -238,7 +238,7 @@ class _DragFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       height: tabHeight,
       constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
@@ -271,7 +271,7 @@ class _TabState<T> extends State<_Tab<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final fg = widget.active ? tokens.tabActiveForeground : tokens.tabInactiveForeground;
     // Active tabs sit on the elevated chrome surface (panelHeader);
     // inactive tabs blend into the tab bar.
@@ -343,7 +343,7 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
       label: 'New tab',

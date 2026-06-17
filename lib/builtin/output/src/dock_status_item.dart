@@ -53,7 +53,7 @@ class _DockStatusItemState extends State<DockStatusItem> {
     return ListenableBuilder(
       listenable: kernel.arrangement,
       builder: (ctx, _) {
-        final tokens = ClideTheme.of(ctx).surface;
+        final tokens = ClideSettings.theme.of(ctx).surface;
         final open = kernel.arrangement.isVisible(Slots.dock);
         final errors = kernel.logRing.countAtLeast(LogLevel.error);
         final warns = kernel.logRing.countAtLeast(LogLevel.warn) - errors;

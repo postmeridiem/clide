@@ -1,3 +1,4 @@
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
@@ -50,7 +51,7 @@ class _ClideToastState extends State<ClideToast> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final style = _styleFor(widget.entry.severity, tokens);
     return AnimatedSlide(
       offset: _shown ? Offset.zero : const Offset(0.25, 0),

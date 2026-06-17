@@ -68,7 +68,7 @@ class SettingsSearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final i = ClideSettings.i18n.of(context);
     final store = ClideKernel.of(context).settings;
     final registry = ClideKernel.of(context).settingsRegistry;
@@ -119,7 +119,7 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
@@ -164,7 +164,7 @@ class _FieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final label = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -263,7 +263,7 @@ class _ToggleControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       checked: checked,
       excludeSemantics: true,
@@ -315,7 +315,7 @@ class _SelectControlState extends State<_SelectControl> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ClideAnchoredOverlay(
       controller: _overlay,
       align: ClideAnchorAlign.end,
@@ -427,7 +427,7 @@ class _EditControlState extends State<_EditControl> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       textField: true,
       label: widget.field.label,
@@ -504,7 +504,7 @@ class _ScopeTagState extends State<_ScopeTag> {
   String _ns(String key, String fallback) => ClideSettings.i18n.of(context).string(key, namespace: _settingsNs, placeholder: fallback);
 
   ({String glyph, Color color, String tip, String label}) _appearance(SettingsScope? layer) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return switch (layer) {
       SettingsScope.project => (
         glyph: 'folder',

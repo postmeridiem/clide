@@ -66,8 +66,8 @@ class _TicketDetailViewState extends State<TicketDetailView> {
         final d = c.detail;
         if (d == null) return const Padding(padding: EdgeInsets.all(12), child: ClideText('Select a ticket to view details.', muted: true));
 
-        final tokens = ClideTheme.of(ctx).surface;
-        final isDark = ClideTheme.of(ctx).dark;
+        final tokens = ClideSettings.theme.of(ctx).surface;
+        final isDark = ClideSettings.theme.of(ctx).dark;
         final typeColors = TicketTypeColors.forTheme(dark: isDark);
 
         return ClidePaneChrome(

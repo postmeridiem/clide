@@ -128,7 +128,7 @@ class _DecisionsViewState extends State<DecisionsView> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     if (_loading) return const Center(child: ClideText('Loading decisions...', muted: true));
     if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
     if (_decisions.isEmpty) {
@@ -153,7 +153,7 @@ class _DecisionsViewState extends State<DecisionsView> {
     final questions = filtered.where((d) => d.type == 'question').toList();
     final rejected = filtered.where((d) => d.type == 'rejected').toList();
 
-    final isDark = ClideTheme.of(context).dark;
+    final isDark = ClideSettings.theme.of(context).dark;
     final typeColors = DecisionTypeColors.forTheme(dark: isDark);
 
     return Column(

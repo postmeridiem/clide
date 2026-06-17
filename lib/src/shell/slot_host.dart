@@ -52,7 +52,7 @@ class _SlotHostState extends State<SlotHost> {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return FocusScope(
       node: _scope,
       onFocusChange: _onFocusChange,
@@ -84,7 +84,7 @@ class _SlotBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
 
     if (slot == Slots.sidebar) {
       return _SidebarSlot(tabs: tabs, active: active, activeId: activeId, onSelect: (id) => kernel.panels.activateTab(slot, id));
@@ -125,7 +125,7 @@ class _SidebarSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       color: tokens.chromeBackground,
       alignment: Alignment.topLeft,
@@ -156,7 +156,7 @@ class _WorkspaceSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.arrangement,
       builder: (ctx, _) {
@@ -218,7 +218,7 @@ class _RevealedTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Column(
       children: [
         Container(
@@ -277,7 +277,7 @@ class _EditorDragHandleState extends State<_EditorDragHandle> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final lineColor = (_hovered || _focused) ? tokens.panelActiveBorder : tokens.panelBorder;
 
     final ratio = widget.arrangement.editorRatio;
@@ -356,7 +356,7 @@ class _ContextSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(color: tokens.panelBackground, alignment: Alignment.topLeft, padding: const EdgeInsets.only(right: 2), child: active.build(context));
   }
 }

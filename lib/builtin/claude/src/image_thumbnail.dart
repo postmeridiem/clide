@@ -25,7 +25,7 @@ void openImageLightbox(BuildContext context, String path) {
 }
 
 Widget _placeholder(BuildContext context, double size) {
-  final t = ClideTheme.of(context).surface;
+  final t = ClideSettings.theme.of(context).surface;
   return Container(
     width: size,
     height: size,
@@ -46,7 +46,7 @@ class ImageThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = ClideTheme.of(context).surface;
+    final t = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
       label: 'Image $_fileName',

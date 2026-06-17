@@ -1,4 +1,4 @@
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:flutter/widgets.dart';
 
 class ClideDivider extends StatelessWidget {
@@ -9,7 +9,7 @@ class ClideDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = ClideTheme.of(context).surface.dividerColor;
+    final color = ClideSettings.theme.of(context).surface.dividerColor;
     return Container(width: axis == Axis.vertical ? thickness : null, height: axis == Axis.horizontal ? thickness : null, color: color);
   }
 }

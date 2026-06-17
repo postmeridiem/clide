@@ -41,7 +41,7 @@ class ConfigTabView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final cfg = config;
     if (cfg == null) {
       return metaPlaceholder('Claude environment not loaded.');
@@ -299,7 +299,7 @@ class _SettingControlRowState extends State<SettingControlRow> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: kMetaRowPitch),
       child: Row(

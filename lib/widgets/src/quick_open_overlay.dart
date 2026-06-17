@@ -150,7 +150,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.quickOpen,
       builder: (ctx, _) {
@@ -262,7 +262,7 @@ class _QuickOpenItemState extends State<_QuickOpenItem> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final selected = widget.highlighted;
     // Split the basename from its directory so the filename reads first.
     final slash = widget.path.lastIndexOf('/');

@@ -9,9 +9,9 @@
 /// with bounded pumps.
 library;
 
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'dart:math' as math;
 
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_svg_view.dart';
 import 'package:flutter/widgets.dart';
 
@@ -61,7 +61,7 @@ class _ClideSpinnerState extends State<ClideSpinner> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.color ?? ClideTheme.of(context).surface.globalForeground;
+    final color = widget.color ?? ClideSettings.theme.of(context).surface.globalForeground;
     // Tint every stroke of the multi-colour logo to one colour, keeping alpha.
     final mark = ColorFiltered(
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),

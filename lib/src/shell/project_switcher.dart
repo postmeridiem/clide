@@ -102,7 +102,7 @@ class _ProjectSwitcherDropdownState extends State<_ProjectSwitcherDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final recents = widget.kernel.project.recents;
     final lf = _filter.toLowerCase();
     final filtered = lf.isEmpty ? recents : recents.where((r) => r.name.toLowerCase().contains(lf) || r.path.toLowerCase().contains(lf)).toList();

@@ -104,7 +104,7 @@ class _ClidePaletteState extends State<ClidePalette> {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.palette,
       builder: (ctx, _) {
@@ -205,7 +205,7 @@ class _PaletteItemState extends State<_PaletteItem> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final selected = widget.highlighted;
     return MouseRegion(
       cursor: SystemMouseCursors.click,

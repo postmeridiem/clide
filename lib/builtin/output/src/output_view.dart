@@ -75,7 +75,7 @@ class _OutputViewState extends State<OutputView> {
     return ListenableBuilder(
       listenable: _c,
       builder: (context, _) {
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         final rows = _c.filtered;
         return Semantics(
           label: 'output log',
@@ -149,7 +149,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
       label: label,
@@ -177,7 +177,7 @@ class _JumpPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
       label: 'jump to latest',
@@ -206,7 +206,7 @@ class _LogRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final fg = _levelColor(record.level, tokens);
     final t = record.timestamp;
     final hh = t.hour.toString().padLeft(2, '0');

@@ -92,8 +92,8 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
     final d = _decision;
     if (d == null) return const Padding(padding: EdgeInsets.all(12), child: ClideText('Select a decision to view details.', muted: true));
 
-    final tokens = ClideTheme.of(context).surface;
-    final isDark = ClideTheme.of(context).dark;
+    final tokens = ClideSettings.theme.of(context).surface;
+    final isDark = ClideSettings.theme.of(context).dark;
     final typeColors = DecisionTypeColors.forTheme(dark: isDark);
 
     final id = d['id'] as String? ?? '';

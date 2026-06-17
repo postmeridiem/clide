@@ -202,7 +202,7 @@ class _DirRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expanded = controller.isExpanded(path);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final selected = path == selectedPath;
     return Semantics(
       button: true,
@@ -263,7 +263,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final leftPadding = 8.0 + (depth * 14.0);
     return ClideTappable(
       onTap: onTap,
@@ -301,7 +301,7 @@ class _FilteredFileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ClideTappable(
       onTap: () => openWorkspaceFile(ClideKernel.of(context), entry.path),
       builder: (context, hovered, _) => Container(

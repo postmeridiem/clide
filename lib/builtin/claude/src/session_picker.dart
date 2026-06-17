@@ -5,7 +5,6 @@
 library;
 
 import 'package:clide/builtin/claude/src/session_index.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
@@ -60,7 +59,7 @@ class _SessionPickerDialogState extends State<SessionPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ClideTheme.of(context).surface;
+    final theme = ClideSettings.theme.of(context).surface;
     return Focus(
       autofocus: true,
       onKeyEvent: _onKey,

@@ -23,7 +23,6 @@
 /// caller and passed in — this widget stays free of conversation semantics.
 library;
 
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_card_metrics.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
@@ -88,7 +87,7 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.only(bottom: kClideCardGap),
       child: _expanded ? _expandedFrame(tokens) : _tickerRow(tokens),

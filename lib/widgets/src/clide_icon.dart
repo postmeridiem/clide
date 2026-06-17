@@ -1,4 +1,4 @@
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:flutter/widgets.dart';
 
 /// Stateless painter producing a single-color icon. Every icon in
@@ -37,7 +37,7 @@ class ClideIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolved = color ?? ClideTheme.of(context).surface.globalForeground;
+    final resolved = color ?? ClideSettings.theme.of(context).surface.globalForeground;
     return SizedBox(
       width: size,
       height: size,

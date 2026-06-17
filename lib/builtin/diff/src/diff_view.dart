@@ -86,7 +86,7 @@ class _DiffViewState extends State<DiffView> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         return Semantics(
           label: 'diff view',
           container: true,
@@ -136,7 +136,7 @@ class _DiffToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -180,7 +180,7 @@ class _FileDiff extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final path = diff['path'] as String? ?? '';
     final isBinary = diff['binary'] as bool? ?? false;
     final isNew = diff['new'] as bool? ?? false;
@@ -264,7 +264,7 @@ class _DiffLineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final kind = line['kind'] as String? ?? 'context';
     final text = line['text'] as String? ?? '';
     final oldLineNo = line['oldLineNo'] as num?;

@@ -1,4 +1,3 @@
-import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -17,7 +16,7 @@ class ExtensionsNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final i = ClideSettings.i18n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

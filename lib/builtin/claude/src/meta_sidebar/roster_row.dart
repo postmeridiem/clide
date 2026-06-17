@@ -70,7 +70,7 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final managed = widget.orchestrator?.byMemberName(widget.member.name);
     final color = teamColor(widget.member.color, fallback: tokens.globalForeground);
     final st = widget.status;

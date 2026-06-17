@@ -8,7 +8,7 @@
 /// children leave the seam for a fuller transition later.
 library;
 
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_spinner.dart';
 import 'package:clide/widgets/src/icons/check.dart';
@@ -45,7 +45,7 @@ class _ClideStatusIndicatorState extends State<ClideStatusIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final key = ValueKey('${widget.status.name}-$_seq');
     final (Widget glyph, String label) = switch (widget.status) {
       ClideRunStatus.running => (ClideSpinner(size: widget.size, color: tokens.globalTextMuted, key: key), 'running'),

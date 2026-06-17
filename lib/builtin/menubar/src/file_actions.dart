@@ -110,7 +110,7 @@ class _OpenFolderDialogState extends State<OpenFolderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: 420,
       padding: const EdgeInsets.all(20),
@@ -173,7 +173,7 @@ class NotARepoDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: 420,
       padding: const EdgeInsets.all(20),

@@ -9,7 +9,6 @@
 library;
 
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
@@ -130,7 +129,7 @@ class _ModelPickerCardState extends State<ModelPickerCard> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Focus(
       autofocus: true,
       onKeyEvent: _onKey,

@@ -32,7 +32,7 @@ class _ThemeSwitcherStatusItemState extends State<ThemeSwitcherStatusItem> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     // Listen to both the theme (label changes) and the overlay (open state).
     return ListenableBuilder(
       listenable: Listenable.merge([_controller, _overlay]),

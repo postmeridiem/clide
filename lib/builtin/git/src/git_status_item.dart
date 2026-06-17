@@ -56,7 +56,7 @@ class _GitStatusItemState extends State<GitStatusItem> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     if (_branch == null) return const SizedBox.shrink();
     final parts = <String>[_branch!];
     if (_ahead > 0) parts.add('↑$_ahead');
@@ -143,7 +143,7 @@ class _BranchPickerState extends State<_BranchPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Focus(
       focusNode: _focus,
       onKeyEvent: _onKey,
@@ -215,7 +215,7 @@ class _BranchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ClideTappable(
       onTap: onTap,
       cursor: onTap != null ? SystemMouseCursors.click : MouseCursor.defer,

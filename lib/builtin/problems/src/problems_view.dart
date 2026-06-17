@@ -42,7 +42,7 @@ class _ProblemsViewState extends State<ProblemsView> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         return Semantics(
           label: 'problems panel',
           container: true,
@@ -104,7 +104,7 @@ class _ProblemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(

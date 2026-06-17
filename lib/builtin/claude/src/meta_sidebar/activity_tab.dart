@@ -45,7 +45,7 @@ class ActivityTabView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final latest = stats.latest;
     final u = usage;
     final sections = <MetaSection>[

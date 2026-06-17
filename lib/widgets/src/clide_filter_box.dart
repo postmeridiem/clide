@@ -1,8 +1,8 @@
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'dart:async';
 
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/kernel/src/facade.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/icons/phosphor.dart';
 import 'package:clide/widgets/src/typography.dart';
@@ -115,7 +115,7 @@ class _ClideFilterBoxState extends State<ClideFilterBox> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final hasText = _controller.text.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

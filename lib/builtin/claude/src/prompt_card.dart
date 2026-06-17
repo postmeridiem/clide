@@ -15,7 +15,6 @@ import 'dart:convert';
 
 import 'package:clide/builtin/claude/src/stream_json_session.dart';
 import 'package:clide/kernel/src/syntax/language_map.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
@@ -103,7 +102,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final (accent, label, children) = widget.prompt.isQuestion ? _question(tokens) : _permission(tokens);
     // Autofocus the card so number keys pick a button/option on appear (T-240).
     // _onKey self-guards via hasPrimaryFocus, so once the user clicks a note
@@ -607,7 +606,7 @@ class _NoteFieldState extends State<_NoteField> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(

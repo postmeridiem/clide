@@ -16,7 +16,6 @@ import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/permission_mode_control.dart';
 import 'package:clide/builtin/claude/src/running_indicator.dart';
 import 'package:clide/builtin/claude/src/slash_commands.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart';
@@ -415,7 +414,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ClideTheme.of(context).surface;
+    final theme = ClideSettings.theme.of(context).surface;
     final hasText = _controller.text.isNotEmpty;
     final fg = widget.enabled ? theme.globalForeground : theme.globalTextMuted;
 

@@ -1,4 +1,4 @@
-import 'package:clide/kernel/kernel.dart' show ClideTheme;
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_tooltip.dart';
 import 'package:flutter/widgets.dart';
 
@@ -68,7 +68,7 @@ class _ClideTappableState extends State<ClideTappable> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final enabled = widget.onTap != null;
     Widget child = MouseRegion(
       cursor: enabled ? widget.cursor : SystemMouseCursors.forbidden,

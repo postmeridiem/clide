@@ -12,7 +12,7 @@ class WelcomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return LayoutBuilder(
       builder: (context, c) {
         // Tips card sits below the START/RECENT row when there's room
@@ -493,7 +493,7 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: 420,
       padding: const EdgeInsets.all(20),
@@ -554,7 +554,7 @@ class _NotARepoDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: 420,
       padding: const EdgeInsets.all(20),

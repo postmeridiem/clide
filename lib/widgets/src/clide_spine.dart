@@ -1,6 +1,6 @@
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'dart:math' as math;
 
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:flutter/widgets.dart';
 
@@ -16,7 +16,7 @@ class ClideSpine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final borderSide = BorderSide(color: tokens.dividerColor);
 
     return Semantics(

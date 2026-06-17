@@ -10,7 +10,7 @@
 /// kept here so the UX is ours.
 library;
 
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_text.dart';
@@ -115,7 +115,7 @@ class _ClideLightboxState extends State<ClideLightbox> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final size = MediaQuery.of(context).size;
     return Focus(
       focusNode: _focus,

@@ -175,7 +175,7 @@ class _ConversationCardState extends State<ConversationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

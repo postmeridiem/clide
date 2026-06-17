@@ -97,7 +97,7 @@ class _PqlSearchBodyState extends State<PqlSearchBody> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -174,7 +174,7 @@ class _SearchResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final path = entry['path'] as String? ?? '';
     final score = (entry['score'] as num?)?.toDouble() ?? 0;
     return Padding(
@@ -242,7 +242,7 @@ class _FileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final path = entry['path'] as String? ?? '';
     return Padding(
       key: focusKey,
@@ -269,7 +269,7 @@ class _QueryResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final name = entry['name'] as String? ?? entry['path'] as String? ?? '';
     final values = entry.entries.where((e) => e.key != 'name' && e.key != 'path').map((e) => '${e.key}: ${e.value}').join(' · ');
     return Padding(

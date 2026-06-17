@@ -27,7 +27,6 @@ import 'package:clide/kernel/src/facade.dart';
 import 'package:clide/kernel/src/keymap/intents.dart';
 import 'package:clide/kernel/src/keymap/pane_key_nav.dart';
 import 'package:clide/kernel/src/syntax/language_map.dart';
-import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/src/terminal/terminal.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -293,7 +292,7 @@ class _ConversationViewState extends State<ConversationView> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final allItems = widget.controller.items;
     // T-263/T-264: resolve each sidechain run → owning Agent card before
     // culling, so the run is suppressed up top and folded into / nested under

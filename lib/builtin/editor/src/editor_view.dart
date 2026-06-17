@@ -311,7 +311,7 @@ class _EditorViewState extends State<EditorView> {
   @override
   Widget build(BuildContext context) {
     final c = _controller;
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     _text.tokens = tokens;
     if (c == null) return const SizedBox.shrink();
 

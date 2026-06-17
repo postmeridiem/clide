@@ -40,7 +40,7 @@ class _BacklinksViewState extends State<BacklinksView> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         if (c.activePath == null) {
           return const Padding(padding: EdgeInsets.all(12), child: ClideText('Open a file to see its links.', muted: true));
         }
@@ -110,7 +110,7 @@ class _LinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final target = link[pathKey] as String? ?? '';
     final alias = link['alias'] as String?;
     final display = alias ?? target;

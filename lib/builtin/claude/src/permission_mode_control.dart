@@ -88,13 +88,13 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ClideAnchoredOverlay(
       controller: _overlay,
       side: ClideAnchorSide.above,
       align: ClideAnchorAlign.end,
       offset: const Offset(0, -6),
-      overlayBuilder: (ctx, ctrl) => ClideMenu(onClose: ctrl.close, minWidth: 180, entries: _entries(ClideTheme.of(ctx).surface)),
+      overlayBuilder: (ctx, ctrl) => ClideMenu(onClose: ctrl.close, minWidth: 180, entries: _entries(ClideSettings.theme.of(ctx).surface)),
       anchor: ListenableBuilder(
         listenable: _overlay,
         builder: (ctx, _) {

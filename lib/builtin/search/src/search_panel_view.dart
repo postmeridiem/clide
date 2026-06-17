@@ -66,7 +66,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -90,7 +90,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
   }
 
   Widget _findBody() {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final c = _controller!;
     return ListenableBuilder(
       listenable: c,
@@ -443,7 +443,7 @@ class _MessageDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return _DialogFrame(
       tokens: tokens,
       children: [
@@ -468,7 +468,7 @@ class _ConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return _DialogFrame(
       tokens: tokens,
       children: [

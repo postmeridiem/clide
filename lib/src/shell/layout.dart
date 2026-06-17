@@ -65,7 +65,7 @@ class RootLayout extends StatelessWidget {
                 height: dockHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder)),
+                    border: Border(top: BorderSide(color: ClideSettings.theme.of(ctx).surface.chromeBorder)),
                   ),
                   child: SlotHost(slot: Slots.dock),
                 ),
@@ -74,7 +74,7 @@ class RootLayout extends StatelessWidget {
               Container(
                 height: statusHeight,
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: ClideTheme.of(ctx).surface.chromeBorder)),
+                  border: Border(top: BorderSide(color: ClideSettings.theme.of(ctx).surface.chromeBorder)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -136,7 +136,7 @@ class _BottomRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.panels,
       builder: (ctx, _) {
@@ -202,7 +202,7 @@ class StatusbarCollapseToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     if (!visible) return const SizedBox(width: 24);
     // The chevron points the DIRECTION OF THE ACTION: collapsing tucks the pane
     // toward its own edge, expanding brings it back toward the centre.
@@ -231,7 +231,7 @@ class StatusbarHost extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.panels,
       builder: (ctx, _) {

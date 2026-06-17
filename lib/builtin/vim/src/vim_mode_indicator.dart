@@ -1,5 +1,4 @@
 import 'package:clide/builtin/vim/src/vim_mode_service.dart';
-import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
@@ -17,7 +16,7 @@ class VimModeIndicator extends StatelessWidget {
       listenable: service,
       builder: (context, _) {
         if (!service.enabled) return const SizedBox.shrink();
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: ClideText(

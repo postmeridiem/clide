@@ -13,7 +13,7 @@ class AboutDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: 480,
       padding: const EdgeInsets.all(20),

@@ -133,7 +133,7 @@ class _ExLineOverlayState extends State<ExLineOverlay> {
   @override
   Widget build(BuildContext context) {
     final kernel = ClideKernel.of(context);
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return ListenableBuilder(
       listenable: kernel.exLine,
       builder: (ctx, _) {

@@ -1,4 +1,4 @@
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:flutter/widgets.dart';
 
 /// Themed container. Replaces Material's Card / Scaffold body surfaces
@@ -17,7 +17,7 @@ class ClideSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Container(
       width: width,
       height: height,

@@ -168,7 +168,7 @@ class _TicketsViewState extends State<TicketsView> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     if (_loading) return const Center(child: ClideText('Loading tickets...', muted: true));
     if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
     if (_tickets.isEmpty) return const Padding(padding: EdgeInsets.all(12), child: ClideText('No tickets.\nRun `pql ticket new` to create one.', muted: true));
@@ -197,7 +197,7 @@ class _TicketsViewState extends State<TicketsView> {
       (byStatus[t.status ?? 'backlog'] ??= []).add(t);
     }
 
-    final isDark = ClideTheme.of(context).dark;
+    final isDark = ClideSettings.theme.of(context).dark;
     final typeColors = TicketTypeColors.forTheme(dark: isDark);
 
     return Column(

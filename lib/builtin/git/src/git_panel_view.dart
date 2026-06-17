@@ -68,7 +68,7 @@ class _GitPanelViewState extends State<GitPanelView> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final tokens = ClideTheme.of(context).surface;
+        final tokens = ClideSettings.theme.of(context).surface;
         return Semantics(
           label: 'git panel',
           container: true,
@@ -143,7 +143,7 @@ class _BranchHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final branch = controller.branch ?? '(detached)';
     final parts = <String>[branch];
     if (controller.ahead > 0) parts.add('↑${controller.ahead}');
@@ -173,7 +173,7 @@ class _CommitInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(
@@ -239,7 +239,7 @@ class _FileGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -271,7 +271,7 @@ class _GitFileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final path = entry['path'] as String? ?? '';
     final name = path.split('/').last;
     final indexState = entry['indexState'] as String?;
@@ -352,7 +352,7 @@ class _SmallAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
       label: semanticsLabel ?? label,
@@ -376,7 +376,7 @@ class _DiscardConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final name = path.split('/').last;
     return Container(
       width: 360,

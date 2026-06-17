@@ -142,7 +142,7 @@ class _TopMenuButtonState extends State<_TopMenuButton> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final open = widget.controller.openIndex == widget.index;
     return ClideAnchoredOverlay(
       controller: _overlay,
@@ -166,7 +166,7 @@ class _TopMenuButtonState extends State<_TopMenuButton> {
                         node.keybinding!,
                         fontSize: clideFontSmall,
                         fontFamily: ClideSettings.fonts.monoOf(context),
-                        color: ClideTheme.of(ctx).surface.globalTextMuted,
+                        color: ClideSettings.theme.of(ctx).surface.globalTextMuted,
                       )
                     : null,
                 onSelect: () => unawaited(widget.kernel.commands.execute(node.commandId)),

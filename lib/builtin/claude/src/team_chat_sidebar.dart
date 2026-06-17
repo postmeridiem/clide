@@ -122,7 +122,7 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final messages = widget.model.messages;
 
     return Column(
@@ -291,7 +291,7 @@ class _TeamChatPaneState extends State<TeamChatPane> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     final messages = widget.model.messages;
 
     return Column(

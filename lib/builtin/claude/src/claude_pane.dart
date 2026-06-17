@@ -729,7 +729,7 @@ class _ClaudePaneState extends State<ClaudePane> {
   @override
   Widget build(BuildContext context) {
     final title = widget.isPrimary ? 'claude — primary' : 'claude — secondary ${widget.secondaryIndex}';
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
 
     final Widget body;
     if (_error != null) {

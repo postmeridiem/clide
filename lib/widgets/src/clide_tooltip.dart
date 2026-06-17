@@ -1,4 +1,4 @@
-import 'package:clide/kernel/src/theme/controller.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:flutter/widgets.dart';
 
@@ -29,7 +29,7 @@ class _ClideTooltipState extends State<ClideTooltip> {
 
     _entry = OverlayEntry(
       builder: (ctx) {
-        final tokens = ClideTheme.of(ctx).surface;
+        final tokens = ClideSettings.theme.of(ctx).surface;
         final tooltip = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(

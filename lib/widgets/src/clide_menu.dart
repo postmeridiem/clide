@@ -8,6 +8,7 @@
 /// quick-open) reuse identical key handling without [ClideMenu]'s rendering.
 library;
 
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
@@ -250,7 +251,7 @@ class _ClideMenuState extends State<ClideMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final t = ClideTheme.of(context).surface;
+    final t = ClideSettings.theme.of(context).surface;
     final col = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,

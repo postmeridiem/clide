@@ -18,7 +18,7 @@ class HatBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     return GestureDetector(
       onPanStart: (_) => kernel.window.startDrag(),
       child: Container(

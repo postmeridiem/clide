@@ -48,7 +48,7 @@ class TeamTabView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
+    final tokens = ClideSettings.theme.of(context).surface;
     if (members.isEmpty) {
       return metaPlaceholder('No team active.');
     }
