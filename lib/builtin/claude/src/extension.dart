@@ -10,7 +10,9 @@ import 'package:clide/builtin/claude/src/claude_session_host.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/builtin/claude/src/pane_context_status.dart';
 import 'package:clide/builtin/claude/src/claude_meta_sidebar.dart';
+import 'package:clide/builtin/claude/src/session_defaults.dart';
 import 'package:clide/builtin/claude/src/session_index.dart';
+import 'package:clide/builtin/claude/src/stream_json_session.dart' show kEffortLevels, kFallbackModels, kPermissionModes;
 import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show ImageMessage;
@@ -126,6 +128,49 @@ class ClaudeExtension extends ClideExtension {
                   SettingsOption(value: 'thinking', label: 'Fold tools + thinking'),
                   SettingsOption(value: 'everything', label: 'Fold all but prose'),
                 ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+    // Claude settings category (T-457) — defaults applied to NEW sessions
+    // (the pane reads these keys at spawn). Effort flows through --effort;
+    // model + permission mode are sent as control requests post-spawn.
+    SettingsCategoryContribution(
+      id: 'claude',
+      category: SettingsCategory(
+        id: 'claude',
+        title: 'Claude',
+        iconName: 'sparkle',
+        priority: 40,
+        sections: [
+          SettingsSection(
+            label: 'New session defaults',
+            fields: [
+              SettingsField(
+                key: kDefaultModelKey,
+                kind: SettingsFieldKind.select,
+                label: 'Model',
+                help: 'Model for new sessions.',
+                defaultValue: 'default',
+                options: [for (final m in kFallbackModels) SettingsOption(value: m.value, label: m.displayName)],
+              ),
+              SettingsField(
+                key: kDefaultEffortKey,
+                kind: SettingsFieldKind.select,
+                label: 'Effort',
+                help: 'Reasoning effort for new sessions (applied via --effort at spawn).',
+                defaultValue: 'high',
+                options: [for (final l in kEffortLevels) SettingsOption(value: l.value, label: l.displayName)],
+              ),
+              SettingsField(
+                key: kDefaultPermissionModeKey,
+                kind: SettingsFieldKind.select,
+                label: 'Permission mode',
+                help: 'Starting permission mode for new sessions.',
+                defaultValue: 'default',
+                options: [for (final p in kPermissionModes) SettingsOption(value: p.value, label: p.displayName)],
               ),
             ],
           ),

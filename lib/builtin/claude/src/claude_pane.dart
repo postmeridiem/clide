@@ -16,6 +16,7 @@ import 'conversation_controller.dart';
 import 'conversation_view.dart';
 import 'model_picker_card.dart';
 import 'permission_mode_control.dart';
+import 'session_defaults.dart';
 import 'prompt_card.dart';
 import 'session_index.dart';
 import 'session_naming.dart';
@@ -294,6 +295,11 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   Future<void> _spawn() async {
     if (!mounted) return;
+    // New sessions inherit the user's Claude defaults (T-457): effort flows
+    // through --effort below; model + permission mode are applied post-spawn.
+    final settings = ClideKernel.of(context).settings;
+    _effort ??= defaultEffortFlag(settings);
+    var isNewSession = false;
     final ipc = _ipc();
     if (ipc == null || !ipc.isConnected) {
       setState(() => _error = 'Daemon not connected.');
@@ -370,11 +376,16 @@ class _ClaudePaneState extends State<ClaudePane> {
         return;
       }
       if (!mounted) return;
+      isNewSession = !resume;
       setState(() => _statusLine = resume ? 'resumed · $_sessionId' : 'new session · $_sessionId');
     }
 
     _session = managed.session;
     _conversation = managed.conversation;
+    // A brand-new session (not a resume or fork) starts on the user's default
+    // model + permission mode (T-457). Sent as control requests; the CLI
+    // applies them after init. 'default'/unset values are no-ops.
+    if (isNewSession) applySessionDefaults(managed.session, settings);
     // The wire never reports effort — record what this session was spawned
     // with so the status line / sidebar can show it (T-412).
     if (_effort != null) managed.session.noteEffort(_effort!);

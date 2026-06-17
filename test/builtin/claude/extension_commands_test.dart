@@ -6,6 +6,7 @@
 library;
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show kActivityFoldLevelKey;
+import 'package:clide/builtin/claude/src/session_defaults.dart' show kDefaultEffortKey, kDefaultModelKey, kDefaultPermissionModeKey;
 import 'package:clide/builtin/claude/src/claude_config.dart' show activeClaudeConfig;
 import 'package:clide/builtin/claude/src/extension.dart';
 import 'package:clide/builtin/claude/src/session_orchestrator.dart' show activeSessionOrchestrator;
@@ -155,6 +156,20 @@ void main() {
       expect(field.kind, SettingsFieldKind.select);
       expect(field.defaultValue, 'tools');
       expect(field.options.map((o) => o.value), containsAll(['none', 'tools', 'thinking', 'everything']));
+    });
+  });
+
+  group('Claude settings category (T-457)', () {
+    final category = ext.contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'claude').category;
+
+    test('contributes new-session default fields for model, effort, permission', () {
+      expect(category.title, 'Claude');
+      final keys = category.sections.expand((s) => s.fields).map((f) => f.key).toSet();
+      expect(keys, containsAll([kDefaultModelKey, kDefaultEffortKey, kDefaultPermissionModeKey]));
+      for (final f in category.sections.expand((s) => s.fields)) {
+        expect(f.kind, SettingsFieldKind.select);
+        expect(f.options, isNotEmpty);
+      }
     });
   });
 }

@@ -61,6 +61,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   toggling extensions arrives with third-party (Lua) support; built-ins stay
   always-on for now. (T-456)
 
+- **Settings → Claude category.** New-session defaults — model, effort, and
+  permission mode — seed fresh sessions (effort via `--effort` at spawn;
+  model and permission applied right after start). (T-457)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title
