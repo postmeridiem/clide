@@ -54,9 +54,20 @@ dependencies:
     license: OFL-1.1
     license_file: assets/fonts/jetbrains_mono/OFL.txt
     purpose: >-
-      Monospace face for terminal panes, diff views, code editors, and
+      Default monospace face for terminal panes, diff views, code editors, and
       any other monospace surface.
     weights_bundled: [Regular, Italic, Bold, BoldItalic]
+
+  - name: Fira Mono
+    kind: font
+    version: "3.206"
+    homepage: https://github.com/mozilla/Fira
+    license: OFL-1.1
+    license_file: assets/fonts/fira_mono/OFL.txt
+    purpose: >-
+      Selectable monospace face (Settings → Appearance, T-471); JetBrains Mono
+      remains the default.
+    weights_bundled: [Regular, Bold]
 
   - name: Inter
     kind: font

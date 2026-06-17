@@ -69,6 +69,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   as the default interface typeface — Josefin Sans stays selectable — and
   Settings → Appearance gains a UI-font picker that applies live. (T-460)
 
+- **Monospace font picker.** Settings → Appearance adds a monospace font select
+  (JetBrains Mono / Fira Mono) that applies live to the terminal, diffs, code,
+  and IDs. Bundles Fira Mono. (T-471)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

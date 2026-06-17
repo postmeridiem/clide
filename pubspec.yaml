@@ -123,4 +123,10 @@ flutter:
           weight: 700
         - asset: assets/fonts/jetbrains_mono/JetBrainsMono-BoldItalic.ttf
           weight: 700
+
+    - family: FiraMono
+      fonts:
+        - asset: assets/fonts/fira_mono/FiraMono-Regular.ttf
+        - asset: assets/fonts/fira_mono/FiraMono-Bold.ttf
+          weight: 700
           style: italic

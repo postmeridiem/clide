@@ -4,7 +4,7 @@ import 'package:clide/builtin/theme_picker/src/settings_view.dart';
 import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/widgets/widgets.dart' show kUiFontSettingKey;
+import 'package:clide/widgets/widgets.dart' show kMonoFontSettingKey, kUiFontSettingKey;
 
 class ThemePickerExtension extends ClideExtension {
   @override
@@ -68,6 +68,17 @@ class ThemePickerExtension extends ClideExtension {
                 options: [
                   SettingsOption(value: 'Inter', label: 'Inter'),
                   SettingsOption(value: 'JosefinSans', label: 'Josefin Sans'),
+                ],
+              ),
+              SettingsField(
+                key: kMonoFontSettingKey,
+                kind: SettingsFieldKind.select,
+                label: 'Monospace font',
+                help: 'Terminal, diffs, code, and IDs; applies live.',
+                defaultValue: 'JetBrainsMono',
+                options: [
+                  SettingsOption(value: 'JetBrainsMono', label: 'JetBrains Mono'),
+                  SettingsOption(value: 'FiraMono', label: 'Fira Mono'),
                 ],
               ),
             ],

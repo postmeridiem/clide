@@ -2,7 +2,7 @@ import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/widgets/widgets.dart' show kUiFontSettingKey;
+import 'package:clide/widgets/widgets.dart' show kMonoFontSettingKey, kUiFontSettingKey;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -196,11 +196,15 @@ void main() {
       expect(ext.contributions.whereType<SettingsControlContribution>().any((c) => c.customId == 'theme.picker'), isTrue);
     });
 
-    test('Appearance includes a UI font picker (T-460)', () {
+    test('Appearance includes UI + monospace font pickers (T-460/T-471)', () {
       final cat = ThemePickerExtension().contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'appearance').category;
-      final font = cat.sections.expand((s) => s.fields).firstWhere((f) => f.key == kUiFontSettingKey);
-      expect(font.kind, SettingsFieldKind.select);
-      expect(font.options.map((o) => o.value), containsAll(['Inter', 'JosefinSans']));
+      final fields = cat.sections.expand((s) => s.fields).toList();
+      final ui = fields.firstWhere((f) => f.key == kUiFontSettingKey);
+      expect(ui.kind, SettingsFieldKind.select);
+      expect(ui.options.map((o) => o.value), containsAll(['Inter', 'JosefinSans']));
+      final mono = fields.firstWhere((f) => f.key == kMonoFontSettingKey);
+      expect(mono.kind, SettingsFieldKind.select);
+      expect(mono.options.map((o) => o.value), containsAll(['JetBrainsMono', 'FiraMono']));
     });
 
     testWidgets('AppearanceThemeControl lists base themes and applies a pick (T-452)', (tester) async {
