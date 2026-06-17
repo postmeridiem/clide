@@ -309,9 +309,10 @@ class _DecisionCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
                   const Spacer(),
-                  if (entry.domain != null) ClideText(entry.domain!, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  if (entry.domain != null)
+                    ClideText(entry.domain!, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
                 ],
               ),
               const SizedBox(height: 4),
@@ -321,7 +322,7 @@ class _DecisionCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: tokens.statusSuccess.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
-                  child: ClideText('resolved', fontSize: clideFontBadge, color: tokens.statusSuccess, fontFamily: clideMonoFamily),
+                  child: ClideText('resolved', fontSize: clideFontBadge, color: tokens.statusSuccess, fontFamily: ClideSettings.fonts.monoOf(context)),
                 ),
               ],
             ],

@@ -148,16 +148,17 @@ class _TicketHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              ClideText(detail.id, fontSize: clideFontSmall, color: typeColor, fontFamily: clideMonoFamily),
+              ClideText(detail.id, fontSize: clideFontSmall, color: typeColor, fontFamily: ClideSettings.fonts.monoOf(context)),
               const Spacer(),
-              if (detail.priority != null) ClideText(detail.priority!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+              if (detail.priority != null)
+                ClideText(detail.priority!, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
             ],
           ),
           const SizedBox(height: 8),
           ClideText(detail.title, fontSize: 15, fontWeight: FontWeight.w500),
           if (detail.assignedTo != null) ...[
             const SizedBox(height: 6),
-            ClideText('assigned: ${detail.assignedTo}', muted: true, fontSize: clideFontSmall, fontFamily: clideMonoFamily),
+            ClideText('assigned: ${detail.assignedTo}', muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context)),
           ],
         ],
       ),
@@ -206,7 +207,7 @@ class _StatusControls extends StatelessWidget {
                     border: Border.all(color: active ? tokens.statusInfo : tokens.panelBorder),
                   ),
                   alignment: Alignment.center,
-                  child: ClideText(_shortLabel(s), fontSize: clideFontBadge, color: color, fontFamily: clideMonoFamily),
+                  child: ClideText(_shortLabel(s), fontSize: clideFontBadge, color: color, fontFamily: ClideSettings.fonts.monoOf(context)),
                 );
               },
             ),
@@ -234,7 +235,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClideText(label, fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily);
+    return ClideText(label, fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: ClideSettings.fonts.monoOf(context));
   }
 }
 
@@ -270,7 +271,7 @@ class _CompactCard extends StatelessWidget {
                 decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
               ),
               const SizedBox(width: 6),
-              ClideText(id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+              ClideText(id, fontSize: clideFontSmall, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
               const SizedBox(width: 8),
               Expanded(child: ClideText(title, fontSize: clideFontSmall)),
             ],
@@ -320,9 +321,10 @@ class _DecisionRefCard extends StatelessWidget {
                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 6),
-                  ClideText(id, fontSize: clideFontSmall, color: color, fontFamily: clideMonoFamily),
+                  ClideText(id, fontSize: clideFontSmall, color: color, fontFamily: ClideSettings.fonts.monoOf(context)),
                   const Spacer(),
-                  if (domain != null) ClideText(domain, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                  if (domain != null)
+                    ClideText(domain, fontSize: clideFontBadge, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
                 ],
               ),
               const SizedBox(height: 3),

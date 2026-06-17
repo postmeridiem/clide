@@ -1,4 +1,5 @@
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
@@ -139,7 +140,7 @@ class _ClidePaletteState extends State<ClidePalette> {
                       child: EditableText(
                         controller: _input,
                         focusNode: _focus,
-                        style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.dropdownForeground),
+                        style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.dropdownForeground),
                         cursorColor: tokens.globalFocus,
                         backgroundCursorColor: tokens.globalFocus,
                         maxLines: 1,
@@ -222,7 +223,8 @@ class _PaletteItemState extends State<_PaletteItem> {
           child: Row(
             children: [
               Expanded(child: ClideText(widget.title, color: selected ? tokens.listItemSelectedForeground : tokens.listItemForeground)),
-              if (widget.binding != null) ClideText(widget.binding!, fontSize: clideFontCaption, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+              if (widget.binding != null)
+                ClideText(widget.binding!, fontSize: clideFontCaption, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted),
             ],
           ),
         ),

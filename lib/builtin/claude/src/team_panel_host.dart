@@ -178,7 +178,7 @@ class _TeammateTile extends StatelessWidget {
               children: [
                 Container(width: 3, height: 13, color: accent),
                 const SizedBox(width: 6),
-                ClideText(member.name, fontSize: clideFontSmall, color: accent, fontFamily: clideMonoFamily),
+                ClideText(member.name, fontSize: clideFontSmall, color: accent, fontFamily: ClideSettings.fonts.monoOf(context)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ClideText(

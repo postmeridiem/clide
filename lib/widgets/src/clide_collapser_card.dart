@@ -27,6 +27,7 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_card_metrics.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_status_indicator.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
@@ -119,7 +120,7 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
         // Chevron — hard against the left edge; the toggle.
         ClideIcon(expanded ? const ChevronDownIcon() : const ChevronRightIcon(), size: 12, color: accent),
         const SizedBox(width: 8),
-        ClideText(widget.label, fontSize: clideFontCaption, fontFamily: clideMonoFamily, color: accent),
+        ClideText(widget.label, fontSize: clideFontCaption, fontFamily: ClideSettings.fonts.monoOf(context), color: accent),
         if (showSummary) ...[
           const SizedBox(width: 10),
           Expanded(
@@ -128,7 +129,7 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
               // Summary one step below the label, matching ConversationCard so
               // collapser + tool cards read consistently in the stream (T-344).
               fontSize: clideFontMeta,
-              fontFamily: clideMonoFamily,
+              fontFamily: ClideSettings.fonts.monoOf(context),
               color: tokens.globalTextMuted,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

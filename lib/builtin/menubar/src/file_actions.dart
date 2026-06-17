@@ -137,7 +137,12 @@ class _OpenFolderDialogState extends State<OpenFolderDialog> {
             child: EditableText(
               controller: _controller,
               focusNode: _focus,
-              style: TextStyle(color: tokens.globalForeground, fontSize: 14, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback),
+              style: TextStyle(
+                color: tokens.globalForeground,
+                fontSize: 14,
+                fontFamily: ClideSettings.fonts.monoOf(context),
+                fontFamilyFallback: clideMonoFamilyFallback,
+              ),
               cursorColor: tokens.globalForeground,
               backgroundCursorColor: tokens.globalTextMuted,
               onSubmitted: (_) => unawaited(_submit()),

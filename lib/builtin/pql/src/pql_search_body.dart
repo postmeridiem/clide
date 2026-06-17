@@ -228,7 +228,7 @@ class _ScoreBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        ClideText('${(score * 100).round()}%', fontSize: clideFontBadge, muted: true, fontFamily: clideMonoFamily),
+        ClideText('${(score * 100).round()}%', fontSize: clideFontBadge, muted: true, fontFamily: ClideSettings.fonts.monoOf(context)),
       ],
     );
   }

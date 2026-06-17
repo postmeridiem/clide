@@ -36,8 +36,15 @@ These apply across every reference and every surface:
 - Never use `Material*` or `Cupertino*` widgets or color constants — clide
   is `WidgetsApp` only (D-7).
 - Use `ClideText` for themed text; never bare `Text` in production widgets.
-- Typography: `clideFontMono` for code/paths/IDs, `clideFontCaption` for
+- Typography sizes: `clideFontMono` for code/paths/IDs, `clideFontCaption` for
   status/section headers, body inherits from `DefaultTextStyle`.
+- Font *family* comes from the user-selectable facade, not a const: a
+  monospace surface uses `fontFamily: ClideSettings.fonts.monoOf(context)`
+  (and `fontFamilyFallback: clideMonoFamilyFallback`); the UI face is inherited
+  via the root `DefaultTextStyle`, or `ClideSettings.fonts.uiOf(context)` when a
+  widget must set it explicitly. `clideMonoFamily` / `clideUiFamily` are the
+  facade's defaults — don't read them directly in new widgets (D-101). Same
+  facade exposes `ClideSettings.theme.of(context)` and `.i18n.of(context)`.
 
 ## Conversation-panel cards (T-305)
 

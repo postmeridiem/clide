@@ -1,5 +1,6 @@
 import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/clide_icon.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_tappable.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/icons/phosphor.dart';
@@ -43,7 +44,7 @@ class ClideAccordion extends StatelessWidget {
                   '$label · $count',
                   fontSize: clideFontSmall,
                   color: hovered ? tokens.globalForeground : tokens.sidebarSectionHeader,
-                  fontFamily: clideMonoFamily,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
                 ),
               ],
             ),

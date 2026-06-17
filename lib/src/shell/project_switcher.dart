@@ -34,7 +34,12 @@ class ProjectSwitcherButton extends StatelessWidget {
           builder: (context, hovered, _) => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ClideText(label, fontSize: 12, color: hovered ? tokens.globalForeground : tokens.chromeForeground, fontFamily: clideMonoFamily),
+              ClideText(
+                label,
+                fontSize: 12,
+                color: hovered ? tokens.globalForeground : tokens.chromeForeground,
+                fontFamily: ClideSettings.fonts.monoOf(context),
+              ),
               const SizedBox(width: 4),
               ClideIcon(PhosphorIcons.byName('caret-down'), size: 8, color: tokens.chromeForeground),
             ],
@@ -195,7 +200,7 @@ class _RecentProjectRow extends StatelessWidget {
                             project.relativePath,
                             muted: true,
                             fontSize: 12,
-                            fontFamily: clideMonoFamily,
+                            fontFamily: ClideSettings.fonts.monoOf(context),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -203,11 +208,18 @@ class _RecentProjectRow extends StatelessWidget {
                         ClideText('  ·  ', muted: true, fontSize: 12),
                         ClideIcon(PhosphorIcons.byName('git-branch'), size: 10, color: tokens.globalTextMuted),
                         const SizedBox(width: 3),
-                        ClideText(project.branch!, muted: true, fontSize: 12, fontFamily: clideMonoFamily),
+                        ClideText(project.branch!, muted: true, fontSize: 12, fontFamily: ClideSettings.fonts.monoOf(context)),
                       ],
                     )
                   else
-                    ClideText(project.relativePath, muted: true, fontSize: 12, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ClideText(
+                      project.relativePath,
+                      muted: true,
+                      fontSize: 12,
+                      fontFamily: ClideSettings.fonts.monoOf(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -236,7 +248,8 @@ class _ActionRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: ClideText(label, fontSize: 14)),
-            if (shortcut != null && shortcut!.isNotEmpty) ClideText(shortcut!, fontSize: 12, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+            if (shortcut != null && shortcut!.isNotEmpty)
+              ClideText(shortcut!, fontSize: 12, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
           ],
         ),
       ),

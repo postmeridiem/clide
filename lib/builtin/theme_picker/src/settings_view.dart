@@ -75,7 +75,7 @@ class _SettingsViewState extends State<SettingsView> {
               i.string('section.appearance', namespace: SettingsView.ns, placeholder: 'Appearance'),
               fontSize: clideFontCaption,
               color: tokens.sidebarSectionHeader,
-              fontFamily: clideMonoFamily,
+              fontFamily: ClideSettings.fonts.monoOf(context),
             ),
             const SizedBox(height: 8),
             _HighContrastToggle(

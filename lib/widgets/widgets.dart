@@ -13,6 +13,7 @@ export 'src/clide_card_metrics.dart';
 export 'src/clide_collapser_card.dart';
 export 'src/clide_code_block.dart';
 export 'src/clide_divider.dart';
+export 'src/clide_settings.dart';
 export 'src/clide_file_image.dart';
 export 'src/ex_line_overlay.dart';
 export 'src/clide_filter_box.dart';

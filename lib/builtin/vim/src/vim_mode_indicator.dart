@@ -20,7 +20,12 @@ class VimModeIndicator extends StatelessWidget {
         final tokens = ClideTheme.of(context).surface;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: ClideText('-- ${service.mode.label} --', fontFamily: clideMonoFamily, fontSize: clideFontCaption, color: tokens.statusBarForeground),
+          child: ClideText(
+            '-- ${service.mode.label} --',
+            fontFamily: ClideSettings.fonts.monoOf(context),
+            fontSize: clideFontCaption,
+            color: tokens.statusBarForeground,
+          ),
         );
       },
     );

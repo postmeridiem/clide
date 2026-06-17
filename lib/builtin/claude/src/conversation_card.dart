@@ -241,13 +241,13 @@ class _ConversationCardState extends State<ConversationCard> {
         if (widget.collapsible) _caret(tokens),
         // Header label size matches ClideCollapserCard (clideFontCaption) so
         // neighbouring cards in the conversation stream align (T-344).
-        ClideText(widget.label, fontSize: clideFontCaption, color: widget.accent, fontFamily: clideMonoFamily),
+        ClideText(widget.label, fontSize: clideFontCaption, color: widget.accent, fontFamily: ClideSettings.fonts.monoOf(context)),
         // While collapsed, show a one-line gist next to the label so the card
         // still says what it holds.
         if (_collapsed && summary != null) ...[
           const SizedBox(width: 10),
           Expanded(
-            child: ClideText(summary, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily, maxLines: 1),
+            child: ClideText(summary, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context), maxLines: 1),
           ),
         ] else
           const Spacer(),
@@ -322,7 +322,7 @@ class _ConversationCardState extends State<ConversationCard> {
     padding: const EdgeInsets.only(top: 8, bottom: 4),
     child: Row(
       children: [
-        ClideText(label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+        ClideText(label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
         const SizedBox(width: 8),
         Expanded(child: Container(height: 1, color: tokens.panelBorder)),
       ],
@@ -349,7 +349,7 @@ class _ConversationCardState extends State<ConversationCard> {
             onTap: items[i].onTap,
             builder: (_, hovered, pressed) => Padding(
               padding: const EdgeInsets.only(left: 10),
-              child: ClideText(items[i].label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+              child: ClideText(items[i].label, fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
             ),
           ),
         ),

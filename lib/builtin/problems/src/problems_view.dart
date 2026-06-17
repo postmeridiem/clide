@@ -113,7 +113,7 @@ class _ProblemRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              ClideText(problem.source, fontSize: clideFontMono, color: tokens.statusWarning, fontFamily: clideMonoFamily),
+              ClideText(problem.source, fontSize: clideFontMono, color: tokens.statusWarning, fontFamily: ClideSettings.fonts.monoOf(context)),
               const SizedBox(width: 6),
               Expanded(child: ClideText(problem.message, color: tokens.sidebarForeground, maxLines: 2)),
             ],
@@ -121,7 +121,7 @@ class _ProblemRow extends StatelessWidget {
           if (problem.hint != null)
             Padding(
               padding: const EdgeInsets.only(left: 44, top: 2),
-              child: ClideText(problem.hint!, fontSize: clideFontMono, muted: true, fontFamily: clideMonoFamily),
+              child: ClideText(problem.hint!, fontSize: clideFontMono, muted: true, fontFamily: ClideSettings.fonts.monoOf(context)),
             ),
         ],
       ),

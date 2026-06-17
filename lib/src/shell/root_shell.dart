@@ -74,118 +74,127 @@ class RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    return DefaultTextStyle(
-      style: TextStyle(
-        color: tokens.globalForeground,
-        fontSize: 15,
-        height: clideLineHeight,
-        fontWeight: clideUiDefaultWeight,
-        // User-selected UI font (Settings → Appearance, T-460), else the
-        // bundled default. The fallback chain still covers a missing asset.
-        fontFamily: widget.services.settings.get<String>(kUiFontSettingKey) ?? clideUiFamily,
-        fontFamilyFallback: clideUiFamilyFallback,
-      ),
-      child: MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(widget.services.textZoom.scale)),
-        child: Actions(
-          actions: <Type, Action<Intent>>{
-            TextScaleIncreaseIntent: CallbackAction<TextScaleIncreaseIntent>(
-              onInvoke: (_) {
-                widget.services.textZoom.increase();
-                return null;
-              },
-            ),
-            TextScaleDecreaseIntent: CallbackAction<TextScaleDecreaseIntent>(
-              onInvoke: (_) {
-                widget.services.textZoom.decrease();
-                return null;
-              },
-            ),
-            TextScaleResetIntent: CallbackAction<TextScaleResetIntent>(
-              onInvoke: (_) {
-                widget.services.textZoom.reset();
-                return null;
-              },
-            ),
-            InvokeCommandIntent: CallbackAction<InvokeCommandIntent>(
-              onInvoke: (intent) {
-                widget.services.commands.execute(intent.commandId);
-                return null;
-              },
-            ),
-            PaletteOpenIntent: CallbackAction<PaletteOpenIntent>(
-              onInvoke: (_) {
-                widget.services.palette.open();
-                return null;
-              },
-            ),
-            QuickOpenIntent: CallbackAction<QuickOpenIntent>(
-              onInvoke: (_) {
-                widget.services.quickOpen.open();
-                return null;
-              },
-            ),
-            ExLineOpenIntent: CallbackAction<ExLineOpenIntent>(
-              onInvoke: (_) {
-                widget.services.exLine.open();
-                return null;
-              },
-            ),
-            ExLineWriteQuitIntent: CallbackAction<ExLineWriteQuitIntent>(
-              onInvoke: (_) {
-                // ZZ — save+close the active tab without opening the overlay.
-                unawaited(exWriteQuitActive(widget.services.ipc));
-                return null;
-              },
-            ),
-            FindInFilesIntent: CallbackAction<FindInFilesIntent>(
-              onInvoke: (_) {
-                widget.services.arrangement.setVisible(Slots.sidebar, true);
-                widget.services.arrangement.setCollapsed(Slots.sidebar, false);
-                widget.services.panels.activateTab(Slots.sidebar, 'search.findInFiles');
-                return null;
-              },
-            ),
-            FocusNextPanelIntent: CallbackAction<FocusNextPanelIntent>(
-              onInvoke: (_) {
-                widget.services.focus.focusNextSlot();
-                return null;
-              },
-            ),
-            FocusPreviousPanelIntent: CallbackAction<FocusPreviousPanelIntent>(
-              onInvoke: (_) {
-                widget.services.focus.focusPreviousSlot();
-                return null;
-              },
-            ),
-          },
-          child: KeyboardListener(
-            focusNode: _keyFocus,
-            autofocus: true,
-            onKeyEvent: _onKey,
-            child: ColoredBox(
-              color: tokens.globalBackground,
-              child: ClideResizeBorder(
-                windowControls: widget.services.window,
-                child: Column(
-                  children: [
-                    HatBar(kernel: widget.services, menuBar: _menuBar),
-                    Expanded(
-                      child: DialogHost(
-                        router: widget.services.dialog,
-                        child: Stack(
-                          children: [
-                            const Positioned.fill(child: RootLayout()),
-                            const ClidePalette(),
-                            const QuickOpenOverlay(),
-                            const ExLineOverlay(),
-                            const Positioned.fill(child: _WelcomeOverlay()),
-                            const ToastOverlay(),
-                          ],
+    // Resolve the user-selected fonts once (Settings → Appearance, T-460/T-471)
+    // and publish them via ClideFonts; the settings listener rebuilds this on a
+    // change so descendants re-read live. The UI font flows through the
+    // DefaultTextStyle below; mono sites read ClideFonts.monoOf(context).
+    final settings = widget.services.settings;
+    final uiFont = settings.get<String>(kUiFontSettingKey) ?? clideUiFamily;
+    final monoFont = settings.get<String>(kMonoFontSettingKey) ?? clideMonoFamily;
+    return ClideSettingsScope(
+      ui: uiFont,
+      mono: monoFont,
+      child: DefaultTextStyle(
+        style: TextStyle(
+          color: tokens.globalForeground,
+          fontSize: 15,
+          height: clideLineHeight,
+          fontWeight: clideUiDefaultWeight,
+          fontFamily: uiFont,
+          fontFamilyFallback: clideUiFamilyFallback,
+        ),
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(widget.services.textZoom.scale)),
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              TextScaleIncreaseIntent: CallbackAction<TextScaleIncreaseIntent>(
+                onInvoke: (_) {
+                  widget.services.textZoom.increase();
+                  return null;
+                },
+              ),
+              TextScaleDecreaseIntent: CallbackAction<TextScaleDecreaseIntent>(
+                onInvoke: (_) {
+                  widget.services.textZoom.decrease();
+                  return null;
+                },
+              ),
+              TextScaleResetIntent: CallbackAction<TextScaleResetIntent>(
+                onInvoke: (_) {
+                  widget.services.textZoom.reset();
+                  return null;
+                },
+              ),
+              InvokeCommandIntent: CallbackAction<InvokeCommandIntent>(
+                onInvoke: (intent) {
+                  widget.services.commands.execute(intent.commandId);
+                  return null;
+                },
+              ),
+              PaletteOpenIntent: CallbackAction<PaletteOpenIntent>(
+                onInvoke: (_) {
+                  widget.services.palette.open();
+                  return null;
+                },
+              ),
+              QuickOpenIntent: CallbackAction<QuickOpenIntent>(
+                onInvoke: (_) {
+                  widget.services.quickOpen.open();
+                  return null;
+                },
+              ),
+              ExLineOpenIntent: CallbackAction<ExLineOpenIntent>(
+                onInvoke: (_) {
+                  widget.services.exLine.open();
+                  return null;
+                },
+              ),
+              ExLineWriteQuitIntent: CallbackAction<ExLineWriteQuitIntent>(
+                onInvoke: (_) {
+                  // ZZ — save+close the active tab without opening the overlay.
+                  unawaited(exWriteQuitActive(widget.services.ipc));
+                  return null;
+                },
+              ),
+              FindInFilesIntent: CallbackAction<FindInFilesIntent>(
+                onInvoke: (_) {
+                  widget.services.arrangement.setVisible(Slots.sidebar, true);
+                  widget.services.arrangement.setCollapsed(Slots.sidebar, false);
+                  widget.services.panels.activateTab(Slots.sidebar, 'search.findInFiles');
+                  return null;
+                },
+              ),
+              FocusNextPanelIntent: CallbackAction<FocusNextPanelIntent>(
+                onInvoke: (_) {
+                  widget.services.focus.focusNextSlot();
+                  return null;
+                },
+              ),
+              FocusPreviousPanelIntent: CallbackAction<FocusPreviousPanelIntent>(
+                onInvoke: (_) {
+                  widget.services.focus.focusPreviousSlot();
+                  return null;
+                },
+              ),
+            },
+            child: KeyboardListener(
+              focusNode: _keyFocus,
+              autofocus: true,
+              onKeyEvent: _onKey,
+              child: ColoredBox(
+                color: tokens.globalBackground,
+                child: ClideResizeBorder(
+                  windowControls: widget.services.window,
+                  child: Column(
+                    children: [
+                      HatBar(kernel: widget.services, menuBar: _menuBar),
+                      Expanded(
+                        child: DialogHost(
+                          router: widget.services.dialog,
+                          child: Stack(
+                            children: [
+                              const Positioned.fill(child: RootLayout()),
+                              const ClidePalette(),
+                              const QuickOpenOverlay(),
+                              const ExLineOverlay(),
+                              const Positioned.fill(child: _WelcomeOverlay()),
+                              const ToastOverlay(),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -67,7 +67,7 @@ class _Kv extends StatelessWidget {
         children: [
           SizedBox(width: 90, child: ClideText(label, fontSize: 13, color: tokens.globalTextMuted)),
           Expanded(
-            child: ClideText(value, fontSize: 13, fontFamily: clideMonoFamily, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: ClideText(value, fontSize: 13, fontFamily: ClideSettings.fonts.monoOf(context), maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
@@ -106,7 +106,7 @@ class _Licenses extends StatelessWidget {
                 child: ClideText(
                   '${d.name} ${d.version} · ${d.license}',
                   fontSize: 12,
-                  fontFamily: clideMonoFamily,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
                   color: tokens.globalTextMuted,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

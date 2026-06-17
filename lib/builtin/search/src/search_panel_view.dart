@@ -255,7 +255,7 @@ class _Toggle extends StatelessWidget {
           ),
           child: ClideText(
             label,
-            fontFamily: clideMonoFamily,
+            fontFamily: ClideSettings.fonts.monoOf(context),
             fontSize: clideFontCaption,
             color: active ? tokens.listItemSelectedForeground : tokens.sidebarForeground,
           ),
@@ -344,7 +344,7 @@ class _MatchRow extends StatelessWidget {
             children: [
               SizedBox(
                 width: 36,
-                child: ClideText('${match.line}', fontSize: clideFontCaption, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+                child: ClideText('${match.line}', fontSize: clideFontCaption, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted),
               ),
               Expanded(child: replacement.isEmpty ? _highlighted() : _preview()),
             ],

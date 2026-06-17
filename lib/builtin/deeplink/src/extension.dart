@@ -83,7 +83,7 @@ class _DeepLinkConfirmDialog extends StatelessWidget {
           const SizedBox(height: 6),
           ClideText('A clide:// link from outside the app is asking to:', muted: true, fontSize: clideFontSmall),
           const SizedBox(height: 8),
-          ClideText(action.describe, fontFamily: clideMonoFamily, fontSize: clideFontSmall, color: t.globalForeground),
+          ClideText(action.describe, fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontSmall, color: t.globalForeground),
           const SizedBox(height: 8),
           ClideText('Only allow this if you trust where the link came from.', fontSize: clideFontMeta, color: t.statusWarning),
           const SizedBox(height: 14),

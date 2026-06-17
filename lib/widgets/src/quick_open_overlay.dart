@@ -1,4 +1,5 @@
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
@@ -187,7 +188,7 @@ class _QuickOpenOverlayState extends State<QuickOpenOverlay> {
                       child: EditableText(
                         controller: _input,
                         focusNode: _focus,
-                        style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.dropdownForeground),
+                        style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.dropdownForeground),
                         cursorColor: tokens.globalFocus,
                         backgroundCursorColor: tokens.globalFocus,
                         maxLines: 1,
@@ -288,7 +289,7 @@ class _QuickOpenItemState extends State<_QuickOpenItem> {
                 child: ClideText(
                   dir,
                   fontSize: clideFontCaption,
-                  fontFamily: clideMonoFamily,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
                   color: tokens.globalTextMuted,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1,4 +1,5 @@
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
@@ -160,13 +161,13 @@ class _ExLineOverlayState extends State<ExLineOverlay> {
                       padding: const EdgeInsets.all(8),
                       child: Row(
                         children: [
-                          ClideText(':', fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+                          ClideText(':', fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted),
                           const SizedBox(width: 4),
                           Expanded(
                             child: EditableText(
                               controller: _input,
                               focusNode: _focus,
-                              style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.dropdownForeground),
+                              style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.dropdownForeground),
                               cursorColor: tokens.globalFocus,
                               backgroundCursorColor: tokens.globalFocus,
                               maxLines: 1,

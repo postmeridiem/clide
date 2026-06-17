@@ -142,6 +142,7 @@ You might also want, project-permitting:
 - [D-98: Remote-tool contract + connect preflight](decisions/architecture.md#d-98-remote-tool-contract--connect-preflight) — _architecture_
 - [D-99: Remote session identity keyed on (host, workspace)](decisions/architecture.md#d-99-remote-session-identity-keyed-on-host-workspace) — _architecture_
 - [D-100: Fence `dart:ffi` behind conditional imports + web stubs to keep the web/WASM target compiling](decisions/tooling.md#d-100-fence-dartffi-behind-conditional-imports--web-stubs-to-keep-the-webwasm-target-compiling) — _tooling_
+- [D-101: ClideSettings — one live-preferences access facade](decisions/architecture.md#d-101-clidesettings--one-live-preferences-access-facade) — _architecture_
 
 ## Open questions
 

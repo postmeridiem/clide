@@ -48,7 +48,7 @@ class ExtensionsNotice extends StatelessWidget {
           i.string('notice.tracked', namespace: ns, placeholder: 'Tracked in T-8 (Tier 6) · D-16'),
           color: tokens.globalTextMuted,
           fontSize: clideFontCaption,
-          fontFamily: clideMonoFamily,
+          fontFamily: ClideSettings.fonts.monoOf(context),
         ),
       ],
     );

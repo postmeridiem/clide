@@ -164,7 +164,12 @@ class _BranchPickerState extends State<_BranchPicker> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ClideText('Switch branch', fontSize: clideFontCaption, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+                    child: ClideText(
+                      'Switch branch',
+                      fontSize: clideFontCaption,
+                      color: tokens.globalTextMuted,
+                      fontFamily: ClideSettings.fonts.monoOf(context),
+                    ),
                   ),
                   GestureDetector(
                     onTap: () => widget.onDismiss(),
@@ -229,7 +234,7 @@ class _BranchRow extends StatelessWidget {
             Expanded(
               child: ClideText(
                 name,
-                fontFamily: clideMonoFamily,
+                fontFamily: ClideSettings.fonts.monoOf(context),
                 fontSize: clideFontMono,
                 color: current ? tokens.globalForeground : tokens.listItemForeground,
               ),

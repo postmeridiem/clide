@@ -217,11 +217,11 @@ class _LogRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClideText('$hh:$mm:$ss', fontSize: clideFontMono, color: tokens.globalTextMuted, fontFamily: clideMonoFamily),
+          ClideText('$hh:$mm:$ss', fontSize: clideFontMono, color: tokens.globalTextMuted, fontFamily: ClideSettings.fonts.monoOf(context)),
           const SizedBox(width: 8),
           SizedBox(
             width: 48,
-            child: ClideText(record.level.name.toUpperCase(), fontSize: clideFontMono, color: fg, fontFamily: clideMonoFamily),
+            child: ClideText(record.level.name.toUpperCase(), fontSize: clideFontMono, color: fg, fontFamily: ClideSettings.fonts.monoOf(context)),
           ),
           const SizedBox(width: 8),
           SizedBox(
@@ -230,14 +230,14 @@ class _LogRow extends StatelessWidget {
               record.source,
               fontSize: clideFontMono,
               color: tokens.globalTextMuted,
-              fontFamily: clideMonoFamily,
+              fontFamily: ClideSettings.fonts.monoOf(context),
               maxLines: 1,
               overflow: TextOverflow.clip,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: ClideText(record.message, fontSize: clideFontMono, color: fg, fontFamily: clideMonoFamily),
+            child: ClideText(record.message, fontSize: clideFontMono, color: fg, fontFamily: ClideSettings.fonts.monoOf(context)),
           ),
         ],
       ),

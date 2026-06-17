@@ -202,7 +202,7 @@ class _CategoryRail extends StatelessWidget {
                 i.string('rail.header', namespace: SettingsModal.ns, placeholder: 'Categories'),
                 fontSize: clideFontCaption,
                 color: tokens.sidebarSectionHeader,
-                fontFamily: clideMonoFamily,
+                fontFamily: ClideSettings.fonts.monoOf(context),
               ),
             ),
             Expanded(

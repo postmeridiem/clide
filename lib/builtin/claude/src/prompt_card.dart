@@ -122,7 +122,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: accent),
+            ClideText(label, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context), color: accent),
             const SizedBox(height: 8),
             ...children,
           ],
@@ -362,14 +362,21 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
               border: Border.all(color: tokens.statusInfo),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: ClideText(text, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalForeground),
+            child: ClideText(text, fontSize: clideFontMeta, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalForeground),
           ),
         );
       } else {
-        chips.add(ClideText(text, fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: done ? tokens.statusSuccess : tokens.globalTextMuted));
+        chips.add(
+          ClideText(
+            text,
+            fontSize: clideFontMeta,
+            fontFamily: ClideSettings.fonts.monoOf(context),
+            color: done ? tokens.statusSuccess : tokens.globalTextMuted,
+          ),
+        );
       }
     }
-    chips.add(ClideText('Review', fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted));
+    chips.add(ClideText('Review', fontSize: clideFontMeta, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted));
     chips.add(ClideText('›', color: tokens.globalTextMuted, fontSize: 15));
     return Wrap(spacing: 10, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: chips);
   }
@@ -399,7 +406,8 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (q.header.isNotEmpty) ClideText(q.header.toUpperCase(), fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+        if (q.header.isNotEmpty)
+          ClideText(q.header.toUpperCase(), fontSize: clideFontMeta, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted),
         Padding(
           padding: const EdgeInsets.only(top: 2, bottom: 6),
           child: ClideText(q.question, color: tokens.globalForeground),

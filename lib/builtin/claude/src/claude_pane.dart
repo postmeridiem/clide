@@ -132,12 +132,13 @@ class _ClaudePaneState extends State<ClaudePane> {
     final seg = statusSegmentsAroundMode(_status);
     final mode = _status.permissionMode;
 
-    Widget text(String t) => ClideText(t, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusBarForeground, maxLines: 1);
+    Widget text(String t) =>
+        ClideText(t, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.statusBarForeground, maxLines: 1);
 
     final children = <Widget>[];
     void add(Widget w) {
       if (children.isNotEmpty) {
-        children.add(ClideText('  ·  ', fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.globalTextMuted, maxLines: 1));
+        children.add(ClideText('  ·  ', fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted, maxLines: 1));
       }
       children.add(w);
     }
@@ -857,7 +858,13 @@ class _ModeBadge extends StatelessWidget {
     return Semantics(
       label: 'permission mode: ${permissionModeLabel(mode)}',
       excludeSemantics: true,
-      child: ClideText(permissionModeLabel(mode), fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: permissionModeColor(mode, tokens), maxLines: 1),
+      child: ClideText(
+        permissionModeLabel(mode),
+        fontSize: clideFontSmall,
+        fontFamily: ClideSettings.fonts.monoOf(context),
+        color: permissionModeColor(mode, tokens),
+        maxLines: 1,
+      ),
     );
   }
 }

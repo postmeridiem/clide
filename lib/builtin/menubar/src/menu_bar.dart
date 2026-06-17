@@ -162,7 +162,12 @@ class _TopMenuButtonState extends State<_TopMenuButton> {
                 label: node.title,
                 enabled: node.enabled,
                 trailing: node.keybinding != null
-                    ? ClideText(node.keybinding!, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: ClideTheme.of(ctx).surface.globalTextMuted)
+                    ? ClideText(
+                        node.keybinding!,
+                        fontSize: clideFontSmall,
+                        fontFamily: ClideSettings.fonts.monoOf(context),
+                        color: ClideTheme.of(ctx).surface.globalTextMuted,
+                      )
                     : null,
                 onSelect: () => unawaited(widget.kernel.commands.execute(node.commandId)),
               )

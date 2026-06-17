@@ -147,9 +147,14 @@ class _ModelPickerCardState extends State<ModelPickerCard> {
           children: [
             Row(
               children: [
-                ClideText(widget.title, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: tokens.statusInfo),
+                ClideText(widget.title, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.statusInfo),
                 const Spacer(),
-                ClideText('↑↓ · 1-${widget.models.length} · Enter · Esc', fontSize: clideFontMeta, fontFamily: clideMonoFamily, color: tokens.globalTextMuted),
+                ClideText(
+                  '↑↓ · 1-${widget.models.length} · Enter · Esc',
+                  fontSize: clideFontMeta,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
+                  color: tokens.globalTextMuted,
+                ),
               ],
             ),
             const SizedBox(height: 8),

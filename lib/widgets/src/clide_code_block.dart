@@ -5,6 +5,8 @@ import 'package:clide/kernel/src/theme/controller.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
 
+import 'clide_settings.dart';
+
 class ClideCodeBlock extends StatefulWidget {
   const ClideCodeBlock({super.key, required this.source, this.language});
 
@@ -50,7 +52,12 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideTheme.of(context).surface;
-    final style = TextStyle(fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback, fontSize: clideFontMono, color: tokens.globalForeground);
+    final style = TextStyle(
+      fontFamily: ClideSettings.fonts.monoOf(context),
+      fontFamilyFallback: clideMonoFamilyFallback,
+      fontSize: clideFontMono,
+      color: tokens.globalForeground,
+    );
 
     final spans = _spans;
     TextSpan textSpan;

@@ -371,7 +371,12 @@ class _TextBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(color: foreground, fontSize: clideFontMono, fontFamily: clideMonoFamily, fontFamilyFallback: clideMonoFamilyFallback);
+    final style = TextStyle(
+      color: foreground,
+      fontSize: clideFontMono,
+      fontFamily: ClideSettings.fonts.monoOf(context),
+      fontFamilyFallback: clideMonoFamilyFallback,
+    );
     final editable = EditableText(
       controller: controller,
       focusNode: focus,

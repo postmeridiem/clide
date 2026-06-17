@@ -314,7 +314,12 @@ class _TypeChip extends StatelessWidget {
                     decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 6),
-                  ClideText(label, fontSize: clideFontSmall, fontFamily: clideMonoFamily, color: active ? tokens.globalForeground : tokens.globalTextMuted),
+                  ClideText(
+                    label,
+                    fontSize: clideFontSmall,
+                    fontFamily: ClideSettings.fonts.monoOf(context),
+                    color: active ? tokens.globalForeground : tokens.globalTextMuted,
+                  ),
                 ],
               ),
             ),
@@ -386,7 +391,7 @@ class _TicketCard extends StatelessWidget {
                           entry.parentId!,
                           fontSize: clideFontSmall,
                           color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
-                          fontFamily: clideMonoFamily,
+                          fontFamily: ClideSettings.fonts.monoOf(context),
                         ),
                       ),
                     ),
@@ -402,7 +407,13 @@ class _TicketCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      ClideText(entry.id, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: clideMonoFamily, fontWeight: FontWeight.w600),
+                      ClideText(
+                        entry.id,
+                        fontSize: clideFontSmall,
+                        color: tokens.globalForeground,
+                        fontFamily: ClideSettings.fonts.monoOf(context),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -480,7 +491,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(color: color.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
-      child: ClideText(label, fontSize: clideFontBadge, color: color, fontFamily: clideMonoFamily),
+      child: ClideText(label, fontSize: clideFontBadge, color: color, fontFamily: ClideSettings.fonts.monoOf(context)),
     );
   }
 }

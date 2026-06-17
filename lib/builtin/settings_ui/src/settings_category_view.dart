@@ -128,7 +128,12 @@ class _SectionCard extends StatelessWidget {
           if (section.label.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 2, bottom: 6),
-              child: ClideText(section.label.toUpperCase(), fontSize: clideFontCaption, color: tokens.sidebarSectionHeader, fontFamily: clideMonoFamily),
+              child: ClideText(
+                section.label.toUpperCase(),
+                fontSize: clideFontCaption,
+                color: tokens.sidebarSectionHeader,
+                fontFamily: ClideSettings.fonts.monoOf(context),
+              ),
             ),
           ClideSurface(
             // Card surface (surface.md): panelHeader resolves to the `surface`
@@ -440,7 +445,7 @@ class _EditControlState extends State<_EditControl> {
         child: EditableText(
           controller: _controller,
           focusNode: _focus,
-          style: TextStyle(fontFamily: clideMonoFamily, fontSize: clideFontMono, color: tokens.globalForeground),
+          style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.globalForeground),
           cursorColor: tokens.globalFocus,
           backgroundCursorColor: tokens.globalTextMuted,
           maxLines: 1,
