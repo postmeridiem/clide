@@ -2,7 +2,7 @@
 
 This document governs what clide is allowed to do at runtime, what it's allowed to depend on, and how contributors — human and agent — introduce code into the project. It is binding on all contributors. When in doubt, stop and ask.
 
-Rationale for specific architectural choices referenced here and in code comments (the D-### markers) lives in `decisions/`. This document sets the rules; `decisions/` records why the rules produced the code they did in a given case. If the two ever disagree, the rule in this document wins until the document itself is changed.
+Rationale for specific architectural choices referenced here and in code comments (the D-### markers) lives in `governance/decisions/`. This document sets the rules; `governance/decisions/` records why the rules produced the code they did in a given case. If the two ever disagree, the rule in this document wins until the document itself is changed.
 
 ## Why this document exists
 
@@ -124,9 +124,9 @@ When removing a dependency:
 
 1. **Grep the entire repository** for references to the package, its exports, and any type names it contributed. `rg '<package>|<PackageType>|<prefix_>'` across the repo. Zero hits outside git history is the goal. A single lingering import will break the build; a single lingering FFI stub or type alias will compile fine and fail at runtime.
 2. **Regenerate the lockfile** as part of the same PR. A `pubspec.yaml` with the dep removed but a `pubspec.lock` that still pins it is a partial removal, and CI or a fresh clone will happily continue installing the package.
-3. **Update `app/assets/licenses.yaml`** to drop the removed package and any transitive deps it brought in that aren't pulled by anything else. If the license manifest is auto-generated on release, verify the generation script sees the change; if it's maintained by hand, edit it in the same PR.
+3. **Update `assets/licenses.yaml`** to drop the removed package and any transitive deps it brought in that aren't pulled by anything else. If the license manifest is auto-generated on release, verify the generation script sees the change; if it's maintained by hand, edit it in the same PR.
 4. **Remove any vendored artifacts** tied to the dep — binaries, prebuilt assets, generated bindings — and delete their `BUILD.md` records. An orphaned vendored binary is worse than a removed one because it looks legitimate.
-5. **Check for architectural assumptions** that the dep was carrying. If the removed package was the thing that justified a specific data flow, build step, or platform strategy, either the replacement picks up those responsibilities or the architecture has actually changed and the relevant design decision (see `decisions/`) needs updating.
+5. **Check for architectural assumptions** that the dep was carrying. If the removed package was the thing that justified a specific data flow, build step, or platform strategy, either the replacement picks up those responsibilities or the architecture has actually changed and the relevant design decision (see `governance/decisions/`) needs updating.
 
 A dependency is not removed until all five are true. "I deleted the line from pubspec.yaml" is the start of the removal, not the end.
 
@@ -188,12 +188,12 @@ When in doubt about a license, the dependency does not land until the question i
 
 ### Attribution requirements
 
-- The license manifest at `app/assets/licenses.yaml` lists every dependency with its license, copyright notice, and upstream URL.
+- The license manifest at `assets/licenses.yaml` lists every dependency with its license, copyright notice, and upstream URL.
 - Transitive dependencies are listed, not just direct ones. If `wasm_run` pulls in `wasmtime` which pulls in `cranelift`, all three appear.
 - Apache-2.0 dependencies get their `NOTICE` file content preserved verbatim, not summarized.
 - Apache-2.0-with-LLVM-exception (e.g., Cranelift, parts of LLVM) requires the LLVM exception text specifically, not just the Apache-2.0 boilerplate.
 - Fonts and icon sets get attributed even if the license doesn't strictly require it. It's the right thing to do.
-- `app/assets/licenses.yaml` is regenerated as part of the release build, not maintained by hand. A release that ships a stale manifest is a release defect.
+- `assets/licenses.yaml` is regenerated as part of the release build, not maintained by hand. A release that ships a stale manifest is a release defect.
 
 Adding a dependency means updating the license manifest in the same PR. No exceptions.
 

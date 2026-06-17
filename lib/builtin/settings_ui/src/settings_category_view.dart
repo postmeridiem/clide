@@ -2,6 +2,9 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
+/// i18n namespace shared with the settings modal shell.
+const _settingsNs = 'builtin.settings-ui';
+
 /// The schema-driven field renderer (T-448, epic T-444): turns a
 /// [SettingsCategory] into carded sections of field rows. Each field binds to a
 /// `SettingsStore` key — read with `get` (falling back to the schema default),
@@ -93,7 +96,6 @@ class _FieldRow extends StatelessWidget {
     final tokens = ClideTheme.of(context).surface;
     final raw = store.get<Object>(field.key);
     final effective = raw ?? field.defaultValue;
-    final canReset = field.defaultValue != null && effective != field.defaultValue;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -115,12 +117,8 @@ class _FieldRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           _Control(field: field, value: effective, store: store),
-          SizedBox(
-            width: 24,
-            child: canReset
-                ? _ResetButton(onTap: () => store.set<Object?>(field.key, field.defaultValue))
-                : const SizedBox.shrink(),
-          ),
+          const SizedBox(width: 10),
+          _ScopeTag(field: field, store: store, effectiveValue: effective),
         ],
       ),
     );
@@ -373,30 +371,109 @@ class _FileControl extends StatelessWidget {
   }
 }
 
-/// Reset-to-default control — a circular-arrow icon shown when the value
-/// differs from the schema default.
-class _ResetButton extends StatelessWidget {
-  const _ResetButton({required this.onTap});
+/// Per-field scope tag (T-449): a colour-coded glyph showing where the value
+/// lives — folder = Project (`.clide`), globe = Always (`~/.clide`),
+/// circle-dashed = Default/unset. Tapping opens a menu to move the value
+/// between the scopes the key supports, or reset it to default.
+///
+/// Storage layering follows the SettingsStore key prefix: `ext.*` keys may
+/// live in either file (project overrides app); `app.*`/`project.*` keys live
+/// only in their prefix's layer, so their menu offers that one scope + reset.
+class _ScopeTag extends StatefulWidget {
+  const _ScopeTag({required this.field, required this.store, required this.effectiveValue});
 
-  final VoidCallback onTap;
+  final SettingsField field;
+  final SettingsStore store;
+  final Object? effectiveValue;
+
+  @override
+  State<_ScopeTag> createState() => _ScopeTagState();
+}
+
+class _ScopeTagState extends State<_ScopeTag> {
+  final ClideOverlayController _overlay = ClideOverlayController();
+
+  @override
+  void dispose() {
+    _overlay.dispose();
+    super.dispose();
+  }
+
+  String _ns(String key, String fallback) =>
+      ClideKernel.of(context).i18n.string(key, namespace: _settingsNs, placeholder: fallback);
+
+  ({String glyph, Color color, String tip, String label}) _appearance(SettingsScope? layer) {
+    final tokens = ClideTheme.of(context).surface;
+    return switch (layer) {
+      SettingsScope.project => (
+        glyph: 'folder',
+        color: tokens.statusSuccess,
+        tip: _ns('scope.tip.project', 'Stored in this project (.clide)'),
+        label: _ns('scope.project', 'This project'),
+      ),
+      SettingsScope.app => (
+        glyph: 'globe',
+        color: tokens.statusWarning,
+        tip: _ns('scope.tip.always', 'Stored for all clide (~/.clide)'),
+        label: _ns('scope.always', 'All clide'),
+      ),
+      _ => (
+        glyph: 'circle-dashed',
+        color: tokens.globalTextMuted,
+        tip: _ns('scope.tip.default', 'Unset — using the default'),
+        label: _ns('scope.default', 'Default'),
+      ),
+    };
+  }
+
+  /// Move the value into [layer], clearing it from the key's other layers.
+  void _moveTo(SettingsScope layer) {
+    final value = widget.store.get<Object>(widget.field.key) ?? widget.field.defaultValue;
+    widget.store.setAt(layer, widget.field.key, value);
+    for (final other in widget.store.writableLayers(widget.field.key)) {
+      if (other != layer) widget.store.removeAt(other, widget.field.key);
+    }
+  }
+
+  void _reset() {
+    for (final layer in widget.store.writableLayers(widget.field.key)) {
+      widget.store.removeAt(layer, widget.field.key);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tokens = ClideTheme.of(context).surface;
-    return Semantics(
-      button: true,
-      label: 'Reset to default',
-      excludeSemantics: true,
-      child: ClideTappable(
-        cursor: SystemMouseCursors.click,
-        tooltip: 'Reset to default',
-        onTap: onTap,
-        builder: (ctx, hovered, _) => Padding(
-          padding: const EdgeInsets.only(left: 6),
-          child: ClideIcon(
-            PhosphorIcons.byName('arrow-counter-clockwise'),
-            size: 14,
-            color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
+    final current = widget.store.effectiveLayer(widget.field.key);
+    final look = _appearance(current);
+    final layers = widget.store.writableLayers(widget.field.key);
+    return ClideAnchoredOverlay(
+      controller: _overlay,
+      align: ClideAnchorAlign.end,
+      overlayBuilder: (ctx, c) => ClideMenu(
+        onClose: c.close,
+        entries: [
+          for (final layer in layers)
+            ClideMenuItem(
+              label: _appearance(layer).label,
+              active: layer == current,
+              onSelect: () => _moveTo(layer),
+            ),
+          const ClideMenuSeparator(),
+          ClideMenuItem(label: _ns('scope.reset', 'Reset to default'), active: false, enabled: current != null, onSelect: _reset),
+        ],
+      ),
+      anchor: Semantics(
+        button: true,
+        label: '${widget.field.label} scope: ${look.label}',
+        excludeSemantics: true,
+        onTap: _overlay.toggle,
+        child: ClideTappable(
+          cursor: SystemMouseCursors.click,
+          tooltip: look.tip,
+          onTap: _overlay.toggle,
+          builder: (ctx, hovered, _) => Padding(
+            padding: const EdgeInsets.all(2),
+            child: ClideIcon(PhosphorIcons.byName(look.glyph), size: 15, color: look.color),
           ),
         ),
       ),

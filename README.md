@@ -4,7 +4,7 @@ An IDE for Claude Code CLI. Native rendering, terminal-first interaction, pql-po
 
 ## Architecture
 
-Single Flutter package at the repo root. The app hosts everything in-process: IPC server, subsystem handlers (pane, files, editor, git, pql), and the extension framework. tmux owns Claude session persistence (D-41).
+Single Flutter package at the repo root. The app hosts everything in-process: IPC server, subsystem handlers (pane, files, editor, git, pql), and the extension framework. Claude session persistence is `--resume <session-id>` against Claude Code's transcript files (D-77, superseding the tmux-backed D-41).
 
 - **`lib/`** — all Dart code. Core subsystems (`lib/src/`), kernel services (`lib/kernel/`), UI widgets (`lib/widgets/`), built-in extensions (`lib/builtin/`), the extension framework (`lib/extension/`).
 - **PTY** — `lib/src/pty/` spawns child processes via Dart FFI `posix_openpt()` + `posix_spawn()` directly; no external helper binary.
@@ -15,7 +15,7 @@ Claude drives the UI through a `clide` CLI surface (Bash, not MCP). Every CLI su
 
 ## Built-in extensions
 
-canvas, claude, claude_control, decisions, diff, editor, extensions_ui, files, git, graph, grammars_core, ipc_status, keybindings_ui, markdown, pql, problems, settings_ui, terminal, theme_picker, tickets, todos, welcome.
+canvas, claude, claude_control, cli_install, decisions, deeplink, default_layout, diff, editor, extensions_ui, files, git, grammars_core, graph, ipc_status, keybindings_ui, markdown, menubar, output, pql, problems, search, settings_ui, terminal, theme_picker, tickets, todos, view, vim, welcome.
 
 ## Building
 
@@ -44,7 +44,7 @@ make push-check       # pre-push gate: decisions + core + fast + a11y + coverage
 
 ## Status
 
-Pre-v2.0 (`2.0.0-dev`). Interaction model and panel system landed. The Python Textual v1.2.0 predecessor is archived under [`legacy/`](https://github.com/postmeridiem/clide/tree/main/legacy).
+Active development; the interaction model, panel system, and settings engine have landed. The Python Textual predecessor is archived under [`legacy/`](https://github.com/postmeridiem/clide/tree/main/legacy).
 
 ## Documentation
 

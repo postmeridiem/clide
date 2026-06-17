@@ -227,18 +227,27 @@ class _RailRow extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         onTap: onTap,
         builder: (ctx, hovered, _) => Container(
-          decoration: BoxDecoration(
-            color: selected ? tokens.sidebarItemSelected : (hovered ? tokens.sidebarItemHover : null),
-            border: Border(left: BorderSide(color: selected ? tokens.panelActiveBorder : const Color(0x00000000), width: 2)),
-          ),
-          padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
+          // color: null => no paint (shows the modal surface behind the rail).
+          color: selected ? tokens.sidebarItemSelected : (hovered ? tokens.sidebarItemHover : null),
           child: Row(
             children: [
-              if (category.iconName != null) ...[
-                ClideIcon(PhosphorIcons.byName(category.iconName!), size: 15, color: fg),
-                const SizedBox(width: 8),
-              ],
-              Expanded(child: ClideText(category.title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              // Accent left-stripe; the 2px slot is reserved either way so the
+              // row never shifts. Painted only when selected — no color literal.
+              SizedBox(width: 2, child: selected ? ColoredBox(color: tokens.panelActiveBorder) : null),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
+                  child: Row(
+                    children: [
+                      if (category.iconName != null) ...[
+                        ClideIcon(PhosphorIcons.byName(category.iconName!), size: 15, color: fg),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(child: ClideText(category.title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),

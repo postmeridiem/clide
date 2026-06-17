@@ -3,5 +3,12 @@
   "modal.close": { "translation": "Close" },
   "modal.close.hint": { "translation": "Close settings without changing anything" },
   "rail.header": { "translation": "Categories" },
-  "panel.empty": { "translation": "No settings categories are registered yet." }
+  "panel.empty": { "translation": "No settings categories are registered yet." },
+  "scope.project": { "translation": "This project" },
+  "scope.always": { "translation": "All clide" },
+  "scope.default": { "translation": "Default" },
+  "scope.reset": { "translation": "Reset to default" },
+  "scope.tip.project": { "translation": "Stored in this project (.clide)" },
+  "scope.tip.always": { "translation": "Stored for all clide (~/.clide)" },
+  "scope.tip.default": { "translation": "Unset — using the default" }
 }

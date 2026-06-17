@@ -97,6 +97,85 @@ class SettingsStore extends ChangeNotifier {
     _safeNotify();
   }
 
+  // --- Scope-explicit access (per-field scope tags, T-449) ---------------
+  //
+  // [get]/[set] resolve a key by its prefix; the settings panel's scope tag
+  // needs to read, write, and clear a key at a *specific* storage layer. There
+  // are two storage files: app (`~/.clide`, "Always") and project (`.clide`,
+  // "Project"). `ext.*` keys may live in either (project overrides app);
+  // `app.*`/`project.*` keys live only in their prefix's layer.
+
+  /// Raw value stored in a specific storage layer (no cross-layer fallback).
+  /// [SettingsScope.ext] is a key class, not a layer, so it returns null.
+  Object? rawAt(SettingsScope layer, String key) => switch (layer) {
+    SettingsScope.app => _appValues[key],
+    SettingsScope.project => _projectValues[key],
+    SettingsScope.ext => null,
+  };
+
+  /// The storage layer currently supplying [key]'s value (project overrides app
+  /// for `ext.*`), or null when unset (Default). Honors the key's prefix.
+  SettingsScope? effectiveLayer(String key) {
+    switch (_scopeOf(key)) {
+      case SettingsScope.app:
+        return _appValues.containsKey(key) ? SettingsScope.app : null;
+      case SettingsScope.project:
+        return _projectValues.containsKey(key) ? SettingsScope.project : null;
+      case SettingsScope.ext:
+        if (_projectValues.containsKey(key)) return SettingsScope.project;
+        if (_appValues.containsKey(key)) return SettingsScope.app;
+        return null;
+    }
+  }
+
+  /// The storage layers [key] may be written to, by prefix: `app.*` → [app];
+  /// `project.*` → [project]; `ext.*` → [project, app].
+  List<SettingsScope> writableLayers(String key) {
+    switch (_scopeOf(key)) {
+      case SettingsScope.app:
+        return const [SettingsScope.app];
+      case SettingsScope.project:
+        return const [SettingsScope.project];
+      case SettingsScope.ext:
+        return const [SettingsScope.project, SettingsScope.app];
+    }
+  }
+
+  /// Write [key] = [value] into a specific storage layer. Throws if the project
+  /// layer is requested with no project open, or if [SettingsScope.ext] (not a
+  /// layer) is passed.
+  Future<void> setAt(SettingsScope layer, String key, Object? value) async {
+    switch (layer) {
+      case SettingsScope.app:
+        _appValues[key] = value;
+        await _writeFile(_appFile, _appValues);
+      case SettingsScope.project:
+        if (projectDir == null) {
+          throw StateError('Cannot set project-scoped key with no project open: $key');
+        }
+        _projectValues[key] = value;
+        await _writeFile(_projectFile, _projectValues);
+      case SettingsScope.ext:
+        throw ArgumentError('ext is a key class, not a storage layer');
+    }
+    _safeNotify();
+  }
+
+  /// Remove [key] from a specific storage layer (no-op if absent).
+  Future<void> removeAt(SettingsScope layer, String key) async {
+    switch (layer) {
+      case SettingsScope.app:
+        if (_appValues.remove(key) != null) await _writeFile(_appFile, _appValues);
+      case SettingsScope.project:
+        if (projectDir != null && _projectValues.remove(key) != null) {
+          await _writeFile(_projectFile, _projectValues);
+        }
+      case SettingsScope.ext:
+        throw ArgumentError('ext is a key class, not a storage layer');
+    }
+    _safeNotify();
+  }
+
   Future<Map<String, Object?>> _readFile(File f) async {
     String txt;
     try {

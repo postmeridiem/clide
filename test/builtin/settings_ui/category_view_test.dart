@@ -102,14 +102,28 @@ void main() {
       expect(f.services.settings.get<String>('app.demo.level'), 'debug');
     });
 
-    testWidgets('reset control appears for a non-default value and restores the default', (tester) async {
+  });
+
+  group('scope tag (T-449)', () {
+    testWidgets('an unset field shows the Default scope tag', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      expect(find.bySemanticsLabel('Size scope: Default'), findsOneWidget);
+    });
+
+    testWidgets('a value stored at app scope shows the All clide tag', (tester) async {
       await tester.runAsync(() => f.services.settings.set('app.demo.flag', true));
       await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
-      final reset = find.bySemanticsLabel('Reset to default');
-      expect(reset, findsOneWidget);
-      await tester.tap(reset);
+      expect(find.bySemanticsLabel('Flag scope: All clide'), findsOneWidget);
+    });
+
+    testWidgets('the scope menu resets the value to default', (tester) async {
+      await tester.runAsync(() => f.services.settings.set('app.demo.flag', true));
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      await tester.tap(find.bySemanticsLabel('Flag scope: All clide'));
       await tester.pump();
-      expect(f.services.settings.get<bool>('app.demo.flag'), isFalse);
+      await tester.tap(find.text('Reset to default'));
+      await tester.pump();
+      expect(f.services.settings.effectiveLayer('app.demo.flag'), isNull);
     });
   });
 

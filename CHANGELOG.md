@@ -36,6 +36,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   categories (icon + title, data-driven from the registry) with an accent
   left-stripe + surfaceHi selection; picking one swaps the panel. (T-447)
 
+- **Per-field scope tags.** Each settings field shows where its value lives —
+  folder = Project (`.clide`), globe = Always (`~/.clide`), circle-dashed =
+  Default/unset — colour-coded with a tooltip. Tapping opens a menu to move the
+  value between the scopes the key supports or reset it to default. Backed by
+  scope-explicit `SettingsStore` access (`rawAt`/`setAt`/`removeAt`/
+  `effectiveLayer`/`writableLayers`); `ext.*` keys layer project-over-app,
+  `app.*`/`project.*` keys live in their prefix's file. (T-449)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title
