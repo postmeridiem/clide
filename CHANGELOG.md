@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.7.0] — 2026-06-17
+
+### Added
+
 - **Settings panel shell.** A new `settings.open` command (⌘`,`, plus a File
   menu and command-palette entry) opens a centered Settings modal over the
   dimmed app — the foundation of the schema-driven settings UI. It frames the
