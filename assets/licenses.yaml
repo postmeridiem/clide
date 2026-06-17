@@ -58,6 +58,17 @@ dependencies:
       any other monospace surface.
     weights_bundled: [Regular, Italic, Bold, BoldItalic]
 
+  - name: Inter
+    kind: font
+    version: "variable"
+    homepage: https://github.com/rsms/inter
+    license: OFL-1.1
+    license_file: assets/fonts/inter/OFL.txt
+    purpose: >-
+      Default application UI face (T-460). Variable font with optical-size
+      and weight axes; Josefin Sans remains bundled as a selectable option.
+    weights_bundled: [VariableFont, Italic-VariableFont]
+
   - name: Josefin Sans
     kind: font
     version: "variable"
@@ -65,8 +76,8 @@ dependencies:
     license: OFL-1.1
     license_file: assets/fonts/josefin_sans/OFL.txt
     purpose: >-
-      Application UI face. Default weight Light (300); full 100-700
-      range available via the variable-font weight axis.
+      Selectable application UI face (was the default before T-460). Default
+      weight Light (300); full 100-700 range via the variable-font weight axis.
     weights_bundled: [VariableFont, Italic-VariableFont]
 
   - name: Phosphor Icons

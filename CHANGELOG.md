@@ -65,6 +65,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   permission mode — seed fresh sessions (effort via `--effort` at spawn;
   model and permission applied right after start). (T-457)
 
+- **Inter is the default UI font + a UI-font picker.** Bundled Inter (variable)
+  as the default interface typeface — Josefin Sans stays selectable — and
+  Settings → Appearance gains a UI-font picker that applies live. (T-460)
+
 ### Changed
 
 - **Theme picker relabelled "Theme…".** The ⌘K theme picker's command title

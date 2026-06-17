@@ -2,6 +2,7 @@ import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart' show kUiFontSettingKey;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -193,6 +194,13 @@ void main() {
       final cat = ext.contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'appearance').category;
       expect(cat.title, 'Appearance');
       expect(ext.contributions.whereType<SettingsControlContribution>().any((c) => c.customId == 'theme.picker'), isTrue);
+    });
+
+    test('Appearance includes a UI font picker (T-460)', () {
+      final cat = ThemePickerExtension().contributions.whereType<SettingsCategoryContribution>().firstWhere((c) => c.id == 'appearance').category;
+      final font = cat.sections.expand((s) => s.fields).firstWhere((f) => f.key == kUiFontSettingKey);
+      expect(font.kind, SettingsFieldKind.select);
+      expect(font.options.map((o) => o.value), containsAll(['Inter', 'JosefinSans']));
     });
 
     testWidgets('AppearanceThemeControl lists base themes and applies a pick (T-452)', (tester) async {

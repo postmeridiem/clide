@@ -2,9 +2,9 @@
 ///
 /// Two bundled families:
 ///
-/// - [clideUiFamily] — Josefin Sans, the application-wide UI face.
-///   Shipped as a variable font (weights 100-700) + italic companion;
-///   default weight is [clideUiDefaultWeight] (Light / `w300`).
+/// - [clideUiFamily] — Inter, the application-wide UI face (T-460; was
+///   Josefin Sans). Shipped as a variable font + italic companion. Users can
+///   switch it from Settings → Appearance via the [kUiFontSettingKey] override.
 /// - [clideMonoFamily] — JetBrains Mono, for terminal panes, diff
 ///   views, code editors, and any other monospace surface.
 ///
@@ -16,28 +16,33 @@ library;
 import 'package:flutter/widgets.dart' show FontWeight;
 
 // ---------------------------------------------------------------------------
-// UI face — Josefin Sans
+// UI face — Inter
 // ---------------------------------------------------------------------------
 
-/// The bundled application UI family. Always resolved first.
-const String clideUiFamily = 'JosefinSans';
+/// The bundled application UI family, resolved first (T-460). The settings
+/// override ([kUiFontSettingKey]) takes precedence at the app root when set.
+const String clideUiFamily = 'Inter';
 
-/// Default weight for UI text. Josefin Sans reads well at Light; the
-/// rest of the design adjusts contrast and size to stay legible.
-const FontWeight clideUiDefaultWeight = FontWeight.w300;
+/// Default weight for UI text.
+const FontWeight clideUiDefaultWeight = FontWeight.w400;
 
-/// System fallback chain for the UI face. Sans-serif humanist faces
-/// that sit close to Josefin's proportions, ordered by platform.
+/// System fallback chain for the UI face — the other bundled UI option plus
+/// platform humanist sans defaults.
 const List<String> clideUiFamilyFallback = [
-  // User system install of Josefin, if any.
-  'Josefin Sans',
-  // Platform humanist sans defaults.
+  // The other bundled UI family (selectable in Appearance).
+  'JosefinSans',
+  // User system install / platform humanist sans defaults.
   'Inter',
   'Helvetica Neue',
   'Helvetica',
   'Arial',
   'sans-serif',
 ];
+
+/// Settings keys for the user-selectable UI / monospace font families
+/// (Settings → Appearance, T-460). Unset → the bundled defaults above.
+const String kUiFontSettingKey = 'app.ui.font';
+const String kMonoFontSettingKey = 'app.mono.font';
 
 // ---------------------------------------------------------------------------
 // Monospace face — JetBrains Mono

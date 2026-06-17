@@ -4,6 +4,7 @@ import 'package:clide/builtin/theme_picker/src/settings_view.dart';
 import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/widgets/widgets.dart' show kUiFontSettingKey;
 
 class ThemePickerExtension extends ClideExtension {
   @override
@@ -52,6 +53,22 @@ class ThemePickerExtension extends ClideExtension {
                 label: 'Theme',
                 help: 'Color theme; high contrast switches to the accessible variant.',
                 customId: 'theme.picker',
+              ),
+            ],
+          ),
+          SettingsSection(
+            label: 'Typography',
+            fields: [
+              SettingsField(
+                key: kUiFontSettingKey,
+                kind: SettingsFieldKind.select,
+                label: 'UI font',
+                help: 'Typeface for the app interface; applies live.',
+                defaultValue: 'Inter',
+                options: [
+                  SettingsOption(value: 'Inter', label: 'Inter'),
+                  SettingsOption(value: 'JosefinSans', label: 'Josefin Sans'),
+                ],
               ),
             ],
           ),

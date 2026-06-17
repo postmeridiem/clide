@@ -95,6 +95,12 @@ flutter:
     - assets/queries/
 
   fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/inter/Inter-VariableFont.ttf
+        - asset: assets/fonts/inter/Inter-Italic-VariableFont.ttf
+          style: italic
+
     - family: JosefinSans
       fonts:
         - asset: assets/fonts/josefin_sans/JosefinSans-VariableFont.ttf

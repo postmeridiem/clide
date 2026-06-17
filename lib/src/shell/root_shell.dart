@@ -48,6 +48,8 @@ class RootShellState extends State<RootShell> {
     super.initState();
     _keyFocus = FocusNode()..requestFocus();
     widget.services.textZoom.addListener(_onZoom);
+    // Re-apply the UI font when its setting changes (T-460).
+    widget.services.settings.addListener(_onZoom);
     _globalSeq = SequenceMatcher(
       keymap: () => widget.services.keymap.keymap ?? Keymap(const []),
       context: () => widget.services.keymap.scope,
@@ -61,6 +63,7 @@ class RootShellState extends State<RootShell> {
     HardwareKeyboard.instance.removeHandler(_onRawKey);
     _seqTimeout?.cancel();
     widget.services.textZoom.removeListener(_onZoom);
+    widget.services.settings.removeListener(_onZoom);
     _menuBar.dispose();
     _keyFocus.dispose();
     super.dispose();
@@ -77,7 +80,9 @@ class RootShellState extends State<RootShell> {
         fontSize: 15,
         height: clideLineHeight,
         fontWeight: clideUiDefaultWeight,
-        fontFamily: clideUiFamily,
+        // User-selected UI font (Settings → Appearance, T-460), else the
+        // bundled default. The fallback chain still covers a missing asset.
+        fontFamily: widget.services.settings.get<String>(kUiFontSettingKey) ?? clideUiFamily,
         fontFamilyFallback: clideUiFamilyFallback,
       ),
       child: MediaQuery(
