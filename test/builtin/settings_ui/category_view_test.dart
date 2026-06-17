@@ -192,6 +192,145 @@ void main() {
       await tester.pump();
       expect(f.services.settings.effectiveLayer('app.demo.flag'), isNull);
     });
+
+    testWidgets('moving an unset value to All clide writes it at app scope', (tester) async {
+      // _other's key (app.other.x) is written by no other test → pristine here.
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _other))));
+      await tester.tap(find.bySemanticsLabel('OtherFlag scope: Default'));
+      await tester.pump();
+      await tester.tap(find.text('All clide'));
+      await tester.pump();
+      expect(f.services.settings.effectiveLayer('app.other.x'), SettingsScope.app);
+    });
+  });
+
+  group('edit controls (T-448)', () {
+    const numCat = SettingsCategory(
+      id: 'n',
+      title: 'N',
+      sections: [
+        SettingsSection(
+          label: 'S',
+          fields: [SettingsField(key: 'app.n.size', kind: SettingsFieldKind.number, label: 'Size', defaultValue: 4, min: 1, max: 8)],
+        ),
+      ],
+    );
+    const textCat = SettingsCategory(
+      id: 't',
+      title: 'T',
+      sections: [
+        SettingsSection(
+          label: 'S',
+          fields: [SettingsField(key: 'app.t.name', kind: SettingsFieldKind.text, label: 'Name', defaultValue: '')],
+        ),
+      ],
+    );
+
+    testWidgets('a number field commits a valid value', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: numCat))));
+      await tester.enterText(find.byType(EditableText), '6');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(f.services.settings.get<num>('app.n.size'), 6);
+    });
+
+    testWidgets('a number field clamps above max and below min', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: numCat))));
+      await tester.enterText(find.byType(EditableText), '99');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(f.services.settings.get<num>('app.n.size'), 8);
+      await tester.enterText(find.byType(EditableText), '0');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(f.services.settings.get<num>('app.n.size'), 1);
+    });
+
+    testWidgets('a number field reverts unparseable input without writing', (tester) async {
+      // Dedicated key — the store is shared across tests in this file, so a key
+      // the commit/clamp tests touch would already be set.
+      const revCat = SettingsCategory(
+        id: 'nr',
+        title: 'NR',
+        sections: [
+          SettingsSection(
+            label: 'S',
+            fields: [SettingsField(key: 'app.nr.size', kind: SettingsFieldKind.number, label: 'Size', defaultValue: 4, min: 1, max: 8)],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: revCat))));
+      await tester.enterText(find.byType(EditableText), 'abc');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      // Unparseable input is reverted to the field's value, not committed; the
+      // string 'abc' never reaches the store.
+      expect(find.text('4'), findsOneWidget);
+      expect(f.services.settings.get<Object>('app.nr.size'), isNot('abc'));
+    });
+
+    testWidgets('a text field commits the trimmed value', (tester) async {
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: textCat))));
+      await tester.enterText(find.byType(EditableText), '  hello  ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(f.services.settings.get<String>('app.t.name'), 'hello');
+    });
+
+    testWidgets('a select shows the raw stored value when it is not among the options', (tester) async {
+      await tester.runAsync(() => f.services.settings.set('app.demo.level', 'trace'));
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _category))));
+      expect(find.text('trace'), findsOneWidget);
+    });
+
+    testWidgets('a file field renders a button that runs its command', (tester) async {
+      var ran = false;
+      f.services.commands.register(
+        CommandContribution(
+          id: 'test.openfile',
+          command: 'test.openfile',
+          run: (_) async {
+            ran = true;
+            return IpcResponse.ok(id: '', data: const {});
+          },
+        ),
+      );
+      const cat = SettingsCategory(
+        id: 'fc',
+        title: 'FC',
+        sections: [
+          SettingsSection(
+            label: 'S',
+            fields: [SettingsField(key: 'app.fc.cfg', kind: SettingsFieldKind.file, label: 'Edit config', fileCommand: 'test.openfile')],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: cat))));
+      await tester.tap(find.widgetWithText(ClideButton, 'Edit config'));
+      await tester.pump();
+      expect(ran, isTrue);
+    });
+
+    testWidgets('a field renders its help text', (tester) async {
+      const cat = SettingsCategory(
+        id: 'h',
+        title: 'H',
+        sections: [
+          SettingsSection(
+            label: 'S',
+            fields: [SettingsField(key: 'app.h.flag', kind: SettingsFieldKind.toggle, label: 'Flag', help: 'Toggle the thing', defaultValue: false)],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: cat))));
+      expect(find.text('Toggle the thing'), findsOneWidget);
+    });
+
+    testWidgets('search results show an empty state when nothing matches', (tester) async {
+      f.services.settingsRegistry.register(_category);
+      await tester.pumpWidget(harness(f, _bounded(const SettingsSearchResults(query: 'zzznomatch'))));
+      expect(find.text('No settings match your search.'), findsOneWidget);
+    });
   });
 
   group('SettingsModal with a registered category', () {
