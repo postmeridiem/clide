@@ -99,6 +99,9 @@ void main() {
     await tester.pump();
     await openMenu(tester, 'File');
     expect(find.text('Open Folder…'), findsOneWidget);
+    // Let the open overlay finish laying out before re-tapping the top button,
+    // so its hit-test box is stable under load (getCenter would otherwise throw).
+    await tester.pumpAndSettle();
     await tester.tap(find.text('File'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20)); // flush the close under load
