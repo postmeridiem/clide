@@ -3,5 +3,7 @@
   "modal.title": { "translation": "Select theme" },
   "modal.cancel": { "translation": "Cancel" },
   "modal.cancel.hint": { "translation": "Close the theme picker without changing the current theme" },
-  "row.select.hint": { "translation": "Activate this theme" }
+  "row.select.hint": { "translation": "Activate this theme" },
+  "section.appearance": { "translation": "Appearance" },
+  "toggle.highContrast": { "translation": "High contrast" }
 }
