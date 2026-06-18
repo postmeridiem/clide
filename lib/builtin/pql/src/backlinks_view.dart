@@ -42,10 +42,22 @@ class _BacklinksViewState extends State<BacklinksView> {
       builder: (context, _) {
         final tokens = ClideSettings.theme.of(context).surface;
         if (c.activePath == null) {
-          return const Padding(padding: EdgeInsets.all(12), child: ClideText('Open a file to see its links.', muted: true));
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: ClideText(
+              ClideSettings.i18n.string(context, 'backlinks.empty', namespace: 'builtin.pql', placeholder: 'Open a file to see its links.'),
+              muted: true,
+            ),
+          );
         }
         return Semantics(
-          label: 'backlinks for ${c.activePath}',
+          label: ClideSettings.i18n.interpolated(
+            context,
+            'backlinks.semantics',
+            namespace: 'builtin.pql',
+            placeholder: 'backlinks for {path}',
+            replacers: [I18nReplacer(from: '{path}', replace: c.activePath!)],
+          ),
           container: true,
           explicitChildNodes: true,
           child: SingleChildScrollView(
@@ -63,9 +75,21 @@ class _BacklinksViewState extends State<BacklinksView> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption),
                   ),
-                if (c.loading) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
-                _LinkGroup(label: 'Backlinks', links: c.backlinks, pathKey: 'source'),
-                _LinkGroup(label: 'Outlinks', links: c.outlinks, pathKey: 'target'),
+                if (c.loading)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ClideText(ClideSettings.i18n.string(context, 'backlinks.loading', namespace: 'builtin.pql', placeholder: 'Loading…'), muted: true),
+                  ),
+                _LinkGroup(
+                  label: ClideSettings.i18n.string(context, 'group.backlinks', namespace: 'builtin.pql', placeholder: 'Backlinks'),
+                  links: c.backlinks,
+                  pathKey: 'source',
+                ),
+                _LinkGroup(
+                  label: ClideSettings.i18n.string(context, 'group.outlinks', namespace: 'builtin.pql', placeholder: 'Outlinks'),
+                  links: c.outlinks,
+                  pathKey: 'target',
+                ),
               ],
             ),
           ),
@@ -90,12 +114,29 @@ class _LinkGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 12, right: 8, top: 8, bottom: 2),
-          child: ClideText('$label (${links.length})', fontSize: clideFontCaption, muted: true),
+          child: ClideText(
+            ClideSettings.i18n.interpolated(
+              context,
+              'group.label',
+              namespace: 'builtin.pql',
+              placeholder: '{label} ({count})',
+              replacers: [
+                I18nReplacer(from: '{label}', replace: label),
+                I18nReplacer(from: '{count}', replace: '${links.length}'),
+              ],
+            ),
+            fontSize: clideFontCaption,
+            muted: true,
+          ),
         ),
         if (links.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-            child: ClideText('None', fontSize: clideFontCaption, muted: true),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+            child: ClideText(
+              ClideSettings.i18n.string(context, 'group.none', namespace: 'builtin.pql', placeholder: 'None'),
+              fontSize: clideFontCaption,
+              muted: true,
+            ),
           ),
         for (final link in links) _LinkRow(link: link, pathKey: pathKey),
       ],

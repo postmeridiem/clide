@@ -88,9 +88,21 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: ClideText('Loading…', muted: true));
+    if (_loading) {
+      return Center(
+        child: ClideText(ClideSettings.i18n.string(context, 'detail.loading', namespace: 'builtin.decisions', placeholder: 'Loading…'), muted: true),
+      );
+    }
     final d = _decision;
-    if (d == null) return const Padding(padding: EdgeInsets.all(12), child: ClideText('Select a decision to view details.', muted: true));
+    if (d == null) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: ClideText(
+          ClideSettings.i18n.string(context, 'detail.empty', namespace: 'builtin.decisions', placeholder: 'Select a decision to view details.'),
+          muted: true,
+        ),
+      );
+    }
 
     final tokens = ClideSettings.theme.of(context).surface;
     final isDark = ClideSettings.theme.of(context).dark;
@@ -171,7 +183,12 @@ class _DecisionDetailViewState extends State<DecisionDetailView> {
             if (body != null && body.isNotEmpty) ...[const SizedBox(height: 12), ClideMarkdown(body, onRecordTap: (id) => _navigateToRecord(context, id))],
             if (refs.isNotEmpty) ...[
               const SizedBox(height: 16),
-              ClideText('CROSS-REFERENCES', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: ClideSettings.fonts.monoOf(context)),
+              ClideText(
+                ClideSettings.i18n.string(context, 'detail.section.refs', namespace: 'builtin.decisions', placeholder: 'CROSS-REFERENCES'),
+                fontSize: clideFontSmall,
+                color: tokens.sidebarSectionHeader,
+                fontFamily: ClideSettings.fonts.monoOf(context),
+              ),
               const SizedBox(height: 6),
               for (final ref in refs) _RefCard(ref: ref, tokens: tokens),
             ],

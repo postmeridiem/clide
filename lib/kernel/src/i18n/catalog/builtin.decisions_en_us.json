@@ -1,3 +1,16 @@
 {
-  "tab.title": { "translation": "Decisions" }
+  "tab.title": { "translation": "Decisions" },
+  "tab.detail.title": { "translation": "Decision" },
+  "loading": { "translation": "Loading decisions..." },
+  "error.load": { "translation": "failed to load decisions" },
+  "empty": { "translation": "No decisions found.\nRun `pql decisions sync` to index." },
+  "filter.hint": { "translation": "Filter decisions…" },
+  "refresh.tooltip": { "translation": "Refresh decisions" },
+  "section.confirmed": { "translation": "CONFIRMED" },
+  "section.questions": { "translation": "QUESTIONS" },
+  "section.rejected": { "translation": "REJECTED" },
+  "badge.resolved": { "translation": "resolved" },
+  "detail.loading": { "translation": "Loading…" },
+  "detail.empty": { "translation": "Select a decision to view details." },
+  "detail.section.refs": { "translation": "CROSS-REFERENCES" }
 }

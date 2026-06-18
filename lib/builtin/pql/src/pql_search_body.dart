@@ -104,7 +104,7 @@ class _PqlSearchBodyState extends State<PqlSearchBody> {
             if (widget.mode == PqlPaneMode.markdown)
               ClideFilterBox(
                 address: 'search.pql.markdown',
-                hint: 'Filter markdown…',
+                hint: ClideSettings.i18n.string(context, 'filter.markdown.hint', namespace: 'builtin.pql', placeholder: 'Filter markdown…'),
                 onChanged: (v) => unawaited(c.loadMarkdownFiles(glob: v.isEmpty ? null : '**/*$v*.md')),
               )
             else
@@ -118,9 +118,19 @@ class _PqlSearchBodyState extends State<PqlSearchBody> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption, maxLines: 3),
               ),
-            if (c.loading && c.results.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+            if (c.loading && c.results.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClideText(ClideSettings.i18n.string(context, 'loading', namespace: 'builtin.pql', placeholder: 'Loading…'), muted: true),
+              ),
             if (!c.loading && c.results.isEmpty && c.error == null && widget.mode == PqlPaneMode.markdown)
-              const Padding(padding: EdgeInsets.all(12), child: ClideText('No markdown files found.', muted: true)),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClideText(
+                  ClideSettings.i18n.string(context, 'empty.markdown', namespace: 'builtin.pql', placeholder: 'No markdown files found.'),
+                  muted: true,
+                ),
+              ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -160,7 +170,9 @@ class _PqlSearchInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClideFilterBox(
       address: address,
-      hint: dsl ? 'PQL query…' : 'Search vault…',
+      hint: dsl
+          ? ClideSettings.i18n.string(context, 'search.query.hint', namespace: 'builtin.pql', placeholder: 'PQL query…')
+          : ClideSettings.i18n.string(context, 'search.vault.hint', namespace: 'builtin.pql', placeholder: 'Search vault…'),
       debounce: dsl ? Duration.zero : const Duration(milliseconds: 300),
       onChanged: dsl ? (_) {} : (v) => unawaited(controller.search(v)),
       onSubmitted: dsl ? (v) => unawaited(controller.runQuery(v)) : (v) => unawaited(controller.search(v)),

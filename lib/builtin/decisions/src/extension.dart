@@ -50,6 +50,8 @@ class DecisionsExtension extends ClideExtension {
       id: 'decisions.detail',
       slot: Slots.contextPanel,
       title: 'Decision',
+      titleKey: 'tab.detail.title',
+      i18nNamespace: id,
       icon: PhosphorIcons.byName('lightbulb'),
       build: (_) => const DecisionDetailView(),
     ),

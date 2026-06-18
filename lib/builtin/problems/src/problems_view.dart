@@ -44,7 +44,7 @@ class _ProblemsViewState extends State<ProblemsView> {
       builder: (context, _) {
         final tokens = ClideSettings.theme.of(context).surface;
         return Semantics(
-          label: 'problems panel',
+          label: ClideSettings.i18n.string(context, 'semantics.panel', namespace: 'builtin.problems', placeholder: 'problems panel'),
           container: true,
           explicitChildNodes: true,
           child: () {
@@ -55,30 +55,59 @@ class _ProblemsViewState extends State<ProblemsView> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClideFilterBox(address: 'problems.panel', hint: 'Filter problems…', onChanged: (v) => setState(() => _filter = v)),
+                ClideFilterBox(
+                  address: 'problems.panel',
+                  hint: ClideSettings.i18n.string(context, 'filter.hint', namespace: 'builtin.problems', placeholder: 'Filter problems…'),
+                  onChanged: (v) => setState(() => _filter = v),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                   child: Row(
                     children: [
                       Expanded(
-                        child: ClideText('Problems (${filtered.length})', fontSize: clideFontCaption, color: tokens.sidebarForeground),
+                        child: ClideText(
+                          ClideSettings.i18n.interpolated(
+                            context,
+                            'count',
+                            namespace: 'builtin.problems',
+                            placeholder: 'Problems ({count})',
+                            replacers: [I18nReplacer(from: '{count}', replace: '${filtered.length}')],
+                          ),
+                          fontSize: clideFontCaption,
+                          color: tokens.sidebarForeground,
+                        ),
                       ),
                       Semantics(
                         button: true,
-                        label: 'refresh problems',
+                        label: ClideSettings.i18n.string(context, 'refresh.semantics', namespace: 'builtin.problems', placeholder: 'refresh problems'),
                         child: GestureDetector(
                           onTap: () => unawaited(c.refresh()),
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
-                            child: ClideText('Refresh', fontSize: clideFontCaption, color: tokens.sidebarForeground),
+                            child: ClideText(
+                              ClideSettings.i18n.string(context, 'refresh.label', namespace: 'builtin.problems', placeholder: 'Refresh'),
+                              fontSize: clideFontCaption,
+                              color: tokens.sidebarForeground,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (c.loading && c.problems.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Scanning…', muted: true)),
-                if (!c.loading && filtered.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('No problems found.', muted: true)),
+                if (c.loading && c.problems.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ClideText(ClideSettings.i18n.string(context, 'scanning', namespace: 'builtin.problems', placeholder: 'Scanning…'), muted: true),
+                  ),
+                if (!c.loading && filtered.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ClideText(
+                      ClideSettings.i18n.string(context, 'empty', namespace: 'builtin.problems', placeholder: 'No problems found.'),
+                      muted: true,
+                    ),
+                  ),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(vertical: 4),

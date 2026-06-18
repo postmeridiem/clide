@@ -1,3 +1,16 @@
 {
-  "tab.title": { "translation": "pql" }
+  "tab.title": { "translation": "pql" },
+  "tab.links.title": { "translation": "Links" },
+  "filter.markdown.hint": { "translation": "Filter markdown…" },
+  "loading": { "translation": "Loading…" },
+  "empty.markdown": { "translation": "No markdown files found." },
+  "search.vault.hint": { "translation": "Search vault…" },
+  "search.query.hint": { "translation": "PQL query…" },
+  "backlinks.empty": { "translation": "Open a file to see its links." },
+  "backlinks.loading": { "translation": "Loading…" },
+  "backlinks.semantics": { "translation": "backlinks for {path}" },
+  "group.backlinks": { "translation": "Backlinks" },
+  "group.outlinks": { "translation": "Outlinks" },
+  "group.label": { "translation": "{label} ({count})" },
+  "group.none": { "translation": "None" }
 }

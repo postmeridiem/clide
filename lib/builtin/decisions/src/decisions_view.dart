@@ -74,7 +74,8 @@ class _DecisionsViewState extends State<DecisionsView> {
     if (!mounted) return;
     if (!resp.ok) {
       setState(() {
-        _error = resp.error?.message ?? 'failed to load decisions';
+        _error =
+            resp.error?.message ?? ClideSettings.i18n.string(context, 'error.load', namespace: 'builtin.decisions', placeholder: 'failed to load decisions');
         _loading = false;
       });
       return;
@@ -129,10 +130,20 @@ class _DecisionsViewState extends State<DecisionsView> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
-    if (_loading) return const Center(child: ClideText('Loading decisions...', muted: true));
+    if (_loading) {
+      return Center(
+        child: ClideText(ClideSettings.i18n.string(context, 'loading', namespace: 'builtin.decisions', placeholder: 'Loading decisions...'), muted: true),
+      );
+    }
     if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
     if (_decisions.isEmpty) {
-      return const Padding(padding: EdgeInsets.all(12), child: ClideText('No decisions found.\nRun `pql decisions sync` to index.', muted: true));
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: ClideText(
+          ClideSettings.i18n.string(context, 'empty', namespace: 'builtin.decisions', placeholder: 'No decisions found.\nRun `pql decisions sync` to index.'),
+          muted: true,
+        ),
+      );
     }
 
     final lf = _filter.toLowerCase();
@@ -161,13 +172,17 @@ class _DecisionsViewState extends State<DecisionsView> {
         Row(
           children: [
             Expanded(
-              child: ClideFilterBox(address: 'decisions.panel', hint: 'Filter decisions…', onChanged: (v) => setState(() => _filter = v)),
+              child: ClideFilterBox(
+                address: 'decisions.panel',
+                hint: ClideSettings.i18n.string(context, 'filter.hint', namespace: 'builtin.decisions', placeholder: 'Filter decisions…'),
+                onChanged: (v) => setState(() => _filter = v),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ClideTappable(
                 onTap: _refreshing ? null : _refresh,
-                tooltip: 'Refresh decisions',
+                tooltip: ClideSettings.i18n.string(context, 'refresh.tooltip', namespace: 'builtin.decisions', placeholder: 'Refresh decisions'),
                 builder: (ctx, hovered, _) =>
                     ClideIcon(PhosphorIcons.byName('arrow-clockwise'), size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
               ),
@@ -182,7 +197,7 @@ class _DecisionsViewState extends State<DecisionsView> {
               children: [
                 if (confirmed.isNotEmpty)
                   ClideAccordion(
-                    label: 'CONFIRMED',
+                    label: ClideSettings.i18n.string(context, 'section.confirmed', namespace: 'builtin.decisions', placeholder: 'CONFIRMED'),
                     count: confirmed.length,
                     leading: Container(
                       width: 8,
@@ -204,7 +219,7 @@ class _DecisionsViewState extends State<DecisionsView> {
                   ),
                 if (questions.isNotEmpty)
                   ClideAccordion(
-                    label: 'QUESTIONS',
+                    label: ClideSettings.i18n.string(context, 'section.questions', namespace: 'builtin.decisions', placeholder: 'QUESTIONS'),
                     count: questions.length,
                     leading: Container(
                       width: 8,
@@ -226,7 +241,7 @@ class _DecisionsViewState extends State<DecisionsView> {
                   ),
                 if (rejected.isNotEmpty)
                   ClideAccordion(
-                    label: 'REJECTED',
+                    label: ClideSettings.i18n.string(context, 'section.rejected', namespace: 'builtin.decisions', placeholder: 'REJECTED'),
                     count: rejected.length,
                     leading: Container(
                       width: 8,
@@ -322,7 +337,12 @@ class _DecisionCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: tokens.statusSuccess.withAlpha(0x30), borderRadius: BorderRadius.circular(3)),
-                  child: ClideText('resolved', fontSize: clideFontBadge, color: tokens.statusSuccess, fontFamily: ClideSettings.fonts.monoOf(context)),
+                  child: ClideText(
+                    ClideSettings.i18n.string(context, 'badge.resolved', namespace: 'builtin.decisions', placeholder: 'resolved'),
+                    fontSize: clideFontBadge,
+                    color: tokens.statusSuccess,
+                    fontFamily: ClideSettings.fonts.monoOf(context),
+                  ),
                 ),
               ],
             ],

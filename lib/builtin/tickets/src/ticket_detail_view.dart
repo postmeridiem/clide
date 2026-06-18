@@ -62,9 +62,21 @@ class _TicketDetailViewState extends State<TicketDetailView> {
     return ListenableBuilder(
       listenable: c,
       builder: (ctx, _) {
-        if (c.loading) return const Center(child: ClideText('Loading…', muted: true));
+        if (c.loading) {
+          return Center(
+            child: ClideText(ClideSettings.i18n.string(ctx, 'detail.loading', namespace: 'builtin.tickets', placeholder: 'Loading…'), muted: true),
+          );
+        }
         final d = c.detail;
-        if (d == null) return const Padding(padding: EdgeInsets.all(12), child: ClideText('Select a ticket to view details.', muted: true));
+        if (d == null) {
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: ClideText(
+              ClideSettings.i18n.string(ctx, 'detail.empty', namespace: 'builtin.tickets', placeholder: 'Select a ticket to view details.'),
+              muted: true,
+            ),
+          );
+        }
 
         final tokens = ClideSettings.theme.of(ctx).surface;
         final isDark = ClideSettings.theme.of(ctx).dark;
@@ -99,13 +111,19 @@ class _TicketDetailViewState extends State<TicketDetailView> {
                 ],
                 if (d.parents.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _SectionLabel(label: 'PARENT TREE', tokens: tokens),
+                  _SectionLabel(
+                    label: ClideSettings.i18n.string(ctx, 'detail.section.parents', namespace: 'builtin.tickets', placeholder: 'PARENT TREE'),
+                    tokens: tokens,
+                  ),
                   const SizedBox(height: 6),
                   for (var i = 0; i < d.parents.length; i++) _CompactCard(data: d.parents[i], tokens: tokens, typeColors: typeColors, indent: i),
                 ],
                 if (d.decisions.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _SectionLabel(label: 'REFERENCED DECISIONS', tokens: tokens),
+                  _SectionLabel(
+                    label: ClideSettings.i18n.string(ctx, 'detail.section.decisions', namespace: 'builtin.tickets', placeholder: 'REFERENCED DECISIONS'),
+                    tokens: tokens,
+                  ),
                   const SizedBox(height: 6),
                   for (final dec in d.decisions) _DecisionRefCard(data: dec, tokens: tokens),
                 ],
@@ -158,7 +176,18 @@ class _TicketHeader extends StatelessWidget {
           ClideText(detail.title, fontSize: 15, fontWeight: FontWeight.w500),
           if (detail.assignedTo != null) ...[
             const SizedBox(height: 6),
-            ClideText('assigned: ${detail.assignedTo}', muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context)),
+            ClideText(
+              ClideSettings.i18n.interpolated(
+                context,
+                'detail.assigned',
+                namespace: 'builtin.tickets',
+                placeholder: 'assigned: {name}',
+                replacers: [I18nReplacer(from: '{name}', replace: detail.assignedTo!)],
+              ),
+              muted: true,
+              fontSize: clideFontSmall,
+              fontFamily: ClideSettings.fonts.monoOf(context),
+            ),
           ],
         ],
       ),
@@ -207,7 +236,7 @@ class _StatusControls extends StatelessWidget {
                     border: Border.all(color: active ? tokens.statusInfo : tokens.panelBorder),
                   ),
                   alignment: Alignment.center,
-                  child: ClideText(_shortLabel(s), fontSize: clideFontBadge, color: color, fontFamily: ClideSettings.fonts.monoOf(context)),
+                  child: ClideText(_shortLabel(ctx, s), fontSize: clideFontBadge, color: color, fontFamily: ClideSettings.fonts.monoOf(context)),
                 );
               },
             ),
@@ -218,12 +247,12 @@ class _StatusControls extends StatelessWidget {
     );
   }
 
-  static String _shortLabel(String s) => switch (s) {
-    'backlog' => 'BACKLOG',
-    'ready' => 'READY',
-    'in_progress' => 'WIP',
-    'review' => 'REVIEW',
-    'done' => 'DONE',
+  static String _shortLabel(BuildContext context, String s) => switch (s) {
+    'backlog' => ClideSettings.i18n.string(context, 'status.backlog', namespace: 'builtin.tickets', placeholder: 'BACKLOG'),
+    'ready' => ClideSettings.i18n.string(context, 'status.ready', namespace: 'builtin.tickets', placeholder: 'READY'),
+    'in_progress' => ClideSettings.i18n.string(context, 'status.in_progress', namespace: 'builtin.tickets', placeholder: 'WIP'),
+    'review' => ClideSettings.i18n.string(context, 'status.review', namespace: 'builtin.tickets', placeholder: 'REVIEW'),
+    'done' => ClideSettings.i18n.string(context, 'status.done', namespace: 'builtin.tickets', placeholder: 'DONE'),
     _ => s.toUpperCase(),
   };
 }

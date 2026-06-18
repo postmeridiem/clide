@@ -150,7 +150,7 @@ class _TicketsViewState extends State<TicketsView> {
     if (!mounted) return;
     if (!resp.ok) {
       setState(() {
-        _error = resp.error?.message ?? 'failed to load tickets';
+        _error = resp.error?.message ?? ClideSettings.i18n.string(context, 'error.load', namespace: 'builtin.tickets', placeholder: 'failed to load tickets');
         _loading = false;
       });
       return;
@@ -169,9 +169,21 @@ class _TicketsViewState extends State<TicketsView> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
-    if (_loading) return const Center(child: ClideText('Loading tickets...', muted: true));
+    if (_loading) {
+      return Center(
+        child: ClideText(ClideSettings.i18n.string(context, 'loading', namespace: 'builtin.tickets', placeholder: 'Loading tickets...'), muted: true),
+      );
+    }
     if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
-    if (_tickets.isEmpty) return const Padding(padding: EdgeInsets.all(12), child: ClideText('No tickets.\nRun `pql ticket new` to create one.', muted: true));
+    if (_tickets.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: ClideText(
+          ClideSettings.i18n.string(context, 'empty', namespace: 'builtin.tickets', placeholder: 'No tickets.\nRun `pql ticket new` to create one.'),
+          muted: true,
+        ),
+      );
+    }
 
     final lf = _filter.toLowerCase();
     final hasTextFilter = lf.isNotEmpty;
@@ -191,6 +203,8 @@ class _TicketsViewState extends State<TicketsView> {
       ('done', 'DONE'),
       ('cancelled', 'CANCELLED'),
     ];
+    String sectionLabel(String status, String fallback) =>
+        ClideSettings.i18n.string(context, 'section.$status', namespace: 'builtin.tickets', placeholder: fallback);
 
     final byStatus = <String, List<_TicketEntry>>{};
     for (final t in filtered) {
@@ -205,13 +219,17 @@ class _TicketsViewState extends State<TicketsView> {
         Row(
           children: [
             Expanded(
-              child: ClideFilterBox(address: 'tickets.panel', hint: 'Filter tickets…', onChanged: (v) => setState(() => _filter = v)),
+              child: ClideFilterBox(
+                address: 'tickets.panel',
+                hint: ClideSettings.i18n.string(context, 'filter.hint', namespace: 'builtin.tickets', placeholder: 'Filter tickets…'),
+                onChanged: (v) => setState(() => _filter = v),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ClideTappable(
                 onTap: _refreshing ? null : _refresh,
-                tooltip: 'Refresh tickets',
+                tooltip: ClideSettings.i18n.string(context, 'refresh.tooltip', namespace: 'builtin.tickets', placeholder: 'Refresh tickets'),
                 builder: (ctx, hovered, _) =>
                     ClideIcon(PhosphorIcons.byName('arrow-clockwise'), size: 13, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
               ),
@@ -227,7 +245,25 @@ class _TicketsViewState extends State<TicketsView> {
             children: [
               for (final (type, label) in _typeOrder)
                 _TypeChip(
-                  label: label,
+                  label: ClideSettings.i18n.string(context, 'type.$type', namespace: 'builtin.tickets', placeholder: label),
+                  semanticLabel: ClideSettings.i18n.interpolated(
+                    context,
+                    'chip.label',
+                    namespace: 'builtin.tickets',
+                    placeholder: '{type} type filter',
+                    replacers: [
+                      I18nReplacer(
+                        from: '{type}',
+                        replace: ClideSettings.i18n.string(context, 'type.$type', namespace: 'builtin.tickets', placeholder: label),
+                      ),
+                    ],
+                  ),
+                  tooltip: ClideSettings.i18n.string(
+                    context,
+                    'chip.tooltip',
+                    namespace: 'builtin.tickets',
+                    placeholder: 'Click to toggle · double-click to isolate',
+                  ),
                   color: typeColors.forType(type),
                   active: _enabledTypes.contains(type),
                   onToggle: () => _toggleType(type),
@@ -246,7 +282,7 @@ class _TicketsViewState extends State<TicketsView> {
                 for (final (status, label) in sections)
                   if (byStatus[status] case final items? when items.isNotEmpty)
                     ClideAccordion(
-                      label: label,
+                      label: sectionLabel(status, label),
                       count: items.length,
                       expanded: filtering || _isSectionExpanded(status),
                       onToggle: () => _toggle(status),
@@ -275,9 +311,20 @@ class _TicketsViewState extends State<TicketsView> {
 /// type; double-click isolates it (chart-legend solo). One [GestureDetector]
 /// owns both so Flutter disambiguates single vs double.
 class _TypeChip extends StatelessWidget {
-  const _TypeChip({required this.label, required this.color, required this.active, required this.onToggle, required this.onSolo, required this.tokens});
+  const _TypeChip({
+    required this.label,
+    required this.semanticLabel,
+    required this.tooltip,
+    required this.color,
+    required this.active,
+    required this.onToggle,
+    required this.onSolo,
+    required this.tokens,
+  });
 
   final String label;
+  final String semanticLabel;
+  final String tooltip;
   final Color color;
   final bool active;
   final VoidCallback onToggle;
@@ -290,9 +337,9 @@ class _TypeChip extends StatelessWidget {
     return Semantics(
       button: true,
       toggled: active,
-      label: '$label type filter',
+      label: semanticLabel,
       child: ClideTooltip(
-        message: 'Click to toggle · double-click to isolate',
+        message: tooltip,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
@@ -360,7 +407,7 @@ class _TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typeColor = typeColors.forType(entry.type);
-    final statusLabel = _statusLabel(entry.status);
+    final statusLabel = _statusLabel(context, entry.status);
 
     return Padding(
       key: focusKey,
@@ -436,10 +483,10 @@ class _TicketCard extends StatelessWidget {
     );
   }
 
-  static String? _statusLabel(String? status) => switch (status) {
-    'in_progress' => 'WIP',
-    'review' => 'REVIEW',
-    'cancelled' => 'CANCELLED',
+  static String? _statusLabel(BuildContext context, String? status) => switch (status) {
+    'in_progress' => ClideSettings.i18n.string(context, 'badge.wip', namespace: 'builtin.tickets', placeholder: 'WIP'),
+    'review' => ClideSettings.i18n.string(context, 'badge.review', namespace: 'builtin.tickets', placeholder: 'REVIEW'),
+    'cancelled' => ClideSettings.i18n.string(context, 'badge.cancelled', namespace: 'builtin.tickets', placeholder: 'CANCELLED'),
     _ => null,
   };
 }
@@ -455,7 +502,7 @@ class _PickUpAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClideTappable(
-      tooltip: 'Pick up — hand this ticket to the Claude pane',
+      tooltip: ClideSettings.i18n.string(context, 'pickUp.tooltip', namespace: 'builtin.tickets', placeholder: 'Pick up — hand this ticket to the Claude pane'),
       onTap: () {
         final kernel = ClideKernel.of(context);
         unawaited(() async {
