@@ -303,7 +303,14 @@ class _ConversationViewState extends State<ConversationView> {
     if (items.isEmpty) {
       return ColoredBox(
         color: tokens.panelBackground,
-        child: widget.emptyState ?? const Center(child: ClideText('Waiting for Claude…', muted: true)),
+        child:
+            widget.emptyState ??
+            Center(
+              child: ClideText(
+                ClideSettings.i18n.string(context, 'conversation.empty', namespace: 'builtin.claude', placeholder: 'Waiting for Claude…'),
+                muted: true,
+              ),
+            ),
       );
     }
 
@@ -530,12 +537,20 @@ class _BashLiveTailState extends State<_BashLiveTail> {
   Widget build(BuildContext context) {
     final term = _terminal;
     if (term == null) {
-      return ClideText('no independent source to follow', muted: true, fontSize: clideFontMeta);
+      return ClideText(
+        ClideSettings.i18n.string(context, 'conversation.bashTail.empty', namespace: 'builtin.claude', placeholder: 'no independent source to follow'),
+        muted: true,
+        fontSize: clideFontMeta,
+      );
     }
     return SizedBox(
       height: 160,
       child: ClipRect(
-        child: ClidePtyView(terminal: term, label: 'live tail', fontSize: clideFontMeta),
+        child: ClidePtyView(
+          terminal: term,
+          label: ClideSettings.i18n.string(context, 'conversation.bashTail.label', namespace: 'builtin.claude', placeholder: 'live tail'),
+          fontSize: clideFontMeta,
+        ),
       ),
     );
   }
@@ -614,7 +629,9 @@ class _ConversationTurn extends StatelessWidget {
         // carded tool calls.
         variant: ConversationCardVariant.bordered,
         accent: tokens.globalTextMuted,
-        label: i.isSidechain ? 'agent prompt' : 'context',
+        label: i.isSidechain
+            ? ClideSettings.i18n.string(context, 'conversation.label.agentPrompt', namespace: 'builtin.claude', placeholder: 'agent prompt')
+            : ClideSettings.i18n.string(context, 'conversation.label.context', namespace: 'builtin.claude', placeholder: 'context'),
         copyText: i.text,
         collapsible: true,
         collapsedByDefault: true,
@@ -624,7 +641,7 @@ class _ConversationTurn extends StatelessWidget {
       ),
       UserMessage() => ConversationCard(
         accent: tokens.globalFocus,
-        label: 'you',
+        label: ClideSettings.i18n.string(context, 'conversation.label.you', namespace: 'builtin.claude', placeholder: 'you'),
         copyText: i.text,
         margin: _childMargin,
         // Pasted-image @path tokens render as inline thumbnails that open the
@@ -644,7 +661,7 @@ class _ConversationTurn extends StatelessWidget {
       AssistantTextMessage() when i.synthetic => ConversationCard(
         variant: ConversationCardVariant.bordered,
         accent: tokens.globalTextMuted,
-        label: 'clide',
+        label: ClideSettings.i18n.string(context, 'conversation.label.clide', namespace: 'builtin.claude', placeholder: 'clide'),
         copyText: i.text,
         margin: _childMargin,
         body: ClideText(i.text, muted: true, fontSize: clideFontMeta),
@@ -654,7 +671,9 @@ class _ConversationTurn extends StatelessWidget {
       // coral claudeAccent is reserved for the real main-thread Claude.
       AssistantTextMessage() => ConversationCard(
         accent: i.isSidechain ? tokens.globalTextMuted : claudeAccent,
-        label: i.isSidechain ? 'agent' : 'claude',
+        label: i.isSidechain
+            ? ClideSettings.i18n.string(context, 'conversation.label.agent', namespace: 'builtin.claude', placeholder: 'agent')
+            : ClideSettings.i18n.string(context, 'conversation.label.claude', namespace: 'builtin.claude', placeholder: 'claude'),
         copyText: i.text,
         margin: _childMargin,
         body: ClideMarkdown(
@@ -669,7 +688,9 @@ class _ConversationTurn extends StatelessWidget {
         // Framed + muted like the context card (T-306).
         variant: ConversationCardVariant.bordered,
         accent: tokens.globalTextMuted,
-        label: i.isSidechain ? 'agent thinking' : 'thinking',
+        label: i.isSidechain
+            ? ClideSettings.i18n.string(context, 'conversation.label.agentThinking', namespace: 'builtin.claude', placeholder: 'agent thinking')
+            : ClideSettings.i18n.string(context, 'conversation.label.thinking', namespace: 'builtin.claude', placeholder: 'thinking'),
         copyText: i.thinking,
         collapsible: true,
         collapsedByDefault: true,
@@ -677,8 +698,8 @@ class _ConversationTurn extends StatelessWidget {
         margin: _childMargin,
         body: ClideText(i.thinking, muted: true, fontSize: clideFontMeta),
       ),
-      AssistantToolUse() => collapseTools ? _toolUseCollapser(i) : _toolContentCard(i),
-      ToolResultMessage() => _toolResult(i),
+      AssistantToolUse() => collapseTools ? _toolUseCollapser(context, i) : _toolContentCard(context, i),
+      ToolResultMessage() => _toolResult(context, i),
       ImageMessage() => _image(context, i),
     };
   }
@@ -692,7 +713,7 @@ class _ConversationTurn extends StatelessWidget {
     final caption = m.caption;
     return ConversationCard(
       accent: tokens.globalTextMuted,
-      label: 'image',
+      label: ClideSettings.i18n.string(context, 'conversation.label.image', namespace: 'builtin.claude', placeholder: 'image'),
       copyText: m.path,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,7 +733,7 @@ class _ConversationTurn extends StatelessWidget {
                     image: ClideFileImage(m.path),
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
-                    errorBuilder: (_, _, _) => _imagePlaceholder(m.path),
+                    errorBuilder: (_, _, _) => _imagePlaceholder(context, m.path),
                   ),
                 ),
               ),
@@ -728,12 +749,12 @@ class _ConversationTurn extends StatelessWidget {
     ClideKernel.of(context).dialog.show<Object>(
       (ctx, dismiss) => ClideLightbox(
         onDismiss: dismiss,
-        child: Image(image: ClideFileImage(path), fit: BoxFit.contain, errorBuilder: (_, _, _) => _imagePlaceholder(path)),
+        child: Image(image: ClideFileImage(path), fit: BoxFit.contain, errorBuilder: (_, _, _) => _imagePlaceholder(ctx, path)),
       ),
     );
   }
 
-  Widget _imagePlaceholder(String path) => Container(
+  Widget _imagePlaceholder(BuildContext context, String path) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       border: Border.all(color: tokens.panelBorder),
@@ -745,7 +766,18 @@ class _ConversationTurn extends StatelessWidget {
         ClideIcon(PhosphorIcons.byName('image'), size: 16, color: tokens.globalTextMuted),
         const SizedBox(width: 8),
         Flexible(
-          child: ClideText('could not load $path', fontSize: clideFontMeta, color: tokens.globalTextMuted, maxLines: 1),
+          child: ClideText(
+            ClideSettings.i18n.interpolated(
+              context,
+              'conversation.imagePlaceholder',
+              namespace: 'builtin.claude',
+              placeholder: 'could not load $path',
+              replacers: [I18nReplacer(from: '{path}', replace: path)],
+            ),
+            fontSize: clideFontMeta,
+            color: tokens.globalTextMuted,
+            maxLines: 1,
+          ),
         ),
       ],
     ),
@@ -757,13 +789,13 @@ class _ConversationTurn extends StatelessWidget {
   /// — pushed up from the item; the inner card holds the call body + segments
   /// and its own per-item mark. An Agent/Task call also nests its visible
   /// sub-agent run in a second collapser below (T-264).
-  Widget _toolUseCollapser(AssistantToolUse t) {
+  Widget _toolUseCollapser(BuildContext context, AssistantToolUse t) {
     // A Workflow tool-use with a live run (T-416) renders the dedicated run
     // card — phases, agent rows, status — instead of the generic tool card. No
     // run yet (pre-progress, or on reload where the system events are gone)
     // falls through to the generic collapser below.
     if (t.name == 'Workflow' && workflows[t.toolUseId] != null) {
-      return _workflowCard(t, workflows[t.toolUseId]!);
+      return _workflowCard(context, t, workflows[t.toolUseId]!);
     }
     final outcome = toolUseOutcomes[t.toolUseId];
     final color = outcome == null ? tokens.globalFocus : (outcome ? tokens.statusSuccess : tokens.statusError);
@@ -773,7 +805,7 @@ class _ConversationTurn extends StatelessWidget {
       collapsedSummary: _toolUseSummary(t),
       counter: '1 step',
       status: _toolRunStatus(t),
-      children: [_toolContentCard(t)],
+      children: [_toolContentCard(context, t)],
     );
 
     final runItems = _isAgentTool(t.name) ? (runByToolUseId[t.toolUseId] ?? const <ConversationItem>[]) : const <ConversationItem>[];
@@ -785,7 +817,7 @@ class _ConversationTurn extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 12),
           child: ClideCollapserCard(
-            label: 'agent run',
+            label: ClideSettings.i18n.string(context, 'conversation.label.agentRun', namespace: 'builtin.claude', placeholder: 'agent run'),
             collapsedSummary: _summarizeActivity(runItems.last),
             counter: runItems.length == 1 ? '1 step' : '${runItems.length} steps',
             children: [
@@ -814,23 +846,23 @@ class _ConversationTurn extends StatelessWidget {
   /// while running, check when done) and a `done/total agents` counter; the body
   /// lists each fanned-out agent — grouped under phase headers when the workflow
   /// declared phases — plus the run's usage and the orchestration script.
-  Widget _workflowCard(AssistantToolUse t, WorkflowRun run) {
-    final title = run.name ?? 'workflow';
+  Widget _workflowCard(BuildContext context, AssistantToolUse t, WorkflowRun run) {
+    final title = run.name ?? ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow');
     final color = run.done ? tokens.statusSuccess : tokens.globalFocus;
     final counter = run.agentCount == 0 ? 'starting' : '${run.doneCount}/${run.agentCount} agents';
     final detail = run.done ? (run.summary ?? run.description) : run.description;
     final collapsedSummary = (detail == null || detail == title) ? title : '$title · $detail';
     return ClideCollapserCard(
-      label: 'workflow',
+      label: ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow'),
       color: color,
       collapsedSummary: collapsedSummary,
       counter: counter,
       status: run.done ? ClideRunStatus.success : ClideRunStatus.running,
-      children: [_workflowBody(t, run)],
+      children: [_workflowBody(context, t, run)],
     );
   }
 
-  Widget _workflowBody(AssistantToolUse t, WorkflowRun run) {
+  Widget _workflowBody(BuildContext context, AssistantToolUse t, WorkflowRun run) {
     final agents = run.orderedAgents;
     final phases = run.orderedPhases;
     final rows = <Widget>[];
@@ -851,25 +883,31 @@ class _ConversationTurn extends StatelessWidget {
       rows.addAll(agents.where((a) => a.phaseIndex == null).map(_workflowAgentRow));
     }
     if (rows.isEmpty) {
-      rows.add(ClideText('Launching…', muted: true, fontSize: clideFontMeta));
+      rows.add(
+        ClideText(
+          ClideSettings.i18n.string(context, 'conversation.workflow.launching', namespace: 'builtin.claude', placeholder: 'Launching…'),
+          muted: true,
+          fontSize: clideFontMeta,
+        ),
+      );
     }
 
     final script = t.input['script'];
     return ConversationCard(
       variant: ConversationCardVariant.bordered,
       accent: run.done ? tokens.statusSuccess : tokens.globalFocus,
-      label: run.name ?? 'workflow',
+      label: run.name ?? ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow'),
       copyText: script is String ? script : const JsonEncoder.withIndent('  ').convert(t.input),
       body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
       extraSegments: [
         if (run.totalTokens != null && run.totalTokens! > 0)
           CardSegment(
-            label: 'usage',
+            label: ClideSettings.i18n.string(context, 'conversation.segment.usage', namespace: 'builtin.claude', placeholder: 'usage'),
             child: ClideText('${run.totalTokens} tokens${run.durationMs != null ? ' · ${run.durationMs} ms' : ''}', muted: true, fontSize: clideFontMeta),
           ),
         if (script is String)
           CardSegment(
-            label: 'script',
+            label: ClideSettings.i18n.string(context, 'conversation.segment.script', namespace: 'builtin.claude', placeholder: 'script'),
             child: ClideCodeBlock(source: script, language: 'javascript'),
           ),
       ],
@@ -906,7 +944,7 @@ class _ConversationTurn extends StatelessWidget {
   /// CALL/PROMPT/RESULT segments + its own per-item status mark, with NO own
   /// collapse caret — the enclosing collapser owns collapse. Used both as a
   /// run/edit child and as the single child of a standalone tool's collapser.
-  Widget _toolContentCard(AssistantToolUse t) {
+  Widget _toolContentCard(BuildContext context, AssistantToolUse t) {
     // T-262: fold the paired result into this card. A successful result becomes
     // a "result" segment below the call + a green header check; a failed result
     // stamps a red header cross. No result yet (in-flight) → no mark, no segment.
@@ -926,12 +964,12 @@ class _ConversationTurn extends StatelessWidget {
     final segments = <CardSegment>[
       for (final p in promptsByToolUseId[t.toolUseId] ?? const <UserMessage>[])
         CardSegment(
-          label: 'prompt',
+          label: ClideSettings.i18n.string(context, 'conversation.segment.prompt', namespace: 'builtin.claude', placeholder: 'prompt'),
           child: ClideText(p.text, muted: true, fontSize: clideFontMeta),
         ),
       if (succeeded && !(isAgent && hasRun))
         CardSegment(
-          label: 'result',
+          label: ClideSettings.i18n.string(context, 'conversation.segment.result', namespace: 'builtin.claude', placeholder: 'result'),
           child: ClideCodeBlock(source: result.content, language: _resultLanguage(t)),
         ),
       // T-325: a Bash card that follows a file (`tail -f …`) gets a live,
@@ -939,7 +977,7 @@ class _ConversationTurn extends StatelessWidget {
       // while the card is expanded (the collapser builds segments on expand).
       if (t.name == 'Bash' && t.input['command'] is String && bashHasTailIntent(t.input['command'] as String))
         CardSegment(
-          label: 'live tail',
+          label: ClideSettings.i18n.string(context, 'conversation.segment.liveTail', namespace: 'builtin.claude', placeholder: 'live tail'),
           child: _BashLiveTail(command: t.input['command'] as String),
         ),
     ];
@@ -955,7 +993,7 @@ class _ConversationTurn extends StatelessWidget {
       label: t.name,
       copyText: const JsonEncoder.withIndent('  ').convert(t.input),
       status: status,
-      body: toolInputBody(tokens, t.name, t.input, mono),
+      body: toolInputBody(context, tokens, t.name, t.input, mono),
       extraSegments: segments,
       // Inside a collapser the surrounding padding is even on all sides
       // (T-305): a matching bottom margin is the canvas's bottom inset and the
@@ -987,10 +1025,12 @@ class _ConversationTurn extends StatelessWidget {
     }
   }
 
-  Widget _toolResult(ToolResultMessage t) {
+  Widget _toolResult(BuildContext context, ToolResultMessage t) {
     final paired = toolUseById[t.toolUseId];
     final accent = t.isError ? tokens.statusError : tokens.globalTextMuted;
-    final label = t.isError ? 'error' : 'result';
+    final label = t.isError
+        ? ClideSettings.i18n.string(context, 'conversation.label.error', namespace: 'builtin.claude', placeholder: 'error')
+        : ClideSettings.i18n.string(context, 'conversation.label.result', namespace: 'builtin.claude', placeholder: 'result');
 
     // Error result: render the error message prominently (T-168). If we have
     // the paired tool_use, show the tool name as a sub-label so the user can
@@ -1002,7 +1042,7 @@ class _ConversationTurn extends StatelessWidget {
     if (t.isError) {
       final quiet = quietErrorToolUseIds.contains(t.toolUseId);
       final multiline = t.content.contains('\n');
-      final errLabel = quiet ? 'denied' : label;
+      final errLabel = quiet ? ClideSettings.i18n.string(context, 'conversation.label.denied', namespace: 'builtin.claude', placeholder: 'denied') : label;
       return ConversationCard(
         variant: ConversationCardVariant.bordered,
         accent: quiet ? tokens.globalTextMuted : accent,
@@ -1086,7 +1126,7 @@ class _ActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final count = items.length;
     return ClideCollapserCard(
-      label: 'Activity',
+      label: ClideSettings.i18n.string(context, 'conversation.cluster.activity', namespace: 'builtin.claude', placeholder: 'Activity'),
       collapsedSummary: _summarizeActivity(items.last),
       counter: count == 1 ? '1 step' : '$count steps',
       status: _runStatus(items, resultByToolUseId),
@@ -1152,7 +1192,7 @@ class _EditRunCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final count = edits.length;
     return ClideCollapserCard(
-      label: 'Edits',
+      label: ClideSettings.i18n.string(context, 'conversation.cluster.edits', namespace: 'builtin.claude', placeholder: 'Edits'),
       collapsedSummary: _summarizeActivity(edits.last),
       counter: count == 1 ? '1 edit' : '$count edits',
       status: _runStatus(edits, resultByToolUseId),

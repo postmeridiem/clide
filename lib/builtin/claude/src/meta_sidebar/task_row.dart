@@ -54,7 +54,7 @@ class TaskRow extends StatelessWidget {
           if (broker != null && broker!.members.length > 1)
             MetaIconButton(
               painter: PhosphorIcons.byName('arrow-clockwise'),
-              tooltip: 'Reassign task',
+              tooltip: ClideSettings.i18n.string(context, 'taskRow.reassign', namespace: 'builtin.claude', placeholder: 'Reassign task'),
               color: tokens.globalTextMuted,
               onTap: () => _reassign(context),
             ),

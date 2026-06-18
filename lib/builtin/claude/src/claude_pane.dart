@@ -833,7 +833,9 @@ class _ClaudePaneState extends State<ClaudePane> {
         },
       );
     } else {
-      body = const Center(child: ClideText('starting…', muted: true));
+      body = Center(
+        child: ClideText(ClideSettings.i18n.string(context, 'pane.starting', namespace: 'builtin.claude', placeholder: 'starting…'), muted: true),
+      );
     }
 
     final content = widget.showChrome ? ClidePaneChrome(title: title, subtitle: _error ?? _statusLine, child: body) : body;
@@ -856,7 +858,13 @@ class _ModeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'permission mode: ${permissionModeLabel(mode)}',
+      label: ClideSettings.i18n.interpolated(
+        context,
+        'pane.modeBadge.semantics',
+        namespace: 'builtin.claude',
+        placeholder: 'permission mode: ${permissionModeLabel(mode)}',
+        replacers: [I18nReplacer(from: '{mode}', replace: permissionModeLabel(mode))],
+      ),
       excludeSemantics: true,
       child: ClideText(
         permissionModeLabel(mode),

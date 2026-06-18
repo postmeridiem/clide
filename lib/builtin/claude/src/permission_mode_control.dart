@@ -101,11 +101,23 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
           final open = _overlay.isOpen;
           return Semantics(
             button: true,
-            label: 'permission mode: ${permissionModeLabel(widget.mode)}. Activate to change.',
+            label: ClideSettings.i18n.interpolated(
+              context,
+              'permissionControl.semantics',
+              namespace: 'builtin.claude',
+              placeholder: 'permission mode: ${permissionModeLabel(widget.mode)}. Activate to change.',
+              replacers: [I18nReplacer(from: '{mode}', replace: permissionModeLabel(widget.mode))],
+            ),
             excludeSemantics: true,
             child: ClideTappable(
               onTap: _overlay.toggle,
-              tooltip: 'Permission mode: ${permissionModeLabel(widget.mode)} — change (Ctrl/Cmd+M cycles)',
+              tooltip: ClideSettings.i18n.interpolated(
+                context,
+                'permissionControl.tooltip',
+                namespace: 'builtin.claude',
+                placeholder: 'Permission mode: ${permissionModeLabel(widget.mode)} — change (Ctrl/Cmd+M cycles)',
+                replacers: [I18nReplacer(from: '{mode}', replace: permissionModeLabel(widget.mode))],
+              ),
               builder: (ctx, hovered, _) => Container(
                 width: 28,
                 height: 28,

@@ -162,7 +162,11 @@ class _ModelPickerCardState extends State<ModelPickerCard> {
             Row(
               children: [
                 const Spacer(),
-                ClideButton(label: 'cancel', variant: ClideButtonVariant.subtle, onPressed: widget.onCancel),
+                ClideButton(
+                  label: ClideSettings.i18n.string(context, 'modelPicker.cancel', namespace: 'builtin.claude', placeholder: 'cancel'),
+                  variant: ClideButtonVariant.subtle,
+                  onPressed: widget.onCancel,
+                ),
               ],
             ),
           ],

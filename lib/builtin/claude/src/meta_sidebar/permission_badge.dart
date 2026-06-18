@@ -40,15 +40,27 @@ class PermissionModeBadge extends StatelessWidget {
     final isBypass = mode == 'bypassPermissions';
     final badgeColor = isBypass ? const Color(0xFFF06C6F) : tokens.globalFocus;
 
-    final tooltip =
-        'Permission mode: ${permissionModeLabel(mode)}. '
-        'Click to cycle default/acceptEdits/plan; Shift-click for bypassPermissions.';
+    final tooltip = ClideSettings.i18n.interpolated(
+      context,
+      'permissionBadge.tooltip',
+      namespace: 'builtin.claude',
+      placeholder:
+          'Permission mode: ${permissionModeLabel(mode)}. '
+          'Click to cycle default/acceptEdits/plan; Shift-click for bypassPermissions.',
+      replacers: [I18nReplacer(from: '{mode}', replace: permissionModeLabel(mode))],
+    );
 
     return Padding(
       padding: const EdgeInsets.only(top: 3),
       child: Semantics(
         button: true,
-        label: 'Permission mode: $label',
+        label: ClideSettings.i18n.interpolated(
+          context,
+          'permissionBadge.semantics',
+          namespace: 'builtin.claude',
+          placeholder: 'Permission mode: $label',
+          replacers: [I18nReplacer(from: '{label}', replace: label)],
+        ),
         excludeSemantics: true,
         onTap: () {
           if (HardwareKeyboard.instance.isShiftPressed) {

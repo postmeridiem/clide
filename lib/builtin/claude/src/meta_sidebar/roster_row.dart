@@ -154,27 +154,40 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
       child: Row(
         children: [
           Expanded(
-            child: ClideText('Enable bypassPermissions? All tool calls will be auto-allowed.', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+            child: ClideText(
+              ClideSettings.i18n.string(
+                context,
+                'roster.bypass.confirmBody',
+                namespace: 'builtin.claude',
+                placeholder: 'Enable bypassPermissions? All tool calls will be auto-allowed.',
+              ),
+              fontSize: clideFontSmall,
+              color: tokens.globalTextMuted,
+            ),
           ),
           const SizedBox(width: 4),
           // Confirm
           Semantics(
             button: true,
-            label: 'Confirm bypass',
+            label: ClideSettings.i18n.string(context, 'roster.bypass.confirm.semantics', namespace: 'builtin.claude', placeholder: 'Confirm bypass'),
             excludeSemantics: true,
             onTap: () {
               setState(() => _confirmingBypass = false);
               widget.onSetPermissionMode(widget.member.name, 'bypassPermissions');
             },
             child: ClideTappable(
-              tooltip: 'Confirm',
+              tooltip: ClideSettings.i18n.string(context, 'roster.bypass.confirm.tooltip', namespace: 'builtin.claude', placeholder: 'Confirm'),
               onTap: () {
                 setState(() => _confirmingBypass = false);
                 widget.onSetPermissionMode(widget.member.name, 'bypassPermissions');
               },
               builder: (ctx, hovered, _) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                child: ClideText('OK', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalFocus),
+                child: ClideText(
+                  ClideSettings.i18n.string(context, 'roster.bypass.ok', namespace: 'builtin.claude', placeholder: 'OK'),
+                  fontSize: clideFontSmall,
+                  color: hovered ? tokens.globalForeground : tokens.globalFocus,
+                ),
               ),
             ),
           ),
@@ -182,15 +195,19 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
           // Cancel
           Semantics(
             button: true,
-            label: 'Cancel bypass',
+            label: ClideSettings.i18n.string(context, 'roster.bypass.cancel.semantics', namespace: 'builtin.claude', placeholder: 'Cancel bypass'),
             excludeSemantics: true,
             onTap: () => setState(() => _confirmingBypass = false),
             child: ClideTappable(
-              tooltip: 'Cancel',
+              tooltip: ClideSettings.i18n.string(context, 'roster.bypass.cancel.tooltip', namespace: 'builtin.claude', placeholder: 'Cancel'),
               onTap: () => setState(() => _confirmingBypass = false),
               builder: (ctx, hovered, _) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                child: ClideText('Cancel', fontSize: clideFontSmall, color: hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                child: ClideText(
+                  ClideSettings.i18n.string(context, 'roster.bypass.cancel', namespace: 'builtin.claude', placeholder: 'Cancel'),
+                  fontSize: clideFontSmall,
+                  color: hovered ? tokens.globalForeground : tokens.globalTextMuted,
+                ),
               ),
             ),
           ),
@@ -206,7 +223,9 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
         // Show / hide
         MetaIconButton(
           painter: isVisible ? PhosphorIcons.byName('eye') : PhosphorIcons.byName('eye-slash'),
-          tooltip: isVisible ? 'Hide pane' : 'Show pane',
+          tooltip: isVisible
+              ? ClideSettings.i18n.string(context, 'roster.hidePane', namespace: 'builtin.claude', placeholder: 'Hide pane')
+              : ClideSettings.i18n.string(context, 'roster.showPane', namespace: 'builtin.claude', placeholder: 'Show pane'),
           color: tokens.globalTextMuted,
           onTap: () => isVisible ? widget.orchestrator!.hide(managed.id) : widget.orchestrator!.show(managed.id),
         ),
@@ -216,28 +235,30 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
           // NOTE: We use eye/eyeSlash as stand-ins until a dedicated speaker
           // icon is added to PhosphorIcons (no speaker codepoint yet).
           // The semantic tooltip still says mute/unmute so AT users are clear.
-          tooltip: isMuted ? 'Unmute messages' : 'Mute messages',
+          tooltip: isMuted
+              ? ClideSettings.i18n.string(context, 'roster.unmute', namespace: 'builtin.claude', placeholder: 'Unmute messages')
+              : ClideSettings.i18n.string(context, 'roster.mute', namespace: 'builtin.claude', placeholder: 'Mute messages'),
           color: isMuted ? tokens.globalFocus : tokens.globalTextMuted,
           onTap: () => isMuted ? widget.orchestrator!.unmute(managed.id) : widget.orchestrator!.mute(managed.id),
         ),
         // Inject message
         MetaIconButton(
           painter: PhosphorIcons.byName('chat-circle'),
-          tooltip: 'Inject message',
+          tooltip: ClideSettings.i18n.string(context, 'roster.inject', namespace: 'builtin.claude', placeholder: 'Inject message'),
           color: isInjecting ? tokens.globalFocus : tokens.globalTextMuted,
           onTap: () => widget.onToggleInject(widget.member.name),
         ),
         // Fork session (T-172): branch into a new pane without touching the original.
         MetaIconButton(
           painter: PhosphorIcons.byName('git-branch'),
-          tooltip: 'Fork session',
+          tooltip: ClideSettings.i18n.string(context, 'roster.fork', namespace: 'builtin.claude', placeholder: 'Fork session'),
           color: tokens.globalTextMuted,
           onTap: () => widget.onFork(widget.member.name),
         ),
         // Close session
         MetaIconButton(
           painter: PhosphorIcons.byName('x'),
-          tooltip: 'Close session',
+          tooltip: ClideSettings.i18n.string(context, 'roster.close', namespace: 'builtin.claude', placeholder: 'Close session'),
           color: tokens.globalTextMuted,
           onTap: () => widget.onClose(widget.member.name),
         ),
@@ -262,7 +283,7 @@ class _AgentRosterRowState extends State<AgentRosterRow> {
           const SizedBox(width: 4),
           MetaIconButton(
             painter: PhosphorIcons.byName('x'),
-            tooltip: 'Cancel',
+            tooltip: ClideSettings.i18n.string(context, 'roster.inject.cancel', namespace: 'builtin.claude', placeholder: 'Cancel'),
             color: tokens.globalTextMuted,
             onTap: () => widget.onToggleInject(widget.member.name),
           ),

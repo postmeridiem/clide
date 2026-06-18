@@ -87,7 +87,7 @@ class _RunningIndicatorState extends State<RunningIndicator> with SingleTickerPr
     final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     // The animated text is decorative; AT gets one stable label.
     return Semantics(
-      label: 'Claude is running',
+      label: ClideSettings.i18n.string(context, 'running.semantics', namespace: 'builtin.claude', placeholder: 'Claude is running'),
       child: ExcludeSemantics(
         child: reduced
             ? ClideText('${_verbs.first}…', color: claudeAccent, fontSize: clideFontMeta)

@@ -132,15 +132,19 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
         Row(
           children: [
             Expanded(
-              child: ClideText('MESSAGES', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+              child: ClideText(
+                ClideSettings.i18n.string(context, 'teamChat.section.messages', namespace: 'builtin.claude', placeholder: 'MESSAGES'),
+                fontSize: clideFontSmall,
+                color: tokens.globalTextMuted,
+              ),
             ),
             Semantics(
               button: true,
-              label: 'Open full chat pane',
+              label: ClideSettings.i18n.string(context, 'teamChat.popOut.semantics', namespace: 'builtin.claude', placeholder: 'Open full chat pane'),
               excludeSemantics: true,
               onTap: widget.onPopOut,
               child: ClideTappable(
-                tooltip: 'Open full chat',
+                tooltip: ClideSettings.i18n.string(context, 'teamChat.popOut.tooltip', namespace: 'builtin.claude', placeholder: 'Open full chat'),
                 onTap: widget.onPopOut,
                 builder: (ctx, hovered, _) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
@@ -155,7 +159,11 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
         if (messages.isEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: ClideText('No messages yet.', muted: true, fontSize: clideFontSmall),
+            child: ClideText(
+              ClideSettings.i18n.string(context, 'teamChat.empty', namespace: 'builtin.claude', placeholder: 'No messages yet.'),
+              muted: true,
+              fontSize: clideFontSmall,
+            ),
           )
         else
           for (final msg in messages.length > 5 ? messages.sublist(messages.length - 5) : messages)
@@ -168,7 +176,13 @@ class _TeamChatSidebarState extends State<TeamChatSidebar> {
           formatLabel: (n) => '@$n',
           child: Focus(
             onKeyEvent: _handleKeyEvent,
-            child: _ChatInputField(controller: _controller, focusNode: _focusNode, tokens: tokens, onSubmit: _submit, placeholder: '@name or @team …'),
+            child: _ChatInputField(
+              controller: _controller,
+              focusNode: _focusNode,
+              tokens: tokens,
+              onSubmit: _submit,
+              placeholder: ClideSettings.i18n.string(context, 'teamChat.composer.placeholder', namespace: 'builtin.claude', placeholder: '@name or @team …'),
+            ),
           ),
         ),
       ],
@@ -303,12 +317,22 @@ class _TeamChatPaneState extends State<TeamChatPane> {
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: tokens.panelBorder)),
           ),
-          child: ClideText('Team Chat', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+          child: ClideText(
+            ClideSettings.i18n.string(context, 'teamChat.pane.title', namespace: 'builtin.claude', placeholder: 'Team Chat'),
+            fontSize: clideFontSmall,
+            color: tokens.globalTextMuted,
+          ),
         ),
         // Timeline.
         Expanded(
           child: messages.isEmpty
-              ? Center(child: ClideText('No messages yet.', muted: true, fontSize: clideFontSmall))
+              ? Center(
+                  child: ClideText(
+                    ClideSettings.i18n.string(context, 'teamChat.empty', namespace: 'builtin.claude', placeholder: 'No messages yet.'),
+                    muted: true,
+                    fontSize: clideFontSmall,
+                  ),
+                )
               : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -335,7 +359,12 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                     children: [
                       Semantics(
                         checked: _interrupt,
-                        label: 'Interrupt target session',
+                        label: ClideSettings.i18n.string(
+                          context,
+                          'teamChat.interrupt.semantics',
+                          namespace: 'builtin.claude',
+                          placeholder: 'Interrupt target session',
+                        ),
                         excludeSemantics: true,
                         onTap: () => setState(() => _interrupt = !_interrupt),
                         child: Container(
@@ -350,7 +379,11 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                           child: _interrupt ? Center(child: ClideIcon(PhosphorIcons.byName('check'), size: 9, color: tokens.globalFocus)) : null,
                         ),
                       ),
-                      ClideText('Interrupt', fontSize: clideFontSmall, color: _interrupt ? tokens.globalForeground : tokens.globalTextMuted),
+                      ClideText(
+                        ClideSettings.i18n.string(context, 'teamChat.interrupt.label', namespace: 'builtin.claude', placeholder: 'Interrupt'),
+                        fontSize: clideFontSmall,
+                        color: _interrupt ? tokens.globalForeground : tokens.globalTextMuted,
+                      ),
                     ],
                   ),
                 ),
@@ -363,7 +396,18 @@ class _TeamChatPaneState extends State<TeamChatPane> {
                 formatLabel: (n) => '@$n',
                 child: Focus(
                   onKeyEvent: _handleKeyEvent,
-                  child: _ChatInputField(controller: _controller, focusNode: _focusNode, tokens: tokens, onSubmit: _submit, placeholder: '@name or @team …'),
+                  child: _ChatInputField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    tokens: tokens,
+                    onSubmit: _submit,
+                    placeholder: ClideSettings.i18n.string(
+                      context,
+                      'teamChat.composer.placeholder',
+                      namespace: 'builtin.claude',
+                      placeholder: '@name or @team …',
+                    ),
+                  ),
                 ),
               ),
             ],

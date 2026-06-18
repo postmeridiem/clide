@@ -50,7 +50,7 @@ class TeamTabView extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
     if (members.isEmpty) {
-      return metaPlaceholder('No team active.');
+      return metaPlaceholder(ClideSettings.i18n.string(context, 'team.empty', namespace: 'builtin.claude', placeholder: 'No team active.'));
     }
     final children = <Widget>[
       for (final m in members)
@@ -71,7 +71,7 @@ class TeamTabView extends StatelessWidget {
 
     if (tasks.isNotEmpty) {
       children.add(const SizedBox(height: 12));
-      children.add(_taskSection(tokens));
+      children.add(_taskSection(context, tokens));
     }
 
     // MESSAGES section (T-180): live broker chat feed + quick-post composer.
@@ -85,11 +85,15 @@ class TeamTabView extends StatelessWidget {
     return ListView(padding: const EdgeInsets.all(12), children: children);
   }
 
-  Widget _taskSection(SurfaceTokens tokens) {
+  Widget _taskSection(BuildContext context, SurfaceTokens tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClideText('TASKS', fontSize: clideFontSmall, color: tokens.globalTextMuted),
+        ClideText(
+          ClideSettings.i18n.string(context, 'team.section.tasks', namespace: 'builtin.claude', placeholder: 'TASKS'),
+          fontSize: clideFontSmall,
+          color: tokens.globalTextMuted,
+        ),
         const SizedBox(height: 4),
         for (final t in tasks) TaskRow(task: t, members: members, broker: orchestrator?.broker),
       ],

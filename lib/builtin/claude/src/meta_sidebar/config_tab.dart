@@ -44,7 +44,7 @@ class ConfigTabView extends StatelessWidget {
     final tokens = ClideSettings.theme.of(context).surface;
     final cfg = config;
     if (cfg == null) {
-      return metaPlaceholder('Claude environment not loaded.');
+      return metaPlaceholder(ClideSettings.i18n.string(context, 'config.empty', namespace: 'builtin.claude', placeholder: 'Claude environment not loaded.'));
     }
     final settings = cfg.settings;
     final model = status?.model ?? cfg.probe?.model ?? settings['model']?.toString() ?? 'default';
@@ -56,26 +56,40 @@ class ConfigTabView extends StatelessWidget {
       // Pinned SETTINGS control panel — not collapsible.
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: ClideText('SETTINGS', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader),
+        child: ClideText(
+          ClideSettings.i18n.string(context, 'config.section.settings', namespace: 'builtin.claude', placeholder: 'SETTINGS'),
+          fontSize: clideFontSmall,
+          color: tokens.sidebarSectionHeader,
+        ),
       ),
       SettingControlRow(
-        label: 'model',
+        label: ClideSettings.i18n.string(context, 'config.row.model', namespace: 'builtin.claude', placeholder: 'model'),
         value: model,
         valueColor: tokens.globalFocus,
         options: (models == null || models!.isEmpty) ? kFallbackModels : models!,
         isActive: (o) => o.value == model || model.toLowerCase().contains(o.value.toLowerCase()),
         command: 'model',
       ),
-      SettingControlRow(label: 'effort', value: effort, options: kEffortLevels, isActive: (o) => o.value == effort, command: 'effort'),
       SettingControlRow(
-        label: 'permission mode',
+        label: ClideSettings.i18n.string(context, 'config.row.effort', namespace: 'builtin.claude', placeholder: 'effort'),
+        value: effort,
+        options: kEffortLevels,
+        isActive: (o) => o.value == effort,
+        command: 'effort',
+      ),
+      SettingControlRow(
+        label: ClideSettings.i18n.string(context, 'config.row.permissionMode', namespace: 'builtin.claude', placeholder: 'permission mode'),
         value: permissionModeLabel(mode),
         options: kPermissionModes,
         isActive: (o) => o.value == mode,
         command: 'permissions',
       ),
-      _configRow(tokens, 'output style', outputStyle),
-      _configRow(tokens, 'source', '~/.claude + .claude'),
+      _configRow(tokens, ClideSettings.i18n.string(context, 'config.row.outputStyle', namespace: 'builtin.claude', placeholder: 'output style'), outputStyle),
+      _configRow(
+        tokens,
+        ClideSettings.i18n.string(context, 'config.row.source', namespace: 'builtin.claude', placeholder: 'source'),
+        ClideSettings.i18n.string(context, 'config.row.source.value', namespace: 'builtin.claude', placeholder: '~/.claude + .claude'),
+      ),
 
       // ---- Accordion sections ----
       for (final section in ConfigSection.values) _accordion(context, tokens, cfg, section),
@@ -83,7 +97,16 @@ class ConfigTabView extends StatelessWidget {
       // Footer hint.
       Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: ClideText('expand a list to see all · click a skill/agent/command → opens its .md', muted: true, fontSize: clideFontSmall),
+        child: ClideText(
+          ClideSettings.i18n.string(
+            context,
+            'config.footer',
+            namespace: 'builtin.claude',
+            placeholder: 'expand a list to see all · click a skill/agent/command → opens its .md',
+          ),
+          muted: true,
+          fontSize: clideFontSmall,
+        ),
       ),
     ];
 
@@ -109,13 +132,13 @@ class ConfigTabView extends StatelessWidget {
     );
   }
 
-  String _sectionLabel(ConfigSection section) => switch (section) {
-    ConfigSection.skills => 'SKILLS',
-    ConfigSection.agents => 'AGENTS',
-    ConfigSection.commands => 'COMMANDS',
-    ConfigSection.hooks => 'HOOKS',
-    ConfigSection.permissions => 'PERMISSIONS',
-    ConfigSection.mcpServers => 'MCP SERVERS',
+  String _sectionLabel(BuildContext context, ConfigSection section) => switch (section) {
+    ConfigSection.skills => ClideSettings.i18n.string(context, 'config.section.skills', namespace: 'builtin.claude', placeholder: 'SKILLS'),
+    ConfigSection.agents => ClideSettings.i18n.string(context, 'config.section.agents', namespace: 'builtin.claude', placeholder: 'AGENTS'),
+    ConfigSection.commands => ClideSettings.i18n.string(context, 'config.section.commands', namespace: 'builtin.claude', placeholder: 'COMMANDS'),
+    ConfigSection.hooks => ClideSettings.i18n.string(context, 'config.section.hooks', namespace: 'builtin.claude', placeholder: 'HOOKS'),
+    ConfigSection.permissions => ClideSettings.i18n.string(context, 'config.section.permissions', namespace: 'builtin.claude', placeholder: 'PERMISSIONS'),
+    ConfigSection.mcpServers => ClideSettings.i18n.string(context, 'config.section.mcpServers', namespace: 'builtin.claude', placeholder: 'MCP SERVERS'),
   };
 
   int _sectionCount(ClaudeConfig config, ConfigSection section) => switch (section) {
@@ -131,7 +154,7 @@ class ConfigTabView extends StatelessWidget {
     final isExpanded = expanded.contains(section);
     final children = isExpanded ? _sectionChildren(context, tokens, config, section) : const <Widget>[];
     return ClideAccordion(
-      label: _sectionLabel(section),
+      label: _sectionLabel(context, section),
       count: _sectionCount(config, section),
       expanded: isExpanded,
       onToggle: () => onToggleSection(section),
@@ -166,7 +189,7 @@ class ConfigTabView extends StatelessWidget {
             ),
         ];
       case ConfigSection.permissions:
-        return _permissionRows(tokens, config.permissions);
+        return _permissionRows(context, tokens, config.permissions);
       case ConfigSection.mcpServers:
         return [
           for (final srv in config.mcpServers)
@@ -205,7 +228,7 @@ class ConfigTabView extends StatelessWidget {
   }
 
   /// Renders grouped allow/ask/deny permission rows, colour-coded by kind.
-  List<Widget> _permissionRows(SurfaceTokens tokens, ClaudePermissions perms) {
+  List<Widget> _permissionRows(BuildContext context, SurfaceTokens tokens, ClaudePermissions perms) {
     // allow → statusSuccess, ask → statusWarning, deny → statusError
     Color kindColor(ConfigPermKind k) => switch (k) {
       ConfigPermKind.allow => tokens.statusSuccess,
@@ -214,9 +237,9 @@ class ConfigTabView extends StatelessWidget {
     };
 
     String kindLabel(ConfigPermKind k) => switch (k) {
-      ConfigPermKind.allow => 'allow',
-      ConfigPermKind.ask => 'ask',
-      ConfigPermKind.deny => 'deny',
+      ConfigPermKind.allow => ClideSettings.i18n.string(context, 'config.perm.allow', namespace: 'builtin.claude', placeholder: 'allow'),
+      ConfigPermKind.ask => ClideSettings.i18n.string(context, 'config.perm.ask', namespace: 'builtin.claude', placeholder: 'ask'),
+      ConfigPermKind.deny => ClideSettings.i18n.string(context, 'config.perm.deny', namespace: 'builtin.claude', placeholder: 'deny'),
     };
 
     final groups = [(ConfigPermKind.allow, perms.allow), (ConfigPermKind.ask, perms.ask), (ConfigPermKind.deny, perms.deny)];
@@ -320,18 +343,42 @@ class _SettingControlRowState extends State<SettingControlRow> {
                     ClideMenuItem(
                       label: o.description.isEmpty ? o.displayName : '${o.displayName} — ${o.description}',
                       active: widget.isActive(o),
-                      semanticLabel: '${widget.label}: ${o.displayName}',
+                      semanticLabel: ClideSettings.i18n.interpolated(
+                        context,
+                        'config.control.option.semantics',
+                        namespace: 'builtin.claude',
+                        placeholder: '${widget.label}: ${o.displayName}',
+                        replacers: [
+                          I18nReplacer(from: '{label}', replace: widget.label),
+                          I18nReplacer(from: '{name}', replace: o.displayName),
+                        ],
+                      ),
                       onSelect: () => _pick(o.value),
                     ),
                 ],
               ),
               anchor: Semantics(
                 button: true,
-                label: '${widget.label}: ${widget.value}. Click to change.',
+                label: ClideSettings.i18n.interpolated(
+                  context,
+                  'config.control.semantics',
+                  namespace: 'builtin.claude',
+                  placeholder: '${widget.label}: ${widget.value}. Click to change.',
+                  replacers: [
+                    I18nReplacer(from: '{label}', replace: widget.label),
+                    I18nReplacer(from: '{value}', replace: widget.value),
+                  ],
+                ),
                 excludeSemantics: true,
                 onTap: _overlay.toggle,
                 child: ClideTappable(
-                  tooltip: 'change ${widget.label}',
+                  tooltip: ClideSettings.i18n.interpolated(
+                    context,
+                    'config.control.tooltip',
+                    namespace: 'builtin.claude',
+                    placeholder: 'change ${widget.label}',
+                    replacers: [I18nReplacer(from: '{label}', replace: widget.label)],
+                  ),
                   onTap: _overlay.toggle,
                   builder: (ctx, hovered, _) => DecoratedBox(
                     decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : null, borderRadius: BorderRadius.circular(4)),

@@ -244,7 +244,13 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     final canRemember = p.permissionSuggestions.isNotEmpty;
     return (
       tokens.statusWarning,
-      'permission · ${p.displayName}',
+      ClideSettings.i18n.interpolated(
+        context,
+        'prompt.permission.label',
+        namespace: 'builtin.claude',
+        placeholder: 'permission · ${p.displayName}',
+        replacers: [I18nReplacer(from: '{name}', replace: p.displayName)],
+      ),
       [
         // Claude's description for Write/Edit is often just the file_path,
         // which the body already shows via _pathLine — suppress in that case
@@ -265,25 +271,66 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ClideButton(label: '1. Allow', variant: ClideButtonVariant.primary, onPressed: () => _permAllow()),
-            if (canRemember) ClideButton(label: "2. Allow & don't ask again", onPressed: () => _permAllow(remember: true)),
-            ClideButton(label: '${canRemember ? '3' : '2'}. Deny', onPressed: _permDeny),
             ClideButton(
-              label: '${canRemember ? '4' : '3'}. Deny & simplify',
-              tooltip: 'Deny and ask Claude to retry this action in a simpler format — complex interactions don\'t work well with the permission system.',
+              label: ClideSettings.i18n.string(context, 'prompt.permission.allow', namespace: 'builtin.claude', placeholder: '1. Allow'),
+              variant: ClideButtonVariant.primary,
+              onPressed: () => _permAllow(),
+            ),
+            if (canRemember)
+              ClideButton(
+                label: ClideSettings.i18n.string(
+                  context,
+                  'prompt.permission.allowRemember',
+                  namespace: 'builtin.claude',
+                  placeholder: "2. Allow & don't ask again",
+                ),
+                onPressed: () => _permAllow(remember: true),
+              ),
+            ClideButton(
+              label: ClideSettings.i18n.interpolated(
+                context,
+                'prompt.permission.deny',
+                namespace: 'builtin.claude',
+                placeholder: '${canRemember ? '3' : '2'}. Deny',
+                replacers: [I18nReplacer(from: '{n}', replace: canRemember ? '3' : '2')],
+              ),
+              onPressed: _permDeny,
+            ),
+            ClideButton(
+              label: ClideSettings.i18n.interpolated(
+                context,
+                'prompt.permission.denySimplify',
+                namespace: 'builtin.claude',
+                placeholder: '${canRemember ? '4' : '3'}. Deny & simplify',
+                replacers: [I18nReplacer(from: '{n}', replace: canRemember ? '4' : '3')],
+              ),
+              tooltip: ClideSettings.i18n.string(
+                context,
+                'prompt.permission.denySimplify.tooltip',
+                namespace: 'builtin.claude',
+                placeholder: 'Deny and ask Claude to retry this action in a simpler format — complex interactions don\'t work well with the permission system.',
+              ),
               onPressed: _permDenySimplify,
             ),
           ],
         ),
         const SizedBox(height: 10),
-        _NoteField(controller: _note, placeholder: 'add a note (optional) — sent to Claude'),
+        _NoteField(
+          controller: _note,
+          placeholder: ClideSettings.i18n.string(
+            context,
+            'prompt.permission.note.placeholder',
+            namespace: 'builtin.claude',
+            placeholder: 'add a note (optional) — sent to Claude',
+          ),
+        ),
       ],
     );
   }
 
   /// Render the tool input in the shape that best fits the tool. Delegates to
   /// the shared top-level helpers (also used by ConversationView — T-168).
-  Widget _inputBody(SurfaceTokens tokens, String mono, ToolPrompt p) => toolInputBody(tokens, p.toolName, p.input, mono);
+  Widget _inputBody(SurfaceTokens tokens, String mono, ToolPrompt p) => toolInputBody(context, tokens, p.toolName, p.input, mono);
 
   // -- AskUserQuestion: single = bare, multi = stepper + review --------------
 
@@ -291,13 +338,17 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     if (_q.length <= 1) {
       return (
         tokens.statusInfo,
-        'question',
+        ClideSettings.i18n.string(context, 'prompt.question.label', namespace: 'builtin.claude', placeholder: 'question'),
         [
           if (_q.isNotEmpty) _questionBody(tokens, 0),
           const SizedBox(height: 6),
           Row(
             children: [
-              ClideButton(label: 'Submit', variant: ClideButtonVariant.primary, onPressed: (_q.isNotEmpty && _answer(0).isNotEmpty) ? _submit : null),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'prompt.submit', namespace: 'builtin.claude', placeholder: 'Submit'),
+                variant: ClideButtonVariant.primary,
+                onPressed: (_q.isNotEmpty && _answer(0).isNotEmpty) ? _submit : null,
+              ),
               const Spacer(),
               _chatInstead(tokens),
             ],
@@ -308,17 +359,28 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     if (_step >= _q.length) {
       return (
         tokens.statusInfo,
-        'review',
+        ClideSettings.i18n.string(context, 'prompt.review.label', namespace: 'builtin.claude', placeholder: 'review'),
         [
-          ClideText('Review your answers', color: tokens.globalForeground, fontSize: clideFontBody),
+          ClideText(
+            ClideSettings.i18n.string(context, 'prompt.review.title', namespace: 'builtin.claude', placeholder: 'Review your answers'),
+            color: tokens.globalForeground,
+            fontSize: clideFontBody,
+          ),
           const SizedBox(height: 8),
           for (var i = 0; i < _q.length; i++) _reviewRow(tokens, i),
           const SizedBox(height: 6),
           Row(
             children: [
-              ClideButton(label: '‹ Back', onPressed: () => setState(() => _step = _q.length - 1)),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'prompt.back', namespace: 'builtin.claude', placeholder: '‹ Back'),
+                onPressed: () => setState(() => _step = _q.length - 1),
+              ),
               const SizedBox(width: 8),
-              ClideButton(label: 'Submit answers', variant: ClideButtonVariant.primary, onPressed: _allAnswered ? _submit : null),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'prompt.submitAnswers', namespace: 'builtin.claude', placeholder: 'Submit answers'),
+                variant: ClideButtonVariant.primary,
+                onPressed: _allAnswered ? _submit : null,
+              ),
             ],
           ),
         ],
@@ -328,7 +390,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
     final last = _step == _q.length - 1;
     return (
       tokens.statusInfo,
-      'question',
+      ClideSettings.i18n.string(context, 'prompt.question.label', namespace: 'builtin.claude', placeholder: 'question'),
       [
         _navBar(tokens),
         const SizedBox(height: 10),
@@ -336,8 +398,20 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
         const SizedBox(height: 6),
         Row(
           children: [
-            if (_step > 0) ...[ClideButton(label: '‹ Back', onPressed: () => setState(() => _step--)), const SizedBox(width: 8)],
-            ClideButton(label: last ? 'Review ›' : 'Next ›', variant: ClideButtonVariant.primary, onPressed: answered ? () => setState(() => _step++) : null),
+            if (_step > 0) ...[
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'prompt.back', namespace: 'builtin.claude', placeholder: '‹ Back'),
+                onPressed: () => setState(() => _step--),
+              ),
+              const SizedBox(width: 8),
+            ],
+            ClideButton(
+              label: last
+                  ? ClideSettings.i18n.string(context, 'prompt.reviewNav', namespace: 'builtin.claude', placeholder: 'Review ›')
+                  : ClideSettings.i18n.string(context, 'prompt.next', namespace: 'builtin.claude', placeholder: 'Next ›'),
+              variant: ClideButtonVariant.primary,
+              onPressed: answered ? () => setState(() => _step++) : null,
+            ),
             const Spacer(),
             _chatInstead(tokens),
           ],
@@ -375,7 +449,14 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
         );
       }
     }
-    chips.add(ClideText('Review', fontSize: clideFontMeta, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalTextMuted));
+    chips.add(
+      ClideText(
+        ClideSettings.i18n.string(context, 'prompt.nav.review', namespace: 'builtin.claude', placeholder: 'Review'),
+        fontSize: clideFontMeta,
+        fontFamily: ClideSettings.fonts.monoOf(context),
+        color: tokens.globalTextMuted,
+      ),
+    );
     chips.add(ClideText('›', color: tokens.globalTextMuted, fontSize: 15));
     return Wrap(spacing: 10, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: chips);
   }
@@ -417,12 +498,28 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
           children: [
             for (var oi = 0; oi < q.options.length; oi++)
               _optButton(qi, q.options[oi].label, q.options[oi].label, q.multiSelect, q.options[oi].description, oi + 1),
-            _optButton(qi, _kOther, 'Other…', q.multiSelect, '', q.options.length + 1),
+            _optButton(
+              qi,
+              _kOther,
+              ClideSettings.i18n.string(context, 'prompt.option.other', namespace: 'builtin.claude', placeholder: 'Other…'),
+              q.multiSelect,
+              '',
+              q.options.length + 1,
+            ),
           ],
         ),
-        if (hasOther) ...[const SizedBox(height: 8), _NoteField(controller: _other[qi], placeholder: 'type your answer…')],
+        if (hasOther) ...[
+          const SizedBox(height: 8),
+          _NoteField(
+            controller: _other[qi],
+            placeholder: ClideSettings.i18n.string(context, 'prompt.other.placeholder', namespace: 'builtin.claude', placeholder: 'type your answer…'),
+          ),
+        ],
         const SizedBox(height: 8),
-        _NoteField(controller: _qnote[qi], placeholder: '+ note (optional)'),
+        _NoteField(
+          controller: _qnote[qi],
+          placeholder: ClideSettings.i18n.string(context, 'prompt.note.placeholder', namespace: 'builtin.claude', placeholder: '+ note (optional)'),
+        ),
       ],
     );
   }
@@ -452,7 +549,7 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 
   Widget _chatInstead(SurfaceTokens tokens) {
     return ClideButton(
-      label: 'chat instead',
+      label: ClideSettings.i18n.string(context, 'prompt.chatInstead', namespace: 'builtin.claude', placeholder: 'chat instead'),
       variant: ClideButtonVariant.subtle,
       onPressed: () => widget.onResolve(widget.prompt.promptId, const DenyTool('User chose to chat instead.')),
     );
@@ -491,15 +588,15 @@ class _ToolPromptCardState extends State<ToolPromptCard> {
 ///
 /// Shared between [ToolPromptCard] (permission prompt body) and the
 /// [ConversationView] tool-use card bodies (T-168).
-Widget toolInputBody(SurfaceTokens tokens, String toolName, Map<String, dynamic> input, String mono) {
+Widget toolInputBody(BuildContext context, SurfaceTokens tokens, String toolName, Map<String, dynamic> input, String mono) {
   switch (toolName) {
     case 'Bash':
-      return toolBashBody(tokens, input);
+      return toolBashBody(context, tokens, input);
     case 'Write':
       return toolWriteBody(tokens, input, mono);
     case 'Edit':
     case 'MultiEdit':
-      return toolEditBody(tokens, input, mono);
+      return toolEditBody(context, tokens, input, mono);
     case 'Read':
     case 'Grep':
     case 'LS':
@@ -511,9 +608,12 @@ Widget toolInputBody(SurfaceTokens tokens, String toolName, Map<String, dynamic>
 
 /// Bash tool body: the command as a shell code block, with optional background
 /// / timeout annotations.
-Widget toolBashBody(SurfaceTokens tokens, Map<String, dynamic> input) {
+Widget toolBashBody(BuildContext context, SurfaceTokens tokens, Map<String, dynamic> input) {
   final cmd = (input['command'] as String? ?? '').trimRight();
-  final notes = <String>[if (input['run_in_background'] == true) 'background', if (input['timeout'] is num) 'timeout ${input['timeout']}ms'];
+  final notes = <String>[
+    if (input['run_in_background'] == true) ClideSettings.i18n.string(context, 'tool.bash.background', namespace: 'builtin.claude', placeholder: 'background'),
+    if (input['timeout'] is num) 'timeout ${input['timeout']}ms',
+  ];
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     mainAxisSize: MainAxisSize.min,
@@ -543,7 +643,7 @@ Widget toolWriteBody(SurfaceTokens tokens, Map<String, dynamic> input, String mo
 }
 
 /// Edit / MultiEdit tool body: before/after diff view.
-Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input, String mono) {
+Widget toolEditBody(BuildContext context, SurfaceTokens tokens, Map<String, dynamic> input, String mono) {
   final path = input['file_path'] as String? ?? '';
   final oldStr = input['old_string'] as String? ?? '';
   final newStr = input['new_string'] as String? ?? '';
@@ -553,11 +653,21 @@ Widget toolEditBody(SurfaceTokens tokens, Map<String, dynamic> input, String mon
     mainAxisSize: MainAxisSize.min,
     children: [
       if (path.isNotEmpty) toolPathLine(tokens, path, mono),
-      ClideText('— before', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: mono),
+      ClideText(
+        ClideSettings.i18n.string(context, 'tool.edit.before', namespace: 'builtin.claude', placeholder: '— before'),
+        fontSize: clideFontMeta,
+        color: tokens.globalTextMuted,
+        fontFamily: mono,
+      ),
       const SizedBox(height: 4),
       ClideCodeBlock(source: oldStr, language: lang),
       const SizedBox(height: 8),
-      ClideText('+ after', fontSize: clideFontMeta, color: tokens.globalTextMuted, fontFamily: mono),
+      ClideText(
+        ClideSettings.i18n.string(context, 'tool.edit.after', namespace: 'builtin.claude', placeholder: '+ after'),
+        fontSize: clideFontMeta,
+        color: tokens.globalTextMuted,
+        fontFamily: mono,
+      ),
       const SizedBox(height: 4),
       ClideCodeBlock(source: newStr, language: lang),
     ],

@@ -29,7 +29,7 @@ class SidebarTabStrip extends StatelessWidget {
               child: Semantics(
                 button: true,
                 selected: t == current,
-                label: _label(t),
+                label: _label(context, t),
                 excludeSemantics: true,
                 onTap: () => onPick(t),
                 child: ClideTappable(
@@ -39,7 +39,11 @@ class SidebarTabStrip extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: Border(bottom: BorderSide(color: t == current ? tokens.globalFocus : const Color(0x00000000), width: 2)),
                     ),
-                    child: ClideText(_label(t), fontSize: clideFontSmall, color: t == current || hovered ? tokens.globalForeground : tokens.globalTextMuted),
+                    child: ClideText(
+                      _label(context, t),
+                      fontSize: clideFontSmall,
+                      color: t == current || hovered ? tokens.globalForeground : tokens.globalTextMuted,
+                    ),
                   ),
                 ),
               ),
@@ -49,9 +53,18 @@ class SidebarTabStrip extends StatelessWidget {
     );
   }
 
-  String _label(SidebarTab t) => switch (t) {
-    SidebarTab.activity => 'Activity',
-    SidebarTab.team => memberCount == 0 ? 'Team' : 'Team · $memberCount',
-    SidebarTab.config => 'Config',
+  String _label(BuildContext context, SidebarTab t) => switch (t) {
+    SidebarTab.activity => ClideSettings.i18n.string(context, 'tabStrip.activity', namespace: 'builtin.claude', placeholder: 'Activity'),
+    SidebarTab.team =>
+      memberCount == 0
+          ? ClideSettings.i18n.string(context, 'tabStrip.team', namespace: 'builtin.claude', placeholder: 'Team')
+          : ClideSettings.i18n.interpolated(
+              context,
+              'tabStrip.team.count',
+              namespace: 'builtin.claude',
+              placeholder: 'Team · $memberCount',
+              replacers: [I18nReplacer(from: '{count}', replace: '$memberCount')],
+            ),
+    SidebarTab.config => ClideSettings.i18n.string(context, 'tabStrip.config', namespace: 'builtin.claude', placeholder: 'Config'),
   };
 }

@@ -33,13 +33,28 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
     final done = tasks.where((t) => t.status == TaskStatus.completed).length;
     final inProgress = tasks.where((t) => t.status == TaskStatus.inProgress);
     final current = inProgress.isEmpty ? null : inProgress.first.text;
-    final summary = '${tasks.length} task${tasks.length == 1 ? '' : 's'} · $done done';
+    final taskWord = tasks.length == 1
+        ? ClideSettings.i18n.string(context, 'taskDock.task.singular', namespace: 'builtin.claude', placeholder: 'task')
+        : ClideSettings.i18n.string(context, 'taskDock.task.plural', namespace: 'builtin.claude', placeholder: 'tasks');
+    final summary = ClideSettings.i18n.interpolated(
+      context,
+      'taskDock.summary',
+      namespace: 'builtin.claude',
+      placeholder: '${tasks.length} $taskWord · $done done',
+      replacers: [
+        I18nReplacer(from: '{count}', replace: '${tasks.length}'),
+        I18nReplacer(from: '{tasks}', replace: taskWord),
+        I18nReplacer(from: '{done}', replace: '$done'),
+      ],
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
       child: ClideTappable(
         onTap: () => setState(() => _expanded = !_expanded),
-        tooltip: _expanded ? 'Collapse tasks' : 'Expand tasks',
+        tooltip: _expanded
+            ? ClideSettings.i18n.string(context, 'taskDock.collapse', namespace: 'builtin.claude', placeholder: 'Collapse tasks')
+            : ClideSettings.i18n.string(context, 'taskDock.expand', namespace: 'builtin.claude', placeholder: 'Expand tasks'),
         builder: (context, hovered, focused) => Container(
           decoration: BoxDecoration(
             color: (hovered || focused) ? tokens.listItemHoverBackground : tokens.listItemBackground,
@@ -53,7 +68,21 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
               // (its inner text is announced via the label, so exclude it).
               Semantics(
                 button: true,
-                label: 'Claude task list, $summary, ${_expanded ? 'expanded' : 'collapsed'}',
+                label: ClideSettings.i18n.interpolated(
+                  context,
+                  'taskDock.semantics',
+                  namespace: 'builtin.claude',
+                  placeholder: 'Claude task list, $summary, ${_expanded ? 'expanded' : 'collapsed'}',
+                  replacers: [
+                    I18nReplacer(from: '{summary}', replace: summary),
+                    I18nReplacer(
+                      from: '{state}',
+                      replace: _expanded
+                          ? ClideSettings.i18n.string(context, 'taskDock.state.expanded', namespace: 'builtin.claude', placeholder: 'expanded')
+                          : ClideSettings.i18n.string(context, 'taskDock.state.collapsed', namespace: 'builtin.claude', placeholder: 'collapsed'),
+                    ),
+                  ],
+                ),
                 excludeSemantics: true,
                 child: _summaryRow(tokens, summary, current),
               ),
@@ -91,14 +120,35 @@ class _ClaudeTaskDockState extends State<ClaudeTaskDock> {
 
   Widget _taskRow(SurfaceTokens tokens, TaskItem t) {
     final (String glyph, Color color, String word) = switch (t.status) {
-      TaskStatus.completed => ('check-circle', tokens.statusSuccess, 'done'),
-      TaskStatus.inProgress => ('circle-half', tokens.globalFocus, 'in progress'),
-      TaskStatus.pending => ('circle', tokens.globalTextMuted, 'pending'),
+      TaskStatus.completed => (
+        'check-circle',
+        tokens.statusSuccess,
+        ClideSettings.i18n.string(context, 'taskDock.status.done', namespace: 'builtin.claude', placeholder: 'done'),
+      ),
+      TaskStatus.inProgress => (
+        'circle-half',
+        tokens.globalFocus,
+        ClideSettings.i18n.string(context, 'taskDock.status.inProgress', namespace: 'builtin.claude', placeholder: 'in progress'),
+      ),
+      TaskStatus.pending => (
+        'circle',
+        tokens.globalTextMuted,
+        ClideSettings.i18n.string(context, 'taskDock.status.pending', namespace: 'builtin.claude', placeholder: 'pending'),
+      ),
     };
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Semantics(
-        label: '${t.text}, $word',
+        label: ClideSettings.i18n.interpolated(
+          context,
+          'taskDock.row.semantics',
+          namespace: 'builtin.claude',
+          placeholder: '${t.text}, $word',
+          replacers: [
+            I18nReplacer(from: '{text}', replace: t.text),
+            I18nReplacer(from: '{status}', replace: word),
+          ],
+        ),
         container: true,
         excludeSemantics: true,
         child: Row(

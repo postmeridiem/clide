@@ -77,12 +77,20 @@ class _SessionPickerDialogState extends State<SessionPickerDialog> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-              child: ClideText('Resume a Claude session', fontSize: clideFontBody, color: theme.globalForeground),
+              child: ClideText(
+                ClideSettings.i18n.string(context, 'sessionPicker.title', namespace: 'builtin.claude', placeholder: 'Resume a Claude session'),
+                fontSize: clideFontBody,
+                color: theme.globalForeground,
+              ),
             ),
             if (widget.sessions.isEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
-                child: ClideText('No sessions found for this workspace.', muted: true, fontSize: clideFontSmall),
+                child: ClideText(
+                  ClideSettings.i18n.string(context, 'sessionPicker.empty', namespace: 'builtin.claude', placeholder: 'No sessions found for this workspace.'),
+                  muted: true,
+                  fontSize: clideFontSmall,
+                ),
               )
             else
               Flexible(

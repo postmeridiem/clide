@@ -49,7 +49,13 @@ class ImageThumbnail extends StatelessWidget {
     final t = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
-      label: 'Image $_fileName',
+      label: ClideSettings.i18n.interpolated(
+        context,
+        'image.semantics',
+        namespace: 'builtin.claude',
+        placeholder: 'Image $_fileName',
+        replacers: [I18nReplacer(from: '{name}', replace: _fileName)],
+      ),
       excludeSemantics: true,
       child: ClideTappable(
         onTap: () => openImageLightbox(context, path),

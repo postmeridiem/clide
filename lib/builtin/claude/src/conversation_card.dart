@@ -270,7 +270,9 @@ class _ConversationCardState extends State<ConversationCard> {
   }
 
   Widget _caret(SurfaceTokens tokens) {
-    final label = _collapsed ? 'Expand' : 'Collapse';
+    final label = _collapsed
+        ? ClideSettings.i18n.string(context, 'card.expand', namespace: 'builtin.claude', placeholder: 'Expand')
+        : ClideSettings.i18n.string(context, 'card.collapse', namespace: 'builtin.claude', placeholder: 'Collapse');
     return Semantics(
       button: true,
       label: label,
@@ -298,11 +300,11 @@ class _ConversationCardState extends State<ConversationCard> {
       case ConversationCardStatus.success:
         icon = const CheckIcon();
         color = tokens.statusSuccess;
-        label = 'succeeded';
+        label = ClideSettings.i18n.string(context, 'card.succeeded', namespace: 'builtin.claude', placeholder: 'succeeded');
       case ConversationCardStatus.error:
         icon = const CloseIcon();
         color = tokens.statusError;
-        label = 'failed';
+        label = ClideSettings.i18n.string(context, 'card.failed', namespace: 'builtin.claude', placeholder: 'failed');
       case ConversationCardStatus.none:
         return const SizedBox.shrink();
     }
@@ -331,7 +333,9 @@ class _ConversationCardState extends State<ConversationCard> {
 
   List<Widget> _actions(SurfaceTokens tokens) {
     final items = <_ActionItem>[];
-    if (widget.copyText != null) items.add(_ActionItem('copy', _copy));
+    if (widget.copyText != null) {
+      items.add(_ActionItem(ClideSettings.i18n.string(context, 'card.copy', namespace: 'builtin.claude', placeholder: 'copy'), _copy));
+    }
     for (final a in widget.actions) {
       items.add(_ActionItem(a.label, a.onInvoke));
     }

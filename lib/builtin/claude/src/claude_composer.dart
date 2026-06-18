@@ -44,7 +44,7 @@ class ClaudeComposer extends StatefulWidget {
     super.key,
     required this.onSubmit,
     this.enabled = true,
-    this.hint = 'Message Claude…  (Enter to send · Shift+Enter for newline)',
+    this.hint,
     this.pasteResolver,
     this.slashCommandsResolver,
     this.onInterrupt,
@@ -63,7 +63,11 @@ class ClaudeComposer extends StatefulWidget {
   final void Function(String text) onSubmit;
 
   final bool enabled;
-  final String hint;
+
+  /// Placeholder shown when the composer is empty. Null falls back to the
+  /// i18n catalog default (`composer.hint`), resolved at render so it honours
+  /// the live locale (D-21).
+  final String? hint;
 
   /// Optional override of paste handling: returns the attachments on the
   /// clipboard (files / images), or an empty list to fall back to the
@@ -417,6 +421,14 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
     final theme = ClideSettings.theme.of(context).surface;
     final hasText = _controller.text.isNotEmpty;
     final fg = widget.enabled ? theme.globalForeground : theme.globalTextMuted;
+    final hint =
+        widget.hint ??
+        ClideSettings.i18n.string(
+          context,
+          'composer.hint',
+          namespace: 'builtin.claude',
+          placeholder: 'Message Claude…  (Enter to send · Shift+Enter for newline)',
+        );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
@@ -444,10 +456,15 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                       const RunningIndicator(),
                       const Spacer(),
                       ClideButton(
-                        label: 'Stop  ⎋',
+                        label: ClideSettings.i18n.string(context, 'composer.stop', namespace: 'builtin.claude', placeholder: 'Stop  ⎋'),
                         variant: ClideButtonVariant.primary,
                         onPressed: widget.onInterrupt,
-                        semanticHint: 'Interrupt the running turn (Escape)',
+                        semanticHint: ClideSettings.i18n.string(
+                          context,
+                          'composer.stop.hint',
+                          namespace: 'builtin.claude',
+                          placeholder: 'Interrupt the running turn (Escape)',
+                        ),
                       ),
                     ],
                   ),
@@ -455,14 +472,14 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
               if (_attachments.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Wrap(spacing: 6, runSpacing: 6, children: [for (final a in _attachments) _chip(theme, a)]),
+                  child: Wrap(spacing: 6, runSpacing: 6, children: [for (final a in _attachments) _chip(context, theme, a)]),
                 ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: Semantics(
-                      label: widget.hint,
+                      label: hint,
                       textField: true,
                       child: Shortcuts(
                         shortcuts: const {
@@ -486,7 +503,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
                           },
                           child: Stack(
                             children: [
-                              if (!hasText) Positioned(left: 0, top: 0, right: 0, child: ClideText(widget.hint, muted: true, fontSize: clideFontBody)),
+                              if (!hasText) Positioned(left: 0, top: 0, right: 0, child: ClideText(hint, muted: true, fontSize: clideFontBody)),
                               EditableText(
                                 controller: _controller,
                                 focusNode: _focus,
@@ -521,7 +538,7 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   /// One attachment chip: a thumbnail (images) or file icon (other types),
   /// the filename, and a remove × that cancels the attachment before send.
-  Widget _chip(SurfaceTokens theme, ComposerAttachment a) {
+  Widget _chip(BuildContext context, SurfaceTokens theme, ComposerAttachment a) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 220),
       decoration: BoxDecoration(
@@ -541,7 +558,13 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
           const SizedBox(width: 4),
           Semantics(
             button: true,
-            label: 'Remove ${a.fileName}',
+            label: ClideSettings.i18n.interpolated(
+              context,
+              'composer.removeAttachment',
+              namespace: 'builtin.claude',
+              placeholder: 'Remove ${a.fileName}',
+              replacers: [I18nReplacer(from: '{name}', replace: a.fileName)],
+            ),
             child: GestureDetector(
               key: ValueKey('composer-remove-${a.path}'),
               onTap: () => _removeAttachment(a),
