@@ -77,13 +77,15 @@ class _TipsCard extends StatelessWidget {
   // Every tip mirrors a binding that actually exists in the default
   // preset / contributed commands (T-383) — ctrl-based on the shipped
   // default keymap, hence ⌃ glyphs. If a binding moves, move the tip.
-  static const _tips = <(String, String)>[
-    ('Quick open', '⌃P'),
-    ('Command palette', '⌃⇧P'),
-    ('Toggle sidebar', '⌃⇧1'),
-    ('Toggle context', '⌃⇧3'),
-    ('Find in files', '⌃⇧F'),
-    ('Focus mode', '⌃.'),
+  // (catalog key, English label, shortcut glyph). The key/English pair resolves
+  // through the i18n catalog at render (D-21); the glyph is not translated.
+  static const _tips = <(String, String, String)>[
+    ('tips.quickOpen', 'Quick open', '⌃P'),
+    ('tips.commandPalette', 'Command palette', '⌃⇧P'),
+    ('tips.toggleSidebar', 'Toggle sidebar', '⌃⇧1'),
+    ('tips.toggleContext', 'Toggle context', '⌃⇧3'),
+    ('tips.findInFiles', 'Find in files', '⌃⇧F'),
+    ('tips.focusMode', 'Focus mode', '⌃.'),
   ];
 
   @override
@@ -105,18 +107,23 @@ class _TipsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('TIPS', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: ClideSettings.fonts.monoOf(context)),
+            ClideText(
+              ClideSettings.i18n.string(context, 'section.tips', namespace: 'builtin.welcome', placeholder: 'TIPS'),
+              fontSize: clideFontSmall,
+              color: tokens.sidebarSectionHeader,
+              fontFamily: ClideSettings.fonts.monoOf(context),
+            ),
             const SizedBox(height: 14),
-            _tipRow(firstRow, ClideSettings.fonts.monoOf(context)),
+            _tipRow(context, firstRow, ClideSettings.fonts.monoOf(context)),
             const SizedBox(height: 8),
-            _tipRow(secondRow, ClideSettings.fonts.monoOf(context)),
+            _tipRow(context, secondRow, ClideSettings.fonts.monoOf(context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _tipRow(List<(String, String)> tips, String mono) {
+  Widget _tipRow(BuildContext context, List<(String, String, String)> tips, String mono) {
     return Row(
       children: [
         for (var i = 0; i < tips.length; i++) ...[
@@ -124,9 +131,13 @@ class _TipsCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: ClideText(tips[i].$1, fontSize: clideFontMeta, color: tokens.globalTextMuted),
+                  child: ClideText(
+                    ClideSettings.i18n.string(context, tips[i].$1, namespace: 'builtin.welcome', placeholder: tips[i].$2),
+                    fontSize: clideFontMeta,
+                    color: tokens.globalTextMuted,
+                  ),
                 ),
-                ClideText(tips[i].$2, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: mono),
+                ClideText(tips[i].$3, fontSize: clideFontSmall, color: tokens.globalForeground, fontFamily: mono),
               ],
             ),
           ),
@@ -170,12 +181,23 @@ class _StartColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClideText('START', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: ClideSettings.fonts.monoOf(context)),
+        ClideText(
+          ClideSettings.i18n.string(context, 'section.start', namespace: 'builtin.welcome', placeholder: 'START'),
+          fontSize: clideFontSmall,
+          color: tokens.sidebarSectionHeader,
+          fontFamily: ClideSettings.fonts.monoOf(context),
+        ),
         const SizedBox(height: 20),
         // Only flows that exist get a tile — the old Clone-from-git and
         // Start-a-Claude-session rows were inert and advertised shortcuts
         // that were never registered (T-383). Re-add each WITH its flow.
-        _ActionRow(icon: PhosphorIcons.byName('folder'), label: 'Open folder…', shortcut: '⌃O', tokens: tokens, onTap: () => _openFolder(context)),
+        _ActionRow(
+          icon: PhosphorIcons.byName('folder'),
+          label: ClideSettings.i18n.string(context, 'action.openFolder', namespace: 'builtin.welcome', placeholder: 'Open folder…'),
+          shortcut: '⌃O',
+          tokens: tokens,
+          onTap: () => _openFolder(context),
+        ),
       ],
     );
   }
@@ -255,10 +277,19 @@ class _RecentColumn extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClideText('RECENT', fontSize: clideFontSmall, color: tokens.sidebarSectionHeader, fontFamily: ClideSettings.fonts.monoOf(context)),
+            ClideText(
+              ClideSettings.i18n.string(ctx, 'section.recent', namespace: 'builtin.welcome', placeholder: 'RECENT'),
+              fontSize: clideFontSmall,
+              color: tokens.sidebarSectionHeader,
+              fontFamily: ClideSettings.fonts.monoOf(context),
+            ),
             const SizedBox(height: 20),
             if (recents.isEmpty)
-              const ClideText('No recent projects.', muted: true, fontSize: clideFontCaption)
+              ClideText(
+                ClideSettings.i18n.string(ctx, 'recent.empty', namespace: 'builtin.welcome', placeholder: 'No recent projects.'),
+                muted: true,
+                fontSize: clideFontCaption,
+              )
             else
               for (final r in recents)
                 _RecentRow(
@@ -358,8 +389,15 @@ class _StickyToggle extends StatelessWidget {
     return Semantics(
       button: true,
       checked: sticky,
-      label: 'always open this project on launch',
-      tooltip: sticky ? 'Always open this project on launch (uncheck to restore picker)' : 'Always open this project on launch',
+      label: ClideSettings.i18n.string(context, 'sticky.label', namespace: 'builtin.welcome', placeholder: 'always open this project on launch'),
+      tooltip: sticky
+          ? ClideSettings.i18n.string(
+              context,
+              'sticky.tooltip.active',
+              namespace: 'builtin.welcome',
+              placeholder: 'Always open this project on launch (uncheck to restore picker)',
+            )
+          : ClideSettings.i18n.string(context, 'sticky.tooltip', namespace: 'builtin.welcome', placeholder: 'Always open this project on launch'),
       child: ClideTappable(
         onTap: onTap,
         builder: (context, hovered, _) => Container(
@@ -402,12 +440,32 @@ class _StatusLine extends StatelessWidget {
               ClideText('$clideName $clideVersion', muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context)),
               ClideText('  ·  ', muted: true, fontSize: clideFontSmall),
               if (!tc.resolved)
-                ClideText('checking…', muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context))
+                ClideText(
+                  ClideSettings.i18n.string(ctx, 'status.checking', namespace: 'builtin.welcome', placeholder: 'checking…'),
+                  muted: true,
+                  fontSize: clideFontSmall,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
+                )
               else if (tc.allOk)
-                ClideText('application ok', fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.statusSuccess)
+                ClideText(
+                  ClideSettings.i18n.string(ctx, 'status.ok', namespace: 'builtin.welcome', placeholder: 'application ok'),
+                  fontSize: clideFontSmall,
+                  fontFamily: ClideSettings.fonts.monoOf(context),
+                  color: tokens.statusSuccess,
+                )
               else
                 ClideText(
-                  tc.missing.map((t) => '$t not found').join(' · '),
+                  tc.missing
+                      .map(
+                        (t) => ClideSettings.i18n.interpolated(
+                          ctx,
+                          'status.notFound',
+                          namespace: 'builtin.welcome',
+                          placeholder: '{tool} not found',
+                          replacers: [I18nReplacer(from: '{tool}', replace: t)],
+                        ),
+                      )
+                      .join(' · '),
                   fontSize: clideFontSmall,
                   fontFamily: ClideSettings.fonts.monoOf(context),
                   color: tokens.statusWarning,
@@ -435,7 +493,12 @@ class _ThemeLink extends StatelessWidget {
       builder: (ctx, hovered, _) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClideText('theme: ', muted: true, fontSize: clideFontSmall, fontFamily: ClideSettings.fonts.monoOf(context)),
+          ClideText(
+            ClideSettings.i18n.string(ctx, 'status.theme', namespace: 'builtin.welcome', placeholder: 'theme: '),
+            muted: true,
+            fontSize: clideFontSmall,
+            fontFamily: ClideSettings.fonts.monoOf(context),
+          ),
           ClideText(
             themeName,
             fontSize: clideFontSmall,
@@ -486,7 +549,11 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
     try {
       await widget.onOpen(path);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Not a git repository');
+      if (mounted) {
+        setState(
+          () => _error = ClideSettings.i18n.string(context, 'dialog.openProject.error', namespace: 'builtin.welcome', placeholder: 'Not a git repository'),
+        );
+      }
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -506,9 +573,17 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ClideText('Open project', fontSize: clideFontDialogTitle, fontWeight: FontWeight.w600),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.openProject.title', namespace: 'builtin.welcome', placeholder: 'Open project'),
+            fontSize: clideFontDialogTitle,
+            fontWeight: FontWeight.w600,
+          ),
           const SizedBox(height: 4),
-          const ClideText('Enter the path to a git repository.', muted: true, fontSize: clideFontMeta),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.openProject.body', namespace: 'builtin.welcome', placeholder: 'Enter the path to a git repository.'),
+            muted: true,
+            fontSize: clideFontMeta,
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -536,9 +611,17 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ClideButton(label: 'Cancel', onPressed: widget.onCancel),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.cancel', namespace: 'builtin.welcome', placeholder: 'Cancel'),
+                onPressed: widget.onCancel,
+              ),
               const SizedBox(width: 8),
-              ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
+              ClideButton(
+                label: _loading
+                    ? ClideSettings.i18n.string(context, 'button.opening', namespace: 'builtin.welcome', placeholder: 'Opening…')
+                    : ClideSettings.i18n.string(context, 'button.open', namespace: 'builtin.welcome', placeholder: 'Open'),
+                onPressed: _loading ? null : _submit,
+              ),
             ],
           ),
         ],
@@ -567,15 +650,33 @@ class _NotARepoDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ClideText('No git repo found', fontSize: clideFontDialogTitle, fontWeight: FontWeight.w600),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.notRepo.title', namespace: 'builtin.welcome', placeholder: 'No git repo found'),
+            fontSize: clideFontDialogTitle,
+            fontWeight: FontWeight.w600,
+          ),
           const SizedBox(height: 8),
           ClideText(path, muted: true, fontSize: clideFontMeta),
           const SizedBox(height: 8),
-          const ClideText('A clide project root requires a git repository.', muted: true, fontSize: clideFontMeta),
+          ClideText(
+            ClideSettings.i18n.string(
+              context,
+              'dialog.notRepo.body',
+              namespace: 'builtin.welcome',
+              placeholder: 'A clide project root requires a git repository.',
+            ),
+            muted: true,
+            fontSize: clideFontMeta,
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [ClideButton(label: 'OK', onPressed: () => onDismiss())],
+            children: [
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.ok', namespace: 'builtin.welcome', placeholder: 'OK'),
+                onPressed: () => onDismiss(),
+              ),
+            ],
           ),
         ],
       ),
