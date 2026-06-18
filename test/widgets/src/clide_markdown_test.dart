@@ -3,6 +3,7 @@
 library;
 
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/kernel_fixture.dart';
@@ -70,5 +71,30 @@ void main() {
     await tester.pumpWidget(harness(f, const ClideMarkdown('![](http://x/y.png)')));
     await tester.pump();
     expect(find.textContaining('[image: http://x/y.png]'), findsOneWidget);
+  });
+
+  // T-475 (UI) / T-472 (mono): the static span builders take no BuildContext,
+  // so they used to pin the bundled const families and ignore the live font
+  // settings. They now read the resolved families from the ClideSettingsScope.
+  testWidgets('prose and inline code honour the live UI + mono families from the scope', (tester) async {
+    await tester.pumpWidget(harness(f, const ClideSettingsScope(ui: 'TestUiFace', mono: 'TestMonoFace', child: ClideMarkdown('hello `snippet` world'))));
+    await tester.pump();
+
+    final families = <String?>{};
+    void collect(InlineSpan span) {
+      if (span is TextSpan) {
+        families.add(span.style?.fontFamily);
+        for (final child in span.children ?? const <InlineSpan>[]) {
+          collect(child);
+        }
+      }
+    }
+
+    for (final t in tester.widgetList<Text>(find.byType(Text))) {
+      final span = t.textSpan;
+      if (span != null) collect(span);
+    }
+    expect(families, contains('TestUiFace')); // prose paragraph
+    expect(families, contains('TestMonoFace')); // inline `code`
   });
 }

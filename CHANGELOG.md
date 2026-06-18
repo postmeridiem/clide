@@ -22,6 +22,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Markdown prose honours the UI-font setting.** Claude's conversation prose
+  and inline links render through the markdown engine, which pinned the bundled
+  UI face and ignored the Appearance UI-font pick; it now follows the setting
+  live, like the rest of the app. (T-475)
+
 ## [2.7.0] — 2026-06-17
 
 ### Added

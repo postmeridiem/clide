@@ -35,7 +35,15 @@ typedef FileTapCallback = void Function(String path, int? line);
 /// inert (the text renders, just not interactive).
 @immutable
 class ClideMarkdownHooks {
-  const ClideMarkdownHooks({this.onRecordTap, this.onImageToken, this.onLinkTap, this.resolveFileRef, this.onOpenFile, this.mono = clideMonoFamily});
+  const ClideMarkdownHooks({
+    this.onRecordTap,
+    this.onImageToken,
+    this.onLinkTap,
+    this.resolveFileRef,
+    this.onOpenFile,
+    this.mono = clideMonoFamily,
+    this.ui = clideUiFamily,
+  });
 
   /// Tap a governance/ticket ref (T-281, D-77, …) → open the record (T-279).
   final RecordTapCallback? onRecordTap;
@@ -58,6 +66,11 @@ class ClideMarkdownHooks {
   /// chain via this carrier, so inline `code` and ref spans honour the setting
   /// even though the span builders are context-free statics (T-472).
   final String mono;
+
+  /// The live UI family (Settings → Appearance, T-460), threaded the same way
+  /// so markdown prose and link spans honour the chosen UI font instead of
+  /// pinning the bundled default (T-475).
+  final String ui;
 
   static const none = ClideMarkdownHooks();
 }
@@ -123,6 +136,7 @@ class ClideMarkdown extends StatelessWidget {
       resolveFileRef: resolveFileRef,
       onOpenFile: onOpenFile,
       mono: ClideSettings.fonts.monoOf(context),
+      ui: ClideSettings.fonts.uiOf(context),
     );
     final widgets = _buildNodes(nodes, tokens, hooks);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: widgets);
@@ -154,7 +168,7 @@ class ClideMarkdown extends StatelessWidget {
         Text.rich(
           TextSpan(
             style: TextStyle(
-              fontFamily: clideUiFamily,
+              fontFamily: hooks.ui,
               fontFamilyFallback: clideUiFamilyFallback,
               fontWeight: clideUiDefaultWeight,
               color: tokens.globalForeground,
@@ -344,7 +358,7 @@ class ClideMarkdown extends StatelessWidget {
     }
     return TextSpan(
       style: TextStyle(
-        fontFamily: clideUiFamily,
+        fontFamily: hooks.ui,
         fontFamilyFallback: clideUiFamilyFallback,
         fontWeight: fontWeight ?? clideUiDefaultWeight,
         color: tokens.globalForeground,
@@ -379,7 +393,7 @@ class ClideMarkdown extends StatelessWidget {
         // editor (T-300); other inline code renders verbatim.
         if (hooks.resolveFileRef != null && hooks.onOpenFile != null) {
           final ref = _codeFileRef(raw, hooks.resolveFileRef!);
-          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, hooks.mono, mono: true);
+          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui, mono: true);
         }
         return TextSpan(
           text: raw,
@@ -401,7 +415,7 @@ class ClideMarkdown extends StatelessWidget {
         if (hooks.resolveFileRef != null && hooks.onOpenFile != null && href != null) {
           final (path, line) = _splitFileRef(href);
           final abs = hooks.resolveFileRef!(path);
-          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!, hooks.mono);
+          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui);
         }
         return TextSpan(
           text: text,
@@ -482,7 +496,7 @@ class ClideMarkdown extends StatelessWidget {
         final abs = hooks.resolveFileRef!(m.group(1)!);
         if (abs == null) continue;
         final line = m.group(2) == null ? null : int.tryParse(m.group(2)!);
-        hits.add(_LinkHit(m.start, m.end, _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!, hooks.mono)));
+        hits.add(_LinkHit(m.start, m.end, _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui)));
       }
     }
     if (hits.isEmpty) return [TextSpan(text: text)];
@@ -560,7 +574,8 @@ class ClideMarkdown extends StatelessWidget {
     int? line,
     SurfaceTokens tokens,
     FileTapCallback onOpenFile,
-    String monoFamily, {
+    String monoFamily,
+    String uiFamily, {
     bool mono = false,
   }) {
     return WidgetSpan(
@@ -575,7 +590,7 @@ class ClideMarkdown extends StatelessWidget {
             color: tokens.globalFocus,
             fontSize: mono ? clideFontMono : _fontSize,
             height: _lineHeight,
-            fontFamily: mono ? monoFamily : clideUiFamily,
+            fontFamily: mono ? monoFamily : uiFamily,
             fontFamilyFallback: mono ? null : clideUiFamilyFallback,
             decoration: hovered ? TextDecoration.underline : null,
             decorationColor: tokens.globalFocus,
