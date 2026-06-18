@@ -1,5 +1,5 @@
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
-import 'package:clide/kernel/src/i18n/i18n.dart' show I18n;
+import 'package:clide/kernel/src/i18n/i18n.dart' show I18n, I18nReplacer;
 import 'package:clide/kernel/src/theme/controller.dart' show ClideTheme, ClideThemeData;
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
@@ -45,6 +45,16 @@ class _I18n {
 
   /// The i18n service for [context] — delegates to the kernel `I18n` service.
   I18n of(BuildContext context) => ClideKernel.of(context).i18n;
+
+  /// Resolve a catalog string through the live i18n service (D-21) — the
+  /// uniform widget-facing lookup (T-462). [placeholder] is the inline English
+  /// fallback rendered until/unless the catalog covers the key.
+  String string(BuildContext context, String key, {required String namespace, String? placeholder}) =>
+      of(context).string(key, namespace: namespace, placeholder: placeholder);
+
+  /// [string] with `replaceAll` interpolation per replacer (templated labels).
+  String interpolated(BuildContext context, String key, {required String namespace, String? placeholder, List<I18nReplacer> replacers = const []}) =>
+      of(context).interpolated(key, namespace: namespace, placeholder: placeholder, replacers: replacers);
 }
 
 /// Root-provided InheritedWidget carrying the live font families (D-101). The

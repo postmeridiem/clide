@@ -162,11 +162,14 @@ class ExtensionManager extends ChangeNotifier {
         _applyContribution(c);
         applied.add(c);
       }
-      // Eagerly load the i18n catalog for any localized tab this extension
-      // contributes, so its title resolves without a "namespace not
-      // registered" warning — and without the namespace having to be listed
-      // by hand at boot (T-155).
+      // Eagerly load the i18n catalogs this extension needs so its labels
+      // resolve through the catalog (D-21) instead of falling back to inline
+      // English placeholders — without listing namespaces by hand at boot
+      // (T-155, T-462). An extension's own id IS its catalog namespace (see
+      // [ClideExtension.t]); a missing catalog file loads as an empty map, so
+      // this is harmless for extensions that ship none.
       for (final ns in {
+        id,
         for (final c in ext.contributions)
           if (c is TabContribution && c.i18nNamespace != null) c.i18nNamespace!,
       }) {

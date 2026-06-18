@@ -65,6 +65,28 @@ void main() {
       expect(f.services.extensions.isActivated('needs-missing'), false);
     });
 
+    test('activating an extension loads its own-id i18n namespace (T-462)', () async {
+      final f2 = await KernelFixture.create(
+        // Nothing preloaded — so resolution proves activation did the loading.
+        preloadNamespaces: const [],
+        i18nCatalogs: {
+          'test.has-catalog': {
+            const Locale('en', 'US'): const {
+              'greeting': {'translation': 'Hej'},
+            },
+          },
+        },
+      );
+      addTearDown(f2.dispose);
+      // Not loaded yet → the inline placeholder.
+      expect(f2.services.i18n.string('greeting', namespace: 'test.has-catalog', placeholder: 'PH'), 'PH');
+      f2.services.extensions.register(_Ext(id: 'test.has-catalog'));
+      await f2.services.extensions.activateAll();
+      // Activation loads the extension's own namespace → catalog value resolves
+      // even though it contributes no localized tab.
+      expect(f2.services.i18n.string('greeting', namespace: 'test.has-catalog', placeholder: 'PH'), 'Hej');
+    });
+
     test('contribution points wire into panel registry on activate', () async {
       f.services.extensions.register(
         _Ext(
