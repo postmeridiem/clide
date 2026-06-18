@@ -19,9 +19,10 @@ class ClideSpine extends StatelessWidget {
     final tokens = ClideSettings.theme.of(context).surface;
     final borderSide = BorderSide(color: tokens.dividerColor);
 
+    final expandSuffix = ClideSettings.i18n.string(context, 'spine.expandSuffix', namespace: 'core', placeholder: 'click to expand');
     return Semantics(
       button: true,
-      label: '$label — click to expand',
+      label: '$label — $expandSuffix',
       child: ClideTappable(
         onTap: onExpand,
         builder: (context, hovered, _) => Container(

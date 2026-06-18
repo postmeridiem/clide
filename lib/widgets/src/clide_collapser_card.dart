@@ -90,7 +90,7 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
     final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
       padding: const EdgeInsets.only(bottom: kClideCardGap),
-      child: _expanded ? _expandedFrame(tokens) : _tickerRow(tokens),
+      child: _expanded ? _expandedFrame(context, tokens) : _tickerRow(context, tokens),
     );
   }
 
@@ -98,15 +98,12 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
   /// wrapping the whole card excluded every expanded child from the a11y
   /// tree, so a screen-reader user could expand a run and hear nothing
   /// inside it (T-370). Collapsed, the header summary IS the whole card.
-  Widget _headerSemantics({required Widget child}) {
+  Widget _headerSemantics(BuildContext context, {required Widget child}) {
     final semanticCount = widget.counter == null ? '' : ', ${widget.counter}';
-    return Semantics(
-      button: true,
-      expanded: _expanded,
-      label: '${widget.label}$semanticCount, ${_expanded ? 'expanded' : 'collapsed'}',
-      excludeSemantics: true,
-      child: child,
-    );
+    final stateWord = _expanded
+        ? ClideSettings.i18n.string(context, 'collapser.expanded', namespace: 'core', placeholder: 'expanded')
+        : ClideSettings.i18n.string(context, 'collapser.collapsed', namespace: 'core', placeholder: 'collapsed');
+    return Semantics(button: true, expanded: _expanded, label: '${widget.label}$semanticCount, $stateWord', excludeSemantics: true, child: child);
   }
 
   /// The header row content, shared by the collapsed ticker and the expanded
@@ -154,11 +151,12 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
   }
 
   /// Collapsed: the ticker row IS the toggle, focusable for keyboard/AT.
-  Widget _tickerRow(SurfaceTokens tokens) => _headerSemantics(
+  Widget _tickerRow(BuildContext context, SurfaceTokens tokens) => _headerSemantics(
+    context,
     child: ClideTappable(
       focusNode: _controlFocus,
       onTap: _toggle,
-      tooltip: 'Expand',
+      tooltip: ClideSettings.i18n.string(context, 'collapser.expand', namespace: 'core', placeholder: 'Expand'),
       builder: (context, hovered, focused) => Container(
         padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
         decoration: BoxDecoration(
@@ -174,7 +172,7 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
   /// Expanded: a framed inner canvas wrapping the item cards. The frame
   /// BACKGROUND is a gesture target behind the items that only fires for hits
   /// the items don't consume.
-  Widget _expandedFrame(SurfaceTokens tokens) => DecoratedBox(
+  Widget _expandedFrame(BuildContext context, SurfaceTokens tokens) => DecoratedBox(
     decoration: BoxDecoration(
       border: Border.all(color: widget.color ?? tokens.panelBorder),
       borderRadius: BorderRadius.circular(kClideCardRadius),
@@ -187,14 +185,18 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
         Positioned.fill(
           child: ExcludeFocus(
             child: ExcludeSemantics(
-              child: ClideTappable(onTap: _toggle, tooltip: 'Collapse', builder: (_, _, _) => const SizedBox.expand()),
+              child: ClideTappable(
+                onTap: _toggle,
+                tooltip: ClideSettings.i18n.string(context, 'collapser.collapse', namespace: 'core', placeholder: 'Collapse'),
+                builder: (_, _, _) => const SizedBox.expand(),
+              ),
             ),
           ),
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _headerSemantics(child: _headerRow(tokens)),
+            _headerSemantics(context, child: _headerRow(context, tokens)),
             // Even padding around the inner item canvas (T-305): the sides +
             // top match, and each inner item carries a matching bottom margin
             // (so the last item's margin is the bottom inset and items in a
@@ -222,10 +224,10 @@ class _ClideCollapserCardState extends State<ClideCollapserCard> {
   /// The explicit, focusable collapse control in the expanded header. A
   /// background tap alone is not keyboard/AT reachable, so this keeps the
   /// control on the Tab path and Enter/Space-activatable (D-78).
-  Widget _headerRow(SurfaceTokens tokens) => ClideTappable(
+  Widget _headerRow(BuildContext context, SurfaceTokens tokens) => ClideTappable(
     focusNode: _controlFocus,
     onTap: _toggle,
-    tooltip: 'Collapse',
+    tooltip: ClideSettings.i18n.string(context, 'collapser.collapse', namespace: 'core', placeholder: 'Collapse'),
     builder: (context, hovered, focused) => Container(
       padding: const EdgeInsets.symmetric(horizontal: kClideCardHeaderPadH, vertical: kClideCardHeaderPadV),
       decoration: BoxDecoration(

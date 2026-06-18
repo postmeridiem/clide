@@ -52,13 +52,23 @@ class _I18n {
 
   /// Resolve a catalog string through the live i18n service (D-21) — the
   /// uniform widget-facing lookup (T-462). [placeholder] is the inline English
-  /// fallback rendered until/unless the catalog covers the key.
-  String string(BuildContext context, String key, {required String namespace, String? placeholder}) =>
-      of(context).string(key, namespace: namespace, placeholder: placeholder);
+  /// fallback. With no kernel in scope (isolated primitive tests) it returns
+  /// the placeholder, so a widget never needs one to render.
+  String string(BuildContext context, String key, {required String namespace, String? placeholder}) {
+    final i = ClideKernel.maybeOf(context)?.i18n;
+    return i == null ? (placeholder ?? key) : i.string(key, namespace: namespace, placeholder: placeholder);
+  }
 
   /// [string] with `replaceAll` interpolation per replacer (templated labels).
-  String interpolated(BuildContext context, String key, {required String namespace, String? placeholder, List<I18nReplacer> replacers = const []}) =>
-      of(context).interpolated(key, namespace: namespace, placeholder: placeholder, replacers: replacers);
+  String interpolated(BuildContext context, String key, {required String namespace, String? placeholder, List<I18nReplacer> replacers = const []}) {
+    final i = ClideKernel.maybeOf(context)?.i18n;
+    if (i != null) return i.interpolated(key, namespace: namespace, placeholder: placeholder, replacers: replacers);
+    var out = placeholder ?? key;
+    for (final r in replacers) {
+      out = out.replaceAll(r.from, r.replace);
+    }
+    return out;
+  }
 }
 
 /// Root-provided InheritedWidget carrying the live font families (D-101). The

@@ -60,13 +60,14 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
+    final closeLabel = ClideSettings.i18n.string(context, 'pane.close', namespace: 'core', placeholder: 'Close pane');
     return Semantics(
       button: true,
-      label: 'Close pane',
+      label: closeLabel,
       onTap: onPressed,
       child: ClideTappable(
         onTap: onPressed,
-        tooltip: 'Close pane',
+        tooltip: closeLabel,
         builder: (context, hovered, _) => Container(
           width: 20,
           height: 20,
@@ -94,7 +95,13 @@ class _Header extends StatelessWidget {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: 'pane header: $title',
+      label: ClideSettings.i18n.interpolated(
+        context,
+        'pane.header',
+        namespace: 'core',
+        placeholder: 'pane header: {title}',
+        replacers: [I18nReplacer(from: '{title}', replace: title)],
+      ),
       child: ColoredBox(
         color: tokens.panelHeader,
         child: Padding(

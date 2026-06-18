@@ -50,22 +50,40 @@ class ReaderActionBar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ActionButton(painter: PhosphorIcons.byName('caret-left'), tooltip: 'Back', enabled: canGoBack, onTap: canGoBack ? onBack : null, tokens: tokens),
+        _ActionButton(
+          painter: PhosphorIcons.byName('caret-left'),
+          tooltip: ClideSettings.i18n.string(context, 'reader.back', namespace: 'core', placeholder: 'Back'),
+          enabled: canGoBack,
+          onTap: canGoBack ? onBack : null,
+          tokens: tokens,
+        ),
         const SizedBox(width: 2),
         _ActionButton(
           painter: PhosphorIcons.byName('caret-right'),
-          tooltip: 'Forward',
+          tooltip: ClideSettings.i18n.string(context, 'reader.forward', namespace: 'core', placeholder: 'Forward'),
           enabled: canGoForward,
           onTap: canGoForward ? onForward : null,
           tokens: tokens,
         ),
         if (hasPinned) ...[
           const SizedBox(width: 2),
-          _ActionButton(painter: PhosphorIcons.byName('arrow-u-up-left'), tooltip: 'Jump to pin', enabled: true, onTap: onJumpToPin, tokens: tokens),
+          _ActionButton(
+            painter: PhosphorIcons.byName('arrow-u-up-left'),
+            tooltip: ClideSettings.i18n.string(context, 'reader.jumpToPin', namespace: 'core', placeholder: 'Jump to pin'),
+            enabled: true,
+            onTap: onJumpToPin,
+            tokens: tokens,
+          ),
         ],
         if (onEdit != null) ...[
           const SizedBox(width: 4),
-          _ActionButton(painter: PhosphorIcons.byName('pencil-simple'), tooltip: 'Edit in editor', enabled: true, onTap: onEdit, tokens: tokens),
+          _ActionButton(
+            painter: PhosphorIcons.byName('pencil-simple'),
+            tooltip: ClideSettings.i18n.string(context, 'reader.edit', namespace: 'core', placeholder: 'Edit in editor'),
+            enabled: true,
+            onTap: onEdit,
+            tokens: tokens,
+          ),
         ],
       ],
     );
@@ -86,7 +104,9 @@ class ReaderPinButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ActionButton(
       painter: PhosphorIcons.byName('push-pin'),
-      tooltip: pinned ? 'Unpin' : 'Pin',
+      tooltip: pinned
+          ? ClideSettings.i18n.string(context, 'reader.unpin', namespace: 'core', placeholder: 'Unpin')
+          : ClideSettings.i18n.string(context, 'reader.pin', namespace: 'core', placeholder: 'Pin'),
       enabled: onTap != null,
       active: pinned,
       onTap: onTap,

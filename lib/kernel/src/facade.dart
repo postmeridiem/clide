@@ -345,6 +345,11 @@ class ClideKernel extends InheritedWidget {
     return w.services;
   }
 
+  /// Like [of] but returns null instead of throwing when there is no kernel in
+  /// scope — lets widget-facing facades (e.g. [ClideSettings.i18n]) degrade
+  /// gracefully so a primitive renders in an isolated test without a kernel.
+  static KernelServices? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ClideKernel>()?.services;
+
   @override
   bool updateShouldNotify(ClideKernel oldWidget) => services != oldWidget.services;
 }

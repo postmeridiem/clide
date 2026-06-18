@@ -557,6 +557,9 @@ Future<List<ThemeDefinition>> _loadBundledThemes() async {
 /// catalogs load lazily on activate in later tiers.
 
 const List<String> _tier0Namespaces = [
+  // Framework chrome that lives outside any extension (lib/widgets, lib/kernel,
+  // shared reader chrome) resolves under the 'core' namespace (T-469).
+  'core',
   'builtin.default-layout',
   'builtin.welcome',
   'builtin.ipc-status',

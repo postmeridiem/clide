@@ -1,3 +1,5 @@
+import 'package:clide/kernel/src/facade.dart' show ClideKernel;
+import 'package:clide/kernel/src/i18n/i18n.dart' show I18nReplacer;
 import 'package:clide/kernel/src/panels/arrangement.dart';
 import 'package:clide/kernel/src/panels/slot_id.dart';
 import 'package:clide/kernel/src/theme/controller.dart';
@@ -43,10 +45,10 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
     return Semantics(
       container: true,
       slider: true,
-      label: _semanticLabel(),
-      value: size == null ? null : '${size.round()} pixels',
-      increasedValue: size == null ? null : '${(size + DragResizeHandle.stepFine).round()} pixels',
-      decreasedValue: size == null ? null : '${(size - DragResizeHandle.stepFine).round()} pixels',
+      label: _semanticLabel(context),
+      value: size == null ? null : _pixels(context, size.round()),
+      increasedValue: size == null ? null : _pixels(context, (size + DragResizeHandle.stepFine).round()),
+      decreasedValue: size == null ? null : _pixels(context, (size - DragResizeHandle.stepFine).round()),
       onIncrease: () => _bump(DragResizeHandle.stepFine),
       onDecrease: () => _bump(-DragResizeHandle.stepFine),
       child: FocusableActionDetector(
@@ -87,11 +89,55 @@ class _DragResizeHandleState extends State<DragResizeHandle> {
     );
   }
 
-  String _semanticLabel() {
-    final axis = widget.axis == Axis.horizontal ? 'width' : 'height';
-    if (widget.slot == Slots.sidebar) return 'Sidebar $axis';
-    if (widget.slot == Slots.contextPanel) return 'Context panel $axis';
-    return '${widget.slot.value} $axis';
+  /// The slider's accessible name (D-21, `core` namespace). With no kernel in
+  /// scope (isolated tests) the i18n lookups fall back to the English
+  /// placeholders, mirroring the widget-facing facade's degrade behaviour.
+  String _semanticLabel(BuildContext context) {
+    final i18n = ClideKernel.maybeOf(context)?.i18n;
+    final axis = widget.axis == Axis.horizontal
+        ? (i18n?.string('resize.axis.width', namespace: 'core', placeholder: 'width') ?? 'width')
+        : (i18n?.string('resize.axis.height', namespace: 'core', placeholder: 'height') ?? 'height');
+    if (widget.slot == Slots.sidebar) {
+      return i18n?.interpolated(
+            'resize.sidebar',
+            namespace: 'core',
+            placeholder: 'Sidebar {axis}',
+            replacers: [I18nReplacer(from: '{axis}', replace: axis)],
+          ) ??
+          'Sidebar $axis';
+    }
+    if (widget.slot == Slots.contextPanel) {
+      return i18n?.interpolated(
+            'resize.contextPanel',
+            namespace: 'core',
+            placeholder: 'Context panel {axis}',
+            replacers: [I18nReplacer(from: '{axis}', replace: axis)],
+          ) ??
+          'Context panel $axis';
+    }
+    return i18n?.interpolated(
+          'resize.slot',
+          namespace: 'core',
+          placeholder: '{slot} {axis}',
+          replacers: [
+            I18nReplacer(from: '{slot}', replace: widget.slot.value),
+            I18nReplacer(from: '{axis}', replace: axis),
+          ],
+        ) ??
+        '${widget.slot.value} $axis';
+  }
+
+  /// `'{n} pixels'` via the `core` catalog (falls back to English with no
+  /// kernel in scope).
+  String _pixels(BuildContext context, int n) {
+    final i18n = ClideKernel.maybeOf(context)?.i18n;
+    return i18n?.interpolated(
+          'resize.pixels',
+          namespace: 'core',
+          placeholder: '{n} pixels',
+          replacers: [I18nReplacer(from: '{n}', replace: '$n')],
+        ) ??
+        '$n pixels';
   }
 
   Map<ShortcutActivator, Intent> _shortcuts() {

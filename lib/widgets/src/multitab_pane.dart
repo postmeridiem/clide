@@ -346,7 +346,7 @@ class _AddButton extends StatelessWidget {
     final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
-      label: 'New tab',
+      label: ClideSettings.i18n.string(context, 'tab.new', namespace: 'core', placeholder: 'New tab'),
       excludeSemantics: true,
       child: ClideTappable(
         onTap: onTap,

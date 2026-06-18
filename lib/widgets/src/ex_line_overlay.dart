@@ -181,7 +181,11 @@ class _ExLineOverlayState extends State<ExLineOverlay> {
                     if (_rejected)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: ClideText('Not an editor command', fontSize: clideFontCaption, color: tokens.statusError),
+                        child: ClideText(
+                          ClideSettings.i18n.string(context, 'exline.notCommand', namespace: 'core', placeholder: 'Not an editor command'),
+                          fontSize: clideFontCaption,
+                          color: tokens.statusError,
+                        ),
                       ),
                   ],
                 ),

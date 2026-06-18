@@ -86,7 +86,7 @@ class _ClideToastState extends State<ClideToast> {
                   const SizedBox(width: clideGapStandard),
                   Semantics(
                     button: true,
-                    label: 'Dismiss notification',
+                    label: ClideSettings.i18n.string(context, 'toast.dismiss', namespace: 'core', placeholder: 'Dismiss notification'),
                     child: ClideTappable(
                       onTap: widget.onDismiss,
                       builder: (ctx, hovered, _) =>

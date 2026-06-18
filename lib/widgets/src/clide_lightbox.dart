@@ -145,7 +145,12 @@ class _ClideLightboxState extends State<ClideLightbox> {
             Positioned(
               top: 8,
               right: 8,
-              child: _IconChip(icon: PhosphorIcons.byName('x'), label: 'close', onTap: widget.onDismiss, tokens: tokens),
+              child: _IconChip(
+                icon: PhosphorIcons.byName('x'),
+                label: ClideSettings.i18n.string(context, 'lightbox.close', namespace: 'core', placeholder: 'close'),
+                onTap: widget.onDismiss,
+                tokens: tokens,
+              ),
             ),
             Positioned(
               bottom: 8,
@@ -156,7 +161,16 @@ class _ClideLightboxState extends State<ClideLightbox> {
                   decoration: BoxDecoration(color: tokens.panelHeader, borderRadius: BorderRadius.circular(4)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    child: ClideText('scroll to zoom · double-click to reset · Esc to close', fontSize: clideFontMeta, color: tokens.globalTextMuted),
+                    child: ClideText(
+                      ClideSettings.i18n.string(
+                        context,
+                        'lightbox.hint',
+                        namespace: 'core',
+                        placeholder: 'scroll to zoom · double-click to reset · Esc to close',
+                      ),
+                      fontSize: clideFontMeta,
+                      color: tokens.globalTextMuted,
+                    ),
                   ),
                 ),
               ),

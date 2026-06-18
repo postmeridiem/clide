@@ -43,6 +43,7 @@ class ClideMarkdownHooks {
     this.onOpenFile,
     this.mono = clideMonoFamily,
     this.ui = clideUiFamily,
+    this.openInEditor = 'Open in editor',
   });
 
   /// Tap a governance/ticket ref (T-281, D-77, …) → open the record (T-279).
@@ -71,6 +72,11 @@ class ClideMarkdownHooks {
   /// so markdown prose and link spans honour the chosen UI font instead of
   /// pinning the bundled default (T-475).
   final String ui;
+
+  /// The resolved 'Open in editor' tooltip for file-ref link spans, threaded
+  /// the same way as [mono]/[ui] so the context-free static span builders can
+  /// use the i18n catalog string (D-21, `core` namespace) instead of a literal.
+  final String openInEditor;
 
   static const none = ClideMarkdownHooks();
 }
@@ -137,6 +143,7 @@ class ClideMarkdown extends StatelessWidget {
       onOpenFile: onOpenFile,
       mono: ClideSettings.fonts.monoOf(context),
       ui: ClideSettings.fonts.uiOf(context),
+      openInEditor: ClideSettings.i18n.string(context, 'link.openInEditor', namespace: 'core', placeholder: 'Open in editor'),
     );
     final widgets = _buildNodes(nodes, tokens, hooks);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: widgets);
@@ -393,7 +400,7 @@ class ClideMarkdown extends StatelessWidget {
         // editor (T-300); other inline code renders verbatim.
         if (hooks.resolveFileRef != null && hooks.onOpenFile != null) {
           final ref = _codeFileRef(raw, hooks.resolveFileRef!);
-          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui, mono: true);
+          if (ref != null) return _fileLinkSpan(raw, ref.$1, ref.$2, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui, hooks.openInEditor, mono: true);
         }
         return TextSpan(
           text: raw,
@@ -415,7 +422,7 @@ class ClideMarkdown extends StatelessWidget {
         if (hooks.resolveFileRef != null && hooks.onOpenFile != null && href != null) {
           final (path, line) = _splitFileRef(href);
           final abs = hooks.resolveFileRef!(path);
-          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui);
+          if (abs != null) return _fileLinkSpan(text, abs, line, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui, hooks.openInEditor);
         }
         return TextSpan(
           text: text,
@@ -496,7 +503,13 @@ class ClideMarkdown extends StatelessWidget {
         final abs = hooks.resolveFileRef!(m.group(1)!);
         if (abs == null) continue;
         final line = m.group(2) == null ? null : int.tryParse(m.group(2)!);
-        hits.add(_LinkHit(m.start, m.end, _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui)));
+        hits.add(
+          _LinkHit(
+            m.start,
+            m.end,
+            _fileLinkSpan(text.substring(m.start, m.end), abs, line, tokens, hooks.onOpenFile!, hooks.mono, hooks.ui, hooks.openInEditor),
+          ),
+        );
       }
     }
     if (hits.isEmpty) return [TextSpan(text: text)];
@@ -575,7 +588,8 @@ class ClideMarkdown extends StatelessWidget {
     SurfaceTokens tokens,
     FileTapCallback onOpenFile,
     String monoFamily,
-    String uiFamily, {
+    String uiFamily,
+    String openInEditor, {
     bool mono = false,
   }) {
     return WidgetSpan(
@@ -583,7 +597,7 @@ class ClideMarkdown extends StatelessWidget {
       baseline: TextBaseline.alphabetic,
       child: ClideTappable(
         onTap: () => onOpenFile(absPath, line),
-        tooltip: 'Open in editor',
+        tooltip: openInEditor,
         builder: (_, hovered, _) => Text(
           display,
           style: TextStyle(
