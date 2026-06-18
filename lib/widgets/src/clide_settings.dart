@@ -1,5 +1,9 @@
 import 'package:clide/kernel/src/facade.dart' show ClideKernel;
 import 'package:clide/kernel/src/i18n/i18n.dart' show I18n, I18nReplacer;
+// Re-export so ClideSettings.i18n.interpolated callers get I18nReplacer with
+// the facade (via the widgets barrel) — the templated-lookup API is then
+// self-contained (T-462).
+export 'package:clide/kernel/src/i18n/i18n.dart' show I18nReplacer;
 import 'package:clide/kernel/src/theme/controller.dart' show ClideTheme, ClideThemeData;
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
