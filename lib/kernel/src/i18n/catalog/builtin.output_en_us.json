@@ -1,0 +1,14 @@
+{
+  "a11y.log": { "translation": "output log" },
+  "empty": { "translation": "No output yet." },
+  "empty.filtered": { "translation": "No output matches the filter." },
+  "filter.hint": { "translation": "Filter…" },
+  "chip.level": { "translation": "Level: {level}" },
+  "chip.source": { "translation": "Source: {source}" },
+  "chip.clear": { "translation": "Clear" },
+  "source.all": { "translation": "all" },
+  "a11y.jumpToLatest": { "translation": "jump to latest" },
+  "jump.label": { "translation": "Jump to latest ↓" },
+  "a11y.toggleDock": { "translation": "toggle output dock" },
+  "dock.label": { "translation": "Output" }
+}

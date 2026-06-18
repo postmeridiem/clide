@@ -32,18 +32,43 @@ class AboutDialog extends StatelessWidget {
           const SizedBox(height: 2),
           const ClideText(clideTagline, muted: true, fontSize: 13),
           const SizedBox(height: 16),
-          _Kv(label: 'Version', value: clideVersion, tokens: tokens),
-          _Kv(label: 'Commit', value: clideCommit, tokens: tokens),
-          _Kv(label: 'Built', value: _formatDate(clideDate), tokens: tokens),
-          _Kv(label: 'Repository', value: clideRepository, tokens: tokens),
+          _Kv(
+            label: ClideSettings.i18n.string(context, 'about.version', namespace: 'builtin.menubar', placeholder: 'Version'),
+            value: clideVersion,
+            tokens: tokens,
+          ),
+          _Kv(
+            label: ClideSettings.i18n.string(context, 'about.commit', namespace: 'builtin.menubar', placeholder: 'Commit'),
+            value: clideCommit,
+            tokens: tokens,
+          ),
+          _Kv(
+            label: ClideSettings.i18n.string(context, 'about.built', namespace: 'builtin.menubar', placeholder: 'Built'),
+            value: _formatDate(clideDate),
+            tokens: tokens,
+          ),
+          _Kv(
+            label: ClideSettings.i18n.string(context, 'about.repository', namespace: 'builtin.menubar', placeholder: 'Repository'),
+            value: clideRepository,
+            tokens: tokens,
+          ),
           const SizedBox(height: 16),
-          ClideText('Bundled dependencies', fontSize: clideFontCaption, color: tokens.globalTextMuted),
+          ClideText(
+            ClideSettings.i18n.string(context, 'licenses.heading', namespace: 'builtin.menubar', placeholder: 'Bundled dependencies'),
+            fontSize: clideFontCaption,
+            color: tokens.globalTextMuted,
+          ),
           const SizedBox(height: 6),
           _Licenses(tokens: tokens),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [ClideButton(label: 'Close', onPressed: onDismiss)],
+            children: [
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.close', namespace: 'builtin.menubar', placeholder: 'Close'),
+                onPressed: onDismiss,
+              ),
+            ],
           ),
         ],
       ),
@@ -86,7 +111,13 @@ class _Licenses extends StatelessWidget {
       future: loadLicenses(),
       builder: (context, snap) {
         if (!snap.hasData) {
-          return ClideText(snap.hasError ? 'Licenses unavailable.' : 'Loading…', fontSize: 12, color: tokens.globalTextMuted);
+          return ClideText(
+            snap.hasError
+                ? ClideSettings.i18n.string(context, 'licenses.unavailable', namespace: 'builtin.menubar', placeholder: 'Licenses unavailable.')
+                : ClideSettings.i18n.string(context, 'licenses.loading', namespace: 'builtin.menubar', placeholder: 'Loading…'),
+            fontSize: 12,
+            color: tokens.globalTextMuted,
+          );
         }
         final deps = snap.data!.dependencies;
         return Container(

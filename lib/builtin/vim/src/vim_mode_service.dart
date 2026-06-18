@@ -31,8 +31,9 @@ enum VimMode {
   /// The keymap scope flag set true exactly when this mode is active.
   final String scopeFlag;
 
-  /// Status-bar label, shown as `-- NORMAL --` (Vim's own vocabulary;
-  /// intentionally untranslated, like Vim itself).
+  /// English status-bar label, shown as `-- NORMAL --`. Used as the i18n
+  /// placeholder for `mode.<name>` in the builtin.vim catalog (T-462); the
+  /// default keeps Vim's own vocabulary, but a locale may override it.
   final String label;
 }
 

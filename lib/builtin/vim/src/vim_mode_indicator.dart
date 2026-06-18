@@ -17,14 +17,11 @@ class VimModeIndicator extends StatelessWidget {
       builder: (context, _) {
         if (!service.enabled) return const SizedBox.shrink();
         final tokens = ClideSettings.theme.of(context).surface;
+        final mode = service.mode;
+        final label = ClideSettings.i18n.string(context, 'mode.${mode.name}', namespace: 'builtin.vim', placeholder: mode.label);
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: ClideText(
-            '-- ${service.mode.label} --',
-            fontFamily: ClideSettings.fonts.monoOf(context),
-            fontSize: clideFontCaption,
-            color: tokens.statusBarForeground,
-          ),
+          child: ClideText('-- $label --', fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontCaption, color: tokens.statusBarForeground),
         );
       },
     );

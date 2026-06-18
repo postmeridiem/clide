@@ -123,9 +123,17 @@ class _OpenFolderDialogState extends State<OpenFolderDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ClideText('Open project', fontSize: 16, fontWeight: FontWeight.w600),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.openProject.title', namespace: 'builtin.menubar', placeholder: 'Open project'),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
           const SizedBox(height: 4),
-          const ClideText('Enter the path to a git repository.', muted: true, fontSize: 13),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.openProject.body', namespace: 'builtin.menubar', placeholder: 'Enter the path to a git repository.'),
+            muted: true,
+            fontSize: 13,
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -148,14 +156,29 @@ class _OpenFolderDialogState extends State<OpenFolderDialog> {
               onSubmitted: (_) => unawaited(_submit()),
             ),
           ),
-          if (_error != null) ...[const SizedBox(height: 8), ClideText(_error!, color: tokens.statusError, fontSize: 12)],
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            ClideText(
+              ClideSettings.i18n.string(context, 'dialog.openProject.error', namespace: 'builtin.menubar', placeholder: 'Not a git repository'),
+              color: tokens.statusError,
+              fontSize: 12,
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ClideButton(label: 'Cancel', onPressed: widget.onCancel),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.cancel', namespace: 'builtin.menubar', placeholder: 'Cancel'),
+                onPressed: widget.onCancel,
+              ),
               const SizedBox(width: 8),
-              ClideButton(label: _loading ? 'Opening…' : 'Open', onPressed: _loading ? null : _submit),
+              ClideButton(
+                label: _loading
+                    ? ClideSettings.i18n.string(context, 'button.opening', namespace: 'builtin.menubar', placeholder: 'Opening…')
+                    : ClideSettings.i18n.string(context, 'button.open', namespace: 'builtin.menubar', placeholder: 'Open'),
+                onPressed: _loading ? null : _submit,
+              ),
             ],
           ),
         ],
@@ -186,15 +209,33 @@ class NotARepoDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ClideText('No git repo found', fontSize: 16, fontWeight: FontWeight.w600),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.notRepo.title', namespace: 'builtin.menubar', placeholder: 'No git repo found'),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
           const SizedBox(height: 8),
           ClideText(path, muted: true, fontSize: 13),
           const SizedBox(height: 8),
-          const ClideText('A clide project root requires a git repository.', muted: true, fontSize: 13),
+          ClideText(
+            ClideSettings.i18n.string(
+              context,
+              'dialog.notRepo.body',
+              namespace: 'builtin.menubar',
+              placeholder: 'A clide project root requires a git repository.',
+            ),
+            muted: true,
+            fontSize: 13,
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [ClideButton(label: 'OK', onPressed: () => onDismiss())],
+            children: [
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.ok', namespace: 'builtin.menubar', placeholder: 'OK'),
+                onPressed: () => onDismiss(),
+              ),
+            ],
           ),
         ],
       ),

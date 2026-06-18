@@ -1,0 +1,22 @@
+{
+  "menu.file": { "translation": "File" },
+  "menu.view": { "translation": "View" },
+  "menu.help": { "translation": "Help" },
+  "about.version": { "translation": "Version" },
+  "about.commit": { "translation": "Commit" },
+  "about.built": { "translation": "Built" },
+  "about.repository": { "translation": "Repository" },
+  "licenses.heading": { "translation": "Bundled dependencies" },
+  "licenses.unavailable": { "translation": "Licenses unavailable." },
+  "licenses.loading": { "translation": "Loading…" },
+  "button.close": { "translation": "Close" },
+  "button.cancel": { "translation": "Cancel" },
+  "button.open": { "translation": "Open" },
+  "button.opening": { "translation": "Opening…" },
+  "button.ok": { "translation": "OK" },
+  "dialog.openProject.title": { "translation": "Open project" },
+  "dialog.openProject.body": { "translation": "Enter the path to a git repository." },
+  "dialog.openProject.error": { "translation": "Not a git repository" },
+  "dialog.notRepo.title": { "translation": "No git repo found" },
+  "dialog.notRepo.body": { "translation": "A clide project root requires a git repository." }
+}

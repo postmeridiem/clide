@@ -1,5 +1,10 @@
 {
   "tab.title": { "translation": "Files" },
   "loading": { "translation": "Loading…" },
-  "empty": { "translation": "No visible files" }
+  "empty": { "translation": "No visible files" },
+  "filter.hint": { "translation": "Filter files…" },
+  "a11y.tree": { "translation": "file tree — {name}" },
+  "a11y.collapse": { "translation": "Collapse {name}" },
+  "a11y.expand": { "translation": "Expand {name}" },
+  "a11y.open": { "translation": "Open {name}" }
 }

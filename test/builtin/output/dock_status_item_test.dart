@@ -3,6 +3,8 @@ library;
 
 import 'package:clide/builtin/default_layout/default_layout.dart';
 import 'package:clide/builtin/output/output.dart';
+import 'dart:ui';
+
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +18,19 @@ void main() {
   late KernelFixture f;
 
   setUp(() async {
-    f = await KernelFixture.create();
+    // Seed builtin.output so the widget's own i18n lookups resolve — as they do
+    // at boot in the real app. Otherwise "namespace not registered" warnings
+    // land in the logRing this very widget counts, skewing the health badge.
+    f = await KernelFixture.create(
+      i18nCatalogs: {
+        'builtin.output': {
+          const Locale('en', 'US'): const {
+            'dock.label': {'translation': 'Output'},
+            'a11y.toggleDock': {'translation': 'toggle output dock'},
+          },
+        },
+      },
+    );
     f.services.extensions.register(DefaultLayoutExtension());
     await f.services.extensions.activate('builtin.default-layout');
   });

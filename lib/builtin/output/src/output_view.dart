@@ -78,18 +78,23 @@ class _OutputViewState extends State<OutputView> {
         final tokens = ClideSettings.theme.of(context).surface;
         final rows = _c.filtered;
         return Semantics(
-          label: 'output log',
+          label: ClideSettings.i18n.string(context, 'a11y.log', namespace: 'builtin.output', placeholder: 'output log'),
           container: true,
           explicitChildNodes: true,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _header(tokens),
+              _header(context, tokens),
               Expanded(
                 child: rows.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(12),
-                        child: ClideText(widget.ring.isEmpty ? 'No output yet.' : 'No output matches the filter.', muted: true),
+                        child: ClideText(
+                          widget.ring.isEmpty
+                              ? ClideSettings.i18n.string(context, 'empty', namespace: 'builtin.output', placeholder: 'No output yet.')
+                              : ClideSettings.i18n.string(context, 'empty.filtered', namespace: 'builtin.output', placeholder: 'No output matches the filter.'),
+                          muted: true,
+                        ),
                       )
                     : Stack(
                         children: [
@@ -113,7 +118,8 @@ class _OutputViewState extends State<OutputView> {
     );
   }
 
-  Widget _header(SurfaceTokens tokens) {
+  Widget _header(BuildContext context, SurfaceTokens tokens) {
+    final sourceValue = _c.source ?? ClideSettings.i18n.string(context, 'source.all', namespace: 'builtin.output', placeholder: 'all');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -122,14 +128,39 @@ class _OutputViewState extends State<OutputView> {
       child: Row(
         children: [
           Expanded(
-            child: ClideFilterBox(address: 'output.panel', hint: 'Filter…', onChanged: _c.setText),
+            child: ClideFilterBox(
+              address: 'output.panel',
+              hint: ClideSettings.i18n.string(context, 'filter.hint', namespace: 'builtin.output', placeholder: 'Filter…'),
+              onChanged: _c.setText,
+            ),
           ),
           const SizedBox(width: 8),
-          _Chip(label: 'Level: ${_c.minLevel.name}', onTap: () => _c.setMinLevel(LogLevel.values[(_c.minLevel.index + 1) % LogLevel.values.length])),
+          _Chip(
+            label: ClideSettings.i18n.interpolated(
+              context,
+              'chip.level',
+              namespace: 'builtin.output',
+              placeholder: 'Level: {level}',
+              replacers: [I18nReplacer(from: '{level}', replace: _c.minLevel.name)],
+            ),
+            onTap: () => _c.setMinLevel(LogLevel.values[(_c.minLevel.index + 1) % LogLevel.values.length]),
+          ),
           const SizedBox(width: 6),
-          _Chip(label: 'Source: ${_c.source ?? 'all'}', onTap: _cycleSource),
+          _Chip(
+            label: ClideSettings.i18n.interpolated(
+              context,
+              'chip.source',
+              namespace: 'builtin.output',
+              placeholder: 'Source: {source}',
+              replacers: [I18nReplacer(from: '{source}', replace: sourceValue)],
+            ),
+            onTap: _cycleSource,
+          ),
           const SizedBox(width: 6),
-          _Chip(label: 'Clear', onTap: _c.clear),
+          _Chip(
+            label: ClideSettings.i18n.string(context, 'chip.clear', namespace: 'builtin.output', placeholder: 'Clear'),
+            onTap: _c.clear,
+          ),
         ],
       ),
     );
@@ -180,7 +211,7 @@ class _JumpPill extends StatelessWidget {
     final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
-      label: 'jump to latest',
+      label: ClideSettings.i18n.string(context, 'a11y.jumpToLatest', namespace: 'builtin.output', placeholder: 'jump to latest'),
       child: GestureDetector(
         onTap: onTap,
         child: MouseRegion(
@@ -192,7 +223,11 @@ class _JumpPill extends StatelessWidget {
               border: Border.all(color: tokens.globalFocus),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: ClideText('Jump to latest ↓', fontSize: clideFontCaption, color: tokens.globalFocus),
+            child: ClideText(
+              ClideSettings.i18n.string(context, 'jump.label', namespace: 'builtin.output', placeholder: 'Jump to latest ↓'),
+              fontSize: clideFontCaption,
+              color: tokens.globalFocus,
+            ),
           ),
         ),
       ),

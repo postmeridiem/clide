@@ -51,14 +51,33 @@ class _SearchPanelViewState extends State<SearchPanelView> {
     final dialog = ClideKernel.of(context).dialog;
     if (!await c.isWorkingTreeClean()) {
       await dialog.show<Object>(
-        (ctx, dismiss) =>
-            _MessageDialog(title: 'Working tree not clean', body: 'Commit or stash your changes before replacing — git is the only undo.', dismiss: dismiss),
+        (ctx, dismiss) => _MessageDialog(
+          title: ClideSettings.i18n.string(ctx, 'dialog.dirty.title', namespace: 'builtin.search', placeholder: 'Working tree not clean'),
+          body: ClideSettings.i18n.string(
+            ctx,
+            'dialog.dirty.body',
+            namespace: 'builtin.search',
+            placeholder: 'Commit or stash your changes before replacing — git is the only undo.',
+          ),
+          dismiss: dismiss,
+        ),
       );
       return;
     }
     final confirmed = await dialog.show<bool>(
-      (ctx, dismiss) =>
-          _ConfirmDialog(body: 'Replace ${c.matchCount} match(es) across ${c.fileCount} file(s)? This cannot be undone in clide.', dismiss: dismiss),
+      (ctx, dismiss) => _ConfirmDialog(
+        body: ClideSettings.i18n.interpolated(
+          ctx,
+          'dialog.confirm.body',
+          namespace: 'builtin.search',
+          placeholder: 'Replace {matches} match(es) across {files} file(s)? This cannot be undone in clide.',
+          replacers: [
+            I18nReplacer(from: '{matches}', replace: '${c.matchCount}'),
+            I18nReplacer(from: '{files}', replace: '${c.fileCount}'),
+          ],
+        ),
+        dismiss: dismiss,
+      ),
     );
     if (confirmed != true) return;
     await c.applyReplace();
@@ -104,13 +123,18 @@ class _SearchPanelViewState extends State<SearchPanelView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ClideFilterBox(address: 'search.findInFiles', hint: 'Search', onChanged: c.run, onSubmitted: c.run),
+                  ClideFilterBox(
+                    address: 'search.findInFiles',
+                    hint: ClideSettings.i18n.string(context, 'find.hint', namespace: 'builtin.search', placeholder: 'Search'),
+                    onChanged: c.run,
+                    onSubmitted: c.run,
+                  ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       _Toggle(
                         label: '.*',
-                        tooltip: 'Regular expression',
+                        tooltip: ClideSettings.i18n.string(context, 'toggle.regex', namespace: 'builtin.search', placeholder: 'Regular expression'),
                         active: c.regex,
                         tokens: tokens,
                         onTap: () {
@@ -121,7 +145,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                       const SizedBox(width: 6),
                       _Toggle(
                         label: 'Aa',
-                        tooltip: 'Case insensitive',
+                        tooltip: ClideSettings.i18n.string(context, 'toggle.caseInsensitive', namespace: 'builtin.search', placeholder: 'Case insensitive'),
                         active: c.ignoreCase,
                         tokens: tokens,
                         onTap: () {
@@ -139,7 +163,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                       Expanded(
                         child: ClideFilterBox(
                           address: 'search.findInFiles.replace',
-                          hint: 'Replace',
+                          hint: ClideSettings.i18n.string(context, 'replace.hint', namespace: 'builtin.search', placeholder: 'Replace'),
                           icon: null,
                           debounce: Duration.zero,
                           onChanged: c.setReplacement,
@@ -152,7 +176,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                   const SizedBox(height: 6),
                   ClideFilterBox(
                     address: 'search.findInFiles.include',
-                    hint: 'files to include (e.g. *.dart)',
+                    hint: ClideSettings.i18n.string(context, 'include.hint', namespace: 'builtin.search', placeholder: 'files to include (e.g. *.dart)'),
                     icon: null,
                     debounce: Duration.zero,
                     onChanged: (v) => c.include = v,
@@ -160,7 +184,7 @@ class _SearchPanelViewState extends State<SearchPanelView> {
                   const SizedBox(height: 4),
                   ClideFilterBox(
                     address: 'search.findInFiles.exclude',
-                    hint: 'files to exclude',
+                    hint: ClideSettings.i18n.string(context, 'exclude.hint', namespace: 'builtin.search', placeholder: 'files to exclude'),
                     icon: null,
                     debounce: Duration.zero,
                     onChanged: (v) => c.exclude = v,
@@ -196,7 +220,14 @@ class _ModeSwitcher extends StatelessWidget {
   final SurfaceTokens tokens;
   final ValueChanged<SearchTabMode> onSelect;
 
-  static const _labels = {SearchTabMode.find: 'Find', SearchTabMode.vault: 'Vault', SearchTabMode.query: 'Query', SearchTabMode.markdown: 'Markdown'};
+  // (catalog key, English label) per mode. The key/English pair resolves
+  // through the i18n catalog at render (D-21).
+  static const _labels = {
+    SearchTabMode.find: ('mode.find', 'Find'),
+    SearchTabMode.vault: ('mode.vault', 'Vault'),
+    SearchTabMode.query: ('mode.query', 'Query'),
+    SearchTabMode.markdown: ('mode.markdown', 'Markdown'),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -207,23 +238,25 @@ class _ModeSwitcher extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (final m in SearchTabMode.values) ...[
-            Semantics(
-              button: true,
-              selected: m == mode,
-              label: _labels[m]!,
-              child: ClideTappable(
-                onTap: () => onSelect(m),
-                builder: (ctx, hovered, _) => ClideText(
-                  _labels[m]!,
-                  fontSize: clideFontCaption,
-                  color: m == mode ? tokens.globalForeground : (hovered ? tokens.sidebarForeground : tokens.globalTextMuted),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
+          for (final m in SearchTabMode.values) ...[_modeButton(context, m), const SizedBox(width: 10)],
         ],
+      ),
+    );
+  }
+
+  Widget _modeButton(BuildContext context, SearchTabMode m) {
+    final label = ClideSettings.i18n.string(context, _labels[m]!.$1, namespace: 'builtin.search', placeholder: _labels[m]!.$2);
+    return Semantics(
+      button: true,
+      selected: m == mode,
+      label: label,
+      child: ClideTappable(
+        onTap: () => onSelect(m),
+        builder: (ctx, hovered, _) => ClideText(
+          label,
+          fontSize: clideFontCaption,
+          color: m == mode ? tokens.globalForeground : (hovered ? tokens.sidebarForeground : tokens.globalTextMuted),
+        ),
       ),
     );
   }
@@ -274,11 +307,20 @@ class _StatusText extends StatelessWidget {
   Widget build(BuildContext context) {
     final String text;
     if (c.running) {
-      text = 'Searching…';
+      text = ClideSettings.i18n.string(context, 'status.searching', namespace: 'builtin.search', placeholder: 'Searching…');
     } else if (c.matchCount == 0 && c.done) {
-      text = 'No results';
+      text = ClideSettings.i18n.string(context, 'status.noResults', namespace: 'builtin.search', placeholder: 'No results');
     } else if (c.matchCount > 0) {
-      text = '${c.matchCount} in ${c.fileCount}';
+      text = ClideSettings.i18n.interpolated(
+        context,
+        'status.counts',
+        namespace: 'builtin.search',
+        placeholder: '{matches} in {files}',
+        replacers: [
+          I18nReplacer(from: '{matches}', replace: '${c.matchCount}'),
+          I18nReplacer(from: '{files}', replace: '${c.fileCount}'),
+        ],
+      );
     } else {
       text = '';
     }
@@ -332,7 +374,16 @@ class _MatchRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Open ${match.path} line ${match.line}',
+      label: ClideSettings.i18n.interpolated(
+        context,
+        'a11y.openMatch',
+        namespace: 'builtin.search',
+        placeholder: 'Open {path} line {line}',
+        replacers: [
+          I18nReplacer(from: '{path}', replace: match.path),
+          I18nReplacer(from: '{line}', replace: '${match.line}'),
+        ],
+      ),
       onTap: onTap,
       child: ClideTappable(
         onTap: onTap,
@@ -414,10 +465,11 @@ class _ReplaceAllButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final label = ClideSettings.i18n.string(context, 'button.replaceAll', namespace: 'builtin.search', placeholder: 'Replace all');
     return Semantics(
       button: true,
       enabled: enabled,
-      label: 'Replace all',
+      label: label,
       child: ClideTappable(
         onTap: enabled ? onTap : () {},
         builder: (context, hovered, _) => Container(
@@ -427,7 +479,7 @@ class _ReplaceAllButton extends StatelessWidget {
             border: Border.all(color: tokens.buttonBorder),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: ClideText('Replace all', fontSize: clideFontCaption, color: enabled ? tokens.sidebarForeground : tokens.globalTextMuted),
+          child: ClideText(label, fontSize: clideFontCaption, color: enabled ? tokens.sidebarForeground : tokens.globalTextMuted),
         ),
       ),
     );
@@ -453,7 +505,11 @@ class _MessageDialog extends StatelessWidget {
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: _DialogButton(label: 'OK', tokens: tokens, onTap: () => dismiss()),
+          child: _DialogButton(
+            label: ClideSettings.i18n.string(context, 'button.ok', namespace: 'builtin.search', placeholder: 'OK'),
+            tokens: tokens,
+            onTap: () => dismiss(),
+          ),
         ),
       ],
     );
@@ -477,9 +533,17 @@ class _ConfirmDialog extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _DialogButton(label: 'Cancel', tokens: tokens, onTap: () => dismiss(false)),
+            _DialogButton(
+              label: ClideSettings.i18n.string(context, 'button.cancel', namespace: 'builtin.search', placeholder: 'Cancel'),
+              tokens: tokens,
+              onTap: () => dismiss(false),
+            ),
             const SizedBox(width: 8),
-            _DialogButton(label: 'Confirm', tokens: tokens, onTap: () => dismiss(true)),
+            _DialogButton(
+              label: ClideSettings.i18n.string(context, 'button.confirm', namespace: 'builtin.search', placeholder: 'Confirm'),
+              tokens: tokens,
+              onTap: () => dismiss(true),
+            ),
           ],
         ),
       ],

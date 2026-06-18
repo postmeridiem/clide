@@ -1,0 +1,5 @@
+{
+  "mode.normal": { "translation": "NORMAL" },
+  "mode.insert": { "translation": "INSERT" },
+  "mode.visual": { "translation": "VISUAL" }
+}

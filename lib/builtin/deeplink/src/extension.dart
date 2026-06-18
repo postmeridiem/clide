@@ -78,20 +78,44 @@ class _DeepLinkConfirmDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClideText('Open an external link?', fontSize: clideFontBody, color: t.globalForeground),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.title', namespace: 'builtin.deeplink', placeholder: 'Open an external link?'),
+            fontSize: clideFontBody,
+            color: t.globalForeground,
+          ),
           const SizedBox(height: 6),
-          ClideText('A clide:// link from outside the app is asking to:', muted: true, fontSize: clideFontSmall),
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.body', namespace: 'builtin.deeplink', placeholder: 'A clide:// link from outside the app is asking to:'),
+            muted: true,
+            fontSize: clideFontSmall,
+          ),
           const SizedBox(height: 8),
           ClideText(action.describe, fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontSmall, color: t.globalForeground),
           const SizedBox(height: 8),
-          ClideText('Only allow this if you trust where the link came from.', fontSize: clideFontMeta, color: t.statusWarning),
+          ClideText(
+            ClideSettings.i18n.string(
+              context,
+              'dialog.warning',
+              namespace: 'builtin.deeplink',
+              placeholder: 'Only allow this if you trust where the link came from.',
+            ),
+            fontSize: clideFontMeta,
+            color: t.statusWarning,
+          ),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ClideButton(label: 'Cancel', onPressed: () => onResolve(false)),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.cancel', namespace: 'builtin.deeplink', placeholder: 'Cancel'),
+                onPressed: () => onResolve(false),
+              ),
               const SizedBox(width: 8),
-              ClideButton(label: 'Open', variant: ClideButtonVariant.primary, onPressed: () => onResolve(true)),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.open', namespace: 'builtin.deeplink', placeholder: 'Open'),
+                variant: ClideButtonVariant.primary,
+                onPressed: () => onResolve(true),
+              ),
             ],
           ),
         ],

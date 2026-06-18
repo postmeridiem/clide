@@ -140,13 +140,37 @@ class _TerminalPaneState extends State<TerminalPane> {
 
   @override
   Widget build(BuildContext context) {
-    final subtitle = _error != null ? _error! : (_paneId == null ? 'spawning shell…' : 'pid $_pid · ${_paneId!}');
+    final spawning = ClideSettings.i18n.string(context, 'subtitle.spawning', namespace: 'builtin.terminal', placeholder: 'spawning shell…');
+    final errorText = _error == null ? null : _localizeError(context, _error!);
+    final subtitle = errorText ?? (_paneId == null ? spawning : 'pid $_pid · ${_paneId!}');
 
     return ClidePaneChrome(
-      title: 'terminal',
+      title: ClideSettings.i18n.string(context, 'chrome.title', namespace: 'builtin.terminal', placeholder: 'terminal'),
       subtitle: subtitle,
-      child: _error != null ? _ErrorBody(message: _error!) : ClidePtyView(terminal: _terminal, label: 'terminal — $subtitle'),
+      child: errorText != null
+          ? _ErrorBody(message: errorText)
+          : ClidePtyView(
+              terminal: _terminal,
+              label: ClideSettings.i18n.interpolated(
+                context,
+                'a11y.label',
+                namespace: 'builtin.terminal',
+                placeholder: 'terminal — {subtitle}',
+                replacers: [I18nReplacer(from: '{subtitle}', replace: subtitle)],
+              ),
+            ),
     );
+  }
+
+  /// Localize the two known error literals stored in [_error] (set in async
+  /// handlers where `context` can't be used); any other value — e.g. a daemon
+  /// `response.error?.message` — is dynamic data and passes through as-is.
+  String _localizeError(BuildContext context, String raw) {
+    return switch (raw) {
+      'Backend not connected.' => ClideSettings.i18n.string(context, 'error.daemon', namespace: 'builtin.terminal', placeholder: 'Backend not connected.'),
+      'Shell exited.' => ClideSettings.i18n.string(context, 'subtitle.exited', namespace: 'builtin.terminal', placeholder: 'Shell exited.'),
+      _ => raw,
+    };
   }
 }
 
@@ -161,7 +185,11 @@ class _ErrorBody extends StatelessWidget {
         alignment: Alignment.topLeft,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [const ClideText('Terminal unavailable'), const SizedBox(height: 4), ClideText(message, muted: true)],
+          children: [
+            ClideText(ClideSettings.i18n.string(context, 'error.unavailable', namespace: 'builtin.terminal', placeholder: 'Terminal unavailable')),
+            const SizedBox(height: 4),
+            ClideText(message, muted: true),
+          ],
         ),
       ),
     );

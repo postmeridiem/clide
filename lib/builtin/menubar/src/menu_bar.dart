@@ -187,10 +187,24 @@ class _TopMenuButtonState extends State<_TopMenuButton> {
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: clideInsetStandard),
             color: open || hovered ? tokens.listItemHoverBackground : null,
-            child: ClideText(widget.menu.title, fontSize: 12, color: open || hovered ? tokens.globalForeground : tokens.chromeForeground),
+            child: ClideText(_menuTitle(ctx, widget.menu.title), fontSize: 12, color: open || hovered ? tokens.globalForeground : tokens.chromeForeground),
           ),
         ),
       ),
     );
+  }
+
+  /// Localize a curated top-menu title. The curated tree authors English
+  /// titles ('File'/'View'/'Help'); resolve each to its catalog entry, falling
+  /// back to the authored English (which also drives the Alt mnemonic).
+  String _menuTitle(BuildContext context, String title) {
+    final key = switch (title) {
+      'File' => 'menu.file',
+      'View' => 'menu.view',
+      'Help' => 'menu.help',
+      _ => null,
+    };
+    if (key == null) return title;
+    return ClideSettings.i18n.string(context, key, namespace: 'builtin.menubar', placeholder: title);
   }
 }

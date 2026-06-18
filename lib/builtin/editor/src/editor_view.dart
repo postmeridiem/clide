@@ -320,9 +320,19 @@ class _EditorViewState extends State<EditorView> {
       builder: (context, _) {
         if (c.buffers.isEmpty) {
           return ClidePaneChrome(
-            title: 'editor',
-            subtitle: 'no buffer · use `clide open <path>` or pick a file in the tree',
-            child: const Center(child: ClideText('Open a file to begin editing.', muted: true)),
+            title: ClideSettings.i18n.string(context, 'chrome.title', namespace: 'builtin.editor', placeholder: 'editor'),
+            subtitle: ClideSettings.i18n.string(
+              context,
+              'subtitle.no-buffer',
+              namespace: 'builtin.editor',
+              placeholder: 'no buffer · use `clide open <path>` or pick a file in the tree',
+            ),
+            child: Center(
+              child: ClideText(
+                ClideSettings.i18n.string(context, 'empty', namespace: 'builtin.editor', placeholder: 'Open a file to begin editing.'),
+                muted: true,
+              ),
+            ),
           );
         }
         return MultitabPane<String>(
@@ -392,7 +402,7 @@ class _TextBody extends StatelessWidget {
       showCursor: true,
     );
     return Semantics(
-      label: 'editor text area',
+      label: ClideSettings.i18n.string(context, 'a11y.text-area', namespace: 'builtin.editor', placeholder: 'editor text area'),
       textField: true,
       multiline: true,
       child: ColoredBox(

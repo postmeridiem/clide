@@ -95,11 +95,23 @@ class _MarkdownViewerState extends State<MarkdownViewer> {
       return Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true));
     }
     if (_content == null) {
-      return const Padding(padding: EdgeInsets.all(12), child: ClideText('Select a .md file to preview it here.', muted: true));
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: ClideText(
+          ClideSettings.i18n.string(context, 'empty', namespace: 'builtin.markdown', placeholder: 'Select a .md file to preview it here.'),
+          muted: true,
+        ),
+      );
     }
     return ClidePaneChrome(
-      title: _path ?? 'viewer',
-      subtitle: '${_content!.split('\n').length} lines',
+      title: _path ?? ClideSettings.i18n.string(context, 'chrome.title', namespace: 'builtin.markdown', placeholder: 'viewer'),
+      subtitle: ClideSettings.i18n.interpolated(
+        context,
+        'subtitle.lines',
+        namespace: 'builtin.markdown',
+        placeholder: '{count} lines',
+        replacers: [I18nReplacer(from: '{count}', replace: '${_content!.split('\n').length}')],
+      ),
       leading: ReaderPinButton(pinned: _nav?.hasPinned ?? false, onTap: _path != null ? _onPin : null),
       trailing: [
         ReaderActionBar(

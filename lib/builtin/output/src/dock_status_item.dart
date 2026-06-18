@@ -62,9 +62,10 @@ class _DockStatusItemState extends State<DockStatusItem> {
             : warns > 0
             ? ('⚠ $warns', tokens.statusWarning)
             : ('✓', tokens.statusSuccess);
+        final dockLabel = ClideSettings.i18n.string(ctx, 'dock.label', namespace: 'builtin.output', placeholder: 'Output');
         return Semantics(
           button: true,
-          label: 'toggle output dock',
+          label: ClideSettings.i18n.string(ctx, 'a11y.toggleDock', namespace: 'builtin.output', placeholder: 'toggle output dock'),
           child: GestureDetector(
             onTap: () => _toggle(kernel),
             child: MouseRegion(
@@ -74,7 +75,7 @@ class _DockStatusItemState extends State<DockStatusItem> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ClideText('${open ? '▼' : '▲'} Output ', fontSize: clideFontCaption, color: tokens.globalForeground),
+                    ClideText('${open ? '▼' : '▲'} $dockLabel ', fontSize: clideFontCaption, color: tokens.globalForeground),
                     ClideText(badge, fontSize: clideFontCaption, color: color),
                   ],
                 ),

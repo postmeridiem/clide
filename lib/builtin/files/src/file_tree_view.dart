@@ -105,7 +105,10 @@ class _FileTreeViewState extends State<FileTreeView> {
         }
         final root = c.rootPath;
         if (root == null) {
-          return const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true));
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: ClideText(ClideSettings.i18n.string(context, 'loading', namespace: 'builtin.files', placeholder: 'Loading…'), muted: true),
+          );
         }
         final rootName = root.split(Platform.pathSeparator).last;
         final selected = c.selectedPath;
@@ -127,10 +130,20 @@ class _FileTreeViewState extends State<FileTreeView> {
         );
         return Column(
           children: [
-            ClideFilterBox(address: 'files.tree', hint: 'Filter files…', onChanged: (v) => setState(() => _filter = v)),
+            ClideFilterBox(
+              address: 'files.tree',
+              hint: ClideSettings.i18n.string(context, 'filter.hint', namespace: 'builtin.files', placeholder: 'Filter files…'),
+              onChanged: (v) => setState(() => _filter = v),
+            ),
             Expanded(
               child: Semantics(
-                label: 'file tree — $rootName',
+                label: ClideSettings.i18n.interpolated(
+                  context,
+                  'a11y.tree',
+                  namespace: 'builtin.files',
+                  placeholder: 'file tree — {name}',
+                  replacers: [I18nReplacer(from: '{name}', replace: rootName)],
+                ),
                 container: true,
                 explicitChildNodes: true,
                 // Vim nav (j/k/h/l/gg/G/o) drives a selection cursor while this
@@ -206,7 +219,21 @@ class _DirRow extends StatelessWidget {
     final selected = path == selectedPath;
     return Semantics(
       button: true,
-      label: '${expanded ? 'Collapse' : 'Expand'} $name',
+      label: expanded
+          ? ClideSettings.i18n.interpolated(
+              context,
+              'a11y.collapse',
+              namespace: 'builtin.files',
+              placeholder: 'Collapse {name}',
+              replacers: [I18nReplacer(from: '{name}', replace: name)],
+            )
+          : ClideSettings.i18n.interpolated(
+              context,
+              'a11y.expand',
+              namespace: 'builtin.files',
+              placeholder: 'Expand {name}',
+              replacers: [I18nReplacer(from: '{name}', replace: name)],
+            ),
       onTap: () => controller.toggle(path),
       child: _Row(
         key: selected ? selectedKey : null,
@@ -235,7 +262,13 @@ class _FileRow extends StatelessWidget {
     final selected = path == selectedPath;
     return Semantics(
       button: true,
-      label: 'Open $name',
+      label: ClideSettings.i18n.interpolated(
+        context,
+        'a11y.open',
+        namespace: 'builtin.files',
+        placeholder: 'Open {name}',
+        replacers: [I18nReplacer(from: '{name}', replace: name)],
+      ),
       onTap: () => _openFile(context, path),
       child: _Row(key: selected ? selectedKey : null, depth: depth, onTap: () => _openFile(context, path), label: name, selected: selected),
     );

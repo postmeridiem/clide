@@ -1,0 +1,5 @@
+{
+  "empty": { "translation": "Select a .md file to preview it here." },
+  "chrome.title": { "translation": "viewer" },
+  "subtitle.lines": { "translation": "{count} lines" }
+}

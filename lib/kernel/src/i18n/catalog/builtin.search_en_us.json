@@ -1,0 +1,23 @@
+{
+  "mode.find": { "translation": "Find" },
+  "mode.vault": { "translation": "Vault" },
+  "mode.query": { "translation": "Query" },
+  "mode.markdown": { "translation": "Markdown" },
+  "find.hint": { "translation": "Search" },
+  "replace.hint": { "translation": "Replace" },
+  "include.hint": { "translation": "files to include (e.g. *.dart)" },
+  "exclude.hint": { "translation": "files to exclude" },
+  "toggle.regex": { "translation": "Regular expression" },
+  "toggle.caseInsensitive": { "translation": "Case insensitive" },
+  "status.searching": { "translation": "Searching…" },
+  "status.noResults": { "translation": "No results" },
+  "status.counts": { "translation": "{matches} in {files}" },
+  "a11y.openMatch": { "translation": "Open {path} line {line}" },
+  "button.replaceAll": { "translation": "Replace all" },
+  "button.ok": { "translation": "OK" },
+  "button.cancel": { "translation": "Cancel" },
+  "button.confirm": { "translation": "Confirm" },
+  "dialog.dirty.title": { "translation": "Working tree not clean" },
+  "dialog.dirty.body": { "translation": "Commit or stash your changes before replacing — git is the only undo." },
+  "dialog.confirm.body": { "translation": "Replace {matches} match(es) across {files} file(s)? This cannot be undone in clide." }
+}

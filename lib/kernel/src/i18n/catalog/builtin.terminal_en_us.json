@@ -1,7 +1,9 @@
 {
   "tab.title": { "translation": "Terminal" },
+  "chrome.title": { "translation": "terminal" },
   "subtitle.spawning": { "translation": "spawning shell…" },
   "subtitle.exited": { "translation": "Shell exited." },
   "error.unavailable": { "translation": "Terminal unavailable" },
-  "error.daemon": { "translation": "Backend not connected." }
+  "error.daemon": { "translation": "Backend not connected." },
+  "a11y.label": { "translation": "terminal — {subtitle}" }
 }
