@@ -88,7 +88,7 @@ class _DiffViewState extends State<DiffView> {
       builder: (context, _) {
         final tokens = ClideSettings.theme.of(context).surface;
         return Semantics(
-          label: 'diff view',
+          label: ClideSettings.i18n.string(context, 'view.semantics', namespace: 'builtin.diff', placeholder: 'diff view'),
           container: true,
           explicitChildNodes: true,
           child: Column(
@@ -100,9 +100,21 @@ class _DiffViewState extends State<DiffView> {
                   padding: const EdgeInsets.all(12),
                   child: ClideText(c.error!, color: tokens.statusError),
                 ),
-              if (c.loading && c.diffs.isEmpty) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+              if (c.loading && c.diffs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ClideText(ClideSettings.i18n.string(context, 'status.loading', namespace: 'builtin.diff', placeholder: 'Loading…'), muted: true),
+                ),
               if (!c.loading && c.diffs.isEmpty && c.error == null)
-                Padding(padding: const EdgeInsets.all(12), child: ClideText(c.showStaged ? 'No staged changes.' : 'No unstaged changes.', muted: true)),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ClideText(
+                    c.showStaged
+                        ? ClideSettings.i18n.string(context, 'empty.staged', namespace: 'builtin.diff', placeholder: 'No staged changes.')
+                        : ClideSettings.i18n.string(context, 'empty.unstaged', namespace: 'builtin.diff', placeholder: 'No unstaged changes.'),
+                    muted: true,
+                  ),
+                ),
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scroll,
@@ -147,20 +159,28 @@ class _DiffToolbar extends StatelessWidget {
           Semantics(
             button: true,
             toggled: !controller.showStaged,
-            label: 'show unstaged changes',
+            label: ClideSettings.i18n.string(context, 'toolbar.unstaged.semantics', namespace: 'builtin.diff', placeholder: 'show unstaged changes'),
             child: GestureDetector(
               onTap: controller.showStaged ? controller.toggleStaged : null,
-              child: ClideText('Unstaged', fontSize: clideFontCaption, color: controller.showStaged ? tokens.globalTextMuted : tokens.globalForeground),
+              child: ClideText(
+                ClideSettings.i18n.string(context, 'toolbar.unstaged', namespace: 'builtin.diff', placeholder: 'Unstaged'),
+                fontSize: clideFontCaption,
+                color: controller.showStaged ? tokens.globalTextMuted : tokens.globalForeground,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Semantics(
             button: true,
             toggled: controller.showStaged,
-            label: 'show staged changes',
+            label: ClideSettings.i18n.string(context, 'toolbar.staged.semantics', namespace: 'builtin.diff', placeholder: 'show staged changes'),
             child: GestureDetector(
               onTap: controller.showStaged ? null : controller.toggleStaged,
-              child: ClideText('Staged', fontSize: clideFontCaption, color: controller.showStaged ? tokens.globalForeground : tokens.globalTextMuted),
+              child: ClideText(
+                ClideSettings.i18n.string(context, 'toolbar.staged', namespace: 'builtin.diff', placeholder: 'Staged'),
+                fontSize: clideFontCaption,
+                color: controller.showStaged ? tokens.globalForeground : tokens.globalTextMuted,
+              ),
             ),
           ),
         ],
@@ -191,13 +211,23 @@ class _FileDiff extends StatelessWidget {
     final hunks = (diff['hunks'] as List?) ?? const [];
 
     final meta = <String>[];
-    if (isNew) meta.add('new file');
-    if (isDeleted) meta.add('deleted');
+    if (isNew) meta.add(ClideSettings.i18n.string(context, 'meta.newFile', namespace: 'builtin.diff', placeholder: 'new file'));
+    if (isDeleted) meta.add(ClideSettings.i18n.string(context, 'meta.deleted', namespace: 'builtin.diff', placeholder: 'deleted'));
     if (isRenamed) {
       final oldPath = diff['oldPath'] as String?;
-      if (oldPath != null) meta.add('renamed from $oldPath');
+      if (oldPath != null) {
+        meta.add(
+          ClideSettings.i18n.interpolated(
+            context,
+            'meta.renamedFrom',
+            namespace: 'builtin.diff',
+            placeholder: 'renamed from {path}',
+            replacers: [I18nReplacer(from: '{path}', replace: oldPath)],
+          ),
+        );
+      }
     }
-    if (isBinary) meta.add('binary');
+    if (isBinary) meta.add(ClideSettings.i18n.string(context, 'meta.binary', namespace: 'builtin.diff', placeholder: 'binary'));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

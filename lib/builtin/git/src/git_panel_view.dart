@@ -70,12 +70,16 @@ class _GitPanelViewState extends State<GitPanelView> {
       builder: (context, _) {
         final tokens = ClideSettings.theme.of(context).surface;
         return Semantics(
-          label: 'git panel',
+          label: ClideSettings.i18n.string(context, 'panel.semantics', namespace: 'builtin.git', placeholder: 'git panel'),
           container: true,
           explicitChildNodes: true,
           child: Column(
             children: [
-              ClideFilterBox(address: 'git.panel', hint: 'Filter changes…', onChanged: (v) => setState(() => _filter = v)),
+              ClideFilterBox(
+                address: 'git.panel',
+                hint: ClideSettings.i18n.string(context, 'filter.hint', namespace: 'builtin.git', placeholder: 'Filter changes…'),
+                onChanged: (v) => setState(() => _filter = v),
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -89,34 +93,62 @@ class _GitPanelViewState extends State<GitPanelView> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           child: ClideText(c.error!, color: tokens.statusError, fontSize: clideFontCaption, maxLines: 3),
                         ),
-                      if (c.loading && c.isClean) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+                      if (c.loading && c.isClean)
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: ClideText(
+                            ClideSettings.i18n.string(context, 'status.loading', namespace: 'builtin.git', placeholder: 'Loading…'),
+                            muted: true,
+                          ),
+                        ),
                       if (!c.loading && c.isClean && c.error == null)
-                        const Padding(padding: EdgeInsets.all(12), child: ClideText('Nothing to commit, working tree clean.', muted: true)),
-                      if (c.conflicted.isNotEmpty) _FileGroup(label: 'Merge conflicts', entries: _applyFilter(c.conflicted), actions: const []),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: ClideText(
+                            ClideSettings.i18n.string(context, 'status.clean', namespace: 'builtin.git', placeholder: 'Nothing to commit, working tree clean.'),
+                            muted: true,
+                          ),
+                        ),
+                      if (c.conflicted.isNotEmpty)
+                        _FileGroup(
+                          label: ClideSettings.i18n.string(context, 'group.conflicts', namespace: 'builtin.git', placeholder: 'Merge conflicts'),
+                          entries: _applyFilter(c.conflicted),
+                          actions: const [],
+                        ),
                       if (c.staged.isNotEmpty) ...[
                         _FileGroup(
-                          label: 'Staged',
+                          label: ClideSettings.i18n.string(context, 'group.staged', namespace: 'builtin.git', placeholder: 'Staged'),
                           entries: _applyFilter(c.staged),
-                          actions: [_GroupAction(label: 'Unstage all', onTap: () => unawaited(c.unstage(const [])))],
+                          actions: [
+                            _GroupAction(
+                              label: ClideSettings.i18n.string(context, 'action.unstageAll', namespace: 'builtin.git', placeholder: 'Unstage all'),
+                              onTap: () => unawaited(c.unstage(const [])),
+                            ),
+                          ],
                           onUnstage: (path) => unawaited(c.unstage([path])),
                         ),
                         _CommitInput(commitMsg: _commitMsg, commitFocus: _commitFocus, controller: c),
                       ],
                       if (c.unstaged.isNotEmpty)
                         _FileGroup(
-                          label: 'Changes',
+                          label: ClideSettings.i18n.string(context, 'group.changes', namespace: 'builtin.git', placeholder: 'Changes'),
                           entries: _applyFilter(c.unstaged),
-                          actions: [_GroupAction(label: 'Stage all', onTap: () => unawaited(c.stageAll()))],
+                          actions: [
+                            _GroupAction(
+                              label: ClideSettings.i18n.string(context, 'action.stageAll', namespace: 'builtin.git', placeholder: 'Stage all'),
+                              onTap: () => unawaited(c.stageAll()),
+                            ),
+                          ],
                           onStage: (path) => unawaited(c.stage([path])),
                           onDiscard: (path) => _confirmDiscard(context, c, path),
                         ),
                       if (c.untracked.isNotEmpty)
                         _FileGroup(
-                          label: 'Untracked',
+                          label: ClideSettings.i18n.string(context, 'group.untracked', namespace: 'builtin.git', placeholder: 'Untracked'),
                           entries: _applyFilter(c.untracked),
                           actions: [
                             _GroupAction(
-                              label: 'Stage all',
+                              label: ClideSettings.i18n.string(context, 'action.stageAll', namespace: 'builtin.git', placeholder: 'Stage all'),
                               onTap: () {
                                 final paths = [for (final e in c.untracked) e['path'] as String];
                                 unawaited(c.stage(paths));
@@ -144,7 +176,7 @@ class _BranchHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
-    final branch = controller.branch ?? '(detached)';
+    final branch = controller.branch ?? ClideSettings.i18n.string(context, 'branch.detached', namespace: 'builtin.git', placeholder: '(detached)');
     final parts = <String>[branch];
     if (controller.ahead > 0) parts.add('↑${controller.ahead}');
     if (controller.behind > 0) parts.add('↓${controller.behind}');
@@ -155,9 +187,17 @@ class _BranchHeader extends StatelessWidget {
           Expanded(
             child: ClideText(parts.join(' '), fontSize: clideFontCaption, color: tokens.sidebarForeground),
           ),
-          _SmallAction(label: 'Pull', semanticsLabel: 'git pull', onTap: () => unawaited(controller.pull())),
+          _SmallAction(
+            label: ClideSettings.i18n.string(context, 'action.pull', namespace: 'builtin.git', placeholder: 'Pull'),
+            semanticsLabel: ClideSettings.i18n.string(context, 'action.pull.semantics', namespace: 'builtin.git', placeholder: 'git pull'),
+            onTap: () => unawaited(controller.pull()),
+          ),
           const SizedBox(width: 4),
-          _SmallAction(label: 'Push', semanticsLabel: 'git push', onTap: () => unawaited(controller.push())),
+          _SmallAction(
+            label: ClideSettings.i18n.string(context, 'action.push', namespace: 'builtin.git', placeholder: 'Push'),
+            semanticsLabel: ClideSettings.i18n.string(context, 'action.push.semantics', namespace: 'builtin.git', placeholder: 'git push'),
+            onTap: () => unawaited(controller.push()),
+          ),
         ],
       ),
     );
@@ -181,7 +221,7 @@ class _CommitInput extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Semantics(
-            label: 'commit message',
+            label: ClideSettings.i18n.string(context, 'commit.message.semantics', namespace: 'builtin.git', placeholder: 'commit message'),
             textField: true,
             child: Container(
               decoration: BoxDecoration(border: Border.all(color: tokens.globalBorder)),
@@ -200,9 +240,9 @@ class _CommitInput extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           ClideButton(
-            label: 'Commit',
+            label: ClideSettings.i18n.string(context, 'commit.button', namespace: 'builtin.git', placeholder: 'Commit'),
             onPressed: _doCommit,
-            semanticLabel: 'commit staged changes',
+            semanticLabel: ClideSettings.i18n.string(context, 'commit.button.semantics', namespace: 'builtin.git', placeholder: 'commit staged changes'),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           ),
         ],
@@ -277,7 +317,7 @@ class _GitFileRow extends StatelessWidget {
     final indexState = entry['indexState'] as String?;
     final workTreeState = entry['workTreeState'] as String?;
     final state = indexState ?? workTreeState ?? '';
-    final stateLabel = _stateLabel(state);
+    final stateLabel = _stateLabel(context, state);
 
     return Semantics(
       button: true,
@@ -298,9 +338,42 @@ class _GitFileRow extends StatelessWidget {
                 child: ClideText(name, maxLines: 1, overflow: TextOverflow.ellipsis, color: tokens.sidebarForeground),
               ),
               if (hovered) ...[
-                if (onStage != null) _SmallAction(label: '+', semanticsLabel: 'stage $name', onTap: () => onStage!(path)),
-                if (onUnstage != null) _SmallAction(label: '-', semanticsLabel: 'unstage $name', onTap: () => onUnstage!(path)),
-                if (onDiscard != null) _SmallAction(label: 'x', semanticsLabel: 'discard changes to $name', onTap: () => onDiscard!(path)),
+                if (onStage != null)
+                  _SmallAction(
+                    label: '+',
+                    semanticsLabel: ClideSettings.i18n.interpolated(
+                      context,
+                      'row.stage.semantics',
+                      namespace: 'builtin.git',
+                      placeholder: 'stage {name}',
+                      replacers: [I18nReplacer(from: '{name}', replace: name)],
+                    ),
+                    onTap: () => onStage!(path),
+                  ),
+                if (onUnstage != null)
+                  _SmallAction(
+                    label: '-',
+                    semanticsLabel: ClideSettings.i18n.interpolated(
+                      context,
+                      'row.unstage.semantics',
+                      namespace: 'builtin.git',
+                      placeholder: 'unstage {name}',
+                      replacers: [I18nReplacer(from: '{name}', replace: name)],
+                    ),
+                    onTap: () => onUnstage!(path),
+                  ),
+                if (onDiscard != null)
+                  _SmallAction(
+                    label: 'x',
+                    semanticsLabel: ClideSettings.i18n.interpolated(
+                      context,
+                      'row.discard.semantics',
+                      namespace: 'builtin.git',
+                      placeholder: 'discard changes to {name}',
+                      replacers: [I18nReplacer(from: '{name}', replace: name)],
+                    ),
+                    onTap: () => onDiscard!(path),
+                  ),
               ],
             ],
           ),
@@ -321,14 +394,15 @@ class _GitFileRow extends StatelessWidget {
     };
   }
 
-  static String _stateLabel(String state) {
+  static String _stateLabel(BuildContext context, String state) {
+    String t(String key, String english) => ClideSettings.i18n.string(context, key, namespace: 'builtin.git', placeholder: english);
     return switch (state) {
-      'added' => 'added',
-      'modified' => 'modified',
-      'deleted' => 'deleted',
-      'renamed' => 'renamed',
-      'copied' => 'copied',
-      'untracked' => 'untracked',
+      'added' => t('state.added', 'added'),
+      'modified' => t('state.modified', 'modified'),
+      'deleted' => t('state.deleted', 'deleted'),
+      'renamed' => t('state.renamed', 'renamed'),
+      'copied' => t('state.copied', 'copied'),
+      'untracked' => t('state.untracked', 'untracked'),
       _ => '',
     };
   }
@@ -390,16 +464,36 @@ class _DiscardConfirmDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClideText('Discard changes?', color: tokens.globalForeground),
+          ClideText(
+            ClideSettings.i18n.string(context, 'discard.title', namespace: 'builtin.git', placeholder: 'Discard changes?'),
+            color: tokens.globalForeground,
+          ),
           const SizedBox(height: 8),
-          ClideText('Unstaged changes to $name will be permanently lost.', fontSize: clideFontCaption, color: tokens.statusError),
+          ClideText(
+            ClideSettings.i18n.interpolated(
+              context,
+              'discard.body',
+              namespace: 'builtin.git',
+              placeholder: 'Unstaged changes to {name} will be permanently lost.',
+              replacers: [I18nReplacer(from: '{name}', replace: name)],
+            ),
+            fontSize: clideFontCaption,
+            color: tokens.statusError,
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ClideButton(label: 'Cancel', variant: ClideButtonVariant.subtle, onPressed: onCancel),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.cancel', namespace: 'builtin.git', placeholder: 'Cancel'),
+                variant: ClideButtonVariant.subtle,
+                onPressed: onCancel,
+              ),
               const SizedBox(width: 8),
-              ClideButton(label: 'Discard', onPressed: onConfirm),
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.discard', namespace: 'builtin.git', placeholder: 'Discard'),
+                onPressed: onConfirm,
+              ),
             ],
           ),
         ],

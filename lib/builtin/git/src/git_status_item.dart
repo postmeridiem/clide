@@ -63,7 +63,13 @@ class _GitStatusItemState extends State<GitStatusItem> {
     if (_behind > 0) parts.add('↓$_behind');
     return Semantics(
       button: true,
-      label: 'switch branch — $_branch',
+      label: ClideSettings.i18n.interpolated(
+        context,
+        'branch.switch.semantics',
+        namespace: 'builtin.git',
+        placeholder: 'switch branch — {branch}',
+        replacers: [I18nReplacer(from: '{branch}', replace: _branch!)],
+      ),
       child: GestureDetector(
         onTap: _openBranchPicker,
         child: MouseRegion(
@@ -123,7 +129,8 @@ class _BranchPickerState extends State<_BranchPicker> {
       if (r.ok) {
         _branches = [for (final b in (r.data['branches'] as List? ?? const [])) (b as Map).cast<String, Object?>()];
       } else {
-        _error = r.error?.message ?? 'failed to load branches';
+        _error =
+            r.error?.message ?? ClideSettings.i18n.string(context, 'branchPicker.loadFailed', namespace: 'builtin.git', placeholder: 'failed to load branches');
       }
     });
   }
@@ -165,7 +172,7 @@ class _BranchPickerState extends State<_BranchPicker> {
                 children: [
                   Expanded(
                     child: ClideText(
-                      'Switch branch',
+                      ClideSettings.i18n.string(context, 'branchPicker.title', namespace: 'builtin.git', placeholder: 'Switch branch'),
                       fontSize: clideFontCaption,
                       color: tokens.globalTextMuted,
                       fontFamily: ClideSettings.fonts.monoOf(context),
@@ -181,10 +188,20 @@ class _BranchPickerState extends State<_BranchPicker> {
                 ],
               ),
             ),
-            if (_loading) const Padding(padding: EdgeInsets.all(12), child: ClideText('Loading…', muted: true)),
+            if (_loading)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClideText(ClideSettings.i18n.string(context, 'status.loading', namespace: 'builtin.git', placeholder: 'Loading…'), muted: true),
+              ),
             if (_error != null) Padding(padding: const EdgeInsets.all(12), child: ClideText(_error!, muted: true)),
             if (!_loading && _error == null && _branches.isEmpty)
-              const Padding(padding: EdgeInsets.all(12), child: ClideText('No branches found.', muted: true)),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: ClideText(
+                  ClideSettings.i18n.string(context, 'branchPicker.empty', namespace: 'builtin.git', placeholder: 'No branches found.'),
+                  muted: true,
+                ),
+              ),
             if (_branches.isNotEmpty)
               Flexible(
                 child: ListView.builder(

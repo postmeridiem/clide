@@ -1,3 +1,15 @@
 {
-  "tab.title": { "translation": "Diff" }
+  "tab.title": { "translation": "Diff" },
+  "view.semantics": { "translation": "diff view" },
+  "status.loading": { "translation": "Loading…" },
+  "empty.staged": { "translation": "No staged changes." },
+  "empty.unstaged": { "translation": "No unstaged changes." },
+  "toolbar.unstaged": { "translation": "Unstaged" },
+  "toolbar.unstaged.semantics": { "translation": "show unstaged changes" },
+  "toolbar.staged": { "translation": "Staged" },
+  "toolbar.staged.semantics": { "translation": "show staged changes" },
+  "meta.newFile": { "translation": "new file" },
+  "meta.deleted": { "translation": "deleted" },
+  "meta.renamedFrom": { "translation": "renamed from {path}" },
+  "meta.binary": { "translation": "binary" }
 }
