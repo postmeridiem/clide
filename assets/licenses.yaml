@@ -76,8 +76,8 @@ dependencies:
     license: OFL-1.1
     license_file: assets/fonts/inter/OFL.txt
     purpose: >-
-      Default application UI face (T-460). Variable font with optical-size
-      and weight axes; Josefin Sans remains bundled as a selectable option.
+      Selectable application UI face (bundled T-460); Josefin Sans is the
+      default. Variable font with optical-size and weight axes.
     weights_bundled: [VariableFont, Italic-VariableFont]
 
   - name: Josefin Sans
@@ -87,8 +87,9 @@ dependencies:
     license: OFL-1.1
     license_file: assets/fonts/josefin_sans/OFL.txt
     purpose: >-
-      Selectable application UI face (was the default before T-460). Default
-      weight Light (300); full 100-700 range via the variable-font weight axis.
+      Default application UI face; default weight Light (300), full 100-700
+      range via the variable-font weight axis. Inter is bundled as a
+      selectable alternative.
     weights_bundled: [VariableFont, Italic-VariableFont]
 
   - name: Phosphor Icons

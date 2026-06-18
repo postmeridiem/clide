@@ -64,10 +64,10 @@ class ThemePickerExtension extends ClideExtension {
                 kind: SettingsFieldKind.select,
                 label: 'UI font',
                 help: 'Typeface for the app interface; applies live.',
-                defaultValue: 'Inter',
+                defaultValue: 'JosefinSans',
                 options: [
-                  SettingsOption(value: 'Inter', label: 'Inter'),
                   SettingsOption(value: 'JosefinSans', label: 'Josefin Sans'),
+                  SettingsOption(value: 'Inter', label: 'Inter'),
                 ],
               ),
               SettingsField(

@@ -20,6 +20,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- **Josefin Sans is the default UI font again.** Reverts the Inter default from
+  2.7.0; Inter stays bundled and selectable in Settings → Appearance. JetBrains
+  Mono remains the default monospace face (Fira Mono selectable). (T-460)
+
 ### Fixed
 
 - **Markdown prose honours the UI-font setting.** Claude's conversation prose

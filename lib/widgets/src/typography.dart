@@ -16,23 +16,23 @@ library;
 import 'package:flutter/widgets.dart' show FontWeight;
 
 // ---------------------------------------------------------------------------
-// UI face — Inter
+// UI face — Josefin Sans
 // ---------------------------------------------------------------------------
 
-/// The bundled application UI family, resolved first (T-460). The settings
-/// override ([kUiFontSettingKey]) takes precedence at the app root when set.
-const String clideUiFamily = 'Inter';
+/// The bundled default application UI family, resolved first. Inter stays
+/// bundled and selectable (Settings → Appearance); the settings override
+/// ([kUiFontSettingKey]) takes precedence at the app root when set.
+const String clideUiFamily = 'JosefinSans';
 
-/// Default weight for UI text.
-const FontWeight clideUiDefaultWeight = FontWeight.w400;
+/// Default weight for UI text — Josefin Sans reads best at Light.
+const FontWeight clideUiDefaultWeight = FontWeight.w300;
 
 /// System fallback chain for the UI face — the other bundled UI option plus
 /// platform humanist sans defaults.
 const List<String> clideUiFamilyFallback = [
   // The other bundled UI family (selectable in Appearance).
-  'JosefinSans',
-  // User system install / platform humanist sans defaults.
   'Inter',
+  // User system install / platform humanist sans defaults.
   'Helvetica Neue',
   'Helvetica',
   'Arial',
