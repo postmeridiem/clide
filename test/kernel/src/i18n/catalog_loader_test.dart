@@ -29,7 +29,7 @@ class _MapAssetBundle extends CachingAssetBundle {
 void main() {
   group('AssetCatalogLoader', () {
     test('returns parsed JSON for a present asset', () async {
-      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': '{"title":{"translation":"Hi"}}'});
+      final bundle = _MapAssetBundle({'assets/i18n/en_us/welcome.json': '{"title":{"translation":"Hi"}}'});
       final loader = AssetCatalogLoader(bundle: bundle);
       final r = await loader.load('welcome', const Locale('en', 'US'));
       expect(r['title'], isA<Map>());
@@ -42,19 +42,19 @@ void main() {
     });
 
     test('returns an empty map on malformed JSON (FormatException catch)', () async {
-      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': 'not json at all'});
+      final bundle = _MapAssetBundle({'assets/i18n/en_us/welcome.json': 'not json at all'});
       final loader = AssetCatalogLoader(bundle: bundle);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });
 
     test('returns an empty map when the asset is blank', () async {
-      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': '   \n'});
+      final bundle = _MapAssetBundle({'assets/i18n/en_us/welcome.json': '   \n'});
       final loader = AssetCatalogLoader(bundle: bundle);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });
 
     test('returns an empty map when JSON parses to a non-object', () async {
-      final bundle = _MapAssetBundle({'lib/kernel/src/i18n/catalog/welcome_en_us.json': '[1, 2, 3]'});
+      final bundle = _MapAssetBundle({'assets/i18n/en_us/welcome.json': '[1, 2, 3]'});
       final loader = AssetCatalogLoader(bundle: bundle);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });
@@ -65,6 +65,8 @@ void main() {
 
     setUp(() async {
       tmp = await Directory.systemTemp.createTemp('clide-catalog-');
+      // Catalogs live under a per-locale subdir (<root>/<locale>/<ns>.json).
+      await Directory('${tmp.path}/en_us').create();
     });
 
     tearDown(() async {
@@ -72,7 +74,7 @@ void main() {
     });
 
     test('reads and parses a present file', () async {
-      await File('${tmp.path}/welcome_en_us.json').writeAsString('{"k":{"translation":"v"}}');
+      await File('${tmp.path}/en_us/welcome.json').writeAsString('{"k":{"translation":"v"}}');
       final loader = FileCatalogLoader(rootDir: tmp);
       final r = await loader.load('welcome', const Locale('en', 'US'));
       expect(r['k'], isA<Map>());
@@ -84,13 +86,13 @@ void main() {
     });
 
     test('returns an empty map on malformed JSON (FormatException catch)', () async {
-      await File('${tmp.path}/welcome_en_us.json').writeAsString('garbage');
+      await File('${tmp.path}/en_us/welcome.json').writeAsString('garbage');
       final loader = FileCatalogLoader(rootDir: tmp);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });
 
     test('returns an empty map when the file is blank', () async {
-      await File('${tmp.path}/welcome_en_us.json').writeAsString('   ');
+      await File('${tmp.path}/en_us/welcome.json').writeAsString('   ');
       final loader = FileCatalogLoader(rootDir: tmp);
       expect(await loader.load('welcome', const Locale('en', 'US')), isEmpty);
     });

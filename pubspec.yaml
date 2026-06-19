@@ -79,7 +79,9 @@ flutter:
 
   assets:
     - lib/kernel/src/theme/themes/
-    - lib/kernel/src/i18n/catalog/
+    # i18n catalogs, one folder per locale (en_us, future nl_nl, …); each holds
+    # <namespace>.json. Add a line per new locale folder.
+    - assets/i18n/en_us/
     - assets/keymaps/
     - assets/licenses.yaml
     - assets/LICENSE
