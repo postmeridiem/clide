@@ -1,8 +1,21 @@
+import 'package:clide/extension/src/contribution.dart' show CommandContribution;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/typography.dart';
 import 'package:flutter/widgets.dart';
+
+/// The localized display title for a command (T-462): resolves [titleKey] in
+/// [i18nNamespace] when both are set, else the English title (then id). Shared
+/// by the command palette and the menu bar so both localize identically.
+String localizedCommandTitle(BuildContext context, CommandContribution cmd) {
+  final k = cmd.titleKey;
+  final ns = cmd.i18nNamespace;
+  if (k != null && ns != null) {
+    return ClideSettings.i18n.string(context, k, namespace: ns, placeholder: cmd.title ?? cmd.command);
+  }
+  return cmd.title ?? cmd.command;
+}
 
 class ClidePalette extends StatefulWidget {
   const ClidePalette({super.key});
@@ -109,6 +122,8 @@ class _ClidePaletteState extends State<ClidePalette> {
       listenable: kernel.palette,
       builder: (ctx, _) {
         if (!kernel.palette.isOpen) return const SizedBox.shrink();
+        // Localize titles for both the fuzzy filter and the rendered rows (T-462).
+        kernel.palette.titleResolver = (cmd) => localizedCommandTitle(ctx, cmd);
         final filtered = kernel.palette.filtered();
         final selected = kernel.palette.selectedIndex;
         return Positioned(
@@ -164,7 +179,7 @@ class _ClidePaletteState extends State<ClidePalette> {
                           final key = _itemKeys.putIfAbsent(i, () => GlobalKey());
                           return _PaletteItem(
                             key: key,
-                            title: cmd.title ?? cmd.command,
+                            title: localizedCommandTitle(ctx, cmd),
                             command: cmd.command,
                             binding: cmd.defaultBinding,
                             highlighted: i == selected,

@@ -34,13 +34,17 @@ enum SettingsFieldKind {
 
 /// One choice in a [SettingsFieldKind.select] field.
 class SettingsOption {
-  const SettingsOption({required this.value, required this.label});
+  const SettingsOption({required this.value, required this.label, this.labelKey});
 
   /// Stored value.
   final String value;
 
-  /// Human label shown in the picker.
+  /// Human label shown in the picker (English fallback).
   final String label;
+
+  /// Optional i18n key for [label], resolved in the owning category's namespace
+  /// (T-462).
+  final String? labelKey;
 }
 
 /// One editable setting. [key] is a `SettingsStore` key — its `app.`/
@@ -52,7 +56,9 @@ class SettingsField {
     required this.key,
     required this.kind,
     required this.label,
+    this.labelKey,
     this.help,
+    this.helpKey,
     this.defaultValue,
     this.options = const [],
     this.min,
@@ -66,8 +72,14 @@ class SettingsField {
   final SettingsFieldKind kind;
   final String label;
 
+  /// Optional i18n key for [label], resolved in the category's namespace (T-462).
+  final String? labelKey;
+
   /// Optional one-line help shown under the label.
   final String? help;
+
+  /// Optional i18n key for [help], resolved in the category's namespace (T-462).
+  final String? helpKey;
 
   /// Value shown / restored when the key is unset (reset-to-default target).
   final Object? defaultValue;
@@ -97,9 +109,12 @@ class SettingsField {
 /// A carded group of fields (surface.md "sectioned cards"). [label] is the
 /// small-caps header rendered just above the card.
 class SettingsSection {
-  const SettingsSection({required this.label, required this.fields});
+  const SettingsSection({required this.label, required this.fields, this.labelKey});
 
   final String label;
+
+  /// Optional i18n key for [label], resolved in the category's namespace (T-462).
+  final String? labelKey;
   final List<SettingsField> fields;
 }
 
@@ -107,10 +122,19 @@ class SettingsSection {
 /// shows. Subsystems register these via `SettingsCategoryContribution`; the
 /// renderer draws them.
 class SettingsCategory {
-  const SettingsCategory({required this.id, required this.title, required this.sections, this.iconName, this.priority = 0});
+  const SettingsCategory({required this.id, required this.title, required this.sections, this.iconName, this.priority = 0, this.titleKey, this.i18nNamespace});
 
   final String id;
   final String title;
+
+  /// Optional i18n key for [title] (the rail label), looked up in
+  /// [i18nNamespace] (T-462).
+  final String? titleKey;
+
+  /// The i18n namespace for this category's [titleKey] and every section/field/
+  /// option key beneath it — usually the contributing extension's `id`. The
+  /// renderer threads it down so the whole category localizes from one catalog.
+  final String? i18nNamespace;
 
   /// Phosphor glyph name, resolved via `PhosphorIcons.byName` at render (T-314).
   final String? iconName;

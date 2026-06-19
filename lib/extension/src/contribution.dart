@@ -93,10 +93,28 @@ class ToolbarButtonContribution extends ContributionPoint {
 /// A command extensions register with [CommandRegistry]. Surfaced by the
 /// command palette, the keybinding resolver, and `clide` CLI subcommands.
 class CommandContribution extends ContributionPoint {
-  const CommandContribution({required super.id, required this.command, required this.run, this.title, this.defaultBinding, this.bindingWhen});
+  const CommandContribution({
+    required super.id,
+    required this.command,
+    required this.run,
+    this.title,
+    this.titleKey,
+    this.i18nNamespace,
+    this.defaultBinding,
+    this.bindingWhen,
+  });
 
   final String command; // e.g. "git.commit"
   final String? title; // "Git: Commit staged"
+
+  /// When set, the command palette / menu resolve the display title via
+  /// `i18n.string(titleKey, namespace: i18nNamespace, placeholder: title)`
+  /// (T-462). [title] stays the English fallback (also used in logs/CLI).
+  final String? titleKey;
+
+  /// The i18n namespace to look up [titleKey] in — usually the contributing
+  /// extension's `id`. Required when [titleKey] is set.
+  final String? i18nNamespace;
   final String? defaultBinding; // e.g. "ctrl+shift+g"
 
   /// Optional when-clause guarding [defaultBinding] (same grammar as keymap

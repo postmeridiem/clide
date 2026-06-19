@@ -108,7 +108,13 @@ String? keymapBindingLabel(KeymapService keymap, String commandId) {
 /// menus. [bindingLabel] supplies the keybinding string for a command id
 /// (typically [keymapBindingLabel] bound to the keymap); when it returns null
 /// the command's own `defaultBinding` is used as a fallback.
-List<ResolvedMenu> resolveMenus(List<TopMenu> tree, CommandRegistry registry, KernelServices services, {String? Function(String commandId)? bindingLabel}) {
+List<ResolvedMenu> resolveMenus(
+  List<TopMenu> tree,
+  CommandRegistry registry,
+  KernelServices services, {
+  String? Function(String commandId)? bindingLabel,
+  String Function(CommandContribution cmd)? localizeTitle,
+}) {
   final placed = <String>{
     for (final m in tree)
       for (final n in m.nodes)
@@ -130,7 +136,7 @@ List<ResolvedMenu> resolveMenus(List<TopMenu> tree, CommandRegistry registry, Ke
   ResolvedItem resolveItem(MenuCommandItem item) {
     final cmd = registry.get(item.commandId);
     final enabled = cmd != null && (item.enabledWhen?.call(services) ?? true);
-    final raw = cmd?.title ?? item.fallbackTitle ?? item.commandId;
+    final raw = (cmd != null ? (localizeTitle?.call(cmd) ?? cmd.title) : null) ?? item.fallbackTitle ?? item.commandId;
     return ResolvedItem(commandId: item.commandId, title: _stripCategory(raw), enabled: enabled, keybinding: label(item.commandId));
   }
 

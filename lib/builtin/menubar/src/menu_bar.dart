@@ -72,7 +72,13 @@ class MenuBar extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([controller, kernel.commands, kernel.project]),
       builder: (ctx, _) {
-        final menus = resolveMenus(buildClideMenuTree(), kernel.commands, kernel, bindingLabel: (id) => keymapBindingLabel(kernel.keymap, id));
+        final menus = resolveMenus(
+          buildClideMenuTree(),
+          kernel.commands,
+          kernel,
+          bindingLabel: (id) => keymapBindingLabel(kernel.keymap, id),
+          localizeTitle: (c) => localizedCommandTitle(context, c),
+        );
         controller.setMnemonics([for (final m in menus) m.title[m.mnemonic].toLowerCase()]);
         return Row(
           mainAxisSize: MainAxisSize.min,

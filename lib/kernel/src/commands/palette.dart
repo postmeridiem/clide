@@ -8,6 +8,12 @@ class PaletteController extends ChangeNotifier {
 
   final CommandRegistry _registry;
 
+  /// Resolves a command's display title (the widget sets this to an i18n-aware
+  /// resolver so both the rendered title AND fuzzy search use the localized
+  /// string, T-462). Defaults to the English title/id.
+  String Function(CommandContribution cmd)? titleResolver;
+  String _titleOf(CommandContribution c) => titleResolver?.call(c) ?? c.title ?? c.command;
+
   bool _open = false;
   String _filter = '';
   int _selectedIndex = 0;
@@ -103,7 +109,7 @@ class PaletteController extends ChangeNotifier {
 
     final scored = <({CommandContribution cmd, int score})>[];
     for (final c in all) {
-      final s = fuzzyScore((c.title ?? c.command).toLowerCase(), q);
+      final s = fuzzyScore(_titleOf(c).toLowerCase(), q);
       if (s != null) scored.add((cmd: c, score: s));
     }
     scored.sort((a, b) {
@@ -111,7 +117,7 @@ class PaletteController extends ChangeNotifier {
       if (byScore != 0) return byScore;
       final byRecent = rank(a.cmd.command).compareTo(rank(b.cmd.command));
       if (byRecent != 0) return byRecent;
-      return (a.cmd.title ?? a.cmd.command).toLowerCase().compareTo((b.cmd.title ?? b.cmd.command).toLowerCase());
+      return _titleOf(a.cmd).toLowerCase().compareTo(_titleOf(b.cmd).toLowerCase());
     });
     return [for (final s in scored) s.cmd];
   }
