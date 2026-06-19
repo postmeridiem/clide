@@ -244,10 +244,15 @@ class _RailRow extends StatelessWidget {
     final tokens = ClideSettings.theme.of(context).surface;
     final dim = matchCount == 0;
     final fg = dim ? tokens.globalTextMuted : (selected ? tokens.globalForeground : tokens.sidebarForeground);
+    // Localize the rail label via the owning category's namespace (T-462);
+    // key-less categories fall back to the English title unchanged.
+    final title = (category.titleKey == null || category.i18nNamespace == null || category.i18nNamespace!.isEmpty)
+        ? category.title
+        : ClideSettings.i18n.string(context, category.titleKey!, namespace: category.i18nNamespace!, placeholder: category.title);
     return Semantics(
       button: true,
       selected: selected,
-      label: category.title,
+      label: title,
       excludeSemantics: true,
       child: ClideTappable(
         cursor: SystemMouseCursors.click,
@@ -267,7 +272,7 @@ class _RailRow extends StatelessWidget {
                     children: [
                       if (category.iconName != null) ...[ClideIcon(PhosphorIcons.byName(category.iconName!), size: 15, color: fg), const SizedBox(width: 8)],
                       Expanded(
-                        child: ClideText(category.title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        child: ClideText(title, color: fg, maxLines: 1, overflow: TextOverflow.ellipsis),
                       ),
                       if (matchCount != null) ClideText('$matchCount', fontSize: clideFontCaption, color: tokens.globalTextMuted),
                     ],

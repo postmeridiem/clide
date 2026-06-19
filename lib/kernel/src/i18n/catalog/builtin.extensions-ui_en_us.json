@@ -1,5 +1,8 @@
 {
   "notice.title": { "translation": "Extension management is coming" },
   "notice.body": { "translation": "Installing, enabling, and disabling extensions arrives with third-party (Lua) extension support. For now the built-in extensions are always on." },
-  "notice.tracked": { "translation": "Tracked in T-8 (Tier 6) · D-16" }
+  "notice.tracked": { "translation": "Tracked in T-8 (Tier 6) · D-16" },
+  "settings.extensions.title": { "translation": "Extensions" },
+  "settings.extensions.section.notice": { "translation": "" },
+  "settings.extensions.field.notice.label": { "translation": "" }
 }

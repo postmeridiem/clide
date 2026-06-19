@@ -10,5 +10,6 @@
   "a11y.jumpToLatest": { "translation": "jump to latest" },
   "jump.label": { "translation": "Jump to latest ↓" },
   "a11y.toggleDock": { "translation": "toggle output dock" },
-  "dock.label": { "translation": "Output" }
+  "dock.label": { "translation": "Output" },
+  "command.dock.toggle": { "translation": "Toggle output dock" }
 }

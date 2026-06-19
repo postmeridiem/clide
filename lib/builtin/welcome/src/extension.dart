@@ -26,6 +26,8 @@ class WelcomeExtension extends ClideExtension {
       id: 'workspace.open-project',
       command: 'workspace.open-project',
       title: 'Workspace: Open project…',
+      titleKey: 'command.workspace.open-project',
+      i18nNamespace: id,
       run: (_) async => IpcResponse.ok(id: '', data: const {'note': 'project picker lands in a later tier'}),
     ),
   ];

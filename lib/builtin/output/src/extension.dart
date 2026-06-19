@@ -61,6 +61,8 @@ class OutputExtension extends ClideExtension {
       id: 'dock.toggle',
       command: 'dock.toggle',
       title: 'Toggle output dock',
+      titleKey: 'command.dock.toggle',
+      i18nNamespace: id,
       defaultBinding: 'ctrl+j',
       run: (_) async {
         final ctx = _ctx;

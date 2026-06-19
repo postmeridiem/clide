@@ -37,6 +37,8 @@ class KeybindingsUiExtension extends ClideExtension {
         id: 'keymap.preset.${entry.key}',
         command: 'keymap.preset.${entry.key}',
         title: entry.value,
+        titleKey: 'command.preset.${entry.key}',
+        i18nNamespace: id,
         run: (_) async {
           await _keymap?.setPreset(entry.key);
           return IpcResponse.ok(id: '', data: {'preset': entry.key});
@@ -46,29 +48,34 @@ class KeybindingsUiExtension extends ClideExtension {
     // from kKeymapPresetSetting; picking one runs `keymap.preset.<value>`
     // (applyCommandPrefix), which calls KeymapService.setPreset — persisting
     // and reloading the layered keymap live.
-    const SettingsCategoryContribution(
+    SettingsCategoryContribution(
       id: 'keymap',
       category: SettingsCategory(
         id: 'keymap',
         title: 'Keymap',
+        titleKey: 'settings.keymap.title',
+        i18nNamespace: id,
         iconName: 'keyboard',
         priority: 20,
         sections: [
           SettingsSection(
             label: 'Preset',
+            labelKey: 'settings.keymap.section.preset',
             fields: [
               SettingsField(
                 key: kKeymapPresetSetting,
                 kind: SettingsFieldKind.select,
                 label: 'Active preset',
+                labelKey: 'settings.keymap.field.preset.label',
                 help: 'Keyboard layout for the whole app.',
+                helpKey: 'settings.keymap.field.preset.help',
                 defaultValue: 'default',
                 applyCommandPrefix: 'keymap.preset.',
                 options: [
-                  SettingsOption(value: 'default', label: 'Default'),
-                  SettingsOption(value: 'vim', label: 'Vim'),
-                  SettingsOption(value: 'vscode', label: 'VS Code'),
-                  SettingsOption(value: 'jetbrains', label: 'JetBrains'),
+                  SettingsOption(value: 'default', label: 'Default', labelKey: 'settings.keymap.field.preset.option.default'),
+                  SettingsOption(value: 'vim', label: 'Vim', labelKey: 'settings.keymap.field.preset.option.vim'),
+                  SettingsOption(value: 'vscode', label: 'VS Code', labelKey: 'settings.keymap.field.preset.option.vscode'),
+                  SettingsOption(value: 'jetbrains', label: 'JetBrains', labelKey: 'settings.keymap.field.preset.option.jetbrains'),
                 ],
               ),
             ],

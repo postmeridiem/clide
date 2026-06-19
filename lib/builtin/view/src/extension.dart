@@ -30,6 +30,8 @@ class ViewExtension extends ClideExtension {
       id: 'view.zoomIn',
       command: 'view.zoomIn',
       title: 'View: Zoom In',
+      titleKey: 'command.view.zoomIn',
+      i18nNamespace: id,
       run: (_) async {
         textZoom.increase();
         return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
@@ -39,6 +41,8 @@ class ViewExtension extends ClideExtension {
       id: 'view.zoomOut',
       command: 'view.zoomOut',
       title: 'View: Zoom Out',
+      titleKey: 'command.view.zoomOut',
+      i18nNamespace: id,
       run: (_) async {
         textZoom.decrease();
         return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});
@@ -48,6 +52,8 @@ class ViewExtension extends ClideExtension {
       id: 'view.zoomReset',
       command: 'view.zoomReset',
       title: 'View: Reset Zoom',
+      titleKey: 'command.view.zoomReset',
+      i18nNamespace: id,
       run: (_) async {
         textZoom.reset();
         return IpcResponse.ok(id: '', data: {'scale': textZoom.scale});

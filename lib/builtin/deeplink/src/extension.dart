@@ -24,7 +24,14 @@ class DeepLinkExtension extends ClideExtension {
 
   @override
   List<ContributionPoint> get contributions => [
-    CommandContribution(id: 'deeplink.invoke', command: 'deeplink.invoke', title: 'Open a clide:// deep link', run: _invoke),
+    CommandContribution(
+      id: 'deeplink.invoke',
+      command: 'deeplink.invoke',
+      title: 'Open a clide:// deep link',
+      titleKey: 'command.deeplink.invoke',
+      i18nNamespace: id,
+      run: _invoke,
+    ),
   ];
 
   @override

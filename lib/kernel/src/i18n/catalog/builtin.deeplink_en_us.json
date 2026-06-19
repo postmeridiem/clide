@@ -3,5 +3,6 @@
   "dialog.body": { "translation": "A clide:// link from outside the app is asking to:" },
   "dialog.warning": { "translation": "Only allow this if you trust where the link came from." },
   "button.cancel": { "translation": "Cancel" },
-  "button.open": { "translation": "Open" }
+  "button.open": { "translation": "Open" },
+  "command.deeplink.invoke": { "translation": "Open a clide:// deep link" }
 }

@@ -27,7 +27,15 @@ class SettingsUiExtension extends ClideExtension {
   List<ContributionPoint> get contributions => [
     // Opens the Settings panel. Palette + File-menu entry come for free off
     // the title; ctrl+, is the conventional settings shortcut.
-    CommandContribution(id: 'settings.open', command: 'settings.open', title: 'Settings…', defaultBinding: 'ctrl+,', run: _open),
+    CommandContribution(
+      id: 'settings.open',
+      command: 'settings.open',
+      title: 'Settings…',
+      titleKey: 'command.open',
+      i18nNamespace: id,
+      defaultBinding: 'ctrl+,',
+      run: _open,
+    ),
   ];
 
   Future<IpcResponse> _open(List<String> args) async {

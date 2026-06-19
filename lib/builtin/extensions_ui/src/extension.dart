@@ -20,17 +20,28 @@ class ExtensionsUiExtension extends ClideExtension {
   @override
   List<ContributionPoint> get contributions => [
     SettingsControlContribution(id: 'extensions-ui.notice-control', customId: 'extensions.notice', builder: (_) => const ExtensionsNotice()),
-    const SettingsCategoryContribution(
+    SettingsCategoryContribution(
       id: 'extensions',
       category: SettingsCategory(
         id: 'extensions',
         title: 'Extensions',
+        titleKey: 'settings.extensions.title',
+        i18nNamespace: id,
         iconName: 'puzzle-piece',
         priority: 80,
         sections: [
           SettingsSection(
             label: '',
-            fields: [SettingsField(key: 'app.extensions._notice', kind: SettingsFieldKind.custom, label: '', customId: 'extensions.notice')],
+            labelKey: 'settings.extensions.section.notice',
+            fields: [
+              SettingsField(
+                key: 'app.extensions._notice',
+                kind: SettingsFieldKind.custom,
+                label: '',
+                labelKey: 'settings.extensions.field.notice.label',
+                customId: 'extensions.notice',
+              ),
+            ],
           ),
         ],
       ),

@@ -30,5 +30,6 @@
   "button.opening": { "translation": "Opening…" },
   "button.ok": { "translation": "OK" },
   "dialog.notRepo.title": { "translation": "No git repo found" },
-  "dialog.notRepo.body": { "translation": "A clide project root requires a git repository." }
+  "dialog.notRepo.body": { "translation": "A clide project root requires a git repository." },
+  "command.workspace.open-project": { "translation": "Workspace: Open project…" }
 }

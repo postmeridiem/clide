@@ -1,0 +1,14 @@
+{
+  "command.preset.default": { "translation": "Keymap: Default" },
+  "command.preset.vim": { "translation": "Keymap: Vim" },
+  "command.preset.vscode": { "translation": "Keymap: VS Code" },
+  "command.preset.jetbrains": { "translation": "Keymap: JetBrains" },
+  "settings.keymap.title": { "translation": "Keymap" },
+  "settings.keymap.section.preset": { "translation": "Preset" },
+  "settings.keymap.field.preset.label": { "translation": "Active preset" },
+  "settings.keymap.field.preset.help": { "translation": "Keyboard layout for the whole app." },
+  "settings.keymap.field.preset.option.default": { "translation": "Default" },
+  "settings.keymap.field.preset.option.vim": { "translation": "Vim" },
+  "settings.keymap.field.preset.option.vscode": { "translation": "VS Code" },
+  "settings.keymap.field.preset.option.jetbrains": { "translation": "JetBrains" }
+}

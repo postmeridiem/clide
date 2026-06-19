@@ -80,6 +80,8 @@ class VimExtension extends ClideExtension {
       id: id,
       command: id,
       title: title,
+      titleKey: 'command.$id',
+      i18nNamespace: this.id,
       run: (_) async {
         apply();
         return IpcResponse.ok(id: '', data: {'mode': _mode?.mode.name ?? 'disabled'});

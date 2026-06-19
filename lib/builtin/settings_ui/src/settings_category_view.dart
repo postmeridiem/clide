@@ -5,6 +5,15 @@ import 'package:flutter/widgets.dart';
 /// i18n namespace shared with the settings modal shell.
 const _settingsNs = 'builtin.settings-ui';
 
+/// Resolve a schema label through the catalog under the owning category's
+/// [namespace], falling back to the English [english] label when the [key] is
+/// null or the [namespace] is null/empty (T-462). Short-circuiting before the
+/// lookup keeps key-less categories warning-free and pixel-identical.
+String _localized(BuildContext context, String? key, String? namespace, String english) {
+  if (key == null || namespace == null || namespace.isEmpty) return english;
+  return ClideSettings.i18n.string(context, key, namespace: namespace, placeholder: english);
+}
+
 /// The schema-driven field renderer (T-448, epic T-444): turns a
 /// [SettingsCategory] into carded sections of field rows. Each field binds to a
 /// `SettingsStore` key — read with `get` (falling back to the schema default),
@@ -28,7 +37,7 @@ class SettingsCategoryView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [for (final section in category.sections) _SectionCard(section: section, store: store)],
+          children: [for (final section in category.sections) _SectionCard(section: section, store: store, i18nNamespace: category.i18nNamespace)],
         ),
       ),
     );
@@ -37,6 +46,9 @@ class SettingsCategoryView extends StatelessWidget {
 
 /// True when [field] matches [query] (case-insensitive; label or help). An
 /// empty query matches everything.
+///
+/// Context-free: matches the English label/help only — display localizes the
+/// shown text, but search-by-translation is out of scope (T-462).
 bool settingsFieldMatches(SettingsField field, String query) {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return true;
@@ -49,7 +61,8 @@ List<SettingsSection> settingsMatchingSections(SettingsCategory category, String
   final out = <SettingsSection>[];
   for (final s in category.sections) {
     final fields = s.fields.where((f) => settingsFieldMatches(f, query)).toList();
-    if (fields.isNotEmpty) out.add(SettingsSection(label: s.label, fields: fields));
+    // Carry labelKey so search-result section headers still localize (T-462).
+    if (fields.isNotEmpty) out.add(SettingsSection(label: s.label, fields: fields, labelKey: s.labelKey));
   }
   return out;
 }
@@ -82,11 +95,16 @@ class SettingsSearchResults extends StatelessWidget {
           blocks.add(
             Padding(
               padding: EdgeInsets.only(top: blocks.isEmpty ? 0 : 14, bottom: 8),
-              child: ClideText(c.title, fontSize: 13, fontWeight: FontWeight.w600, color: tokens.globalForeground),
+              child: ClideText(
+                _localized(context, c.titleKey, c.i18nNamespace, c.title),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tokens.globalForeground,
+              ),
             ),
           );
           for (final s in sections) {
-            blocks.add(_SectionCard(section: s, store: store));
+            blocks.add(_SectionCard(section: s, store: store, i18nNamespace: c.i18nNamespace));
           }
         }
         if (blocks.isEmpty) {
@@ -112,24 +130,28 @@ class SettingsSearchResults extends StatelessWidget {
 
 /// One section: a small-caps header above an elevated card of field rows.
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.section, required this.store});
+  const _SectionCard({required this.section, required this.store, this.i18nNamespace});
 
   final SettingsSection section;
   final SettingsStore store;
 
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
+
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
+    final sectionLabel = _localized(context, section.labelKey, i18nNamespace, section.label);
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (section.label.isNotEmpty)
+          if (sectionLabel.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 2, bottom: 6),
               child: ClideText(
-                section.label.toUpperCase(),
+                sectionLabel.toUpperCase(),
                 fontSize: clideFontCaption,
                 color: tokens.sidebarSectionHeader,
                 fontFamily: ClideSettings.fonts.monoOf(context),
@@ -145,7 +167,10 @@ class _SectionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var i = 0; i < section.fields.length; i++) ...[if (i > 0) const ClideDivider(), _FieldRow(field: section.fields[i], store: store)],
+                for (var i = 0; i < section.fields.length; i++) ...[
+                  if (i > 0) const ClideDivider(),
+                  _FieldRow(field: section.fields[i], store: store, i18nNamespace: i18nNamespace),
+                ],
               ],
             ),
           ),
@@ -157,22 +182,27 @@ class _SectionCard extends StatelessWidget {
 
 /// A label/help block + the field's control + a reset affordance.
 class _FieldRow extends StatelessWidget {
-  const _FieldRow({required this.field, required this.store});
+  const _FieldRow({required this.field, required this.store, this.i18nNamespace});
 
   final SettingsField field;
   final SettingsStore store;
 
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
+
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
+    final fieldLabel = _localized(context, field.labelKey, i18nNamespace, field.label);
+    final fieldHelp = field.help == null ? null : _localized(context, field.helpKey, i18nNamespace, field.help!);
     final label = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClideText(field.label, color: tokens.globalForeground),
-        if (field.help != null && field.help!.isNotEmpty)
+        ClideText(fieldLabel, color: tokens.globalForeground),
+        if (fieldHelp != null && fieldHelp.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: ClideText(field.help!, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+            child: ClideText(fieldHelp, fontSize: clideFontCaption, color: tokens.globalTextMuted),
           ),
       ],
     );
@@ -187,7 +217,7 @@ class _FieldRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (field.label.isNotEmpty) ...[label, const SizedBox(height: 10)],
+            if (fieldLabel.isNotEmpty) ...[label, const SizedBox(height: 10)],
             builder?.call(context) ?? const SizedBox.shrink(),
           ],
         ),
@@ -203,9 +233,9 @@ class _FieldRow extends StatelessWidget {
         children: [
           Expanded(child: label),
           const SizedBox(width: 16),
-          _Control(field: field, value: effective, store: store),
+          _Control(field: field, value: effective, store: store, i18nNamespace: i18nNamespace),
           const SizedBox(width: 10),
-          _ScopeTag(field: field, store: store, effectiveValue: effective),
+          _ScopeTag(field: field, store: store, effectiveValue: effective, i18nNamespace: i18nNamespace),
         ],
       ),
     );
@@ -214,11 +244,14 @@ class _FieldRow extends StatelessWidget {
 
 /// Dispatches to the control widget for the field's [SettingsFieldKind].
 class _Control extends StatelessWidget {
-  const _Control({required this.field, required this.value, required this.store});
+  const _Control({required this.field, required this.value, required this.store, this.i18nNamespace});
 
   final SettingsField field;
   final Object? value;
   final SettingsStore store;
+
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
 
   void _set(Object? v) => store.set<Object?>(field.key, v);
 
@@ -231,6 +264,7 @@ class _Control extends StatelessWidget {
         return _SelectControl(
           field: field,
           value: value?.toString(),
+          i18nNamespace: i18nNamespace,
           onPick: (v) {
             final prefix = field.applyCommandPrefix;
             if (prefix != null) {
@@ -242,11 +276,11 @@ class _Control extends StatelessWidget {
           },
         );
       case SettingsFieldKind.text:
-        return _EditControl(field: field, value: value?.toString() ?? '', numeric: false, onCommit: _set);
+        return _EditControl(field: field, value: value?.toString() ?? '', numeric: false, i18nNamespace: i18nNamespace, onCommit: _set);
       case SettingsFieldKind.number:
-        return _EditControl(field: field, value: value?.toString() ?? '', numeric: true, onCommit: _set);
+        return _EditControl(field: field, value: value?.toString() ?? '', numeric: true, i18nNamespace: i18nNamespace, onCommit: _set);
       case SettingsFieldKind.file:
-        return _FileControl(field: field);
+        return _FileControl(field: field, i18nNamespace: i18nNamespace);
       case SettingsFieldKind.custom:
         // Custom fields are rendered full-width by _FieldRow; never here.
         return const SizedBox.shrink();
@@ -287,11 +321,14 @@ class _ToggleControl extends StatelessWidget {
 
 /// Enum picker — current value on an anchored popover of options.
 class _SelectControl extends StatefulWidget {
-  const _SelectControl({required this.field, required this.value, required this.onPick});
+  const _SelectControl({required this.field, required this.value, required this.onPick, this.i18nNamespace});
 
   final SettingsField field;
   final String? value;
   final void Function(String value) onPick;
+
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
 
   @override
   State<_SelectControl> createState() => _SelectControlState();
@@ -306,9 +343,10 @@ class _SelectControlState extends State<_SelectControl> {
     super.dispose();
   }
 
-  String get _label {
+  /// Localized label for the currently selected option (or the raw value).
+  String _selectedLabel(BuildContext context) {
     for (final o in widget.field.options) {
-      if (o.value == widget.value) return o.label;
+      if (o.value == widget.value) return _localized(context, o.labelKey, widget.i18nNamespace, o.label);
     }
     return widget.value ?? '';
   }
@@ -316,6 +354,8 @@ class _SelectControlState extends State<_SelectControl> {
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
+    final fieldLabel = _localized(context, widget.field.labelKey, widget.i18nNamespace, widget.field.label);
+    final selectedLabel = _selectedLabel(context);
     return ClideAnchoredOverlay(
       controller: _overlay,
       align: ClideAnchorAlign.end,
@@ -324,16 +364,16 @@ class _SelectControlState extends State<_SelectControl> {
         entries: [
           for (final o in widget.field.options)
             ClideMenuItem(
-              label: o.label,
+              label: _localized(context, o.labelKey, widget.i18nNamespace, o.label),
               active: o.value == widget.value,
-              semanticLabel: '${widget.field.label}: ${o.label}',
+              semanticLabel: '$fieldLabel: ${_localized(context, o.labelKey, widget.i18nNamespace, o.label)}',
               onSelect: () => widget.onPick(o.value),
             ),
         ],
       ),
       anchor: Semantics(
         button: true,
-        label: '${widget.field.label}: $_label. Click to change.',
+        label: '$fieldLabel: $selectedLabel. Click to change.',
         excludeSemantics: true,
         onTap: _overlay.toggle,
         child: ClideTappable(
@@ -349,7 +389,7 @@ class _SelectControlState extends State<_SelectControl> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClideText(_label, color: tokens.globalForeground),
+                ClideText(selectedLabel, color: tokens.globalForeground),
                 const SizedBox(width: 6),
                 ClideIcon(PhosphorIcons.byName('caret-down'), size: 10, color: tokens.globalTextMuted),
               ],
@@ -364,12 +404,15 @@ class _SelectControlState extends State<_SelectControl> {
 /// Inline text / numeric editor. Commits on Enter and on focus loss; numeric
 /// fields parse + clamp to the field's bounds, ignoring unparseable input.
 class _EditControl extends StatefulWidget {
-  const _EditControl({required this.field, required this.value, required this.numeric, required this.onCommit});
+  const _EditControl({required this.field, required this.value, required this.numeric, required this.onCommit, this.i18nNamespace});
 
   final SettingsField field;
   final String value;
   final bool numeric;
   final void Function(Object value) onCommit;
+
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
 
   @override
   State<_EditControl> createState() => _EditControlState();
@@ -430,7 +473,7 @@ class _EditControlState extends State<_EditControl> {
     final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       textField: true,
-      label: widget.field.label,
+      label: _localized(context, widget.field.labelKey, widget.i18nNamespace, widget.field.label),
       excludeSemantics: true,
       child: Container(
         width: widget.numeric ? 88 : 180,
@@ -458,15 +501,18 @@ class _EditControlState extends State<_EditControl> {
 
 /// "Opens external file" affordance — a button that runs the field's command.
 class _FileControl extends StatelessWidget {
-  const _FileControl({required this.field});
+  const _FileControl({required this.field, this.i18nNamespace});
 
   final SettingsField field;
+
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
 
   @override
   Widget build(BuildContext context) {
     final commands = ClideKernel.of(context).commands;
     return ClideButton(
-      label: field.label,
+      label: _localized(context, field.labelKey, i18nNamespace, field.label),
       variant: ClideButtonVariant.subtle,
       onPressed: field.fileCommand == null ? null : () => commands.execute(field.fileCommand!),
     );
@@ -482,11 +528,14 @@ class _FileControl extends StatelessWidget {
 /// live in either file (project overrides app); `app.*`/`project.*` keys live
 /// only in their prefix's layer, so their menu offers that one scope + reset.
 class _ScopeTag extends StatefulWidget {
-  const _ScopeTag({required this.field, required this.store, required this.effectiveValue});
+  const _ScopeTag({required this.field, required this.store, required this.effectiveValue, this.i18nNamespace});
 
   final SettingsField field;
   final SettingsStore store;
   final Object? effectiveValue;
+
+  /// Owning category's i18n namespace (T-462); null for key-less categories.
+  final String? i18nNamespace;
 
   @override
   State<_ScopeTag> createState() => _ScopeTagState();
@@ -547,6 +596,7 @@ class _ScopeTagState extends State<_ScopeTag> {
     final current = widget.store.effectiveLayer(widget.field.key);
     final look = _appearance(current);
     final layers = widget.store.writableLayers(widget.field.key);
+    final fieldLabel = _localized(context, widget.field.labelKey, widget.i18nNamespace, widget.field.label);
     return ClideAnchoredOverlay(
       controller: _overlay,
       align: ClideAnchorAlign.end,
@@ -560,7 +610,7 @@ class _ScopeTagState extends State<_ScopeTag> {
       ),
       anchor: Semantics(
         button: true,
-        label: '${widget.field.label} scope: ${look.label}',
+        label: '$fieldLabel scope: ${look.label}',
         excludeSemantics: true,
         onTap: _overlay.toggle,
         child: ClideTappable(

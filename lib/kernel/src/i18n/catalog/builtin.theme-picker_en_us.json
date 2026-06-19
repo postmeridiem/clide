@@ -1,9 +1,22 @@
 {
-  "command.pick": { "translation": "Theme: Pick…" },
+  "command.pick": { "translation": "Theme…" },
   "modal.title": { "translation": "Select theme" },
   "modal.cancel": { "translation": "Cancel" },
   "modal.cancel.hint": { "translation": "Close the theme picker without changing the current theme" },
   "row.select.hint": { "translation": "Activate this theme" },
   "section.appearance": { "translation": "Appearance" },
-  "toggle.highContrast": { "translation": "High contrast" }
+  "toggle.highContrast": { "translation": "High contrast" },
+  "settings.appearance.title": { "translation": "Appearance" },
+  "settings.appearance.section.theme": { "translation": "Theme" },
+  "settings.appearance.section.typography": { "translation": "Typography" },
+  "settings.appearance.field.theme.label": { "translation": "Theme" },
+  "settings.appearance.field.theme.help": { "translation": "Color theme; high contrast switches to the accessible variant." },
+  "settings.appearance.field.uiFont.label": { "translation": "UI font" },
+  "settings.appearance.field.uiFont.help": { "translation": "Typeface for the app interface; applies live." },
+  "settings.appearance.field.uiFont.option.josefinSans": { "translation": "Josefin Sans" },
+  "settings.appearance.field.uiFont.option.inter": { "translation": "Inter" },
+  "settings.appearance.field.monoFont.label": { "translation": "Monospace font" },
+  "settings.appearance.field.monoFont.help": { "translation": "Terminal, diffs, code, and IDs; applies live." },
+  "settings.appearance.field.monoFont.option.jetBrainsMono": { "translation": "JetBrains Mono" },
+  "settings.appearance.field.monoFont.option.firaMono": { "translation": "Fira Mono" }
 }

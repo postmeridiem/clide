@@ -76,6 +76,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.new-secondary',
       command: 'claude.new-secondary',
       title: 'Claude: open a secondary session',
+      titleKey: 'command.newSecondary',
+      i18nNamespace: id,
       run: (_) async {
         _hostKey.currentState?.addSecondary();
         return IpcResponse.ok(id: '', data: const {'status': 'spawned'});
@@ -85,12 +87,16 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.kill-all-sessions',
       command: 'claude.kill-all-sessions',
       title: 'Claude: kill all sessions for this repo',
+      titleKey: 'command.killAllSessions',
+      i18nNamespace: id,
       run: _killAllSessions,
     ),
     CommandContribution(
       id: 'claude.session-storage',
       command: 'claude.session-storage',
       title: 'Claude: session storage (disk usage + cleanup)',
+      titleKey: 'command.sessionStorage',
+      i18nNamespace: id,
       run: _manageStorage,
     ),
     // T-235: cycle how aggressively the activity card folds meta steps
@@ -100,33 +106,40 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.activity.fold-level',
       command: 'claude.activity.fold-level',
       title: 'Claude: cycle activity fold level',
+      titleKey: 'command.activity.foldLevel',
+      i18nNamespace: id,
       run: _cycleFoldLevel,
     ),
     // Activity settings category (T-453) — the fold level as a schema field,
     // written to kActivityFoldLevelKey; the panes already rebuild off the
     // settings notifier, so picking a level applies live.
-    const SettingsCategoryContribution(
+    SettingsCategoryContribution(
       id: 'activity',
       category: SettingsCategory(
         id: 'activity',
         title: 'Activity',
+        titleKey: 'settings.activity.title',
+        i18nNamespace: id,
         iconName: 'cards-three',
         priority: 50,
         sections: [
           SettingsSection(
             label: 'Conversation',
+            labelKey: 'settings.activity.conversation.label',
             fields: [
               SettingsField(
                 key: kActivityFoldLevelKey,
                 kind: SettingsFieldKind.select,
                 label: 'Fold level',
+                labelKey: 'settings.activity.foldLevel.label',
                 help: 'How aggressively the conversation folds tool calls, thinking, and results.',
+                helpKey: 'settings.activity.foldLevel.help',
                 defaultValue: 'tools',
                 options: [
-                  SettingsOption(value: 'none', label: 'Show everything'),
-                  SettingsOption(value: 'tools', label: 'Fold tool calls'),
-                  SettingsOption(value: 'thinking', label: 'Fold tools + thinking'),
-                  SettingsOption(value: 'everything', label: 'Fold all but prose'),
+                  SettingsOption(value: 'none', label: 'Show everything', labelKey: 'settings.activity.opt.none'),
+                  SettingsOption(value: 'tools', label: 'Fold tool calls', labelKey: 'settings.activity.opt.tools'),
+                  SettingsOption(value: 'thinking', label: 'Fold tools + thinking', labelKey: 'settings.activity.opt.thinking'),
+                  SettingsOption(value: 'everything', label: 'Fold all but prose', labelKey: 'settings.activity.opt.everything'),
                 ],
               ),
             ],
@@ -142,17 +155,22 @@ class ClaudeExtension extends ClideExtension {
       category: SettingsCategory(
         id: 'claude',
         title: 'Claude',
+        titleKey: 'settings.claude.title',
+        i18nNamespace: id,
         iconName: 'sparkle',
         priority: 40,
         sections: [
           SettingsSection(
             label: 'New session defaults',
+            labelKey: 'settings.claude.newSessionDefaults.label',
             fields: [
               SettingsField(
                 key: kDefaultModelKey,
                 kind: SettingsFieldKind.select,
                 label: 'Model',
+                labelKey: 'settings.claude.model.label',
                 help: 'Model for new sessions.',
+                helpKey: 'settings.claude.model.help',
                 defaultValue: 'default',
                 options: [for (final m in kFallbackModels) SettingsOption(value: m.value, label: m.displayName)],
               ),
@@ -160,7 +178,9 @@ class ClaudeExtension extends ClideExtension {
                 key: kDefaultEffortKey,
                 kind: SettingsFieldKind.select,
                 label: 'Effort',
+                labelKey: 'settings.claude.effort.label',
                 help: 'Reasoning effort for new sessions (applied via --effort at spawn).',
+                helpKey: 'settings.claude.effort.help',
                 defaultValue: 'high',
                 options: [for (final l in kEffortLevels) SettingsOption(value: l.value, label: l.displayName)],
               ),
@@ -168,7 +188,9 @@ class ClaudeExtension extends ClideExtension {
                 key: kDefaultPermissionModeKey,
                 kind: SettingsFieldKind.select,
                 label: 'Permission mode',
+                labelKey: 'settings.claude.permissionMode.label',
                 help: 'Starting permission mode for new sessions.',
+                helpKey: 'settings.claude.permissionMode.help',
                 defaultValue: 'default',
                 options: [for (final p in kPermissionModes) SettingsOption(value: p.value, label: p.displayName)],
               ),
@@ -183,6 +205,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.show',
       command: 'claude.agent.show',
       title: 'Claude: show an agent session pane',
+      titleKey: 'command.agent.show',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -194,6 +218,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.hide',
       command: 'claude.agent.hide',
       title: 'Claude: hide an agent session pane',
+      titleKey: 'command.agent.hide',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -205,6 +231,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.close',
       command: 'claude.agent.close',
       title: 'Claude: close (kill) an agent session',
+      titleKey: 'command.agent.close',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -216,6 +244,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.mute',
       command: 'claude.agent.mute',
       title: 'Claude: mute broker delivery to an agent session',
+      titleKey: 'command.agent.mute',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -227,6 +257,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.unmute',
       command: 'claude.agent.unmute',
       title: 'Claude: unmute broker delivery to an agent session',
+      titleKey: 'command.agent.unmute',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -239,6 +271,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.inject-message',
       command: 'claude.agent.inject-message',
       title: 'Claude: inject a text turn into an agent session',
+      titleKey: 'command.agent.injectMessage',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -257,6 +291,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.set-permission-mode',
       command: 'claude.agent.set-permission-mode',
       title: 'Claude: set permission mode for an agent session',
+      titleKey: 'command.agent.setPermissionMode',
+      i18nNamespace: id,
       run: (args) async {
         final id = args.firstOrNull;
         if (id == null) return _userErr('missing session id');
@@ -276,6 +312,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.mode.cycle',
       command: 'claude.mode.cycle',
       title: 'Claude: Cycle permission mode',
+      titleKey: 'command.mode.cycle',
+      i18nNamespace: id,
       run: (_) async {
         final managed = _orchestrator?.byId('primary');
         if (managed == null) return _notFound('no primary session');
@@ -289,6 +327,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.task.reassign',
       command: 'claude.task.reassign',
       title: 'Claude: reassign a shared task to an agent',
+      titleKey: 'command.task.reassign',
+      i18nNamespace: id,
       run: (args) async {
         if (args.length < 2) return _userErr('usage: <taskId> <sessionId>');
         final taskId = args[0];
@@ -319,6 +359,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.team-chat.open',
       command: 'claude.team-chat.open',
       title: 'Claude: open the team chat pane',
+      titleKey: 'command.teamChat.open',
+      i18nNamespace: id,
       run: (args) async {
         _ctx?.panels.activateTab(Slots.workspace, 'claude.team-chat');
         return IpcResponse.ok(id: '', data: const {'status': 'opened'});
@@ -331,6 +373,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.team-chat.post',
       command: 'claude.team-chat.post',
       title: 'Claude: post a message into the team channel as the user',
+      titleKey: 'command.teamChat.post',
+      i18nNamespace: id,
       run: (args) async {
         if (args.isEmpty) return _userErr('usage: [@name] <text>');
         final raw = args.join(' ');
@@ -357,6 +401,8 @@ class ClaudeExtension extends ClideExtension {
       id: 'claude.agent.fork',
       command: 'claude.agent.fork',
       title: 'Claude: fork a managed session into a new branch session',
+      titleKey: 'command.agent.fork',
+      i18nNamespace: id,
       run: (args) async {
         final sourceId = args.firstOrNull;
         if (sourceId == null) {

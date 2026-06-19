@@ -18,5 +18,9 @@
   "dialog.openProject.body": { "translation": "Enter the path to a git repository." },
   "dialog.openProject.error": { "translation": "Not a git repository" },
   "dialog.notRepo.title": { "translation": "No git repo found" },
-  "dialog.notRepo.body": { "translation": "A clide project root requires a git repository." }
+  "dialog.notRepo.body": { "translation": "A clide project root requires a git repository." },
+  "command.file.openFolder": { "translation": "File: Open Folder…" },
+  "command.file.newWindow": { "translation": "File: New Window" },
+  "command.file.closeWorkspace": { "translation": "File: Close Project" },
+  "command.help.about": { "translation": "Help: About clide" }
 }

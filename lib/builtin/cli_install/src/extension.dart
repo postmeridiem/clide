@@ -65,6 +65,8 @@ class CliInstallExtension extends ClideExtension {
       id: 'clide.installCli',
       command: 'clide.installCli',
       title: "clide: Install 'clide' command in PATH",
+      titleKey: 'command.clide.installCli',
+      i18nNamespace: id,
       run: (_) async {
         final r = _resolved.install();
         final ctx = _ctx;

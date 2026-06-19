@@ -30,6 +30,8 @@ class MenuBarExtension extends ClideExtension {
       id: 'file.openFolder',
       command: 'file.openFolder',
       title: 'File: Open Folder…',
+      titleKey: 'command.file.openFolder',
+      i18nNamespace: id,
       run: (_) async {
         await _file.openFolder();
         return IpcResponse.ok(id: '', data: const {});
@@ -39,6 +41,8 @@ class MenuBarExtension extends ClideExtension {
       id: 'file.newWindow',
       command: 'file.newWindow',
       title: 'File: New Window',
+      titleKey: 'command.file.newWindow',
+      i18nNamespace: id,
       run: (_) async {
         _file.newWindow();
         return IpcResponse.ok(id: '', data: const {});
@@ -48,6 +52,8 @@ class MenuBarExtension extends ClideExtension {
       id: 'file.closeWorkspace',
       command: 'file.closeWorkspace',
       title: 'File: Close Project',
+      titleKey: 'command.file.closeWorkspace',
+      i18nNamespace: id,
       run: (_) async {
         _file.closeWorkspace();
         return IpcResponse.ok(id: '', data: const {});
@@ -57,6 +63,8 @@ class MenuBarExtension extends ClideExtension {
       id: 'help.about',
       command: 'help.about',
       title: 'Help: About clide',
+      titleKey: 'command.help.about',
+      i18nNamespace: id,
       run: (_) async {
         services.dialog.show<Object>((ctx, dismiss) => AboutDialog(onDismiss: () => dismiss()));
         return IpcResponse.ok(id: '', data: const {});

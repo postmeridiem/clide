@@ -1,0 +1,5 @@
+{
+  "command.view.zoomIn": { "translation": "View: Zoom In" },
+  "command.view.zoomOut": { "translation": "View: Zoom Out" },
+  "command.view.zoomReset": { "translation": "View: Reset Zoom" }
+}

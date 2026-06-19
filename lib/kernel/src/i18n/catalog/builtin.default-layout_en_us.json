@@ -1,4 +1,21 @@
 {
   "command.reset": { "translation": "Layout: Reset to Classic" },
-  "preset.classic": { "translation": "Classic" }
+  "preset.classic": { "translation": "Classic" },
+  "command.palette.toggle": { "translation": "Command Palette" },
+  "command.sidebar.collapse": { "translation": "Toggle Sidebar Collapse" },
+  "command.context.collapse": { "translation": "Toggle Context Panel Collapse" },
+  "command.panel.focus.left": { "translation": "Focus Left Panel" },
+  "command.panel.focus.middle": { "translation": "Focus Middle Panel" },
+  "command.panel.focus.right": { "translation": "Focus Right Panel" },
+  "command.panel.focusMode": { "translation": "Toggle Focus Mode" },
+  "command.panel.focusMode.exit": { "translation": "Exit Focus Mode" },
+  "command.editor.open": { "translation": "Open Editor" },
+  "command.editor.close": { "translation": "Close Editor" },
+  "command.workspace.tab.next": { "translation": "Next Workspace Tab" },
+  "command.workspace.tab.previous": { "translation": "Previous Workspace Tab" },
+  "command.sidebar.section.1": { "translation": "Sidebar: Section 1" },
+  "command.sidebar.section.2": { "translation": "Sidebar: Section 2" },
+  "command.sidebar.section.3": { "translation": "Sidebar: Section 3" },
+  "command.sidebar.section.4": { "translation": "Sidebar: Section 4" },
+  "command.sidebar.section.5": { "translation": "Sidebar: Section 5" }
 }
