@@ -45,6 +45,13 @@ These apply across every reference and every surface:
   widget must set it explicitly. `clideMonoFamily` / `clideUiFamily` are the
   facade's defaults — don't read them directly in new widgets (D-101). Same
   facade exposes `ClideSettings.theme.of(context)` and `.i18n.of(context)`.
+- User-facing strings resolve through the catalog, never a hardcoded literal
+  (D-21/D-102): `ClideSettings.i18n.string(context, 'dotted.key', namespace:
+  <ext id or 'core'>, placeholder: '<English>')` (or `.interpolated` for
+  templated). Add the key→English to `assets/i18n/en_us/<namespace>.json`. The
+  `placeholder` is the English fallback; the extension's own id is its
+  namespace (framework chrome uses `core`). Contribution manifests carry
+  `titleKey`/`labelKey` for the same reason.
 
 ## Conversation-panel cards (T-305)
 

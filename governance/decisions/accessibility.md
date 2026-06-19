@@ -32,4 +32,15 @@ A11y + i18n are Tier-0 contracts, not Tier-6 polish.
 - **Cost:** Two extra theme files per "named" theme when we add a11y variants. The bundled-theme contrast gate ([D-22](#d-22-wcag-aa-contrast-gate-on-bundled-themes)) needs a baseline/extended split so the named themes don't fail the strict pairs.
 - **Raised by:** 2026-05-17 — user intervened mid-T-114 when I had retuned `clide`/`midnight`/`paper`/`terminal` palette entries to satisfy the expanded `canonicalPairs`; reverted, decision written, T-114 will follow this rule.
 
+### D-102: i18n routing — ext-id namespaces, `core` catalog, ClideSettings.i18n facade, contribution keys
+- **Date:** 2026-06-19
+- **Decision:** Implements [D-21](#d-21-i18n-is-a-tier-0-contract-fframe-pattern--locale-fallback-chain) across the whole app (epic T-462).
+  - **Namespaces:** an extension's catalog namespace IS its id (`builtin.<name>`); the ExtensionManager eager-loads it on activation, so a built-in localizes with no hand-maintained registry. Framework chrome outside any extension (`lib/widgets`, `lib/kernel`, the shared reader chrome) resolves under one **`core`** namespace, preloaded at boot.
+  - **Read path:** widgets resolve through the single [D-101](architecture.md) facade — `ClideSettings.i18n.string(context, key, namespace:, placeholder:)` (+ `.interpolated`) — null-safe (returns the placeholder when no kernel is in scope, so primitives render in isolated tests).
+  - **Manifest labels:** `CommandContribution` carries `titleKey`/`i18nNamespace`; the palette and menu resolve via a shared `localizedCommandTitle`, and the palette's fuzzy search matches the localized title. The settings schema carries `i18nNamespace`+`titleKey` on the category and `labelKey`/`helpKey`/option `labelKey` beneath it, threaded down by the renderer.
+  - **Storage:** catalogs are bundled assets at `assets/i18n/<locale>/<namespace>.json` — the locale is a *directory* (`en_us`, future `nl_nl`, `nl_be`, `en_eu`, …), so a new language is a new folder of the same namespace files, no renames.
+- **Rationale:** makes a complete translation set (e.g. a Dutch pack) a pure data drop — no code. ext-id namespaces need no registry; the facade keeps one widget-facing read path for theme/fonts/i18n (D-101); the locale-dir layout is cleaner to maintain and mirrors how an external extension ships its own catalog.
+- **Cost:** every extension's manifest gains optional key fields, and framework primitives now depend on the (null-safe) facade. The pure-data search matcher (`settingsFieldMatches`) still matches the English label — display localizes, search-by-translation does not (acceptable refinement).
+- **Raised by:** 2026-06-19, epic T-462 (i18n everywhere). Builds on [D-101](architecture.md).
+
 ---
