@@ -22,6 +22,22 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+## [2.8.0] — 2026-06-19
+
+### Added
+
+- **Language selector + Dutch (nl-NL).** Settings → Appearance → Language
+  switches the UI language live (persisted as `app.locale`); a full Dutch
+  translation ships. English (en-US) stays the default. (T-462)
+
+### Changed
+
+- **App is fully localizable (i18n everywhere).** Every user-facing label —
+  panels, dialogs, command palette, menus, and settings — now resolves through
+  the i18n catalog instead of a hardcoded string; catalogs are bundled per
+  locale under `assets/i18n/<locale>/`. A new language is a drop-in folder;
+  en_US behaviour is unchanged. (T-462)
+
 ## [2.7.1] — 2026-06-18
 
 ### Changed

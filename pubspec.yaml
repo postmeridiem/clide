@@ -13,7 +13,7 @@ description: >-
   subsystem handlers (pane, files, editor, git, pql), and the
   extension framework.
 publish_to: none
-version: 2.7.1
+version: 2.8.0
 repository: https://github.com/postmeridiem/clide
 # Short user-facing tagline (the welcome subtitle, web meta
 # description, etc.). Baked into lib/src/build_info.g.dart by
@@ -82,6 +82,7 @@ flutter:
     # i18n catalogs, one folder per locale (en_us, future nl_nl, …); each holds
     # <namespace>.json. Add a line per new locale folder.
     - assets/i18n/en_us/
+    - assets/i18n/nl_nl/
     - assets/keymaps/
     - assets/licenses.yaml
     - assets/LICENSE
