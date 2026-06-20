@@ -97,12 +97,13 @@ void main() {
   testWidgets('tapping the same top button toggles the menu closed', (tester) async {
     await tester.pumpWidget(harness());
     await tester.pump();
+    // Capture the top button's point while the tree is stable (menu closed),
+    // then tapAt it to toggle closed — re-finding 'File' after the overlay opens
+    // can hit a transiently-relaid element and throw in getCenter under load.
+    final fileCenter = tester.getCenter(find.text('File'));
     await openMenu(tester, 'File');
     expect(find.text('Open Folder…'), findsOneWidget);
-    // Let the open overlay finish laying out before re-tapping the top button,
-    // so its hit-test box is stable under load (getCenter would otherwise throw).
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('File'));
+    await tester.tapAt(fileCenter);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20)); // flush the close under load
     expect(find.text('Open Folder…'), findsNothing);

@@ -162,6 +162,38 @@ void main() {
       expect(find.text('Hoverable'), findsOneWidget);
     });
 
+    testWidgets('hovering a NON-selected palette row paints the hover background', (tester) async {
+      // The first row is selected (selectedIndex 0), so its color comes from the
+      // `selected` branch. Hovering the SECOND (unselected) row exercises the
+      // `_hover ? listItemHoverBackground` arm that the selected row skips.
+      f.services.commands.register(
+        CommandContribution(
+          id: 'h1',
+          command: 'first.cmd',
+          title: 'FirstRow',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
+      f.services.commands.register(
+        CommandContribution(
+          id: 'h2',
+          command: 'second.cmd',
+          title: 'SecondRow',
+          run: (_) async => IpcResponse.ok(id: '', data: const {}),
+        ),
+      );
+      f.services.palette.open();
+      await tester.pumpWidget(harness(f, Stack(children: const [ClidePalette()])));
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(gesture.removePointer);
+      await gesture.addPointer(location: Offset.zero);
+      await gesture.moveTo(tester.getCenter(find.text('SecondRow')));
+      await tester.pumpAndSettle();
+      expect(find.text('SecondRow'), findsOneWidget);
+    });
+
     testWidgets('arrow keys move the highlighted command (T-100)', (tester) async {
       for (final id in ['a', 'b', 'c']) {
         f.services.commands.register(

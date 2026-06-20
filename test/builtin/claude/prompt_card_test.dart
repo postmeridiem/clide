@@ -611,4 +611,93 @@ void main() {
       expect(d, isNull, reason: 'typing in the note must not trigger Allow');
     });
   });
+
+  group('Enter / number-key on questions (T-240)', () {
+    testWidgets('Enter submits a single answered question (_activatePrimary, q.length<=1)', (tester) async {
+      ToolDecision? d;
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: questionPrompt(), onResolve: (_, x) => d = x)));
+      await tester.pump(); // autofocus
+
+      // Enter with nothing chosen → gated, no resolve.
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(d, isNull, reason: 'Submit is gated until an option is picked');
+
+      // Choose, then Enter → submits the single-question answer.
+      await tester.tap(find.textContaining('Dogs'));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect((d as AllowTool).updatedInput['answers']['Do you prefer cats or dogs?'], 'Dogs');
+    });
+
+    testWidgets('Enter advances a mid-step question then submits at review (_activatePrimary multi)', (tester) async {
+      ToolDecision? d;
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: twoQuestionPrompt(), onResolve: (_, x) => d = x)));
+      await tester.pump(); // autofocus
+
+      // Number key picks an option on the current (first) question — exercises
+      // _currentQuestion returning _step in a multi-question prompt.
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2); // Dogs
+      await tester.pump();
+      // Enter on a mid (non-last, non-review) step advances to question 2.
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(find.text('How eaten?'), findsOneWidget);
+
+      // Answer #2 via number key, Enter → last step advances to review.
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1); // Fresh
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(find.text('Review your answers'), findsOneWidget);
+
+      // Enter on the review step submits both answers.
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      final answers = (d as AllowTool).updatedInput['answers'] as Map;
+      expect(answers['Which pet?'], 'Dogs');
+      expect(answers['How eaten?'], 'Fresh');
+    });
+  });
+
+  group('Back navigation in the multi-question stepper', () {
+    testWidgets('Back on a mid-step returns to the previous question (_step--)', (tester) async {
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: twoQuestionPrompt(), onResolve: (_, _) {})));
+      await tester.pump();
+
+      await tester.tap(find.textContaining('Dogs'));
+      await tester.pump();
+      await tester.tap(find.text('Next ›'));
+      await tester.pump();
+      expect(find.text('How eaten?'), findsOneWidget);
+
+      // On step 2 a Back button is present (only shown when _step > 0).
+      await tester.tap(find.text('‹ Back'));
+      await tester.pump();
+      expect(find.text('Which pet?'), findsOneWidget);
+      expect(find.text('How eaten?'), findsNothing);
+    });
+
+    testWidgets('Back on the review step returns to the last question (_step = length-1)', (tester) async {
+      await tester.pumpWidget(harness(f, ToolPromptCard(prompt: twoQuestionPrompt(), onResolve: (_, _) {})));
+      await tester.pump();
+
+      await tester.tap(find.textContaining('Dogs'));
+      await tester.pump();
+      await tester.tap(find.text('Next ›'));
+      await tester.pump();
+      await tester.tap(find.textContaining('Fresh'));
+      await tester.pump();
+      await tester.tap(find.text('Review ›'));
+      await tester.pump();
+      expect(find.text('Review your answers'), findsOneWidget);
+
+      // The review screen's Back button steps back to the last question.
+      await tester.tap(find.text('‹ Back'));
+      await tester.pump();
+      expect(find.text('How eaten?'), findsOneWidget);
+      expect(find.text('Review your answers'), findsNothing);
+    });
+  });
 }

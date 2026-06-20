@@ -453,4 +453,21 @@ void main() {
     await tester.pump();
     expect(f.services.project.isOpen, isFalse);
   });
+
+  testWidgets('RootShell applies the persisted app.locale on boot (T-462)', (tester) async {
+    await tester.runAsync(() async => f.services.settings.set('app.locale', 'nl_NL'));
+    await pumpApp(tester);
+    expect(tester.takeException(), isNull);
+    // RootShell.initState parsed app.locale and called i18n.setLocale.
+    expect(f.services.i18n.currentLocale, const Locale('nl', 'NL'));
+  });
+
+  testWidgets('RootShell applies a bare language-only app.locale on boot (T-462)', (tester) async {
+    // A single-part locale ('nl', no region) exercises the Locale(parts[0])
+    // branch in _applyLocale, distinct from the language_REGION form above.
+    await tester.runAsync(() async => f.services.settings.set('app.locale', 'nl'));
+    await pumpApp(tester);
+    expect(tester.takeException(), isNull);
+    expect(f.services.i18n.currentLocale, const Locale('nl'));
+  });
 }

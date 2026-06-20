@@ -5,6 +5,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/claude_banner.dart';
@@ -14,6 +15,7 @@ import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/builtin/claude/src/workflow_run.dart';
+import 'package:clide/clide.dart' show IpcResponse;
 import 'package:clide/kernel/kernel.dart' show PaneKeyNav;
 import 'package:clide/kernel/src/events/message_bus.dart';
 import 'package:clide/widgets/widgets.dart';
@@ -947,6 +949,90 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Bash, 1 step, collapsed'));
       await tester.pumpAndSettle();
       expect(find.text('live tail'), findsNothing); // no tail intent → no segment
+    });
+  });
+
+  // The file-ref open + live-tail handlers read project.current, so these need a
+  // real workspace open. project.open() spawns `git rev-parse` whose exit
+  // ReceivePort is trapped under the fake-async testWidgets zone (T-280) — so the
+  // open is done in setUp (real async), never inside a testWidgets body.
+  group('ConversationView with an open workspace', () {
+    late KernelFixture f;
+    late Directory proj;
+
+    setUp(() async {
+      f = await KernelFixture.create();
+      proj = await Directory.systemTemp.createTemp('clide_ws_');
+      await Directory('${proj.path}/.git').create();
+      await File('${proj.path}/lib/app.dart').create(recursive: true);
+      await File('${proj.path}/app.log').writeAsString('starting up\n');
+      await f.services.project.open(proj.path);
+    });
+    tearDown(() async {
+      await f.dispose();
+      if (await proj.exists()) await proj.delete(recursive: true);
+    });
+
+    Future<ConversationController> pumpWith(WidgetTester tester, List<ConversationItem> items) async {
+      tester.view.physicalSize = const Size(900, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final stream = StreamController<ConversationItem>.broadcast();
+      final c = ConversationController(stream: stream.stream);
+      addTearDown(c.dispose);
+      await tester.pumpWidget(
+        harness(
+          f,
+          Builder(
+            builder: (ctx) => MediaQuery(
+              data: MediaQuery.of(ctx).copyWith(disableAnimations: true),
+              child: ConversationView(controller: c, foldLevel: FoldLevel.none),
+            ),
+          ),
+        ),
+      );
+      for (final it in items) {
+        stream.add(it);
+      }
+      await tester.pumpAndSettle();
+      return c;
+    }
+
+    testWidgets('clicking a repo file ref opens it in the editor (T-300)', (tester) async {
+      // Capture the editor.open IPC the file-ref tap fires.
+      String? openedPath;
+      int? openedLine;
+      f.ipc.stub('editor.open', (args) async {
+        openedPath = args['path'] as String?;
+        openedLine = args['line'] as int?;
+        return IpcResponse.ok(id: '1', data: {'path': args['path']});
+      });
+
+      await pumpWith(tester, [_user('crash at lib/app.dart:42 today')]);
+      await tester.tap(find.text('lib/app.dart:42'));
+      await tester.pumpAndSettle();
+
+      // _resolveRepoFile resolved the ref against project.current, _openFile sent
+      // the absolute path + line to editor.open.
+      expect(openedPath, '${proj.path}/lib/app.dart');
+      expect(openedLine, 42);
+    });
+
+    testWidgets('a tail Bash card follows a real workspace file (T-325)', (tester) async {
+      // The tail command names a single file inside the repo → a followable
+      // source, so _BashLiveTail mounts a terminal instead of the muted note.
+      await pumpWith(tester, [
+        AssistantToolUse(uuid: 'bt', timestamp: _t, isSidechain: false, toolUseId: 'tbt', name: 'Bash', input: const {'command': 'tail -f app.log'}),
+      ]);
+      await tester.tap(find.bySemanticsLabel('Bash, 1 step, collapsed'));
+      await tester.pumpAndSettle();
+
+      // A resolvable source → the live tail surfaced, NOT the "nothing" note.
+      expect(find.text('live tail'), findsOneWidget);
+      expect(find.text('no independent source to follow'), findsNothing);
     });
   });
 

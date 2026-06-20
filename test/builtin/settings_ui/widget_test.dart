@@ -23,6 +23,12 @@ void main() {
               'panel.empty': {'translation': 'No settings categories are registered yet.'},
             },
           },
+          // Namespace for a category whose rail title resolves via titleKey.
+          'test.railcat': {
+            const Locale('en', 'US'): const {
+              'cat.title': {'translation': 'Localized Rail'},
+            },
+          },
         },
       );
     });
@@ -63,6 +69,28 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Close'));
       await tester.pump();
       expect(dismissed, 1);
+    });
+
+    testWidgets('a rail row resolves its title via titleKey + namespace (T-462)', (tester) async {
+      // A category with titleKey + i18nNamespace → the rail localizes the row
+      // title through the catalog instead of the English fallback (line 251).
+      f.services.settingsRegistry.register(
+        const SettingsCategory(
+          id: 'railcat',
+          title: 'EngRail',
+          titleKey: 'cat.title',
+          i18nNamespace: 'test.railcat',
+          sections: [
+            SettingsSection(
+              label: 'S',
+              fields: [SettingsField(key: 'app.railcat.flag', kind: SettingsFieldKind.toggle, label: 'F', defaultValue: false)],
+            ),
+          ],
+        ),
+      );
+      await tester.pumpWidget(harness(f, SettingsModal(onDismiss: () {})));
+      expect(find.text('Localized Rail'), findsOneWidget);
+      expect(find.text('EngRail'), findsNothing);
     });
   });
 }

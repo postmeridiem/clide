@@ -295,6 +295,31 @@ void main() {
       expect(f.services.keybindings.commandFor(Keybinding.parse('ctrl+alt+j')), isNull);
     });
 
+    test('Settings category + control contributions register on activate and unregister on deactivate', () async {
+      f.services.extensions.register(
+        _Ext(
+          id: 'settings-ext',
+          contributions: const [
+            SettingsCategoryContribution(
+              id: 'settings-ext.cat',
+              category: SettingsCategory(id: 'sx', title: 'SX', sections: []),
+            ),
+            SettingsControlContribution(id: 'settings-ext.ctl', customId: 'sx.control', builder: _buildNothing),
+          ],
+        ),
+      );
+      await f.services.extensions.activateAll();
+      // Both contributions are applied (category via SettingsRegistry.register,
+      // control via SettingsControlRegistry.register — lines 268-272).
+      expect(f.services.settingsRegistry.byId('sx')?.title, 'SX');
+      expect(f.services.settingsControlRegistry.builderFor('sx.control'), isNotNull);
+
+      await f.services.extensions.deactivate('settings-ext');
+      // Deactivation unwinds both via _removeContribution (lines 293-296).
+      expect(f.services.settingsRegistry.byId('sx'), isNull);
+      expect(f.services.settingsControlRegistry.builderFor('sx.control'), isNull);
+    });
+
     test('all getter yields every registered extension', () async {
       f.services.extensions.register(_Ext(id: 'a-iter'));
       f.services.extensions.register(_Ext(id: 'b-iter'));
@@ -405,6 +430,76 @@ void main() {
         expect(f.services.extensions.isActivated('base'), isFalse, reason: 'allowed once the dependent is gone');
       });
 
+      test('a throw AFTER activate() succeeds unwinds mounted contributions AND runs deactivate()', () async {
+        // activate() succeeds (so extActivated is set), the first command
+        // contribution mounts, then a mid-list duplicate command id throws in
+        // _applyContribution — exercising the rollback path: the already-applied
+        // contribution is unwound and the extension's deactivate() is called
+        // because its own activate() had succeeded (lines 184-200).
+        var deactivated = false;
+        f.services.extensions.register(
+          _Ext(
+            id: 'two-cmds-second-dupes',
+            contributions: [
+              CommandContribution(
+                id: 'first-ok',
+                command: 'rollback.first',
+                run: (_) async => IpcResponse.ok(id: ''),
+              ),
+              CommandContribution(
+                id: 'second-dupe',
+                command: 'rollback.first',
+                run: (_) async => IpcResponse.ok(id: ''),
+              ),
+            ],
+            onActivate: (_) async {}, // succeeds → extActivated = true
+            onDeactivate: () async => deactivated = true,
+          ),
+        );
+        await f.services.extensions.activateAll();
+
+        // Rolled back: not activated, marked failed, and the already-mounted
+        // first command is gone (the unwind ran _removeContribution on it).
+        expect(f.services.extensions.isActivated('two-cmds-second-dupes'), isFalse);
+        expect(f.services.extensions.didFail('two-cmds-second-dupes'), isTrue);
+        expect(f.services.commands.get('rollback.first'), isNull, reason: 'the first command must be unwound');
+        // activate() had succeeded → deactivate() ran during rollback.
+        expect(deactivated, isTrue);
+        // failedExtensions getter exposes the recorded error for the UI badge.
+        expect(f.services.extensions.failedExtensions.containsKey('two-cmds-second-dupes'), isTrue);
+      });
+
+      test('a deactivate() that throws DURING rollback is caught and logged', () async {
+        // activate() succeeds, the first command mounts, the duplicate throws,
+        // and the rollback-triggered deactivate() ALSO throws — the inner catch
+        // swallows + logs it rather than masking the original failure (line 197).
+        f.services.extensions.register(
+          _Ext(
+            id: 'rollback-deactivate-throws',
+            contributions: [
+              CommandContribution(
+                id: 'rdt.first',
+                command: 'rdt.cmd',
+                run: (_) async => IpcResponse.ok(id: ''),
+              ),
+              CommandContribution(
+                id: 'rdt.second',
+                command: 'rdt.cmd',
+                run: (_) async => IpcResponse.ok(id: ''),
+              ),
+            ],
+            onActivate: (_) async {}, // succeeds → extActivated = true
+            onDeactivate: () async => throw StateError('teardown also fails'),
+          ),
+        );
+        await f.services.extensions.activateAll();
+
+        // Original failure still wins: not activated, marked failed, unwound.
+        expect(f.services.extensions.isActivated('rollback-deactivate-throws'), isFalse);
+        expect(f.services.extensions.didFail('rollback-deactivate-throws'), isTrue);
+        expect(f.services.commands.get('rdt.cmd'), isNull, reason: 'the first command must still be unwound');
+      });
+
       test('a duplicate contribution id fails the second activation', () async {
         f.services.extensions
           ..register(
@@ -431,3 +526,5 @@ void main() {
 }
 
 void _noop() {}
+
+Widget _buildNothing(BuildContext _) => const SizedBox.shrink();

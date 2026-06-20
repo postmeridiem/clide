@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:clide/builtin/settings_ui/settings_ui.dart';
 import 'package:clide/clide.dart' show IpcResponse;
 import 'package:clide/extension/extension.dart';
@@ -193,6 +195,37 @@ void main() {
       expect(f.services.settings.effectiveLayer('app.demo.flag'), isNull);
     });
 
+    testWidgets('a value stored at project scope shows the This project tag', (tester) async {
+      // project.* keys live only in the project layer, which needs a project dir
+      // open. Point the store at a temp dir and write the key there at project
+      // scope so _appearance(SettingsScope.project) renders (lines 560-562).
+      const projCat = SettingsCategory(
+        id: 'pj',
+        title: 'PJ',
+        sections: [
+          SettingsSection(
+            label: 'S',
+            fields: [SettingsField(key: 'project.pj.flag', kind: SettingsFieldKind.toggle, label: 'ProjFlag', defaultValue: false)],
+          ),
+        ],
+      );
+      late Directory projDir;
+      await tester.runAsync(() async {
+        projDir = await Directory.systemTemp.createTemp('clide_scope_');
+        await f.services.settings.setProjectDir(projDir);
+        await f.services.settings.setAt(SettingsScope.project, 'project.pj.flag', true);
+      });
+      addTearDown(() async {
+        if (await projDir.exists()) {
+          try {
+            await projDir.delete(recursive: true);
+          } catch (_) {}
+        }
+      });
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: projCat))));
+      expect(find.bySemanticsLabel('ProjFlag scope: This project'), findsOneWidget);
+    });
+
     testWidgets('moving an unset value to All clide writes it at app scope', (tester) async {
       // _other's key (app.other.x) is written by no other test → pristine here.
       await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: _other))));
@@ -267,6 +300,28 @@ void main() {
       // string 'abc' never reaches the store.
       expect(find.text('4'), findsOneWidget);
       expect(f.services.settings.get<Object>('app.nr.size'), isNot('abc'));
+    });
+
+    testWidgets('a text field reflects an external value change when not focused (didUpdateWidget)', (tester) async {
+      // Dedicated key — the store is shared across tests in this file.
+      const extCat = SettingsCategory(
+        id: 'tx',
+        title: 'TX',
+        sections: [
+          SettingsSection(
+            label: 'S',
+            fields: [SettingsField(key: 'app.tx.name', kind: SettingsFieldKind.text, label: 'Name', defaultValue: 'initial')],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(f, _bounded(const SettingsCategoryView(category: extCat))));
+      expect(find.text('initial'), findsOneWidget);
+      // External write (e.g. a reset or another surface) with the field unfocused
+      // → the ListenableBuilder rebuilds _EditControl with a new value, and
+      // didUpdateWidget pushes it into the controller (lines 433-438).
+      await tester.runAsync(() => f.services.settings.set('app.tx.name', 'updated'));
+      await tester.pump();
+      expect(find.text('updated'), findsOneWidget);
     });
 
     testWidgets('a text field commits the trimmed value', (tester) async {
@@ -370,6 +425,67 @@ void main() {
       expect(find.text('Flag'), findsNothing);
       // The rail shows the Other category's match count.
       expect(find.text('1'), findsOneWidget);
+    });
+  });
+
+  group('i18n localization (T-462)', () {
+    testWidgets('section/field/help labels resolve through the category namespace', (tester) async {
+      // KernelFixture.create does real temp-dir I/O; run it on the real event
+      // loop (not the fake-async testWidgets body) or it traps under load (T-122).
+      late KernelFixture lf;
+      await tester.runAsync(
+        () async => lf = await KernelFixture.create(
+          i18nCatalogs: {
+            'test.loc': {
+              const Locale('en', 'US'): const {
+                'sec.label': {'translation': 'LOCSEC'},
+                'fld.label': {'translation': 'LocField'},
+                'fld.help': {'translation': 'LocHelp'},
+                'sel.label': {'translation': 'LocSelect'},
+                'opt.a': {'translation': 'LocOptA'},
+              },
+            },
+          },
+        ),
+      );
+      addTearDown(lf.dispose);
+      const cat = SettingsCategory(
+        id: 'loc',
+        title: 'EngCat',
+        i18nNamespace: 'test.loc',
+        sections: [
+          SettingsSection(
+            label: 'EngSec',
+            labelKey: 'sec.label',
+            fields: [
+              SettingsField(
+                key: 'app.loc.flag',
+                kind: SettingsFieldKind.toggle,
+                label: 'EngField',
+                labelKey: 'fld.label',
+                help: 'EngHelp',
+                helpKey: 'fld.help',
+                defaultValue: false,
+              ),
+              SettingsField(
+                key: 'app.loc.sel',
+                kind: SettingsFieldKind.select,
+                label: 'EngSelect',
+                labelKey: 'sel.label',
+                defaultValue: 'a',
+                options: [SettingsOption(value: 'a', label: 'EngOptA', labelKey: 'opt.a')],
+              ),
+            ],
+          ),
+        ],
+      );
+      await tester.pumpWidget(harness(lf, _bounded(const SettingsCategoryView(category: cat))));
+      expect(find.text('LOCSEC'), findsOneWidget); // section header from the catalog
+      expect(find.text('LocField'), findsOneWidget); // field label localized
+      expect(find.text('LocHelp'), findsOneWidget); // help localized
+      expect(find.text('LocSelect'), findsOneWidget); // select field label localized
+      expect(find.text('LocOptA'), findsOneWidget); // select shows the localized current option
+      expect(find.text('EngField'), findsNothing); // English placeholder replaced
     });
   });
 }

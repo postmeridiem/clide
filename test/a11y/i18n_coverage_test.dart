@@ -35,4 +35,20 @@ void main() {
       });
     }
   });
+
+  // The bundled Dutch pack (T-462) must load and cover the same Tier-0 keys, so
+  // a locale switch never falls back to English for a built-in label.
+  group('i18n coverage — Dutch pack (nl-NL)', () {
+    for (final entry in referenced.entries) {
+      final ns = entry.key;
+      test('$ns nl_NL catalog covers every referenced key', () async {
+        final loader = AssetCatalogLoader(bundle: rootBundle);
+        final catalog = await loader.load(ns, const Locale('nl', 'NL'));
+        expect(catalog, isNotEmpty, reason: 'nl_NL catalog for "$ns" failed to load');
+        for (final key in entry.value) {
+          expect(catalog.containsKey(key), isTrue, reason: 'nl_NL "$ns" missing key "$key"');
+        }
+      });
+    }
+  });
 }
