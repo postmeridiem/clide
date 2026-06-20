@@ -1,0 +1,6 @@
+{
+  "connected": { "translation": "verbonden" },
+  "connected.hint": { "translation": "backend-isolate is bereikbaar" },
+  "disconnected": { "translation": "niet verbonden" },
+  "disconnected.hint": { "translation": "backend-isolate draait niet" }
+}

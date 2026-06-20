@@ -1,0 +1,16 @@
+{
+  "tab.title": { "translation": "Beslissingen" },
+  "tab.detail.title": { "translation": "Beslissing" },
+  "loading": { "translation": "Beslissingen laden..." },
+  "error.load": { "translation": "laden van beslissingen mislukt" },
+  "empty": { "translation": "Geen beslissingen gevonden.\nVoer `pql decisions sync` uit om te indexeren." },
+  "filter.hint": { "translation": "Beslissingen filteren…" },
+  "refresh.tooltip": { "translation": "Beslissingen vernieuwen" },
+  "section.confirmed": { "translation": "BEVESTIGD" },
+  "section.questions": { "translation": "VRAGEN" },
+  "section.rejected": { "translation": "AFGEWEZEN" },
+  "badge.resolved": { "translation": "opgelost" },
+  "detail.loading": { "translation": "Laden…" },
+  "detail.empty": { "translation": "Selecteer een beslissing om de details te bekijken." },
+  "detail.section.refs": { "translation": "KRUISVERWIJZINGEN" }
+}

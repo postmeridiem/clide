@@ -1,0 +1,10 @@
+{
+  "tab.title": { "translation": "Bestanden" },
+  "loading": { "translation": "Laden…" },
+  "empty": { "translation": "Geen zichtbare bestanden" },
+  "filter.hint": { "translation": "Bestanden filteren…" },
+  "a11y.tree": { "translation": "bestandsboom — {name}" },
+  "a11y.collapse": { "translation": "{name} samenvouwen" },
+  "a11y.expand": { "translation": "{name} uitvouwen" },
+  "a11y.open": { "translation": "{name} openen" }
+}

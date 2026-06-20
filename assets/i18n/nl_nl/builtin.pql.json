@@ -1,0 +1,16 @@
+{
+  "tab.title": { "translation": "pql" },
+  "tab.links.title": { "translation": "Koppelingen" },
+  "filter.markdown.hint": { "translation": "Markdown filteren…" },
+  "loading": { "translation": "Laden…" },
+  "empty.markdown": { "translation": "Geen markdown-bestanden gevonden." },
+  "search.vault.hint": { "translation": "Vault doorzoeken…" },
+  "search.query.hint": { "translation": "PQL-query…" },
+  "backlinks.empty": { "translation": "Open een bestand om de koppelingen te zien." },
+  "backlinks.loading": { "translation": "Laden…" },
+  "backlinks.semantics": { "translation": "backlinks voor {path}" },
+  "group.backlinks": { "translation": "Backlinks" },
+  "group.outlinks": { "translation": "Uitgaande koppelingen" },
+  "group.label": { "translation": "{label} ({count})" },
+  "group.none": { "translation": "Geen" }
+}

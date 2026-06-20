@@ -1,0 +1,15 @@
+{
+  "a11y.log": { "translation": "uitvoerlogboek" },
+  "empty": { "translation": "Nog geen uitvoer." },
+  "empty.filtered": { "translation": "Geen uitvoer komt overeen met het filter." },
+  "filter.hint": { "translation": "Filteren…" },
+  "chip.level": { "translation": "Niveau: {level}" },
+  "chip.source": { "translation": "Bron: {source}" },
+  "chip.clear": { "translation": "Wissen" },
+  "source.all": { "translation": "alle" },
+  "a11y.jumpToLatest": { "translation": "naar nieuwste springen" },
+  "jump.label": { "translation": "Naar nieuwste ↓" },
+  "a11y.toggleDock": { "translation": "uitvoerdok aan/uit" },
+  "dock.label": { "translation": "Uitvoer" },
+  "command.dock.toggle": { "translation": "Uitvoerdok aan/uit" }
+}

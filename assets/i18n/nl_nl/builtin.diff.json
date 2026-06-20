@@ -1,0 +1,15 @@
+{
+  "tab.title": { "translation": "Diff" },
+  "view.semantics": { "translation": "diff-weergave" },
+  "status.loading": { "translation": "Laden…" },
+  "empty.staged": { "translation": "Geen gestagede wijzigingen." },
+  "empty.unstaged": { "translation": "Geen niet-gestagede wijzigingen." },
+  "toolbar.unstaged": { "translation": "Niet gestaged" },
+  "toolbar.unstaged.semantics": { "translation": "niet-gestagede wijzigingen tonen" },
+  "toolbar.staged": { "translation": "Gestaged" },
+  "toolbar.staged.semantics": { "translation": "gestagede wijzigingen tonen" },
+  "meta.newFile": { "translation": "nieuw bestand" },
+  "meta.deleted": { "translation": "verwijderd" },
+  "meta.renamedFrom": { "translation": "hernoemd vanaf {path}" },
+  "meta.binary": { "translation": "binair" }
+}

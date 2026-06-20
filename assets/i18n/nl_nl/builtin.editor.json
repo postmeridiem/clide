@@ -1,0 +1,7 @@
+{
+  "tab.title": { "translation": "Editor" },
+  "chrome.title": { "translation": "editor" },
+  "empty": { "translation": "Open een bestand om te beginnen met bewerken." },
+  "subtitle.no-buffer": { "translation": "geen buffer · gebruik `clide open <path>` of kies een bestand in de boom" },
+  "a11y.text-area": { "translation": "tekstgebied editor" }
+}

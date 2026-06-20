@@ -1,0 +1,14 @@
+{
+  "command.preset.default": { "translation": "Toetsindeling: Standaard" },
+  "command.preset.vim": { "translation": "Toetsindeling: Vim" },
+  "command.preset.vscode": { "translation": "Toetsindeling: VS Code" },
+  "command.preset.jetbrains": { "translation": "Toetsindeling: JetBrains" },
+  "settings.keymap.title": { "translation": "Toetsindeling" },
+  "settings.keymap.section.preset": { "translation": "Voorinstelling" },
+  "settings.keymap.field.preset.label": { "translation": "Actieve voorinstelling" },
+  "settings.keymap.field.preset.help": { "translation": "Toetsenbordindeling voor de hele app." },
+  "settings.keymap.field.preset.option.default": { "translation": "Standaard" },
+  "settings.keymap.field.preset.option.vim": { "translation": "Vim" },
+  "settings.keymap.field.preset.option.vscode": { "translation": "VS Code" },
+  "settings.keymap.field.preset.option.jetbrains": { "translation": "JetBrains" }
+}

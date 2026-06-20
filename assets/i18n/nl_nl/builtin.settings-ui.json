@@ -1,0 +1,17 @@
+{
+  "command.open": { "translation": "Instellingen…" },
+  "modal.title": { "translation": "Instellingen" },
+  "modal.close": { "translation": "Sluiten" },
+  "modal.close.hint": { "translation": "Sluit instellingen zonder iets te wijzigen" },
+  "rail.header": { "translation": "Categorieën" },
+  "panel.empty": { "translation": "Er zijn nog geen instellingscategorieën geregistreerd." },
+  "search.hint": { "translation": "Instellingen zoeken…" },
+  "search.empty": { "translation": "Geen instellingen komen overeen met je zoekopdracht." },
+  "scope.project": { "translation": "Dit project" },
+  "scope.always": { "translation": "Heel clide" },
+  "scope.default": { "translation": "Standaard" },
+  "scope.reset": { "translation": "Terugzetten naar standaard" },
+  "scope.tip.project": { "translation": "Opgeslagen in dit project (.clide)" },
+  "scope.tip.always": { "translation": "Opgeslagen voor heel clide (~/.clide)" },
+  "scope.tip.default": { "translation": "Niet ingesteld — standaard wordt gebruikt" }
+}

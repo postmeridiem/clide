@@ -1,0 +1,9 @@
+{
+  "tab.title": { "translation": "Terminal" },
+  "chrome.title": { "translation": "terminal" },
+  "subtitle.spawning": { "translation": "shell starten…" },
+  "subtitle.exited": { "translation": "Shell afgesloten." },
+  "error.unavailable": { "translation": "Terminal niet beschikbaar" },
+  "error.daemon": { "translation": "Backend niet verbonden." },
+  "a11y.label": { "translation": "terminal — {subtitle}" }
+}

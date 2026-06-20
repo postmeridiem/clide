@@ -1,0 +1,8 @@
+{
+  "dialog.title": { "translation": "Een externe link openen?" },
+  "dialog.body": { "translation": "Een clide://-link van buiten de app vraagt om:" },
+  "dialog.warning": { "translation": "Sta dit alleen toe als je vertrouwt waar de link vandaan komt." },
+  "button.cancel": { "translation": "Annuleren" },
+  "button.open": { "translation": "Openen" },
+  "command.deeplink.invoke": { "translation": "Een clide://-deeplink openen" }
+}

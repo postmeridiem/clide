@@ -1,0 +1,8 @@
+{
+  "notice.title": { "translation": "Extensiebeheer komt eraan" },
+  "notice.body": { "translation": "Het installeren, in- en uitschakelen van extensies arriveert samen met ondersteuning voor externe (Lua-)extensies. Voorlopig staan de ingebouwde extensies altijd aan." },
+  "notice.tracked": { "translation": "Bijgehouden in T-8 (Tier 6) · D-16" },
+  "settings.extensions.title": { "translation": "Extensies" },
+  "settings.extensions.section.notice": { "translation": "" },
+  "settings.extensions.field.notice.label": { "translation": "" }
+}

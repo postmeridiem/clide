@@ -1,0 +1,5 @@
+{
+  "empty": { "translation": "Selecteer een .md-bestand om het hier te bekijken." },
+  "chrome.title": { "translation": "weergave" },
+  "subtitle.lines": { "translation": "{count} regels" }
+}

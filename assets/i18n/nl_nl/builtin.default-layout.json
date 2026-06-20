@@ -1,0 +1,21 @@
+{
+  "command.reset": { "translation": "Indeling: Terugzetten naar Klassiek" },
+  "preset.classic": { "translation": "Klassiek" },
+  "command.palette.toggle": { "translation": "Opdrachtenpalet" },
+  "command.sidebar.collapse": { "translation": "Zijbalk samenvouwen aan/uit" },
+  "command.context.collapse": { "translation": "Contextpaneel samenvouwen aan/uit" },
+  "command.panel.focus.left": { "translation": "Focus op linkerpaneel" },
+  "command.panel.focus.middle": { "translation": "Focus op middelste paneel" },
+  "command.panel.focus.right": { "translation": "Focus op rechterpaneel" },
+  "command.panel.focusMode": { "translation": "Focusmodus aan/uit" },
+  "command.panel.focusMode.exit": { "translation": "Focusmodus afsluiten" },
+  "command.editor.open": { "translation": "Editor openen" },
+  "command.editor.close": { "translation": "Editor sluiten" },
+  "command.workspace.tab.next": { "translation": "Volgend werkruimtetabblad" },
+  "command.workspace.tab.previous": { "translation": "Vorig werkruimtetabblad" },
+  "command.sidebar.section.1": { "translation": "Zijbalk: Sectie 1" },
+  "command.sidebar.section.2": { "translation": "Zijbalk: Sectie 2" },
+  "command.sidebar.section.3": { "translation": "Zijbalk: Sectie 3" },
+  "command.sidebar.section.4": { "translation": "Zijbalk: Sectie 4" },
+  "command.sidebar.section.5": { "translation": "Zijbalk: Sectie 5" }
+}

@@ -1,0 +1,8 @@
+{
+  "mode.normal": { "translation": "NORMAL" },
+  "mode.insert": { "translation": "INSERT" },
+  "mode.visual": { "translation": "VISUAL" },
+  "command.vim.mode.normal": { "translation": "Vim: Normale modus" },
+  "command.vim.mode.insert": { "translation": "Vim: Invoegmodus" },
+  "command.vim.mode.visual": { "translation": "Vim: Visuele modus" }
+}

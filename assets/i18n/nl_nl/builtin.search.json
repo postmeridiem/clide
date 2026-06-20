@@ -1,0 +1,23 @@
+{
+  "mode.find": { "translation": "Zoeken" },
+  "mode.vault": { "translation": "Kluis" },
+  "mode.query": { "translation": "Query" },
+  "mode.markdown": { "translation": "Markdown" },
+  "find.hint": { "translation": "Zoeken" },
+  "replace.hint": { "translation": "Vervangen" },
+  "include.hint": { "translation": "te includeren bestanden (bijv. *.dart)" },
+  "exclude.hint": { "translation": "uit te sluiten bestanden" },
+  "toggle.regex": { "translation": "Reguliere expressie" },
+  "toggle.caseInsensitive": { "translation": "Hoofdletterongevoelig" },
+  "status.searching": { "translation": "Zoeken…" },
+  "status.noResults": { "translation": "Geen resultaten" },
+  "status.counts": { "translation": "{matches} in {files}" },
+  "a11y.openMatch": { "translation": "{path} regel {line} openen" },
+  "button.replaceAll": { "translation": "Alles vervangen" },
+  "button.ok": { "translation": "OK" },
+  "button.cancel": { "translation": "Annuleren" },
+  "button.confirm": { "translation": "Bevestigen" },
+  "dialog.dirty.title": { "translation": "Werkboom niet schoon" },
+  "dialog.dirty.body": { "translation": "Commit of stash je wijzigingen voordat je vervangt — Git is de enige manier om ongedaan te maken." },
+  "dialog.confirm.body": { "translation": "{matches} overeenkomst(en) in {files} bestand(en) vervangen? Dit kan niet ongedaan worden gemaakt in clide." }
+}

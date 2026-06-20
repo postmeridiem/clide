@@ -1,0 +1,10 @@
+{
+  "tab.title": { "translation": "Problemen" },
+  "semantics.panel": { "translation": "problemenpaneel" },
+  "filter.hint": { "translation": "Problemen filteren…" },
+  "count": { "translation": "Problemen ({count})" },
+  "refresh.label": { "translation": "Vernieuwen" },
+  "refresh.semantics": { "translation": "problemen vernieuwen" },
+  "scanning": { "translation": "Scannen…" },
+  "empty": { "translation": "Geen problemen gevonden." }
+}
