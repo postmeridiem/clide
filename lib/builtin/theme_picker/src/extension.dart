@@ -4,7 +4,7 @@ import 'package:clide/builtin/theme_picker/src/settings_view.dart';
 import 'package:clide/builtin/theme_picker/src/theme_status_item.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
-import 'package:clide/widgets/widgets.dart' show kMonoFontSettingKey, kUiFontSettingKey;
+import 'package:clide/widgets/widgets.dart' show kLocaleSettingKey, kMonoFontSettingKey, kUiFontSettingKey;
 
 class ThemePickerExtension extends ClideExtension {
   @override
@@ -97,6 +97,26 @@ class ThemePickerExtension extends ClideExtension {
                 options: [
                   SettingsOption(value: 'JetBrainsMono', label: 'JetBrains Mono', labelKey: 'settings.appearance.field.monoFont.option.jetBrainsMono'),
                   SettingsOption(value: 'FiraMono', label: 'Fira Mono', labelKey: 'settings.appearance.field.monoFont.option.firaMono'),
+                ],
+              ),
+            ],
+          ),
+          SettingsSection(
+            label: 'Language',
+            labelKey: 'settings.appearance.section.language',
+            fields: [
+              SettingsField(
+                key: kLocaleSettingKey,
+                kind: SettingsFieldKind.select,
+                label: 'Language',
+                labelKey: 'settings.appearance.field.language.label',
+                help: 'Language for the app interface; applies live.',
+                helpKey: 'settings.appearance.field.language.help',
+                defaultValue: 'en_US',
+                // Language names stay in their own language (no labelKey).
+                options: [
+                  SettingsOption(value: 'en_US', label: 'English'),
+                  SettingsOption(value: 'nl_NL', label: 'Nederlands'),
                 ],
               ),
             ],

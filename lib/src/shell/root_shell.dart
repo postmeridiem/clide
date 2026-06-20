@@ -48,8 +48,9 @@ class RootShellState extends State<RootShell> {
     super.initState();
     _keyFocus = FocusNode()..requestFocus();
     widget.services.textZoom.addListener(_onZoom);
-    // Re-apply the UI font when its setting changes (T-460).
+    // Re-apply the UI font + language when their settings change (T-460/T-462).
     widget.services.settings.addListener(_onZoom);
+    _applyLocale(); // apply the persisted UI language at boot
     _globalSeq = SequenceMatcher(
       keymap: () => widget.services.keymap.keymap ?? Keymap(const []),
       context: () => widget.services.keymap.scope,
@@ -69,7 +70,20 @@ class RootShellState extends State<RootShell> {
     super.dispose();
   }
 
-  void _onZoom() => setState(() {});
+  void _onZoom() {
+    _applyLocale();
+    setState(() {});
+  }
+
+  /// Apply the persisted UI language (app.locale) to the i18n service. setLocale
+  /// is a no-op when the locale is unchanged, so this is safe on every tick.
+  void _applyLocale() {
+    final raw = widget.services.settings.get<String>(kLocaleSettingKey);
+    if (raw == null || raw.isEmpty) return;
+    final parts = raw.split(RegExp('[_-]'));
+    final loc = parts.length >= 2 ? Locale(parts[0], parts[1]) : Locale(parts[0]);
+    widget.services.i18n.setLocale(loc);
+  }
 
   @override
   Widget build(BuildContext context) {

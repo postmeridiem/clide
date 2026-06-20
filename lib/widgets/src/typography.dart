@@ -44,6 +44,10 @@ const List<String> clideUiFamilyFallback = [
 const String kUiFontSettingKey = 'app.ui.font';
 const String kMonoFontSettingKey = 'app.mono.font';
 
+/// Settings key for the UI language (Settings → Appearance, T-462). Value is a
+/// `lang_country` string (e.g. `en_US`, `nl_NL`); unset → the default locale.
+const String kLocaleSettingKey = 'app.locale';
+
 // ---------------------------------------------------------------------------
 // Monospace face — JetBrains Mono
 // ---------------------------------------------------------------------------

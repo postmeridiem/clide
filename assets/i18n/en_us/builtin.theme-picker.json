@@ -18,5 +18,8 @@
   "settings.appearance.field.monoFont.label": { "translation": "Monospace font" },
   "settings.appearance.field.monoFont.help": { "translation": "Terminal, diffs, code, and IDs; applies live." },
   "settings.appearance.field.monoFont.option.jetBrainsMono": { "translation": "JetBrains Mono" },
-  "settings.appearance.field.monoFont.option.firaMono": { "translation": "Fira Mono" }
+  "settings.appearance.field.monoFont.option.firaMono": { "translation": "Fira Mono" },
+  "settings.appearance.section.language": { "translation": "Language" },
+  "settings.appearance.field.language.label": { "translation": "Language" },
+  "settings.appearance.field.language.help": { "translation": "Language for the app interface; applies live." }
 }

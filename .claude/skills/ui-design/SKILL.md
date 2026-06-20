@@ -53,6 +53,25 @@ These apply across every reference and every surface:
   namespace (framework chrome uses `core`). Contribution manifests carry
   `titleKey`/`labelKey` for the same reason.
 
+## Localization & string length (D-21/D-102)
+
+- **Config / layout.** Catalogs are bundled assets at
+  `assets/i18n/<locale>/<namespace>.json` — the locale is a *directory*
+  (`en_us`, `nl_nl`, `nl_be`, `en_eu`, …); a new language is a new folder of the
+  same namespace files. The active language is `app.locale` (Settings →
+  Appearance → Language), applied live by `root_shell` via `i18n.setLocale`;
+  add the `Locale` to `availableLocales` in `main.dart` and a folder under
+  `assets/i18n/`. `en_US` is default; `nl_NL` ships.
+- **Design for length variation.** Translations are not the same width — Dutch
+  runs ~20% longer than English, German more. So **never hard-size a surface to
+  its English label.** Tight surfaces (status-bar items, chips, buttons, tab
+  titles, menu items) must tolerate ~30% growth: let them wrap, ellipsis, or
+  `Flexible`/`Expanded`, not a fixed width tuned to English. When you add or
+  translate a label, sanity-check the length delta on those tight surfaces (an
+  `*.semantics` label is screen-reader-only, so its length never deforms
+  layout). A quick audit: compare `len(nl)/len(en)` per key and eyeball the
+  short-but-grew cases on real (non-semantics) surfaces.
+
 ## Conversation-panel cards (T-305)
 
 The Claude conversation stream has **three** card categories. They are NOT one

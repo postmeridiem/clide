@@ -394,6 +394,10 @@ Future<void> main() async {
     bundledThemes: themes,
     i18nLoader: AssetCatalogLoader(bundle: rootBundle),
     preloadNamespaces: _tier0Namespaces,
+    // Languages the UI can switch to (Settings → Appearance, T-462). Each needs
+    // an assets/i18n/<locale>/ catalog folder; root_shell applies the persisted
+    // app.locale on boot.
+    availableLocales: const [Locale('en', 'US'), Locale('nl', 'NL')],
     autoStartDaemonClient: false,
     toolchain: toolchain,
     minLogLevel: bootLogLevel,
