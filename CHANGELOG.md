@@ -38,6 +38,13 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   locale under `assets/i18n/<locale>/`. A new language is a drop-in folder;
   en_US behaviour is unchanged. (T-462)
 
+### Fixed
+
+- **Localized the remaining Claude-pane strings.** Running-indicator verbs, the
+  primary/secondary session titles and banner role, tool-card titles, the
+  step/edit/agent counters, and the folded-activity ticker now resolve through
+  the catalog — completing i18n coverage of the conversation surface. (T-462)
+
 ## [2.7.1] — 2026-06-18
 
 ### Changed

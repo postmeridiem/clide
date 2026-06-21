@@ -800,10 +800,10 @@ class _ConversationTurn extends StatelessWidget {
     final outcome = toolUseOutcomes[t.toolUseId];
     final color = outcome == null ? tokens.globalFocus : (outcome ? tokens.statusSuccess : tokens.statusError);
     final collapser = ClideCollapserCard(
-      label: t.name,
+      label: _toolNameLabel(context, t.name),
       color: color,
       collapsedSummary: _toolUseSummary(t),
-      counter: '1 step',
+      counter: _stepsCounter(context, 1),
       status: _toolRunStatus(t),
       children: [_toolContentCard(context, t)],
     );
@@ -818,8 +818,8 @@ class _ConversationTurn extends StatelessWidget {
           padding: const EdgeInsets.only(left: 12),
           child: ClideCollapserCard(
             label: ClideSettings.i18n.string(context, 'conversation.label.agentRun', namespace: 'builtin.claude', placeholder: 'agent run'),
-            collapsedSummary: _summarizeActivity(runItems.last),
-            counter: runItems.length == 1 ? '1 step' : '${runItems.length} steps',
+            collapsedSummary: _summarizeActivity(context, runItems.last),
+            counter: _stepsCounter(context, runItems.length),
             children: [
               for (final r in runItems)
                 _ConversationTurn(
@@ -849,7 +849,18 @@ class _ConversationTurn extends StatelessWidget {
   Widget _workflowCard(BuildContext context, AssistantToolUse t, WorkflowRun run) {
     final title = run.name ?? ClideSettings.i18n.string(context, 'conversation.label.workflow', namespace: 'builtin.claude', placeholder: 'workflow');
     final color = run.done ? tokens.statusSuccess : tokens.globalFocus;
-    final counter = run.agentCount == 0 ? 'starting' : '${run.doneCount}/${run.agentCount} agents';
+    final counter = run.agentCount == 0
+        ? ClideSettings.i18n.string(context, 'conversation.counter.starting', namespace: 'builtin.claude', placeholder: 'starting')
+        : ClideSettings.i18n.interpolated(
+            context,
+            'conversation.counter.agents',
+            namespace: 'builtin.claude',
+            placeholder: '${run.doneCount}/${run.agentCount} agents',
+            replacers: [
+              I18nReplacer(from: '{done}', replace: '${run.doneCount}'),
+              I18nReplacer(from: '{total}', replace: '${run.agentCount}'),
+            ],
+          );
     final detail = run.done ? (run.summary ?? run.description) : run.description;
     final collapsedSummary = (detail == null || detail == title) ? title : '$title · $detail';
     return ClideCollapserCard(
@@ -990,7 +1001,7 @@ class _ConversationTurn extends StatelessWidget {
       variant: ConversationCardVariant.bordered,
       accent: accent,
       borderColor: outcome == null ? null : accent,
-      label: t.name,
+      label: _toolNameLabel(context, t.name),
       copyText: const JsonEncoder.withIndent('  ').convert(t.input),
       status: status,
       body: toolInputBody(context, tokens, t.name, t.input, mono),
@@ -1047,7 +1058,7 @@ class _ConversationTurn extends StatelessWidget {
         variant: ConversationCardVariant.bordered,
         accent: quiet ? tokens.globalTextMuted : accent,
         borderColor: quiet ? tokens.panelBorder : tokens.statusError,
-        label: paired != null ? '${paired.name} · $errLabel' : errLabel,
+        label: paired != null ? '${_toolNameLabel(context, paired.name)} · $errLabel' : errLabel,
         copyText: t.content,
         collapsible: quiet || multiline,
         collapsedByDefault: quiet, // genuine errors stay expanded; a denial folds
@@ -1061,7 +1072,7 @@ class _ConversationTurn extends StatelessWidget {
     // For Write/Edit, the result is usually "OK" — keep it as plain text.
     final multiline = t.content.contains('\n');
     final isOutputTool = paired != null && const {'Bash', 'Read', 'Grep', 'LS'}.contains(paired.name);
-    final resultLabel = paired != null ? '${paired.name} · $label' : label;
+    final resultLabel = paired != null ? '${_toolNameLabel(context, paired.name)} · $label' : label;
     return ConversationCard(
       variant: ConversationCardVariant.bordered,
       accent: accent,
@@ -1127,8 +1138,8 @@ class _ActivityCard extends StatelessWidget {
     final count = items.length;
     return ClideCollapserCard(
       label: ClideSettings.i18n.string(context, 'conversation.cluster.activity', namespace: 'builtin.claude', placeholder: 'Activity'),
-      collapsedSummary: _summarizeActivity(items.last),
-      counter: count == 1 ? '1 step' : '$count steps',
+      collapsedSummary: _summarizeActivity(context, items.last),
+      counter: _stepsCounter(context, count),
       status: _runStatus(items, resultByToolUseId),
       children: [
         for (final item in items)
@@ -1149,6 +1160,35 @@ class _ActivityCard extends StatelessWidget {
     );
   }
 }
+
+/// Localized display label for a tool name (T-462). File/web/task operations
+/// have natural translations; command/proper-name tools (Bash, Grep, Glob, LS)
+/// have no catalog key and fall back to the raw name via the placeholder.
+String _toolNameLabel(BuildContext context, String name) =>
+    ClideSettings.i18n.string(context, 'tool.name.$name', namespace: 'builtin.claude', placeholder: name);
+
+/// Localized "N steps" counter for a collapser header (T-462). Singular and
+/// plural are distinct catalog keys; the English forms double as the fallback.
+String _stepsCounter(BuildContext context, int n) => n == 1
+    ? ClideSettings.i18n.string(context, 'conversation.counter.step', namespace: 'builtin.claude', placeholder: '1 step')
+    : ClideSettings.i18n.interpolated(
+        context,
+        'conversation.counter.steps',
+        namespace: 'builtin.claude',
+        placeholder: '$n steps',
+        replacers: [I18nReplacer(from: '{count}', replace: '$n')],
+      );
+
+/// Localized "N edits" counter for the edit-run collapser header (T-462).
+String _editsCounter(BuildContext context, int n) => n == 1
+    ? ClideSettings.i18n.string(context, 'conversation.counter.edit', namespace: 'builtin.claude', placeholder: '1 edit')
+    : ClideSettings.i18n.interpolated(
+        context,
+        'conversation.counter.edits',
+        namespace: 'builtin.claude',
+        placeholder: '$n edits',
+        replacers: [I18nReplacer(from: '{count}', replace: '$n')],
+      );
 
 /// Aggregate live status for a run's header tick (T-296): error if any tool in
 /// the run failed, else running while its last tool awaits a result, else
@@ -1193,8 +1233,8 @@ class _EditRunCard extends StatelessWidget {
     final count = edits.length;
     return ClideCollapserCard(
       label: ClideSettings.i18n.string(context, 'conversation.cluster.edits', namespace: 'builtin.claude', placeholder: 'Edits'),
-      collapsedSummary: _summarizeActivity(edits.last),
-      counter: count == 1 ? '1 edit' : '$count edits',
+      collapsedSummary: _summarizeActivity(context, edits.last),
+      counter: _editsCounter(context, count),
       status: _runStatus(edits, resultByToolUseId),
       children: [
         for (final item in edits)
@@ -1216,22 +1256,25 @@ class _EditRunCard extends StatelessWidget {
 }
 
 /// One-line summary of a folded item for the collapsed ticker.
-String _summarizeActivity(ConversationItem item) {
+String _summarizeActivity(BuildContext context, ConversationItem item) {
+  String label(String key, String fallback) => ClideSettings.i18n.string(context, key, namespace: 'builtin.claude', placeholder: fallback);
   switch (item) {
     case AssistantToolUse(:final name, :final input):
       final raw = input['command'] ?? input['file_path'] ?? input['path'] ?? input['pattern'] ?? input['url'];
       final detail = raw is String ? raw.split('\n').first.trim() : '';
       final clipped = detail.length > 72 ? '${detail.substring(0, 72)}…' : detail;
-      return clipped.isEmpty ? name : '$name  $clipped';
+      final toolName = _toolNameLabel(context, name);
+      return clipped.isEmpty ? toolName : '$toolName  $clipped';
     case ToolResultMessage(:final isError):
-      return isError ? '↳ result · error' : '↳ result';
+      final result = label('conversation.label.result', 'result');
+      return isError ? '↳ $result · ${label('conversation.label.error', 'error')}' : '↳ $result';
     case AssistantThinkingMessage():
-      return 'thinking…';
+      return '${label('conversation.label.thinking', 'thinking')}…';
     case UserMessage(:final text):
       return text;
     case AssistantTextMessage(:final text):
       return text;
     case ImageMessage(:final path):
-      return 'image $path';
+      return '${label('conversation.label.image', 'image')} $path';
   }
 }

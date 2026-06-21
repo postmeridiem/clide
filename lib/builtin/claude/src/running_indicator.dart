@@ -90,17 +90,22 @@ class _RunningIndicatorState extends State<RunningIndicator> with SingleTickerPr
       label: ClideSettings.i18n.string(context, 'running.semantics', namespace: 'builtin.claude', placeholder: 'Claude is running'),
       child: ExcludeSemantics(
         child: reduced
-            ? ClideText('${_verbs.first}…', color: claudeAccent, fontSize: clideFontMeta)
+            ? ClideText('${_verb(context, _verbs.first)}…', color: claudeAccent, fontSize: clideFontMeta)
             : AnimatedBuilder(
                 animation: _c,
                 builder: (ctx, _) {
                   final elapsed = _c.value * _periodSeconds;
                   final dots = '.' * (elapsed.floor() % 4);
                   final word = _verbs[(elapsed ~/ _secondsPerWord) % _verbs.length];
-                  return ClideText('$word$dots', color: claudeAccent, fontSize: clideFontMeta);
+                  return ClideText('${_verb(ctx, word)}$dots', color: claudeAccent, fontSize: clideFontMeta);
                 },
               ),
       ),
     );
   }
+
+  /// Localize a verb through the catalog; the English word doubles as the key
+  /// suffix and the fallback, so a missing translation degrades to English.
+  String _verb(BuildContext context, String word) =>
+      ClideSettings.i18n.string(context, 'running.verb.${word.toLowerCase()}', namespace: 'builtin.claude', placeholder: word);
 }

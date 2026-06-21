@@ -728,7 +728,15 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isPrimary ? 'claude — primary' : 'claude — secondary ${widget.secondaryIndex}';
+    final title = widget.isPrimary
+        ? ClideSettings.i18n.string(context, 'pane.title.primary', namespace: 'builtin.claude', placeholder: 'claude — primary')
+        : ClideSettings.i18n.interpolated(
+            context,
+            'pane.title.secondary',
+            namespace: 'builtin.claude',
+            placeholder: 'claude — secondary ${widget.secondaryIndex}',
+            replacers: [I18nReplacer(from: '{index}', replace: '${widget.secondaryIndex}')],
+          );
     final tokens = ClideSettings.theme.of(context).surface;
 
     final Widget body;
@@ -761,7 +769,15 @@ class _ClaudePaneState extends State<ClaudePane> {
                     quietErrorToolUseIds: _session?.quietErrorToolUseIds ?? const <String>{},
                     workflows: _session?.workflows ?? const <String, WorkflowRun>{},
                     emptyState: ClaudeBanner(
-                      role: widget.isPrimary ? 'primary' : 'session ${widget.secondaryIndex}',
+                      role: widget.isPrimary
+                          ? ClideSettings.i18n.string(context, 'banner.role.primary', namespace: 'builtin.claude', placeholder: 'primary')
+                          : ClideSettings.i18n.interpolated(
+                              context,
+                              'banner.role.secondary',
+                              namespace: 'builtin.claude',
+                              placeholder: 'session ${widget.secondaryIndex}',
+                              replacers: [I18nReplacer(from: '{index}', replace: '${widget.secondaryIndex}')],
+                            ),
                       workspace: _repoRoot,
                       statusLine: _statusLine,
                     ),
