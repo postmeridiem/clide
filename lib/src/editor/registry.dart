@@ -180,8 +180,13 @@ class EditorRegistry {
     if (buf == null) return;
     _pathToId.remove(buf.path);
     if (_activeId == id) {
+      // Promote the next buffer, or clear to null when this was the last one.
+      // Emit active-changed in BOTH cases: a null id is the signal the editor
+      // split collapses on (T-459). Guarding the emit on `_activeId != null`
+      // suppressed exactly the last-buffer-closed event, leaving editorOpen
+      // stuck true and the top split orphaned over the primary pane.
       _activeId = _buffers.values.isEmpty ? null : _buffers.values.first.id;
-      if (_activeId != null) _emitActive();
+      _emitActive();
     }
     _emit('editor.closed', {'id': id, 'path': buf.path});
   }

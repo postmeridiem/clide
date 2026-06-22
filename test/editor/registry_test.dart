@@ -89,6 +89,23 @@ void main() {
     expect(sink.ofKind('editor.active-changed').length, greaterThanOrEqualTo(2));
   });
 
+  test('closing the last buffer clears active + emits active-changed with id=null (T-459)', () async {
+    final buf = await reg.open('README.md');
+    expect(reg.active, same(buf));
+    sink.events.clear();
+    reg.close(buf.id);
+    // No buffer left — active clears to null.
+    expect(reg.active, isNull);
+    // The collapse signal: active-changed must still fire, carrying a null id,
+    // so the editor split drops out. The bug (T-459) was this emit being
+    // guarded away on the last close, leaving editorOpen stuck true.
+    final activeChanged = sink.ofKind('editor.active-changed');
+    expect(activeChanged, hasLength(1));
+    expect(activeChanged.single.data['id'], isNull);
+    expect(activeChanged.single.data['path'], isNull);
+    expect(sink.ofKind('editor.closed'), hasLength(1));
+  });
+
   test('opening a non-existent path creates an empty buffer', () async {
     final buf = await reg.open('NEW.md');
     expect(buf.content, isEmpty);

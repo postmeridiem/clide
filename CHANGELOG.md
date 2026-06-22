@@ -25,6 +25,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 - **Default window opens larger (1600×900) on Linux.** 720p was short enough
   that the welcome screen's version/theme footer overlapped the tips card;
   the taller default clears it, matching the macOS default. (T-477)
+- **Editor split collapses when the last buffer closes.** Closing the final
+  editor buffer left the top split orphaned over the Claude pane; the daemon
+  now emits the buffer-cleared event it was suppressing, so the split drops
+  out and the primary pane fills the column. (T-459)
 
 ## [2.8.0] — 2026-06-19
 
