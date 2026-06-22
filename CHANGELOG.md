@@ -22,6 +22,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **Default window opens larger (1600×900) on Linux.** 720p was short enough
+  that the welcome screen's version/theme footer overlapped the tips card;
+  the taller default clears it, matching the macOS default. (T-477)
+
 ## [2.8.0] — 2026-06-19
 
 ### Added

@@ -121,7 +121,10 @@ static void clide_app_activate(GApplication* application) {
   g_signal_connect(window, "realize", G_CALLBACK(on_window_realize), nullptr);
   g_signal_connect(window, "map", G_CALLBACK(on_window_realize), nullptr);
 
-  gtk_window_set_default_size(window, 1280, 720);
+  // Matches the macOS default (MainMenu.xib). 720p was tall enough to let the
+  // vertically-centred welcome content slide under the floating status line
+  // (version/theme footer at bottom:24); 900px gives it clear bottom margin.
+  gtk_window_set_default_size(window, 1600, 900);
 
   // Resolve icon relative to the executable, not cwd.
   {
