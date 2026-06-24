@@ -186,6 +186,10 @@ build-macos: gen-build-info ## flutter build macos (desktop bundle).
 build-windows: gen-build-info ## flutter build windows (desktop bundle).
 	flutter build windows
 
+.PHONY: release
+release: ## Finalize a release: verify version/changelog/tree, run the gate, tag vX.Y.Z. Run after the `release vX.Y.Z` commit.
+	ci/release.sh
+
 # -- install / uninstall -----------------------------------------------------
 
 # Install prefix. Bundle lands at $(INSTALL_PREFIX)/clide/ with a
