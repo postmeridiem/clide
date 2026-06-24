@@ -393,7 +393,7 @@ Future<void> main() async {
     appDir: appDir,
     bundledThemes: themes,
     i18nLoader: AssetCatalogLoader(bundle: rootBundle),
-    preloadNamespaces: _tier0Namespaces,
+    preloadNamespaces: kTier0Namespaces,
     // Languages the UI can switch to (Settings → Appearance, T-462). Each needs
     // an assets/i18n/<locale>/ catalog folder; root_shell applies the persisted
     // app.locale on boot.
@@ -537,39 +537,13 @@ Future<Directory> _resolveAppDir() async {
 
 Future<List<ThemeDefinition>> _loadBundledThemes() async {
   const loader = ThemeLoader();
-  const paths = [
-    'lib/kernel/src/theme/themes/clide.yaml',
-    'lib/kernel/src/theme/themes/midnight.yaml',
-    'lib/kernel/src/theme/themes/paper.yaml',
-    'lib/kernel/src/theme/themes/terminal.yaml',
-    'lib/kernel/src/theme/themes/clide-hc.yaml',
-    'lib/kernel/src/theme/themes/midnight-hc.yaml',
-    'lib/kernel/src/theme/themes/paper-hc.yaml',
-    'lib/kernel/src/theme/themes/terminal-hc.yaml',
-    'lib/kernel/src/theme/themes/catppuccin-mocha.yaml',
-    'lib/kernel/src/theme/themes/catppuccin-mocha-hc.yaml',
-  ];
   final out = <ThemeDefinition>[];
-  for (final p in paths) {
+  for (final p in kBundledThemePaths) {
     out.add(await loader.fromAsset(rootBundle, p));
   }
   return out;
 }
 
-/// Every Tier-0 extension that ships an i18n catalog. Extensions
-/// registered but not active (the 17 stubs) don't preload — their
-/// catalogs load lazily on activate in later tiers.
-
-const List<String> _tier0Namespaces = [
-  // Framework chrome that lives outside any extension (lib/widgets, lib/kernel,
-  // shared reader chrome) resolves under the 'core' namespace (T-469).
-  'core',
-  'builtin.default-layout',
-  'builtin.welcome',
-  'builtin.ipc-status',
-  'builtin.theme-picker',
-  'builtin.terminal',
-  'builtin.files',
-  'builtin.claude',
-  'builtin.editor',
-];
+// The Tier-0 i18n namespace list now lives in
+// lib/kernel/src/i18n/tier0_namespaces.dart as `kTier0Namespaces`, the single
+// source of truth shared with the i18n coverage gate (T-371).

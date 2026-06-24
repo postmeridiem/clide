@@ -247,17 +247,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
     // Theme loading
     try {
       const loader = ThemeLoader();
-      const paths = [
-        'lib/kernel/src/theme/themes/clide.yaml',
-        'lib/kernel/src/theme/themes/midnight.yaml',
-        'lib/kernel/src/theme/themes/paper.yaml',
-        'lib/kernel/src/theme/themes/terminal.yaml',
-        'lib/kernel/src/theme/themes/clide-hc.yaml',
-        'lib/kernel/src/theme/themes/midnight-hc.yaml',
-        'lib/kernel/src/theme/themes/paper-hc.yaml',
-        'lib/kernel/src/theme/themes/terminal-hc.yaml',
-      ];
-      for (final p in paths) {
+      for (final p in kBundledThemePaths) {
         final name = p.split('/').last.replaceAll('.yaml', '');
         try {
           final theme = await loader.fromAsset(rootBundle, p);
@@ -277,7 +267,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
       final themes = <ThemeDefinition>[];
       try {
         const loader = ThemeLoader();
-        themes.add(await loader.fromAsset(rootBundle, 'lib/kernel/src/theme/themes/clide.yaml'));
+        themes.add(await loader.fromAsset(rootBundle, kBundledThemePaths.first));
       } catch (_) {}
 
       final services = await KernelServices.boot(

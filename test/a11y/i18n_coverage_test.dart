@@ -1,54 +1,61 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
-/// Asserts every bundled i18n catalog is well-formed and every key the
-/// Tier-0 built-ins ask for actually resolves.
+/// i18n coverage gate.
 ///
-/// The second check is important: in a text-driven i18n system missing
-/// keys show the placeholder, so a runtime lookup test wouldn't "fail"
-/// on a typo — we have to assert the keys exist up front.
+/// The subject list is derived from the shipped catalogs on disk
+/// (`assets/i18n/en_us/*.json`), NOT a hand-maintained list — so a newly
+/// added catalog is validated automatically and cannot ship unchecked
+/// (T-371; the old gate hand-enumerated 4 of the namespaces and silently
+/// covered less as the app grew).
+///
+/// Per catalog we assert: the en_US catalog loads and is non-empty, and the
+/// nl_NL pack is at exact key parity (no missing or extra keys) — so a locale
+/// switch never falls back to English for a shipped string, and a stray
+/// translation key can't rot unnoticed.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  /// (namespace, key) pairs referenced by Tier-0 built-ins. Extend when
-  /// new keys land.
-  const referenced = <String, List<String>>{
-    'builtin.welcome': ['title', 'subtitle', 'open-project', 'open-project.hint', 'tab.title'],
-    'builtin.ipc-status': ['connected', 'connected.hint', 'disconnected', 'disconnected.hint'],
-    'builtin.theme-picker': ['modal.title', 'modal.cancel', 'modal.cancel.hint', 'row.select.hint'],
-    'builtin.default-layout': ['command.reset', 'preset.classic'],
-  };
+  const enDir = 'assets/i18n/en_us';
+  final namespaces = Directory(
+    enDir,
+  ).listSync().whereType<File>().where((f) => f.path.endsWith('.json')).map((f) => f.uri.pathSegments.last.replaceAll('.json', '')).toList()..sort();
 
-  group('i18n coverage (Tier 0)', () {
-    for (final entry in referenced.entries) {
-      final ns = entry.key;
-      test('$ns catalog contains every referenced key', () async {
+  group('i18n coverage — every shipped catalog', () {
+    test('the asset dir actually ships catalogs', () {
+      expect(namespaces, isNotEmpty, reason: 'no catalogs found under $enDir');
+    });
+
+    for (final ns in namespaces) {
+      test('$ns: en_US loads non-empty, nl_NL at key parity', () async {
         final loader = AssetCatalogLoader(bundle: rootBundle);
-        final catalog = await loader.load(ns, const Locale('en', 'US'));
-        expect(catalog, isNotEmpty, reason: 'catalog for "$ns" failed to load (asset path wrong?)');
-        for (final key in entry.value) {
-          expect(catalog.containsKey(key), isTrue, reason: 'namespace "$ns" catalog is missing key "$key"');
-        }
+        final en = await loader.load(ns, const Locale('en', 'US'));
+        expect(en, isNotEmpty, reason: 'en_US catalog for "$ns" failed to load (asset path wrong?)');
+        final nl = await loader.load(ns, const Locale('nl', 'NL'));
+        expect(nl, isNotEmpty, reason: 'nl_NL catalog for "$ns" missing or empty');
+
+        final enKeys = en.keys.toSet();
+        final nlKeys = nl.keys.toSet();
+        expect(nlKeys.difference(enKeys), isEmpty, reason: 'nl_NL "$ns" has keys absent from en_US: ${nlKeys.difference(enKeys)}');
+        expect(enKeys.difference(nlKeys), isEmpty, reason: 'nl_NL "$ns" is missing keys present in en_US: ${enKeys.difference(nlKeys)}');
       });
     }
   });
 
-  // The bundled Dutch pack (T-462) must load and cover the same Tier-0 keys, so
-  // a locale switch never falls back to English for a built-in label.
-  group('i18n coverage — Dutch pack (nl-NL)', () {
-    for (final entry in referenced.entries) {
-      final ns = entry.key;
-      test('$ns nl_NL catalog covers every referenced key', () async {
-        final loader = AssetCatalogLoader(bundle: rootBundle);
-        final catalog = await loader.load(ns, const Locale('nl', 'NL'));
-        expect(catalog, isNotEmpty, reason: 'nl_NL catalog for "$ns" failed to load');
-        for (final key in entry.value) {
-          expect(catalog.containsKey(key), isTrue, reason: 'nl_NL "$ns" missing key "$key"');
-        }
-      });
-    }
+  // The Tier-0 preload list (loaded at boot, before its owning extension
+  // activates) must name only catalogs that actually ship — else boot preloads
+  // a missing namespace. The reverse isn't required: most catalogs load lazily
+  // on extension activation, not at boot.
+  group('i18n coverage — Tier-0 preload set is honest', () {
+    test('every kTier0Namespaces entry has a shipped en_US catalog', () {
+      final shipped = namespaces.toSet();
+      for (final ns in kTier0Namespaces) {
+        expect(shipped.contains(ns), isTrue, reason: 'kTier0Namespaces names "$ns" but no $enDir/$ns.json ships');
+      }
+    });
   });
 }

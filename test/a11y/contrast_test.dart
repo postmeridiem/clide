@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:clide/kernel/kernel.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,24 +12,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// Themes whose name ends in `-hc` (high-contrast) or `-cb`
 /// (colour-blind) additionally have to clear the stricter
 /// [extendedPairs] set — D-69.
+///
+/// The subject list is [kBundledThemePaths] — the SAME list main.dart loads
+/// and the testmode harness validates (T-371). A meta-test asserts every
+/// `.yaml` on disk is in that list, so a new theme cannot ship unvalidated.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('contrast — all bundled themes meet WCAG AA', () {
-    const bundledPaths = [
-      'lib/kernel/src/theme/themes/clide.yaml',
-      'lib/kernel/src/theme/themes/midnight.yaml',
-      'lib/kernel/src/theme/themes/paper.yaml',
-      'lib/kernel/src/theme/themes/terminal.yaml',
-      'lib/kernel/src/theme/themes/clide-hc.yaml',
-      'lib/kernel/src/theme/themes/midnight-hc.yaml',
-      'lib/kernel/src/theme/themes/paper-hc.yaml',
-      'lib/kernel/src/theme/themes/terminal-hc.yaml',
-      'lib/kernel/src/theme/themes/catppuccin-mocha.yaml',
-      'lib/kernel/src/theme/themes/catppuccin-mocha-hc.yaml',
-    ];
-
-    for (final path in bundledPaths) {
+    for (final path in kBundledThemePaths) {
       test('theme: $path', () async {
         final def = await const ThemeLoader().fromAsset(rootBundle, path);
         const resolver = ThemeResolver();
@@ -56,5 +49,20 @@ void main() {
         }
       });
     }
+  });
+
+  // Drift guard (T-371): a theme YAML on disk that isn't in kBundledThemePaths
+  // would never be loaded, shipped, or contrast-checked. Fail loudly so a new
+  // theme has to be added to the canonical list (which auto-validates it above)
+  // rather than sit on disk unvalidated.
+  test('every theme YAML on disk is in kBundledThemePaths', () {
+    final onDisk = Directory(
+      kThemesDir,
+    ).listSync().whereType<File>().map((f) => f.path).where((p) => p.endsWith('.yaml')).map((p) => p.replaceAll(r'\', '/')).toSet();
+    final bundled = kBundledThemePaths.toSet();
+    final unbundled = onDisk.difference(bundled);
+    expect(unbundled, isEmpty, reason: 'theme YAML(s) on disk but not in kBundledThemePaths (so unvalidated/unshipped): $unbundled');
+    final missing = bundled.difference(onDisk);
+    expect(missing, isEmpty, reason: 'kBundledThemePaths references missing file(s): $missing');
   });
 }

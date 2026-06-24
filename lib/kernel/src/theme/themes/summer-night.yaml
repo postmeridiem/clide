@@ -1,24 +1,27 @@
-# Summer Night — ported from legacy clide v1.2.0.
-# Palette-only; the three-tier resolver fills semantic + surface from
-# defaults. Override sections land here as the token surface grows.
+# Summer Night — cyan/teal/pink on blue-grey (ported from legacy clide v1.2.0).
+#
+# The 12 original palette colors are kept as the v1.2 designer chose them. The
+# expanded keys (surfaceHi, border/borderHi, textDim/textMute, accentSoft) and
+# the syntax set follow the clide derivation pattern, re-tinted to this theme's
+# identity. Base honours the design and clears the canonical contrast gate;
+# the high-contrast sibling (summer-night-hc) clears the strict extended gate.
 
 name: summer-night
 display_name: Summer Night
 dark: true
 
 palette:
-  # Accents (legacy names: primary/secondary/accent)
-  primary: "#00a3d2"      # cyan
-  secondary: "#00a9b9"    # teal
-  accent: "#fa5f8b"       # pink
+  # Accents (legacy: primary cyan / secondary teal / accent pink)
+  primary: "#00a3d2"
+  secondary: "#00a9b9"
+  accent: "#fa5f8b"
 
   # Backgrounds
   background: "#21262f"
   surface: "#393e48"
   panel: "#292e38"
 
-  # Text. `muted` is WCAG-AA-calibrated against `panel` — don't darken
-  # without re-running the a11y/contrast suite.
+  # Text. `muted` is WCAG-AA-calibrated against `panel`.
   foreground: "#e2e8f5"
   muted: "#a6adbb"
 
@@ -27,3 +30,20 @@ palette:
   warning: "#d08447"
   error: "#f06c6f"
   info: "#00a3d2"
+
+  # Expanded keys (clide pattern, summer-night tint)
+  surfaceHi: "#434a57"
+  border: "#3a414d"
+  borderHi: "#4a5260"
+  textDim: "#9aa2b2"
+  textMute: "#727a8a"
+  accentSoft: "#21fa5f8b"
+
+syntax:
+  keyword: "#fa8fb0"   # pink
+  type: "#5ec8e6"      # cyan
+  string: "#7fd3a8"    # green
+  number: "#e0b070"    # amber
+  comment: "#727a8a"   # muted
+  method: "#6fc6e0"    # teal-cyan
+  punct: "#9aa2b2"     # dim

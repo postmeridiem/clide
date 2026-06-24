@@ -1,0 +1,44 @@
+# summer-night-hc — high-contrast sibling of `summer-night`.
+#
+# Same cyan/teal/pink silhouette and identical schema; muted text, status
+# chips, syntax tokens, and the focus border are brightened to clear the
+# strict contrast gate (D-22 + D-69, `extendedPairs` in
+# lib/kernel/src/theme/contrast.dart). Backgrounds/surface/foreground are
+# unchanged from the base so the two read as the same theme.
+
+name: summer-night-hc
+display_name: Summer Night (high contrast)
+dark: true
+
+palette:
+  primary: "#5cc8ec"
+  secondary: "#5fd6cb"
+  accent: "#ff84a6"
+
+  background: "#21262f"
+  surface: "#393e48"
+  panel: "#292e38"
+
+  foreground: "#e2e8f5"
+  muted: "#c4cad6"
+
+  success: "#3fd6c0"
+  warning: "#e6b072"
+  error: "#ff9b99"
+  info: "#6cc8ec"
+
+  surfaceHi: "#434a57"
+  border: "#3a414d"
+  borderHi: "#5cc8ec"
+  textDim: "#c4cad6"
+  textMute: "#9aa2b2"
+  accentSoft: "#21ff84a6"
+
+syntax:
+  keyword: "#ffa0c0"   # pink
+  type: "#6cd4f0"      # cyan
+  string: "#9fe0c0"    # green
+  number: "#f0c888"    # amber
+  comment: "#9aa2b2"   # muted
+  method: "#80d0e8"    # teal-cyan
+  punct: "#c4cad6"     # dim
