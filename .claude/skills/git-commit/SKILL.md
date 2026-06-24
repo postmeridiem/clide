@@ -99,6 +99,7 @@ Cutting a release is its own commit. In a single commit:
 3. Bump `pubspec.yaml` `version:` to `X.Y.Z` (drop the `-dev` suffix for the tag; re-add it on the next development commit if desired).
 4. Run `make gen-build-info` so `assets/licenses.yaml` `self.version:` re-syncs from pubspec (it's auto-rewritten by every build but commit the fresh state). Stage the resulting diff alongside step 3.
 5. Commit subject: `release vX.Y.Z`.
+6. **Tag it.** After the commit lands, run `make release` — it verifies the version/changelog/clean-tree invariants, runs the full gate, and creates the annotated `vX.Y.Z` tag. Then `git push origin main --follow-tags` to publish the commit and the tag together. **Every released version must have a matching `git tag`** — a CHANGELOG heading without a tag is an incomplete release (T-393: tagging had silently lapsed from v2.2.0 through v2.8.0). Don't hand-roll the tag; `make release` keeps the tag, gate, and version in lockstep. If you tag by hand, use an annotated tag (`git tag -a vX.Y.Z -m "clide vX.Y.Z"`); never push a release commit without its tag.
 
 `pubspec.yaml` is the single source of truth for the version. Every `make` build/run/test target regenerates `lib/src/build_info.g.dart` (gitignored) and rewrites `assets/licenses.yaml` `self.version:` from it — so the Flutter app sees the current version everywhere without manual sync. Bumping `pubspec.yaml` and the changelog out of sync is the mistake this rule prevents.
 
