@@ -5,14 +5,16 @@
 # Bypass: never. If this runs slowly, fix the slow test; don't reach
 # for --no-verify (git-commit skill forbids it).
 #
-# Fast path (T-348): run the full ~2min test suite only when the push touches
-# lib/ (app + runtime Dart source) or pubspec.* (deps / version). test/,
-# assets/, docs, and tooling changes ride along with a lib change in practice,
-# and an otherwise-skipped push is covered by the next one that does touch lib.
-# The full suite is always available via `make push-check`, and the release CI
-# runs it forced on a tagged version. So a lib/pubspec-free push runs just the
-# instant decisions + changelog gates. A state we can't classify (unfetched
-# remote, new branch) runs the full gate.
+# Fast path (T-348, widened T-393): run the full ~2min test suite when the push
+# touches lib/ (app + runtime Dart source), pubspec.* (deps / version), or the
+# things that can themselves break the suite or this gate — test/, ci/, and
+# .githooks/. (The old regex matched only lib/ and pubspec.*, so a push that
+# ONLY changed a test, a ci/ gate script, or this hook skipped the whole suite.)
+# Pure assets/docs changes still ride along with the next lib-touching push.
+# There is no release CI — the full suite is only ever run here or via
+# `make push-check`. So a push touching none of the above runs just the instant
+# decisions + changelog gates. A state we can't classify (unfetched remote, new
+# branch) runs the full gate.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -40,16 +42,22 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   changed+=$'\n'"$(git diff --name-only "$base" "$local_sha")"
 done
 
-# Run the full gate when lib/ (app + runtime source) or pubspec.* (deps /
-# version) is touched, or when we couldn't classify above.
+# Paths that force the full gate: source (lib/), deps/version (pubspec.*), and
+# the dirs that can themselves break the suite or this gate (test/, ci/,
+# .githooks/). Single source of truth — test/tooling/pre_push_hook_test.dart
+# reads this exact pattern, so narrowing it fails that test (the T-393 guard).
+trigger_re='^(lib/|test/|ci/|\.githooks/|pubspec\.)'
+
+# Run the full gate when a trigger path is touched, or when we couldn't classify
+# above.
 needs_gate=1
 if [[ "$force_full" -eq 0 ]]; then
-  trigger_files="$(printf '%s\n' "$changed" | grep -E '^(lib/|pubspec\.)' || true)"
+  trigger_files="$(printf '%s\n' "$changed" | grep -E "$trigger_re" || true)"
   [[ -z "$trigger_files" ]] && needs_gate=0
 fi
 
 if [[ "$needs_gate" -eq 0 ]]; then
-  echo "==> pre-push: no lib/ or pubspec change — decisions + changelog gates, skipping tests"
+  echo "==> pre-push: no source/test/ci/hook/pubspec change — decisions + changelog gates, skipping tests"
   make decisions-validate changelog-gate
 else
   echo "==> pre-push: make push-check"
