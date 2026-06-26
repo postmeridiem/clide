@@ -5956,3 +5956,93 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC46SEHH8NQY481VMGK66R', 'status', 'in_progress', 'done', NULL, '2026-06-24 13:28:43', '2026-06-24 13:28:43.038', '2026-06-24 13:28:43.038', NULL, '53c03d3229add40fdbcb41eed62cb42b', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFKFYBZFKBX0WV574QJEH2BC', 'status', 'backlog', 'done', NULL, '2026-06-24 13:28:43', '2026-06-24 13:28:43.041', '2026-06-24 13:28:43.041', NULL, '016e6d0c845e076bb60fe3cb0c34b4c9', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDE5A3965GNRFS5WPZW878', 'status', 'in_progress', 'done', NULL, '2026-06-24 21:26:58', '2026-06-24 21:26:58.043', '2026-06-24 21:26:58.043', NULL, '8781bb622159f6670c45ae3685b0e496', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM62FKQQD0B9B80PFY4', 'status', 'backlog', 'ready', NULL, '2026-06-26 06:48:11', '2026-06-26 06:48:11.921', '2026-06-26 06:48:11.921', NULL, 'd45e6726c41e9072e38513b3c1162b8a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM62FKQQD0B9B80PFY4', 'description', 'Show the account/subscription usage budget (5-hour + weekly limits, % used, reset times) in the Claude meta sidebar (T-141). BLOCKED: this data is not programmatically exposed under subscription (OAuth) auth as of claude 2.1.150 — verified empirically + via docs (2026-05-23). /usage is TUI-only (headless ''claude -p /usage'' returns only a one-liner); stats-cache.json has activity counts only; the stream-json rate_limit_event is undocumented + needs a billed turn; ''claude auth status --json'' shows plan only. A ''claude usage --json'' + a /v1/organizations/{org}/usage/subscription endpoint are an OPEN, unshipped feature request (GitHub anthropics/claude-code#44328). Revisit when #44328 ships or an API-key usage path exists. See project memory ''claude-usage-budget-not-exposed''.
+
+2026-06-09: detached from T-132 (which is otherwise complete) and made the RESOLVER ticket for Q-34 (how + when to surface the budget given upstream doesn''t expose it). Stays in the backlog; revisit when a viable data path lands (upstream claude usage --json / endpoint per anthropics/claude-code#44328, or an API-key usage path).
+
+UNBLOCKED (2026-06-12, T-415): probed claude 2.1.175 — a forwarded /usage IS
+answered headless in stream-json (free, num_turns 0) with parseable text
+(session %, week % all-models, week % Sonnet). The Activity tab now renders it
+via parseUsageText + a user-initiated refresh control. Remaining scope for this
+ticket would be per-member/team budget split, if still wanted.', 'Show the account/subscription usage budget (5-hour + weekly limits, % used, reset times) in the Claude meta sidebar (T-141). BLOCKED: this data is not programmatically exposed under subscription (OAuth) auth as of claude 2.1.150 — verified empirically + via docs (2026-05-23). /usage is TUI-only (headless ''claude -p /usage'' returns only a one-liner); stats-cache.json has activity counts only; the stream-json rate_limit_event is undocumented + needs a billed turn; ''claude auth status --json'' shows plan only. A ''claude usage --json'' + a /v1/organizations/{org}/usage/subscription endpoint are an OPEN, unshipped feature request (GitHub anthropics/claude-code#44328). Revisit when #44328 ships or an API-key usage path exists. See project memory ''claude-usage-budget-not-exposed''.
+
+2026-06-09: detached from T-132 (which is otherwise complete) and made the RESOLVER ticket for Q-34 (how + when to surface the budget given upstream doesn''t expose it). Stays in the backlog; revisit when a viable data path lands (upstream claude usage --json / endpoint per anthropics/claude-code#44328, or an API-key usage path).
+
+UNBLOCKED (2026-06-12, T-415): probed claude 2.1.175 — a forwarded /usage IS
+answered headless in stream-json (free, num_turns 0) with parseable text
+(session %, week % all-models, week % Sonnet). The Activity tab now renders it
+via parseUsageText + a user-initiated refresh control. Remaining scope for this
+ticket would be per-member/team budget split, if still wanted.
+
+─────────────────────────────────────────────
+REFINED 2026-06-26
+
+## Grounding (current state)
+- T-415 SHIPPED the account-budget display. `/usage` is forwarded headless
+  (free, num_turns 0), parsed by `parseUsageText` → `ClaudeUsage` (session %,
+  week all-models %, week Sonnet %) in
+  lib/builtin/claude/src/claude_status.dart, rendered in the Activity tab
+  (meta_sidebar/activity_tab.dart, USAGE `MetaSection`) with a user-initiated
+  refresh that publishes `/usage` on the `builtin.claude/command` channel.
+  claude_meta_sidebar.dart binds the PRIMARY session''s synthetic text items and
+  parses them into `_usage`.
+
+## KEY FINDING — a literal "per-member split" is not meaningful today
+- Claude''s usage budget is per-ACCOUNT (subscription/OAuth), not per-session.
+  Every clide session in a workspace (primary, secondaries, managed teammates)
+  spawns against the SAME `~/.claude` login — session_orchestrator spawns with
+  no per-session CLAUDE_* auth override and all transcripts live under one
+  project dir. So the whole team draws down ONE shared 5h/weekly budget.
+- Rendering the same numbers on each roster row would mislead, not inform. True
+  per-member budgets need per-SESSION account login, which even T-476 (per-REPO
+  login) does NOT provide — within one workspace/team the account is shared.
+  Treat per-member-different-account as out of scope unless per-session
+  multi-account auth ever exists.
+
+## RECOMMENDED SCOPE (shippable, honest) — resolves Q-34
+Surface the existing account-wide budget in the TEAM tab as a single "Account"
+section (NOT per-member): the team sidebar then answers "how much budget is left
+for the account the whole team shares." Satisfies the ticket title without the
+false split.
+
+Implementation:
+1. meta_sidebar/team_tab.dart (TeamTabView.build): add a `MetaSection`
+   (header i18n key `team.section.usage`) rendering the same 3 `MetaRow`s the
+   Activity tab uses (session / week-all / week-sonnet), shown only when usage
+   != null, with a one-line caption that it is account-wide / shared across the
+   team (so it isn''t read as per-member).
+2. claude_meta_sidebar.dart: pass the existing `_usage` (ClaudeUsage?) into
+   TeamTabView (it already passes `members`). No new fetch — the primary''s
+   `/usage` already IS the account budget.
+3. Optional: a refresh control in the team section mirroring the Activity tab
+   (publish `/usage` on `builtin.claude/command`), or just rely on the Activity
+   tab''s refresh keeping `_usage` current.
+
+Files to touch: meta_sidebar/team_tab.dart, claude_meta_sidebar.dart (thread
+usage), meta_sidebar/models.dart (reuse MetaSection/MetaRow),
+assets/i18n/en_us + nl_nl/builtin.claude.json (new `team.section.usage` [+
+caption] key — keep en/nl parity for the a11y i18n gate).
+
+## ALTERNATIVE PATHS (pick one before building)
+A. Shared-account section in the team tab (recommended above).
+B. Close T-158 as substantially DONE by T-415 — the budget is already visible in
+   the Activity tab; a team-tab duplicate may be redundant. Q-34 answered either
+   way.
+C. Keep the true per-member split as a FUTURE item, explicitly blocked on a
+   (currently non-existent) per-session multi-account login; park T-158 behind
+   it.
+
+## ACCEPTANCE (for option A)
+- Team tab shows ONE account-budget section (session / week / week-sonnet %)
+  when a `/usage` result is available, clearly labelled account-wide / shared.
+- No per-member duplication of the same numbers.
+- No new network/headless call beyond the existing user-initiated `/usage`
+  refresh (D-64 / POLICY: explicit user action only).
+- en/nl parity for any new i18n keys.
+
+## REFERENCES
+T-415 (usage parse + Activity render); Q-34 (this resolves it); T-476 (per-REPO,
+not per-session, account login — does NOT enable per-member budgets);
+`parseUsageText` / `ClaudeUsage` (claude_status.dart); activity_tab.dart USAGE
+block; team_tab.dart roster; claude_meta_sidebar.dart usage binding.', NULL, '2026-06-26 06:58:30', '2026-06-26 06:58:30.218', '2026-06-26 06:58:30.218', NULL, '0989b167395812ccb9fa8bd74c85c43b', 2) ON CONFLICT(hash) DO NOTHING;
