@@ -5956,3 +5956,368 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHC46SEHH8NQY481VMGK66R', 'status', 'in_progress', 'done', NULL, '2026-06-24 13:28:43', '2026-06-24 13:28:43.038', '2026-06-24 13:28:43.038', NULL, '53c03d3229add40fdbcb41eed62cb42b', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFKFYBZFKBX0WV574QJEH2BC', 'status', 'backlog', 'done', NULL, '2026-06-24 13:28:43', '2026-06-24 13:28:43.041', '2026-06-24 13:28:43.041', NULL, '016e6d0c845e076bb60fe3cb0c34b4c9', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FBHDE5A3965GNRFS5WPZW878', 'status', 'in_progress', 'done', NULL, '2026-06-24 21:26:58', '2026-06-24 21:26:58.043', '2026-06-24 21:26:58.043', NULL, '8781bb622159f6670c45ae3685b0e496', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'status', 'backlog', 'in_progress', NULL, '2026-06-25 06:50:37', '2026-06-25 06:50:37', '2026-06-25 06:50:37', NULL, '9f0ab08dd9d0da71a333ed82c5aa96a0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'description', 'Today clide uses Claude Code''s system-wide login (the CLI''s global auth), so every repo/workspace shares one Claude account. Allow selecting/logging into a separate Claude account per repo, so different projects can run under different accounts (e.g. personal vs work). Needs: per-workspace auth storage + a way for the spawned Claude session to use that repo''s account instead of the global one; UI to sign in/switch per repo; fall back to the system login when none is set.', 'Today clide uses Claude Code''s system-wide login (the CLI''s global auth), so every repo/workspace shares one Claude account. Allow selecting/logging into a separate Claude account per repo so different projects can run under different accounts (e.g. personal vs work). Falls back to the system login when no per-repo binding is set.
+
+## Proven mechanism: `CLAUDE_CONFIG_DIR`
+
+Claude Code reads `CLAUDE_CONFIG_DIR` at process start and uses that directory in place of `~/.claude` — credentials, settings, sessions, plugins, projects, the `ide/` discovery dir, everything. Already proven on this machine: `~/.claude-personal/` exists alongside `~/.claude/` with the same layout (`.claude.json`, `sessions/`, `plugins/`, `projects/`, `settings.json`, `ide/`). A child `claude` process spawned with `CLAUDE_CONFIG_DIR=~/.claude-personal` uses that account; clide already has the spawn-time hook to set it.
+
+## Alternatives surveyed (online research, 2026-06)
+
+- **No native Claude Code account switcher** (open issues anthropics/claude-code#44687, #18435, #36151).
+- **claude-swap, claude-account-switcher, claude-multiprofile** — third-party CLIs; all converge on `CLAUDE_CONFIG_DIR` swapping the active dir or symlinking shared bits (settings/commands/MCP) across per-account dirs.
+- **direnv / shell aliases** — user-shell automation that exports `CLAUDE_CONFIG_DIR` on cd-in. Not IDE-owned, only works from a terminal launch.
+- **AgentsRoom** is the closest peer: "per-project pin, per-agent override, in-app sign-in flow, status badge per account" — same mechanism, IDE surface. The shape clide should match.
+
+No cleaner mechanism exists today; everything credible reduces to `CLAUDE_CONFIG_DIR`. The clide value-add is the IDE-native shell around it (per-repo binding + sign-in UX + IDE-bridge plumbing).
+
+## Recommended approach
+
+**Per-account named config dirs**, **per-repo named binding**, **CLI-driven sign-in**. Three concepts:
+
+1. **Accounts** — one Claude config dir per account, e.g. `~/.claude-personal/`, `~/.claude-work/`. Selecting an account = exporting `CLAUDE_CONFIG_DIR=<that dir>` for the spawned `claude`. Multiple repos can share one account (no extra sign-in to add a third repo for the same account).
+2. **Repo binding** — `<workspace>` → `<account-name>`, stored in user-scope clide settings (the [T-356](#) relocation lands settings under user scope keyed by workspace-path hash — same `fnv1a64Hex` from `lib/src/ipc/paths.dart`). Unset → falls back to the global `~/.claude`.
+3. **Sign-in** — clide invokes `CLAUDE_CONFIG_DIR=<target> claude login` in a managed terminal pane; the CLI owns the OAuth browser bounce; credentials land in the target dir. No new auth code in clide.
+
+Account ≠ workspace is the right axis: "work" is one identity used in 5 repos, not 5 sign-ins.
+
+## Implementation
+
+### Storage (where the binding lives)
+
+- `accounts` list (name → config-dir path) in **user-scope** clide settings — after [T-356](#) relocates `.clide/settings.yaml` to user scope.
+- `claude.account.<workspace-hash>` keys map a workspace to an account name. Workspace hash = `fnv1a64Hex(canonicalPath)` (`lib/src/ipc/paths.dart:101`), same key D-70 uses for sockets.
+- Bootstrap migration: if `~/.claude-personal/` (or other `~/.claude-*/`) is detected on first run, offer to register it as an account.
+
+### Spawn-time env injection
+
+One resolver — pattern matches `lib/src/env/shell_env.dart` (`primeLoginShellPath` / `resolvedToolPath`):
+
+- `String? claudeConfigDirForWorkspace(String cwd)` → returns the resolved config-dir path, or null when no binding (use Claude''s default).
+- Inject in `lib/builtin/claude/src/agent_bootstrap.dart` (`agentBootstrap`): when the resolver returns a path, add `CLAUDE_CONFIG_DIR=<path>` to the returned `envDelta`. Single hook; every hosted session (primary/secondary/fork/teammate) inherits it because `ClaudeSessionOrchestrator._spawn` already calls `agentBootstrap(spec.cwd, base: spec.env)` at `session_orchestrator.dart:247`.
+- `SpawnSpec.env` already exists (line 67) as a per-call override — keep it so an explicit caller can win.
+
+### IDE bridge discovery (the trap)
+
+`lib/src/ipc/mcp_server.dart:344` writes the `/ide` lock at `$HOME/.claude/ide/<pid>.lock`. Claude Code with `CLAUDE_CONFIG_DIR=<X>` looks under `<X>/ide/` — so today''s lock is invisible to a `claude` running with a custom dir, and clide''s IDE bridge can''t be reached.
+
+Fix: when clide is using one or more non-default config dirs (any bound repo''s account ≠ default), write the discovery lock into **every** active config dir''s `ide/` (the default `$HOME/.claude/ide/` plus each `<account-dir>/ide/`). Same lock content; each is `0600`-scoped per [T-362](#). Cleanup tracks all written paths.
+
+### Sign-in flow
+
+One CLI verb (D-6 parity, mirrors [T-249](#) shape):
+
+- `clide claude account add <name> [--dir <path>]` — registers an account. Default dir `~/.claude-<name>/`. Idempotent.
+- `clide claude account login <name>` — spawns `CLAUDE_CONFIG_DIR=<dir> claude login` in a managed terminal pane (`lib/builtin/terminal/`); the CLI handles OAuth.
+- `clide claude account set <name>` — bind the current workspace to `<name>`. Active Claude session(s) for this repo respawn under the new account (T-437 close-and-respawn pattern is already correct: `close` awaits real process death, `spawn` is idempotent per id).
+- `clide claude account list` — JSON: registered accounts + which (if any) is bound to this workspace.
+- `clide claude account unset` — clear the binding; falls back to default.
+- `clide claude account remove <name>` — registry remove; offers `--purge` to delete the underlying dir (off by default).
+
+Dispatcher registration lives in `lib/src/daemon/` alongside `image_commands.dart`. Flutter-free handler; the terminal-spawn side publishes on a MessageBus channel the Claude extension subscribes to.
+
+### UI
+
+- **Welcome view**: list registered accounts; tap = bind current workspace; "Add account…" runs the login flow.
+- **Claude pane chrome**: small badge showing the active account name. Tap opens the picker (issues `clide claude account set …`).
+- **Settings**: under "Claude", an Accounts row (manage registry) and a per-repo "Account for this workspace" row.
+- **Workspace picker / project list**: each project shows its bound account.
+
+### CLI parity (D-6)
+
+Every UI action above issues a verb; every verb is observable via `clide claude account list`. No UI action lacks a CLI counterpart.
+
+### Fallback / safety
+
+- No binding → use `Platform.environment[''CLAUDE_CONFIG_DIR'']` if the parent env already set it; otherwise leave it unset (Claude defaults to `~/.claude`). Same behaviour as today.
+- Switching account = respawn the pane''s session, not a hot swap. Existing session closes (T-437 await-death). Transcript is preserved per-account in that account''s `projects/` dir; nothing is merged across accounts.
+- Permission rules and `effortLevel` (per `claude_config.dart`) are config-dir-scoped already — no new layering needed.
+- D-64 (no phone-home): adding an account triggers exactly one CLI-initiated `claude login` browser flow, on explicit user action. No background calls.
+
+## Acceptance
+
+1. `clide claude account add work` registers an account at `~/.claude-work/`; `clide claude account login work` opens a terminal pane that completes OAuth and lands credentials in that dir.
+2. `clide claude account set work` in a workspace binds it; respawning the Claude pane spawns `claude` with `CLAUDE_CONFIG_DIR=~/.claude-work/`. Verified by `ps eww` / `lsof` against that process showing the right env.
+3. `clide claude account list` returns the registry + the current workspace''s binding (or `null`).
+4. `clide`''s `/ide` bridge is reachable from the bound account''s `claude` — its `~/.claude-work/ide/<clide-pid>.lock` is present and parseable; an in-session `/ide` resolves.
+5. With no binding, behaviour is identical to today (regression test against the global `~/.claude`).
+6. A second clide window opened on a differently-bound repo runs under a different account end-to-end; the two transcripts never cross.
+7. Sign-out: removing the binding (`unset`) without `--purge` keeps the underlying dir untouched; with `--purge` removes it.
+8. UI parity: every account action in the welcome view / settings / Claude pane chrome reaches the same dispatcher verb.
+
+## Out of scope (for this story)
+
+- Per-pane account selection within one workspace (forks/teammates on different accounts). One repo = one account in v1; revisit if needed.
+- Cross-account credential sharing / symlinked settings (claude-account-switcher''s pattern). v1 keeps dirs fully isolated; revisit as a follow-up if duplication becomes painful.
+- Team-mode account-budget surfacing across multiple accounts (T-158 territory).
+- Windows behaviour beyond "if `CLAUDE_CONFIG_DIR` works on the platform, this works on the platform" — no Windows-specific UX in v1.
+- Auto-binding via `direnv` or `.envrc` integration. The IDE owns the binding; shell-side automation is a follow-up if asked for.
+
+## References / sources
+
+- Code: `lib/builtin/claude/src/agent_bootstrap.dart` (env-delta builder), `lib/builtin/claude/src/session_orchestrator.dart` (spawn site), `lib/src/env/shell_env.dart` (env-resolution pattern), `lib/src/ipc/mcp_server.dart:344` (IDE-lock writer), `lib/src/ipc/paths.dart:101` (`fnv1a64Hex` workspace hash), `lib/builtin/claude/src/claude_config.dart` (per-config-dir settings).
+- Tickets: [T-356](#) (workspace settings → user scope, dependency), [T-362](#) (`/ide` lock 0600), [T-437](#) (await-death respawn — needed for switch-account-and-respawn), [T-249](#) (image-card CLI shape to mirror), D-6 (CLI parity), D-64 (no phone-home), D-70 (workspace hash), D-75 (avoid CC-internals coupling — this work uses Claude Code''s *public* CLAUDE_CONFIG_DIR env, not internal state, so it is D-75-safe).
+- External: anthropics/claude-code#44687 / #18435 / #36151 (no native switcher); third-party tools claude-swap, claude-account-switcher, claude-multiprofile, AgentsRoom (all use CLAUDE_CONFIG_DIR); CLAUDE_CONFIG_DIR is a documented Claude Code env knob.
+', NULL, '2026-06-25 07:22:55', '2026-06-25 07:22:55', '2026-06-25 07:22:55', NULL, '5ad371d9f4ad2709b2c6ae6e076e001b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'type', 'story', 'epic', NULL, '2026-06-25 09:13:35', '2026-06-25 09:13:35', '2026-06-25 09:13:35', NULL, 'd24b9be9128ce2c4a53809e9f5db8a0a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49VYMPF18PYQXD9PCMHN8', 'description', NULL, 'Foundation for the multi-account epic (T-476): the user-scope persistence layer that every other child consumes.
+
+## Scope
+
+Two durable concerns, plus a first-run migration:
+
+### Account registry
+
+List of `(name, configDir)` pairs in user-scope clide settings — the catalog of Claude accounts this user has set up. Account names are user-chosen (`personal`, `work`, `client-acme`); `configDir` is the `CLAUDE_CONFIG_DIR` path Claude Code will read from. Default dir for a new account is `~/.claude-<name>/`, but an explicit path is allowed (so an existing `~/.claude-personal/` can be adopted as-is).
+
+### Workspace binding
+
+`claude.account.<workspace-hash>` → `<account-name>`. Workspace hash is the same FNV-1a 64-bit hex used by D-70 sockets (`fnv1a64Hex` in `lib/src/ipc/paths.dart:101`) — single source of truth. Unset binding means "use Claude''s default" (no `CLAUDE_CONFIG_DIR` injection).
+
+### Bootstrap migration
+
+On first run, scan `~` for directories matching `.claude-*` that look like a Claude config dir (have a `.claude.json` or `sessions/` inside). Surface the list — actually offering to register them is welcome-view UX (T-481); this ticket just provides the probe.
+
+## Where
+
+- `SettingsStore` schema additions in `lib/kernel/src/settings.dart` (or wherever the schema-driven settings layer lands — coordinate with T-356).
+- A new `lib/builtin/claude/src/account_registry.dart` (or similar) holding the typed reader/writer + the migration probe.
+- Flutter-free; unit-tested directly.
+
+## API shape (sketch — refine in implementation)
+
+```
+class AccountRegistry {
+  List<Account> get accounts;
+  Account? accountForWorkspace(String cwd);
+  Account? accountByName(String name);
+  void registerAccount(String name, String dir);
+  void removeAccount(String name);
+  void bindWorkspace(String cwd, String name);
+  void unbindWorkspace(String cwd);
+}
+List<DetectedAccount> probeExistingAccountDirs(String home);
+```
+
+All persistence flows through SettingsStore so the existing `.clide/settings.yaml` (or post-T-356 user-scope equivalent) reload/watch/serialize semantics carry over for free.
+
+## Acceptance
+
+- Schema declares `claude.accounts` (list of `{name, dir}`) and `claude.account.<workspace-hash>` (string).
+- `accountForWorkspace(cwd)` resolves an account, or null when no binding.
+- Registry CRUD (register/remove/bind/unbind) round-trips through SettingsStore.
+- Bootstrap probe returns existing `~/.claude-*` dirs as candidates without mutating anything.
+- Unit tests cover registry CRUD, workspace-hash mapping (canonicalised cwd, same hash for trailing-slash variants), probe behaviour (skips non-config dirs).
+- No process spawning, no UI, no CLI — those are downstream tickets.
+
+## Depends on
+
+- T-356 (settings → user scope). The binding keys are PER-USER, not per-repo (you don''t want "which account does this repo use" committed to the repo). Land after T-356 ships its user-scope settings store.
+
+## Consumers
+
+- T-478 (env injection) — reads `accountForWorkspace(cwd)` at spawn time.
+- T-479 (IDE-lock multiplex) — enumerates active accounts to write per-dir locks.
+- T-480 (CLI verbs) — registry mutations behind every account command.
+- T-481 (UI) — renders registry + binding state; calls the CRUD via T-480.
+- T-482 (settings UI) — schema-driven rows hit these keys.
+', NULL, '2026-06-25 10:24:31', '2026-06-25 10:24:31', '2026-06-25 10:24:31', NULL, '902236ccdf152fb332a370feb2a03874', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W3V175EM4F8ZHC6JFM4', 'description', NULL, 'The load-bearing piece of the multi-account epic (T-476): get the right `CLAUDE_CONFIG_DIR` into the hosted Claude process''s environment. Once this is in, a workspace bound to an account spawns its `claude` under that account end-to-end.
+
+## Where
+
+One resolver + one hook — pattern follows `lib/src/env/shell_env.dart` (single source of truth for env-related concerns).
+
+### New resolver
+
+`String? claudeConfigDirForWorkspace(String cwd)`:
+
+1. Look up the binding via the T-477 `AccountRegistry`.
+2. If bound → return the account''s `configDir`.
+3. If unbound → return `Platform.environment[''CLAUDE_CONFIG_DIR'']` when the parent already set it (respect launcher choice); otherwise `null` (Claude defaults to `~/.claude`).
+
+Flutter-free, pure (registry injected), unit-tested.
+
+### Injection point
+
+`lib/builtin/claude/src/agent_bootstrap.dart`''s `agentBootstrap(workspaceRoot, base:)`: when the resolver returns non-null, merge `''CLAUDE_CONFIG_DIR'': <path>` into the returned `envDelta` BEFORE the `base` spread, so `SpawnSpec.env` keeps its per-call-override precedence (line 67 of `session_orchestrator.dart` already passes the override as `base`).
+
+Every hosted session (primary / secondary / fork / teammate) inherits the binding because `ClaudeSessionOrchestrator._spawn` already routes through `agentBootstrap` at `session_orchestrator.dart:247` — no per-call-site work.
+
+## Acceptance
+
+1. A bound workspace spawns `claude` with `CLAUDE_CONFIG_DIR=<account-dir>` — verifiable by `ps eww` / `lsof` against the spawned process.
+2. An unbound workspace spawns identically to today — no `CLAUDE_CONFIG_DIR` injected unless the parent env already had one.
+3. `SpawnSpec.env` per-call override still wins (precedence: explicit override > workspace binding > parent env > unset).
+4. The resolver returns `null` for unbound workspaces with no parent env; the bootstrap then omits the key (NOT writes an empty value).
+5. Unit tests: resolver returns each of the four states; `envDelta` precedence is correct; agent_bootstrap unit tests already cover the merge shape — extend them.
+
+## Depends on
+
+- T-477 (storage). The resolver needs `AccountRegistry.accountForWorkspace(cwd)`.
+
+## Out of scope
+
+- Restarting an already-running session on binding change — that lives in T-480''s `set` verb (it owns the close-then-spawn flow).
+- IDE bridge discovery for the bound account — T-479.
+', NULL, '2026-06-25 10:24:31', '2026-06-25 10:24:31', '2026-06-25 10:24:31', NULL, '449a8abdb2bfafa1570735cc23c0aefe', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W6GP535GR8XD1XEHYWG', 'description', NULL, 'Make clide''s `/ide` MCP bridge reachable from a `claude` running with a custom `CLAUDE_CONFIG_DIR`. Without this, the per-repo account work (T-476) ships a `claude` that can''t see clide''s IDE bridge.
+
+## The trap
+
+`lib/src/ipc/mcp_server.dart:344` writes the discovery lock at `$HOME/.claude/ide/<pid>.lock`. Claude Code with `CLAUDE_CONFIG_DIR=<X>` looks for `/ide` locks under `<X>/ide/` — so a bound Claude session never finds clide today.
+
+## Fix
+
+Extend `_writeDiscoveryFile` (and the cleanup path) to write the lock into **every CURRENTLY-active config dir''s `ide/`**. "Active" means the union of:
+
+- The default `$HOME/.claude/ide/` (always).
+- Every account `configDir/ide/` for accounts bound to a workspace that is currently open in this clide process.
+
+Same lock content for each; same `0600` perms per T-362. The MCP server tracks every path it wrote so shutdown cleans them all.
+
+### React to binding changes
+
+The set of active config dirs changes when a workspace is opened/closed in this process, or when a binding is set/unset (T-480 verbs). The MCP server subscribes to these changes and synchronizes the lock set incrementally — write a new lock when a dir becomes active, remove it when no remaining workspace references that dir.
+
+## Where
+
+- `lib/src/ipc/mcp_server.dart` — extend `_writeDiscoveryFile`, add a tracked-paths set, hook into the shutdown sweep.
+- Wire the active-dir source through the existing app boot — the MCP server is constructed in `lib/main.dart`; that''s where it can be handed an `AccountRegistry` (T-477) and a workspace-open observer.
+
+## Acceptance
+
+1. With no bindings, behaviour is identical to today (single lock at `$HOME/.claude/ide/<pid>.lock`).
+2. With one or more workspaces bound to non-default accounts, a lock exists at `<each-account-dir>/ide/<pid>.lock` with the same content and `0600` perms.
+3. Binding a workspace to a new (previously unused) account at runtime causes the corresponding lock to appear; unbinding the last workspace using that account causes it to disappear.
+4. clide shutdown removes every lock this process wrote (defaultes plus account dirs); no orphans.
+5. A live `claude` running under a bound account finds clide''s `/ide` endpoint end-to-end (manual confirmation in a real session).
+6. Tests cover the multi-dir write/cleanup + the dynamic add/remove path (mock the filesystem).
+
+## Depends on
+
+- T-477 (storage). Needs the registry + binding API to enumerate active dirs.
+
+## Independent of
+
+T-478 — T-479 can land in parallel; the bound `claude` just won''t have an IDE bridge until both ship.
+', NULL, '2026-06-25 10:24:31', '2026-06-25 10:24:31', '2026-06-25 10:24:31', NULL, '2989bdaa9ad40607006e10f99f96f6d6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W95HJK08BCRQSWFZBF4', 'description', NULL, 'The `clide claude account …` dispatcher and verbs — D-6 parity for the multi-account feature (T-476). UI tickets (T-481 / T-482) call these verbs only; no UI writes the registry directly.
+
+## Verbs
+
+- `clide claude account add <name> [--dir <path>]` — register an account. Default dir `~/.claude-<name>/`. Idempotent (re-add with the same args is a no-op; conflicting args returns a clear userError). Does NOT spawn `claude login` — composability with `login`.
+- `clide claude account list` — JSON: `{accounts: [{name, dir}], boundAccount: <name|null>, detected: [<dir>...]}`. `boundAccount` is for the current workspace; `detected` is the T-477 probe output (existing `~/.claude-*/` dirs not yet registered).
+- `clide claude account login <name>` — spawn `CLAUDE_CONFIG_DIR=<dir> claude login` in a managed terminal pane (`lib/builtin/terminal/`). Claude CLI owns the OAuth browser bounce. Verb returns once the pane spawns; OAuth completion is observed by the pane lifecycle, not awaited by the verb.
+- `clide claude account set <name>` — bind the current workspace AND respawn the active Claude pane(s) on the new account. Respawn flow uses `ClaudeSessionOrchestrator.close` (which already awaits real process death per T-437) followed by a fresh `spawn` with the same id. Honest userError if `<name>` isn''t registered.
+- `clide claude account unset` — clear the binding for this workspace; respawn pane(s) on the default account. Emits a binding-removed event so T-479''s lock multiplexer can prune the matching `ide/` lock.
+- `clide claude account remove <name> [--purge]` — registry-remove; refuses if any open workspace is bound to it (with a clear message). `--purge` additionally `rm -rf`s the `configDir` after registry removal (off by default; require confirmation).
+
+## Where
+
+- Dispatcher: new `lib/src/daemon/claude_account_commands.dart` — mirror the shape of `image_commands.dart` (CommandSchema-declared positionals + flags, Flutter-free handler).
+- A MessageBus channel — e.g. `accountActionChannel = ''claude.account''` — for non-CLI consumers (the Claude extension + UI) to observe registry/binding changes.
+- Registers in `DaemonDispatcher` alongside the existing `image.show` / `pql.*` verbs.
+
+## Acceptance
+
+1. All six verbs round-trip through `clide capabilities` and execute against the live dispatcher.
+2. `clide claude account add work` registers and persists across clide restarts.
+3. `clide claude account list` returns the registry + this workspace''s binding + the detected-dirs probe results.
+4. `clide claude account login work` opens a managed terminal pane in which `claude login` runs against `~/.claude-work/`; OAuth completion writes credentials into that dir.
+5. `clide claude account set work` while a Claude pane is open: pane respawns with `CLAUDE_CONFIG_DIR=~/.claude-work/` (verified end-to-end against the live process).
+6. `clide claude account unset` returns the pane to the default config dir; the matching `<dir>/ide/<pid>.lock` (T-479) is removed.
+7. `clide claude account remove work` refuses while a workspace is bound; succeeds once unset. `--purge` removes the underlying directory after registry removal.
+8. Tests follow the `image_commands` shape: schema declaration, Flutter-free handler tests, dispatcher registration check.
+
+## Depends on
+
+- T-477 (storage / registry).
+- T-478 (env injection) — so the respawn under `set`/`unset` actually changes which account the new process uses.
+
+## Decision ref
+
+D-6 (CLI parity).
+', NULL, '2026-06-25 10:24:31', '2026-06-25 10:24:31', '2026-06-25 10:24:31', NULL, '97b7b3b378c40a416bdae96d6376687b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WBTT3ESK6QG0XZ1VN2G', 'description', NULL, 'The conversational/chrome UI surfaces for the multi-account epic (T-476). Settings-UI rows live in T-482; this ticket owns the always-visible affordances.
+
+## Claude pane chrome badge
+
+Small badge in the pane chrome (next to the existing status/banner row — see `lib/builtin/claude/src/claude_banner.dart` / status-bar pattern) showing the active account name, or "default" when unbound.
+
+- Tap opens a popover/picker: list of registered accounts (radio-selectable) + "Add account…" entry.
+- Selecting an account dispatches `clide claude account set <name>`; "Add account…" runs the add+login flow.
+- The badge live-updates from the `claude.account` MessageBus channel published by T-480.
+- Colour-coded subtly (one accent per account name? Hash-derived?) so the user can spot at a glance which window is which account.
+
+## Welcome view: Claude accounts section
+
+New section in the welcome view (peer of the existing project / toolchain rows in `lib/builtin/welcome/src/welcome_view.dart`):
+
+- **Registered accounts** — one row per registered account: name, configDir path, a per-row affordance to bind this workspace / unbind / re-login.
+- **Detected (not yet registered)** — rows for the T-477 bootstrap probe results (existing `~/.claude-*/` dirs not in the registry yet). Each has a "Register this" affordance that dispatches `clide claude account add <name> --dir <detected-dir>`.
+- **Add new account** — button that runs the full add+login flow against a default `~/.claude-<name>/` path.
+
+All actions go through T-480''s CLI verbs; this widget never writes the registry directly.
+
+## Constraints
+
+- Use the existing UI-design vocabulary (theme tokens, control geometry — see the `ui-design` skill). No Material/Cupertino.
+- The badge is display-with-affordance, not an inline interaction surface in the D-78 sense — opening the picker is a navigation gesture, the selection happens in the picker modal.
+- The welcome view follows the existing one-screen welcome-layout decisions (don''t add a fold-out / accordion if it conflicts with the current layout).
+
+## Acceptance
+
+1. The Claude pane badge shows the active account name (or "default"), updates live across `set`/`unset`/`add` actions.
+2. Tapping the badge opens a picker; selecting a registered account dispatches `clide claude account set` and respawns the pane on the new account.
+3. The welcome view''s accounts section lists registered accounts + detected candidates + an add-new affordance.
+4. Every action available in the UI is reachable as the corresponding `clide claude account` verb (D-6 parity verified by inspection).
+5. Widget tests cover badge rendering for each state (default / bound / unknown) + the picker action dispatch (mock the CLI client).
+6. A11y: badge has a semantic label naming the account; picker is keyboard-reachable.
+
+## Depends on
+
+- T-480 (CLI verbs). Wires every action to the dispatcher.
+
+## Out of scope
+
+- Settings-UI rows — T-482.
+- Project-picker integration (each project shows its bound account) — desirable, file as a follow-up if it grows complex.
+', NULL, '2026-06-25 10:24:31', '2026-06-25 10:24:31', '2026-06-25 10:24:31', NULL, 'a31ec31dee11c9f441ed920b4c0eb6c4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'description', NULL, 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+', NULL, '2026-06-25 10:24:31', '2026-06-25 10:24:31', '2026-06-25 10:24:31', NULL, 'fd3c9504dad8bae438c1df879bd5eb44', 2) ON CONFLICT(hash) DO NOTHING;
