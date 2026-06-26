@@ -194,6 +194,8 @@
   "taskRow.reassign": { "translation": "Reassign task" },
   "team.empty": { "translation": "No team active." },
   "team.section.tasks": { "translation": "TASKS" },
+  "team.section.usage": { "translation": "Account" },
+  "team.usage.shared": { "translation": "Shared across the team" },
   "tabStrip.activity": { "translation": "Activity" },
   "tabStrip.team": { "translation": "Team" },
   "tabStrip.team.count": { "translation": "Team · {count}" },

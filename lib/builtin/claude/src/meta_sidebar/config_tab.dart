@@ -53,43 +53,40 @@ class ConfigTabView extends StatelessWidget {
     final effort = status?.effort ?? settings['effortLevel']?.toString() ?? 'default';
 
     final children = <Widget>[
-      // Pinned SETTINGS control panel — not collapsible.
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: ClideText(
-          ClideSettings.i18n.string(context, 'config.section.settings', namespace: 'builtin.claude', placeholder: 'SETTINGS'),
-          fontSize: clideFontSmall,
-          color: tokens.sidebarSectionHeader,
+      // Pinned SETTINGS control panel — not collapsible. Carded to match the
+      // settings overlay (T-158 facelift).
+      metaSectionHeader(context, tokens, ClideSettings.i18n.string(context, 'config.section.settings', namespace: 'builtin.claude', placeholder: 'SETTINGS')),
+      metaCard(tokens, [
+        SettingControlRow(
+          label: ClideSettings.i18n.string(context, 'config.row.model', namespace: 'builtin.claude', placeholder: 'model'),
+          value: model,
+          valueColor: tokens.globalFocus,
+          options: (models == null || models!.isEmpty) ? kFallbackModels : models!,
+          isActive: (o) => o.value == model || model.toLowerCase().contains(o.value.toLowerCase()),
+          command: 'model',
         ),
-      ),
-      SettingControlRow(
-        label: ClideSettings.i18n.string(context, 'config.row.model', namespace: 'builtin.claude', placeholder: 'model'),
-        value: model,
-        valueColor: tokens.globalFocus,
-        options: (models == null || models!.isEmpty) ? kFallbackModels : models!,
-        isActive: (o) => o.value == model || model.toLowerCase().contains(o.value.toLowerCase()),
-        command: 'model',
-      ),
-      SettingControlRow(
-        label: ClideSettings.i18n.string(context, 'config.row.effort', namespace: 'builtin.claude', placeholder: 'effort'),
-        value: effort,
-        options: kEffortLevels,
-        isActive: (o) => o.value == effort,
-        command: 'effort',
-      ),
-      SettingControlRow(
-        label: ClideSettings.i18n.string(context, 'config.row.permissionMode', namespace: 'builtin.claude', placeholder: 'permission mode'),
-        value: permissionModeLabel(mode),
-        options: kPermissionModes,
-        isActive: (o) => o.value == mode,
-        command: 'permissions',
-      ),
-      _configRow(tokens, ClideSettings.i18n.string(context, 'config.row.outputStyle', namespace: 'builtin.claude', placeholder: 'output style'), outputStyle),
-      _configRow(
-        tokens,
-        ClideSettings.i18n.string(context, 'config.row.source', namespace: 'builtin.claude', placeholder: 'source'),
-        ClideSettings.i18n.string(context, 'config.row.source.value', namespace: 'builtin.claude', placeholder: '~/.claude + .claude'),
-      ),
+        SettingControlRow(
+          label: ClideSettings.i18n.string(context, 'config.row.effort', namespace: 'builtin.claude', placeholder: 'effort'),
+          value: effort,
+          options: kEffortLevels,
+          isActive: (o) => o.value == effort,
+          command: 'effort',
+        ),
+        SettingControlRow(
+          label: ClideSettings.i18n.string(context, 'config.row.permissionMode', namespace: 'builtin.claude', placeholder: 'permission mode'),
+          value: permissionModeLabel(mode),
+          options: kPermissionModes,
+          isActive: (o) => o.value == mode,
+          command: 'permissions',
+        ),
+        _configRow(tokens, ClideSettings.i18n.string(context, 'config.row.outputStyle', namespace: 'builtin.claude', placeholder: 'output style'), outputStyle),
+        _configRow(
+          tokens,
+          ClideSettings.i18n.string(context, 'config.row.source', namespace: 'builtin.claude', placeholder: 'source'),
+          ClideSettings.i18n.string(context, 'config.row.source.value', namespace: 'builtin.claude', placeholder: '~/.claude + .claude'),
+        ),
+      ]),
+      const SizedBox(height: 12),
 
       // ---- Accordion sections ----
       for (final section in ConfigSection.values) _accordion(context, tokens, cfg, section),
@@ -116,7 +113,7 @@ class ConfigTabView extends StatelessWidget {
   /// One read-only key→value row in the pinned SETTINGS table.
   Widget _configRow(SurfaceTokens tokens, String label, String value, {Color? valueColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: kMetaRowPitch),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -324,7 +321,7 @@ class _SettingControlRowState extends State<SettingControlRow> {
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: kMetaRowPitch),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

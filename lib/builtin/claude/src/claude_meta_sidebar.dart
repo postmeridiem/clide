@@ -19,9 +19,10 @@
 /// `meta_sidebar/` (T-395 split). Activity and Config render on the same
 /// table geometry (`buildMetaTable`) so switching tabs doesn't visually jump.
 ///
-/// The account/team token budget is intentionally absent: it isn't
-/// programmatically exposed under subscription auth (see project memory /
-/// GitHub anthropics/claude-code#44328).
+/// The account budget now surfaces from a forwarded `/usage` (T-415): the
+/// Activity tab renders it, and the Team tab repeats it as a single shared
+/// ACCOUNT card (T-158) — usage is per-account (one `~/.claude` login), so it's
+/// shown once, not split per member.
 library;
 
 import 'dart:async';
@@ -312,6 +313,7 @@ class _ClaudeMetaSidebarState extends State<ClaudeMetaSidebar> {
               members: _members,
               memberStatus: _memberStatus,
               orchestrator: _orchestrator,
+              usage: _usage,
               tasks: _tasks,
               injectingAgentId: _injectingAgentId,
               injectController: _injectCtl,

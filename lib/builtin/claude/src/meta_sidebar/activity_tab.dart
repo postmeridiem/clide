@@ -87,59 +87,61 @@ class ActivityTabView extends StatelessWidget {
       children: [
         // SESSION control strip (T-415): drives the primary session through
         // the builtin.claude/command bus — identical to typing the command.
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: ClideText(
-            ClideSettings.i18n.string(context, 'activity.section.session', namespace: 'builtin.claude', placeholder: 'SESSION'),
-            fontSize: clideFontSmall,
-            color: tokens.sidebarSectionHeader,
+        // Carded to match the settings overlay (T-158 facelift).
+        metaSectionHeader(context, tokens, ClideSettings.i18n.string(context, 'activity.section.session', namespace: 'builtin.claude', placeholder: 'SESSION')),
+        metaCard(tokens, [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(
+              children: [
+                _control(
+                  context,
+                  tokens,
+                  ClideSettings.i18n.string(context, 'activity.control.clear', namespace: 'builtin.claude', placeholder: 'clear'),
+                  'trash',
+                  '/clear',
+                ),
+                _control(
+                  context,
+                  tokens,
+                  ClideSettings.i18n.string(context, 'activity.control.compact', namespace: 'builtin.claude', placeholder: 'compact'),
+                  'arrows-in-simple',
+                  '/compact',
+                ),
+                _control(
+                  context,
+                  tokens,
+                  ClideSettings.i18n.string(context, 'activity.control.fork', namespace: 'builtin.claude', placeholder: 'fork'),
+                  'git-branch',
+                  '/fork',
+                ),
+                _control(
+                  context,
+                  tokens,
+                  ClideSettings.i18n.string(context, 'activity.control.resume', namespace: 'builtin.claude', placeholder: 'resume'),
+                  'clock-counter-clockwise',
+                  '/resume',
+                ),
+                const Spacer(),
+                _control(
+                  context,
+                  tokens,
+                  ClideSettings.i18n.string(context, 'activity.control.refreshUsage', namespace: 'builtin.claude', placeholder: 'refresh usage'),
+                  'arrow-clockwise',
+                  '/usage',
+                ),
+              ],
+            ),
           ),
-        ),
-        Row(
-          children: [
-            _control(
-              context,
-              tokens,
-              ClideSettings.i18n.string(context, 'activity.control.clear', namespace: 'builtin.claude', placeholder: 'clear'),
-              'trash',
-              '/clear',
-            ),
-            _control(
-              context,
-              tokens,
-              ClideSettings.i18n.string(context, 'activity.control.compact', namespace: 'builtin.claude', placeholder: 'compact'),
-              'arrows-in-simple',
-              '/compact',
-            ),
-            _control(
-              context,
-              tokens,
-              ClideSettings.i18n.string(context, 'activity.control.fork', namespace: 'builtin.claude', placeholder: 'fork'),
-              'git-branch',
-              '/fork',
-            ),
-            _control(
-              context,
-              tokens,
-              ClideSettings.i18n.string(context, 'activity.control.resume', namespace: 'builtin.claude', placeholder: 'resume'),
-              'clock-counter-clockwise',
-              '/resume',
-            ),
-            const Spacer(),
-            _control(
-              context,
-              tokens,
-              ClideSettings.i18n.string(context, 'activity.control.refreshUsage', namespace: 'builtin.claude', placeholder: 'refresh usage'),
-              'arrow-clockwise',
-              '/usage',
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
+        ]),
+        if (sections.isNotEmpty) const SizedBox(height: 16),
         if (sections.isEmpty)
-          metaPlaceholder(ClideSettings.i18n.string(context, 'activity.empty', namespace: 'builtin.claude', placeholder: 'No activity recorded yet.'))
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: metaPlaceholder(ClideSettings.i18n.string(context, 'activity.empty', namespace: 'builtin.claude', placeholder: 'No activity recorded yet.')),
+          )
         else
-          ...metaTableChildren(tokens, sections),
+          ...metaTableChildren(context, tokens, sections),
       ],
     );
   }

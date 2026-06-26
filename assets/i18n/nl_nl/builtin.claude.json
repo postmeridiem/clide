@@ -194,6 +194,8 @@
   "taskRow.reassign": { "translation": "Taak opnieuw toewijzen" },
   "team.empty": { "translation": "Geen team actief." },
   "team.section.tasks": { "translation": "TAKEN" },
+  "team.section.usage": { "translation": "Account" },
+  "team.usage.shared": { "translation": "Gedeeld met het hele team" },
   "tabStrip.activity": { "translation": "Activiteit" },
   "tabStrip.team": { "translation": "Team" },
   "tabStrip.team.count": { "translation": "Team · {count}" },

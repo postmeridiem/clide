@@ -22,9 +22,15 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   fleshed out to full token + syntax coverage and ships alongside a
   contrast-hardened `summer-night-hc`, both selectable in Settings → Appearance.
   (T-478)
+- **Account budget in the Team tab.** The Claude meta sidebar's Team tab now
+  shows the shared account `/usage` budget as a single labelled card (usage is
+  per-account, not per-member). (T-158)
 
 ### Changed
 
+- **Claude meta sidebar facelift.** The Activity, Team, and Config tabs render
+  their sections as elevated cards with small-caps headers, matching the
+  settings overlay's card design. (T-158)
 - **Bundled themes and Tier-0 i18n namespaces resolve from one canonical list
   each.** The app, testmode harness, and contrast/i18n gates iterate the shared
   lists instead of drifting copies; a new theme or catalog is validated
