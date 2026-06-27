@@ -138,6 +138,22 @@ void main() {
     });
   });
 
+  group('value types', () {
+    test('Account + DetectedAccount value equality, hashCode, toString', () {
+      expect(const Account(name: 'a', dir: '/d'), const Account(name: 'a', dir: '/d'));
+      expect(const Account(name: 'a', dir: '/d'), isNot(const Account(name: 'a', dir: '/e')));
+      expect(const Account(name: 'a', dir: '/d'), isNot('a'));
+      expect(const Account(name: 'a', dir: '/d').hashCode, const Account(name: 'a', dir: '/d').hashCode);
+      expect(const Account(name: 'a', dir: '/d').toString(), contains('a'));
+      expect(const Account(name: 'a', dir: '/d').toJson(), {'name': 'a', 'dir': '/d'});
+
+      expect(const DetectedAccount(name: 'a', dir: '/d'), const DetectedAccount(name: 'a', dir: '/d'));
+      expect(const DetectedAccount(name: 'a', dir: '/d'), isNot(const DetectedAccount(name: 'b', dir: '/d')));
+      expect(const DetectedAccount(name: 'a', dir: '/d'), isNot('a'));
+      expect(const DetectedAccount(name: 'a', dir: '/d').hashCode, const DetectedAccount(name: 'a', dir: '/d').hashCode);
+    });
+  });
+
   group('sign-in probe (T-482)', () {
     test('true with a .credentials.json or an oauthAccount marker; false otherwise', () async {
       final home = await Directory.systemTemp.createTemp('clide-signin-');

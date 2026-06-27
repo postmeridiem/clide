@@ -6,6 +6,7 @@ library;
 import 'package:clide/builtin/claude/src/account_login_dialog.dart';
 import 'package:clide/builtin/terminal/src/terminal_pane.dart';
 import 'package:clide/clide.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -37,6 +38,19 @@ void main() {
     expect(spawnArgs?['env'], {'CLAUDE_CONFIG_DIR': '/home/u/.claude-work'});
 
     await tester.tap(find.byKey(const Key('account-login-close')));
+    await tester.pump();
+    expect(closed, isTrue);
+  });
+
+  testWidgets('escape closes the dialog', (tester) async {
+    var closed = false;
+    fixture.ipc.setConnected(true);
+    fixture.ipc.stub('pane.spawn', (args) async => IpcResponse.ok(id: 'r1', data: {'id': 'p1', 'pid': 1}));
+    fixture.ipc.stub('pane.close', (args) async => IpcResponse.ok(id: 'r2'));
+
+    await tester.pumpWidget(harness(fixture, ClaudeLoginDialog(name: 'work', dir: '/home/u/.claude-work', onClose: () => closed = true)));
+    await pumpAsync(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(closed, isTrue);
   });

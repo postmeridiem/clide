@@ -216,4 +216,49 @@ void main() {
       tokens.buttonBackground,
     ], contains(accountAccent('work', tokens)));
   });
+
+  testWidgets('badge: renders nothing without a workspace root', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    await tester.runAsync(() => reg.registerAccount('work', '/home/u/.claude-work'));
+    await pumpBadge(tester, null);
+    await tester.pump();
+    expect(find.text('default'), findsNothing);
+    expect(find.text('work'), findsNothing);
+  });
+
+  testWidgets('registry list: re-login publishes login; adding a duplicate name is a no-op', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    await tester.runAsync(() => reg.registerAccount('work', '/home/u/.claude-work'));
+    final published = <Map<String, Object?>>[];
+    final sub = f.services.messages.subscribe(channel: accountActionChannel).listen((m) => published.add(m.data));
+    addTearDown(sub.cancel);
+
+    await pumpList(tester);
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel('Sign in to work'));
+    await tester.pump();
+    expect(published.single['action'], 'login');
+
+    // Add the same name again → no-op (still one account, no error).
+    await tester.enterText(find.byType(EditableText), 'work');
+    await tester.tap(find.text('Add account'));
+    await tester.pump();
+    expect(reg.accounts.where((a) => a.name == 'work'), hasLength(1));
+  });
+
+  testWidgets('picker: live-updates when a binding changes from outside', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    await tester.runAsync(() async {
+      await f.services.settings.setProjectDir(f.tempDir);
+      await reg.registerAccount('work', '/home/u/.claude-work');
+    });
+    await pump(tester);
+    await tester.pump();
+    expect(find.textContaining('Default'), findsOneWidget);
+
+    // A CLI-side bind notifies the shared store → the picker rebuilds.
+    await tester.runAsync(() => reg.bindWorkspace(f.tempDir.path, 'work'));
+    await tester.pump();
+    expect(find.text('work'), findsOneWidget);
+  });
 }

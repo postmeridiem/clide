@@ -140,6 +140,16 @@ void main() {
     expect(published.single.data, {'action': 'login', 'name': 'work', 'dir': '/home/u/.claude-work'});
   });
 
+  test('set/unset with no workspace open error clearly', () async {
+    wire(cwd: null);
+    final set = await run(['set', 'work']);
+    expect(set.ok, isFalse);
+    expect(set.error?.message, contains('no workspace'));
+    final unset = await run(['unset']);
+    expect(unset.ok, isFalse);
+    expect(unset.error?.message, contains('no workspace'));
+  });
+
   test('unknown action → userError listing the verbs', () async {
     wire();
     final r = await run(['frobnicate']);
