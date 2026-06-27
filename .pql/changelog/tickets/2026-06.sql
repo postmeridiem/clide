@@ -8456,3 +8456,127 @@ Fix (scope to confirm):
 - Add a way to enumerate/identify live instances (e.g. a `clide instances` verb, or include the instance id/socket path + pid in `clide version`) so a human or agent can pick the right one.
 
 Acceptance: a bogus `CLIDE_SOCK` fails loudly instead of returning data from a different instance; a valid `CLIDE_SOCK` pins the CLI to that instance; startup leaves exactly one live socket for one running app (no orphan accumulation); there is a CLI affordance to list/identify running instances.', 'done', 'medium', NULL, NULL, 'D-6', '2026-06-05 21:28:48', '2026-06-27 13:51:01.108', NULL, 'fc3fc8365369e5c99b03aafccc3cda0f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49VYMPF18PYQXD9PCMHN8', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: storage schema + registry + bootstrap migration', 'Foundation for the multi-account epic (T-476): the user-scope persistence layer that every other child consumes.
+
+## Scope
+
+Two durable concerns, plus a first-run migration:
+
+### Account registry
+
+List of `(name, configDir)` pairs in user-scope clide settings — the catalog of Claude accounts this user has set up. Account names are user-chosen (`personal`, `work`, `client-acme`); `configDir` is the `CLAUDE_CONFIG_DIR` path Claude Code will read from. Default dir for a new account is `~/.claude-<name>/`, but an explicit path is allowed (so an existing `~/.claude-personal/` can be adopted as-is).
+
+### Workspace binding
+
+`claude.account.<workspace-hash>` → `<account-name>`. Workspace hash is the same FNV-1a 64-bit hex used by D-70 sockets (`fnv1a64Hex` in `lib/src/ipc/paths.dart:101`) — single source of truth. Unset binding means "use Claude''s default" (no `CLAUDE_CONFIG_DIR` injection).
+
+### Bootstrap migration
+
+On first run, scan `~` for directories matching `.claude-*` that look like a Claude config dir (have a `.claude.json` or `sessions/` inside). Surface the list — actually offering to register them is welcome-view UX (T-481); this ticket just provides the probe.
+
+## Where
+
+- `SettingsStore` schema additions in `lib/kernel/src/settings.dart` (or wherever the schema-driven settings layer lands — coordinate with T-356).
+- A new `lib/builtin/claude/src/account_registry.dart` (or similar) holding the typed reader/writer + the migration probe.
+- Flutter-free; unit-tested directly.
+
+## API shape (sketch — refine in implementation)
+
+```
+class AccountRegistry {
+  List<Account> get accounts;
+  Account? accountForWorkspace(String cwd);
+  Account? accountByName(String name);
+  void registerAccount(String name, String dir);
+  void removeAccount(String name);
+  void bindWorkspace(String cwd, String name);
+  void unbindWorkspace(String cwd);
+}
+List<DetectedAccount> probeExistingAccountDirs(String home);
+```
+
+All persistence flows through SettingsStore so the existing `.clide/settings.yaml` (or post-T-356 user-scope equivalent) reload/watch/serialize semantics carry over for free.
+
+## Acceptance
+
+- Schema declares `claude.accounts` (list of `{name, dir}`) and `claude.account.<workspace-hash>` (string).
+- `accountForWorkspace(cwd)` resolves an account, or null when no binding.
+- Registry CRUD (register/remove/bind/unbind) round-trips through SettingsStore.
+- Bootstrap probe returns existing `~/.claude-*` dirs as candidates without mutating anything.
+- Unit tests cover registry CRUD, workspace-hash mapping (canonicalised cwd, same hash for trailing-slash variants), probe behaviour (skips non-config dirs).
+- No process spawning, no UI, no CLI — those are downstream tickets.
+
+## Depends on
+
+- T-356 (settings → user scope). The binding keys are PER-USER, not per-repo (you don''t want "which account does this repo use" committed to the repo). Land after T-356 ships its user-scope settings store.
+
+## Consumers
+
+- T-478 (env injection) — reads `accountForWorkspace(cwd)` at spawn time.
+- T-479 (IDE-lock multiplex) — enumerates active accounts to write per-dir locks.
+- T-480 (CLI verbs) — registry mutations behind every account command.
+- T-481 (UI) — renders registry + binding state; calls the CRUD via T-480.
+- T-482 (settings UI) — schema-driven rows hit these keys.
+', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 14:40:34.929', NULL, 'c719afcccdcc45df698e4271b61a7721', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49VYMPF18PYQXD9PCMHN8', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: storage schema + registry + bootstrap migration', 'Foundation for the multi-account epic (T-476): the user-scope persistence layer that every other child consumes.
+
+## Scope
+
+Two durable concerns, plus a first-run migration:
+
+### Account registry
+
+List of `(name, configDir)` pairs in user-scope clide settings — the catalog of Claude accounts this user has set up. Account names are user-chosen (`personal`, `work`, `client-acme`); `configDir` is the `CLAUDE_CONFIG_DIR` path Claude Code will read from. Default dir for a new account is `~/.claude-<name>/`, but an explicit path is allowed (so an existing `~/.claude-personal/` can be adopted as-is).
+
+### Workspace binding
+
+`claude.account.<workspace-hash>` → `<account-name>`. Workspace hash is the same FNV-1a 64-bit hex used by D-70 sockets (`fnv1a64Hex` in `lib/src/ipc/paths.dart:101`) — single source of truth. Unset binding means "use Claude''s default" (no `CLAUDE_CONFIG_DIR` injection).
+
+### Bootstrap migration
+
+On first run, scan `~` for directories matching `.claude-*` that look like a Claude config dir (have a `.claude.json` or `sessions/` inside). Surface the list — actually offering to register them is welcome-view UX (T-481); this ticket just provides the probe.
+
+## Where
+
+- `SettingsStore` schema additions in `lib/kernel/src/settings.dart` (or wherever the schema-driven settings layer lands — coordinate with T-356).
+- A new `lib/builtin/claude/src/account_registry.dart` (or similar) holding the typed reader/writer + the migration probe.
+- Flutter-free; unit-tested directly.
+
+## API shape (sketch — refine in implementation)
+
+```
+class AccountRegistry {
+  List<Account> get accounts;
+  Account? accountForWorkspace(String cwd);
+  Account? accountByName(String name);
+  void registerAccount(String name, String dir);
+  void removeAccount(String name);
+  void bindWorkspace(String cwd, String name);
+  void unbindWorkspace(String cwd);
+}
+List<DetectedAccount> probeExistingAccountDirs(String home);
+```
+
+All persistence flows through SettingsStore so the existing `.clide/settings.yaml` (or post-T-356 user-scope equivalent) reload/watch/serialize semantics carry over for free.
+
+## Acceptance
+
+- Schema declares `claude.accounts` (list of `{name, dir}`) and `claude.account.<workspace-hash>` (string).
+- `accountForWorkspace(cwd)` resolves an account, or null when no binding.
+- Registry CRUD (register/remove/bind/unbind) round-trips through SettingsStore.
+- Bootstrap probe returns existing `~/.claude-*` dirs as candidates without mutating anything.
+- Unit tests cover registry CRUD, workspace-hash mapping (canonicalised cwd, same hash for trailing-slash variants), probe behaviour (skips non-config dirs).
+- No process spawning, no UI, no CLI — those are downstream tickets.
+
+## Depends on
+
+- T-356 (settings → user scope). The binding keys are PER-USER, not per-repo (you don''t want "which account does this repo use" committed to the repo). Land after T-356 ships its user-scope settings store.
+
+## Consumers
+
+- T-478 (env injection) — reads `accountForWorkspace(cwd)` at spawn time.
+- T-479 (IDE-lock multiplex) — enumerates active accounts to write per-dir locks.
+- T-480 (CLI verbs) — registry mutations behind every account command.
+- T-481 (UI) — renders registry + binding state; calls the CRUD via T-480.
+- T-482 (settings UI) — schema-driven rows hit these keys.
+', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 14:42:39.552', NULL, '74c4a4292386cf5b311a4475551a65e1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
