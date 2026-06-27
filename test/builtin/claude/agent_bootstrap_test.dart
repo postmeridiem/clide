@@ -83,6 +83,32 @@ void main() {
     });
   });
 
+  group('claudeConfigDirForWorkspace (T-484)', () {
+    test('bound workspace → the account config dir', () {
+      expect(claudeConfigDirForWorkspace(cwd: '/repo/a', boundConfigDir: (_) => '/home/u/.claude-work', env: const {}), '/home/u/.claude-work');
+    });
+
+    test('unbound + parent CLAUDE_CONFIG_DIR set → respects the launcher choice', () {
+      expect(
+        claudeConfigDirForWorkspace(cwd: '/repo/a', boundConfigDir: (_) => null, env: const {'CLAUDE_CONFIG_DIR': '/home/u/.claude-personal'}),
+        '/home/u/.claude-personal',
+      );
+    });
+
+    test('unbound + no parent env → null (Claude defaults to ~/.claude)', () {
+      expect(claudeConfigDirForWorkspace(cwd: '/repo/a', boundConfigDir: (_) => null, env: const {}), isNull);
+    });
+
+    test('binding beats the parent env (binding > parent)', () {
+      expect(claudeConfigDirForWorkspace(cwd: '/repo/a', boundConfigDir: (_) => '/bound', env: const {'CLAUDE_CONFIG_DIR': '/parent'}), '/bound');
+    });
+
+    test('an empty bound dir is ignored (falls through to parent / null)', () {
+      expect(claudeConfigDirForWorkspace(cwd: '/r', boundConfigDir: (_) => '', env: const {'CLAUDE_CONFIG_DIR': '/parent'}), '/parent');
+      expect(claudeConfigDirForWorkspace(cwd: '/r', boundConfigDir: (_) => '', env: const {}), isNull);
+    });
+  });
+
   group('agentBootstrap (IO wrapper)', () {
     test('socket in the delta matches workspaceSocketPath; allow rule in extraArgs', () {
       final b = agentBootstrap('/some/workspace');
@@ -95,6 +121,16 @@ void main() {
       final b = agentBootstrap('/ws', base: {'FOO': 'bar'});
       expect(b.envDelta['FOO'], 'bar');
       expect(b.envDelta['CLIDE_WORKSPACE'], '/ws');
+    });
+
+    test('injects the bound workspace CLAUDE_CONFIG_DIR (T-484)', () {
+      final b = agentBootstrap('/ws', boundConfigDir: (_) => '/home/u/.claude-work');
+      expect(b.envDelta['CLAUDE_CONFIG_DIR'], '/home/u/.claude-work');
+    });
+
+    test('an explicit base CLAUDE_CONFIG_DIR override beats the workspace binding (T-484)', () {
+      final b = agentBootstrap('/ws', base: {'CLAUDE_CONFIG_DIR': '/override'}, boundConfigDir: (_) => '/bound');
+      expect(b.envDelta['CLAUDE_CONFIG_DIR'], '/override');
     });
   });
 }

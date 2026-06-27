@@ -15,6 +15,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/builtin/claude/src/agent_bootstrap.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/session_naming.dart';
@@ -152,9 +153,14 @@ class ManagedSession {
 ClaudeSessionOrchestrator? activeSessionOrchestrator;
 
 class ClaudeSessionOrchestrator extends ChangeNotifier {
-  ClaudeSessionOrchestrator({ProcessFactory? processFactory}) : _factory = processFactory ?? _spawnClaude {
+  ClaudeSessionOrchestrator({ProcessFactory? processFactory, this.accountRegistry}) : _factory = processFactory ?? _spawnClaude {
     _chatModel = TeamChatModel(broker: broker, sessionResolver: (name) => byMemberName(name)?.session);
   }
+
+  /// Per-repo Claude account bindings (epic T-476). When a workspace is bound,
+  /// its hosted sessions spawn under that account's CLAUDE_CONFIG_DIR (T-484).
+  /// Null in tests / when no registry is wired → no injection.
+  final AccountRegistry? accountRegistry;
 
   final ProcessFactory _factory;
   final _sessions = <String, ManagedSession>{};
@@ -244,7 +250,7 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       mcpServers.add(TeamMcpServer(broker: broker, memberId: spec.id));
       preambles.add(_teamSystemPrompt(name, spec.role));
     }
-    final bootstrap = agentBootstrap(spec.cwd, base: spec.env);
+    final bootstrap = agentBootstrap(spec.cwd, base: spec.env, boundConfigDir: (cwd) => accountRegistry?.accountForWorkspace(cwd)?.dir);
     sessionArgs = [
       '--append-system-prompt',
       preambles.join('\n\n'),

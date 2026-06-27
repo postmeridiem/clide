@@ -74,6 +74,21 @@ Map<String, String> agentEnvDelta({required String workspaceRoot, required Strin
   return delta;
 }
 
+/// Resolve the `CLAUDE_CONFIG_DIR` a session in [cwd] should run under (T-484,
+/// epic T-476): the bound account's dir when the workspace is bound, else the
+/// parent's `CLAUDE_CONFIG_DIR` when the launcher already set one, else null
+/// (Claude defaults to `~/.claude`).
+///
+/// Pure: the AccountRegistry is injected as a plain [boundConfigDir] lookup
+/// (workspace → bound config dir, or null) so this stays Flutter-free — the
+/// registry itself lives behind a ChangeNotifier the orchestrator owns.
+String? claudeConfigDirForWorkspace({required String cwd, required String? Function(String cwd) boundConfigDir, required Map<String, String> env}) {
+  final bound = boundConfigDir(cwd);
+  if (bound != null && bound.isNotEmpty) return bound;
+  final inherited = env['CLAUDE_CONFIG_DIR'];
+  return (inherited != null && inherited.isNotEmpty) ? inherited : null;
+}
+
 /// Locate the directory to prepend to a hosted agent's PATH so `clide`
 /// resolves (T-215). Returns null when `clide` is ALREADY on [currentPath]
 /// (the installed case — T-211 drops it in `~/.local/bin`, normally already
@@ -107,7 +122,7 @@ class AgentBootstrap {
 /// env (usually null → inherit clide's). The returned [AgentBootstrap.extraArgs]
 /// carries the context note; team callers append their own preamble and the
 /// orchestrator merges both into one `--append-system-prompt`.
-AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base}) {
+AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base, String? Function(String cwd)? boundConfigDir}) {
   final home = Platform.environment['HOME'];
   // The login-shell-resolved PATH (T-439) so a hosted claude — and the tools it
   // shells out to — find user-installed components on a desktop launch, not just
@@ -120,7 +135,12 @@ AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base})
   ];
   final cliDir = resolveClideCliDir(currentPath: currentPath, candidateDirs: candidates, isExecutableFile: _isExecutableFile);
   final delta = agentEnvDelta(workspaceRoot: workspaceRoot, socketPath: workspaceSocketPath(workspaceRoot), currentPath: currentPath, clideCliDir: cliDir);
-  return AgentBootstrap(envDelta: {...?base, ...delta}, extraArgs: ['--allowedTools', clideBashAllowRule]);
+  // Per-repo Claude account (T-484): a bound workspace runs claude under that
+  // account's CLAUDE_CONFIG_DIR. Spread BEFORE base so an explicit per-call
+  // SpawnSpec.env override still wins (precedence: override > binding > parent
+  // env > unset); omitted entirely when there's nothing to set.
+  final configDir = claudeConfigDirForWorkspace(cwd: workspaceRoot, boundConfigDir: boundConfigDir ?? (_) => null, env: Platform.environment);
+  return AgentBootstrap(envDelta: {'CLAUDE_CONFIG_DIR': ?configDir, ...?base, ...delta}, extraArgs: ['--allowedTools', clideBashAllowRule]);
 }
 
 bool _isExecutableFile(String path) {

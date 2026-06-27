@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:clide/clide.dart';
+import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
@@ -467,8 +468,9 @@ class ClaudeExtension extends ClideExtension {
     }
 
     // The clide-managed session set (T-169). Panes spawn/bind through it so a
-    // session outlives its pane and is shared across surfaces.
-    _orchestrator = ClaudeSessionOrchestrator();
+    // session outlives its pane and is shared across surfaces. The account
+    // registry (T-476) lets a bound workspace spawn under its own Claude account.
+    _orchestrator = ClaudeSessionOrchestrator(accountRegistry: AccountRegistry(ctx.settings));
     activeSessionOrchestrator = _orchestrator;
 
     // An in-place workspace switch (Open Project/Folder) must not leave the

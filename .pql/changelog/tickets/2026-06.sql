@@ -8580,3 +8580,42 @@ All persistence flows through SettingsStore so the existing `.clide/settings.yam
 - T-481 (UI) — renders registry + binding state; calls the CRUD via T-480.
 - T-482 (settings UI) — schema-driven rows hit these keys.
 ', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 14:42:39.552', NULL, '74c4a4292386cf5b311a4475551a65e1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W3V175EM4F8ZHC6JFM4', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: spawn-time CLAUDE_CONFIG_DIR injection', 'The load-bearing piece of the multi-account epic (T-476): get the right `CLAUDE_CONFIG_DIR` into the hosted Claude process''s environment. Once this is in, a workspace bound to an account spawns its `claude` under that account end-to-end.
+
+## Where
+
+One resolver + one hook — pattern follows `lib/src/env/shell_env.dart` (single source of truth for env-related concerns).
+
+### New resolver
+
+`String? claudeConfigDirForWorkspace(String cwd)`:
+
+1. Look up the binding via the T-477 `AccountRegistry`.
+2. If bound → return the account''s `configDir`.
+3. If unbound → return `Platform.environment[''CLAUDE_CONFIG_DIR'']` when the parent already set it (respect launcher choice); otherwise `null` (Claude defaults to `~/.claude`).
+
+Flutter-free, pure (registry injected), unit-tested.
+
+### Injection point
+
+`lib/builtin/claude/src/agent_bootstrap.dart`''s `agentBootstrap(workspaceRoot, base:)`: when the resolver returns non-null, merge `''CLAUDE_CONFIG_DIR'': <path>` into the returned `envDelta` BEFORE the `base` spread, so `SpawnSpec.env` keeps its per-call-override precedence (line 67 of `session_orchestrator.dart` already passes the override as `base`).
+
+Every hosted session (primary / secondary / fork / teammate) inherits the binding because `ClaudeSessionOrchestrator._spawn` already routes through `agentBootstrap` at `session_orchestrator.dart:247` — no per-call-site work.
+
+## Acceptance
+
+1. A bound workspace spawns `claude` with `CLAUDE_CONFIG_DIR=<account-dir>` — verifiable by `ps eww` / `lsof` against the spawned process.
+2. An unbound workspace spawns identically to today — no `CLAUDE_CONFIG_DIR` injected unless the parent env already had one.
+3. `SpawnSpec.env` per-call override still wins (precedence: explicit override > workspace binding > parent env > unset).
+4. The resolver returns `null` for unbound workspaces with no parent env; the bootstrap then omits the key (NOT writes an empty value).
+5. Unit tests: resolver returns each of the four states; `envDelta` precedence is correct; agent_bootstrap unit tests already cover the merge shape — extend them.
+
+## Depends on
+
+- T-477 (storage). The resolver needs `AccountRegistry.accountForWorkspace(cwd)`.
+
+## Out of scope
+
+- Restarting an already-running session on binding change — that lives in T-480''s `set` verb (it owns the close-then-spawn flow).
+- IDE bridge discovery for the bound account — T-479.
+', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 14:59:54.882', NULL, 'e66f082fc7dc8dcca681eaa62be4e507', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
