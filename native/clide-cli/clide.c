@@ -44,6 +44,7 @@
 #include <process.h>
 #else
 #define _POSIX_C_SOURCE 200809L
+#include <dirent.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -357,13 +358,72 @@ static const char *json_value(const char *buf, const char *key, size_t *out_len)
     return start;
 }
 
+/* `clide instances` (T-247): probe every *.sock in the runtime dir, ask each
+ * live one who it is (`instance`), and print its identity JSON one per line
+ * (jsonl). Dead sockets are skipped — this is also how you find which instance
+ * to point CLIDE_SOCK at. */
+#ifndef _WIN32
+static int list_instances(void) {
+    char dir[4096];
+#ifdef __APPLE__
+    const char *home = getenv("HOME");
+    if (!home || !*home) home = "/tmp";
+    snprintf(dir, sizeof(dir), "%s/Library/Caches/clide", home);
+#else
+    const char *xdg = getenv("XDG_RUNTIME_DIR");
+    if (!xdg || !*xdg) xdg = "/tmp";
+    snprintf(dir, sizeof(dir), "%s/clide", xdg);
+#endif
+    DIR *d = opendir(dir);
+    if (!d) return 0; /* no dir yet → no instances; not an error */
+    char *qargv[] = {(char *)"instance"};
+    struct dirent *ent;
+    while ((ent = readdir(d)) != NULL) {
+        size_t nlen = strlen(ent->d_name);
+        if (nlen < 5 || strcmp(ent->d_name + nlen - 5, ".sock") != 0) continue;
+        char path[4096];
+        if (snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name) >= (int)sizeof(path)) continue;
+        sock_t fd = connect_unix(path);
+        if (fd == NET_INVALID) continue; /* dead socket — skip */
+        char req[1024];
+        if (build_request(1, qargv, (long long)clide_getpid(), req, sizeof(req)) == 0 &&
+            net_write(fd, req, (int)strlen(req)) == (int)strlen(req)) {
+            char resp[65536];
+            if (read_line(fd, resp, sizeof(resp)) == 0) {
+                size_t dlen = 0;
+                const char *data = json_value(resp, "data", &dlen);
+                if (data) {
+                    fwrite(data, 1, dlen, stdout);
+                    fputc('\n', stdout);
+                }
+            }
+        }
+        net_close(fd);
+    }
+    closedir(d);
+    fflush(stdout);
+    return 0;
+}
+#else
+static int list_instances(void) {
+    fprintf(stderr, "clide: `instances` is not supported on Windows yet\n");
+    return EX_USAGE;
+}
+#endif
+
 int main(int argc, char **argv) {
     /* argv[0] is the program name; everything after is what the user
      * typed after `clide`. */
     if (argc < 2) {
         fprintf(stderr, "usage: clide <subsystem> <verb> [args...]\n"
-                        "       clide status | tail | version | ping\n");
+                        "       clide instances | status | tail | version | ping\n");
         return EX_USAGE;
+    }
+
+    /* `instances` scans the runtime dir rather than connecting to one socket
+     * (T-247) — handle it before the single-target resolution below. */
+    if (strcmp(argv[1], "instances") == 0) {
+        return list_instances();
     }
 
     /* CLIDE_SOCK is an explicit target that beats workspace discovery (T-247):

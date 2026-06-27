@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`clide instances` / `clide instance` CLI verbs.** `instances` lists every
+  live clide on the machine with its version, pid, workspace, and socket path
+  (probing the runtime dir); `instance` reports the one you're connected to — so
+  you can find and target a specific instance via `CLIDE_SOCK`. (T-247)
 - **Summer Night theme + high-contrast sibling.** The legacy v1.2 palette is
   fleshed out to full token + syntax coverage and ships alongside a
   contrast-hardened `summer-night-hc`, both selectable in Settings → Appearance.

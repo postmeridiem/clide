@@ -32,14 +32,16 @@ import 'package:clide/builtin/vim/vim.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
 import 'package:clide/builtin/todos/todos.dart';
 import 'package:clide/builtin/welcome/welcome.dart';
-import 'dart:io' show Directory, File, Platform;
+import 'dart:io' show Directory, File, Platform, pid;
 
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/clide.dart' show clideVersion;
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/image_commands.dart';
+import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/daemon/log_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
 import 'package:clide/src/daemon/status_command.dart';
@@ -286,6 +288,10 @@ Future<void> main() async {
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
     registerPaneCommands(dispatcher, paneRegistry, viewPanes: () => snapshotViewPanes(panels, arrangement));
+    // `clide instance` — this instance's identity (version/pid/workspace/socket)
+    // so `clide instances` can list every live instance and a human/agent can
+    // tell which one a socket belongs to (T-247).
+    registerInstanceCommand(dispatcher, version: clideVersion, pid: pid, workspace: workRoot.path, socketPath: workspaceSocketPath(workRoot.path));
     // `clide log level [<level>]` — the live verbosity toggle's CLI half (T-433,
     // D-6 parity with the output-dock Level chip). Persists via the kernel
     // settings, captured post-boot.

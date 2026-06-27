@@ -16,6 +16,7 @@ import 'package:clide/kernel/src/events/types.dart';
 import 'package:clide/kernel/src/log.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/server.dart';
 import 'package:test/test.dart';
@@ -58,6 +59,10 @@ void main() {
       events: streamingBus,
     );
     await server.start();
+    // The `instance` command isn't a dispatcher builtin (main.dart registers it
+    // with the live workspace/pid); register it here so `clide instances` has
+    // identity to read back (T-247).
+    registerInstanceCommand(dispatcher, version: '9.9.9-test', pid: 4242, workspace: workspaceRoot.path, socketPath: server.socketPath);
   });
 
   tearDownAll(() async {
@@ -202,6 +207,26 @@ void main() {
       expect(r.exitCode, isNot(0));
       expect(r.stderr.toString(), contains('cannot connect'));
       expect(r.stdout.toString().trim(), isEmpty, reason: 'must not return data from a different instance');
+    });
+
+    test('instances lists live instances with their identity (T-247)', () async {
+      if (!hasCC) {
+        markTestSkipped('cc not available');
+        return;
+      }
+      final r = await Process.run(binaryPath, ['instances'], workingDirectory: workspaceRoot.path, environment: const {'CLIDE_SOCK': ''});
+      expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
+      // This test server is one live instance; its socket path must appear.
+      // Other live clides on the machine may also be listed — assert ours is
+      // present and carries the full identity payload, not an exact count.
+      final lines = const LineSplitter().convert(r.stdout.toString());
+      final mine = lines.where((l) => l.contains(server.socketPath)).toList();
+      expect(mine, hasLength(1), reason: 'expected exactly one line for our socket, got: $lines');
+      final obj = jsonDecode(mine.single) as Map<String, Object?>;
+      expect(obj['workspace'], workspaceRoot.path);
+      expect(obj['version'], '9.9.9-test');
+      expect(obj['pid'], 4242);
+      expect(obj['socketPath'], server.socketPath);
     });
   });
 }
