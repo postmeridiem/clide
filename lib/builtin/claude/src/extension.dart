@@ -207,9 +207,18 @@ class ClaudeExtension extends ClideExtension {
             labelKey: 'settings.claude.account.label',
             fields: [
               SettingsField(
-                // Placeholder key — a custom field is rendered by its control,
+                // Placeholder keys — custom fields are rendered by their control,
                 // never stored here; kept clear of the app.claude.account.<hash>
                 // binding namespace the registry scans (T-480).
+                key: 'app.claude.accountsRegistry',
+                kind: SettingsFieldKind.custom,
+                label: 'Accounts',
+                labelKey: 'settings.claude.account.registry.label',
+                help: 'Registered Claude accounts (each a separate config dir + login).',
+                helpKey: 'settings.claude.account.registry.help',
+                customId: 'claude.accounts',
+              ),
+              SettingsField(
                 key: 'app.claude.workspaceAccount',
                 kind: SettingsFieldKind.custom,
                 label: 'Account for this workspace',
@@ -223,6 +232,7 @@ class ClaudeExtension extends ClideExtension {
         ],
       ),
     ),
+    SettingsControlContribution(id: 'claude.accounts', customId: 'claude.accounts', builder: (_) => const ClaudeAccountsListControl()),
     SettingsControlContribution(id: 'claude.workspace-account', customId: 'claude.workspace-account', builder: (_) => const ClaudeWorkspaceAccountControl()),
     // T-171: agent roster controls (D-6 CLI/UI parity).
     // Usage: clide claude.agent.show <sessionId>

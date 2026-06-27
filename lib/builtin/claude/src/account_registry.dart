@@ -153,6 +153,22 @@ class AccountRegistry {
   }
 }
 
+/// Best-effort, read-only check of whether an account config dir holds live
+/// credentials (T-482) — for the "signed in / not signed in" indicator. True
+/// when the dir has a `.credentials.json` (Linux/Windows) or its `.claude.json`
+/// carries an `oauthAccount` marker. Never mutates; under-reports on macOS,
+/// where Claude Code keeps credentials in the system keychain rather than a file.
+bool accountIsSignedIn(String dir) {
+  if (File('$dir/.credentials.json').existsSync()) return true;
+  final cfg = File('$dir/.claude.json');
+  if (!cfg.existsSync()) return false;
+  try {
+    return cfg.readAsStringSync().contains('"oauthAccount"');
+  } catch (_) {
+    return false;
+  }
+}
+
 /// Whether [dir] is safe to `rm -rf` as a purged account config dir
 /// (`remove --purge`, T-480): it must be a `~/.claude-*` directory that is a
 /// DIRECT child of [home]. Anything else — an absolute path elsewhere, a nested

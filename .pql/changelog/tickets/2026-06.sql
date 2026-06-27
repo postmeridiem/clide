@@ -8936,3 +8936,128 @@ Dropdown/select listing registered accounts + a "(default)" option. Selecting is
 
 
 Slice 1 done: the per-workspace account picker (acceptance #2) — a custom SettingsControlContribution ''claude.workspace-account'' in the Claude settings category. Dropdown of registered accounts + Default; selecting binds/unbinds via AccountRegistry and publishes set/unset on accountActionChannel (respawn + lock sync follow). Live via the settings notifier. Empty/no-workspace states covered. Remaining (Slice 2): the global Accounts registry CRUD list with sign-in probe + add/re-login/remove(--purge) (acceptance #1).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 21:46:33.584', NULL, '31cf98ecc2a8e496cd9cb324fa75a404', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WBTT3ESK6QG0XZ1VN2G', 'story', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: UI — Claude pane badge + welcome view accounts section', 'The conversational/chrome UI surfaces for the multi-account epic (T-476). Settings-UI rows live in T-482; this ticket owns the always-visible affordances.
+
+## Claude pane chrome badge
+
+Small badge in the pane chrome (next to the existing status/banner row — see `lib/builtin/claude/src/claude_banner.dart` / status-bar pattern) showing the active account name, or "default" when unbound.
+
+- Tap opens a popover/picker: list of registered accounts (radio-selectable) + "Add account…" entry.
+- Selecting an account dispatches `clide claude account set <name>`; "Add account…" runs the add+login flow.
+- The badge live-updates from the `claude.account` MessageBus channel published by T-480.
+- Colour-coded subtly (one accent per account name? Hash-derived?) so the user can spot at a glance which window is which account.
+
+## Welcome view: Claude accounts section
+
+New section in the welcome view (peer of the existing project / toolchain rows in `lib/builtin/welcome/src/welcome_view.dart`):
+
+- **Registered accounts** — one row per registered account: name, configDir path, a per-row affordance to bind this workspace / unbind / re-login.
+- **Detected (not yet registered)** — rows for the T-477 bootstrap probe results (existing `~/.claude-*/` dirs not in the registry yet). Each has a "Register this" affordance that dispatches `clide claude account add <name> --dir <detected-dir>`.
+- **Add new account** — button that runs the full add+login flow against a default `~/.claude-<name>/` path.
+
+All actions go through T-480''s CLI verbs; this widget never writes the registry directly.
+
+## Constraints
+
+- Use the existing UI-design vocabulary (theme tokens, control geometry — see the `ui-design` skill). No Material/Cupertino.
+- The badge is display-with-affordance, not an inline interaction surface in the D-78 sense — opening the picker is a navigation gesture, the selection happens in the picker modal.
+- The welcome view follows the existing one-screen welcome-layout decisions (don''t add a fold-out / accordion if it conflicts with the current layout).
+
+## Acceptance
+
+1. The Claude pane badge shows the active account name (or "default"), updates live across `set`/`unset`/`add` actions.
+2. Tapping the badge opens a picker; selecting a registered account dispatches `clide claude account set` and respawns the pane on the new account.
+3. The welcome view''s accounts section lists registered accounts + detected candidates + an add-new affordance.
+4. Every action available in the UI is reachable as the corresponding `clide claude account` verb (D-6 parity verified by inspection).
+5. Widget tests cover badge rendering for each state (default / bound / unknown) + the picker action dispatch (mock the CLI client).
+6. A11y: badge has a semantic label naming the account; picker is keyboard-reachable.
+
+## Depends on
+
+- T-480 (CLI verbs). Wires every action to the dispatcher.
+
+## Out of scope
+
+- Settings-UI rows — T-482.
+- Project-picker integration (each project shows its bound account) — desirable, file as a follow-up if it grows complex.
+', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 21:47:58.084', NULL, '2ef8c7fb006f7bf2eb18d981a0126e24', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: settings UI rows (accounts registry + per-workspace binding)', 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+
+
+Slice 1 done: the per-workspace account picker (acceptance #2) — a custom SettingsControlContribution ''claude.workspace-account'' in the Claude settings category. Dropdown of registered accounts + Default; selecting binds/unbinds via AccountRegistry and publishes set/unset on accountActionChannel (respawn + lock sync follow). Live via the settings notifier. Empty/no-workspace states covered. Remaining (Slice 2): the global Accounts registry CRUD list with sign-in probe + add/re-login/remove(--purge) (acceptance #1).
+
+Slice 2 done: the global Accounts registry list control (ClaudeAccountsListControl, customId ''claude.accounts'') in the Claude > Account section. Per-account sign-in dot (accountIsSignedIn read-only probe), name, config dir, re-login + remove affordances (remove guarded while a workspace is bound, matching the CLI), and an inline add-account field that registers ~/.claude-<name> + publishes login. Live via the settings notifier. Note: in-UI remove is registry-only; --purge dir deletion stays on the CLI flag. All three acceptance criteria met (list+manage, per-workspace, live).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 22:35:36.216', NULL, '5543c116e734c8d891dad897a844a727', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: settings UI rows (accounts registry + per-workspace binding)', 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+
+
+Slice 1 done: the per-workspace account picker (acceptance #2) — a custom SettingsControlContribution ''claude.workspace-account'' in the Claude settings category. Dropdown of registered accounts + Default; selecting binds/unbinds via AccountRegistry and publishes set/unset on accountActionChannel (respawn + lock sync follow). Live via the settings notifier. Empty/no-workspace states covered. Remaining (Slice 2): the global Accounts registry CRUD list with sign-in probe + add/re-login/remove(--purge) (acceptance #1).
+
+Slice 2 done: the global Accounts registry list control (ClaudeAccountsListControl, customId ''claude.accounts'') in the Claude > Account section. Per-account sign-in dot (accountIsSignedIn read-only probe), name, config dir, re-login + remove affordances (remove guarded while a workspace is bound, matching the CLI), and an inline add-account field that registers ~/.claude-<name> + publishes login. Live via the settings notifier. Note: in-UI remove is registry-only; --purge dir deletion stays on the CLI flag. All three acceptance criteria met (list+manage, per-workspace, live).', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 22:35:36.250', NULL, '9ed2e68e4ff8955cf57a3ce2ef27a8a9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

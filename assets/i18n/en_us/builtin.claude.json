@@ -239,6 +239,8 @@
   "settings.claude.permissionMode.label": { "translation": "Permission mode" },
   "settings.claude.permissionMode.help": { "translation": "Starting permission mode for new sessions." },
   "settings.claude.account.label": { "translation": "Account" },
+  "settings.claude.account.registry.label": { "translation": "Accounts" },
+  "settings.claude.account.registry.help": { "translation": "Registered Claude accounts (each a separate config dir + login)." },
   "settings.claude.account.workspace.label": { "translation": "Account for this workspace" },
   "settings.claude.account.workspace.help": { "translation": "Which Claude account this repo runs under; Default uses the system login." }
 }

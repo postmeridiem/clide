@@ -138,6 +138,31 @@ void main() {
     });
   });
 
+  group('sign-in probe (T-482)', () {
+    test('true with a .credentials.json or an oauthAccount marker; false otherwise', () async {
+      final home = await Directory.systemTemp.createTemp('clide-signin-');
+      addTearDown(() => home.deleteSync(recursive: true));
+
+      // .credentials.json present → signed in.
+      final a = Directory('${home.path}/.claude-a')..createSync();
+      File('${a.path}/.credentials.json').writeAsStringSync('{}');
+      expect(accountIsSignedIn(a.path), isTrue);
+
+      // .claude.json with an oauthAccount marker → signed in.
+      final b = Directory('${home.path}/.claude-b')..createSync();
+      File('${b.path}/.claude.json').writeAsStringSync('{"oauthAccount": {"email": "x@y.z"}}');
+      expect(accountIsSignedIn(b.path), isTrue);
+
+      // .claude.json without the marker → not signed in.
+      final c = Directory('${home.path}/.claude-c')..createSync();
+      File('${c.path}/.claude.json').writeAsStringSync('{"theme": "dark"}');
+      expect(accountIsSignedIn(c.path), isFalse);
+
+      // No config dir at all → not signed in.
+      expect(accountIsSignedIn('${home.path}/.claude-missing'), isFalse);
+    });
+  });
+
   group('purge guard (T-480)', () {
     const home = '/home/u';
     test('accepts ~/.claude-* direct children only, rejects everything else', () {

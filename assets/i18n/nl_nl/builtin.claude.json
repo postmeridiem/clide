@@ -239,6 +239,8 @@
   "settings.claude.permissionMode.label": { "translation": "Permissiemodus" },
   "settings.claude.permissionMode.help": { "translation": "Begin-permissiemodus voor nieuwe sessies." },
   "settings.claude.account.label": { "translation": "Account" },
+  "settings.claude.account.registry.label": { "translation": "Accounts" },
+  "settings.claude.account.registry.help": { "translation": "Geregistreerde Claude-accounts (elk een eigen configmap + login)." },
   "settings.claude.account.workspace.label": { "translation": "Account voor deze werkmap" },
   "settings.claude.account.workspace.help": { "translation": "Welk Claude-account deze repo gebruikt; Standaard gebruikt de systeemlogin." }
 }

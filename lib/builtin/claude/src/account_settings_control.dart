@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/src/daemon/claude_account_commands.dart' show accountActionChannel;
@@ -129,6 +131,181 @@ class _ClaudeWorkspaceAccountControlState extends State<ClaudeWorkspaceAccountCo
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Settings control for the global Claude accounts registry (T-482, epic
+/// T-476). Lists each registered account — sign-in status dot, name, config
+/// dir — with re-login and remove affordances, plus an inline "add account"
+/// field. Management flows through the AccountRegistry + accountActionChannel
+/// (the CLI verbs' path); removal is refused while a workspace is bound, to
+/// match `clide claude account remove`.
+class ClaudeAccountsListControl extends StatefulWidget {
+  const ClaudeAccountsListControl({super.key});
+
+  @override
+  State<ClaudeAccountsListControl> createState() => _ClaudeAccountsListControlState();
+}
+
+class _ClaudeAccountsListControlState extends State<ClaudeAccountsListControl> {
+  final TextEditingController _name = TextEditingController();
+  final FocusNode _focus = FocusNode(debugLabel: 'add-account');
+  SettingsStore? _settings;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final settings = ClideKernel.maybeOf(context)?.settings;
+    if (identical(settings, _settings)) return;
+    _settings?.removeListener(_onChange);
+    _settings = settings;
+    _settings?.addListener(_onChange);
+  }
+
+  void _onChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _settings?.removeListener(_onChange);
+    _name.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add(KernelServices services) async {
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+    final reg = AccountRegistry(services.settings);
+    if (reg.accountByName(name) != null) {
+      _name.clear();
+      return; // idempotent — already registered
+    }
+    final dir = '${Platform.environment['HOME'] ?? ''}/.claude-$name';
+    _name.clear();
+    final write = reg.registerAccount(name, dir);
+    // Kick off the login flow for the new account (T-485 consumer opens it).
+    services.messages.publish('ui', accountActionChannel, {'action': 'login', 'name': name, 'dir': dir});
+    await write;
+  }
+
+  void _relogin(KernelServices services, Account a) {
+    services.messages.publish('ui', accountActionChannel, {'action': 'login', 'name': a.name, 'dir': a.dir});
+  }
+
+  Future<void> _remove(KernelServices services, String name) => AccountRegistry(services.settings).removeAccount(name);
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideSettings.theme.of(context).surface;
+    final services = ClideKernel.maybeOf(context);
+    if (services == null) return const SizedBox.shrink();
+    final reg = AccountRegistry(services.settings);
+    final accounts = reg.accounts;
+    final bound = reg.boundAccountNames();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (accounts.isEmpty)
+          ClideText('No accounts registered yet.', fontSize: clideFontCaption, color: tokens.globalTextMuted)
+        else
+          for (final a in accounts) _row(context, services, tokens, a, bound.contains(a.name)),
+        const SizedBox(height: 10),
+        _addRow(context, services, tokens),
+      ],
+    );
+  }
+
+  Widget _row(BuildContext context, KernelServices services, SurfaceTokens tokens, Account a, bool isBound) {
+    final signedIn = accountIsSignedIn(a.dir);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: signedIn ? tokens.statusSuccess : tokens.globalTextMuted),
+          ),
+          const SizedBox(width: 8),
+          ClideText(a.name, color: tokens.globalForeground),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClideText(a.dir, fontSize: clideFontCaption, muted: true, fontFamily: ClideSettings.fonts.monoOf(context), overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
+          _iconButton(context, 'sign-in', signedIn ? 'Re-sign in to ${a.name}' : 'Sign in to ${a.name}', () => _relogin(services, a)),
+          const SizedBox(width: 6),
+          _iconButton(
+            context,
+            'trash',
+            isBound ? '${a.name} is bound to a workspace — unset it first' : 'Remove ${a.name}',
+            isBound ? null : () => _remove(services, a.name),
+            color: isBound ? tokens.globalTextMuted : tokens.statusError,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconButton(BuildContext context, String icon, String semantic, VoidCallback? onTap, {Color? color}) {
+    final tokens = ClideSettings.theme.of(context).surface;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: semantic,
+      excludeSemantics: true,
+      child: ClideTappable(
+        cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        onTap: onTap,
+        builder: (ctx, hovered, _) =>
+            ClideIcon(PhosphorIcons.byName(icon), size: 14, color: color ?? (hovered ? tokens.globalForeground : tokens.globalTextMuted)),
+      ),
+    );
+  }
+
+  Widget _addRow(BuildContext context, KernelServices services, SurfaceTokens tokens) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 26,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: tokens.panelBackground,
+              border: Border.all(color: _focus.hasFocus ? tokens.panelActiveBorder : tokens.dividerColor),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: EditableText(
+              controller: _name,
+              focusNode: _focus,
+              style: TextStyle(fontFamily: ClideSettings.fonts.monoOf(context), fontSize: clideFontMono, color: tokens.globalForeground),
+              cursorColor: tokens.globalFocus,
+              backgroundCursorColor: tokens.globalTextMuted,
+              maxLines: 1,
+              onSubmitted: (_) => _add(services),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Semantics(
+          button: true,
+          label: 'Add account',
+          excludeSemantics: true,
+          child: ClideTappable(
+            cursor: SystemMouseCursors.click,
+            onTap: () => _add(services),
+            builder: (ctx, hovered, _) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : tokens.buttonBackground, borderRadius: BorderRadius.circular(4)),
+              child: ClideText('Add account', color: tokens.buttonForeground, fontSize: clideFontCaption),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -95,4 +95,64 @@ void main() {
     expect(published.single['action'], 'unset');
     expect(published.single['previous'], 'work');
   });
+
+  // The global registry list control (T-482 part 2).
+  Future<void> pumpList(WidgetTester tester) => tester.pumpWidget(
+    harness(
+      f,
+      const Align(
+        alignment: Alignment.center,
+        child: SizedBox(width: 460, child: ClaudeAccountsListControl()),
+      ),
+    ),
+  );
+
+  testWidgets('registry list: empty shows a hint + the add row', (tester) async {
+    await pumpList(tester);
+    await tester.pump();
+    expect(find.textContaining('No accounts registered'), findsOneWidget);
+    expect(find.text('Add account'), findsOneWidget);
+  });
+
+  testWidgets('registry list: renders each account name + dir', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    await tester.runAsync(() => reg.registerAccount('work', '/home/u/.claude-work'));
+    await pumpList(tester);
+    await tester.pump();
+    expect(find.text('work'), findsOneWidget);
+    expect(find.text('/home/u/.claude-work'), findsOneWidget);
+  });
+
+  testWidgets('registry list: typing a name + Add registers it and publishes login', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    final published = <Map<String, Object?>>[];
+    final sub = f.services.messages.subscribe(channel: accountActionChannel).listen((m) => published.add(m.data));
+    addTearDown(sub.cancel);
+
+    await pumpList(tester);
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), 'work');
+    await tester.tap(find.text('Add account'));
+    await tester.pump();
+    expect(reg.accountByName('work'), isNotNull);
+    expect(published.single['action'], 'login');
+    expect(published.single['name'], 'work');
+  });
+
+  testWidgets('registry list: remove deletes an unbound account; a bound one is guarded', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    await tester.runAsync(() async {
+      await f.services.settings.setProjectDir(f.tempDir);
+      await reg.registerAccount('work', '/home/u/.claude-work');
+      await reg.registerAccount('personal', '/home/u/.claude-personal');
+      await reg.bindWorkspace(f.tempDir.path, 'work');
+    });
+
+    await pumpList(tester);
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel('Remove personal'));
+    await tester.pump();
+    expect(reg.accountByName('personal'), isNull);
+    expect(find.bySemanticsLabel(RegExp('bound to a workspace')), findsOneWidget, reason: 'the bound account guards its remove');
+  });
 }
