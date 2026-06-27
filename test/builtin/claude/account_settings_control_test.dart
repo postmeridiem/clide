@@ -114,13 +114,18 @@ void main() {
     expect(find.text('Add account'), findsOneWidget);
   });
 
-  testWidgets('registry list: renders each account name + dir', (tester) async {
+  testWidgets('registry list: renders each account name + dir, and live-updates on a CLI add', (tester) async {
     final reg = AccountRegistry(f.services.settings);
     await tester.runAsync(() => reg.registerAccount('work', '/home/u/.claude-work'));
     await pumpList(tester);
     await tester.pump();
     expect(find.text('work'), findsOneWidget);
     expect(find.text('/home/u/.claude-work'), findsOneWidget);
+
+    // A CLI-side registration notifies the shared store → the list rebuilds.
+    await tester.runAsync(() => reg.registerAccount('personal', '/home/u/.claude-personal'));
+    await tester.pump();
+    expect(find.text('personal'), findsOneWidget);
   });
 
   testWidgets('registry list: typing a name + Add registers it and publishes login', (tester) async {

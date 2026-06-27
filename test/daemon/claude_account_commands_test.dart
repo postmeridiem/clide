@@ -140,6 +140,13 @@ void main() {
     expect(published.single.data, {'action': 'login', 'name': 'work', 'dir': '/home/u/.claude-work'});
   });
 
+  test('remove of an unregistered account → no-such-account error', () async {
+    wire();
+    final r = await run(['remove', 'ghost']);
+    expect(r.ok, isFalse);
+    expect(r.error?.message, contains('no such account'));
+  });
+
   test('set/unset with no workspace open error clearly', () async {
     wire(cwd: null);
     final set = await run(['set', 'work']);
