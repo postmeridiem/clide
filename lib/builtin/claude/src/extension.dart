@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
+import 'package:clide/builtin/claude/src/account_settings_control.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
 import 'package:clide/builtin/claude/src/claude_status.dart' show nextSafePermissionMode;
@@ -198,9 +199,31 @@ class ClaudeExtension extends ClideExtension {
               ),
             ],
           ),
+          // Per-repo Claude account (T-482, epic T-476). The dropdown binds this
+          // workspace to a registered account; manage the registry itself with
+          // the `clide claude account` verbs (T-480).
+          SettingsSection(
+            label: 'Account',
+            labelKey: 'settings.claude.account.label',
+            fields: [
+              SettingsField(
+                // Placeholder key — a custom field is rendered by its control,
+                // never stored here; kept clear of the app.claude.account.<hash>
+                // binding namespace the registry scans (T-480).
+                key: 'app.claude.workspaceAccount',
+                kind: SettingsFieldKind.custom,
+                label: 'Account for this workspace',
+                labelKey: 'settings.claude.account.workspace.label',
+                help: 'Which Claude account this repo runs under; Default uses the system login.',
+                helpKey: 'settings.claude.account.workspace.help',
+                customId: 'claude.workspace-account',
+              ),
+            ],
+          ),
         ],
       ),
     ),
+    SettingsControlContribution(id: 'claude.workspace-account', customId: 'claude.workspace-account', builder: (_) => const ClaudeWorkspaceAccountControl()),
     // T-171: agent roster controls (D-6 CLI/UI parity).
     // Usage: clide claude.agent.show <sessionId>
     CommandContribution(

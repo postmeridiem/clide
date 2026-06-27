@@ -8862,3 +8862,77 @@ T-478 — T-479 can land in parallel; the bound `claude` just won''t have an IDE
 
 
 Done: McpServer writes the /ide discovery lock into every active config dir (default ~/.claude/ide + the bound account''s <dir>/ide), reconciled by syncDiscoveryLocks() on start + on every accountActionChannel event, all cleaned on stop. boundConfigDir injected from main.dart via AccountRegistry. Acceptance 1-4,6 covered by test/ipc/mcp_server_test.dart; #5 (live claude finds the bridge end-to-end) is manual.', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 19:24:52.456', NULL, '8798b0b97587cdbac22b75004cad8f07', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: settings UI rows (accounts registry + per-workspace binding)', 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 21:32:32.254', NULL, 'ccd495a63a508e1c6f2aa1e7585efee6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: settings UI rows (accounts registry + per-workspace binding)', 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+
+
+Slice 1 done: the per-workspace account picker (acceptance #2) — a custom SettingsControlContribution ''claude.workspace-account'' in the Claude settings category. Dropdown of registered accounts + Default; selecting binds/unbinds via AccountRegistry and publishes set/unset on accountActionChannel (respawn + lock sync follow). Live via the settings notifier. Empty/no-workspace states covered. Remaining (Slice 2): the global Accounts registry CRUD list with sign-in probe + add/re-login/remove(--purge) (acceptance #1).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 21:46:33.584', NULL, '31cf98ecc2a8e496cd9cb324fa75a404', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

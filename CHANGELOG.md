@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Settings → Claude → Account picker.** A per-workspace dropdown binds this
+  repo to a registered Claude account (or Default); switching respawns the pane
+  onto it. (T-482, epic T-476)
 - **Per-repo Claude accounts — `clide claude account` verbs.** Manage named
   Claude config dirs and bind one per workspace: `add`/`list`/`set`/`unset`/
   `remove [--purge]`. `set`/`unset` respawn the workspace's Claude pane(s) onto

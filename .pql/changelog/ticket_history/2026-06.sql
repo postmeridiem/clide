@@ -6951,3 +6951,77 @@ T-478 — T-479 can land in parallel; the bound `claude` just won''t have an IDE
 
 Done: McpServer writes the /ide discovery lock into every active config dir (default ~/.claude/ide + the bound account''s <dir>/ide), reconciled by syncDiscoveryLocks() on start + on every accountActionChannel event, all cleaned on stop. boundConfigDir injected from main.dart via AccountRegistry. Acceptance 1-4,6 covered by test/ipc/mcp_server_test.dart; #5 (live claude finds the bridge end-to-end) is manual.', NULL, '2026-06-27 19:24:52', '2026-06-27 19:24:52.424', '2026-06-27 19:24:52.424', NULL, 'fc350455bedf3c3c4e8c61a5599cef33', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W6GP535GR8XD1XEHYWG', 'status', 'in_progress', 'done', NULL, '2026-06-27 19:24:52', '2026-06-27 19:24:52.456', '2026-06-27 19:24:52.456', NULL, '9a1ec766e6abf5712e32dc32ace8c02d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'status', 'backlog', 'in_progress', NULL, '2026-06-27 21:32:32', '2026-06-27 21:32:32.255', '2026-06-27 21:32:32.255', NULL, 'de26a987bbc6b273147ea85568816ef6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WEE5N4PESF5G1G5JRHR', 'description', 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+', 'Settings UI surface for the multi-account epic (T-476): two schema-driven rows under the "Claude" settings category.
+
+## Rows
+
+### Global: "Claude > Accounts"
+
+Registry CRUD list — one entry per registered account. Each entry shows: name, configDir, current sign-in status (a small "signed in" / "not signed in" indicator derived from whether `<dir>/.claude.json` carries an active credential — read-only probe, no auth state mutation here). Per-entry affordances: re-login, remove (with `--purge` confirmation). Plus an "Add account…" affordance.
+
+### Per-workspace: "Claude > Account for this workspace"
+
+Dropdown/select listing registered accounts + a "(default)" option. Selecting issues `clide claude account set <name>` (or `unset` for default).
+
+## Where
+
+- Hooks into the schema-driven settings panel coming from T-8 / settings UI. Until that lands, this row set may need to render in a placeholder host.
+- All actions go through T-480''s CLI verbs.
+- Scope-tag icon for each row per the 2026-06-10 settings convention (folder = project; globe = always/global) — both rows are present, distinguishing scope visually.
+
+## Acceptance
+
+1. Global Accounts row renders the registry, supports add / re-login / remove (with purge confirmation).
+2. Per-workspace row renders the current binding and lets the user switch / clear it.
+3. Both rows reflect live changes from the `claude.account` MessageBus channel (T-480) without a settings reload.
+4. All actions issue T-480 verbs — no direct settings writes from this UI.
+5. Widget tests for the row renderers in each state.
+
+## Depends on
+
+- T-480 (CLI verbs) for the action layer.
+- T-477 (storage) for the schema registration.
+- Gated on T-8''s settings UI maturity — until the schema-driven panel can host these rows, this ticket parks. Track T-8 progress before activating.
+
+## Out of scope
+
+- The Claude pane chrome badge + welcome view — T-481.
+
+
+Slice 1 done: the per-workspace account picker (acceptance #2) — a custom SettingsControlContribution ''claude.workspace-account'' in the Claude settings category. Dropdown of registered accounts + Default; selecting binds/unbinds via AccountRegistry and publishes set/unset on accountActionChannel (respawn + lock sync follow). Live via the settings notifier. Empty/no-workspace states covered. Remaining (Slice 2): the global Accounts registry CRUD list with sign-in probe + add/re-login/remove(--purge) (acceptance #1).', NULL, '2026-06-27 21:46:33', '2026-06-27 21:46:33.584', '2026-06-27 21:46:33.584', NULL, '4f4f8d74d775750d79f054ba5821ce5a', 2) ON CONFLICT(hash) DO NOTHING;

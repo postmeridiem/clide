@@ -237,5 +237,8 @@
   "settings.claude.effort.label": { "translation": "Effort" },
   "settings.claude.effort.help": { "translation": "Reasoning effort for new sessions (applied via --effort at spawn)." },
   "settings.claude.permissionMode.label": { "translation": "Permission mode" },
-  "settings.claude.permissionMode.help": { "translation": "Starting permission mode for new sessions." }
+  "settings.claude.permissionMode.help": { "translation": "Starting permission mode for new sessions." },
+  "settings.claude.account.label": { "translation": "Account" },
+  "settings.claude.account.workspace.label": { "translation": "Account for this workspace" },
+  "settings.claude.account.workspace.help": { "translation": "Which Claude account this repo runs under; Default uses the system login." }
 }
