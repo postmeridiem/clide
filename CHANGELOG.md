@@ -22,9 +22,6 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   fleshed out to full token + syntax coverage and ships alongside a
   contrast-hardened `summer-night-hc`, both selectable in Settings → Appearance.
   (T-478)
-- **Account budget in the Team tab.** The Claude meta sidebar's Team tab now
-  shows the shared account `/usage` budget as a single labelled card (usage is
-  per-account, not per-member). (T-158)
 
 ### Changed
 

@@ -8332,3 +8332,107 @@ Dropdown/select listing registered accounts + a "(default)" option. Selecting is
 
 - The Claude pane chrome badge + welcome view — T-481.
 ', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-25 10:24:31', NULL, 'a699defe53d009c44e5af7f9f38a0c15', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM62FKQQD0B9B80PFY4', 'task', NULL, 'Team sidebar: account/team token budget (blocked on upstream)', 'Show the account/subscription usage budget (5-hour + weekly limits, % used, reset times) in the Claude meta sidebar (T-141). BLOCKED: this data is not programmatically exposed under subscription (OAuth) auth as of claude 2.1.150 — verified empirically + via docs (2026-05-23). /usage is TUI-only (headless ''claude -p /usage'' returns only a one-liner); stats-cache.json has activity counts only; the stream-json rate_limit_event is undocumented + needs a billed turn; ''claude auth status --json'' shows plan only. A ''claude usage --json'' + a /v1/organizations/{org}/usage/subscription endpoint are an OPEN, unshipped feature request (GitHub anthropics/claude-code#44328). Revisit when #44328 ships or an API-key usage path exists. See project memory ''claude-usage-budget-not-exposed''.
+
+2026-06-09: detached from T-132 (which is otherwise complete) and made the RESOLVER ticket for Q-34 (how + when to surface the budget given upstream doesn''t expose it). Stays in the backlog; revisit when a viable data path lands (upstream claude usage --json / endpoint per anthropics/claude-code#44328, or an API-key usage path).
+
+UNBLOCKED (2026-06-12, T-415): probed claude 2.1.175 — a forwarded /usage IS
+answered headless in stream-json (free, num_turns 0) with parseable text
+(session %, week % all-models, week % Sonnet). The Activity tab now renders it
+via parseUsageText + a user-initiated refresh control. Remaining scope for this
+ticket would be per-member/team budget split, if still wanted.
+
+─────────────────────────────────────────────
+REFINED 2026-06-26
+
+## Grounding (current state)
+- T-415 SHIPPED the account-budget display. `/usage` is forwarded headless
+  (free, num_turns 0), parsed by `parseUsageText` → `ClaudeUsage` (session %,
+  week all-models %, week Sonnet %) in
+  lib/builtin/claude/src/claude_status.dart, rendered in the Activity tab
+  (meta_sidebar/activity_tab.dart, USAGE `MetaSection`) with a user-initiated
+  refresh that publishes `/usage` on the `builtin.claude/command` channel.
+  claude_meta_sidebar.dart binds the PRIMARY session''s synthetic text items and
+  parses them into `_usage`.
+
+## KEY FINDING — a literal "per-member split" is not meaningful today
+- Claude''s usage budget is per-ACCOUNT (subscription/OAuth), not per-session.
+  Every clide session in a workspace (primary, secondaries, managed teammates)
+  spawns against the SAME `~/.claude` login — session_orchestrator spawns with
+  no per-session CLAUDE_* auth override and all transcripts live under one
+  project dir. So the whole team draws down ONE shared 5h/weekly budget.
+- Rendering the same numbers on each roster row would mislead, not inform. True
+  per-member budgets need per-SESSION account login, which even T-476 (per-REPO
+  login) does NOT provide — within one workspace/team the account is shared.
+  Treat per-member-different-account as out of scope unless per-session
+  multi-account auth ever exists.
+
+## RECOMMENDED SCOPE (shippable, honest) — resolves Q-34
+Surface the existing account-wide budget in the TEAM tab as a single "Account"
+section (NOT per-member): the team sidebar then answers "how much budget is left
+for the account the whole team shares." Satisfies the ticket title without the
+false split.
+
+Implementation:
+1. meta_sidebar/team_tab.dart (TeamTabView.build): add a `MetaSection`
+   (header i18n key `team.section.usage`) rendering the same 3 `MetaRow`s the
+   Activity tab uses (session / week-all / week-sonnet), shown only when usage
+   != null, with a one-line caption that it is account-wide / shared across the
+   team (so it isn''t read as per-member).
+2. claude_meta_sidebar.dart: pass the existing `_usage` (ClaudeUsage?) into
+   TeamTabView (it already passes `members`). No new fetch — the primary''s
+   `/usage` already IS the account budget.
+3. Optional: a refresh control in the team section mirroring the Activity tab
+   (publish `/usage` on `builtin.claude/command`), or just rely on the Activity
+   tab''s refresh keeping `_usage` current.
+
+Files to touch: meta_sidebar/team_tab.dart, claude_meta_sidebar.dart (thread
+usage), meta_sidebar/models.dart (reuse MetaSection/MetaRow),
+assets/i18n/en_us + nl_nl/builtin.claude.json (new `team.section.usage` [+
+caption] key — keep en/nl parity for the a11y i18n gate).
+
+## ALTERNATIVE PATHS (pick one before building)
+A. Shared-account section in the team tab (recommended above).
+B. Close T-158 as substantially DONE by T-415 — the budget is already visible in
+   the Activity tab; a team-tab duplicate may be redundant. Q-34 answered either
+   way.
+C. Keep the true per-member split as a FUTURE item, explicitly blocked on a
+   (currently non-existent) per-session multi-account login; park T-158 behind
+   it.
+
+## ACCEPTANCE (for option A)
+- Team tab shows ONE account-budget section (session / week / week-sonnet %)
+  when a `/usage` result is available, clearly labelled account-wide / shared.
+- No per-member duplication of the same numbers.
+- No new network/headless call beyond the existing user-initiated `/usage`
+  refresh (D-64 / POLICY: explicit user action only).
+- en/nl parity for any new i18n keys.
+
+## REFERENCES
+T-415 (usage parse + Activity render); Q-34 (this resolves it); T-476 (per-REPO,
+not per-session, account login — does NOT enable per-member budgets);
+`parseUsageText` / `ClaudeUsage` (claude_status.dart); activity_tab.dart USAGE
+block; team_tab.dart roster; claude_meta_sidebar.dart usage binding.
+
+─────────────────────────────────────────────
+DECISION 2026-06-26: go with option A.
+
+Build the single shared-account budget section in the TEAM tab (account-wide,
+clearly labelled — NOT per-member). Options B (close as done-by-T-415) and C
+(per-member, deferred behind per-session multi-account) are declined: per-member
+is not meaningful under one shared account, and the team tab should carry its
+own budget view rather than send the user to the Activity tab.
+
+Scope is now exactly the "RECOMMENDED SCOPE" above (team_tab.dart MetaSection +
+thread _usage from claude_meta_sidebar.dart + team.section.usage i18n key,
+en/nl). This resolves Q-34. Ready to pick up; not yet started.
+
+─────────────────────────────────────────────
+REVISED 2026-06-27 (after live review): pivoted A → B.
+
+Seeing the shared-account card on BOTH the Activity and Team tabs read as
+redundant — usage is per-account and can''t be split per member, so one place
+is enough. Removed the Team-tab account card (and its usage prop + i18n keys);
+the budget now lives only on the Activity tab, next to the /usage refresh
+control that fetches it (T-415). The three-tab card facelift stays. Q-34
+answered: budget surfaces once, on Activity.', 'done', 'low', NULL, NULL, NULL, '2026-05-23 20:48:38', '2026-06-27 05:55:56.468', NULL, 'c69aaa48a145eccdaed208eb01ab8a57', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

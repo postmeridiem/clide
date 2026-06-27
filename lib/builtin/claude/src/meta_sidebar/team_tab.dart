@@ -4,12 +4,12 @@
 /// state, and orchestrator wiring. Split out of claude_meta_sidebar.dart
 /// (T-395).
 ///
-/// Also carries the shared account budget (T-158): the `/usage` figures are
-/// per-ACCOUNT — every team session shares one `~/.claude` login, so this is a
-/// single shared budget shown once and labelled as such, NOT a per-member split.
+/// The account `/usage` budget is deliberately NOT shown here: it is
+/// per-account (every team session shares one `~/.claude` login), so it can't
+/// be split per member — it lives once on the Activity tab, next to the
+/// refresh control that fetches it (T-158).
 library;
 
-import 'package:clide/builtin/claude/src/claude_status.dart' show ClaudeUsage;
 import 'package:clide/builtin/claude/src/meta_sidebar/models.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/roster_row.dart';
 import 'package:clide/builtin/claude/src/meta_sidebar/task_row.dart';
@@ -36,7 +36,6 @@ class TeamTabView extends StatelessWidget {
     required this.onSetPermissionMode,
     required this.onFork,
     required this.onOpenChatPane,
-    this.usage,
   });
 
   final List<TeamMemberJoined> members;
@@ -52,32 +51,27 @@ class TeamTabView extends StatelessWidget {
   final void Function(String memberName) onFork;
   final VoidCallback onOpenChatPane;
 
-  /// Parsed `/usage` budget for the account this team shares (T-158). Null until
-  /// the first `/usage` refresh (driven from the Activity tab control).
-  final ClaudeUsage? usage;
-
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
+    if (members.isEmpty) {
+      return metaPlaceholder(ClideSettings.i18n.string(context, 'team.empty', namespace: 'builtin.claude', placeholder: 'No team active.'));
+    }
     final children = <Widget>[
-      ..._accountSection(context, tokens),
-      if (members.isEmpty)
-        metaPlaceholder(ClideSettings.i18n.string(context, 'team.empty', namespace: 'builtin.claude', placeholder: 'No team active.'))
-      else
-        for (final m in members)
-          AgentRosterRow(
-            key: ValueKey(m.agentId),
-            member: m,
-            status: memberStatus[m.agentId],
-            orchestrator: orchestrator,
-            injectingAgentId: injectingAgentId,
-            injectController: injectController,
-            onToggleInject: onToggleInject,
-            onInjectSubmit: onInjectSubmit,
-            onClose: onClose,
-            onSetPermissionMode: onSetPermissionMode,
-            onFork: onFork,
-          ),
+      for (final m in members)
+        AgentRosterRow(
+          key: ValueKey(m.agentId),
+          member: m,
+          status: memberStatus[m.agentId],
+          orchestrator: orchestrator,
+          injectingAgentId: injectingAgentId,
+          injectController: injectController,
+          onToggleInject: onToggleInject,
+          onInjectSubmit: onInjectSubmit,
+          onClose: onClose,
+          onSetPermissionMode: onSetPermissionMode,
+          onFork: onFork,
+        ),
     ];
 
     if (tasks.isNotEmpty) {
@@ -94,43 +88,6 @@ class TeamTabView extends StatelessWidget {
     }
 
     return ListView(padding: const EdgeInsets.all(12), children: children);
-  }
-
-  /// The shared account-budget card (T-158): one ACCOUNT section with the three
-  /// `/usage` figures and a caption that it is account-wide, not per-member.
-  /// Empty when no `/usage` result has arrived yet.
-  List<Widget> _accountSection(BuildContext context, SurfaceTokens tokens) {
-    final u = usage;
-    if (u == null || (u.session == null && u.week == null && u.weekSonnet == null)) return const [];
-    return [
-      metaSectionHeader(context, tokens, ClideSettings.i18n.string(context, 'team.section.usage', namespace: 'builtin.claude', placeholder: 'ACCOUNT')),
-      metaCard(tokens, [
-        if (u.session != null)
-          metaCardRow(
-            tokens,
-            MetaRow(ClideSettings.i18n.string(context, 'activity.row.session', namespace: 'builtin.claude', placeholder: 'session'), u.session!),
-          ),
-        if (u.week != null)
-          metaCardRow(
-            tokens,
-            MetaRow(ClideSettings.i18n.string(context, 'activity.row.weekAll', namespace: 'builtin.claude', placeholder: 'week (all)'), u.week!),
-          ),
-        if (u.weekSonnet != null)
-          metaCardRow(
-            tokens,
-            MetaRow(ClideSettings.i18n.string(context, 'activity.row.weekSonnet', namespace: 'builtin.claude', placeholder: 'week (sonnet)'), u.weekSonnet!),
-          ),
-      ]),
-      Padding(
-        padding: const EdgeInsets.only(left: 2, top: 4),
-        child: ClideText(
-          ClideSettings.i18n.string(context, 'team.usage.shared', namespace: 'builtin.claude', placeholder: 'Shared across the team'),
-          muted: true,
-          fontSize: clideFontCaption,
-        ),
-      ),
-      const SizedBox(height: 16),
-    ];
   }
 
   Widget _taskSection(BuildContext context, SurfaceTokens tokens) {
