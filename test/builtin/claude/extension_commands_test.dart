@@ -164,9 +164,13 @@ void main() {
 
     test('contributes new-session default fields for model, effort, permission', () {
       expect(category.title, 'Claude');
-      final keys = category.sections.expand((s) => s.fields).map((f) => f.key).toSet();
+      final fields = category.sections.expand((s) => s.fields).toList();
+      final keys = fields.map((f) => f.key).toSet();
       expect(keys, containsAll([kDefaultModelKey, kDefaultEffortKey, kDefaultPermissionModeKey]));
-      for (final f in category.sections.expand((s) => s.fields)) {
+      // The new-session-default fields are selects with options; other sections
+      // (e.g. the Account custom controls, T-482) have their own field kinds.
+      final defaults = fields.where((f) => {kDefaultModelKey, kDefaultEffortKey, kDefaultPermissionModeKey}.contains(f.key));
+      for (final f in defaults) {
         expect(f.kind, SettingsFieldKind.select);
         expect(f.options, isNotEmpty);
       }
