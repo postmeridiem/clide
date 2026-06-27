@@ -75,6 +75,25 @@ void main() {
     expect(spawnedCwd, isNot(Directory.current.path));
   });
 
+  testWidgets('a caller-supplied argv + env + cwd reach pane.spawn (T-485)', (tester) async {
+    Map<String, Object?>? spawnArgs;
+    fixture.ipc.setConnected(true);
+    fixture.ipc.stub('pane.spawn', (args) async {
+      spawnArgs = args;
+      return IpcResponse.ok(id: 'r1', data: {'id': 'pane-1', 'pid': 1});
+    });
+    fixture.ipc.stub('pane.close', (args) async => IpcResponse.ok(id: 'r2'));
+
+    await tester.pumpWidget(
+      harness(fixture, const TerminalPane(argv: ['claude', 'login'], env: {'CLAUDE_CONFIG_DIR': '/home/u/.claude-work'}, cwdOverride: '/repo')),
+    );
+    await pumpAsync(tester);
+
+    expect(spawnArgs?['argv'], ['claude', 'login']);
+    expect(spawnArgs?['env'], {'CLAUDE_CONFIG_DIR': '/home/u/.claude-work'});
+    expect(spawnArgs?['cwd'], '/repo');
+  });
+
   testWidgets('disposing before spawn completes sends no close', (tester) async {
     final closed = <String>[];
     fixture.ipc.setConnected(false); // spawn bails out: no pane id

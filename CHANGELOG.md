@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Claude account login pane.** `account login` (and the UI add/re-login
+  affordances) open a modal terminal running `CLAUDE_CONFIG_DIR=<dir> claude
+  login`; the CLI owns the OAuth flow, credentials land in that account's dir.
+  (T-485, epic T-476)
 - **Claude pane account badge.** The pane header shows which account this repo
   is bound to (colour-tinted per account); tap to switch. Hidden when no
   accounts are registered. (T-481, epic T-476)

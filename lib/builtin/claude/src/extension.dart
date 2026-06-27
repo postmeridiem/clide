@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
+import 'package:clide/builtin/claude/src/account_login_dialog.dart';
 import 'package:clide/builtin/claude/src/account_settings_control.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
@@ -47,6 +48,9 @@ class ClaudeExtension extends ClideExtension {
   @override
   String get version => '0.2.0';
   @override
+  // No runtime dependency on builtin.terminal: the login pane (T-485) reuses the
+  // TerminalPane *widget* (a code import), which spawns via the always-present
+  // pane.spawn IPC — it doesn't need the terminal extension activated.
   List<String> get dependsOn => const [];
 
   ClideExtensionContext? _ctx;
@@ -542,9 +546,15 @@ class ClaudeExtension extends ClideExtension {
       case 'purge':
         final dir = m.data['dir'] as String?;
         if (dir != null) unawaited(_purgeAccountDir(dir));
-      // 'login' would spawn a `CLAUDE_CONFIG_DIR=<dir> claude login` terminal
-      // pane; that needs argv+env pane support in the terminal builtin and is
-      // wired separately. The action is published for that consumer.
+      case 'login':
+        final name = m.data['name'] as String?;
+        final dir = m.data['dir'] as String?;
+        final ctx = _ctx;
+        // Host `CLAUDE_CONFIG_DIR=<dir> claude login` in a modal terminal pane
+        // (T-485); the CLI owns the OAuth browser flow.
+        if (name != null && dir != null && ctx != null) {
+          ctx.dialog.show<Object>((c, dismiss) => ClaudeLoginDialog(name: name, dir: dir, cwd: _projectRoot, onClose: dismiss));
+        }
     }
   }
 

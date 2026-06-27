@@ -18,7 +18,17 @@ import 'package:clide/src/terminal/terminal.dart';
 /// job. The shared widget layer (ClidePtyView, ClidePaneChrome) keeps
 /// the two extensions visually consistent without coupling them.
 class TerminalPane extends StatefulWidget {
-  const TerminalPane({super.key});
+  const TerminalPane({super.key, this.argv, this.env, this.cwdOverride});
+
+  /// Command to run instead of the login `$SHELL` — e.g. `['claude', 'login']`
+  /// for the per-repo account sign-in pane (T-485). Null spawns the shell.
+  final List<String>? argv;
+
+  /// Extra environment for the spawned process (e.g. `CLAUDE_CONFIG_DIR`).
+  final Map<String, String>? env;
+
+  /// Working directory override; defaults to the open workspace.
+  final String? cwdOverride;
 
   @override
   State<TerminalPane> createState() => _TerminalPaneState();
@@ -79,16 +89,23 @@ class _TerminalPaneState extends State<TerminalPane> {
 
     // Windows has no $SHELL convention and no login-shell flag —
     // PowerShell 7 first, classic PowerShell as the always-there
-    // fallback.
+    // fallback. A caller-supplied argv (e.g. `claude login`, T-485) wins.
     final shell = Platform.isWindows ? null : (Platform.environment['SHELL'] ?? '/bin/bash');
-    final argv = shell != null ? [shell, '-l'] : ['powershell.exe', '-NoLogo'];
+    final argv = widget.argv ?? (shell != null ? [shell, '-l'] : ['powershell.exe', '-NoLogo']);
     // The open workspace, not Directory.current — a desktop launch starts
     // in $HOME and a project switch doesn't move the process CWD (T-381).
-    final cwd = _kernel?.project.current?.path ?? Directory.current.path;
+    final cwd = widget.cwdOverride ?? _kernel?.project.current?.path ?? Directory.current.path;
 
     final response = await ipc.request(
       'pane.spawn',
-      args: {'argv': argv, 'kind': PaneKind.terminal.wire, 'cwd': cwd, 'cols': _terminal.viewWidth, 'rows': _terminal.viewHeight},
+      args: {
+        'argv': argv,
+        'kind': PaneKind.terminal.wire,
+        'cwd': cwd,
+        'cols': _terminal.viewWidth,
+        'rows': _terminal.viewHeight,
+        if (widget.env != null) 'env': widget.env,
+      },
     );
     if (!mounted) return;
     if (!response.ok) {
