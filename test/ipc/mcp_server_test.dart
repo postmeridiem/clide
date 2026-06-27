@@ -102,6 +102,74 @@ void main() {
     });
   });
 
+  // T-479: a `claude` started with CLAUDE_CONFIG_DIR=<dir> looks for its /ide
+  // lock under <dir>/ide, not ~/.claude/ide — so a bound workspace must get a
+  // lock copy in the account dir too, kept in sync as the binding changes.
+  group('McpServer (T-479) per-account discovery locks', () {
+    late Directory disc;
+    late Directory accountDir;
+    String? bound;
+
+    setUp(() async {
+      disc = await Directory.systemTemp.createTemp('clide-mcp-disc2-');
+      accountDir = await Directory.systemTemp.createTemp('clide-mcp-acct-');
+      bound = accountDir.path;
+    });
+    tearDown(() {
+      if (disc.existsSync()) disc.deleteSync(recursive: true);
+      if (accountDir.existsSync()) accountDir.deleteSync(recursive: true);
+    });
+
+    McpServer make() => McpServer(workspaceRoot: '/x', log: _silent(), discoveryDirOverride: disc.path, boundConfigDir: () => bound);
+    File defaultLock() => File('${disc.path}/$pid.lock');
+    File accountLock() => File('${accountDir.path}/ide/$pid.lock');
+
+    test('writes the lock into the default AND the bound account ide dir, same content + 0600', () async {
+      final srv = make();
+      await srv.start();
+      addTearDown(srv.stop);
+      expect(defaultLock().existsSync(), isTrue);
+      expect(accountLock().existsSync(), isTrue);
+      expect(accountLock().readAsStringSync(), defaultLock().readAsStringSync());
+      expect(accountLock().statSync().mode & 0xFFF, 0x180, reason: 'account lock carries the token → 0600');
+    });
+
+    test('with no binding, only the default lock is written (regression)', () async {
+      bound = null;
+      final srv = make();
+      await srv.start();
+      addTearDown(srv.stop);
+      expect(defaultLock().existsSync(), isTrue);
+      expect(accountLock().existsSync(), isFalse);
+    });
+
+    test('syncDiscoveryLocks adds the account lock when a binding appears, removes it when it goes', () async {
+      bound = null;
+      final srv = make();
+      await srv.start();
+      addTearDown(srv.stop);
+      expect(accountLock().existsSync(), isFalse);
+
+      bound = accountDir.path;
+      await srv.syncDiscoveryLocks();
+      expect(accountLock().existsSync(), isTrue);
+
+      bound = null;
+      await srv.syncDiscoveryLocks();
+      expect(accountLock().existsSync(), isFalse);
+      expect(defaultLock().existsSync(), isTrue, reason: 'the default lock stays put');
+    });
+
+    test('stop removes both the default and the account lock — no orphans', () async {
+      final srv = make();
+      await srv.start();
+      expect(defaultLock().existsSync() && accountLock().existsSync(), isTrue);
+      await srv.stop();
+      expect(defaultLock().existsSync(), isFalse);
+      expect(accountLock().existsSync(), isFalse);
+    });
+  });
+
   // T-362: D-71's "another user on this host must not drive my IDE" is
   // enforced with 0600 on the unix socket — the HTTP port must not bypass it.
   group('McpServer (T-362) auth token', () {

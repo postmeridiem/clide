@@ -231,7 +231,19 @@ Future<void> main() async {
       ipcLog.error('ipc', 'server start failed', error: e, stackTrace: st);
       return;
     }
-    final mcp = McpServer(workspaceRoot: workRoot.path, log: ipcLog, dispatcher: dispatcher);
+    final mcp = McpServer(
+      workspaceRoot: workRoot.path,
+      log: ipcLog,
+      dispatcher: dispatcher,
+      // T-479: when this workspace is bound to a Claude account, also write the
+      // /ide discovery lock into that account's config dir so a `claude` started
+      // with CLAUDE_CONFIG_DIR=<dir> can reach clide's bridge. Lazy — resolved
+      // post-boot once kernelSettings (and the registry) exist.
+      boundConfigDir: () {
+        final s = kernelSettings;
+        return s == null ? null : AccountRegistry(s).accountForWorkspace(workRoot.path)?.dir;
+      },
+    );
     mcpServer = mcp;
     try {
       await mcp.start();
@@ -469,6 +481,11 @@ Future<void> main() async {
   kernelMessages = services.messages;
   kernelFilterStates = services.filterStates;
   kernelSettings = services.settings;
+  // T-479: the account registry is now resolvable (kernelSettings is set), so
+  // re-sync the /ide discovery locks to pick up any account bound to this
+  // workspace at boot, and re-sync on every account binding change.
+  unawaited(mcpServer?.syncDiscoveryLocks() ?? Future<void>.value());
+  services.messages.subscribe(channel: accountActionChannel).listen((_) => unawaited(mcpServer?.syncDiscoveryLocks() ?? Future<void>.value()));
   // Tee the IPC/MCP logger into the shared ring so the output dock (T-54)
   // shows socket-side logs alongside kernel/extension ones.
   ipcLog.addSink(services.logRing.add);

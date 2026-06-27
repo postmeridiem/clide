@@ -6866,3 +6866,88 @@ D-6 (CLI parity).
 
 Done: the six verbs (add/list/login/set/unset/remove) + registry persistence, plus the extension consumer — set/unset respawn the workspace''s solo Claude panes onto the bound account (ClaudeSessionOrchestrator.respawnForWorkspace), remove --purge deletes the config dir behind a strict ~/.claude-* guard (isPurgeableAccountDir). The login VERB publishes its action on accountActionChannel; spawning the actual ''claude login'' terminal pane needs argv+env terminal-pane support and is split to T-485.', NULL, '2026-06-27 19:18:09', '2026-06-27 19:18:09.075', '2026-06-27 19:18:09.075', NULL, '1fa1967a8c538b0ee0622162d9730a74', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W95HJK08BCRQSWFZBF4', 'status', 'in_progress', 'done', NULL, '2026-06-27 19:18:18', '2026-06-27 19:18:18.202', '2026-06-27 19:18:18.202', NULL, 'ebe069d240f705d5da92ebcddd1b2219', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W6GP535GR8XD1XEHYWG', 'status', 'backlog', 'in_progress', NULL, '2026-06-27 19:19:00', '2026-06-27 19:19:00.810', '2026-06-27 19:19:00.810', NULL, 'd5f6ab27c30d61574e9090ee5da94715', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W6GP535GR8XD1XEHYWG', 'description', 'Make clide''s `/ide` MCP bridge reachable from a `claude` running with a custom `CLAUDE_CONFIG_DIR`. Without this, the per-repo account work (T-476) ships a `claude` that can''t see clide''s IDE bridge.
+
+## The trap
+
+`lib/src/ipc/mcp_server.dart:344` writes the discovery lock at `$HOME/.claude/ide/<pid>.lock`. Claude Code with `CLAUDE_CONFIG_DIR=<X>` looks for `/ide` locks under `<X>/ide/` — so a bound Claude session never finds clide today.
+
+## Fix
+
+Extend `_writeDiscoveryFile` (and the cleanup path) to write the lock into **every CURRENTLY-active config dir''s `ide/`**. "Active" means the union of:
+
+- The default `$HOME/.claude/ide/` (always).
+- Every account `configDir/ide/` for accounts bound to a workspace that is currently open in this clide process.
+
+Same lock content for each; same `0600` perms per T-362. The MCP server tracks every path it wrote so shutdown cleans them all.
+
+### React to binding changes
+
+The set of active config dirs changes when a workspace is opened/closed in this process, or when a binding is set/unset (T-480 verbs). The MCP server subscribes to these changes and synchronizes the lock set incrementally — write a new lock when a dir becomes active, remove it when no remaining workspace references that dir.
+
+## Where
+
+- `lib/src/ipc/mcp_server.dart` — extend `_writeDiscoveryFile`, add a tracked-paths set, hook into the shutdown sweep.
+- Wire the active-dir source through the existing app boot — the MCP server is constructed in `lib/main.dart`; that''s where it can be handed an `AccountRegistry` (T-477) and a workspace-open observer.
+
+## Acceptance
+
+1. With no bindings, behaviour is identical to today (single lock at `$HOME/.claude/ide/<pid>.lock`).
+2. With one or more workspaces bound to non-default accounts, a lock exists at `<each-account-dir>/ide/<pid>.lock` with the same content and `0600` perms.
+3. Binding a workspace to a new (previously unused) account at runtime causes the corresponding lock to appear; unbinding the last workspace using that account causes it to disappear.
+4. clide shutdown removes every lock this process wrote (defaultes plus account dirs); no orphans.
+5. A live `claude` running under a bound account finds clide''s `/ide` endpoint end-to-end (manual confirmation in a real session).
+6. Tests cover the multi-dir write/cleanup + the dynamic add/remove path (mock the filesystem).
+
+## Depends on
+
+- T-477 (storage). Needs the registry + binding API to enumerate active dirs.
+
+## Independent of
+
+T-478 — T-479 can land in parallel; the bound `claude` just won''t have an IDE bridge until both ship.
+', 'Make clide''s `/ide` MCP bridge reachable from a `claude` running with a custom `CLAUDE_CONFIG_DIR`. Without this, the per-repo account work (T-476) ships a `claude` that can''t see clide''s IDE bridge.
+
+## The trap
+
+`lib/src/ipc/mcp_server.dart:344` writes the discovery lock at `$HOME/.claude/ide/<pid>.lock`. Claude Code with `CLAUDE_CONFIG_DIR=<X>` looks for `/ide` locks under `<X>/ide/` — so a bound Claude session never finds clide today.
+
+## Fix
+
+Extend `_writeDiscoveryFile` (and the cleanup path) to write the lock into **every CURRENTLY-active config dir''s `ide/`**. "Active" means the union of:
+
+- The default `$HOME/.claude/ide/` (always).
+- Every account `configDir/ide/` for accounts bound to a workspace that is currently open in this clide process.
+
+Same lock content for each; same `0600` perms per T-362. The MCP server tracks every path it wrote so shutdown cleans them all.
+
+### React to binding changes
+
+The set of active config dirs changes when a workspace is opened/closed in this process, or when a binding is set/unset (T-480 verbs). The MCP server subscribes to these changes and synchronizes the lock set incrementally — write a new lock when a dir becomes active, remove it when no remaining workspace references that dir.
+
+## Where
+
+- `lib/src/ipc/mcp_server.dart` — extend `_writeDiscoveryFile`, add a tracked-paths set, hook into the shutdown sweep.
+- Wire the active-dir source through the existing app boot — the MCP server is constructed in `lib/main.dart`; that''s where it can be handed an `AccountRegistry` (T-477) and a workspace-open observer.
+
+## Acceptance
+
+1. With no bindings, behaviour is identical to today (single lock at `$HOME/.claude/ide/<pid>.lock`).
+2. With one or more workspaces bound to non-default accounts, a lock exists at `<each-account-dir>/ide/<pid>.lock` with the same content and `0600` perms.
+3. Binding a workspace to a new (previously unused) account at runtime causes the corresponding lock to appear; unbinding the last workspace using that account causes it to disappear.
+4. clide shutdown removes every lock this process wrote (defaultes plus account dirs); no orphans.
+5. A live `claude` running under a bound account finds clide''s `/ide` endpoint end-to-end (manual confirmation in a real session).
+6. Tests cover the multi-dir write/cleanup + the dynamic add/remove path (mock the filesystem).
+
+## Depends on
+
+- T-477 (storage). Needs the registry + binding API to enumerate active dirs.
+
+## Independent of
+
+T-478 — T-479 can land in parallel; the bound `claude` just won''t have an IDE bridge until both ship.
+
+
+Done: McpServer writes the /ide discovery lock into every active config dir (default ~/.claude/ide + the bound account''s <dir>/ide), reconciled by syncDiscoveryLocks() on start + on every accountActionChannel event, all cleaned on stop. boundConfigDir injected from main.dart via AccountRegistry. Acceptance 1-4,6 covered by test/ipc/mcp_server_test.dart; #5 (live claude finds the bridge end-to-end) is manual.', NULL, '2026-06-27 19:24:52', '2026-06-27 19:24:52.424', '2026-06-27 19:24:52.424', NULL, 'fc350455bedf3c3c4e8c61a5599cef33', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W6GP535GR8XD1XEHYWG', 'status', 'in_progress', 'done', NULL, '2026-06-27 19:24:52', '2026-06-27 19:24:52.456', '2026-06-27 19:24:52.456', NULL, '9a1ec766e6abf5712e32dc32ace8c02d', 2) ON CONFLICT(hash) DO NOTHING;

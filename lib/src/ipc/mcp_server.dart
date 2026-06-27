@@ -70,7 +70,15 @@ class _McpSession {
 /// HTTP + SSE MCP server. Lifecycle mirrors [IpcServer]: `start()`
 /// binds + writes the discovery file; `stop()` unbinds + removes it.
 class McpServer {
-  McpServer({required this.workspaceRoot, required this.log, this.dispatcher, this.discoveryDirOverride, this.bindHost = '127.0.0.1', this.bindPort = 0});
+  McpServer({
+    required this.workspaceRoot,
+    required this.log,
+    this.dispatcher,
+    this.discoveryDirOverride,
+    this.boundConfigDir,
+    this.bindHost = '127.0.0.1',
+    this.bindPort = 0,
+  });
 
   /// Workspace root reported in the discovery file. Helps Claude
   /// Code show "which clide is this" when multiple are running.
@@ -86,6 +94,14 @@ class McpServer {
   /// passes null; tests inject a tempdir.
   final String? discoveryDirOverride;
 
+  /// Returns the Claude config dir bound to this workspace (T-479/T-480), or
+  /// null when unbound. When non-null, a copy of the discovery lock is also
+  /// written into that dir's `ide/`. A `claude` started with a custom
+  /// `CLAUDE_CONFIG_DIR` looks for its `/ide` lock under that dir, not under
+  /// `~/.claude/ide`, so without this its IDE bridge can't reach clide. Lazy:
+  /// main.dart passes a closure resolved against the (post-boot) AccountRegistry.
+  final String? Function()? boundConfigDir;
+
   /// Bind host. localhost-only by default per D-73 (no remote
   /// access; the threat model matches D-71's `0600`).
   final String bindHost;
@@ -94,7 +110,11 @@ class McpServer {
   final int bindPort;
 
   HttpServer? _http;
-  String? _lockFile;
+
+  /// Every discovery-lock path this process has written — the default `ide/`
+  /// dir plus any bound-account `ide/` dirs. Reconciled by [syncDiscoveryLocks];
+  /// all are removed on [stop] so no orphan locks survive (T-479).
+  final Set<String> _lockFiles = {};
   int? _port;
   String? _authToken;
   final Map<String, _McpSession> _sessions = {};
@@ -102,7 +122,13 @@ class McpServer {
 
   bool get isRunning => _http != null;
   int? get port => _port;
-  String? get lockFilePath => _lockFile;
+
+  String get _defaultIdeDir => discoveryDirOverride ?? '${Platform.environment['HOME'] ?? '/tmp'}/.claude/ide';
+  String get _defaultLockPath => '$_defaultIdeDir/$pid.lock';
+
+  /// The lock in the default `~/.claude/ide` dir (the one Claude finds without
+  /// `CLAUDE_CONFIG_DIR`). Null until [start] writes it.
+  String? get lockFilePath => _lockFiles.contains(_defaultLockPath) ? _defaultLockPath : null;
 
   /// The per-start bearer token clients must present in [kMcpAuthHeader].
   /// Published to legitimate clients via the 0600 lock file only.
@@ -114,7 +140,7 @@ class McpServer {
     _http = server;
     _port = server.port;
     _authToken = _generateToken();
-    _lockFile = await _writeDiscoveryFile();
+    await syncDiscoveryLocks();
     server.listen(
       _route,
       onError: (Object e, StackTrace st) {
@@ -134,16 +160,10 @@ class McpServer {
     }
     _sessions.clear();
     await s.close(force: true);
-    final lock = _lockFile;
-    _lockFile = null;
-    if (lock != null) {
-      try {
-        final f = File(lock);
-        if (f.existsSync()) f.deleteSync();
-      } catch (e) {
-        log.warn('mcp', 'failed to unlink lock $lock: $e');
-      }
+    for (final lock in _lockFiles) {
+      _deleteLock(lock);
     }
+    _lockFiles.clear();
   }
 
   // -- routing --------------------------------------------------------------
@@ -340,13 +360,43 @@ class McpServer {
 
   // -- discovery file -------------------------------------------------------
 
-  Future<String> _writeDiscoveryFile() async {
-    final dir = discoveryDirOverride ?? '${Platform.environment['HOME'] ?? '/tmp'}/.claude/ide';
-    final dirHandle = Directory(dir);
+  /// The `ide/` dirs a discovery lock should currently live in: the default
+  /// `~/.claude/ide` always, plus the bound account's `<dir>/ide` when this
+  /// workspace is bound to a non-default account (T-479). Deduped, order-stable.
+  List<String> _activeIdeDirs() {
+    final dirs = <String>[_defaultIdeDir];
+    final bound = boundConfigDir?.call();
+    if (bound != null && bound.isNotEmpty) {
+      final accountIde = '$bound/ide';
+      if (!dirs.contains(accountIde)) dirs.add(accountIde);
+    }
+    return dirs;
+  }
+
+  /// Reconcile the on-disk discovery locks with the currently-active `ide/`
+  /// dirs (T-479): write a lock into each active dir, and remove any this
+  /// process wrote into a dir that is no longer active. Called on [start] and
+  /// whenever a per-repo account binding changes. No-op while not running.
+  Future<void> syncDiscoveryLocks() async {
+    if (!isRunning) return;
+    final want = {for (final d in _activeIdeDirs()) '$d/$pid.lock'};
+    for (final path in _lockFiles.difference(want).toList()) {
+      _deleteLock(path);
+      _lockFiles.remove(path);
+    }
+    for (final path in want.difference(_lockFiles).toList()) {
+      await _writeLockAt(path);
+      _lockFiles.add(path);
+    }
+  }
+
+  /// Write (or overwrite) the discovery lock at [path] — same content in every
+  /// dir — creating the `ide/` parent and 0600-scoping the file (T-362).
+  Future<void> _writeLockAt(String path) async {
+    final dirHandle = File(path).parent;
     if (!dirHandle.existsSync()) {
       dirHandle.createSync(recursive: true);
     }
-    final path = '$dir/$pid.lock';
     final body = jsonEncode({
       'pid': pid,
       'workspace': workspaceRoot,
@@ -364,7 +414,15 @@ class McpServer {
       // ~/.claude which the home-dir perms usually already protect. But say so.
       log.warn('mcp', 'chmod 600 on $path failed: $e — the auth token may be readable by other local users');
     }
-    return path;
+  }
+
+  void _deleteLock(String path) {
+    try {
+      final f = File(path);
+      if (f.existsSync()) f.deleteSync();
+    } catch (e) {
+      log.warn('mcp', 'failed to unlink lock $path: $e');
+    }
   }
 
   /// 32 bytes of CSPRNG entropy, base64url — the per-start bearer token.
