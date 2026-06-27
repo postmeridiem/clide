@@ -9061,3 +9061,99 @@ Dropdown/select listing registered accounts + a "(default)" option. Selecting is
 Slice 1 done: the per-workspace account picker (acceptance #2) — a custom SettingsControlContribution ''claude.workspace-account'' in the Claude settings category. Dropdown of registered accounts + Default; selecting binds/unbinds via AccountRegistry and publishes set/unset on accountActionChannel (respawn + lock sync follow). Live via the settings notifier. Empty/no-workspace states covered. Remaining (Slice 2): the global Accounts registry CRUD list with sign-in probe + add/re-login/remove(--purge) (acceptance #1).
 
 Slice 2 done: the global Accounts registry list control (ClaudeAccountsListControl, customId ''claude.accounts'') in the Claude > Account section. Per-account sign-in dot (accountIsSignedIn read-only probe), name, config dir, re-login + remove affordances (remove guarded while a workspace is bound, matching the CLI), and an inline add-account field that registers ~/.claude-<name> + publishes login. Live via the settings notifier. Note: in-UI remove is registry-only; --purge dir deletion stays on the CLI flag. All three acceptance criteria met (list+manage, per-workspace, live).', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 22:35:36.250', NULL, '9ed2e68e4ff8955cf57a3ce2ef27a8a9', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: welcome-view accounts section (needs a welcome-section contribution point)', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-27 22:43:31.629', '2026-06-27 22:43:31.629', NULL, 'a5b6f26b49f43381c8609ba0645c9551', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: welcome-view accounts section (needs a welcome-section contribution point)', 'Split from T-481. The welcome view (lib/builtin/welcome) is intentionally decoupled from feature builtins — peer builtins only import the shared builtin, never each other. Dropping ClaudeAccountsListControl directly into welcome_view.dart would make welcome import claude (a new peer coupling) and risks the centered welcome layout overflowing. Do it cleanly via a welcome-section contribution point that the claude extension contributes the accounts section to.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-27 22:43:31.629', '2026-06-27 22:43:31.675', NULL, '8a1712b25cacd79a3595641a712e62a3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WBTT3ESK6QG0XZ1VN2G', 'story', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: UI — Claude pane badge + welcome view accounts section', 'The conversational/chrome UI surfaces for the multi-account epic (T-476). Settings-UI rows live in T-482; this ticket owns the always-visible affordances.
+
+## Claude pane chrome badge
+
+Small badge in the pane chrome (next to the existing status/banner row — see `lib/builtin/claude/src/claude_banner.dart` / status-bar pattern) showing the active account name, or "default" when unbound.
+
+- Tap opens a popover/picker: list of registered accounts (radio-selectable) + "Add account…" entry.
+- Selecting an account dispatches `clide claude account set <name>`; "Add account…" runs the add+login flow.
+- The badge live-updates from the `claude.account` MessageBus channel published by T-480.
+- Colour-coded subtly (one accent per account name? Hash-derived?) so the user can spot at a glance which window is which account.
+
+## Welcome view: Claude accounts section
+
+New section in the welcome view (peer of the existing project / toolchain rows in `lib/builtin/welcome/src/welcome_view.dart`):
+
+- **Registered accounts** — one row per registered account: name, configDir path, a per-row affordance to bind this workspace / unbind / re-login.
+- **Detected (not yet registered)** — rows for the T-477 bootstrap probe results (existing `~/.claude-*/` dirs not in the registry yet). Each has a "Register this" affordance that dispatches `clide claude account add <name> --dir <detected-dir>`.
+- **Add new account** — button that runs the full add+login flow against a default `~/.claude-<name>/` path.
+
+All actions go through T-480''s CLI verbs; this widget never writes the registry directly.
+
+## Constraints
+
+- Use the existing UI-design vocabulary (theme tokens, control geometry — see the `ui-design` skill). No Material/Cupertino.
+- The badge is display-with-affordance, not an inline interaction surface in the D-78 sense — opening the picker is a navigation gesture, the selection happens in the picker modal.
+- The welcome view follows the existing one-screen welcome-layout decisions (don''t add a fold-out / accordion if it conflicts with the current layout).
+
+## Acceptance
+
+1. The Claude pane badge shows the active account name (or "default"), updates live across `set`/`unset`/`add` actions.
+2. Tapping the badge opens a picker; selecting a registered account dispatches `clide claude account set` and respawns the pane on the new account.
+3. The welcome view''s accounts section lists registered accounts + detected candidates + an add-new affordance.
+4. Every action available in the UI is reachable as the corresponding `clide claude account` verb (D-6 parity verified by inspection).
+5. Widget tests cover badge rendering for each state (default / bound / unknown) + the picker action dispatch (mock the CLI client).
+6. A11y: badge has a semantic label naming the account; picker is keyboard-reachable.
+
+## Depends on
+
+- T-480 (CLI verbs). Wires every action to the dispatcher.
+
+## Out of scope
+
+- Settings-UI rows — T-482.
+- Project-picker integration (each project shows its bound account) — desirable, file as a follow-up if it grows complex.
+
+
+Done: the Claude pane account badge (ClaudeAccountBadge) in the pane chrome trailing slot — shows the bound account (or ''default''), colour-tinted per account via accountAccent (theme tokens, hash-indexed), tap opens the account picker; hidden when no accounts registered. The welcome-view accounts section is split to T-486 (welcome is builtin-decoupled; needs a contribution point to avoid welcome->claude peer coupling).', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 22:43:31.723', NULL, '8dfefeeb10fc7a7322f9314fc3f971f3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49WBTT3ESK6QG0XZ1VN2G', 'story', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: UI — Claude pane badge + welcome view accounts section', 'The conversational/chrome UI surfaces for the multi-account epic (T-476). Settings-UI rows live in T-482; this ticket owns the always-visible affordances.
+
+## Claude pane chrome badge
+
+Small badge in the pane chrome (next to the existing status/banner row — see `lib/builtin/claude/src/claude_banner.dart` / status-bar pattern) showing the active account name, or "default" when unbound.
+
+- Tap opens a popover/picker: list of registered accounts (radio-selectable) + "Add account…" entry.
+- Selecting an account dispatches `clide claude account set <name>`; "Add account…" runs the add+login flow.
+- The badge live-updates from the `claude.account` MessageBus channel published by T-480.
+- Colour-coded subtly (one accent per account name? Hash-derived?) so the user can spot at a glance which window is which account.
+
+## Welcome view: Claude accounts section
+
+New section in the welcome view (peer of the existing project / toolchain rows in `lib/builtin/welcome/src/welcome_view.dart`):
+
+- **Registered accounts** — one row per registered account: name, configDir path, a per-row affordance to bind this workspace / unbind / re-login.
+- **Detected (not yet registered)** — rows for the T-477 bootstrap probe results (existing `~/.claude-*/` dirs not in the registry yet). Each has a "Register this" affordance that dispatches `clide claude account add <name> --dir <detected-dir>`.
+- **Add new account** — button that runs the full add+login flow against a default `~/.claude-<name>/` path.
+
+All actions go through T-480''s CLI verbs; this widget never writes the registry directly.
+
+## Constraints
+
+- Use the existing UI-design vocabulary (theme tokens, control geometry — see the `ui-design` skill). No Material/Cupertino.
+- The badge is display-with-affordance, not an inline interaction surface in the D-78 sense — opening the picker is a navigation gesture, the selection happens in the picker modal.
+- The welcome view follows the existing one-screen welcome-layout decisions (don''t add a fold-out / accordion if it conflicts with the current layout).
+
+## Acceptance
+
+1. The Claude pane badge shows the active account name (or "default"), updates live across `set`/`unset`/`add` actions.
+2. Tapping the badge opens a picker; selecting a registered account dispatches `clide claude account set` and respawns the pane on the new account.
+3. The welcome view''s accounts section lists registered accounts + detected candidates + an add-new affordance.
+4. Every action available in the UI is reachable as the corresponding `clide claude account` verb (D-6 parity verified by inspection).
+5. Widget tests cover badge rendering for each state (default / bound / unknown) + the picker action dispatch (mock the CLI client).
+6. A11y: badge has a semantic label naming the account; picker is keyboard-reachable.
+
+## Depends on
+
+- T-480 (CLI verbs). Wires every action to the dispatcher.
+
+## Out of scope
+
+- Settings-UI rows — T-482.
+- Project-picker integration (each project shows its bound account) — desirable, file as a follow-up if it grows complex.
+
+
+Done: the Claude pane account badge (ClaudeAccountBadge) in the pane chrome trailing slot — shows the bound account (or ''default''), colour-tinted per account via accountAccent (theme tokens, hash-indexed), tap opens the account picker; hidden when no accounts registered. The welcome-view accounts section is split to T-486 (welcome is builtin-decoupled; needs a contribution point to avoid welcome->claude peer coupling).', 'done', 'medium', NULL, NULL, NULL, '2026-06-25 09:16:42', '2026-06-27 22:43:31.769', NULL, '065f5914ac6b963342be92e0ea65ab82', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

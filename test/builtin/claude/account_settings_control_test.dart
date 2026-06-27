@@ -155,4 +155,65 @@ void main() {
     expect(reg.accountByName('personal'), isNull);
     expect(find.bySemanticsLabel(RegExp('bound to a workspace')), findsOneWidget, reason: 'the bound account guards its remove');
   });
+
+  // The Claude pane account badge (T-481).
+  Future<void> pumpBadge(WidgetTester tester, String? root) => tester.pumpWidget(
+    harness(
+      f,
+      Align(
+        alignment: Alignment.center,
+        child: SizedBox(width: 220, child: ClaudeAccountBadge(workspaceRoot: root)),
+      ),
+    ),
+  );
+
+  testWidgets('badge: hidden (renders nothing) when no accounts are registered', (tester) async {
+    await pumpBadge(tester, f.tempDir.path);
+    await tester.pump();
+    expect(find.byType(ClaudeAccountBadge), findsOneWidget);
+    expect(find.text('default'), findsNothing);
+  });
+
+  testWidgets('badge: shows default when unbound, and switches account on pick', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    final published = <Map<String, Object?>>[];
+    final sub = f.services.messages.subscribe(channel: accountActionChannel).listen((m) => published.add(m.data));
+    addTearDown(sub.cancel);
+    await tester.runAsync(() => reg.registerAccount('work', '/home/u/.claude-work'));
+
+    await pumpBadge(tester, f.tempDir.path);
+    await tester.pump();
+    expect(find.text('default'), findsOneWidget);
+
+    await tester.tap(find.byType(ClaudeAccountBadge));
+    await tester.pump();
+    await tester.tap(find.text('work'));
+    await tester.pump();
+    expect(reg.boundName(f.tempDir.path), 'work');
+    expect(published.single['action'], 'set');
+  });
+
+  testWidgets('badge: shows the bound account name', (tester) async {
+    final reg = AccountRegistry(f.services.settings);
+    await tester.runAsync(() async {
+      await reg.registerAccount('work', '/home/u/.claude-work');
+      await reg.bindWorkspace(f.tempDir.path, 'work');
+    });
+    await pumpBadge(tester, f.tempDir.path);
+    await tester.pump();
+    expect(find.text('work'), findsOneWidget);
+  });
+
+  testWidgets('accountAccent is stable per name, muted for default, and theme-sourced', (tester) async {
+    final tokens = f.services.theme.current.surface;
+    expect(accountAccent(null, tokens), tokens.globalTextMuted);
+    expect(accountAccent('work', tokens), accountAccent('work', tokens));
+    expect([
+      tokens.globalFocus,
+      tokens.statusSuccess,
+      tokens.statusWarning,
+      tokens.statusError,
+      tokens.buttonBackground,
+    ], contains(accountAccent('work', tokens)));
+  });
 }

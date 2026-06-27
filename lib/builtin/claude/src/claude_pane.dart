@@ -5,6 +5,7 @@ import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
+import 'account_settings_control.dart';
 import 'claude_banner.dart';
 import 'claude_composer.dart';
 import 'claude_config.dart';
@@ -854,7 +855,16 @@ class _ClaudePaneState extends State<ClaudePane> {
       );
     }
 
-    final content = widget.showChrome ? ClidePaneChrome(title: title, subtitle: _error ?? _statusLine, child: body) : body;
+    final content = widget.showChrome
+        ? ClidePaneChrome(
+            title: title,
+            subtitle: _error ?? _statusLine,
+            // Per-repo Claude account badge (T-481): shows + switches the
+            // account this workspace is bound to; hidden when none registered.
+            trailing: [ClaudeAccountBadge(workspaceRoot: _repoRoot)],
+            child: body,
+          )
+        : body;
 
     // Surface this pane's status to the bottom status-bar slot while it's
     // the focused pane (T-150).

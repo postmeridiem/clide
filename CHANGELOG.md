@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Claude pane account badge.** The pane header shows which account this repo
+  is bound to (colour-tinted per account); tap to switch. Hidden when no
+  accounts are registered. (T-481, epic T-476)
 - **Settings → Claude → Accounts.** A registry list (sign-in status, dir,
   re-login / remove, add) plus a per-workspace picker that binds this repo to an
   account (or Default); switching respawns the pane onto it. (T-482, epic T-476)
