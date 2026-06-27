@@ -41,6 +41,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   agent pinning its parent instance) that beats workspace auto-discovery — and
   fails loudly if that socket is dead instead of silently driving a different
   instance. (T-247)
+- **Orphaned IPC sockets are swept on startup.** The app probes the runtime
+  socket dir on launch and unlinks dead `*.sock` nodes left by crashed
+  instances (live instances are left untouched), so the dir no longer
+  accumulates stale sockets. (T-247)
 - **Default window opens larger (1600×900) on Linux.** 720p was short enough
   that the welcome screen's version/theme footer overlapped the tips card;
   the taller default clears it, matching the macOS default. (T-477)

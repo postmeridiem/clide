@@ -82,10 +82,14 @@ class IpcServer {
   /// listening on the path the bind throws — the caller is the
   /// stale-vs-live arbiter (per D-72 there's one server per
   /// workspace; a colliding live process means a real conflict).
+  /// Orphaned sockets from crashed instances of OTHER workspaces are
+  /// also swept from the runtime dir on startup (T-247), so the dir
+  /// doesn't accumulate dead nodes.
   Future<void> start() async {
     if (isRunning) return;
     final path = workspaceSocketPath(workspaceRoot);
     await _prepareParentDir(path);
+    await _sweepStaleSockets(path);
     await _unlinkStale(path);
     final socket = await ServerSocket.bind(InternetAddress(path, type: InternetAddressType.unix), 0);
     try {
@@ -246,6 +250,38 @@ class IpcServer {
       await _chmod(dir.path, 0x1c0); // 0o700
     } catch (e) {
       log.warn('ipc', 'chmod 0700 on ${dir.path} failed: $e');
+    }
+  }
+
+  /// Sweep the runtime socket dir for orphaned `*.sock` nodes left by crashed
+  /// instances of OTHER workspaces (T-247): probe each, unlink only the dead
+  /// ones. A live instance (something answers) or an unresponsive node (could
+  /// be a hung instance) is left untouched; the current workspace's own path is
+  /// handled by [_unlinkStale]. Best-effort — a sweep failure never blocks our
+  /// own startup.
+  Future<void> _sweepStaleSockets(String selfPath) async {
+    try {
+      final dir = Directory(File(selfPath).parent.path);
+      if (!dir.existsSync()) return;
+      for (final entry in dir.listSync()) {
+        if (entry is! File || !entry.path.endsWith('.sock') || entry.path == selfPath) continue;
+        try {
+          final probe = await Socket.connect(InternetAddress(entry.path, type: InternetAddressType.unix), 0).timeout(const Duration(milliseconds: 200));
+          await probe.close(); // live instance — leave it alone
+        } on SocketException {
+          // No listener — an orphan from a crashed instance. Unlink it.
+          try {
+            entry.deleteSync();
+            log.info('ipc', 'swept orphaned socket ${entry.path}');
+          } catch (e) {
+            log.warn('ipc', 'failed to sweep ${entry.path}: $e');
+          }
+        } on TimeoutException {
+          // Exists but unresponsive — possibly a hung instance; don't clobber.
+        }
+      }
+    } catch (e) {
+      log.warn('ipc', 'socket sweep failed: $e');
     }
   }
 

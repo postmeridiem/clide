@@ -146,6 +146,30 @@ void main() {
       expect(() async => other.start(), throwsA(isA<StateError>()));
     });
 
+    test('startup sweeps dead orphan sockets from the runtime dir, keeps live ones (T-247)', () async {
+      final socketDir = Directory(File(workspaceSocketPath(workRoot)).parent.path);
+      socketDir.createSync(recursive: true);
+      final uniq = DateTime.now().microsecondsSinceEpoch;
+      // A dead orphan (a socket node with no listener) and a live orphan
+      // (a real listener for some other "workspace"). Unique names so the
+      // assertions don't depend on whatever else is in the shared runtime dir.
+      final dead = File('${socketDir.path}/clide-sweep-dead-$uniq.sock')..writeAsBytesSync([]);
+      final livePath = '${socketDir.path}/clide-sweep-live-$uniq.sock';
+      final live = await ServerSocket.bind(InternetAddress(livePath, type: InternetAddressType.unix), 0);
+      addTearDown(() async {
+        await live.close();
+        for (final p in [livePath, dead.path]) {
+          if (File(p).existsSync()) File(p).deleteSync();
+        }
+      });
+
+      server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
+      await server.start();
+
+      expect(dead.existsSync(), isFalse, reason: 'a dead orphan should be swept on startup');
+      expect(File(livePath).existsSync(), isTrue, reason: 'a live instance must be left untouched');
+    });
+
     test('start is idempotent: second call on the same instance is a no-op', () async {
       server = IpcServer(dispatcher: dispatcher, workspaceRoot: workRoot, log: _silentLog());
       await server.start();
