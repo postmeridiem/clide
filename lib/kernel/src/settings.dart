@@ -113,6 +113,15 @@ class SettingsStore extends ChangeNotifier {
     SettingsScope.ext => null,
   };
 
+  /// Every key currently stored in [layer] (no cross-layer merge) — for
+  /// prefix-scan consumers like the per-workspace account-binding enumerator
+  /// (T-480). [SettingsScope.ext] is a key class, not a layer → empty.
+  Iterable<String> keysAt(SettingsScope layer) => switch (layer) {
+    SettingsScope.app => _appValues.keys,
+    SettingsScope.project => _projectValues.keys,
+    SettingsScope.ext => const <String>[],
+  };
+
   /// The storage layer currently supplying [key]'s value (project overrides app
   /// for `ext.*`), or null when unset (Default). Honors the key's prefix.
   SettingsScope? effectiveLayer(String key) {

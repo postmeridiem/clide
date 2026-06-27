@@ -93,6 +93,23 @@ void main() {
       expect(reg.accountForWorkspace('/repo/a')?.name, 'personal');
       expect(reg.accountForWorkspace('/repo/b')?.name, 'work');
     });
+
+    test('boundName is the raw binding (survives account removal); boundAccountNames lists in-use names', () async {
+      await reg.registerAccount('personal', '/p');
+      await reg.registerAccount('work', '/w');
+      expect(reg.boundName('/repo/a'), isNull);
+      expect(reg.boundAccountNames(), isEmpty);
+
+      await reg.bindWorkspace('/repo/a', 'personal');
+      await reg.bindWorkspace('/repo/b', 'work');
+      expect(reg.boundName('/repo/a'), 'personal');
+      expect(reg.boundAccountNames(), {'personal', 'work'});
+
+      // Removing the account leaves the raw binding; only resolution degrades.
+      await reg.removeAccount('personal');
+      expect(reg.boundName('/repo/a'), 'personal');
+      expect(reg.accountForWorkspace('/repo/a'), isNull);
+    });
   });
 
   group('bootstrap probe', () {

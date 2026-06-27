@@ -35,7 +35,9 @@ import 'package:clide/builtin/welcome/welcome.dart';
 import 'dart:io' show Directory, File, Platform, pid;
 
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/clide.dart' show clideVersion;
+import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
@@ -337,6 +339,21 @@ Future<void> main() async {
         return file.existsSync() ? file.absolute.path : null;
       },
     );
+    // `clide claude account …` — manage per-repo Claude accounts (T-480, epic
+    // T-476). Registry reads/writes go through the user-scope SettingsStore;
+    // side-effects (respawn, login pane, --purge) are published on
+    // accountActionChannel for the Claude extension to perform.
+    registerClaudeAccountCommands(
+      dispatcher,
+      () {
+        final settings = kernelSettings;
+        final home = Platform.environment['HOME'];
+        if (settings == null || home == null || home.isEmpty) return null;
+        return _AccountStoreAdapter(AccountRegistry(settings), home);
+      },
+      publisher: () => kernelMessages?.publish,
+      workspaceCwd: () => workRoot.path,
+    );
     // `clide status` — one-shot orientation snapshot (T-221): active pane,
     // focused file + selection, git summary, layout. Assembled here where the
     // live kernel + subsystem state is in scope; the reader's viewed doc is
@@ -510,6 +527,40 @@ Future<void> main() async {
   }
 
   runApp(ClideApp(services: services));
+}
+
+/// Adapts the foundation-bound [AccountRegistry] + bootstrap probe to the
+/// Flutter-free [AccountStore] port the `claude account` verbs use (T-480).
+class _AccountStoreAdapter implements AccountStore {
+  _AccountStoreAdapter(this._reg, this._home);
+  final AccountRegistry _reg;
+  final String _home;
+
+  @override
+  List<({String name, String dir})> get accounts => [for (final a in _reg.accounts) (name: a.name, dir: a.dir)];
+  @override
+  String? boundAccountName(String cwd) => _reg.boundName(cwd);
+  @override
+  Set<String> boundAccountNames() => _reg.boundAccountNames();
+  @override
+  String defaultDirFor(String name) => '$_home/.claude-$name';
+  @override
+  List<String> detectedDirs() {
+    final registered = {for (final a in _reg.accounts) a.dir};
+    return [
+      for (final d in probeExistingAccountDirs(_home))
+        if (!registered.contains(d.dir)) d.dir,
+    ];
+  }
+
+  @override
+  Future<void> add(String name, String dir) => _reg.registerAccount(name, dir);
+  @override
+  Future<void> remove(String name) => _reg.removeAccount(name);
+  @override
+  Future<void> bind(String cwd, String name) => _reg.bindWorkspace(cwd, name);
+  @override
+  Future<void> unbind(String cwd) => _reg.unbindWorkspace(cwd);
 }
 
 class _BusEventSink implements DaemonEventSink {

@@ -110,6 +110,26 @@ class AccountRegistry {
     return name == null ? null : accountByName(name);
   }
 
+  /// The raw account NAME bound to [cwd] — independent of whether that account
+  /// still exists in the registry — or null when unbound. (`accountForWorkspace`
+  /// resolves to the Account and is null for a dangling binding; this is the
+  /// stored name, for list/unset reporting.)
+  String? boundName(String cwd) => _store.get<String>(bindingKey(cwd));
+
+  /// Every account name some workspace is bound to — for "is this account in
+  /// use" checks before removal (T-480). Scans the `app.claude.account.<hash>`
+  /// binding keys (NOT the `app.claude.accounts` list, a different key).
+  Set<String> boundAccountNames() {
+    const prefix = 'app.claude.account.';
+    final out = <String>{};
+    for (final key in _store.keysAt(SettingsScope.app)) {
+      if (!key.startsWith(prefix)) continue;
+      final v = _store.get<String>(key);
+      if (v != null) out.add(v);
+    }
+    return out;
+  }
+
   /// Add (or replace, by name) an account. New default dir is the caller's
   /// concern (T-480); the registry stores whatever [dir] it's given.
   Future<void> registerAccount(String name, String dir) async {
