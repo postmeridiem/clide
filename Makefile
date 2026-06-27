@@ -169,8 +169,7 @@ ui-smoke: ## Build + serve + run Playwright smoke + stop.
 	@sh -c 'trap "tools/ui/stop.sh >/dev/null 2>&1" EXIT; cd tools/ui && npx playwright test smoke.spec.ts'
 
 .PHONY: build
-build: gen-build-info clide-cli ## flutter build for the current OS (incl. the C CLI client).
-	flutter build $(FLUTTER_OS)
+build: clide-cli build-$(FLUTTER_OS) ## flutter build for the current OS (via build-<os>) + bundle the C CLI client.
 	@install -m 755 $(CLIDE_CLI_BIN) $(CLI_BUNDLE_DEST)
 	@echo "==> bundled C client at $(CLI_BUNDLE_DEST)"
 
