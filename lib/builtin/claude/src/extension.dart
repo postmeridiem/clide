@@ -17,6 +17,7 @@ import 'package:clide/builtin/claude/src/stream_json_session.dart' show kEffortL
 import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show ImageMessage;
+import 'package:clide/src/daemon/claude_account_commands.dart' show accountActionChannel;
 import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
@@ -487,6 +488,42 @@ class ClaudeExtension extends ClideExtension {
     // A sidebar "pick up" click (T-327) publishes the full ticket; inject it
     // into the active conversation as a user turn so Claude starts working it.
     _subs.add(ctx.messages.subscribe(publisher: 'builtin.tickets', channel: 'pick-up').listen(_onTicketPickUp));
+
+    // `clide claude account set/unset/remove --purge` (T-480): the dispatcher
+    // writes the registry then publishes here; only the UI layer can respawn
+    // the workspace's panes onto the newly-bound account or delete a config dir.
+    _subs.add(ctx.messages.subscribe(channel: accountActionChannel).listen(_onAccountAction));
+  }
+
+  /// Side-effects for the `claude account` verbs (T-480). The dispatcher does
+  /// the registry write and publishes the action here; respawning panes,
+  /// deleting a config dir, and (future) the login terminal pane are UI-layer
+  /// concerns the Flutter-free handler can't do itself.
+  void _onAccountAction(Message m) {
+    switch (m.data['action'] as String?) {
+      case 'set':
+      case 'unset':
+        final cwd = m.data['cwd'] as String?;
+        final orch = _orchestrator;
+        if (cwd != null && orch != null) unawaited(orch.respawnForWorkspace(cwd));
+      case 'purge':
+        final dir = m.data['dir'] as String?;
+        if (dir != null) unawaited(_purgeAccountDir(dir));
+      // 'login' would spawn a `CLAUDE_CONFIG_DIR=<dir> claude login` terminal
+      // pane; that needs argv+env pane support in the terminal builtin and is
+      // wired separately. The action is published for that consumer.
+    }
+  }
+
+  /// Delete a purged account's config dir (`remove --purge`). Guarded: only a
+  /// `~/.claude-*` directory that is a direct child of the user's home is ever
+  /// removed — never an arbitrary path, even though the dir came from our own
+  /// registry. A `rm -rf` of the wrong dir is unrecoverable.
+  Future<void> _purgeAccountDir(String dir) async {
+    final home = Platform.environment['HOME'];
+    if (home == null || !isPurgeableAccountDir(dir, home)) return;
+    final d = Directory(dir);
+    if (await d.exists()) await d.delete(recursive: true);
   }
 
   /// Hand a picked-up ticket to the active Claude session (T-327/T-339). The

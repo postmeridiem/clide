@@ -114,13 +114,15 @@ Future<IpcResponse> _dispatch(IpcRequest req, AccountStore? store, MessagePublis
 
     case 'remove':
       if (name == null || name.isEmpty) return _err(req.id, 'account remove requires a <name>');
-      if (_byName(store, name) == null) return _err(req.id, 'no such account: "$name"');
+      final removing = _byName(store, name);
+      if (removing == null) return _err(req.id, 'no such account: "$name"');
       if (store.boundAccountNames().contains(name)) {
         return _err(req.id, 'account "$name" is bound to a workspace', hint: 'clide claude account unset (in that workspace) first');
       }
       await store.remove(name);
       // The dir delete is IO the extension owns (this handler is Flutter-free).
-      if (purge) publish?.call('cli', accountActionChannel, {'action': 'purge', 'name': name});
+      // Carry the dir in the payload — the account is gone from the registry now.
+      if (purge) publish?.call('cli', accountActionChannel, {'action': 'purge', 'name': name, 'dir': removing.dir});
       return _ok(req.id, {'removed': name, 'purge': purge});
 
     case 'set':

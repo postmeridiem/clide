@@ -318,6 +318,31 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Respawn the workspace's solo sessions in place so they pick up a changed
+  /// per-repo Claude account (T-480). Each is closed (awaits real process
+  /// death, T-437) then re-spawned on the SAME id with `--resume` of its real
+  /// session id, so the conversation continues under the newly-bound
+  /// `CLAUDE_CONFIG_DIR` (resolved at spawn time by [agentBootstrap] from the
+  /// [accountRegistry]). Team / forked sessions are skipped — re-joining the
+  /// broker or re-forking on an account swap is out of scope; they adopt the
+  /// new account on their next natural spawn.
+  Future<void> respawnForWorkspace(String cwd) async {
+    final targets = _sessions.values.where((s) => s.cwd == cwd && s.memberName == null && s.forkSourceSessionId == null).toList();
+    for (final s in targets) {
+      final spec = SpawnSpec(
+        id: s.id,
+        role: s.role,
+        sessionId: s.sessionId,
+        cwd: s.cwd,
+        resume: true,
+        transcriptPath: claudeTranscriptPath(s.cwd, s.sessionId),
+        visible: s.visible,
+      );
+      await close(s.id);
+      await spawn(spec);
+    }
+  }
+
   /// Kill and forget a session (the real teardown). The conversation's
   /// onDispose kills the process + closes its streams; we then AWAIT the
   /// session's teardown so the `claude` process is genuinely dead before we

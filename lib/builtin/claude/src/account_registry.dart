@@ -153,6 +153,18 @@ class AccountRegistry {
   }
 }
 
+/// Whether [dir] is safe to `rm -rf` as a purged account config dir
+/// (`remove --purge`, T-480): it must be a `~/.claude-*` directory that is a
+/// DIRECT child of [home]. Anything else — an absolute path elsewhere, a nested
+/// path, the real `~/.claude` — is rejected even though the path came from our
+/// own registry. A wrong recursive delete is unrecoverable, so the predicate
+/// is deliberately strict.
+bool isPurgeableAccountDir(String dir, String home) {
+  if (home.isEmpty) return false;
+  final base = dir.split('/').last;
+  return dir == '$home/$base' && base.startsWith('.claude-');
+}
+
 /// Bootstrap probe (T-483): existing `~/.claude-*` directories that look like a
 /// Claude config dir (have a `.claude.json` file or a `sessions/` dir), as
 /// adoption candidates. Pure read — mutates nothing; the welcome view (T-481)

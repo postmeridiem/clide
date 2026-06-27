@@ -127,7 +127,7 @@ void main() {
     final r = await run(['remove', 'work'], flags: {'purge': true});
     expect(r.ok, isTrue, reason: r.error?.message);
     expect(store.accounts, isEmpty);
-    expect(published.single.data, {'action': 'purge', 'name': 'work'});
+    expect(published.single.data, {'action': 'purge', 'name': 'work', 'dir': '/home/u/.claude-work'});
   });
 
   test('login publishes a login action with the dir; unknown account errors', () async {

@@ -6790,3 +6790,79 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49VYMPF18PYQXD9PCMHN8', 'status', 'in_progress', 'done', NULL, '2026-06-27 14:42:39', '2026-06-27 14:42:39.553', '2026-06-27 14:42:39.553', NULL, 'fcd6750756465c07eb8a568ef7c26362', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W3V175EM4F8ZHC6JFM4', 'status', 'backlog', 'done', NULL, '2026-06-27 14:59:54', '2026-06-27 14:59:54.883', '2026-06-27 14:59:54.883', NULL, '84fd321fa07b452d52be53a28e433d9a', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W95HJK08BCRQSWFZBF4', 'status', 'backlog', 'in_progress', NULL, '2026-06-27 15:21:57', '2026-06-27 15:21:57.422', '2026-06-27 15:21:57.422', NULL, 'bd509581fcdeb4a965164421c8d2b094', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W95HJK08BCRQSWFZBF4', 'description', 'The `clide claude account …` dispatcher and verbs — D-6 parity for the multi-account feature (T-476). UI tickets (T-481 / T-482) call these verbs only; no UI writes the registry directly.
+
+## Verbs
+
+- `clide claude account add <name> [--dir <path>]` — register an account. Default dir `~/.claude-<name>/`. Idempotent (re-add with the same args is a no-op; conflicting args returns a clear userError). Does NOT spawn `claude login` — composability with `login`.
+- `clide claude account list` — JSON: `{accounts: [{name, dir}], boundAccount: <name|null>, detected: [<dir>...]}`. `boundAccount` is for the current workspace; `detected` is the T-477 probe output (existing `~/.claude-*/` dirs not yet registered).
+- `clide claude account login <name>` — spawn `CLAUDE_CONFIG_DIR=<dir> claude login` in a managed terminal pane (`lib/builtin/terminal/`). Claude CLI owns the OAuth browser bounce. Verb returns once the pane spawns; OAuth completion is observed by the pane lifecycle, not awaited by the verb.
+- `clide claude account set <name>` — bind the current workspace AND respawn the active Claude pane(s) on the new account. Respawn flow uses `ClaudeSessionOrchestrator.close` (which already awaits real process death per T-437) followed by a fresh `spawn` with the same id. Honest userError if `<name>` isn''t registered.
+- `clide claude account unset` — clear the binding for this workspace; respawn pane(s) on the default account. Emits a binding-removed event so T-479''s lock multiplexer can prune the matching `ide/` lock.
+- `clide claude account remove <name> [--purge]` — registry-remove; refuses if any open workspace is bound to it (with a clear message). `--purge` additionally `rm -rf`s the `configDir` after registry removal (off by default; require confirmation).
+
+## Where
+
+- Dispatcher: new `lib/src/daemon/claude_account_commands.dart` — mirror the shape of `image_commands.dart` (CommandSchema-declared positionals + flags, Flutter-free handler).
+- A MessageBus channel — e.g. `accountActionChannel = ''claude.account''` — for non-CLI consumers (the Claude extension + UI) to observe registry/binding changes.
+- Registers in `DaemonDispatcher` alongside the existing `image.show` / `pql.*` verbs.
+
+## Acceptance
+
+1. All six verbs round-trip through `clide capabilities` and execute against the live dispatcher.
+2. `clide claude account add work` registers and persists across clide restarts.
+3. `clide claude account list` returns the registry + this workspace''s binding + the detected-dirs probe results.
+4. `clide claude account login work` opens a managed terminal pane in which `claude login` runs against `~/.claude-work/`; OAuth completion writes credentials into that dir.
+5. `clide claude account set work` while a Claude pane is open: pane respawns with `CLAUDE_CONFIG_DIR=~/.claude-work/` (verified end-to-end against the live process).
+6. `clide claude account unset` returns the pane to the default config dir; the matching `<dir>/ide/<pid>.lock` (T-479) is removed.
+7. `clide claude account remove work` refuses while a workspace is bound; succeeds once unset. `--purge` removes the underlying directory after registry removal.
+8. Tests follow the `image_commands` shape: schema declaration, Flutter-free handler tests, dispatcher registration check.
+
+## Depends on
+
+- T-477 (storage / registry).
+- T-478 (env injection) — so the respawn under `set`/`unset` actually changes which account the new process uses.
+
+## Decision ref
+
+D-6 (CLI parity).
+', 'The `clide claude account …` dispatcher and verbs — D-6 parity for the multi-account feature (T-476). UI tickets (T-481 / T-482) call these verbs only; no UI writes the registry directly.
+
+## Verbs
+
+- `clide claude account add <name> [--dir <path>]` — register an account. Default dir `~/.claude-<name>/`. Idempotent (re-add with the same args is a no-op; conflicting args returns a clear userError). Does NOT spawn `claude login` — composability with `login`.
+- `clide claude account list` — JSON: `{accounts: [{name, dir}], boundAccount: <name|null>, detected: [<dir>...]}`. `boundAccount` is for the current workspace; `detected` is the T-477 probe output (existing `~/.claude-*/` dirs not yet registered).
+- `clide claude account login <name>` — spawn `CLAUDE_CONFIG_DIR=<dir> claude login` in a managed terminal pane (`lib/builtin/terminal/`). Claude CLI owns the OAuth browser bounce. Verb returns once the pane spawns; OAuth completion is observed by the pane lifecycle, not awaited by the verb.
+- `clide claude account set <name>` — bind the current workspace AND respawn the active Claude pane(s) on the new account. Respawn flow uses `ClaudeSessionOrchestrator.close` (which already awaits real process death per T-437) followed by a fresh `spawn` with the same id. Honest userError if `<name>` isn''t registered.
+- `clide claude account unset` — clear the binding for this workspace; respawn pane(s) on the default account. Emits a binding-removed event so T-479''s lock multiplexer can prune the matching `ide/` lock.
+- `clide claude account remove <name> [--purge]` — registry-remove; refuses if any open workspace is bound to it (with a clear message). `--purge` additionally `rm -rf`s the `configDir` after registry removal (off by default; require confirmation).
+
+## Where
+
+- Dispatcher: new `lib/src/daemon/claude_account_commands.dart` — mirror the shape of `image_commands.dart` (CommandSchema-declared positionals + flags, Flutter-free handler).
+- A MessageBus channel — e.g. `accountActionChannel = ''claude.account''` — for non-CLI consumers (the Claude extension + UI) to observe registry/binding changes.
+- Registers in `DaemonDispatcher` alongside the existing `image.show` / `pql.*` verbs.
+
+## Acceptance
+
+1. All six verbs round-trip through `clide capabilities` and execute against the live dispatcher.
+2. `clide claude account add work` registers and persists across clide restarts.
+3. `clide claude account list` returns the registry + this workspace''s binding + the detected-dirs probe results.
+4. `clide claude account login work` opens a managed terminal pane in which `claude login` runs against `~/.claude-work/`; OAuth completion writes credentials into that dir.
+5. `clide claude account set work` while a Claude pane is open: pane respawns with `CLAUDE_CONFIG_DIR=~/.claude-work/` (verified end-to-end against the live process).
+6. `clide claude account unset` returns the pane to the default config dir; the matching `<dir>/ide/<pid>.lock` (T-479) is removed.
+7. `clide claude account remove work` refuses while a workspace is bound; succeeds once unset. `--purge` removes the underlying directory after registry removal.
+8. Tests follow the `image_commands` shape: schema declaration, Flutter-free handler tests, dispatcher registration check.
+
+## Depends on
+
+- T-477 (storage / registry).
+- T-478 (env injection) — so the respawn under `set`/`unset` actually changes which account the new process uses.
+
+## Decision ref
+
+D-6 (CLI parity).
+
+
+Done: the six verbs (add/list/login/set/unset/remove) + registry persistence, plus the extension consumer — set/unset respawn the workspace''s solo Claude panes onto the bound account (ClaudeSessionOrchestrator.respawnForWorkspace), remove --purge deletes the config dir behind a strict ~/.claude-* guard (isPurgeableAccountDir). The login VERB publishes its action on accountActionChannel; spawning the actual ''claude login'' terminal pane needs argv+env terminal-pane support and is split to T-485.', NULL, '2026-06-27 19:18:09', '2026-06-27 19:18:09.075', '2026-06-27 19:18:09.075', NULL, '1fa1967a8c538b0ee0622162d9730a74', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FFW49W95HJK08BCRQSWFZBF4', 'status', 'in_progress', 'done', NULL, '2026-06-27 19:18:18', '2026-06-27 19:18:18.202', '2026-06-27 19:18:18.202', NULL, 'ebe069d240f705d5da92ebcddd1b2219', 2) ON CONFLICT(hash) DO NOTHING;

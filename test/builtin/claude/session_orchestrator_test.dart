@@ -76,6 +76,20 @@ void main() {
     expect(created, hasLength(1));
   });
 
+  test('respawnForWorkspace respawns solo workspace sessions with --resume, skips forks + other repos (T-480)', () async {
+    await orch.spawn(spec('primary')); // solo /repo → respawn
+    await orch.spawn(SpawnSpec(id: 'fork', role: 'fork', sessionId: 'fork-uuid', cwd: '/repo', forkSourceSessionId: 'primary-uuid')); // fork → skip
+    await orch.spawn(SpawnSpec(id: 'other', role: 'other', sessionId: 'other-uuid', cwd: '/elsewhere')); // other repo → skip
+    final before = created.length; // 3
+
+    await orch.respawnForWorkspace('/repo');
+
+    expect(created.first.killed, isTrue, reason: "the primary's original process is killed");
+    expect(created.length, before + 1, reason: 'exactly one session respawned');
+    expect(spawnedArgs.last, contains('--resume'));
+    expect(orch.sessions.map((s) => s.id), unorderedEquals(['primary', 'fork', 'other']));
+  });
+
   // T-374: spawn() check-then-acts across awaits; without the in-flight
   // map, two CONCURRENT spawns both passed the registry check and the
   // loser's live claude process was orphaned.

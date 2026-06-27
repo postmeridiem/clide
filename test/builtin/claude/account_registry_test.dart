@@ -137,4 +137,16 @@ void main() {
       expect(probeExistingAccountDirs('/no/such/home/${DateTime.now().microsecondsSinceEpoch}'), isEmpty);
     });
   });
+
+  group('purge guard (T-480)', () {
+    const home = '/home/u';
+    test('accepts ~/.claude-* direct children only, rejects everything else', () {
+      expect(isPurgeableAccountDir('/home/u/.claude-work', home), isTrue);
+      expect(isPurgeableAccountDir('/home/u/.claude', home), isFalse); // the real config dir
+      expect(isPurgeableAccountDir('/home/u/projects', home), isFalse); // not .claude-*
+      expect(isPurgeableAccountDir('/home/u/sub/.claude-work', home), isFalse); // nested, not a direct child
+      expect(isPurgeableAccountDir('/etc/.claude-work', home), isFalse); // elsewhere on disk
+      expect(isPurgeableAccountDir('/home/u/.claude-work', ''), isFalse); // no home → never delete
+    });
+  });
 }

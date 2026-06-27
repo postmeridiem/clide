@@ -18,6 +18,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Per-repo Claude accounts — `clide claude account` verbs.** Manage named
+  Claude config dirs and bind one per workspace: `add`/`list`/`set`/`unset`/
+  `remove [--purge]`. `set`/`unset` respawn the workspace's Claude pane(s) onto
+  the bound account (resuming the conversation under its `CLAUDE_CONFIG_DIR`).
+  (T-480, epic T-476)
 - **`clide instances` / `clide instance` CLI verbs.** `instances` lists every
   live clide on the machine with its version, pid, workspace, and socket path
   (probing the runtime dir); `instance` reports the one you're connected to — so
