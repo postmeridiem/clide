@@ -6784,3 +6784,4 @@ is enough. Removed the Team-tab account card (and its usage prop + i18n keys);
 the budget now lives only on the Activity tab, next to the /usage refresh
 control that fetches it (T-415). The three-tab card facelift stays. Q-34
 answered: budget surfaces once, on Activity.', NULL, '2026-06-27 05:55:56', '2026-06-27 05:55:56.468', '2026-06-27 05:55:56.468', NULL, 'ba7329e54bf44c2cb5a9e7fb63e685f3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB0TNQM6QCYT7JBF352YVJ48', 'status', 'backlog', 'in_progress', NULL, '2026-06-27 06:06:03', '2026-06-27 06:06:03.770', '2026-06-27 06:06:03.770', NULL, 'c1cff9a2f682f3bb8f719f6771cf36c3', 2) ON CONFLICT(hash) DO NOTHING;

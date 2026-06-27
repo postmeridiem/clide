@@ -36,6 +36,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **`clide` CLI honors `CLIDE_SOCK`.** The shell client now connects to the
+  socket named by `CLIDE_SOCK` when set — an explicit target (e.g. a spawned
+  agent pinning its parent instance) that beats workspace auto-discovery — and
+  fails loudly if that socket is dead instead of silently driving a different
+  instance. (T-247)
 - **Default window opens larger (1600×900) on Linux.** 720p was short enough
   that the welcome screen's version/theme footer overlapped the tips card;
   the taller default clears it, matching the macOS default. (T-477)

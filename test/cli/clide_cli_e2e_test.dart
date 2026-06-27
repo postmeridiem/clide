@@ -71,8 +71,12 @@ void main() {
     }
   });
 
+  // Clear any inherited CLIDE_SOCK so these tests exercise workspace discovery
+  // hermetically — the suite may run *inside* a clide instance, which exports
+  // CLIDE_SOCK to child processes (T-247). Empty string reads as unset to the
+  // client, which then falls back to per-workspace discovery.
   Future<ProcessResult> runCli(List<String> argv) {
-    return Process.run(binaryPath, argv, workingDirectory: workspaceRoot.path);
+    return Process.run(binaryPath, argv, workingDirectory: workspaceRoot.path, environment: const {'CLIDE_SOCK': ''});
   }
 
   group('clide-cli (T-126)', () {
@@ -93,7 +97,7 @@ void main() {
       }
       final outside = Directory.systemTemp.createTempSync('clide-no-git-');
       addTearDown(() => outside.deleteSync(recursive: true));
-      final r = await Process.run(binaryPath, ['status'], workingDirectory: outside.path);
+      final r = await Process.run(binaryPath, ['status'], workingDirectory: outside.path, environment: const {'CLIDE_SOCK': ''});
       expect(r.exitCode, 64);
       expect(r.stderr.toString(), contains('git repository'));
     });
@@ -141,7 +145,12 @@ void main() {
         markTestSkipped('cc not available');
         return;
       }
-      final proc = await Process.start(binaryPath, ['tail', '--events', '--filter', 'pane'], workingDirectory: workspaceRoot.path);
+      final proc = await Process.start(
+        binaryPath,
+        ['tail', '--events', '--filter', 'pane'],
+        workingDirectory: workspaceRoot.path,
+        environment: const {'CLIDE_SOCK': ''},
+      );
       addTearDown(() => proc.kill());
       final lines = <String>[];
       final sub = proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(lines.add);
@@ -165,6 +174,34 @@ void main() {
       final concatenated = lines.skip(1).join('\n');
       expect(concatenated, contains('"kind":"spawned"'));
       expect(concatenated, contains('"kind":"closed"'));
+    });
+
+    test('CLIDE_SOCK pins to that instance, beating workspace discovery (T-247)', () async {
+      if (!hasCC) {
+        markTestSkipped('cc not available');
+        return;
+      }
+      // From a NON-git dir (where discovery would fail), an explicit CLIDE_SOCK
+      // still connects — it's the explicit target.
+      final outside = Directory.systemTemp.createTempSync('clide-sock-');
+      addTearDown(() => outside.deleteSync(recursive: true));
+      final r = await Process.run(binaryPath, ['ping'], workingDirectory: outside.path, environment: {'CLIDE_SOCK': server.socketPath});
+      expect(r.exitCode, 0, reason: 'stderr: ${r.stderr}');
+      expect((jsonDecode(r.stdout.toString().trim()) as Map)['pong'], isTrue);
+    });
+
+    test('a dead CLIDE_SOCK fails loudly, never falling back to discovery (T-247)', () async {
+      if (!hasCC) {
+        markTestSkipped('cc not available');
+        return;
+      }
+      // Run from the REAL workspace — discovery WOULD succeed — to prove the
+      // bogus explicit target aborts instead of silently hitting another instance.
+      final bogus = '${workspaceRoot.path}/DOES_NOT_EXIST.sock';
+      final r = await Process.run(binaryPath, ['ping'], workingDirectory: workspaceRoot.path, environment: {'CLIDE_SOCK': bogus});
+      expect(r.exitCode, isNot(0));
+      expect(r.stderr.toString(), contains('cannot connect'));
+      expect(r.stdout.toString().trim(), isEmpty, reason: 'must not return data from a different instance');
     });
   });
 }

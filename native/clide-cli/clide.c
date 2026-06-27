@@ -183,8 +183,7 @@ static int find_workspace_root(const char *start, char *out, size_t out_size) {
         snprintf(probe, sizeof(probe), "%s/.git", cwd);
         struct stat st;
         if (lstat(probe, &st) == 0) {
-            strncpy(out, cwd, out_size - 1);
-            out[out_size - 1] = '\0';
+            snprintf(out, out_size, "%s", cwd);
             return 0;
         }
         /* Climb one. /foo/bar -> /foo, / -> stop. */
@@ -367,16 +366,32 @@ int main(int argc, char **argv) {
         return EX_USAGE;
     }
 
-    char ws_root[4096];
-    if (find_workspace_root(NULL, ws_root, sizeof(ws_root)) != 0) {
-        fprintf(stderr, "clide: not inside a git repository — no workspace to talk to\n");
-        return EX_USAGE;
-    }
-
+    /* CLIDE_SOCK is an explicit target that beats workspace discovery (T-247):
+     * a spawned agent inherits the parent app's socket path here, and a human
+     * can pin a specific instance. When it's set we connect to it and FAIL
+     * LOUDLY if it's dead — never silently fall back to discovering a different
+     * instance (that's the split-brain footgun this fixes). Unset → the
+     * deterministic per-workspace path (D-70). */
     char sock_path[4096];
-    if (socket_path_for(ws_root, sock_path, sizeof(sock_path)) >= (int)sizeof(sock_path)) {
-        fprintf(stderr, "clide: socket path overflow\n");
-        return EX_SOFTWARE;
+    const char *env_sock = getenv("CLIDE_SOCK");
+    if (env_sock && *env_sock) {
+        if (strlen(env_sock) >= sizeof(sock_path)) {
+            fprintf(stderr, "clide: CLIDE_SOCK path too long\n");
+            return EX_USAGE;
+        }
+        strncpy(sock_path, env_sock, sizeof(sock_path) - 1);
+        sock_path[sizeof(sock_path) - 1] = '\0';
+    } else {
+        char ws_root[4096];
+        if (find_workspace_root(NULL, ws_root, sizeof(ws_root)) != 0) {
+            fprintf(stderr, "clide: not inside a git repository — no workspace to talk to "
+                            "(set CLIDE_SOCK to target a specific instance)\n");
+            return EX_USAGE;
+        }
+        if (socket_path_for(ws_root, sock_path, sizeof(sock_path)) >= (int)sizeof(sock_path)) {
+            fprintf(stderr, "clide: socket path overflow\n");
+            return EX_SOFTWARE;
+        }
     }
 
     sock_t fd = connect_unix(sock_path);
