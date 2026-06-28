@@ -1,6 +1,5 @@
 import 'package:clide/clide.dart';
 import 'package:clide/src/daemon/draw_commands.dart';
-import 'package:clide/src/draw/draw_dispatch.dart';
 import 'package:test/test.dart';
 
 void main() {
