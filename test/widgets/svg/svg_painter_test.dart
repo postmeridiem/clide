@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:clide/src/svg/svg_document.dart';
@@ -11,11 +13,24 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<ui.Image> render(String svg, double w, double h) async {
+  Future<ui.Image> render(String svg, double w, double h, {SvgImageResolver? images}) async {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder, Rect.fromLTWH(0, 0, w, h));
-    paintSvg(canvas, Size(w, h), buildSvgDocument(svg));
+    paintSvg(canvas, Size(w, h), buildSvgDocument(svg), images: images);
     return recorder.endRecording().toImage(w.round(), h.round());
+  }
+
+  Future<ui.Image> solidImage(int w, int h, int argb) {
+    final px = Uint8List(w * h * 4);
+    for (var i = 0; i < w * h; i++) {
+      px[i * 4] = (argb >> 16) & 0xFF;
+      px[i * 4 + 1] = (argb >> 8) & 0xFF;
+      px[i * 4 + 2] = argb & 0xFF;
+      px[i * 4 + 3] = (argb >> 24) & 0xFF;
+    }
+    final c = Completer<ui.Image>();
+    ui.decodeImageFromPixels(px, w, h, ui.PixelFormat.rgba8888, c.complete);
+    return c.future;
   }
 
   Future<int> argbAt(ui.Image img, int x, int y) async {
@@ -80,6 +95,19 @@ void main() {
       }
     }
     expect(greenDrawn, isTrue, reason: 'the green arrowhead should have been painted');
+  });
+
+  test('paints an <image> via the injected resolver, into its dest rect', () async {
+    final pic = await solidImage(4, 4, 0xFFFF00FF);
+    const svg = '<svg viewBox="0 0 10 10"><image x="0" y="0" width="10" height="10" href="pic"/></svg>';
+    final img = await render(svg, 10, 10, images: (href) => href == 'pic' ? pic : null);
+    expect(await argbAt(img, 5, 5), 0xFFFF00FF);
+  });
+
+  test('an <image> with no resolver paints nothing', () async {
+    const svg = '<svg viewBox="0 0 10 10"><image x="0" y="0" width="10" height="10" href="pic"/></svg>';
+    final img = await render(svg, 10, 10);
+    expect(alpha(await argbAt(img, 5, 5)), 0);
   });
 
   test('renders the real d2 fixture without error and draws ink', () async {

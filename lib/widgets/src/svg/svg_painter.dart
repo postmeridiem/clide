@@ -6,9 +6,9 @@
 /// scale, centred — `xMidYMid meet`) and drawing shapes/text with per-node
 /// transforms and opacity.
 ///
-/// v1 scope: groups, rect/ellipse/line/poly/path, text, and `marker-*`
-/// arrowheads (rotated to the path direction). `image` href resolution is async
-/// and deferred (not painted yet). Default paints follow SVG: fill black, stroke
+/// v1 scope: groups, rect/ellipse/line/poly/path, text, `marker-*` arrowheads
+/// (rotated to the path direction), and `<image>` via an injected resolver (the
+/// caller owns href loading). Default paints follow SVG: fill black, stroke
 /// none, stroke-width 1.
 library;
 
@@ -21,12 +21,25 @@ import 'package:clide/src/svg/svg_path.dart';
 import 'package:clide/src/svg/svg_transform.dart';
 import 'package:flutter/widgets.dart';
 
-/// Paint [doc] onto [canvas], fitting its viewBox into [size].
-void paintSvg(ui.Canvas canvas, Size size, SvgDocument doc) {
+/// Resolves an `<image>` href to an already-decoded image, or `null` if it
+/// isn't available yet. The caller owns loading (file/asset/network) and policy;
+/// the painter stays pure rendering. Returning `null` simply paints nothing.
+typedef SvgImageResolver = ui.Image? Function(String href);
+
+/// Paint [doc] onto [canvas], fitting its viewBox into [size]. [images] resolves
+/// `<image>` hrefs to decoded images.
+void paintSvg(ui.Canvas canvas, Size size, SvgDocument doc, {SvgImageResolver? images}) {
   canvas.save();
   _applyViewport(canvas, size, doc);
-  _paintNode(canvas, doc.root, doc.markers);
+  _paintNode(canvas, doc.root, _Ctx(doc.markers, images));
   canvas.restore();
+}
+
+/// Per-paint context threaded through the walk.
+class _Ctx {
+  const _Ctx(this.markers, this.images);
+  final Map<String, SvgMarker> markers;
+  final SvgImageResolver? images;
 }
 
 void _applyViewport(ui.Canvas canvas, Size size, SvgDocument doc) {
@@ -40,7 +53,7 @@ void _applyViewport(ui.Canvas canvas, Size size, SvgDocument doc) {
   if (vb != null) canvas.translate(-vb.minX, -vb.minY);
 }
 
-void _paintNode(ui.Canvas canvas, SvgNode node, Map<String, SvgMarker> markers) {
+void _paintNode(ui.Canvas canvas, SvgNode node, _Ctx ctx) {
   canvas.save();
   if (node.transform != null) canvas.transform(_matrix4(node.transform!));
   final layered = node.style.opacity < 1.0;
@@ -51,21 +64,27 @@ void _paintNode(ui.Canvas canvas, SvgNode node, Map<String, SvgMarker> markers) 
   switch (node) {
     case SvgGroup g:
       for (final c in g.children) {
-        _paintNode(canvas, c, markers);
+        _paintNode(canvas, c, ctx);
       }
     case SvgText t:
       _paintText(canvas, t);
-    case SvgImage _:
-      break; // async href resolution deferred (v1)
+    case SvgImage im:
+      _paintImage(canvas, im, ctx);
     default:
-      _paintShape(canvas, node, markers);
+      _paintShape(canvas, node, ctx);
   }
 
   if (layered) canvas.restore();
   canvas.restore();
 }
 
-void _paintShape(ui.Canvas canvas, SvgNode node, Map<String, SvgMarker> markers) {
+void _paintImage(ui.Canvas canvas, SvgImage im, _Ctx ctx) {
+  final img = ctx.images?.call(im.href);
+  if (img == null) return; // not loaded / no resolver — paint nothing
+  canvas.drawImageRect(img, Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()), Rect.fromLTWH(im.x, im.y, im.width, im.height), ui.Paint());
+}
+
+void _paintShape(ui.Canvas canvas, SvgNode node, _Ctx ctx) {
   final path = _shapePath(node);
   if (path == null) return;
   final s = node.style;
@@ -92,20 +111,20 @@ void _paintShape(ui.Canvas canvas, SvgNode node, Map<String, SvgMarker> markers)
   }
 
   // Markers (arrowheads) at the path ends, rotated to the path direction.
-  if (node is SvgPath && markers.isNotEmpty) {
+  if (node is SvgPath && ctx.markers.isNotEmpty) {
     final ends = _pathEnds(node.segments);
     if (ends != null) {
       final (sx, sy, sAngle, ex, ey, eAngle) = ends;
       final sw = s.strokeWidth ?? 1.0;
-      final end = node.markerEnd == null ? null : markers[node.markerEnd];
-      if (end != null) _paintMarker(canvas, end, ex, ey, eAngle, sw, markers);
-      final start = node.markerStart == null ? null : markers[node.markerStart];
-      if (start != null) _paintMarker(canvas, start, sx, sy, sAngle, sw, markers);
+      final end = node.markerEnd == null ? null : ctx.markers[node.markerEnd];
+      if (end != null) _paintMarker(canvas, end, ex, ey, eAngle, sw, ctx);
+      final start = node.markerStart == null ? null : ctx.markers[node.markerStart];
+      if (start != null) _paintMarker(canvas, start, sx, sy, sAngle, sw, ctx);
     }
   }
 }
 
-void _paintMarker(ui.Canvas canvas, SvgMarker m, double x, double y, double angle, double strokeWidth, Map<String, SvgMarker> markers) {
+void _paintMarker(ui.Canvas canvas, SvgMarker m, double x, double y, double angle, double strokeWidth, _Ctx ctx) {
   canvas.save();
   canvas.translate(x, y);
   canvas.rotate(m.orientAuto ? angle : m.orientAngle * math.pi / 180);
@@ -113,7 +132,7 @@ void _paintMarker(ui.Canvas canvas, SvgMarker m, double x, double y, double angl
   // viewBox→viewport scaling is approximated 1:1 (holds for d2's markers).
   canvas.translate(-m.refX, -m.refY);
   for (final c in m.children) {
-    _paintNode(canvas, c, markers);
+    _paintNode(canvas, c, ctx);
   }
   canvas.restore();
 }
@@ -277,24 +296,30 @@ Float64List _matrix4(Affine m) => Float64List.fromList([
   m.e, m.f, 0, 1, //
 ]);
 
-/// A `CustomPainter` that draws an [SvgDocument]. Repaints only when the
-/// document instance changes.
+/// A `CustomPainter` that draws an [SvgDocument]. Repaints when the document
+/// instance or the [images] resolver changes.
 class SvgScenePainter extends CustomPainter {
-  const SvgScenePainter(this.document);
+  const SvgScenePainter(this.document, {this.images});
   final SvgDocument document;
+  final SvgImageResolver? images;
 
   @override
-  void paint(ui.Canvas canvas, Size size) => paintSvg(canvas, size, document);
+  void paint(ui.Canvas canvas, Size size) => paintSvg(canvas, size, document, images: images);
 
   @override
-  bool shouldRepaint(SvgScenePainter old) => !identical(old.document, document);
+  bool shouldRepaint(SvgScenePainter old) => !identical(old.document, document) || old.images != images;
 }
 
-/// A widget that renders an [SvgDocument], filling its constraints.
+/// A widget that renders an [SvgDocument], filling its constraints. [images]
+/// resolves `<image>` hrefs to decoded images (loading is the caller's job).
 class SvgView extends StatelessWidget {
-  const SvgView({super.key, required this.document});
+  const SvgView({super.key, required this.document, this.images});
   final SvgDocument document;
+  final SvgImageResolver? images;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: SvgScenePainter(document), child: const SizedBox.expand());
+  Widget build(BuildContext context) => CustomPaint(
+    painter: SvgScenePainter(document, images: images),
+    child: const SizedBox.expand(),
+  );
 }
