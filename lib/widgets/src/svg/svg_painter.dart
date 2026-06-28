@@ -6,9 +6,9 @@
 /// scale, centred — `xMidYMid meet`) and drawing shapes/text with per-node
 /// transforms and opacity.
 ///
-/// v1 scope (matches the builder): groups, rect/ellipse/line/poly/path, text.
-/// `image` href resolution is async and deferred (not painted yet); markers
-/// (arrowheads) are a follow-on. Default paints follow SVG: fill black, stroke
+/// v1 scope: groups, rect/ellipse/line/poly/path, text, and `marker-*`
+/// arrowheads (rotated to the path direction). `image` href resolution is async
+/// and deferred (not painted yet). Default paints follow SVG: fill black, stroke
 /// none, stroke-width 1.
 library;
 
@@ -25,7 +25,7 @@ import 'package:flutter/widgets.dart';
 void paintSvg(ui.Canvas canvas, Size size, SvgDocument doc) {
   canvas.save();
   _applyViewport(canvas, size, doc);
-  _paintNode(canvas, doc.root);
+  _paintNode(canvas, doc.root, doc.markers);
   canvas.restore();
 }
 
@@ -40,7 +40,7 @@ void _applyViewport(ui.Canvas canvas, Size size, SvgDocument doc) {
   if (vb != null) canvas.translate(-vb.minX, -vb.minY);
 }
 
-void _paintNode(ui.Canvas canvas, SvgNode node) {
+void _paintNode(ui.Canvas canvas, SvgNode node, Map<String, SvgMarker> markers) {
   canvas.save();
   if (node.transform != null) canvas.transform(_matrix4(node.transform!));
   final layered = node.style.opacity < 1.0;
@@ -51,21 +51,21 @@ void _paintNode(ui.Canvas canvas, SvgNode node) {
   switch (node) {
     case SvgGroup g:
       for (final c in g.children) {
-        _paintNode(canvas, c);
+        _paintNode(canvas, c, markers);
       }
     case SvgText t:
       _paintText(canvas, t);
     case SvgImage _:
       break; // async href resolution deferred (v1)
     default:
-      _paintShape(canvas, node);
+      _paintShape(canvas, node, markers);
   }
 
   if (layered) canvas.restore();
   canvas.restore();
 }
 
-void _paintShape(ui.Canvas canvas, SvgNode node) {
+void _paintShape(ui.Canvas canvas, SvgNode node, Map<String, SvgMarker> markers) {
   final path = _shapePath(node);
   if (path == null) return;
   final s = node.style;
@@ -90,6 +90,87 @@ void _paintShape(ui.Canvas canvas, SvgNode node) {
         ..strokeJoin = _join(s.lineJoin),
     );
   }
+
+  // Markers (arrowheads) at the path ends, rotated to the path direction.
+  if (node is SvgPath && markers.isNotEmpty) {
+    final ends = _pathEnds(node.segments);
+    if (ends != null) {
+      final (sx, sy, sAngle, ex, ey, eAngle) = ends;
+      final sw = s.strokeWidth ?? 1.0;
+      final end = node.markerEnd == null ? null : markers[node.markerEnd];
+      if (end != null) _paintMarker(canvas, end, ex, ey, eAngle, sw, markers);
+      final start = node.markerStart == null ? null : markers[node.markerStart];
+      if (start != null) _paintMarker(canvas, start, sx, sy, sAngle, sw, markers);
+    }
+  }
+}
+
+void _paintMarker(ui.Canvas canvas, SvgMarker m, double x, double y, double angle, double strokeWidth, Map<String, SvgMarker> markers) {
+  canvas.save();
+  canvas.translate(x, y);
+  canvas.rotate(m.orientAuto ? angle : m.orientAngle * math.pi / 180);
+  if (m.strokeScaled) canvas.scale(strokeWidth);
+  // viewBox→viewport scaling is approximated 1:1 (holds for d2's markers).
+  canvas.translate(-m.refX, -m.refY);
+  for (final c in m.children) {
+    _paintNode(canvas, c, markers);
+  }
+  canvas.restore();
+}
+
+/// Start/end points and tangent angles of a path: `(sx, sy, startAngle, ex, ey,
+/// endAngle)`, or `null` if the path has no drawing segments.
+(double, double, double, double, double, double)? _pathEnds(List<SvgPathSeg> segs) {
+  double cx = 0, cy = 0, sx = 0, sy = 0;
+  double startAngle = 0, fx = 0, fy = 0;
+  var seenDraw = false, seenEnd = false;
+  for (final s in segs) {
+    final a = s.args;
+    switch (s.op) {
+      case SvgPathOp.moveTo:
+        cx = a[0];
+        cy = a[1];
+        sx = cx;
+        sy = cy;
+      case SvgPathOp.lineTo:
+        if (!seenDraw) startAngle = math.atan2(a[1] - cy, a[0] - cx);
+        fx = cx;
+        fy = cy;
+        cx = a[0];
+        cy = a[1];
+        seenDraw = seenEnd = true;
+      case SvgPathOp.cubicTo:
+        if (!seenDraw) startAngle = math.atan2(a[1] - cy, a[0] - cx);
+        fx = a[2];
+        fy = a[3];
+        cx = a[4];
+        cy = a[5];
+        seenDraw = seenEnd = true;
+      case SvgPathOp.quadTo:
+        if (!seenDraw) startAngle = math.atan2(a[1] - cy, a[0] - cx);
+        fx = a[0];
+        fy = a[1];
+        cx = a[2];
+        cy = a[3];
+        seenDraw = seenEnd = true;
+      case SvgPathOp.arcTo:
+        if (!seenDraw) startAngle = math.atan2(a[6] - cy, a[5] - cx);
+        fx = cx;
+        fy = cy;
+        cx = a[5];
+        cy = a[6];
+        seenDraw = seenEnd = true;
+      case SvgPathOp.close:
+        if (!seenDraw) startAngle = math.atan2(sy - cy, sx - cx);
+        fx = cx;
+        fy = cy;
+        cx = sx;
+        cy = sy;
+        seenDraw = seenEnd = true;
+    }
+  }
+  if (!seenEnd) return null;
+  return (sx, sy, startAngle, cx, cy, math.atan2(cy - fy, cx - fx));
 }
 
 ui.Path? _shapePath(SvgNode node) {

@@ -104,9 +104,21 @@ void main() {
       expect(p.segments.first.op, SvgPathOp.moveTo);
     });
 
-    test('defs and marker are skipped this slice', () {
-      final k = kids('<svg><defs><marker id="m"><polygon points="0,0 1,1"/></marker></defs><rect/></svg>');
-      expect(k.map((n) => n.runtimeType.toString()), ['SvgRect']);
+    test('marker defs are collected (not drawn inline) with the path marker-end ref', () {
+      final d = buildSvgDocument(
+        '<svg><defs><marker id="arrow" refX="7" refY="6" orient="auto" markerUnits="userSpaceOnUse">'
+        '<polygon points="0,0 10,6 0,12" fill="#0D32B2"/></marker></defs>'
+        '<path d="M0 0 L10 0" marker-end="url(#arrow)"/></svg>',
+      );
+      // defs/marker are not drawable children — only the path is.
+      expect(d.root.children.map((n) => n.runtimeType.toString()), ['SvgPath']);
+      // …but the marker is collected, with its content style resolved.
+      final m = d.markers['arrow']!;
+      expect(m.refX, 7);
+      expect(m.orientAuto, isTrue);
+      expect(m.strokeScaled, isFalse); // markerUnits=userSpaceOnUse
+      expect((m.children.single as SvgPolyline).style.fill, 0xFF0D32B2);
+      expect((d.root.children.single as SvgPath).markerEnd, 'arrow');
     });
   });
 }

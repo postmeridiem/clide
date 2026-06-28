@@ -25,13 +25,48 @@ SvgDocument buildSvgDocument(String src) {
   if (root == null || root.name != 'svg') return SvgDocument.empty;
   inlineStyles(root);
 
+  final markers = <String, SvgMarker>{};
+  _collectMarkers(root, markers);
+
   final style = _resolveStyle(root.attrs, SvgStyle.initial);
   return SvgDocument(
     width: _lenN(root.attrs['width']),
     height: _lenN(root.attrs['height']),
     viewBox: _viewBox(root.attrs['viewBox']),
     root: SvgGroup(style, _transform(root.attrs['transform']), _children(root, style)),
+    markers: markers,
   );
+}
+
+void _collectMarkers(XmlElement el, Map<String, SvgMarker> into) {
+  if (el.name == 'marker') {
+    final id = el.attrs['id'];
+    if (id != null && id.isNotEmpty) into[id] = _marker(el);
+  }
+  for (final c in el.children) {
+    if (c is XmlElement) _collectMarkers(c, into);
+  }
+}
+
+SvgMarker _marker(XmlElement el) {
+  final orient = el.attrs['orient'];
+  final auto = orient == 'auto' || orient == 'auto-start-reverse';
+  return SvgMarker(
+    refX: _num(el.attrs['refX']),
+    refY: _num(el.attrs['refY']),
+    orientAuto: auto,
+    orientAngle: (orient != null && !auto) ? (_stripNum(orient) ?? 0) : 0,
+    strokeScaled: el.attrs['markerUnits'] != 'userSpaceOnUse', // default = strokeWidth
+    viewBox: _viewBox(el.attrs['viewBox']),
+    children: _children(el, SvgStyle.initial),
+  );
+}
+
+/// Extract the id from a `marker-*` value like `url(#id)`.
+String? _markerRef(String? v) {
+  if (v == null) return null;
+  final m = RegExp(r'url\(\s*#([^)\s]+)\s*\)').firstMatch(v);
+  return m?.group(1) ?? (v.startsWith('#') ? v.substring(1) : null);
 }
 
 List<SvgNode> _children(XmlElement el, SvgStyle inherited) {
@@ -69,7 +104,14 @@ SvgNode? _node(XmlElement el, SvgStyle inherited) {
     case 'polygon':
       return SvgPolyline(style, tf, _points(a['points']), true);
     case 'path':
-      return SvgPath(style, tf, parseSvgPath(a['d'] ?? ''));
+      return SvgPath(
+        style,
+        tf,
+        parseSvgPath(a['d'] ?? ''),
+        markerStart: _markerRef(a['marker-start']),
+        markerMid: _markerRef(a['marker-mid']),
+        markerEnd: _markerRef(a['marker-end']),
+      );
     case 'text':
       return SvgText(style, tf, _num(a['x']), _num(a['y']), _textOf(el));
     case 'image':

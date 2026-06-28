@@ -96,8 +96,31 @@ class SvgPolyline extends SvgNode {
 }
 
 class SvgPath extends SvgNode {
-  const SvgPath(super.style, super.transform, this.segments);
+  const SvgPath(super.style, super.transform, this.segments, {this.markerStart, this.markerMid, this.markerEnd});
   final List<SvgPathSeg> segments;
+
+  /// Ids (sans `url(#…)`) of `marker-start`/`mid`/`end` definitions, if any.
+  final String? markerStart, markerMid, markerEnd;
+}
+
+/// A `<marker>` definition (e.g. an arrowhead), referenced by `marker-*`.
+class SvgMarker {
+  const SvgMarker({
+    required this.refX,
+    required this.refY,
+    required this.orientAuto,
+    required this.orientAngle,
+    required this.strokeScaled,
+    required this.children,
+    this.viewBox,
+  });
+
+  final double refX, refY;
+  final bool orientAuto; // orient="auto"
+  final double orientAngle; // fixed angle (degrees) when not auto
+  final bool strokeScaled; // markerUnits=strokeWidth (default) vs userSpaceOnUse
+  final SvgViewBox? viewBox;
+  final List<SvgNode> children;
 }
 
 class SvgText extends SvgNode {
@@ -121,11 +144,14 @@ class SvgViewBox {
 /// A parsed SVG document: optional intrinsic [width]/[height] (px), optional
 /// [viewBox], and the [root] group.
 class SvgDocument {
-  const SvgDocument({this.width, this.height, this.viewBox, required this.root});
+  const SvgDocument({this.width, this.height, this.viewBox, required this.root, this.markers = const {}});
 
   static const empty = SvgDocument(root: SvgGroup(SvgStyle.initial, null, []));
 
   final double? width, height;
   final SvgViewBox? viewBox;
   final SvgGroup root;
+
+  /// `<marker>` definitions by id, referenced by path `marker-*`.
+  final Map<String, SvgMarker> markers;
 }

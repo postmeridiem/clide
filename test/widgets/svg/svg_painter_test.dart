@@ -63,6 +63,25 @@ void main() {
     expect(alpha(await argbAt(img, 5, 5)), closeTo(128, 4));
   });
 
+  test('draws a marker-end arrowhead, rotated to the path direction', () async {
+    // A rightward path with a green right-pointing triangle marker at its end.
+    const svg =
+        '<svg viewBox="0 0 20 10">'
+        '<defs><marker id="a" refX="0" refY="2" orient="auto" markerUnits="userSpaceOnUse">'
+        '<polygon points="0,0 4,2 0,4" fill="#00FF00"/></marker></defs>'
+        '<path d="M2 5 L12 5" stroke="#000000" marker-end="url(#a)"/></svg>';
+    final data = (await (await render(svg, 40, 20)).toByteData())!;
+    var greenDrawn = false;
+    for (var i = 0; i < data.lengthInBytes; i += 4) {
+      final r = data.getUint8(i), g = data.getUint8(i + 1), b = data.getUint8(i + 2), a = data.getUint8(i + 3);
+      if (a > 200 && g > 200 && r < 80 && b < 80) {
+        greenDrawn = true;
+        break;
+      }
+    }
+    expect(greenDrawn, isTrue, reason: 'the green arrowhead should have been painted');
+  });
+
   test('renders the real d2 fixture without error and draws ink', () async {
     final svg = File('test/svg/fixtures/d2_pipeline.svg').readAsStringSync();
     final img = await render(svg, 200, 120);
