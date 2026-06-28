@@ -8184,3 +8184,627 @@ RENDERER CORE DONE (2026-06-28): the pure-Dart pipeline (5 parsers + typed model
 COMPLETE (2026-06-28): the clide-owned CustomPaint SVG renderer is feature-complete for the finalized subset. Renders shapes (rect/rrect/ellipse/circle/line/polyline/polygon/path incl. arcs), text (anchor + baseline), per-node transforms, group opacity, viewBox fit, marker-start/end arrowheads (rotated to the path tangent), and <image> via an injected resolver (caller owns href loading). 93 tests: 82 dart-test (pure-Dart pipeline incl. a real-d2 fixture) + 11 flutter-test pixel-probe. Known v1 limitations (within the deferred subset, not blockers): <mask> ignored (relies on node-over-edge paint order); marker viewBox->viewport scaling approximated 1:1; marker-mid unpainted; <image> preserveAspectRatio is stretch-fit. Next: T-318 (envelope + dispatch + Flutter overlay) consumes SvgView.', NULL, '2026-06-28 19:26:43', '2026-06-28 19:26:43.693', '2026-06-28 19:26:43.693', NULL, '87901e4089b90d59450382e907e81fc6', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ETJQP0CT6X7W3CWZ6NS9G', 'status', 'in_progress', 'done', NULL, '2026-06-28 19:36:13', '2026-06-28 19:36:13.904', '2026-06-28 19:36:13.904', NULL, '4915f72f465afeeec178d6bcc830cfb4', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ERREMEEF26KKHGNZBWW64', 'status', 'backlog', 'in_progress', NULL, '2026-06-28 19:36:13', '2026-06-28 19:36:13.943', '2026-06-28 19:36:13.943', NULL, 'fabe425a8e04875205406b3146e43240', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ERREMEEF26KKHGNZBWW64', 'description', 'Foundational build for the unified drawing card (epic T-317, decision D-91). A clide-owned canvas (CustomPaint) that renders from a JSON document: a PRIMITIVE scene-graph layer (rect/line/text/glyph/image at coordinates) plus a TEMPLATE-dispatch layer that maps a named component in the JSON to a predefined renderer. Templates lower onto the same primitive scene (hybrid model). Per drawn object, an optional label + description widget renders beneath it, only when those fields are present in the JSON. Display-only (D-78) — no inline selection. Driven via the clide CLI (D-6 parity), consuming the JSON input plumbing (T-315 / --file); mirror image.show''s Flutter-free handler + MessageBus publish + Claude-extension injection pattern. THIS ticket = the engine, the JSON schema, the primitive renderer, the dispatch mechanism, and the shared per-object label/description widget. Individual templates (image, icon, compare, svg, graph) are separate children. Acceptance: a JSON doc with raw primitives draws; a JSON doc naming a template dispatches to it; an object with label/description renders the caption widget; unknown template/primitive fails with a clear userError.
+
+SCHEMA DRAFTED (2026-06-28): docs/design/drawing-card-schema.md — declarative JSON scene-graph (document envelope, primitive types rect/line/text/glyph/image, template envelope, shared label/description, arbitrary-hex color, CLI ''clide draw --file'', error contract). Refined from the T-317 wireframe set.
+
+MODEL CLARIFICATION (user): we build clide''s OWN native Flutter CustomPaint interpreting a declarative scene-graph document. We do NOT port the HTML Canvas 2D API — ''HTML canvas'' in D-91 is only the mental model (a general drawing surface, chosen to reject Obsidian''s .canvas schema), not an API to implement. The declarative model is closer to SVG/a retained scene-graph than to canvas''s imperative 2D context.
+
+RESCOPED (D-103, 2026-06-28): the primitive layer is now SVG and the SVG renderer (T-320) is the engine — so T-318 is NO LONGER a primitive renderer. T-318 = the document envelope ({template? | svg/svgPath}, card metadata), the template DISPATCH, and the clide FLUTTER OVERLAY: per-object label/description caption widgets + lightbox affordance, anchored to SVG elements via data-label / data-description / data-lightbox. Now blocked by T-320 (engine first). Schema: docs/design/drawing-card-schema.md.', 'Foundational build for the unified drawing card (epic T-317, decision D-91). A clide-owned canvas (CustomPaint) that renders from a JSON document: a PRIMITIVE scene-graph layer (rect/line/text/glyph/image at coordinates) plus a TEMPLATE-dispatch layer that maps a named component in the JSON to a predefined renderer. Templates lower onto the same primitive scene (hybrid model). Per drawn object, an optional label + description widget renders beneath it, only when those fields are present in the JSON. Display-only (D-78) — no inline selection. Driven via the clide CLI (D-6 parity), consuming the JSON input plumbing (T-315 / --file); mirror image.show''s Flutter-free handler + MessageBus publish + Claude-extension injection pattern. THIS ticket = the engine, the JSON schema, the primitive renderer, the dispatch mechanism, and the shared per-object label/description widget. Individual templates (image, icon, compare, svg, graph) are separate children. Acceptance: a JSON doc with raw primitives draws; a JSON doc naming a template dispatches to it; an object with label/description renders the caption widget; unknown template/primitive fails with a clear userError.
+
+SCHEMA DRAFTED (2026-06-28): docs/design/drawing-card-schema.md — declarative JSON scene-graph (document envelope, primitive types rect/line/text/glyph/image, template envelope, shared label/description, arbitrary-hex color, CLI ''clide draw --file'', error contract). Refined from the T-317 wireframe set.
+
+MODEL CLARIFICATION (user): we build clide''s OWN native Flutter CustomPaint interpreting a declarative scene-graph document. We do NOT port the HTML Canvas 2D API — ''HTML canvas'' in D-91 is only the mental model (a general drawing surface, chosen to reject Obsidian''s .canvas schema), not an API to implement. The declarative model is closer to SVG/a retained scene-graph than to canvas''s imperative 2D context.
+
+RESCOPED (D-103, 2026-06-28): the primitive layer is now SVG and the SVG renderer (T-320) is the engine — so T-318 is NO LONGER a primitive renderer. T-318 = the document envelope ({template? | svg/svgPath}, card metadata), the template DISPATCH, and the clide FLUTTER OVERLAY: per-object label/description caption widgets + lightbox affordance, anchored to SVG elements via data-label / data-description / data-lightbox. Now blocked by T-320 (engine first). Schema: docs/design/drawing-card-schema.md.
+
+PROGRESS (2026-06-28): drawing-card core built bottom-up + tested (24 cases across dart/flutter test): DrawingCardDoc envelope + parser (lib/src/draw/draw_doc.dart); template dispatch (draw_dispatch.dart — resolveDrawingSvg + DrawingRegistry, primitive svg/svgPath now, handlers for d2/icon/compare/image plug in); DrawingCard widget (lib/widgets/src/draw/ — SvgView + themed caption, display-only); and the  CLI command (draw_commands.dart — reads+parses the doc, lowers to SVG, publishes {svg,label,description} on the ''draw'' MessageBus channel). REMAINING: (1) the Claude-extension subscriber that consumes the ''draw'' channel → buildSvgDocument(svg) → injects a DrawingCard message into the primary session (mirror image.show''s consumer); (2) per-object data-* overlay (captions/lightbox anchored to SVG elements) — advanced follow-on.', NULL, '2026-06-28 19:55:46', '2026-06-28 19:55:46.447', '2026-06-28 19:55:46.447', NULL, 'fafd204788bf066ba870004c0d954a2a', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZK6PWBRBK9J2XPJ55Y3630', 'description', NULL, '## Initiative: Add Vibe CLI Support to clide
+
+**Goal:** Enable per-repo selection of Vibe CLI as an alternative to Claude Code CLI, leveraging Vibe CLI''s ~95% feature parity (stdio, permissions, sessions, MCP).
+
+**Architecture:** Thin abstraction layer (`LLMDriver` interface) with `ClaudeDriver` (existing) and `VibeDriver` (new). Default remains `claude`.
+
+**Constraints:**
+- Claude is primary; Vibe CLI is opt-in
+- Zero regression in Claude flow
+- Per-repo setting via `.clide/config.yaml`:
+  ```yaml
+  llm:
+    driver: claude | mistral
+    # mistral-specific:
+    model: mistral-large | codestral
+    local: true | false
+  ```
+
+**Success Metrics:**
+- Vibe CLI works end-to-end: spawn, stream, permissions, tools, session resume
+- `make test` passes with both drivers
+- No performance regression in Claude flow
+- Migration effort: 1-2 weeks
+
+**Dependencies:**
+- Vibe CLI installed on system
+- pql improvements for hybrid workflow (separate ticket)
+
+**Risk Mitigation:**
+- Feature-flagged: `llm.driver` defaults to `claude`
+- Abstract spawn logic: easy to swap drivers
+- Test both drivers in CI
+', NULL, '2026-06-28 19:56:06', '2026-06-28 19:56:06.747', '2026-06-28 19:56:06.747', NULL, 'c538a085b174c876c998006bbc62bdad', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'description', NULL, '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.551', '2026-06-28 19:58:30.551', NULL, 'd7fd9f78bc029bb9de8478b991fe0901', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'description', NULL, '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.559', '2026-06-28 19:58:30.559', NULL, '4460927918d2f52a24e4abef901ce171', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'description', NULL, '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.561', '2026-06-28 19:58:30.561', NULL, '1ef811039640e88a58d46b79e0b98d0b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'description', NULL, '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, '4388fdebff8e170e0589f3dc2d8d0a2b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'description', NULL, '## Epic D: Verify Vibe CLI permission + tool behavior matches Claude
+
+**Goal:** Verify that Vibe CLI''s permission prompts and tool execution match Claude''s behavior, or adapt clide''s handling accordingly.
+
+**Tasks:**
+1. Test permission prompts:
+   - `can_use_tool` for Write, Bash, Read
+   - `AskUserQuestion` flow
+   - Deny/allow handling
+2. Test tool execution:
+   - Native tools (Bash, Read, Write)
+   - MCP tools
+   - Tool result parsing
+3. Document differences:
+   - Any Vibe CLI-specific behaviors
+   - Required clide adaptations
+4. Update `ToolPrompt` UI:
+   - Handle any Vibe CLI-specific prompt formats
+
+**Acceptance:**
+- Permission prompts work identically to Claude
+- Tool execution results parse correctly
+- Differences documented and handled
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, 'b4d079ea3f2415440393e05b69cdad8e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'description', NULL, '## Epic E: Hybrid LLM test suite + regression checks
+
+**Goal:** Create comprehensive test suite for hybrid LLM operation.
+
+**Tasks:**
+1. Unit tests:
+   - `LLMDriver` interface mocks
+   - `VibeDriver` spawn and communication
+2. Integration tests:
+   - Real Vibe CLI in test harness
+   - Permission prompt round-trip
+   - Session resume flow
+3. Regression tests:
+   - Claude flow unchanged (run full test suite with both drivers)
+   - Performance: no overhead when using Claude
+4. CI integration:
+   - Test both drivers in CI (Vibe CLI optional, skip if not installed)
+   - Document setup for Vibe CLI testing
+
+**Acceptance:**
+- All tests pass with both drivers
+- CI validates both code paths
+- Performance baseline established
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.563', '2026-06-28 19:58:30.563', NULL, 'c1a3467c9be21b5b1d57ef7873a8f678', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'description', NULL, '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.551', '2026-06-28 19:58:30.551', NULL, 'd7fd9f78bc029bb9de8478b991fe0901', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'description', NULL, '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.559', '2026-06-28 19:58:30.559', NULL, '4460927918d2f52a24e4abef901ce171', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'description', NULL, '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.561', '2026-06-28 19:58:30.561', NULL, '1ef811039640e88a58d46b79e0b98d0b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'description', NULL, '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, '4388fdebff8e170e0589f3dc2d8d0a2b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'description', NULL, '## Epic D: Verify Vibe CLI permission + tool behavior matches Claude
+
+**Goal:** Verify that Vibe CLI''s permission prompts and tool execution match Claude''s behavior, or adapt clide''s handling accordingly.
+
+**Tasks:**
+1. Test permission prompts:
+   - `can_use_tool` for Write, Bash, Read
+   - `AskUserQuestion` flow
+   - Deny/allow handling
+2. Test tool execution:
+   - Native tools (Bash, Read, Write)
+   - MCP tools
+   - Tool result parsing
+3. Document differences:
+   - Any Vibe CLI-specific behaviors
+   - Required clide adaptations
+4. Update `ToolPrompt` UI:
+   - Handle any Vibe CLI-specific prompt formats
+
+**Acceptance:**
+- Permission prompts work identically to Claude
+- Tool execution results parse correctly
+- Differences documented and handled
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, 'b4d079ea3f2415440393e05b69cdad8e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'description', NULL, '## Epic E: Hybrid LLM test suite + regression checks
+
+**Goal:** Create comprehensive test suite for hybrid LLM operation.
+
+**Tasks:**
+1. Unit tests:
+   - `LLMDriver` interface mocks
+   - `VibeDriver` spawn and communication
+2. Integration tests:
+   - Real Vibe CLI in test harness
+   - Permission prompt round-trip
+   - Session resume flow
+3. Regression tests:
+   - Claude flow unchanged (run full test suite with both drivers)
+   - Performance: no overhead when using Claude
+4. CI integration:
+   - Test both drivers in CI (Vibe CLI optional, skip if not installed)
+   - Document setup for Vibe CLI testing
+
+**Acceptance:**
+- All tests pass with both drivers
+- CI validates both code paths
+- Performance baseline established
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.563', '2026-06-28 19:58:30.563', NULL, 'c1a3467c9be21b5b1d57ef7873a8f678', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'description', NULL, '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.551', '2026-06-28 19:58:30.551', NULL, 'd7fd9f78bc029bb9de8478b991fe0901', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'description', NULL, '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.559', '2026-06-28 19:58:30.559', NULL, '4460927918d2f52a24e4abef901ce171', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'description', NULL, '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.561', '2026-06-28 19:58:30.561', NULL, '1ef811039640e88a58d46b79e0b98d0b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'description', NULL, '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.551', '2026-06-28 19:58:30.551', NULL, 'd7fd9f78bc029bb9de8478b991fe0901', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'description', NULL, '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, '4388fdebff8e170e0589f3dc2d8d0a2b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'description', NULL, '## Epic D: Verify Vibe CLI permission + tool behavior matches Claude
+
+**Goal:** Verify that Vibe CLI''s permission prompts and tool execution match Claude''s behavior, or adapt clide''s handling accordingly.
+
+**Tasks:**
+1. Test permission prompts:
+   - `can_use_tool` for Write, Bash, Read
+   - `AskUserQuestion` flow
+   - Deny/allow handling
+2. Test tool execution:
+   - Native tools (Bash, Read, Write)
+   - MCP tools
+   - Tool result parsing
+3. Document differences:
+   - Any Vibe CLI-specific behaviors
+   - Required clide adaptations
+4. Update `ToolPrompt` UI:
+   - Handle any Vibe CLI-specific prompt formats
+
+**Acceptance:**
+- Permission prompts work identically to Claude
+- Tool execution results parse correctly
+- Differences documented and handled
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, 'b4d079ea3f2415440393e05b69cdad8e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'description', NULL, '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.559', '2026-06-28 19:58:30.559', NULL, '4460927918d2f52a24e4abef901ce171', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'description', NULL, '## Epic E: Hybrid LLM test suite + regression checks
+
+**Goal:** Create comprehensive test suite for hybrid LLM operation.
+
+**Tasks:**
+1. Unit tests:
+   - `LLMDriver` interface mocks
+   - `VibeDriver` spawn and communication
+2. Integration tests:
+   - Real Vibe CLI in test harness
+   - Permission prompt round-trip
+   - Session resume flow
+3. Regression tests:
+   - Claude flow unchanged (run full test suite with both drivers)
+   - Performance: no overhead when using Claude
+4. CI integration:
+   - Test both drivers in CI (Vibe CLI optional, skip if not installed)
+   - Document setup for Vibe CLI testing
+
+**Acceptance:**
+- All tests pass with both drivers
+- CI validates both code paths
+- Performance baseline established
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.563', '2026-06-28 19:58:30.563', NULL, 'c1a3467c9be21b5b1d57ef7873a8f678', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'description', NULL, '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.561', '2026-06-28 19:58:30.561', NULL, '1ef811039640e88a58d46b79e0b98d0b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'description', NULL, '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, '4388fdebff8e170e0589f3dc2d8d0a2b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'description', NULL, '## Epic D: Verify Vibe CLI permission + tool behavior matches Claude
+
+**Goal:** Verify that Vibe CLI''s permission prompts and tool execution match Claude''s behavior, or adapt clide''s handling accordingly.
+
+**Tasks:**
+1. Test permission prompts:
+   - `can_use_tool` for Write, Bash, Read
+   - `AskUserQuestion` flow
+   - Deny/allow handling
+2. Test tool execution:
+   - Native tools (Bash, Read, Write)
+   - MCP tools
+   - Tool result parsing
+3. Document differences:
+   - Any Vibe CLI-specific behaviors
+   - Required clide adaptations
+4. Update `ToolPrompt` UI:
+   - Handle any Vibe CLI-specific prompt formats
+
+**Acceptance:**
+- Permission prompts work identically to Claude
+- Tool execution results parse correctly
+- Differences documented and handled
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.562', '2026-06-28 19:58:30.562', NULL, 'b4d079ea3f2415440393e05b69cdad8e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'description', NULL, '## Epic E: Hybrid LLM test suite + regression checks
+
+**Goal:** Create comprehensive test suite for hybrid LLM operation.
+
+**Tasks:**
+1. Unit tests:
+   - `LLMDriver` interface mocks
+   - `VibeDriver` spawn and communication
+2. Integration tests:
+   - Real Vibe CLI in test harness
+   - Permission prompt round-trip
+   - Session resume flow
+3. Regression tests:
+   - Claude flow unchanged (run full test suite with both drivers)
+   - Performance: no overhead when using Claude
+4. CI integration:
+   - Test both drivers in CI (Vibe CLI optional, skip if not installed)
+   - Document setup for Vibe CLI testing
+
+**Acceptance:**
+- All tests pass with both drivers
+- CI validates both code paths
+- Performance baseline established
+', NULL, '2026-06-28 19:58:30', '2026-06-28 19:58:30.563', '2026-06-28 19:58:30.563', NULL, 'c1a3467c9be21b5b1d57ef7873a8f678', 2) ON CONFLICT(hash) DO NOTHING;

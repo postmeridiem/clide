@@ -10049,3 +10049,557 @@ MODEL CLARIFICATION (user): we build clide''s OWN native Flutter CustomPaint int
 
 RESCOPED (D-103, 2026-06-28): the primitive layer is now SVG and the SVG renderer (T-320) is the engine — so T-318 is NO LONGER a primitive renderer. T-318 = the document envelope ({template? | svg/svgPath}, card metadata), the template DISPATCH, and the clide FLUTTER OVERLAY: per-object label/description caption widgets + lightbox affordance, anchored to SVG elements via data-label / data-description / data-lightbox. Now blocked by T-320 (engine first). Schema: docs/design/drawing-card-schema.md.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 11:11:40', '2026-06-28 19:36:13.943', NULL, '9cb51abdf14d5fc47d0bf25d75e79a68', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
 INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZK6PWBRBK9J2XPJ55Y3630', 'initiative', NULL, 'Add Vibe CLI support to clide as opt-in alternative LLM', NULL, 'backlog', 'high', NULL, NULL, 'D-105', '2026-06-28 19:55:10.434', '2026-06-28 19:55:10.434', NULL, '280dbe8eed154885c65dc0ddd2f48f53', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ERREMEEF26KKHGNZBWW64', 'story', '06FB2EDCBYRBDSV9V1PJ1KE3CM', 'Drawing card core: canvas engine + JSON schema + template dispatch', 'Foundational build for the unified drawing card (epic T-317, decision D-91). A clide-owned canvas (CustomPaint) that renders from a JSON document: a PRIMITIVE scene-graph layer (rect/line/text/glyph/image at coordinates) plus a TEMPLATE-dispatch layer that maps a named component in the JSON to a predefined renderer. Templates lower onto the same primitive scene (hybrid model). Per drawn object, an optional label + description widget renders beneath it, only when those fields are present in the JSON. Display-only (D-78) — no inline selection. Driven via the clide CLI (D-6 parity), consuming the JSON input plumbing (T-315 / --file); mirror image.show''s Flutter-free handler + MessageBus publish + Claude-extension injection pattern. THIS ticket = the engine, the JSON schema, the primitive renderer, the dispatch mechanism, and the shared per-object label/description widget. Individual templates (image, icon, compare, svg, graph) are separate children. Acceptance: a JSON doc with raw primitives draws; a JSON doc naming a template dispatches to it; an object with label/description renders the caption widget; unknown template/primitive fails with a clear userError.
+
+SCHEMA DRAFTED (2026-06-28): docs/design/drawing-card-schema.md — declarative JSON scene-graph (document envelope, primitive types rect/line/text/glyph/image, template envelope, shared label/description, arbitrary-hex color, CLI ''clide draw --file'', error contract). Refined from the T-317 wireframe set.
+
+MODEL CLARIFICATION (user): we build clide''s OWN native Flutter CustomPaint interpreting a declarative scene-graph document. We do NOT port the HTML Canvas 2D API — ''HTML canvas'' in D-91 is only the mental model (a general drawing surface, chosen to reject Obsidian''s .canvas schema), not an API to implement. The declarative model is closer to SVG/a retained scene-graph than to canvas''s imperative 2D context.
+
+RESCOPED (D-103, 2026-06-28): the primitive layer is now SVG and the SVG renderer (T-320) is the engine — so T-318 is NO LONGER a primitive renderer. T-318 = the document envelope ({template? | svg/svgPath}, card metadata), the template DISPATCH, and the clide FLUTTER OVERLAY: per-object label/description caption widgets + lightbox affordance, anchored to SVG elements via data-label / data-description / data-lightbox. Now blocked by T-320 (engine first). Schema: docs/design/drawing-card-schema.md.
+
+PROGRESS (2026-06-28): drawing-card core built bottom-up + tested (24 cases across dart/flutter test): DrawingCardDoc envelope + parser (lib/src/draw/draw_doc.dart); template dispatch (draw_dispatch.dart — resolveDrawingSvg + DrawingRegistry, primitive svg/svgPath now, handlers for d2/icon/compare/image plug in); DrawingCard widget (lib/widgets/src/draw/ — SvgView + themed caption, display-only); and the  CLI command (draw_commands.dart — reads+parses the doc, lowers to SVG, publishes {svg,label,description} on the ''draw'' MessageBus channel). REMAINING: (1) the Claude-extension subscriber that consumes the ''draw'' channel → buildSvgDocument(svg) → injects a DrawingCard message into the primary session (mirror image.show''s consumer); (2) per-object data-* overlay (captions/lightbox anchored to SVG elements) — advanced follow-on.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-10 11:11:40', '2026-06-28 19:55:46.447', NULL, '54007d3342ccbb6d3a70167459a055ac', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZK6PWBRBK9J2XPJ55Y3630', 'initiative', NULL, 'Add Vibe CLI support to clide as opt-in alternative LLM', '## Initiative: Add Vibe CLI Support to clide
+
+**Goal:** Enable per-repo selection of Vibe CLI as an alternative to Claude Code CLI, leveraging Vibe CLI''s ~95% feature parity (stdio, permissions, sessions, MCP).
+
+**Architecture:** Thin abstraction layer (`LLMDriver` interface) with `ClaudeDriver` (existing) and `VibeDriver` (new). Default remains `claude`.
+
+**Constraints:**
+- Claude is primary; Vibe CLI is opt-in
+- Zero regression in Claude flow
+- Per-repo setting via `.clide/config.yaml`:
+  ```yaml
+  llm:
+    driver: claude | mistral
+    # mistral-specific:
+    model: mistral-large | codestral
+    local: true | false
+  ```
+
+**Success Metrics:**
+- Vibe CLI works end-to-end: spawn, stream, permissions, tools, session resume
+- `make test` passes with both drivers
+- No performance regression in Claude flow
+- Migration effort: 1-2 weeks
+
+**Dependencies:**
+- Vibe CLI installed on system
+- pql improvements for hybrid workflow (separate ticket)
+
+**Risk Mitigation:**
+- Feature-flagged: `llm.driver` defaults to `claude`
+- Abstract spawn logic: easy to swap drivers
+- Test both drivers in CI
+', 'backlog', 'high', NULL, NULL, 'D-105', '2026-06-28 19:55:10.434', '2026-06-28 19:56:06.747', NULL, 'c428111e99c045a2739830b8eebc88d1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic A: LLMDriver abstraction + per-repo config schema', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.646', '2026-06-28 19:56:14.646', NULL, '50613063e26392812f1db39ea19d9f8a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic A: LLMDriver abstraction + per-repo config schema', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.646', '2026-06-28 19:56:14.646', NULL, '50613063e26392812f1db39ea19d9f8a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:56:14.654', NULL, '74b24b34a56c5d1544b17ed5c80f2ef1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic A: LLMDriver abstraction + per-repo config schema', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.646', '2026-06-28 19:56:14.646', NULL, '50613063e26392812f1db39ea19d9f8a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:56:14.654', NULL, '74b24b34a56c5d1544b17ed5c80f2ef1', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic C: Update config system for per-repo LLM selection', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.655', '2026-06-28 19:56:14.655', NULL, '6281ab389171c586b86a7c03bed1503d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic D: Verify Vibe CLI permission + tool behavior matches Claude', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:47.968', '2026-06-28 19:56:47.968', NULL, '8e465460b22fb1d5cd8c54e214fa3b23', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic D: Verify Vibe CLI permission + tool behavior matches Claude', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:47.968', '2026-06-28 19:56:47.968', NULL, '8e465460b22fb1d5cd8c54e214fa3b23', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic E: Hybrid LLM test suite + regression checks', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.977', '2026-06-28 19:56:47.977', NULL, 'c3051b6c054a65e532fd864161a4eb1b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic D: Verify Vibe CLI permission + tool behavior matches Claude', NULL, 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:47.968', '2026-06-28 19:56:47.968', NULL, '8e465460b22fb1d5cd8c54e214fa3b23', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic E: Hybrid LLM test suite + regression checks', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.977', '2026-06-28 19:56:47.977', NULL, 'c3051b6c054a65e532fd864161a4eb1b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'task', '06FGZK6PWBRBK9J2XPJ55Y3630', 'pql improvements for hybrid agent workflow', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.978', '2026-06-28 19:56:47.978', NULL, 'bffa54644e305a37b764ed86af241b82', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:58:30.551', NULL, '7b5b103ee507563bdbbb2e92cebbd6ab', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:58:30.551', NULL, '7b5b103ee507563bdbbb2e92cebbd6ab', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'task', '06FGZK6PWBRBK9J2XPJ55Y3630', 'pql improvements for hybrid agent workflow', '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.978', '2026-06-28 19:58:30.559', NULL, '132aa1587d5d96db751aa30a1a38e189', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:58:30.551', NULL, '7b5b103ee507563bdbbb2e92cebbd6ab', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'task', '06FGZK6PWBRBK9J2XPJ55Y3630', 'pql improvements for hybrid agent workflow', '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.978', '2026-06-28 19:58:30.559', NULL, '132aa1587d5d96db751aa30a1a38e189', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic C: Update config system for per-repo LLM selection', '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.655', '2026-06-28 19:58:30.560', NULL, '43a2622dc0506e10615be4cf3b1773e3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic A: LLMDriver abstraction + per-repo config schema', '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.646', '2026-06-28 19:58:30.562', NULL, 'edb207729cfbb8228bc8bb87558be5b4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:58:30.551', NULL, '7b5b103ee507563bdbbb2e92cebbd6ab', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'task', '06FGZK6PWBRBK9J2XPJ55Y3630', 'pql improvements for hybrid agent workflow', '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.978', '2026-06-28 19:58:30.559', NULL, '132aa1587d5d96db751aa30a1a38e189', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic C: Update config system for per-repo LLM selection', '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.655', '2026-06-28 19:58:30.560', NULL, '43a2622dc0506e10615be4cf3b1773e3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:58:30.551', NULL, '7b5b103ee507563bdbbb2e92cebbd6ab', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'task', '06FGZK6PWBRBK9J2XPJ55Y3630', 'pql improvements for hybrid agent workflow', '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.978', '2026-06-28 19:58:30.559', NULL, '132aa1587d5d96db751aa30a1a38e189', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic C: Update config system for per-repo LLM selection', '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.655', '2026-06-28 19:58:30.560', NULL, '43a2622dc0506e10615be4cf3b1773e3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic D: Verify Vibe CLI permission + tool behavior matches Claude', '## Epic D: Verify Vibe CLI permission + tool behavior matches Claude
+
+**Goal:** Verify that Vibe CLI''s permission prompts and tool execution match Claude''s behavior, or adapt clide''s handling accordingly.
+
+**Tasks:**
+1. Test permission prompts:
+   - `can_use_tool` for Write, Bash, Read
+   - `AskUserQuestion` flow
+   - Deny/allow handling
+2. Test tool execution:
+   - Native tools (Bash, Read, Write)
+   - MCP tools
+   - Tool result parsing
+3. Document differences:
+   - Any Vibe CLI-specific behaviors
+   - Required clide adaptations
+4. Update `ToolPrompt` UI:
+   - Handle any Vibe CLI-specific prompt formats
+
+**Acceptance:**
+- Permission prompts work identically to Claude
+- Tool execution results parse correctly
+- Differences documented and handled
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:47.968', '2026-06-28 19:58:30.562', NULL, 'd0c888b65882e045fe58946acbbab369', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic A: LLMDriver abstraction + per-repo config schema', '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.646', '2026-06-28 19:58:30.562', NULL, 'edb207729cfbb8228bc8bb87558be5b4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPSSHEG6ZBM0B4DMM6C', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic B: Adapt StreamJsonProcess + session management for Vibe CLI', '## Epic B: Adapt StreamJsonProcess + session management for Vibe CLI
+
+**Goal:** Adapt clide''s core LLM integration to support Vibe CLI.
+
+**Tasks:**
+1. Refactor `ClaudeStreamJsonProcess.start()`:
+   - Accept `LLMDriver` instead of hardcoded `claude`
+   - Spawn `vibe` with appropriate flags
+2. Adapt `StreamJsonSession`:
+   - Handle Vibe CLI''s JSONL event format
+   - Map Vibe CLI event types to clide''s internal model
+3. Update session persistence:
+   - Session path: `~/.vibe/sessions/` vs `~/.claude/projects/`
+   - Resume logic: `--resume <session-id>`
+4. Update `TranscriptReader`:
+   - Parse Vibe CLI''s JSONL format (minor differences)
+   - Handle Vibe CLI-specific metadata
+
+**Acceptance:**
+- Vibe CLI sessions spawn, stream, and persist correctly
+- All control requests (permissions, AskUserQuestion) work
+- Session resume restores conversation correctly
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.654', '2026-06-28 19:58:30.551', NULL, '7b5b103ee507563bdbbb2e92cebbd6ab', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW9P697RTQ68R3NKBR8', 'task', '06FGZK6PWBRBK9J2XPJ55Y3630', 'pql improvements for hybrid agent workflow', '## pql improvements for hybrid agent workflow
+
+**Context:** From online-mistral-analysis.md evaluation, the pql workflow works well but could be enhanced for agent interop.
+
+**Goal:** Improve pql to better support hybrid LLM agent workflows (Claude + Mistral Vibe).
+
+**Tasks:**
+1. Add `--jsonl` output option for cleaner agent parsing
+   - Current `--pretty` embeds newlines in descriptions
+   - `--jsonl` = one JSON object per line, no embedded newlines
+2. Circular blocker detection
+   - `pql ticket show <id> --with-blockers` should warn on circular dependencies
+3. Agent quick-start command
+   - `pql quickstart` outputs 5-command onboarding for new agent
+4. Skill metadata for Vibe
+   - `pql skill show --vibe` outputs skill content optimized for Mistral Vibe
+   - Strip frontmatter, adjust headings for AGENTS.md integration
+
+**Acceptance:**
+- Agents parse pql output more cleanly
+- Circular dependencies flagged automatically
+- New agents onboard faster
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.978', '2026-06-28 19:58:30.559', NULL, '132aa1587d5d96db751aa30a1a38e189', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPW9GMXNACA38MK56HR', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic C: Update config system for per-repo LLM selection', '## Epic C: Update config system for per-repo LLM selection
+
+**Goal:** Update clide''s configuration system to support per-repo LLM driver selection.
+
+**Tasks:**
+1. Rename `ClaudeConfig` → `LLMConfig` (keep backward-compat alias)
+2. Add `llm.driver` setting:
+   - Default: `claude`
+   - Options: `claude`, `mistral`
+3. Add mistral-specific settings:
+   - `llm.mistral.model`: model name
+   - `llm.mistral.local`: use local inference
+   - `llm.mistral.path`: path to vibe binary (optional)
+4. Update config UI:
+   - Settings panel: LLM driver dropdown
+   - Per-repo override in project settings
+5. Update config watcher:
+   - Watch `.vibe/` in addition to `.claude/`
+   - Probe Vibe CLI capabilities via `vibe --help`
+
+**Acceptance:**
+- User can switch LLM driver per repo
+- Settings UI reflects current driver
+- Config changes take effect without restart
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.655', '2026-06-28 19:58:30.560', NULL, '43a2622dc0506e10615be4cf3b1773e3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW1721NKWY6XZG3KYB8', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic D: Verify Vibe CLI permission + tool behavior matches Claude', '## Epic D: Verify Vibe CLI permission + tool behavior matches Claude
+
+**Goal:** Verify that Vibe CLI''s permission prompts and tool execution match Claude''s behavior, or adapt clide''s handling accordingly.
+
+**Tasks:**
+1. Test permission prompts:
+   - `can_use_tool` for Write, Bash, Read
+   - `AskUserQuestion` flow
+   - Deny/allow handling
+2. Test tool execution:
+   - Native tools (Bash, Read, Write)
+   - MCP tools
+   - Tool result parsing
+3. Document differences:
+   - Any Vibe CLI-specific behaviors
+   - Required clide adaptations
+4. Update `ToolPrompt` UI:
+   - Handle any Vibe CLI-specific prompt formats
+
+**Acceptance:**
+- Permission prompts work identically to Claude
+- Tool execution results parse correctly
+- Differences documented and handled
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:47.968', '2026-06-28 19:58:30.562', NULL, 'd0c888b65882e045fe58946acbbab369', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKEHPT1TMFMR0KYFGR087W', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic A: LLMDriver abstraction + per-repo config schema', '## Epic A: LLMDriver abstraction + per-repo config schema
+
+**Goal:** Define the abstraction layer and configuration schema.
+
+**Tasks:**
+1. Define `LLMDriver` interface:
+   - `spawn(sessionId)` → Process
+   - `send(message)` → void
+   - `receive()` → Stream<Event>
+   - `capabilities()` → List<String>
+   - `healthCheck()` → bool
+2. Implement `ClaudeDriver` (refactor existing `ClaudeStreamJsonProcess`)
+3. Implement `VibeDriver` (new)
+4. Design per-repo config schema:
+   - `llm.driver` (enum: claude, mistral)
+   - `llm.model` (optional, for mistral)
+   - `llm.local` (optional, bool)
+   - `llm.timeout` (optional, duration)
+5. Update `ClaudeConfig` to become `LLMConfig` (backward-compat)
+
+**Acceptance:**
+- `LLMDriver` interface defined and documented
+- Both drivers implement interface
+- Config schema validated with users
+', 'backlog', 'high', NULL, NULL, NULL, '2026-06-28 19:56:14.646', '2026-06-28 19:58:30.562', NULL, 'edb207729cfbb8228bc8bb87558be5b4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGZKJKW6EDH8TR45M86EWB5M', 'epic', '06FGZK6PWBRBK9J2XPJ55Y3630', 'Epic E: Hybrid LLM test suite + regression checks', '## Epic E: Hybrid LLM test suite + regression checks
+
+**Goal:** Create comprehensive test suite for hybrid LLM operation.
+
+**Tasks:**
+1. Unit tests:
+   - `LLMDriver` interface mocks
+   - `VibeDriver` spawn and communication
+2. Integration tests:
+   - Real Vibe CLI in test harness
+   - Permission prompt round-trip
+   - Session resume flow
+3. Regression tests:
+   - Claude flow unchanged (run full test suite with both drivers)
+   - Performance: no overhead when using Claude
+4. CI integration:
+   - Test both drivers in CI (Vibe CLI optional, skip if not installed)
+   - Document setup for Vibe CLI testing
+
+**Acceptance:**
+- All tests pass with both drivers
+- CI validates both code paths
+- Performance baseline established
+', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 19:56:47.977', '2026-06-28 19:58:30.563', NULL, 'f8afde31947ae623adf0d6fcf226f5a2', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
