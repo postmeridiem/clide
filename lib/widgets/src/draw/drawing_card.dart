@@ -22,11 +22,15 @@ import 'package:clide/src/svg/svg_node.dart';
 import 'package:flutter/widgets.dart';
 
 class DrawingCard extends StatelessWidget {
-  const DrawingCard({super.key, required this.document, this.label, this.description, this.images, this.maxHeight = 360});
+  const DrawingCard({super.key, required this.document, this.label, this.description, this.images, this.onLightbox, this.maxHeight = 360});
 
   final SvgDocument document;
   final String? label, description;
   final SvgImageResolver? images;
+
+  /// Called when a `data-lightbox` element is tapped (the caller opens the
+  /// zoom view). Null ⇒ no lightbox affordance.
+  final VoidCallback? onLightbox;
   final double maxHeight;
 
   @override
@@ -53,8 +57,8 @@ class DrawingCard extends StatelessWidget {
 
   Widget _svgRegion(SurfaceTokens tokens) {
     final view = SvgView(document: document, images: images);
-    final captioned = document.annotations.where((a) => _has(a.label) || _has(a.description)).toList();
-    final content = captioned.isEmpty
+    final anns = document.annotations.where((a) => _has(a.label) || _has(a.description) || (a.lightbox && onLightbox != null)).toList();
+    final content = anns.isEmpty
         ? view
         : Stack(
             fit: StackFit.expand,
@@ -62,9 +66,8 @@ class DrawingCard extends StatelessWidget {
               view,
               LayoutBuilder(
                 builder: (ctx, c) {
-                  final size = Size(c.maxWidth, c.maxHeight);
-                  final vp = svgViewportFit(size, document);
-                  return Stack(children: [for (final a in captioned) _caption(a, vp, tokens)]);
+                  final vp = svgViewportFit(Size(c.maxWidth, c.maxHeight), document);
+                  return Stack(children: [for (final a in anns) ..._overlay(a, vp, tokens)]);
                 },
               ),
             ],
@@ -87,28 +90,43 @@ class DrawingCard extends StatelessWidget {
     );
   }
 
-  /// A per-object caption (data-label / data-description) positioned just below
-  /// the annotated element's pixel bbox. Display-only (IgnorePointer).
-  Widget _caption(SvgAnnotation a, SvgViewport vp, SurfaceTokens tokens) {
+  /// The per-object overlay for one annotation: a lightbox tap target over the
+  /// element (when `data-lightbox` and [onLightbox] are set) plus a display-only
+  /// caption (data-label / data-description) just below its pixel bbox.
+  List<Widget> _overlay(SvgAnnotation a, SvgViewport vp, SurfaceTokens tokens) {
     final tl = vp.toPixel(a.x, a.y);
     final br = vp.toPixel(a.x + a.width, a.y + a.height);
     final w = (br.dx - tl.dx).abs();
     final h = (br.dy - tl.dy).abs();
-    return Positioned(
-      left: tl.dx,
-      top: tl.dy + h + 2,
-      width: w < 48 ? 48.0 : w,
-      child: IgnorePointer(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_has(a.label)) ClideText(a.label!, fontSize: clideFontCaption, fontWeight: FontWeight.w600, color: tokens.globalForeground, maxLines: 2),
-            if (_has(a.description)) ClideText(a.description!, fontSize: clideFontCaption, color: tokens.globalTextMuted, maxLines: 3),
-          ],
+    return [
+      if (a.lightbox && onLightbox != null)
+        Positioned(
+          left: tl.dx,
+          top: tl.dy,
+          width: w,
+          height: h,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onLightbox),
+          ),
         ),
-      ),
-    );
+      if (_has(a.label) || _has(a.description))
+        Positioned(
+          left: tl.dx,
+          top: tl.dy + h + 2,
+          width: w < 48 ? 48.0 : w,
+          child: IgnorePointer(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_has(a.label)) ClideText(a.label!, fontSize: clideFontCaption, fontWeight: FontWeight.w600, color: tokens.globalForeground, maxLines: 2),
+                if (_has(a.description)) ClideText(a.description!, fontSize: clideFontCaption, color: tokens.globalTextMuted, maxLines: 3),
+              ],
+            ),
+          ),
+        ),
+    ];
   }
 
   static double? _aspect(SvgDocument d) {

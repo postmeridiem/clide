@@ -43,4 +43,21 @@ void main() {
     expect(find.text('Node A'), findsOneWidget);
     expect(find.text('the entry point'), findsOneWidget);
   });
+
+  testWidgets('a data-lightbox element fires onLightbox when tapped (T-318)', (tester) async {
+    var tapped = false;
+    final doc = buildSvgDocument('<svg viewBox="0 0 100 50"><rect x="0" y="0" width="100" height="50" data-lightbox=""/></svg>');
+    await tester.pumpWidget(
+      anchoredHarness(
+        f,
+        SizedBox(
+          width: 400,
+          child: DrawingCard(document: doc, onLightbox: () => tapped = true),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byType(DrawingCard));
+    expect(tapped, isTrue);
+  });
 }

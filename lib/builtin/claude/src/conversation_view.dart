@@ -24,6 +24,7 @@ import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/src/svg/svg_document.dart' show buildSvgDocument;
 import 'package:clide/widgets/src/draw/drawing_card.dart';
+import 'package:clide/widgets/src/svg/svg_painter.dart' show SvgView;
 import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/kernel/src/facade.dart';
 import 'package:clide/kernel/src/keymap/intents.dart';
@@ -711,10 +712,22 @@ class _ConversationTurn extends StatelessWidget {
   /// CustomPaint engine (D-103), display-only per D-78, with an optional
   /// label/description caption.
   Widget _drawing(BuildContext context, DrawingMessage m) {
+    final doc = buildSvgDocument(m.svg);
     return ConversationCard(
       accent: tokens.globalTextMuted,
       label: ClideSettings.i18n.string(context, 'conversation.label.drawing', namespace: 'builtin.claude', placeholder: 'drawing'),
-      body: DrawingCard(document: buildSvgDocument(m.svg), label: m.label, description: m.description),
+      body: DrawingCard(
+        document: doc,
+        label: m.label,
+        description: m.description,
+        // A data-lightbox element opens the whole drawing, zoomable (T-318).
+        onLightbox: () => ClideKernel.of(context).dialog.show<Object>(
+          (ctx, dismiss) => ClideLightbox(
+            onDismiss: dismiss,
+            child: SvgView(document: doc),
+          ),
+        ),
+      ),
     );
   }
 
