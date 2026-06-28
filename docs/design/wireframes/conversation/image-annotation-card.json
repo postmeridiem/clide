@@ -1,0 +1,71 @@
+{
+  "name": "Image Annotation Flow (T-316)",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 60, "top": 56,
+      "text": "clide image show — annotated image card (T-316, variant a: text metadata)",
+      "fontColor": "#c8d0e0", "fontSize": 14
+    },
+
+    "jsonBox": {
+      "type": "Rectangle",
+      "left": 60, "top": 110, "width": 380, "height": 200,
+      "fillColor": "#14171c", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "j1": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 124, "text": "{", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j2": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 146, "text": "  \"path\": \"docs/shot.png\",", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j3": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 168, "text": "  \"label\": \"HUD v3\",", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j4": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 190, "text": "  \"description\": \"status row cramped\",", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j5": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 212, "text": "  \"caption\": \"before the fix\"", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j6": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 234, "text": "}", "fontColor": "#9aa3b5", "fontSize": 11 },
+
+    "cli": {
+      "type": "Text",
+      "left": 60, "top": 330,
+      "text": "clide image show docs/shot.png --file meta.json",
+      "fontColor": "#c8d8f0", "fontSize": 12
+    },
+    "cliNote": {
+      "type": "Text",
+      "left": 60, "top": 354,
+      "text": "(same payload via --stdin once T-315 lands; --caption form still works)",
+      "fontColor": "#6a7280", "fontSize": 11
+    },
+
+    "card": {
+      "type": "Rectangle",
+      "left": 560, "top": 110, "width": 480, "height": 430,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8]
+    },
+    "cardLabel": { "type": "Text", "parent": "card", "left": 584, "top": 134, "text": "HUD v3", "fontColor": "#e2e8f5", "fontSize": 16 },
+    "cardDesc": { "type": "Text", "parent": "card", "left": 584, "top": 164, "text": "Status row cramped — the clock overlaps the battery at narrow widths.", "fontColor": "#8a93a6", "fontSize": 12 },
+    "cardImage": {
+      "type": "Rectangle",
+      "parent": "card",
+      "left": 584, "top": 200, "width": 432, "height": 250,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "cardImageName": { "type": "Text", "parent": "cardImage", "left": 730, "top": 318, "text": "docs/shot.png", "fontColor": "#6a7280", "fontSize": 12 },
+    "cardCaption": { "type": "Text", "parent": "card", "left": 584, "top": 468, "text": "before the fix", "fontColor": "#8a93a6", "fontSize": 11 },
+
+    "tagLabel": { "type": "Text", "left": 1052, "top": 134, "text": "label", "fontColor": "#c8d8f0", "fontSize": 11 },
+    "tagDesc": { "type": "Text", "left": 1052, "top": 164, "text": "description", "fontColor": "#c8d8f0", "fontSize": 11 },
+    "tagImage": { "type": "Text", "left": 1052, "top": 318, "text": "path", "fontColor": "#c8d8f0", "fontSize": 11 },
+    "tagCaption": { "type": "Text", "left": 1052, "top": 468, "text": "caption", "fontColor": "#c8d8f0", "fontSize": 11 },
+
+    "followup": {
+      "type": "Text",
+      "left": 560, "top": 558,
+      "text": "Variant (b) follow-up: visual markers / numbered callouts painted at {x,y} over the image (CustomPaint).",
+      "fontColor": "#6a7280", "fontSize": 11
+    }
+  },
+  "connectors": {
+    "flow": { "tailId": "jsonBox", "headId": "card", "strokeColor": "#c8d8f0" },
+    "mLabel": { "tailId": "tagLabel", "headId": "cardLabel", "strokeColor": "#3a4250" },
+    "mDesc": { "tailId": "tagDesc", "headId": "cardDesc", "strokeColor": "#3a4250" },
+    "mImage": { "tailId": "tagImage", "headId": "cardImage", "strokeColor": "#3a4250" },
+    "mCaption": { "tailId": "tagCaption", "headId": "cardCaption", "strokeColor": "#3a4250" }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "D2 Diagram Card",
+  "shapes": {
+    "title": { "type": "Text", "left": 60, "top": 40, "text": "clide drawing card — D2 diagram (T-494 · separate type, reuses the SVG widget T-320)", "fontColor": "#c8d0e0", "fontSize": 14 },
+    "subtitle": { "type": "Text", "left": 60, "top": 62, "text": "the rendered diagram leads; the d2 source folds into a collapsed “view d2 source” disclosure (collapser pattern, T-305)", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "card1": { "type": "Rectangle", "left": 60, "top": 100, "width": 460, "height": 302, "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8] },
+    "label1": { "type": "Text", "parent": "card1", "left": 84, "top": 122, "text": "Build pipeline", "fontColor": "#e2e8f5", "fontSize": 16 },
+    "region1": { "type": "Rectangle", "parent": "card1", "left": 84, "top": 154, "width": 412, "height": 180, "fillColor": "#14171c", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "wm1": { "type": "Text", "parent": "region1", "left": 462, "top": 314, "text": "SVG", "fontColor": "#39424f", "fontSize": 11 },
+    "n1": { "type": "Rectangle", "parent": "region1", "left": 108, "top": 232, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n1t": { "type": "Text", "parent": "n1", "left": 124, "top": 241, "text": "fetch", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "n2": { "type": "Rectangle", "parent": "region1", "left": 212, "top": 232, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n2t": { "type": "Text", "parent": "n2", "left": 228, "top": 241, "text": "build", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "n3": { "type": "Rectangle", "parent": "region1", "left": 340, "top": 196, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n3t": { "type": "Text", "parent": "n3", "left": 360, "top": 205, "text": "test", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "n4": { "type": "Rectangle", "parent": "region1", "left": 340, "top": 268, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n4t": { "type": "Text", "parent": "n4", "left": 352, "top": 277, "text": "deploy", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "disc1": { "type": "Rectangle", "parent": "card1", "left": 84, "top": 348, "width": 412, "height": 34, "fillColor": "#181c22", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "chev1": { "type": "Text", "parent": "disc1", "left": 98, "top": 356, "text": "▸", "fontColor": "#8a93a6", "fontSize": 13 },
+    "disc1t": { "type": "Text", "parent": "disc1", "left": 118, "top": 358, "text": "view d2 source", "fontColor": "#8a93a6", "fontSize": 12 },
+    "stateCap1": { "type": "Text", "left": 84, "top": 412, "text": "collapsed — diagram only", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "card2": { "type": "Rectangle", "left": 560, "top": 100, "width": 460, "height": 384, "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8] },
+    "label2": { "type": "Text", "parent": "card2", "left": 584, "top": 122, "text": "Build pipeline", "fontColor": "#e2e8f5", "fontSize": 16 },
+    "region2": { "type": "Rectangle", "parent": "card2", "left": 584, "top": 154, "width": 412, "height": 180, "fillColor": "#14171c", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "wm2": { "type": "Text", "parent": "region2", "left": 962, "top": 314, "text": "SVG", "fontColor": "#39424f", "fontSize": 11 },
+    "m1": { "type": "Rectangle", "parent": "region2", "left": 608, "top": 232, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "m1t": { "type": "Text", "parent": "m1", "left": 624, "top": 241, "text": "fetch", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "m2": { "type": "Rectangle", "parent": "region2", "left": 712, "top": 232, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "m2t": { "type": "Text", "parent": "m2", "left": 728, "top": 241, "text": "build", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "m3": { "type": "Rectangle", "parent": "region2", "left": 840, "top": 196, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "m3t": { "type": "Text", "parent": "m3", "left": 860, "top": 205, "text": "test", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "m4": { "type": "Rectangle", "parent": "region2", "left": 840, "top": 268, "width": 72, "height": 30, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "m4t": { "type": "Text", "parent": "m4", "left": 852, "top": 277, "text": "deploy", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "disc2": { "type": "Rectangle", "parent": "card2", "left": 584, "top": 348, "width": 412, "height": 34, "fillColor": "#181c22", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "chev2": { "type": "Text", "parent": "disc2", "left": 598, "top": 356, "text": "▾", "fontColor": "#c8d0e0", "fontSize": 13 },
+    "disc2t": { "type": "Text", "parent": "disc2", "left": 618, "top": 358, "text": "view d2 source", "fontColor": "#c8d0e0", "fontSize": 12 },
+    "srcBox": { "type": "Rectangle", "parent": "card2", "left": 584, "top": 388, "width": 412, "height": 82, "fillColor": "#14171c", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "sd1": { "type": "Text", "parent": "srcBox", "left": 600, "top": 398, "text": "direction: right", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "sd2": { "type": "Text", "parent": "srcBox", "left": 600, "top": 420, "text": "fetch -> build -> test", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "sd3": { "type": "Text", "parent": "srcBox", "left": 600, "top": 442, "text": "build -> deploy", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "stateCap2": { "type": "Text", "left": 584, "top": 494, "text": "expanded — d2 source revealed", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "expandLab": { "type": "Text", "left": 528, "top": 330, "text": "expand", "fontColor": "#c8d8f0", "fontSize": 10 },
+
+    "foot": { "type": "Text", "left": 60, "top": 520, "text": "D2 → SVG compile in front; renders via the T-320 SVG widget.  clide draw --file pipeline.d2  (type inferred from .d2)", "fontColor": "#6a7280", "fontSize": 11 }
+  },
+  "connectors": {
+    "e1": { "tailId": "n1", "headId": "n2", "strokeColor": "#6a7a98" },
+    "e2": { "tailId": "n2", "headId": "n3", "strokeColor": "#6a7a98" },
+    "e3": { "tailId": "n2", "headId": "n4", "strokeColor": "#6a7a98" },
+    "f1": { "tailId": "m1", "headId": "m2", "strokeColor": "#6a7a98" },
+    "f2": { "tailId": "m2", "headId": "m3", "strokeColor": "#6a7a98" },
+    "f3": { "tailId": "m2", "headId": "m4", "strokeColor": "#6a7a98" },
+    "expand": { "tailId": "disc1", "headId": "disc2", "strokeColor": "#3a4250" }
+  }
+}

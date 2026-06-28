@@ -1,0 +1,42 @@
+{
+  "name": "SVG Render Card (T-320)",
+  "shapes": {
+    "title": { "type": "Text", "left": 60, "top": 44, "text": "clide drawing card — SVG render (T-320)", "fontColor": "#c8d0e0", "fontSize": 14 },
+    "subtitle": { "type": "Text", "left": 60, "top": 66, "text": "a drawing-card template (T-318 dispatch): renders a vector SVG natively in the conversation pane — separate type from the raster image card", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "srcBox": { "type": "Rectangle", "left": 60, "top": 110, "width": 380, "height": 178, "fillColor": "#14171c", "strokeColor": "#333340", "corners": [6, 6, 6, 6] },
+    "s1": { "type": "Text", "parent": "srcBox", "left": 76, "top": 124, "text": "{", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "s2": { "type": "Text", "parent": "srcBox", "left": 76, "top": 146, "text": "  \"template\": \"svg\",", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "s3": { "type": "Text", "parent": "srcBox", "left": 76, "top": 168, "text": "  \"title\": \"Build pipeline\",", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "s4": { "type": "Text", "parent": "srcBox", "left": 76, "top": 190, "text": "  \"source\": \"<svg>…</svg>\"   // or a .svg path", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "s5": { "type": "Text", "parent": "srcBox", "left": 76, "top": 212, "text": "}", "fontColor": "#9aa3b5", "fontSize": 11 },
+
+    "cli": { "type": "Text", "left": 60, "top": 308, "text": "clide draw --file pipeline.json", "fontColor": "#c8d8f0", "fontSize": 12 },
+    "cliNote": { "type": "Text", "left": 60, "top": 330, "text": "(inline SVG string or a .svg path; clide owns the SVG renderer — vector, no raster rasterise)", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "card": { "type": "Rectangle", "left": 560, "top": 110, "width": 480, "height": 362, "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8] },
+    "cardLabel": { "type": "Text", "parent": "card", "left": 584, "top": 132, "text": "Build pipeline", "fontColor": "#e2e8f5", "fontSize": 16 },
+
+    "region": { "type": "Rectangle", "parent": "card", "left": 584, "top": 168, "width": 432, "height": 248, "fillColor": "#14171c", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "rgWatermark": { "type": "Text", "parent": "region", "left": 968, "top": 392, "text": "SVG", "fontColor": "#39424f", "fontSize": 11 },
+
+    "n1": { "type": "Rectangle", "parent": "region", "left": 612, "top": 214, "width": 96, "height": 40, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n1t": { "type": "Text", "parent": "n1", "left": 636, "top": 226, "text": "fetch", "fontColor": "#c8d0e0", "fontSize": 12 },
+    "n2": { "type": "Rectangle", "parent": "region", "left": 772, "top": 214, "width": 96, "height": 40, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n2t": { "type": "Text", "parent": "n2", "left": 798, "top": 226, "text": "build", "fontColor": "#c8d0e0", "fontSize": 12 },
+    "n3": { "type": "Rectangle", "parent": "region", "left": 772, "top": 320, "width": 96, "height": 40, "fillColor": "#2a3040", "strokeColor": "#6a7a98", "corners": [4, 4, 4, 4] },
+    "n3t": { "type": "Text", "parent": "n3", "left": 802, "top": 332, "text": "test", "fontColor": "#c8d0e0", "fontSize": 12 },
+
+    "caption": { "type": "Text", "parent": "card", "left": 584, "top": 430, "text": "rendered SVG — crisp at any zoom (vector)", "fontColor": "#8a93a6", "fontSize": 11 },
+
+    "tagRender": { "type": "Text", "left": 1058, "top": 286, "text": "in-pane\nSVG widget", "fontColor": "#c8d8f0", "fontSize": 11 },
+
+    "foot": { "type": "Text", "left": 60, "top": 500, "text": "The D2 card (next frame) reuses THIS widget — D2 compiles to SVG, then renders through the same path.", "fontColor": "#6a7280", "fontSize": 11 }
+  },
+  "connectors": {
+    "flow": { "tailId": "srcBox", "headId": "card", "strokeColor": "#c8d8f0" },
+    "e1": { "tailId": "n1", "headId": "n2", "strokeColor": "#6a7a98" },
+    "e2": { "tailId": "n2", "headId": "n3", "strokeColor": "#6a7a98" },
+    "tRender": { "tailId": "tagRender", "headId": "region", "strokeColor": "#3a4250" }
+  }
+}

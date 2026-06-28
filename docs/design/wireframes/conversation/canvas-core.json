@@ -1,0 +1,64 @@
+{
+  "name": "Drawing Card Core (T-318)",
+  "shapes": {
+    "title": { "type": "Text", "left": 60, "top": 38, "text": "clide drawing card — core: canvas engine + JSON schema + template dispatch (T-318)", "fontColor": "#c8d0e0", "fontSize": 14 },
+    "subtitle": { "type": "Text", "left": 60, "top": 60, "text": "the dispatch shell under every card type — a JSON document renders as raw primitives OR via a named template that lowers onto the same primitive scene (hybrid)", "fontColor": "#6a7280", "fontSize": 11 },
+    "cliLine": { "type": "Text", "left": 60, "top": 84, "text": "clide draw --file doc.json   —   Flutter-free handler → MessageBus → Claude-extension injection (mirrors image.show)", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "inputBox": { "type": "Rectangle", "left": 400, "top": 110, "width": 300, "height": 58, "fillColor": "#14171c", "strokeColor": "#333340", "corners": [6, 6, 6, 6] },
+    "inT": { "type": "Text", "parent": "inputBox", "left": 418, "top": 122, "text": "Drawing-card JSON document", "fontColor": "#e2e8f5", "fontSize": 13 },
+    "inT2": { "type": "Text", "parent": "inputBox", "left": 418, "top": 144, "text": "{ \"template\"?: \"…\", \"objects\": [ … ] }", "fontColor": "#9aa3b5", "fontSize": 11 },
+
+    "coreBox": { "type": "Rectangle", "left": 360, "top": 200, "width": 380, "height": 60, "fillColor": "#1a1e24", "strokeColor": "#4a5570", "corners": [8, 8, 8, 8] },
+    "coreT": { "type": "Text", "parent": "coreBox", "left": 384, "top": 212, "text": "Drawing-card core (T-318)", "fontColor": "#e2e8f5", "fontSize": 14 },
+    "coreT2": { "type": "Text", "parent": "coreBox", "left": 384, "top": 234, "text": "JSON schema · primitive renderer · template dispatch", "fontColor": "#8a93a6", "fontSize": 11 },
+
+    "primBox": { "type": "Rectangle", "left": 110, "top": 312, "width": 360, "height": 150, "fillColor": "#161a20", "strokeColor": "#333340", "corners": [8, 8, 8, 8] },
+    "primH": { "type": "Text", "parent": "primBox", "left": 130, "top": 326, "text": "PRIMITIVE scene-graph", "fontColor": "#e2e8f5", "fontSize": 13 },
+    "primS": { "type": "Text", "parent": "primBox", "left": 130, "top": 348, "text": "objects drawn at coordinates", "fontColor": "#8a93a6", "fontSize": 11 },
+    "pc1": { "type": "Rectangle", "parent": "primBox", "left": 130, "top": 376, "width": 56, "height": 24, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "pc1t": { "type": "Text", "parent": "pc1", "left": 144, "top": 382, "text": "rect", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "pc2": { "type": "Rectangle", "parent": "primBox", "left": 194, "top": 376, "width": 56, "height": 24, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "pc2t": { "type": "Text", "parent": "pc2", "left": 208, "top": 382, "text": "line", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "pc3": { "type": "Rectangle", "parent": "primBox", "left": 258, "top": 376, "width": 56, "height": 24, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "pc3t": { "type": "Text", "parent": "pc3", "left": 272, "top": 382, "text": "text", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "pc4": { "type": "Rectangle", "parent": "primBox", "left": 322, "top": 376, "width": 56, "height": 24, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "pc4t": { "type": "Text", "parent": "pc4", "left": 334, "top": 382, "text": "glyph", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "pc5": { "type": "Rectangle", "parent": "primBox", "left": 386, "top": 376, "width": 56, "height": 24, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "pc5t": { "type": "Text", "parent": "pc5", "left": 398, "top": 382, "text": "image", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "primNote": { "type": "Text", "parent": "primBox", "left": 130, "top": 420, "text": "{ \"type\": \"rect\", \"x\":.., \"y\":.., \"w\":.., \"h\":.. }", "fontColor": "#6a7280", "fontSize": 10 },
+
+    "tmplBox": { "type": "Rectangle", "left": 640, "top": 312, "width": 360, "height": 212, "fillColor": "#161a20", "strokeColor": "#333340", "corners": [8, 8, 8, 8] },
+    "tmplH": { "type": "Text", "parent": "tmplBox", "left": 660, "top": 326, "text": "TEMPLATE dispatch", "fontColor": "#e2e8f5", "fontSize": 13 },
+    "tmplS": { "type": "Text", "parent": "tmplBox", "left": 660, "top": 348, "text": "named component → predefined renderer (children)", "fontColor": "#8a93a6", "fontSize": 11 },
+    "tc1": { "type": "Rectangle", "parent": "tmplBox", "left": 660, "top": 374, "width": 150, "height": 26, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "tc1t": { "type": "Text", "parent": "tc1", "left": 674, "top": 381, "text": "image  ·  T-316", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "tc2": { "type": "Rectangle", "parent": "tmplBox", "left": 822, "top": 374, "width": 150, "height": 26, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "tc2t": { "type": "Text", "parent": "tc2", "left": 836, "top": 381, "text": "icon  ·  T-313", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "tc3": { "type": "Rectangle", "parent": "tmplBox", "left": 660, "top": 408, "width": 150, "height": 26, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "tc3t": { "type": "Text", "parent": "tc3", "left": 674, "top": 415, "text": "svg  ·  T-320", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "tc4": { "type": "Rectangle", "parent": "tmplBox", "left": 822, "top": 408, "width": 150, "height": 26, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "tc4t": { "type": "Text", "parent": "tc4", "left": 836, "top": 415, "text": "d2  ·  T-494", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "tc5": { "type": "Rectangle", "parent": "tmplBox", "left": 660, "top": 442, "width": 150, "height": 26, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "tc5t": { "type": "Text", "parent": "tc5", "left": 674, "top": 449, "text": "compare  ·  T-319", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "tc6": { "type": "Rectangle", "parent": "tmplBox", "left": 822, "top": 442, "width": 150, "height": 26, "fillColor": "#2a3040", "strokeColor": "#3a4250", "corners": [4, 4, 4, 4] },
+    "tc6t": { "type": "Text", "parent": "tc6", "left": 836, "top": 449, "text": "graph  ·  T-321", "fontColor": "#c8d0e0", "fontSize": 10 },
+    "tmplNote": { "type": "Text", "parent": "tmplBox", "left": 660, "top": 486, "text": "{ \"template\": \"svg\", \"source\": … }", "fontColor": "#6a7280", "fontSize": 10 },
+
+    "lowerLab": { "type": "Text", "left": 486, "top": 380, "text": "lower onto the", "fontColor": "#c8d8f0", "fontSize": 10 },
+    "lowerLab2": { "type": "Text", "left": 486, "top": 396, "text": "primitive scene (hybrid)", "fontColor": "#c8d8f0", "fontSize": 10 },
+
+    "canvasBox": { "type": "Rectangle", "left": 320, "top": 556, "width": 400, "height": 64, "fillColor": "#1a1e24", "strokeColor": "#4a5570", "corners": [8, 8, 8, 8] },
+    "cvT": { "type": "Text", "parent": "canvasBox", "left": 344, "top": 568, "text": "CustomPaint canvas — in the conversation pane", "fontColor": "#e2e8f5", "fontSize": 12 },
+    "cvT2": { "type": "Text", "parent": "canvasBox", "left": 344, "top": 590, "text": "+ shared per-object label / description widget (only when present)", "fontColor": "#8a93a6", "fontSize": 10 },
+
+    "foot": { "type": "Text", "left": 60, "top": 638, "text": "Display-only (D-78). Unknown template / primitive → clear userError. Templates (image · icon · svg · d2 · compare · graph) are separate children of this engine.", "fontColor": "#6a7280", "fontSize": 11 }
+  },
+  "connectors": {
+    "c1": { "tailId": "inputBox", "headId": "coreBox", "strokeColor": "#c8d8f0" },
+    "c2": { "tailId": "coreBox", "headId": "primBox", "strokeColor": "#6a7a98" },
+    "c3": { "tailId": "coreBox", "headId": "tmplBox", "strokeColor": "#6a7a98" },
+    "c4": { "tailId": "tmplBox", "headId": "primBox", "strokeColor": "#c8d8f0" },
+    "c5": { "tailId": "primBox", "headId": "canvasBox", "strokeColor": "#c8d8f0" }
+  }
+}

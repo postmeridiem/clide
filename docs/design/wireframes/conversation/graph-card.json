@@ -1,0 +1,45 @@
+{
+  "name": "Graph Render Card (T-321)",
+  "shapes": {
+    "title": { "type": "Text", "left": 60, "top": 40, "text": "clide drawing card — graph render (T-321)", "fontColor": "#c8d0e0", "fontSize": 14 },
+    "subtitle": { "type": "Text", "left": 60, "top": 62, "text": "renders a node/edge graph from JSON — embeds clide's native graph subsystem (CustomPaint, D-46 / T-323), not a new renderer", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "jsonBox": { "type": "Rectangle", "left": 60, "top": 110, "width": 400, "height": 196, "fillColor": "#14171c", "strokeColor": "#333340", "corners": [6, 6, 6, 6] },
+    "j1": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 124, "text": "{ \"template\": \"graph\",", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j2": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 146, "text": "  \"nodes\": [\"app\",\"ipc\",\"pty\",\"git\",\"pql\"],", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j3": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 168, "text": "  \"edges\": [[\"app\",\"ipc\"],[\"ipc\",\"pty\"],", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j4": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 190, "text": "            [\"ipc\",\"git\"],[\"git\",\"pql\"],[\"app\",\"git\"]],", "fontColor": "#9aa3b5", "fontSize": 11 },
+    "j5": { "type": "Text", "parent": "jsonBox", "left": 76, "top": 212, "text": "  \"label\": \"subsystem links\" }", "fontColor": "#9aa3b5", "fontSize": 11 },
+
+    "cli": { "type": "Text", "left": 60, "top": 328, "text": "clide draw --file graph.json", "fontColor": "#c8d8f0", "fontSize": 12 },
+    "cliNote": { "type": "Text", "left": 60, "top": 350, "text": "(nodes + edges inline, or a path to a graph file)", "fontColor": "#6a7280", "fontSize": 11 },
+
+    "card": { "type": "Rectangle", "left": 560, "top": 110, "width": 480, "height": 360, "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [8, 8, 8, 8] },
+    "region": { "type": "Rectangle", "parent": "card", "left": 584, "top": 134, "width": 432, "height": 256, "fillColor": "#14171c", "strokeColor": "#2a3040", "corners": [4, 4, 4, 4] },
+    "wm": { "type": "Text", "parent": "region", "left": 980, "top": 372, "text": "graph", "fontColor": "#39424f", "fontSize": 11 },
+
+    "na": { "type": "Ellipse", "parent": "region", "left": 644, "top": 168, "width": 46, "height": 46, "fillColor": "#2a3040", "strokeColor": "#6a7a98" },
+    "nat": { "type": "Text", "parent": "na", "left": 657, "top": 184, "text": "app", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "ni": { "type": "Ellipse", "parent": "region", "left": 766, "top": 206, "width": 46, "height": 46, "fillColor": "#2a3040", "strokeColor": "#6a7a98" },
+    "nit": { "type": "Text", "parent": "ni", "left": 781, "top": 222, "text": "ipc", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "np": { "type": "Ellipse", "parent": "region", "left": 898, "top": 166, "width": 46, "height": 46, "fillColor": "#2a3040", "strokeColor": "#6a7a98" },
+    "npt": { "type": "Text", "parent": "np", "left": 911, "top": 182, "text": "pty", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "ng": { "type": "Ellipse", "parent": "region", "left": 760, "top": 306, "width": 46, "height": 46, "fillColor": "#2a3040", "strokeColor": "#6a7a98" },
+    "ngt": { "type": "Text", "parent": "ng", "left": 773, "top": 322, "text": "git", "fontColor": "#c8d0e0", "fontSize": 11 },
+    "nq": { "type": "Ellipse", "parent": "region", "left": 904, "top": 298, "width": 46, "height": 46, "fillColor": "#2a3040", "strokeColor": "#6a7a98" },
+    "nqt": { "type": "Text", "parent": "nq", "left": 917, "top": 314, "text": "pql", "fontColor": "#c8d0e0", "fontSize": 11 },
+
+    "label": { "type": "Text", "parent": "card", "left": 584, "top": 402, "text": "subsystem links", "fontColor": "#e2e8f5", "fontSize": 14 },
+    "desc": { "type": "Text", "parent": "card", "left": 584, "top": 424, "text": "how the core pieces connect", "fontColor": "#8a93a6", "fontSize": 11 },
+
+    "foot": { "type": "Text", "left": 60, "top": 500, "text": "Embeds clide's native graph subsystem (CustomPaint, D-46 / T-323) — the card hosts it, doesn't fork it. Label + description beneath via T-318. Display-only (D-78).", "fontColor": "#6a7280", "fontSize": 11 }
+  },
+  "connectors": {
+    "flow": { "tailId": "jsonBox", "headId": "card", "strokeColor": "#3a4250" },
+    "ea": { "tailId": "na", "headId": "ni", "strokeColor": "#6a7a98" },
+    "eb": { "tailId": "ni", "headId": "np", "strokeColor": "#6a7a98" },
+    "ec": { "tailId": "ni", "headId": "ng", "strokeColor": "#6a7a98" },
+    "ed": { "tailId": "ng", "headId": "nq", "strokeColor": "#6a7a98" },
+    "ee": { "tailId": "na", "headId": "ng", "strokeColor": "#6a7a98" }
+  }
+}
