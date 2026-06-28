@@ -33,4 +33,14 @@ void main() {
     expect(find.byType(SvgView), findsOneWidget);
     expect(find.text('Build pipeline'), findsNothing);
   });
+
+  testWidgets('renders per-object captions from data-* annotations (T-318)', (tester) async {
+    final doc = buildSvgDocument(
+      '<svg viewBox="0 0 100 50"><rect x="10" y="10" width="40" height="20" data-label="Node A" data-description="the entry point"/></svg>',
+    );
+    await tester.pumpWidget(anchoredHarness(f, SizedBox(width: 400, child: DrawingCard(document: doc))));
+    await tester.pump();
+    expect(find.text('Node A'), findsOneWidget);
+    expect(find.text('the entry point'), findsOneWidget);
+  });
 }

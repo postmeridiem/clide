@@ -42,15 +42,31 @@ class _Ctx {
   final SvgImageResolver? images;
 }
 
-void _applyViewport(ui.Canvas canvas, Size size, SvgDocument doc) {
+/// The fit of [doc]'s viewBox into [size] — a uniform [scale] plus a [dx]/[dy]
+/// offset (xMidYMid meet) and the viewBox origin. Shared by the painter and the
+/// DrawingCard overlay so captions land exactly over the painted content.
+class SvgViewport {
+  const SvgViewport(this.scale, this.dx, this.dy, this.minX, this.minY);
+  final double scale, dx, dy, minX, minY;
+
+  /// Map a viewBox-space point to a pixel offset.
+  Offset toPixel(double x, double y) => Offset(dx + (x - minX) * scale, dy + (y - minY) * scale);
+}
+
+SvgViewport svgViewportFit(Size size, SvgDocument doc) {
   final vb = doc.viewBox;
   final srcW = vb?.width ?? doc.width ?? size.width;
   final srcH = vb?.height ?? doc.height ?? size.height;
-  if (srcW <= 0 || srcH <= 0) return;
+  if (srcW <= 0 || srcH <= 0) return const SvgViewport(1, 0, 0, 0, 0);
   final scale = math.min(size.width / srcW, size.height / srcH);
-  canvas.translate((size.width - srcW * scale) / 2, (size.height - srcH * scale) / 2);
-  canvas.scale(scale);
-  if (vb != null) canvas.translate(-vb.minX, -vb.minY);
+  return SvgViewport(scale, (size.width - srcW * scale) / 2, (size.height - srcH * scale) / 2, vb?.minX ?? 0, vb?.minY ?? 0);
+}
+
+void _applyViewport(ui.Canvas canvas, Size size, SvgDocument doc) {
+  final v = svgViewportFit(size, doc);
+  canvas.translate(v.dx, v.dy);
+  canvas.scale(v.scale);
+  canvas.translate(-v.minX, -v.minY);
 }
 
 void _paintNode(ui.Canvas canvas, SvgNode node, _Ctx ctx) {

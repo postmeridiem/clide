@@ -2,9 +2,11 @@
 ///
 /// Renders an [SvgDocument] — the substrate the SVG engine paints — inside a
 /// framed region, with an optional clide-themed caption (label + description)
-/// beneath it. The SVG is *content* (its own palette); the frame and caption
-/// are clide *chrome* and use `SurfaceTokens`. Display-only per D-78 — no
-/// interaction lives on the card.
+/// beneath it, plus per-object overlay captions anchored to SVG elements that
+/// carry `data-label` / `data-description` (mapped to pixel space via the same
+/// viewBox fit the painter uses). The SVG is *content* (its own palette); the
+/// frame and captions are clide *chrome* and use `SurfaceTokens`. Display-only
+/// per D-78 — no interaction lives on the card.
 ///
 /// Sizes the SVG to its intrinsic aspect ratio (viewBox / width-height) within
 /// a height cap, filling the available width.
@@ -51,8 +53,24 @@ class DrawingCard extends StatelessWidget {
 
   Widget _svgRegion(SurfaceTokens tokens) {
     final view = SvgView(document: document, images: images);
+    final captioned = document.annotations.where((a) => _has(a.label) || _has(a.description)).toList();
+    final content = captioned.isEmpty
+        ? view
+        : Stack(
+            fit: StackFit.expand,
+            children: [
+              view,
+              LayoutBuilder(
+                builder: (ctx, c) {
+                  final size = Size(c.maxWidth, c.maxHeight);
+                  final vp = svgViewportFit(size, document);
+                  return Stack(children: [for (final a in captioned) _caption(a, vp, tokens)]);
+                },
+              ),
+            ],
+          );
     final aspect = _aspect(document);
-    final sized = aspect != null ? AspectRatio(aspectRatio: aspect, child: view) : SizedBox(height: maxHeight, child: view);
+    final sized = aspect != null ? AspectRatio(aspectRatio: aspect, child: content) : SizedBox(height: maxHeight, child: content);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: tokens.panelBackground,
@@ -64,6 +82,30 @@ class DrawingCard extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: maxHeight),
           child: sized,
+        ),
+      ),
+    );
+  }
+
+  /// A per-object caption (data-label / data-description) positioned just below
+  /// the annotated element's pixel bbox. Display-only (IgnorePointer).
+  Widget _caption(SvgAnnotation a, SvgViewport vp, SurfaceTokens tokens) {
+    final tl = vp.toPixel(a.x, a.y);
+    final br = vp.toPixel(a.x + a.width, a.y + a.height);
+    final w = (br.dx - tl.dx).abs();
+    final h = (br.dy - tl.dy).abs();
+    return Positioned(
+      left: tl.dx,
+      top: tl.dy + h + 2,
+      width: w < 48 ? 48.0 : w,
+      child: IgnorePointer(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_has(a.label)) ClideText(a.label!, fontSize: clideFontCaption, fontWeight: FontWeight.w600, color: tokens.globalForeground, maxLines: 2),
+            if (_has(a.description)) ClideText(a.description!, fontSize: clideFontCaption, color: tokens.globalTextMuted, maxLines: 3),
+          ],
         ),
       ),
     );
