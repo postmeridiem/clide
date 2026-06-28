@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/builtin/claude/src/account_login_dialog.dart';
+import 'package:clide/builtin/claude/src/account_roadblock_dialog.dart';
 import 'package:clide/builtin/claude/src/account_settings_control.dart';
 import 'package:clide/builtin/claude/src/activity_cluster.dart' show foldLevelFromName, kActivityFoldLevelKey, nextFoldLevel;
 import 'package:clide/builtin/claude/src/claude_config.dart';
@@ -20,6 +21,7 @@ import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart' show ImageMessage;
 import 'package:clide/src/daemon/claude_account_commands.dart' show accountActionChannel;
+import 'package:clide/src/daemon/project_commands.dart' show projectCreatedChannel;
 import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
@@ -530,6 +532,19 @@ class ClaudeExtension extends ClideExtension {
     // writes the registry then publishes here; only the UI layer can respawn
     // the workspace's panes onto the newly-bound account or delete a config dir.
     _subs.add(ctx.messages.subscribe(channel: accountActionChannel).listen(_onAccountAction));
+
+    // A freshly-created project (T-488) announces itself once it's open; show the
+    // per-repo account roadblock so the user binds it now (existing opens, which
+    // never announce, are never prompted).
+    _subs.add(ctx.messages.subscribe(channel: projectCreatedChannel).listen(_onProjectCreated));
+  }
+
+  void _onProjectCreated(Message m) {
+    final dir = m.data['dir'] as String?;
+    final ctx = _ctx;
+    if (dir == null || ctx == null) return;
+    final name = dir.split('/').where((s) => s.isNotEmpty).lastOrNull ?? dir;
+    ctx.dialog.show<Object>((c, dismiss) => ClaudeAccountRoadblockDialog(projectName: name, onClose: dismiss));
   }
 
   /// Side-effects for the `claude account` verbs (T-480). The dispatcher does

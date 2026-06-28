@@ -15,6 +15,13 @@ import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
 import 'dispatcher.dart';
 
+/// MessageBus channel announcing a freshly-created project (path in `dir`). The
+/// welcome new-project dialog publishes it after create + open; the Claude
+/// extension consumes it to show the per-repo account roadblock (T-488) — only
+/// NEW projects prompt, existing opens never do. Lives here in the neutral
+/// daemon layer so both builtins name one literal without coupling to each other.
+const projectCreatedChannel = 'project.created';
+
 /// Runs `git init` in [dir]. Injected so this stays Flutter-free + testable;
 /// main.dart wires it to the real toolchain.
 typedef ProjectGitInit = Future<void> Function(String dir);

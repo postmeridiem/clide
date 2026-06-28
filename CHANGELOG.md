@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **New project flow.** A "New project…" action in the welcome view creates +
+  opens a project, then prompts for the Claude account to bind it to — the
+  per-repo account roadblock fires only for freshly-created projects. (T-488,
+  story T-486)
 - **`clide project new <name> [--dir <parent>]`.** Create a new clide project —
   a fresh dir, `git init`, and a minimal scaffold. `--dir` defaults to the
   current workspace's parent. (T-487, story T-486)

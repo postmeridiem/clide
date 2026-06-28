@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:clide/clide.dart' show clideName, clideTagline, clideVersion;
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/daemon/project_commands.dart' show projectCreatedChannel;
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:flutter/widgets.dart';
@@ -198,8 +199,18 @@ class _StartColumn extends StatelessWidget {
           tokens: tokens,
           onTap: () => _openFolder(context),
         ),
+        _ActionRow(
+          icon: PhosphorIcons.byName('folder-plus'),
+          label: ClideSettings.i18n.string(context, 'action.newProject', namespace: 'builtin.welcome', placeholder: 'New project…'),
+          tokens: tokens,
+          onTap: () => _newProject(context),
+        ),
       ],
     );
+  }
+
+  void _newProject(BuildContext context) {
+    kernel.dialog.show<Object>((ctx, dismiss) => _NewProjectDialog(kernel: kernel, onClose: () => dismiss()));
   }
 
   void _openFolder(BuildContext context) async {
@@ -680,6 +691,181 @@ class _NotARepoDialog extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// New-project dialog (T-488, story T-486): pick a location + name, create the
+/// project via `project.new`, open it, and announce it on [projectCreatedChannel]
+/// so the Claude extension can run the per-repo account roadblock. Stays
+/// claude-free — the account step is the consumer's job, not this dialog's.
+class _NewProjectDialog extends StatefulWidget {
+  const _NewProjectDialog({required this.kernel, required this.onClose});
+  final KernelServices kernel;
+  final VoidCallback onClose;
+
+  @override
+  State<_NewProjectDialog> createState() => _NewProjectDialogState();
+}
+
+class _NewProjectDialogState extends State<_NewProjectDialog> {
+  final TextEditingController _parent = TextEditingController();
+  final TextEditingController _name = TextEditingController();
+  final FocusNode _parentFocus = FocusNode(debugLabel: 'new-project-parent');
+  final FocusNode _nameFocus = FocusNode(debugLabel: 'new-project-name');
+  String? _error;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _parent.dispose();
+    _name.dispose();
+    _parentFocus.dispose();
+    _nameFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _browse() async {
+    try {
+      final picked = await widget.kernel.window.pickDirectory();
+      if (picked != null && mounted) setState(() => _parent.text = picked);
+    } on MissingPluginException {
+      // No native picker on this platform — the user types the path instead.
+    }
+  }
+
+  Future<void> _create() async {
+    final name = _name.text.trim();
+    final parent = _parent.text.trim();
+    if (name.isEmpty) return setState(() => _error = 'Enter a project name.');
+    if (parent.isEmpty) return setState(() => _error = 'Choose a location.');
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final r = await widget.kernel.ipc.request(
+      'project.new',
+      args: {
+        'positional': [name],
+        'flags': {'dir': parent},
+      },
+    );
+    if (!mounted) return;
+    if (!r.ok) {
+      return setState(() {
+        _loading = false;
+        _error = r.error?.message ?? 'Could not create the project.';
+      });
+    }
+    final path = r.data['path'] as String;
+    // Open the new workspace, then announce it — only a freshly-created project
+    // announces, so only it triggers the account roadblock (T-488).
+    final opened = await widget.kernel.project.open(path);
+    if (opened) widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+    widget.kernel.messages.publish('welcome', projectCreatedChannel, {'dir': path});
+    widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = ClideSettings.theme.of(context).surface;
+    return Container(
+      width: 460,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: tokens.modalSurfaceBackground,
+        border: Border.all(color: tokens.modalSurfaceBorder),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClideText(
+            ClideSettings.i18n.string(context, 'dialog.newProject.title', namespace: 'builtin.welcome', placeholder: 'New project'),
+            fontSize: clideFontDialogTitle,
+            fontWeight: FontWeight.w600,
+          ),
+          const SizedBox(height: 4),
+          ClideText(
+            ClideSettings.i18n.string(
+              context,
+              'dialog.newProject.body',
+              namespace: 'builtin.welcome',
+              placeholder: 'Creates a git repo + a CLAUDE.md, then opens it.',
+            ),
+            muted: true,
+            fontSize: clideFontMeta,
+          ),
+          const SizedBox(height: 16),
+          _field(
+            tokens,
+            'Location',
+            _parent,
+            _parentFocus,
+            trailing: ClideButton(label: 'Browse…', onPressed: _browse),
+          ),
+          const SizedBox(height: 10),
+          _field(tokens, 'Name', _name, _nameFocus, onSubmit: _create),
+          if (_error != null) ...[const SizedBox(height: 8), ClideText(_error!, color: tokens.statusError, fontSize: clideFontSmall)],
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ClideButton(
+                label: ClideSettings.i18n.string(context, 'button.cancel', namespace: 'builtin.welcome', placeholder: 'Cancel'),
+                onPressed: widget.onClose,
+              ),
+              const SizedBox(width: 8),
+              ClideButton(
+                label: _loading
+                    ? ClideSettings.i18n.string(context, 'button.creating', namespace: 'builtin.welcome', placeholder: 'Creating…')
+                    : ClideSettings.i18n.string(context, 'button.create', namespace: 'builtin.welcome', placeholder: 'Create'),
+                onPressed: _loading ? null : _create,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(SurfaceTokens tokens, String label, TextEditingController c, FocusNode f, {Widget? trailing, Future<void> Function()? onSubmit}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClideText(label, fontSize: clideFontMeta, muted: true),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: tokens.panelBackground,
+                  border: Border.all(color: f.hasFocus ? tokens.panelActiveBorder : tokens.globalBorder),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: EditableText(
+                  controller: c,
+                  focusNode: f,
+                  style: TextStyle(
+                    color: tokens.globalForeground,
+                    fontSize: clideFontCaption,
+                    fontFamily: ClideSettings.fonts.monoOf(context),
+                    fontFamilyFallback: clideMonoFamilyFallback,
+                  ),
+                  cursorColor: tokens.globalForeground,
+                  backgroundCursorColor: tokens.globalTextMuted,
+                  maxLines: 1,
+                  onSubmitted: onSubmit == null ? null : (_) => unawaited(onSubmit()),
+                ),
+              ),
+            ),
+            if (trailing != null) ...[const SizedBox(width: 8), trailing],
+          ],
+        ),
+      ],
     );
   }
 }
