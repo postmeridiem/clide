@@ -9165,3 +9165,191 @@ Design pivot (user, 2026-06-28): NOT a welcome-screen accounts list. The account
 INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'task', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'Per-repo Claude account: account picker as a roadblock in the new-project init flow', 'Split from T-481. The welcome view (lib/builtin/welcome) is intentionally decoupled from feature builtins — peer builtins only import the shared builtin, never each other. Dropping ClaudeAccountsListControl directly into welcome_view.dart would make welcome import claude (a new peer coupling) and risks the centered welcome layout overflowing. Do it cleanly via a welcome-section contribution point that the claude extension contributes the accounts section to.
 
 Design pivot (user, 2026-06-28): NOT a welcome-screen accounts list. The account choice is only a real decision at project BIRTH, so make it a roadblock step in the NEW-project / init-in-a-new-dir flow. Opening an existing project must NOT prompt — it already has a binding, or defaults to the main account; the user switches later via Settings or the pane badge. Dependency/blocker: there is no new-project-init flow today — open-folder either finds a git repo and opens it, or dead-ends at _NotARepoDialog (welcome_view.dart:633). So this ticket needs that init flow as its host: evolve _NotARepoDialog into an ''Initialize this folder as a clide project?'' step whose final screen is the account picker (registered accounts + Default + Add account). Supersedes the original welcome-view-section framing.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-27 22:43:31.629', '2026-06-28 06:06:11.027', NULL, '10b21748ad9c80129ccc54e629eb581e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'story', '06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'New project creation flow (with Claude account roadblock)', 'clide can only OPEN existing git repos today; there is no way to create a new project, and opening a non-repo folder dead-ends at _NotARepoDialog (welcome_view.dart:633). Add a first-class new-project flow. Per the per-repo account design (T-476), the account choice is a real decision only at project birth, so account selection is the flow''s final roadblock step — existing projects never prompt (they keep their binding, or default to the main account; switch later via Settings or the pane badge).
+
+## Entry points (D-6 parity)
+- Welcome view START section: a ''New project...'' action (peer of ''Open folder...'').
+- CLI: `clide project new <name> [--dir <parent>] [--account <name>]`.
+- Non-repo open: _NotARepoDialog evolves from a dead end into ''Initialize this folder as a clide project?'' → the same init + account steps.
+
+## Flow
+1. Location + name — pick a parent dir (window.pickDirectory()), enter a name → target <parent>/<name>/. Validate: non-empty name, target does not already exist.
+2. Initialize — create the dir, `git init`, write a minimal non-prescriptive scaffold (a CLAUDE.md stub + .gitignore). No language/templates.
+3. Account roadblock — final screen: pick the Claude account this project runs under (registered accounts + Default + ''Add account...''). Selecting binds the new workspace (AccountRegistry.bindWorkspace + accountActionChannel); ''Add account...'' runs add + login (T-485).
+4. Open — project.open the new dir so the workspace goes live; the primary Claude pane spawns under the bound account.
+
+## Reuses (already shipped under T-476)
+- Account picker + binding: account_settings_control.dart (ClaudeAccountsListControl / bindWorkspaceAccount), accountActionChannel.
+- git init: lib/src/git/ client.
+- project open: kernel.project.
+
+## Acceptance
+1. ''New project...'' creates <parent>/<name>/, git-inits it, and opens it as the active workspace.
+2. The final step binds the chosen account (or Default); a fresh claude in the new project runs under that account''s CLAUDE_CONFIG_DIR.
+3. Opening an EXISTING project shows no account prompt.
+4. Opening a non-repo folder offers to initialize it (no dead end).
+5. `clide project new` mirrors the UI (D-6); every UI action has a CLI counterpart.
+6. Tests cover the dialog flow, git-init, the account-bind step, and the non-repo → init path.
+
+## Out of scope
+- Language/framework templates (git init + minimal files only).
+- Remote creation (GitHub repo create) — local init only.
+- Re-homing existing projects between accounts beyond the existing Settings/badge switch.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-27 22:43:31.629', '2026-06-28 06:13:35.886', NULL, '624b2998a788029f8d4609d3be176390', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'story', NULL, 'New project creation flow (with Claude account roadblock)', 'clide can only OPEN existing git repos today; there is no way to create a new project, and opening a non-repo folder dead-ends at _NotARepoDialog (welcome_view.dart:633). Add a first-class new-project flow. Per the per-repo account design (T-476), the account choice is a real decision only at project birth, so account selection is the flow''s final roadblock step — existing projects never prompt (they keep their binding, or default to the main account; switch later via Settings or the pane badge).
+
+## Entry points (D-6 parity)
+- Welcome view START section: a ''New project...'' action (peer of ''Open folder...'').
+- CLI: `clide project new <name> [--dir <parent>] [--account <name>]`.
+- Non-repo open: _NotARepoDialog evolves from a dead end into ''Initialize this folder as a clide project?'' → the same init + account steps.
+
+## Flow
+1. Location + name — pick a parent dir (window.pickDirectory()), enter a name → target <parent>/<name>/. Validate: non-empty name, target does not already exist.
+2. Initialize — create the dir, `git init`, write a minimal non-prescriptive scaffold (a CLAUDE.md stub + .gitignore). No language/templates.
+3. Account roadblock — final screen: pick the Claude account this project runs under (registered accounts + Default + ''Add account...''). Selecting binds the new workspace (AccountRegistry.bindWorkspace + accountActionChannel); ''Add account...'' runs add + login (T-485).
+4. Open — project.open the new dir so the workspace goes live; the primary Claude pane spawns under the bound account.
+
+## Reuses (already shipped under T-476)
+- Account picker + binding: account_settings_control.dart (ClaudeAccountsListControl / bindWorkspaceAccount), accountActionChannel.
+- git init: lib/src/git/ client.
+- project open: kernel.project.
+
+## Acceptance
+1. ''New project...'' creates <parent>/<name>/, git-inits it, and opens it as the active workspace.
+2. The final step binds the chosen account (or Default); a fresh claude in the new project runs under that account''s CLAUDE_CONFIG_DIR.
+3. Opening an EXISTING project shows no account prompt.
+4. Opening a non-repo folder offers to initialize it (no dead end).
+5. `clide project new` mirrors the UI (D-6); every UI action has a CLI counterpart.
+6. Tests cover the dialog flow, git-init, the account-bind step, and the non-repo → init path.
+
+## Out of scope
+- Language/framework templates (git init + minimal files only).
+- Remote creation (GitHub repo create) — local init only.
+- Re-homing existing projects between accounts beyond the existing Settings/badge switch.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-27 22:43:31.629', '2026-06-28 06:13:35.919', NULL, 'bfce03bdb588aced1aeb8c919edd7954', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQ789MDB00EQAXTXBVJDXM', 'task', '06FGPG4WNNH3BWDRVZXYQTW7Z0', 'project.new backend: create dir + git init + minimal scaffold, and the clide project new CLI verb', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 06:13:51.821', '2026-06-28 06:13:51.821', NULL, 'e9ef6afd6131c26eba2ce73684012391', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQ8B7WDKZ174GJDGWW0GS0', 'task', '06FGPG4WNNH3BWDRVZXYQTW7Z0', 'New-project dialog: location + name -> account roadblock -> open; welcome New project action', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 06:14:00.767', '2026-06-28 06:14:00.767', NULL, '2227067b201b2489cfae549231d78252', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQ8YSZA5YNP1JE8SJHXWBG', 'task', '06FGPG4WNNH3BWDRVZXYQTW7Z0', 'Evolve _NotARepoDialog into ''Initialize this folder as a clide project?'' (reuse the init + account flow)', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 06:14:05.775', '2026-06-28 06:14:05.775', NULL, '9db837d1f6e59abd0b5ca7775e4c4749', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'epic', NULL, 'Per-repo Claude account login (not system-wide)', 'Today clide uses Claude Code''s system-wide login (the CLI''s global auth), so every repo/workspace shares one Claude account. Allow selecting/logging into a separate Claude account per repo so different projects can run under different accounts (e.g. personal vs work). Falls back to the system login when no per-repo binding is set.
+
+## Proven mechanism: `CLAUDE_CONFIG_DIR`
+
+Claude Code reads `CLAUDE_CONFIG_DIR` at process start and uses that directory in place of `~/.claude` — credentials, settings, sessions, plugins, projects, the `ide/` discovery dir, everything. Already proven on this machine: `~/.claude-personal/` exists alongside `~/.claude/` with the same layout (`.claude.json`, `sessions/`, `plugins/`, `projects/`, `settings.json`, `ide/`). A child `claude` process spawned with `CLAUDE_CONFIG_DIR=~/.claude-personal` uses that account; clide already has the spawn-time hook to set it.
+
+## Alternatives surveyed (online research, 2026-06)
+
+- **No native Claude Code account switcher** (open issues anthropics/claude-code#44687, #18435, #36151).
+- **claude-swap, claude-account-switcher, claude-multiprofile** — third-party CLIs; all converge on `CLAUDE_CONFIG_DIR` swapping the active dir or symlinking shared bits (settings/commands/MCP) across per-account dirs.
+- **direnv / shell aliases** — user-shell automation that exports `CLAUDE_CONFIG_DIR` on cd-in. Not IDE-owned, only works from a terminal launch.
+- **AgentsRoom** is the closest peer: "per-project pin, per-agent override, in-app sign-in flow, status badge per account" — same mechanism, IDE surface. The shape clide should match.
+
+No cleaner mechanism exists today; everything credible reduces to `CLAUDE_CONFIG_DIR`. The clide value-add is the IDE-native shell around it (per-repo binding + sign-in UX + IDE-bridge plumbing).
+
+## Recommended approach
+
+**Per-account named config dirs**, **per-repo named binding**, **CLI-driven sign-in**. Three concepts:
+
+1. **Accounts** — one Claude config dir per account, e.g. `~/.claude-personal/`, `~/.claude-work/`. Selecting an account = exporting `CLAUDE_CONFIG_DIR=<that dir>` for the spawned `claude`. Multiple repos can share one account (no extra sign-in to add a third repo for the same account).
+2. **Repo binding** — `<workspace>` → `<account-name>`, stored in user-scope clide settings (the [T-356](#) relocation lands settings under user scope keyed by workspace-path hash — same `fnv1a64Hex` from `lib/src/ipc/paths.dart`). Unset → falls back to the global `~/.claude`.
+3. **Sign-in** — clide invokes `CLAUDE_CONFIG_DIR=<target> claude login` in a managed terminal pane; the CLI owns the OAuth browser bounce; credentials land in the target dir. No new auth code in clide.
+
+Account ≠ workspace is the right axis: "work" is one identity used in 5 repos, not 5 sign-ins.
+
+## Implementation
+
+### Storage (where the binding lives)
+
+- `accounts` list (name → config-dir path) in **user-scope** clide settings — after [T-356](#) relocates `.clide/settings.yaml` to user scope.
+- `claude.account.<workspace-hash>` keys map a workspace to an account name. Workspace hash = `fnv1a64Hex(canonicalPath)` (`lib/src/ipc/paths.dart:101`), same key D-70 uses for sockets.
+- Bootstrap migration: if `~/.claude-personal/` (or other `~/.claude-*/`) is detected on first run, offer to register it as an account.
+
+### Spawn-time env injection
+
+One resolver — pattern matches `lib/src/env/shell_env.dart` (`primeLoginShellPath` / `resolvedToolPath`):
+
+- `String? claudeConfigDirForWorkspace(String cwd)` → returns the resolved config-dir path, or null when no binding (use Claude''s default).
+- Inject in `lib/builtin/claude/src/agent_bootstrap.dart` (`agentBootstrap`): when the resolver returns a path, add `CLAUDE_CONFIG_DIR=<path>` to the returned `envDelta`. Single hook; every hosted session (primary/secondary/fork/teammate) inherits it because `ClaudeSessionOrchestrator._spawn` already calls `agentBootstrap(spec.cwd, base: spec.env)` at `session_orchestrator.dart:247`.
+- `SpawnSpec.env` already exists (line 67) as a per-call override — keep it so an explicit caller can win.
+
+### IDE bridge discovery (the trap)
+
+`lib/src/ipc/mcp_server.dart:344` writes the `/ide` lock at `$HOME/.claude/ide/<pid>.lock`. Claude Code with `CLAUDE_CONFIG_DIR=<X>` looks under `<X>/ide/` — so today''s lock is invisible to a `claude` running with a custom dir, and clide''s IDE bridge can''t be reached.
+
+Fix: when clide is using one or more non-default config dirs (any bound repo''s account ≠ default), write the discovery lock into **every** active config dir''s `ide/` (the default `$HOME/.claude/ide/` plus each `<account-dir>/ide/`). Same lock content; each is `0600`-scoped per [T-362](#). Cleanup tracks all written paths.
+
+### Sign-in flow
+
+One CLI verb (D-6 parity, mirrors [T-249](#) shape):
+
+- `clide claude account add <name> [--dir <path>]` — registers an account. Default dir `~/.claude-<name>/`. Idempotent.
+- `clide claude account login <name>` — spawns `CLAUDE_CONFIG_DIR=<dir> claude login` in a managed terminal pane (`lib/builtin/terminal/`); the CLI handles OAuth.
+- `clide claude account set <name>` — bind the current workspace to `<name>`. Active Claude session(s) for this repo respawn under the new account (T-437 close-and-respawn pattern is already correct: `close` awaits real process death, `spawn` is idempotent per id).
+- `clide claude account list` — JSON: registered accounts + which (if any) is bound to this workspace.
+- `clide claude account unset` — clear the binding; falls back to default.
+- `clide claude account remove <name>` — registry remove; offers `--purge` to delete the underlying dir (off by default).
+
+Dispatcher registration lives in `lib/src/daemon/` alongside `image_commands.dart`. Flutter-free handler; the terminal-spawn side publishes on a MessageBus channel the Claude extension subscribes to.
+
+### UI
+
+- **Welcome view**: list registered accounts; tap = bind current workspace; "Add account…" runs the login flow.
+- **Claude pane chrome**: small badge showing the active account name. Tap opens the picker (issues `clide claude account set …`).
+- **Settings**: under "Claude", an Accounts row (manage registry) and a per-repo "Account for this workspace" row.
+- **Workspace picker / project list**: each project shows its bound account.
+
+### CLI parity (D-6)
+
+Every UI action above issues a verb; every verb is observable via `clide claude account list`. No UI action lacks a CLI counterpart.
+
+### Fallback / safety
+
+- No binding → use `Platform.environment[''CLAUDE_CONFIG_DIR'']` if the parent env already set it; otherwise leave it unset (Claude defaults to `~/.claude`). Same behaviour as today.
+- Switching account = respawn the pane''s session, not a hot swap. Existing session closes (T-437 await-death). Transcript is preserved per-account in that account''s `projects/` dir; nothing is merged across accounts.
+- Permission rules and `effortLevel` (per `claude_config.dart`) are config-dir-scoped already — no new layering needed.
+- D-64 (no phone-home): adding an account triggers exactly one CLI-initiated `claude login` browser flow, on explicit user action. No background calls.
+
+## Acceptance
+
+1. `clide claude account add work` registers an account at `~/.claude-work/`; `clide claude account login work` opens a terminal pane that completes OAuth and lands credentials in that dir.
+2. `clide claude account set work` in a workspace binds it; respawning the Claude pane spawns `claude` with `CLAUDE_CONFIG_DIR=~/.claude-work/`. Verified by `ps eww` / `lsof` against that process showing the right env.
+3. `clide claude account list` returns the registry + the current workspace''s binding (or `null`).
+4. `clide`''s `/ide` bridge is reachable from the bound account''s `claude` — its `~/.claude-work/ide/<clide-pid>.lock` is present and parseable; an in-session `/ide` resolves.
+5. With no binding, behaviour is identical to today (regression test against the global `~/.claude`).
+6. A second clide window opened on a differently-bound repo runs under a different account end-to-end; the two transcripts never cross.
+7. Sign-out: removing the binding (`unset`) without `--purge` keeps the underlying dir untouched; with `--purge` removes it.
+8. UI parity: every account action in the welcome view / settings / Claude pane chrome reaches the same dispatcher verb.
+
+## Out of scope (for this story)
+
+- Per-pane account selection within one workspace (forks/teammates on different accounts). One repo = one account in v1; revisit if needed.
+- Cross-account credential sharing / symlinked settings (claude-account-switcher''s pattern). v1 keeps dirs fully isolated; revisit as a follow-up if duplication becomes painful.
+- Team-mode account-budget surfacing across multiple accounts (T-158 territory).
+- Windows behaviour beyond "if `CLAUDE_CONFIG_DIR` works on the platform, this works on the platform" — no Windows-specific UX in v1.
+- Auto-binding via `direnv` or `.envrc` integration. The IDE owns the binding; shell-side automation is a follow-up if asked for.
+
+## References / sources
+
+- Code: `lib/builtin/claude/src/agent_bootstrap.dart` (env-delta builder), `lib/builtin/claude/src/session_orchestrator.dart` (spawn site), `lib/src/env/shell_env.dart` (env-resolution pattern), `lib/src/ipc/mcp_server.dart:344` (IDE-lock writer), `lib/src/ipc/paths.dart:101` (`fnv1a64Hex` workspace hash), `lib/builtin/claude/src/claude_config.dart` (per-config-dir settings).
+- Tickets: [T-356](#) (workspace settings → user scope, dependency), [T-362](#) (`/ide` lock 0600), [T-437](#) (await-death respawn — needed for switch-account-and-respawn), [T-249](#) (image-card CLI shape to mirror), D-6 (CLI parity), D-64 (no phone-home), D-70 (workspace hash), D-75 (avoid CC-internals coupling — this work uses Claude Code''s *public* CLAUDE_CONFIG_DIR env, not internal state, so it is D-75-safe).
+- External: anthropics/claude-code#44687 / #18435 / #36151 (no native switcher); third-party tools claude-swap, claude-account-switcher, claude-multiprofile, AgentsRoom (all use CLAUDE_CONFIG_DIR); CLAUDE_CONFIG_DIR is a documented Claude Code env knob.
+', 'done', 'medium', NULL, NULL, NULL, '2026-06-19 07:42:08.735', '2026-06-28 06:14:17.814', NULL, '55d04cab82f958ab255b21c55e0e7c6a', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQ789MDB00EQAXTXBVJDXM', 'task', '06FGPG4WNNH3BWDRVZXYQTW7Z0', 'project.new backend: create dir + git init + minimal scaffold, and the clide project new CLI verb', NULL, 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-28 06:13:51.821', '2026-06-28 06:14:34.653', NULL, 'dcc377e2badf2cf06f0536376ff534a6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQP1YPG70RPQJ4XZDH2T1M', 'task', NULL, 'Nudge fresh Claude sessions to load the pql + clide skills (spawn preamble)', NULL, 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 06:15:53.077', '2026-06-28 06:15:53.077', NULL, 'e8d1916e5c48fecb726b85f4208082db', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQP1YPG70RPQJ4XZDH2T1M', 'task', NULL, 'Nudge fresh Claude sessions to load the pql + clide skills (spawn preamble)', 'On a fresh Claude session, prompt Claude to load/use the pql and clide skills so it reaches for them from the first turn instead of having to rediscover them. Fresh = a new tab, an empty session, and the post-/clear respawn — NOT a --resume of an existing session (that one already has its working context).
+
+## Hook point
+
+lib/builtin/claude/src/session_orchestrator.dart `_spawn` already builds a `preambles` list (currently `[clideContextNote(spec.cwd)]`, plus the team system prompt). Every spawn flows through here — new tab, fork, teammate, AND the close-and-respawn after /clear (T-437) — so it is the single clean place to add a skills-bootstrap preamble. Gate it on a NEW session (e.g. `!spec.resume`) so resumed sessions are not re-nagged.
+
+## What to inject
+
+A short preamble instructing Claude to load + use the pql skill (planning/vault queries) and the clide skill (driving the clide IDE via the `clide` CLI), when present. Keep it minimal and idempotent — one or two sentences, not a wall of text.
+
+Considerations:
+- Confirm a `clide` skill exists (the pql skill is user-scope via `pql init`; a clide skill may need to ship/install first). If the clide skill does not yet exist, this ticket may spawn a precursor to author it.
+- Don''t duplicate clideContextNote''s content; this is the ''reach for these skills'' nudge, layered on top.
+- Verify the nudge actually lands: a fresh session should pick up the skills on its first relevant action.
+
+## Acceptance
+1. A new-tab / empty Claude session receives a preamble nudging it to load the pql + clide skills.
+2. The post-/clear respawn also gets it (it spawns through the same path).
+3. A --resume of an existing session does NOT get re-injected.
+4. The text is short and does not crowd out clideContextNote.', 'backlog', 'medium', NULL, NULL, NULL, '2026-06-28 06:15:53.077', '2026-06-28 06:15:53.131', NULL, '8fca222cfd1b972d7a66ee3ddaaaf879', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

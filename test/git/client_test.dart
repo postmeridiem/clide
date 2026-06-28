@@ -24,6 +24,24 @@ Future<Directory> _newRepo({String filename = 'file.txt', String contents = 'hel
 }
 
 void main() {
+  group('GitClient — init (T-487)', () {
+    late Directory dir;
+    setUp(() async => dir = await Directory.systemTemp.createTemp('clide-git-init-'));
+    tearDown(() async {
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+
+    test('init creates a repo on the default branch and is idempotent', () async {
+      final git = GitClient(toolchain: _toolchain(), workDir: dir);
+      await git.init();
+      expect(Directory('${dir.path}/.git').existsSync(), isTrue);
+      expect(await git.currentBranch(), 'main');
+      // A second init on the existing repo is a no-op, not an error.
+      await git.init();
+      expect(Directory('${dir.path}/.git').existsSync(), isTrue);
+    });
+  });
+
   group('GitClient — queries', () {
     late Directory sandbox;
     late GitClient git;

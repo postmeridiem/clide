@@ -18,6 +18,18 @@ class GitClient {
   final ToolchainView toolchain;
   final Directory workDir;
 
+  /// Initialize a new git repository in [workDir] (T-487) — the backing of the
+  /// new-project flow, since clide treats a git repo as the workspace. The
+  /// directory must already exist. `-b <defaultBranch>` keeps the initial branch
+  /// deterministic rather than dependent on the user's git config. Idempotent:
+  /// `git init` on an existing repo is a no-op.
+  Future<void> init({String defaultBranch = 'main'}) async {
+    final r = await _run(['init', '-b', defaultBranch]);
+    if (r.exitCode != 0) {
+      throw GitException('git init failed', stderr: r.stderr.toString());
+    }
+  }
+
   // -- queries --------------------------------------------------------------
 
   Future<GitStatus> status() async {

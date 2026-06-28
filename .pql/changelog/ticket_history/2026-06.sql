@@ -7203,3 +7203,60 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 
 Design pivot (user, 2026-06-28): NOT a welcome-screen accounts list. The account choice is only a real decision at project BIRTH, so make it a roadblock step in the NEW-project / init-in-a-new-dir flow. Opening an existing project must NOT prompt — it already has a binding, or defaults to the main account; the user switches later via Settings or the pane badge. Dependency/blocker: there is no new-project-init flow today — open-folder either finds a git repo and opens it, or dead-ends at _NotARepoDialog (welcome_view.dart:633). So this ticket needs that init flow as its host: evolve _NotARepoDialog into an ''Initialize this folder as a clide project?'' step whose final screen is the account picker (registered accounts + Default + Add account). Supersedes the original welcome-view-section framing.', NULL, '2026-06-28 06:06:02', '2026-06-28 06:06:02.734', '2026-06-28 06:06:02.734', NULL, '4f8c0f4ffc6abb768860c063e397bb25', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'title', 'Per-repo Claude account: welcome-view accounts section (needs a welcome-section contribution point)', 'Per-repo Claude account: account picker as a roadblock in the new-project init flow', NULL, '2026-06-28 06:06:11', '2026-06-28 06:06:11.027', '2026-06-28 06:06:11.027', NULL, '01698c61271b9a35fb3f74ee8252168d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'description', 'Split from T-481. The welcome view (lib/builtin/welcome) is intentionally decoupled from feature builtins — peer builtins only import the shared builtin, never each other. Dropping ClaudeAccountsListControl directly into welcome_view.dart would make welcome import claude (a new peer coupling) and risks the centered welcome layout overflowing. Do it cleanly via a welcome-section contribution point that the claude extension contributes the accounts section to.
+
+Design pivot (user, 2026-06-28): NOT a welcome-screen accounts list. The account choice is only a real decision at project BIRTH, so make it a roadblock step in the NEW-project / init-in-a-new-dir flow. Opening an existing project must NOT prompt — it already has a binding, or defaults to the main account; the user switches later via Settings or the pane badge. Dependency/blocker: there is no new-project-init flow today — open-folder either finds a git repo and opens it, or dead-ends at _NotARepoDialog (welcome_view.dart:633). So this ticket needs that init flow as its host: evolve _NotARepoDialog into an ''Initialize this folder as a clide project?'' step whose final screen is the account picker (registered accounts + Default + Add account). Supersedes the original welcome-view-section framing.', 'clide can only OPEN existing git repos today; there is no way to create a new project, and opening a non-repo folder dead-ends at _NotARepoDialog (welcome_view.dart:633). Add a first-class new-project flow. Per the per-repo account design (T-476), the account choice is a real decision only at project birth, so account selection is the flow''s final roadblock step — existing projects never prompt (they keep their binding, or default to the main account; switch later via Settings or the pane badge).
+
+## Entry points (D-6 parity)
+- Welcome view START section: a ''New project...'' action (peer of ''Open folder...'').
+- CLI: `clide project new <name> [--dir <parent>] [--account <name>]`.
+- Non-repo open: _NotARepoDialog evolves from a dead end into ''Initialize this folder as a clide project?'' → the same init + account steps.
+
+## Flow
+1. Location + name — pick a parent dir (window.pickDirectory()), enter a name → target <parent>/<name>/. Validate: non-empty name, target does not already exist.
+2. Initialize — create the dir, `git init`, write a minimal non-prescriptive scaffold (a CLAUDE.md stub + .gitignore). No language/templates.
+3. Account roadblock — final screen: pick the Claude account this project runs under (registered accounts + Default + ''Add account...''). Selecting binds the new workspace (AccountRegistry.bindWorkspace + accountActionChannel); ''Add account...'' runs add + login (T-485).
+4. Open — project.open the new dir so the workspace goes live; the primary Claude pane spawns under the bound account.
+
+## Reuses (already shipped under T-476)
+- Account picker + binding: account_settings_control.dart (ClaudeAccountsListControl / bindWorkspaceAccount), accountActionChannel.
+- git init: lib/src/git/ client.
+- project open: kernel.project.
+
+## Acceptance
+1. ''New project...'' creates <parent>/<name>/, git-inits it, and opens it as the active workspace.
+2. The final step binds the chosen account (or Default); a fresh claude in the new project runs under that account''s CLAUDE_CONFIG_DIR.
+3. Opening an EXISTING project shows no account prompt.
+4. Opening a non-repo folder offers to initialize it (no dead end).
+5. `clide project new` mirrors the UI (D-6); every UI action has a CLI counterpart.
+6. Tests cover the dialog flow, git-init, the account-bind step, and the non-repo → init path.
+
+## Out of scope
+- Language/framework templates (git init + minimal files only).
+- Remote creation (GitHub repo create) — local init only.
+- Re-homing existing projects between accounts beyond the existing Settings/badge switch.', NULL, '2026-06-28 06:13:35', '2026-06-28 06:13:35.886', '2026-06-28 06:13:35.886', NULL, 'ae9bfa30d3bce5e52c1af99496456fa7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'title', 'Per-repo Claude account: account picker as a roadblock in the new-project init flow', 'New project creation flow (with Claude account roadblock)', NULL, '2026-06-28 06:13:35', '2026-06-28 06:13:35.891', '2026-06-28 06:13:35.891', NULL, 'cb9bfefc956fe805e2bc6b0be1363197', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'type', 'task', 'story', NULL, '2026-06-28 06:13:35', '2026-06-28 06:13:35.892', '2026-06-28 06:13:35.892', NULL, '16ea17e804ddb32b3588bcd45755cce4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGPG4WNNH3BWDRVZXYQTW7Z0', 'parent_id', 'T-476', NULL, NULL, '2026-06-28 06:13:35', '2026-06-28 06:13:35.919', '2026-06-28 06:13:35.919', NULL, '0452c2c87884a57e30178c8d46195241', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FDXN3ZBRS6JK7Q8G6JVSPXFC', 'status', 'in_progress', 'done', NULL, '2026-06-28 06:14:17', '2026-06-28 06:14:17.814', '2026-06-28 06:14:17.814', NULL, 'aeb6956af28e856bb883b5301ffa2792', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQ789MDB00EQAXTXBVJDXM', 'status', 'backlog', 'in_progress', NULL, '2026-06-28 06:14:34', '2026-06-28 06:14:34.653', '2026-06-28 06:14:34.653', NULL, 'a2a85a50aab80e3ac5c5d8a2f1350fe1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQP1YPG70RPQJ4XZDH2T1M', 'description', NULL, 'On a fresh Claude session, prompt Claude to load/use the pql and clide skills so it reaches for them from the first turn instead of having to rediscover them. Fresh = a new tab, an empty session, and the post-/clear respawn — NOT a --resume of an existing session (that one already has its working context).
+
+## Hook point
+
+lib/builtin/claude/src/session_orchestrator.dart `_spawn` already builds a `preambles` list (currently `[clideContextNote(spec.cwd)]`, plus the team system prompt). Every spawn flows through here — new tab, fork, teammate, AND the close-and-respawn after /clear (T-437) — so it is the single clean place to add a skills-bootstrap preamble. Gate it on a NEW session (e.g. `!spec.resume`) so resumed sessions are not re-nagged.
+
+## What to inject
+
+A short preamble instructing Claude to load + use the pql skill (planning/vault queries) and the clide skill (driving the clide IDE via the `clide` CLI), when present. Keep it minimal and idempotent — one or two sentences, not a wall of text.
+
+Considerations:
+- Confirm a `clide` skill exists (the pql skill is user-scope via `pql init`; a clide skill may need to ship/install first). If the clide skill does not yet exist, this ticket may spawn a precursor to author it.
+- Don''t duplicate clideContextNote''s content; this is the ''reach for these skills'' nudge, layered on top.
+- Verify the nudge actually lands: a fresh session should pick up the skills on its first relevant action.
+
+## Acceptance
+1. A new-tab / empty Claude session receives a preamble nudging it to load the pql + clide skills.
+2. The post-/clear respawn also gets it (it spawns through the same path).
+3. A --resume of an existing session does NOT get re-injected.
+4. The text is short and does not crowd out clideContextNote.', NULL, '2026-06-28 06:15:53', '2026-06-28 06:15:53.132', '2026-06-28 06:15:53.132', NULL, 'd5caf6198c0cad2fbd79b01261659d82', 2) ON CONFLICT(hash) DO NOTHING;
