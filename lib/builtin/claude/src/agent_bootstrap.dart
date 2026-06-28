@@ -58,6 +58,16 @@ String clideContextNote(String workspaceRoot) =>
     'is how you observe and drive the same workspace the user sees — prefer it for IDE actions so '
     'your work and the user\'s stay in one shared workspace.';
 
+/// Nudge a FRESH session to reach for the bundled skills from its first turn
+/// rather than rediscovering the workflows (T-490). Layered on top of
+/// [clideContextNote]; only injected for new sessions (not --resume / forks),
+/// so a session that already carries context is never re-nagged.
+String clideSkillsNote() =>
+    'Two skills are available in this workspace — load and use them from your first turn instead '
+    'of rediscovering their workflows: `pql` (planning, decisions, tickets, and vault queries) and '
+    '`clide` (driving this IDE). Reach for the matching skill whenever a task touches planning or '
+    'tickets, or the clide surface.';
+
 /// Build the environment DELTA to overlay on a hosted session's inherited
 /// environment (T-215). `Process.start` keeps the parent environment by
 /// default, so this returns only the keys to add/override:

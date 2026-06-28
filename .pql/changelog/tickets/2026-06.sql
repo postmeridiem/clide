@@ -9386,3 +9386,63 @@ INSERT INTO tickets (record_id, type, parent_record_id, title, description, stat
 - Language/framework templates (git init + minimal files only).
 - Remote creation (GitHub repo create) — local init only.
 - Re-homing existing projects between accounts beyond the existing Settings/badge switch.', 'done', 'medium', NULL, NULL, NULL, '2026-06-27 22:43:31.629', '2026-06-28 06:41:47.971', NULL, '01a340c5205eae82e1b2bb7efb3be179', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQP1YPG70RPQJ4XZDH2T1M', 'task', NULL, 'Nudge fresh Claude sessions to load the pql + clide skills (spawn preamble)', 'On a fresh Claude session, prompt Claude to load/use the pql and clide skills so it reaches for them from the first turn instead of having to rediscover them. Fresh = a new tab, an empty session, and the post-/clear respawn — NOT a --resume of an existing session (that one already has its working context).
+
+## Hook point
+
+lib/builtin/claude/src/session_orchestrator.dart `_spawn` already builds a `preambles` list (currently `[clideContextNote(spec.cwd)]`, plus the team system prompt). Every spawn flows through here — new tab, fork, teammate, AND the close-and-respawn after /clear (T-437) — so it is the single clean place to add a skills-bootstrap preamble. Gate it on a NEW session (e.g. `!spec.resume`) so resumed sessions are not re-nagged.
+
+## What to inject
+
+A short preamble instructing Claude to load + use the pql skill (planning/vault queries) and the clide skill (driving the clide IDE via the `clide` CLI), when present. Keep it minimal and idempotent — one or two sentences, not a wall of text.
+
+Considerations:
+- Confirm a `clide` skill exists (the pql skill is user-scope via `pql init`; a clide skill may need to ship/install first). If the clide skill does not yet exist, this ticket may spawn a precursor to author it.
+- Don''t duplicate clideContextNote''s content; this is the ''reach for these skills'' nudge, layered on top.
+- Verify the nudge actually lands: a fresh session should pick up the skills on its first relevant action.
+
+## Acceptance
+1. A new-tab / empty Claude session receives a preamble nudging it to load the pql + clide skills.
+2. The post-/clear respawn also gets it (it spawns through the same path).
+3. A --resume of an existing session does NOT get re-injected.
+4. The text is short and does not crowd out clideContextNote.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-28 06:15:53.077', '2026-06-28 08:32:16.329', NULL, '9a76f6185e333841c1e24f36cdc7d215', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQP1YPG70RPQJ4XZDH2T1M', 'task', NULL, 'Nudge fresh Claude sessions to load the pql + clide skills (spawn preamble)', 'On a fresh Claude session, prompt Claude to load/use the pql and clide skills so it reaches for them from the first turn instead of having to rediscover them. Fresh = a new tab, an empty session, and the post-/clear respawn — NOT a --resume of an existing session (that one already has its working context).
+
+## Hook point
+
+lib/builtin/claude/src/session_orchestrator.dart `_spawn` already builds a `preambles` list (currently `[clideContextNote(spec.cwd)]`, plus the team system prompt). Every spawn flows through here — new tab, fork, teammate, AND the close-and-respawn after /clear (T-437) — so it is the single clean place to add a skills-bootstrap preamble. Gate it on a NEW session (e.g. `!spec.resume`) so resumed sessions are not re-nagged.
+
+## What to inject
+
+A short preamble instructing Claude to load + use the pql skill (planning/vault queries) and the clide skill (driving the clide IDE via the `clide` CLI), when present. Keep it minimal and idempotent — one or two sentences, not a wall of text.
+
+Considerations:
+- Confirm a `clide` skill exists (the pql skill is user-scope via `pql init`; a clide skill may need to ship/install first). If the clide skill does not yet exist, this ticket may spawn a precursor to author it.
+- Don''t duplicate clideContextNote''s content; this is the ''reach for these skills'' nudge, layered on top.
+- Verify the nudge actually lands: a fresh session should pick up the skills on its first relevant action.
+
+## Acceptance
+1. A new-tab / empty Claude session receives a preamble nudging it to load the pql + clide skills.
+2. The post-/clear respawn also gets it (it spawns through the same path).
+3. A --resume of an existing session does NOT get re-injected.
+4. The text is short and does not crowd out clideContextNote.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-06-28 06:15:53.077', '2026-06-28 08:32:36.557', NULL, '85e8d5cf44c4947b00f0f10f4f3906a5', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQP1YPG70RPQJ4XZDH2T1M', 'task', NULL, 'Nudge fresh Claude sessions to load the pql + clide skills (spawn preamble)', 'On a fresh Claude session, prompt Claude to load/use the pql and clide skills so it reaches for them from the first turn instead of having to rediscover them. Fresh = a new tab, an empty session, and the post-/clear respawn — NOT a --resume of an existing session (that one already has its working context).
+
+## Hook point
+
+lib/builtin/claude/src/session_orchestrator.dart `_spawn` already builds a `preambles` list (currently `[clideContextNote(spec.cwd)]`, plus the team system prompt). Every spawn flows through here — new tab, fork, teammate, AND the close-and-respawn after /clear (T-437) — so it is the single clean place to add a skills-bootstrap preamble. Gate it on a NEW session (e.g. `!spec.resume`) so resumed sessions are not re-nagged.
+
+## What to inject
+
+A short preamble instructing Claude to load + use the pql skill (planning/vault queries) and the clide skill (driving the clide IDE via the `clide` CLI), when present. Keep it minimal and idempotent — one or two sentences, not a wall of text.
+
+Considerations:
+- Confirm a `clide` skill exists (the pql skill is user-scope via `pql init`; a clide skill may need to ship/install first). If the clide skill does not yet exist, this ticket may spawn a precursor to author it.
+- Don''t duplicate clideContextNote''s content; this is the ''reach for these skills'' nudge, layered on top.
+- Verify the nudge actually lands: a fresh session should pick up the skills on its first relevant action.
+
+## Acceptance
+1. A new-tab / empty Claude session receives a preamble nudging it to load the pql + clide skills.
+2. The post-/clear respawn also gets it (it spawns through the same path).
+3. A --resume of an existing session does NOT get re-injected.
+4. The text is short and does not crowd out clideContextNote.', 'done', 'medium', NULL, NULL, NULL, '2026-06-28 06:15:53.077', '2026-06-28 08:53:08.149', NULL, '1c8842605724aab0461805297ad03ac7', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at > tickets.updated_at OR (excluded.updated_at = tickets.updated_at AND excluded.hash > tickets.hash);

@@ -244,6 +244,11 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
     // note and the team preamble merge into ONE --append-system-prompt (claude
     // honours a single one).
     final preambles = <String>[clideContextNote(spec.cwd)];
+    // Nudge a FRESH session to reach for the bundled skills (T-490). A new tab
+    // and the post-/clear respawn spawn with resume:false; the account-change
+    // respawn (T-480) and real resumes carry prior context (resume:true), and a
+    // fork inherits its source — none of those are re-nagged.
+    if (!spec.resume && !spec.isFork) preambles.add(clideSkillsNote());
     if (spec.team) {
       final name = spec.memberName ?? spec.role;
       broker.addMember(TeamMemberRef(id: spec.id, name: name, role: spec.role));

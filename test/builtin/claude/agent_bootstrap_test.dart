@@ -28,6 +28,17 @@ void main() {
     });
   });
 
+  group('clideSkillsNote (T-490)', () {
+    test('names both skills, nudges first-turn use, and stays short', () {
+      final note = clideSkillsNote();
+      expect(note, contains('`pql`'));
+      expect(note, contains('`clide`'));
+      expect(note, contains('from your first turn'));
+      // Acceptance #4: a short nudge, not a wall of text crowding clideContextNote.
+      expect(note.length, lessThan(360));
+    });
+  });
+
   group('clideBashAllowRule (T-217)', () {
     test('is the command-scoped Bash rule and rides on --allowedTools', () {
       expect(clideBashAllowRule, 'Bash(clide:*)');

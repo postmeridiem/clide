@@ -54,6 +54,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- **Fresh Claude sessions are nudged to use the bundled skills.** New tabs and
+  post-`/clear` respawns get a one-line prompt to load the `pql` + `clide`
+  skills from the first turn; resumed/forked sessions are left alone. (T-490)
 - **Claude meta sidebar facelift.** The Activity, Team, and Config tabs render
   their sections as elevated cards with small-caps headers, matching the
   settings overlay's card design. (T-158)

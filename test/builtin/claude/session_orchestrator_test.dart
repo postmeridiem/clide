@@ -53,6 +53,22 @@ void main() {
     expect(spawnedArgs.single, isNot(contains('--effort')));
   });
 
+  test('a fresh session gets the skills nudge; resume + fork do not (T-490)', () async {
+    String appendPrompt(List<String> args) {
+      final i = args.indexOf('--append-system-prompt');
+      return i >= 0 ? args[i + 1] : '';
+    }
+
+    await orch.spawn(spec('primary')); // fresh (resume:false)
+    expect(appendPrompt(spawnedArgs.single), contains('from your first turn'), reason: 'fresh session is nudged');
+
+    await orch.spawn(SpawnSpec(id: 'resumed', role: 'r', sessionId: 'r-uuid', cwd: '/repo', resume: true));
+    expect(appendPrompt(spawnedArgs.last), isNot(contains('from your first turn')), reason: 'resume carries context');
+
+    await orch.spawn(SpawnSpec(id: 'fork', role: 'f', sessionId: 'f-uuid', cwd: '/repo', forkSourceSessionId: 'primary-uuid'));
+    expect(appendPrompt(spawnedArgs.last), isNot(contains('from your first turn')), reason: 'fork inherits its source');
+  });
+
   test('spawns multiple concurrent sessions, each with its own process', () async {
     await orch.spawn(spec('primary'));
     await orch.spawn(spec('teammate:tyre'));
