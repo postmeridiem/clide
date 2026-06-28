@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **`clide project new <name> [--dir <parent>]`.** Create a new clide project —
+  a fresh dir, `git init`, and a minimal scaffold. `--dir` defaults to the
+  current workspace's parent. (T-487, story T-486)
 - **Claude account login pane.** `account login` (and the UI add/re-login
   affordances) open a modal terminal running `CLAUDE_CONFIG_DIR=<dir> claude
   login`; the CLI owns the OAuth flow, credentials land in that account's dir.

@@ -7260,3 +7260,4 @@ Considerations:
 2. The post-/clear respawn also gets it (it spawns through the same path).
 3. A --resume of an existing session does NOT get re-injected.
 4. The text is short and does not crowd out clideContextNote.', NULL, '2026-06-28 06:15:53', '2026-06-28 06:15:53.132', '2026-06-28 06:15:53.132', NULL, 'd5caf6198c0cad2fbd79b01261659d82', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGSQ789MDB00EQAXTXBVJDXM', 'status', 'in_progress', 'done', NULL, '2026-06-28 06:23:06', '2026-06-28 06:23:06.440', '2026-06-28 06:23:06.440', NULL, 'f6b2c96ac6770981215615c3c467d907', 2) ON CONFLICT(hash) DO NOTHING;

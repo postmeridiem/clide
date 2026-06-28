@@ -43,6 +43,7 @@ import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
 import 'package:clide/src/daemon/image_commands.dart';
+import 'package:clide/src/daemon/project_commands.dart';
 import 'package:clide/src/daemon/instance_command.dart';
 import 'package:clide/src/daemon/log_commands.dart';
 import 'package:clide/src/daemon/pane_commands.dart';
@@ -332,6 +333,14 @@ Future<void> main() async {
     registerEditorCommands(dispatcher, editorRegistry);
     final gitClient = GitClient(toolchain: tc, workDir: workRoot);
     registerGitCommands(dispatcher, gitClient, eventSink);
+    // `clide project new <name>` (T-487): create + git-init a new project dir.
+    // git init runs over the *new* dir via the toolchain; --dir defaults to the
+    // current workspace's parent so a new project lands beside this one.
+    registerProjectCommands(
+      dispatcher,
+      gitInit: (dir) => GitClient(toolchain: tc, workDir: Directory(dir)).init(),
+      defaultParent: () => workRoot.parent.path,
+    );
     final pql = PqlClient(workDir: workRoot, toolchain: tc);
     registerPqlCommands(dispatcher, pql);
     registerPanelCommands(dispatcher, ArrangementPanelResizer(arrangement));
