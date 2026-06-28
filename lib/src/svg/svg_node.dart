@@ -141,10 +141,35 @@ class SvgViewBox {
   final double minX, minY, width, height;
 }
 
+/// A per-object overlay annotation (T-318, D-103): a caption and/or lightbox
+/// affordance anchored to an SVG element carrying `data-label` /
+/// `data-description` / `data-lightbox`. The rect is the element's axis-aligned
+/// bounding box in viewBox (user-space) coordinates with its transform applied;
+/// the Flutter overlay maps it through the same viewBox→size fit the painter
+/// uses, so captions sit under the right spot.
+class SvgAnnotation {
+  const SvgAnnotation({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    this.label,
+    this.description,
+    this.lightbox = false,
+    this.href,
+  });
+
+  final double x, y, width, height;
+  final String? label, description;
+  final bool lightbox;
+  final String? href; // image href, for a lightbox target
+}
+
 /// A parsed SVG document: optional intrinsic [width]/[height] (px), optional
-/// [viewBox], and the [root] group.
+/// [viewBox], the [root] group, marker defs, and per-object overlay
+/// [annotations].
 class SvgDocument {
-  const SvgDocument({this.width, this.height, this.viewBox, required this.root, this.markers = const {}});
+  const SvgDocument({this.width, this.height, this.viewBox, required this.root, this.markers = const {}, this.annotations = const []});
 
   static const empty = SvgDocument(root: SvgGroup(SvgStyle.initial, null, []));
 
@@ -154,4 +179,7 @@ class SvgDocument {
 
   /// `<marker>` definitions by id, referenced by path `marker-*`.
   final Map<String, SvgMarker> markers;
+
+  /// Overlay captions/lightbox anchors extracted from `data-*` attributes.
+  final List<SvgAnnotation> annotations;
 }

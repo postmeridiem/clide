@@ -120,5 +120,40 @@ void main() {
       expect((m.children.single as SvgPolyline).style.fill, 0xFF0D32B2);
       expect((d.root.children.single as SvgPath).markerEnd, 'arrow');
     });
+
+    test('a rect with data-label/data-description yields one annotation at its bbox', () {
+      final d = buildSvgDocument('<svg viewBox="0 0 100 100"><rect x="10" y="20" width="30" height="40" data-label="Box" data-description="a box"/></svg>');
+      final a = d.annotations.single;
+      expect([a.x, a.y, a.width, a.height], [10, 20, 30, 40]);
+      expect(a.label, 'Box');
+      expect(a.description, 'a box');
+      expect(a.lightbox, isFalse);
+    });
+
+    test('data-lightbox on an image yields a lightbox annotation carrying the href', () {
+      final d = buildSvgDocument('<svg><image x="0" y="0" width="8" height="8" href="pic.png" data-lightbox=""/></svg>');
+      final a = d.annotations.single;
+      expect(a.lightbox, isTrue);
+      expect(a.href, 'pic.png');
+    });
+
+    test('the annotation bbox respects the element transform', () {
+      final d = buildSvgDocument('<svg><rect x="0" y="0" width="10" height="10" transform="translate(5,5)" data-label="x"/></svg>');
+      expect([d.annotations.single.x, d.annotations.single.y], [5, 5]);
+    });
+
+    test('the annotation bbox respects an inherited group transform', () {
+      final d = buildSvgDocument('<svg><g transform="translate(100,0)"><rect x="0" y="0" width="10" height="10" data-label="x"/></g></svg>');
+      final a = d.annotations.single;
+      expect([a.x, a.y, a.width, a.height], [100, 0, 10, 10]);
+    });
+
+    test('elements without data-* produce no annotations', () {
+      expect(buildSvgDocument('<svg><rect width="10" height="10"/></svg>').annotations, isEmpty);
+    });
+
+    test('a group with data-label is skipped — annotations anchor leaf shapes', () {
+      expect(buildSvgDocument('<svg><g data-label="grp"><rect width="10" height="10"/></g></svg>').annotations, isEmpty);
+    });
   });
 }
