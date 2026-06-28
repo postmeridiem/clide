@@ -146,6 +146,7 @@ You might also want, project-permitting:
 - [D-102: i18n routing — ext-id namespaces, `core` catalog, ClideSettings.i18n facade, contribution keys](decisions/accessibility.md#d-102-i18n-routing--ext-id-namespaces-core-catalog-clidesettingsi18n-facade-contribution-keys) — _accessibility_
 - [D-103: Drawing-card primitive layer is SVG; the SVG renderer is the engine](decisions/architecture.md#d-103-drawing-card-primitive-layer-is-svg-the-svg-renderer-is-the-engine) — _architecture_
 - [D-104: Explicit supporter-binary path overrides in user-scope settings](decisions/tooling.md#d-104-explicit-supporter-binary-path-overrides-in-user-scope-settings) — _tooling_
+- [D-105: Support Vibe CLI as opt-in alternative to Claude Code CLI](decisions/llm.md#d-105-support-vibe-cli-as-opt-in-alternative-to-claude-code-cli) — _llm_
 
 ## Open questions
 
