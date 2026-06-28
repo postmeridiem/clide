@@ -91,3 +91,35 @@ class SupporterBinaries {
 }
 
 bool _fileExists(String p) => File(p).existsSync();
+
+/// The user-scope SettingsStore key (app layer, `~/.clide`, per-machine) holding
+/// the tool→absolute-path override map.
+const supporterToolsKey = 'app.tools';
+
+/// The external supporter binaries clide auto-detects (pql/git are bundled per
+/// D-58/D-59 and excluded).
+const knownSupporterTools = ['claude', 'd2'];
+
+/// Build a [SupporterBinaries] from persisted overrides, auto-detecting on first
+/// run (D-104). [readOverrides] returns the stored map (or null if unset);
+/// [writeOverrides] persists a freshly-detected one. Injected (not the
+/// SettingsStore directly) so this stays Flutter-free and `dart test`-able;
+/// [detect] is the prober (defaults to a real [SupporterBinaries]).
+Future<SupporterBinaries> loadSupporterBinaries({
+  required Map<dynamic, dynamic>? Function() readOverrides,
+  required Future<void> Function(Map<String, String>) writeOverrides,
+  List<String> tools = knownSupporterTools,
+  SupporterBinaries Function()? detect,
+}) async {
+  final raw = readOverrides();
+  if (raw != null) return SupporterBinaries(overrides: _asStringMap(raw));
+  // First run: probe once, persist (pinned), and use the result.
+  final detected = (detect?.call() ?? SupporterBinaries()).detect(tools);
+  await writeOverrides(detected);
+  return SupporterBinaries(overrides: detected);
+}
+
+Map<String, String> _asStringMap(Map<dynamic, dynamic> raw) => {
+  for (final e in raw.entries)
+    if (e.key is String && e.value is String) e.key as String: e.value as String,
+};

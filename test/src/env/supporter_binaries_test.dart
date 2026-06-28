@@ -59,4 +59,39 @@ void main() {
       expect(r.detect(['d2'])['d2'], '/usr/bin/d2');
     });
   });
+
+  group('loadSupporterBinaries', () {
+    test('first run detects the tools and persists the result', () async {
+      Map<String, String>? written;
+      final probe = SupporterBinaries(exists: {'/usr/bin/claude'}.contains, searchPath: () => '/usr/bin', home: '/h');
+      await loadSupporterBinaries(readOverrides: () => null, writeOverrides: (m) async => written = m, tools: ['claude', 'd2'], detect: () => probe);
+      expect(written, {'claude': '/usr/bin/claude'});
+    });
+
+    test('first run with nothing found still persists (marks first-run done)', () async {
+      Map<String, String>? written;
+      await loadSupporterBinaries(
+        readOverrides: () => null,
+        writeOverrides: (m) async => written = m,
+        detect: () => SupporterBinaries(exists: (_) => false, searchPath: () => '/usr/bin'),
+      );
+      expect(written, isEmpty);
+    });
+
+    test('a subsequent run uses stored overrides without detecting or writing', () async {
+      var wrote = false, detected = false;
+      final r = await loadSupporterBinaries(
+        readOverrides: () => {'d2': '/pin/d2'},
+        writeOverrides: (m) async => wrote = true,
+        detect: () {
+          detected = true;
+          return SupporterBinaries();
+        },
+      );
+      expect(wrote, isFalse);
+      expect(detected, isFalse);
+      // The stored override loaded — /pin/d2 isn't a real file, so it reads stale.
+      expect(r.isStalePin('d2'), isTrue);
+    });
+  });
 }
