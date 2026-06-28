@@ -10,7 +10,7 @@ multi-LLM support in clide.
 - **Date:** 2026-06-28
 - **Status:** confirmed
 - **Supersedes:** None
-- **See Also:** online-mistral-analysis.md, D-6 (CLI/UI parity), D-56 (single process)
+- **See Also:** docs/spikes/vibe-cli-integration-analysis.md, D-6 (CLI/UI parity), D-56 (single process)
 - **Raised by:** Mistral Vibe evaluation
 
 #### Decision
@@ -36,7 +36,7 @@ ability to switch to Mistral's offerings. Two paths were considered:
    (`--resume`), MCP servers, and JSONL transcripts. Effort: 1-2 weeks.
    Parity: ~95%.
 
-The analysis in `online-mistral-analysis.md` confirms Vibe CLI is the
+The analysis in `docs/spikes/vibe-cli-integration-analysis.md` confirms Vibe CLI is the
 **production-ready path**.
 
 #### Architectural Choice
