@@ -41,19 +41,37 @@ T-317 wireframe set, 2026-06-28.
 
 ## Primitive layer = a bounded SVG subset
 
-The renderer supports the subset our templates + d2 / graphviz / mermaid emit —
-**not** a full SVG engine:
+Grounded in a real d2 sample + our own templates — **not** a full SVG engine:
 
-- shapes: `rect`, `line`, `polyline`, `polygon`, `circle`, `ellipse`, `path`
-- `text` (incl. the bundled **Phosphor** font for glyphs)
-- `image` (`href` → resolved path; raster)
-- `g` + `transform` (translate / scale), basic `fill` / `stroke` /
-  `stroke-width` / `opacity`, `rx`/`ry` corners
-- **Out of scope** unless a template needs it (decide then): filters,
-  animations, rich gradients, `foreignObject`, scripting.
+- **structure:** `<svg>` (viewBox/width/height, incl. nested `<svg>`), `<g>`
+  (transform, opacity, class), `<defs>`, `<marker>` (+ marker-start/mid/end,
+  `orient="auto"`, refX/refY, viewBox) — edge **arrowheads**
+- **shapes:** `rect` (rx/ry), `circle`, `ellipse`, `line`, `polyline`,
+  `polygon`, `path` (full data — `M L H V C S Q T A Z` + relatives)
+- **text:** `text` + `tspan` (x/y/dx/dy, font-family incl. **Phosphor**,
+  font-size/weight, text-anchor, dominant-baseline)
+- **raster:** `image` (`href`/`xlink:href`, x/y/w/h, preserveAspectRatio)
+- **styling:** presentation attrs (fill, fill-opacity, stroke, stroke-width,
+  stroke-linecap/linejoin, stroke-dasharray, opacity, color), `transform`
+  (translate/scale/rotate/matrix); `class=` resolved by the normalizer below
+- **deferred v1:** `<mask>` (d2 masks connections for clean edge/node joins) —
+  ignore and lean on node-over-edge paint order; add only if output looks wrong
+- **out:** `foreignObject`, filters, `<animate>`/SMIL, scripting,
+  `<use>`/`<symbol>`, gradients, patterns, `clipPath` → **mermaid is not a
+  launch target** (it leans on `foreignObject`)
 
 `color` everywhere is an **arbitrary value** (hex / named) — content, not a clide
 `SurfaceTokens` token (D-7 governs clide chrome, not rendered content).
+
+### Class styling → inline-normalize (not a render-time CSS engine)
+
+d2 / graphviz emit a `<style>` block of flat single-class selectors
+(`.fill-B1`, `.shape`, `.connection`, `.text-bold` → presentation props), not
+inline attributes. A **preprocessing normalizer** parses `<style>` into
+class→props and merges each element's class props into inline presentation
+attributes (inline wins), then drops `<style>`. The painter therefore only ever
+sees inline attrs — a pure, testable presentation-attribute renderer. The
+normalizer is a bounded, fixture-testable transform (real d2 + graphviz output).
 
 ## Overlay (clide chrome, layered over the SVG)
 
@@ -99,10 +117,14 @@ Unknown `template`, unparseable / unsupported SVG, bad `href` / glyph / `color`
 3. **Templates:** image / icon (T-316 / T-313) → compare (T-319) → d2 (T-494) →
    graph (T-321, after the graph subsystem T-323).
 
-## Open decisions (resolve before the relevant step)
+## Decisions
 
-- **SVG subset boundary (T-320):** now the substrate — bound it to what our
-  templates + d2 / graphviz emit; expand deliberately.
-- **D2 compiler (T-494):** shell out to a `d2` binary as a pql-style supporter
-  tool, vs. vendor.
-- **Graph (T-321):** gated on the native graph subsystem (D-46 / T-323).
+- **SVG subset boundary (T-320): RESOLVED** — see the subset above, grounded in
+  a real d2 sample; expand deliberately.
+- **Class styling (T-320): RESOLVED** — inline-normalize, not a render-time CSS
+  engine (above).
+- **Tool-PATH resolution: RESOLVED** — explicit user-scope override + first-run
+  auto-detect (D-104 / T-495); the d2 binary resolves through it.
+- **D2 compiler delivery (T-494): open** — shell out to a `d2` binary as a
+  pql-style supporter tool (resolution now handled by D-104), vs. vendor.
+- **Graph (T-321): gated** on the native graph subsystem (D-46 / T-323).
