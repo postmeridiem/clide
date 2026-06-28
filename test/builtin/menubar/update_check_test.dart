@@ -3,10 +3,30 @@
 /// network). Flutter-free.
 library;
 
+import 'dart:io';
+
 import 'package:clide/builtin/menubar/src/update_check.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('githubGet (real HTTP against a loopback server)', () {
+    test('returns the body on 200 and throws on a non-200', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((req) {
+        if (req.uri.path == '/ok') {
+          req.response.write('{"tag_name":"v1.0.0"}');
+        } else {
+          req.response.statusCode = 404;
+        }
+        req.response.close();
+      });
+      final base = 'http://127.0.0.1:${server.port}';
+      expect(await githubGet(Uri.parse('$base/ok')), contains('v1.0.0'));
+      expect(() => githubGet(Uri.parse('$base/missing')), throwsA(isA<HttpException>()));
+    });
+  });
+
   group('compareSemver', () {
     test('compares major.minor.patch numerically (2.3.10 > 2.3.9)', () {
       expect(compareSemver('2.3.10', '2.3.9'), 1);
