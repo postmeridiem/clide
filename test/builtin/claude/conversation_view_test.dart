@@ -326,6 +326,31 @@ void main() {
       expect(find.byKey(const ValueKey('turn.B')), findsOneWidget);
     });
 
+    testWidgets('a driven-in drawing card renders the SVG + caption (T-318)', (tester) async {
+      tester.view.physicalSize = const Size(900, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final stream = StreamController<ConversationItem>.broadcast();
+      final c = ConversationController(stream: stream.stream);
+      addTearDown(c.dispose);
+      await tester.pumpWidget(harness(f, ConversationView(controller: c, foldLevel: FoldLevel.none)));
+      stream.add(
+        DrawingMessage(
+          uuid: 'D',
+          timestamp: _t,
+          isSidechain: false,
+          svg: '<svg viewBox="0 0 20 10"><rect width="20" height="10" fill="#FF0000"/></svg>',
+          label: 'Build pipeline',
+          description: 'how it connects',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('turn.D')), findsOneWidget);
+      expect(find.text('Build pipeline'), findsOneWidget);
+      expect(find.text('how it connects'), findsOneWidget);
+    });
+
     testWidgets('a folded activity cluster carries a stable identity key (T-285)', (tester) async {
       tester.view.physicalSize = const Size(900, 800);
       tester.view.devicePixelRatio = 1.0;

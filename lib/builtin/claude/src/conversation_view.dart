@@ -22,6 +22,8 @@ import 'package:clide/builtin/claude/src/file_tail_follower.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/src/svg/svg_document.dart' show buildSvgDocument;
+import 'package:clide/widgets/src/draw/drawing_card.dart';
 import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/kernel/src/facade.dart';
 import 'package:clide/kernel/src/keymap/intents.dart';
@@ -701,7 +703,19 @@ class _ConversationTurn extends StatelessWidget {
       AssistantToolUse() => collapseTools ? _toolUseCollapser(context, i) : _toolContentCard(context, i),
       ToolResultMessage() => _toolResult(context, i),
       ImageMessage() => _image(context, i),
+      DrawingMessage() => _drawing(context, i),
     };
+  }
+
+  /// A driven-in drawing card (T-318): the SVG rendered inline by clide's own
+  /// CustomPaint engine (D-103), display-only per D-78, with an optional
+  /// label/description caption.
+  Widget _drawing(BuildContext context, DrawingMessage m) {
+    return ConversationCard(
+      accent: tokens.globalTextMuted,
+      label: ClideSettings.i18n.string(context, 'conversation.label.drawing', namespace: 'builtin.claude', placeholder: 'drawing'),
+      body: DrawingCard(document: buildSvgDocument(m.svg), label: m.label, description: m.description),
+    );
   }
 
   /// A driven-in image card (T-249): the image rendered inline, clide-owned
@@ -1277,5 +1291,7 @@ String _summarizeActivity(BuildContext context, ConversationItem item) {
       return text;
     case ImageMessage(:final path):
       return '${label('conversation.label.image', 'image')} $path';
+    case DrawingMessage(label: final cardLabel):
+      return '${label('conversation.label.drawing', 'drawing')}${cardLabel != null ? ' $cardLabel' : ''}';
   }
 }

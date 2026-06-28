@@ -17,6 +17,8 @@ import 'dart:convert';
 
 import '../draw/draw_dispatch.dart';
 import '../draw/draw_doc.dart';
+
+export '../draw/draw_dispatch.dart' show DrawingFileReader, DrawingRegistry, DrawingTemplateHandler;
 import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';

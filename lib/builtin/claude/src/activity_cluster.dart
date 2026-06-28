@@ -162,6 +162,7 @@ bool _isFoldable(ConversationItem item, FoldLevel level, Map<String, String> too
     case UserMessage():
     case AssistantTextMessage():
     case ImageMessage():
+    case DrawingMessage():
       return false;
     // Thinking folds at L2+, first-class at L1.
     case AssistantThinkingMessage():

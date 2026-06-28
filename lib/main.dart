@@ -39,6 +39,7 @@ import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/clide.dart' show clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/draw_commands.dart';
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
@@ -359,6 +360,24 @@ Future<void> main() async {
       resolve: (path) {
         final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
         return file.existsSync() ? file.absolute.path : null;
+      },
+    );
+    // `clide draw --file <doc>` — drive a drawing card into the Claude
+    // conversation (T-318, drive-half of D-6). Reads the JSON doc relative to
+    // workRoot, lowers it to SVG via the template registry (primitive svg now;
+    // d2/icon/compare/image handlers register as they land), then publishes a
+    // 'draw' message the Claude extension injects.
+    registerDrawCommands(
+      dispatcher,
+      () => kernelMessages?.publish,
+      registry: DrawingRegistry(),
+      readFile: (path) async {
+        final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
+        try {
+          return file.existsSync() ? await file.readAsString() : null;
+        } catch (_) {
+          return null;
+        }
       },
     );
     // `clide claude account …` — manage per-repo Claude accounts (T-480, epic

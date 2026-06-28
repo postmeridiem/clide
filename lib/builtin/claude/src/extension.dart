@@ -19,9 +19,10 @@ import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart' show kEffortLevels, kFallbackModels, kPermissionModes;
 import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
-import 'package:clide/builtin/claude/src/transcript_reader.dart' show ImageMessage;
+import 'package:clide/builtin/claude/src/transcript_reader.dart' show DrawingMessage, ImageMessage;
 import 'package:clide/src/daemon/claude_account_commands.dart' show accountActionChannel;
 import 'package:clide/src/daemon/project_commands.dart' show projectCreatedChannel;
+import 'package:clide/src/daemon/draw_commands.dart' show drawShowChannel;
 import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
@@ -524,6 +525,11 @@ class ClaudeExtension extends ClideExtension {
     // user is looking at (the primary lead, else the first visible session).
     _subs.add(ctx.messages.subscribe(channel: imageShowChannel).listen(_onImageShow));
 
+    // `clide draw --file <doc>` (T-318): the dispatcher lowers the doc to SVG
+    // and publishes a 'draw' message; we inject the drawing card into the
+    // conversation the user is looking at.
+    _subs.add(ctx.messages.subscribe(channel: drawShowChannel).listen(_onDrawShow));
+
     // A sidebar "pick up" click (T-327) publishes the full ticket; inject it
     // into the active conversation as a user turn so Claude starts working it.
     _subs.add(ctx.messages.subscribe(publisher: 'builtin.tickets', channel: 'pick-up').listen(_onTicketPickUp));
@@ -635,6 +641,26 @@ class ClaudeExtension extends ClideExtension {
         isSidechain: false,
         path: path,
         caption: m.data['caption'] as String?,
+      ),
+    );
+  }
+
+  /// Inject a [DrawingMessage] from a published `draw` bus message (T-318).
+  /// Dropped silently if no live conversation is available — the CLI already
+  /// reported success at publish time, and a missing pane is transient.
+  void _onDrawShow(Message m) {
+    final svg = m.data['svg'] as String?;
+    if (svg == null || svg.isEmpty) return;
+    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    if (target == null) return;
+    target.conversation.inject(
+      DrawingMessage(
+        uuid: 'draw-${DateTime.now().microsecondsSinceEpoch}',
+        timestamp: DateTime.now(),
+        isSidechain: false,
+        svg: svg,
+        label: m.data['label'] as String?,
+        description: m.data['description'] as String?,
       ),
     );
   }

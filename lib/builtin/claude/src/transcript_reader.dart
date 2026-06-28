@@ -190,6 +190,24 @@ final class ImageMessage extends ConversationItem {
   String toString() => 'ImageMessage($path${caption != null ? ', "$caption"' : ''})';
 }
 
+/// A locally-injected drawing card (T-318). Not parsed from the transcript —
+/// driven into the conversation by `clide draw --file <doc>` (D-6 parity) and
+/// rendered display-only per D-78. [svg] is the SVG substrate the renderer
+/// paints (already lowered from the doc's template / primitive source);
+/// [label] / [description] are the optional card caption.
+final class DrawingMessage extends ConversationItem {
+  const DrawingMessage({required super.uuid, required super.timestamp, required super.isSidechain, required this.svg, this.label, this.description});
+
+  /// The SVG document source the renderer paints.
+  final String svg;
+
+  /// Optional card-level caption (label + supporting description).
+  final String? label, description;
+
+  @override
+  String toString() => 'DrawingMessage(${label ?? '<svg>'})';
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
