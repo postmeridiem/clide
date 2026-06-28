@@ -144,6 +144,7 @@ You might also want, project-permitting:
 - [D-100: Fence `dart:ffi` behind conditional imports + web stubs to keep the web/WASM target compiling](decisions/tooling.md#d-100-fence-dartffi-behind-conditional-imports--web-stubs-to-keep-the-webwasm-target-compiling) — _tooling_
 - [D-101: ClideSettings — one live-preferences access facade](decisions/architecture.md#d-101-clidesettings--one-live-preferences-access-facade) — _architecture_
 - [D-102: i18n routing — ext-id namespaces, `core` catalog, ClideSettings.i18n facade, contribution keys](decisions/accessibility.md#d-102-i18n-routing--ext-id-namespaces-core-catalog-clidesettingsi18n-facade-contribution-keys) — _accessibility_
+- [D-103: Drawing-card primitive layer is SVG; the SVG renderer is the engine](decisions/architecture.md#d-103-drawing-card-primitive-layer-is-svg-the-svg-renderer-is-the-engine) — _architecture_
 
 ## Open questions
 
