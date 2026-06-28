@@ -264,6 +264,8 @@ else ifeq ($(FLUTTER_OS),macos)
 endif
 
 # -- dugite-native (bundled git) ------------------------------------------
+# Security tracking (D-59): run `make dugite-check` quarterly, or on a git CVE,
+# to compare this pin against the latest upstream release. T-88 is the calendar.
 
 DUGITE_VERSION := v2.53.0-3
 DUGITE_COMMIT  := f49d009
@@ -329,6 +331,10 @@ clide-cli-clean: ## Remove the compiled C `clide` client.
 .PHONY: security
 security: ## Supply-chain gate — osv-scanner over pubspec.lock (CI PR-merge pipeline; run locally on demand). Fails on a known advisory.
 	ci/osv_scan.sh
+
+.PHONY: dugite-check
+dugite-check: ## Track dugite-native (bundled git) upstream releases for security drift (T-88 / D-59). Run quarterly, or on a git CVE. Informational, not a gate.
+	ci/check_dugite_version.sh
 
 # -- pre-push gate --------------------------------------------------------
 
