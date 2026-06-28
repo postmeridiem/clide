@@ -75,6 +75,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- **No more i18n "missing key" log spam for tool names.** Proper-name tools
+  (Bash, ScheduleWakeup, MCP tools, …) intentionally have no catalog entry and
+  fall back to the raw name; the conversation pane no longer logs a warning for
+  each. (T-493)
 - **`clide` CLI honors `CLIDE_SOCK`.** The shell client now connects to the
   socket named by `CLIDE_SOCK` when set — an explicit target (e.g. a spawned
   agent pinning its parent instance) that beats workspace auto-discovery — and

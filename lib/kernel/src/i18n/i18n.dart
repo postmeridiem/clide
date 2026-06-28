@@ -92,10 +92,15 @@ class I18n extends ChangeNotifier {
   /// Look up a key, walking the locale fallback chain. Returns the
   /// placeholder if nothing hits; returns the key itself when placeholder
   /// is null (developer fallback — keys are more useful than blanks).
-  String string(String key, {required String namespace, String? placeholder}) {
+  /// [warnIfMissing] false suppresses the missing-key warning for OPEN-ENDED
+  /// lookups where a miss is the normal case, not a bug — e.g. tool display
+  /// names (`tool.name.Bash`, `tool.name.ScheduleWakeup`, MCP tools), which are
+  /// proper-name identifiers that intentionally fall back to the raw name. Keep
+  /// the warning on for fixed UI strings, where a miss is a real translation gap.
+  String string(String key, {required String namespace, String? placeholder, bool warnIfMissing = true}) {
     final byLocale = _cache[namespace];
     if (byLocale == null) {
-      _warnOnce('$namespace::MISSING_NAMESPACE::$key', 'i18n: namespace not registered: $namespace (key: $key)');
+      if (warnIfMissing) _warnOnce('$namespace::MISSING_NAMESPACE::$key', 'i18n: namespace not registered: $namespace (key: $key)');
       return placeholder ?? key;
     }
 
@@ -108,7 +113,9 @@ class I18n extends ChangeNotifier {
       if (hit != null) return hit;
     }
 
-    _warnOnce('$namespace::${_current.languageCode}::$key', 'i18n: missing key "$key" in namespace "$namespace" (locale ${_current.toString()})');
+    if (warnIfMissing) {
+      _warnOnce('$namespace::${_current.languageCode}::$key', 'i18n: missing key "$key" in namespace "$namespace" (locale ${_current.toString()})');
+    }
     return placeholder ?? key;
   }
 

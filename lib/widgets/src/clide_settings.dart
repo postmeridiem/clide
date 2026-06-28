@@ -54,9 +54,9 @@ class _I18n {
   /// uniform widget-facing lookup (T-462). [placeholder] is the inline English
   /// fallback. With no kernel in scope (isolated primitive tests) it returns
   /// the placeholder, so a widget never needs one to render.
-  String string(BuildContext context, String key, {required String namespace, String? placeholder}) {
+  String string(BuildContext context, String key, {required String namespace, String? placeholder, bool warnIfMissing = true}) {
     final i = ClideKernel.maybeOf(context)?.i18n;
-    return i == null ? (placeholder ?? key) : i.string(key, namespace: namespace, placeholder: placeholder);
+    return i == null ? (placeholder ?? key) : i.string(key, namespace: namespace, placeholder: placeholder, warnIfMissing: warnIfMissing);
   }
 
   /// [string] with `replaceAll` interpolation per replacer (templated labels).

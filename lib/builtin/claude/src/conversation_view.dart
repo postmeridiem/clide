@@ -1162,10 +1162,11 @@ class _ActivityCard extends StatelessWidget {
 }
 
 /// Localized display label for a tool name (T-462). File/web/task operations
-/// have natural translations; command/proper-name tools (Bash, Grep, Glob, LS)
-/// have no catalog key and fall back to the raw name via the placeholder.
+/// have natural translations; command/proper-name tools (Bash, Grep, Glob,
+/// ScheduleWakeup, MCP tools, …) have no catalog key by design and fall back to
+/// the raw name — so `warnIfMissing: false` keeps a miss from logging (T-493).
 String _toolNameLabel(BuildContext context, String name) =>
-    ClideSettings.i18n.string(context, 'tool.name.$name', namespace: 'builtin.claude', placeholder: name);
+    ClideSettings.i18n.string(context, 'tool.name.$name', namespace: 'builtin.claude', placeholder: name, warnIfMissing: false);
 
 /// Localized "N steps" counter for a collapser header (T-462). Singular and
 /// plural are distinct catalog keys; the English forms double as the fallback.

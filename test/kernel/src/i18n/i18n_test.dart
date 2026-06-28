@@ -217,4 +217,34 @@ void main() {
       expect(FallbackChain.filenameSuffix(const Locale('en')), 'en');
     });
   });
+
+  // T-493: open-ended lookups (tool display names like `tool.name.Bash`,
+  // `tool.name.ScheduleWakeup`, MCP tools) intentionally miss and fall back to
+  // the raw name, so they must not spam the warn log.
+  group('warnIfMissing (T-493)', () {
+    I18n withCapture(List<Object> warns) => I18n(
+      loader: InMemoryCatalogLoader(const {}),
+      log: Logger(minLevel: LogLevel.warn, sinks: [warns.add]),
+      defaultLocale: const Locale('en', 'US'),
+    );
+
+    test('a real gap warns by default, but warnIfMissing:false stays silent', () async {
+      final warns = <Object>[];
+      final i = withCapture(warns);
+      await i.ensureNamespaceLoaded('builtin.x');
+
+      expect(i.string('missing', namespace: 'builtin.x', placeholder: 'fb'), 'fb');
+      expect(warns, isNotEmpty, reason: 'a fixed UI string gap should still warn');
+
+      warns.clear();
+      expect(i.string('tool.name.Bash', namespace: 'builtin.x', placeholder: 'Bash', warnIfMissing: false), 'Bash');
+      expect(warns, isEmpty, reason: 'open-ended tool-name lookups stay quiet');
+    });
+
+    test('warnIfMissing:false also silences an unregistered namespace', () {
+      final warns = <Object>[];
+      expect(withCapture(warns).string('k', namespace: 'unregistered', placeholder: 'p', warnIfMissing: false), 'p');
+      expect(warns, isEmpty);
+    });
+  });
 }
