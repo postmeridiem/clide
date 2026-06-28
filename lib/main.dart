@@ -58,6 +58,7 @@ import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/env/shell_env.dart' show primeLoginShellPath;
+import 'package:clide/src/env/supporter_binaries.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/mcp_server.dart';
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath, logDirectory;
@@ -114,6 +115,13 @@ Future<void> main() async {
     await primeLoginShellPath();
     final bootSettings = SettingsStore(appDir: appDir);
     await bootSettings.load();
+    // Resolve external supporter binaries (claude, d2, …) — explicit user-scope
+    // overrides first, else the primed PATH + the well-known dirs; auto-detect
+    // and pin them on first run (T-495, D-104).
+    activeSupporterBinaries = await loadSupporterBinaries(
+      readOverrides: () => bootSettings.get<Map>(supporterToolsKey),
+      writeOverrides: (m) => bootSettings.set(supporterToolsKey, m),
+    );
     startupWorkRoot = resolveStartupWorkspace(
       cwdRoot: startupWorkRoot,
       lastProject: bootSettings.get<String>('app.lastProject'),

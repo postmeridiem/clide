@@ -92,6 +92,11 @@ class SupporterBinaries {
 
 bool _fileExists(String p) => File(p).existsSync();
 
+/// The process-wide resolver, wired at boot via [loadSupporterBinaries]. Tool
+/// consumers (e.g. the d2 template, T-494) read it to resolve a binary; null in
+/// headless contexts where boot wiring hasn't run.
+SupporterBinaries? activeSupporterBinaries;
+
 /// The user-scope SettingsStore key (app layer, `~/.clide`, per-machine) holding
 /// the tool→absolute-path override map.
 const supporterToolsKey = 'app.tools';
