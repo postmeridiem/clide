@@ -16,6 +16,7 @@ class MarkdownExtension extends ClideExtension {
   List<String> get dependsOn => const [];
 
   StreamSubscription<Message>? _sub;
+  StreamSubscription<DaemonEvent>? _editorSub;
 
   @override
   List<ContributionPoint> get contributions => [
@@ -38,8 +39,21 @@ class MarkdownExtension extends ClideExtension {
       if (msg.data['path'] is! String) return;
       ctx.panels.activateTab(Slots.contextPanel, 'markdown.viewer');
     });
+    // Live-sync read-mirror (T-36, D-50 behavior 4): opening a renderable .md in
+    // the editor auto-reveals the reader, which then mirrors the buffer live.
+    // Non-renderable files reveal nothing (D-50 behavior 5).
+    _editorSub = ctx.events.on<DaemonEvent>().listen((e) {
+      if (e.subsystem != 'editor' || e.kind != 'editor.opened') return;
+      final path = e.data['path'] as String?;
+      if (path != null && isRenderableMarkdownPath(path)) {
+        ctx.panels.activateTab(Slots.contextPanel, 'markdown.viewer');
+      }
+    });
   }
 
   @override
-  Future<void> deactivate() async => _sub?.cancel();
+  Future<void> deactivate() async {
+    await _sub?.cancel();
+    await _editorSub?.cancel();
+  }
 }

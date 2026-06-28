@@ -391,4 +391,44 @@ void main() {
       expect(editorOpenArgs.first['path'], path);
     });
   });
+
+  // T-36 / D-50 behavior 4: live-sync read-mirror of the open editor buffer.
+  group('MarkdownViewer — live-sync mirror (T-36)', () {
+    DaemonEvent opened(String id, String path, String content) =>
+        DaemonEvent(subsystem: 'editor', kind: 'editor.opened', data: {'id': id, 'path': path, 'content': content}, ts: DateTime.now().toUtc());
+    DaemonEvent edited(String id) =>
+        DaemonEvent(subsystem: 'editor', kind: 'editor.edited', data: {'id': id, 'kind': 'replace', 'length': 0}, ts: DateTime.now().toUtc());
+
+    bool editVisible() => find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Edit in editor').evaluate().isNotEmpty;
+
+    testWidgets('mirrors the buffer on editor.opened, and the mirror is read-only', (tester) async {
+      await pumpView(tester, f);
+      f.services.events.emit(opened('b1', 'notes.md', '# Live mirror\n'));
+      await pumpAsync(tester);
+      expect(find.textContaining('Live mirror'), findsWidgets);
+      expect(editVisible(), isFalse, reason: 'no edit affordance while mirroring the live buffer');
+    });
+
+    testWidgets('re-reads the buffer on editor.edited and re-renders', (tester) async {
+      var content = '# First\n';
+      f.ipc.stub('editor.read', (args) async => _ok({'id': 'b1', 'path': 'notes.md', 'content': content}));
+      await pumpView(tester, f);
+      f.services.events.emit(opened('b1', 'notes.md', content));
+      await pumpAsync(tester);
+      expect(find.textContaining('First'), findsWidgets);
+
+      content = '# Second\n'; // the user typed in the editor
+      f.services.events.emit(edited('b1'));
+      await pumpAsync(tester);
+      expect(find.textContaining('Second'), findsWidgets);
+      expect(find.textContaining('First'), findsNothing);
+    });
+
+    testWidgets('a non-renderable editor.opened does not mirror (D-50 behavior 5)', (tester) async {
+      await pumpView(tester, f);
+      f.services.events.emit(opened('b9', 'main.py', 'print(1)'));
+      await pumpAsync(tester);
+      expect(find.textContaining('print'), findsNothing, reason: 'non-renderable file gets no auto-mirror');
+    });
+  });
 }

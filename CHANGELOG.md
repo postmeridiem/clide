@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Live-sync markdown read-mirror.** Editing a `.md` in the editor auto-opens a
+  read-only preview in the context panel that mirrors the buffer and re-renders
+  as you type; non-renderable files get no auto-viewer. (T-36, D-50)
 - **New project flow.** A "New project…" action in the welcome view creates +
   opens a project, then prompts for the Claude account to bind it to — the
   per-repo account roadblock fires only for freshly-created projects. (T-488,
