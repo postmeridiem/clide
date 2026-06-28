@@ -66,11 +66,27 @@ Future<NewProjectResult> createNewProject({required String parent, required Stri
   return NewProjectResult.ok(target);
 }
 
+/// `git init` an EXISTING folder that isn't a repo yet (T-489) — the "initialize
+/// this folder as a clide project" path. Unlike [createNewProject] it never
+/// creates the dir and never clobbers existing files; the scaffold is only
+/// written where absent.
+Future<NewProjectResult> initExistingProject({required String path, required ProjectGitInit gitInit}) async {
+  final trimmed = _stripTrailingSep(path.trim());
+  if (trimmed.isEmpty) return NewProjectResult.err('a directory is required');
+  if (!Directory(trimmed).existsSync()) return NewProjectResult.err('directory does not exist: $trimmed');
+  await gitInit(trimmed);
+  _writeScaffold(trimmed, trimmed.split('/').where((s) => s.isNotEmpty).lastOrNull ?? 'project');
+  return NewProjectResult.ok(trimmed);
+}
+
 void _writeScaffold(String dir, String name) {
   // Minimal + non-prescriptive: keep clide's own state out of git, and orient
-  // Claude with an empty CLAUDE.md stub. No language/framework templates.
-  File('$dir/.gitignore').writeAsStringSync('# clide\n.clide/\n');
-  File('$dir/CLAUDE.md').writeAsStringSync('# $name\n\nGuidance for Claude Code in this project.\n');
+  // Claude with an empty CLAUDE.md stub. No language/framework templates. Never
+  // clobbers — safe to run over an existing folder (T-489).
+  final gitignore = File('$dir/.gitignore');
+  if (!gitignore.existsSync()) gitignore.writeAsStringSync('# clide\n.clide/\n');
+  final claudeMd = File('$dir/CLAUDE.md');
+  if (!claudeMd.existsSync()) claudeMd.writeAsStringSync('# $name\n\nGuidance for Claude Code in this project.\n');
 }
 
 String _stripTrailingSep(String p) {
@@ -81,10 +97,12 @@ String _stripTrailingSep(String p) {
   return s;
 }
 
-/// Register `project.new`. [gitInit] runs git init; [defaultParent] supplies the
-/// parent dir when `--dir` is omitted (main.dart passes the current workspace's
-/// parent, so a new project lands beside the current one).
-void registerProjectCommands(DaemonDispatcher d, {required ProjectGitInit gitInit, String? Function()? defaultParent}) {
+/// Register `project.new` + `project.init`. [gitInit] runs git init;
+/// [defaultParent] supplies the new-project parent when `--dir` is omitted (the
+/// current workspace's parent); [defaultInitPath] supplies the init target when
+/// `--dir` is omitted (the current workspace, so `clide project init` inits the
+/// folder you're in).
+void registerProjectCommands(DaemonDispatcher d, {required ProjectGitInit gitInit, String? Function()? defaultParent, String? Function()? defaultInitPath}) {
   d.register('project.new', (req) async {
     final name = (req.args['name'] as String?)?.trim();
     if (name == null || name.isEmpty) return _err(req.id, 'project new requires a <name>');
@@ -96,6 +114,14 @@ void registerProjectCommands(DaemonDispatcher d, {required ProjectGitInit gitIni
     if (!result.ok) return _err(req.id, result.error!);
     return IpcResponse.ok(id: req.id, data: {'path': result.path, 'name': name});
   }, schema: const CommandSchema(positional: ['name'], args: {'name': ArgSpec(required: true, rejectLeadingDash: true), 'dir': ArgSpec()}));
+
+  d.register('project.init', (req) async {
+    final path = (req.args['dir'] as String?)?.trim() ?? defaultInitPath?.call();
+    if (path == null || path.isEmpty) return _err(req.id, 'no directory to initialize', hint: 'pass --dir <path>');
+    final result = await initExistingProject(path: path, gitInit: gitInit);
+    if (!result.ok) return _err(req.id, result.error!);
+    return IpcResponse.ok(id: req.id, data: {'path': result.path});
+  }, schema: const CommandSchema(args: {'dir': ArgSpec()}));
 }
 
 IpcResponse _err(String id, String message, {String? hint}) => IpcResponse.err(

@@ -221,7 +221,7 @@ class _StartColumn extends StatelessWidget {
         if (ok) {
           kernel.panels.activateTab(Slots.workspace, 'claude.primary');
         } else {
-          kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(path: picked, onDismiss: () => dismiss()));
+          kernel.dialog.show((ctx, dismiss) => _NotARepoDialog(kernel: kernel, path: picked, onDismiss: () => dismiss()));
         }
       }
       return;
@@ -641,16 +641,56 @@ class _OpenProjectDialogState extends State<_OpenProjectDialog> {
   }
 }
 
-class _NotARepoDialog extends StatelessWidget {
-  const _NotARepoDialog({required this.path, required this.onDismiss});
+/// Shown when the opened folder isn't a git repo. Rather than a dead end, it
+/// offers to initialize the folder as a clide project (T-489): `project.init`,
+/// open, and announce on [projectCreatedChannel] so the account roadblock fires
+/// — the same path a brand-new project takes.
+class _NotARepoDialog extends StatefulWidget {
+  const _NotARepoDialog({required this.kernel, required this.path, required this.onDismiss});
+  final KernelServices kernel;
   final String path;
   final VoidCallback onDismiss;
+
+  @override
+  State<_NotARepoDialog> createState() => _NotARepoDialogState();
+}
+
+class _NotARepoDialogState extends State<_NotARepoDialog> {
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _initialize() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final r = await widget.kernel.ipc.request(
+      'project.init',
+      args: {
+        'positional': <String>[],
+        'flags': {'dir': widget.path},
+      },
+    );
+    if (!mounted) return;
+    if (!r.ok) {
+      return setState(() {
+        _loading = false;
+        _error = r.error?.message ?? 'Could not initialize this folder.';
+      });
+    }
+    final opened = await widget.kernel.project.open(widget.path);
+    if (opened) widget.kernel.panels.activateTab(Slots.workspace, 'claude.primary');
+    widget.kernel.messages.publish('welcome', projectCreatedChannel, {'dir': widget.path});
+    widget.onDismiss();
+  }
+
+  String _t(String key, String fallback) => ClideSettings.i18n.string(context, key, namespace: 'builtin.welcome', placeholder: fallback);
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
     return Container(
-      width: 420,
+      width: 460,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: tokens.modalSurfaceBackground,
@@ -661,31 +701,21 @@ class _NotARepoDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClideText(
-            ClideSettings.i18n.string(context, 'dialog.notRepo.title', namespace: 'builtin.welcome', placeholder: 'No git repo found'),
-            fontSize: clideFontDialogTitle,
-            fontWeight: FontWeight.w600,
-          ),
+          ClideText(_t('dialog.notRepo.title', 'No git repo found'), fontSize: clideFontDialogTitle, fontWeight: FontWeight.w600),
           const SizedBox(height: 8),
-          ClideText(path, muted: true, fontSize: clideFontMeta),
+          ClideText(widget.path, muted: true, fontSize: clideFontMeta),
           const SizedBox(height: 8),
-          ClideText(
-            ClideSettings.i18n.string(
-              context,
-              'dialog.notRepo.body',
-              namespace: 'builtin.welcome',
-              placeholder: 'A clide project root requires a git repository.',
-            ),
-            muted: true,
-            fontSize: clideFontMeta,
-          ),
+          ClideText(_t('dialog.notRepo.body', 'A clide project needs a git repository. Initialize this folder as one?'), muted: true, fontSize: clideFontMeta),
+          if (_error != null) ...[const SizedBox(height: 8), ClideText(_error!, color: tokens.statusError, fontSize: clideFontSmall)],
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              ClideButton(label: _t('button.cancel', 'Cancel'), onPressed: widget.onDismiss),
+              const SizedBox(width: 8),
               ClideButton(
-                label: ClideSettings.i18n.string(context, 'button.ok', namespace: 'builtin.welcome', placeholder: 'OK'),
-                onPressed: () => onDismiss(),
+                label: _loading ? _t('button.initializing', 'Initializing…') : _t('dialog.notRepo.initialize', 'Initialize project'),
+                onPressed: _loading ? null : _initialize,
               ),
             ],
           ),

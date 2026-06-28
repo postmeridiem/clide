@@ -35,6 +35,8 @@
   "button.opening": { "translation": "Openen…" },
   "button.ok": { "translation": "OK" },
   "dialog.notRepo.title": { "translation": "Geen git-repo gevonden" },
-  "dialog.notRepo.body": { "translation": "Een clide-projecthoofdmap vereist een git-repository." },
+  "dialog.notRepo.body": { "translation": "Een clide-project heeft een git-repository nodig. Deze map als project initialiseren?" },
+  "dialog.notRepo.initialize": { "translation": "Project initialiseren" },
+  "button.initializing": { "translation": "Initialiseren…" },
   "command.workspace.open-project": { "translation": "Werkruimte: Project openen…" }
 }

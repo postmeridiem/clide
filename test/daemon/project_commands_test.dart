@@ -57,6 +57,43 @@ void main() {
     });
   });
 
+  group('initExistingProject + project.init', () {
+    test('inits an existing folder, scaffolds absent files, never clobbers', () async {
+      final inited = <String>[];
+      File('${parent.path}/CLAUDE.md').writeAsStringSync('keep me');
+      final r = await initExistingProject(path: parent.path, gitInit: (d) async => inited.add(d));
+      expect(r.ok, isTrue, reason: r.error);
+      expect(r.path, parent.path);
+      expect(inited, [parent.path]);
+      expect(File('${parent.path}/CLAUDE.md').readAsStringSync(), 'keep me', reason: 'existing file untouched');
+      expect(File('${parent.path}/.gitignore').existsSync(), isTrue, reason: 'absent file scaffolded');
+    });
+
+    test('refuses a missing directory', () async {
+      expect((await initExistingProject(path: '/no/such/dir/xyz', gitInit: (_) async {})).error, contains('does not exist'));
+    });
+
+    test('project.init verb inits --dir, and falls back to the default init path', () async {
+      final d = DaemonDispatcher();
+      registerProjectCommands(d, gitInit: (_) async {}, defaultInitPath: () => parent.path);
+      final r1 = await d.dispatch(
+        IpcRequest(
+          id: '1',
+          cmd: 'project.init',
+          args: {
+            'positional': const <String>[],
+            'flags': {'dir': parent.path},
+          },
+        ),
+      );
+      expect(r1.ok, isTrue, reason: r1.error?.message);
+      expect(r1.data['path'], parent.path);
+      final r2 = await d.dispatch(IpcRequest(id: '2', cmd: 'project.init', args: {'positional': const <String>[], 'flags': const {}}));
+      expect(r2.ok, isTrue, reason: r2.error?.message);
+      expect(r2.data['path'], parent.path);
+    });
+  });
+
   group('project.new command', () {
     Future<IpcResponse> run(List<String> positional, {Map<String, Object?>? flags, String? defaultParent}) {
       final d = DaemonDispatcher();

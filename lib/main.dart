@@ -340,6 +340,7 @@ Future<void> main() async {
       dispatcher,
       gitInit: (dir) => GitClient(toolchain: tc, workDir: Directory(dir)).init(),
       defaultParent: () => workRoot.parent.path,
+      defaultInitPath: () => workRoot.path,
     );
     final pql = PqlClient(workDir: workRoot, toolchain: tc);
     registerPqlCommands(dispatcher, pql);

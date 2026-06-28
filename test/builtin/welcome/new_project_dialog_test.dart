@@ -9,6 +9,7 @@ import 'package:clide/builtin/welcome/src/welcome_view.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/src/daemon/project_commands.dart' show projectCreatedChannel;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -78,5 +79,37 @@ void main() {
 
     expect(called, isFalse);
     expect(find.text('Enter a project name.'), findsOneWidget);
+  });
+
+  testWidgets('opening a non-repo folder offers Initialize, which dispatches project.init + announces (T-489)', (tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), (call) async {
+      return call.method == 'pickDirectory' ? '/tmp/not-a-repo' : null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('clide/window'), null));
+    Map<String, Object?>? initArgs;
+    f.ipc.setConnected(true);
+    f.ipc.stub('project.init', (args) async {
+      initArgs = args;
+      return IpcResponse.ok(id: 'r', data: {'path': '/tmp/not-a-repo'});
+    });
+    final announced = <Map<String, Object?>>[];
+    final sub = f.services.messages.subscribe(channel: projectCreatedChannel).listen((m) => announced.add(m.data));
+    addTearDown(sub.cancel);
+
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_harness(f, const WelcomeView()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open folder…'));
+    await tester.pumpAndSettle();
+    expect(find.text('Initialize project'), findsOneWidget);
+
+    await tester.tap(find.text('Initialize project'));
+    await tester.pumpAndSettle();
+    expect((initArgs?['flags'] as Map)['dir'], '/tmp/not-a-repo');
+    expect(announced.single['dir'], '/tmp/not-a-repo');
   });
 }
