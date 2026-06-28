@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Check for updates (About box).** Help → About has a manual "Check for
+  updates" button that compares your version to the latest GitHub release and
+  links to the notes — explicit and user-initiated, no background polling (the
+  first and only outbound call clide makes, on your action). (T-47)
 - **Live-sync markdown read-mirror.** Editing a `.md` in the editor auto-opens a
   read-only preview in the context panel that mirrors the buffer and re-renders
   as you type; non-renderable files get no auto-viewer. (T-36, D-50)

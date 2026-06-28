@@ -1,15 +1,23 @@
+import 'dart:async';
+
 import 'package:clide/clide.dart' show clideName, clideTagline, clideVersion, clideRepository, clideCommit, clideDate;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
 import 'package:flutter/widgets.dart';
 
 import 'licenses_loader.dart';
+import 'update_check.dart';
 
 /// The Help → About dialog (T-48): clide identity + build info, plus the
 /// bundled-dependency licenses parsed from `assets/licenses.yaml`.
 class AboutDialog extends StatelessWidget {
-  const AboutDialog({super.key, required this.onDismiss});
+  const AboutDialog({super.key, required this.onDismiss, this.updateFetch});
   final VoidCallback onDismiss;
+
+  /// Injected fetch for the update check, so widget tests never touch the
+  /// network (T-47 P1). Production passes null → the real [githubGet].
+  @visibleForTesting
+  final GithubFetch? updateFetch;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +60,8 @@ class AboutDialog extends StatelessWidget {
             value: clideRepository,
             tokens: tokens,
           ),
+          const SizedBox(height: 14),
+          _UpdateCheckRow(tokens: tokens, fetch: updateFetch),
           const SizedBox(height: 16),
           ClideText(
             ClideSettings.i18n.string(context, 'licenses.heading', namespace: 'builtin.menubar', placeholder: 'Bundled dependencies'),
@@ -73,6 +83,89 @@ class AboutDialog extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// "Check for updates" button + inline status (T-47 P1). The check runs only on
+/// this explicit tap — never on launch, never on a timer (D-64 / POLICY.md).
+class _UpdateCheckRow extends StatefulWidget {
+  const _UpdateCheckRow({required this.tokens, this.fetch});
+  final SurfaceTokens tokens;
+  final GithubFetch? fetch;
+
+  @override
+  State<_UpdateCheckRow> createState() => _UpdateCheckRowState();
+}
+
+class _UpdateCheckRowState extends State<_UpdateCheckRow> {
+  UpdateCheckResult? _result;
+  bool _checking = false;
+
+  Future<void> _check() async {
+    setState(() {
+      _checking = true;
+      _result = null;
+    });
+    final r = await checkForUpdate(repositoryUrl: clideRepository, currentVersion: clideVersion, fetch: widget.fetch ?? githubGet);
+    if (mounted) {
+      setState(() {
+        _checking = false;
+        _result = r;
+      });
+    }
+  }
+
+  String _t(String key, String fallback) => ClideSettings.i18n.string(context, key, namespace: 'builtin.menubar', placeholder: fallback);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        ClideButton(label: _t('about.checkUpdates', 'Check for updates'), onPressed: _checking ? null : _check),
+        const SizedBox(width: 12),
+        Expanded(child: _status(context)),
+      ],
+    );
+  }
+
+  Widget _status(BuildContext context) {
+    final tokens = widget.tokens;
+    if (_checking) return ClideText(_t('about.checking', 'Checking…'), fontSize: 12, color: tokens.globalTextMuted);
+    switch (_result) {
+      case null:
+        return const SizedBox.shrink();
+      case UpdateUpToDate():
+        return ClideText(_t('about.upToDate', "You're on the latest version."), fontSize: 12, color: tokens.globalTextMuted);
+      case UpdateAvailable(:final latest, :final url):
+        return Semantics(
+          button: true,
+          excludeSemantics: true,
+          label: 'clide $latest available — release notes',
+          child: ClideTappable(
+            cursor: SystemMouseCursors.click,
+            onTap: () => unawaited(ClideKernel.of(context).os.openURL(url)),
+            builder: (ctx, hovered, _) => ClideText(
+              ClideSettings.i18n.interpolated(
+                context,
+                'about.updateAvailable',
+                namespace: 'builtin.menubar',
+                placeholder: 'clide {version} is available — release notes',
+                replacers: [I18nReplacer(from: '{version}', replace: latest)],
+              ),
+              fontSize: 12,
+              color: tokens.globalFocus,
+            ),
+          ),
+        );
+      case UpdateCheckFailed(:final message):
+        return ClideText(
+          '${_t('about.updateFailed', "Couldn't check for updates")} ($message)',
+          fontSize: 12,
+          color: tokens.statusError,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+    }
   }
 }
 
