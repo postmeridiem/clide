@@ -44,6 +44,29 @@ void main() {
     expect(find.text('the entry point'), findsOneWidget);
   });
 
+  testWidgets('a source disclosure folds the d2 source under a collapser (T-494)', (tester) async {
+    await tester.pumpWidget(
+      anchoredHarness(
+        f,
+        SizedBox(
+          width: 400,
+          child: DrawingCard(
+            document: buildSvgDocument('<svg viewBox="0 0 20 10"><rect width="20" height="10"/></svg>'),
+            source: 'a -> b: hello',
+            sourceLabel: 'view d2 source',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    // The disclosure header shows; the source is folded away until expanded.
+    expect(find.text('view d2 source'), findsOneWidget);
+    expect(find.text('a -> b: hello'), findsNothing);
+    await tester.tap(find.text('view d2 source'));
+    await tester.pumpAndSettle();
+    expect(find.text('a -> b: hello'), findsOneWidget);
+  });
+
   testWidgets('a data-lightbox element fires onLightbox when tapped (T-318)', (tester) async {
     var tapped = false;
     final doc = buildSvgDocument('<svg viewBox="0 0 100 50"><rect x="0" y="0" width="100" height="50" data-lightbox=""/></svg>');

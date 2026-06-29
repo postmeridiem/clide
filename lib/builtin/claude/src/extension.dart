@@ -661,6 +661,7 @@ class ClaudeExtension extends ClideExtension {
         svg: svg,
         label: m.data['label'] as String?,
         description: m.data['description'] as String?,
+        source: m.data['source'] as String?,
       ),
     );
   }

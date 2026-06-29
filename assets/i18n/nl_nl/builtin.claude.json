@@ -48,6 +48,7 @@
   "conversation.label.agentThinking": { "translation": "agent denkt na" },
   "conversation.label.image": { "translation": "afbeelding" },
   "conversation.label.drawing": { "translation": "tekening" },
+  "conversation.draw.viewSource": { "translation": "d2-bron tonen" },
   "conversation.label.agentRun": { "translation": "agent-uitvoering" },
   "conversation.label.workflow": { "translation": "workflow" },
   "conversation.label.error": { "translation": "fout" },

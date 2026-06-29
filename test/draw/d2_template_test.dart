@@ -4,7 +4,7 @@ import 'package:clide/src/draw/draw_doc.dart';
 import 'package:test/test.dart';
 
 void main() {
-  DrawingCardDoc d2doc(Object? source) => DrawingCardDoc(template: 'd2', fields: {'template': 'd2', if (source != null) 'source': source});
+  DrawingCardDoc d2doc(Object? source) => DrawingCardDoc(template: 'd2', fields: {'template': 'd2', 'source': ?source});
 
   group('d2TemplateHandler', () {
     test('compiles the source field via the injected compiler', () async {

@@ -720,6 +720,10 @@ class _ConversationTurn extends StatelessWidget {
         document: doc,
         label: m.label,
         description: m.description,
+        source: m.source,
+        sourceLabel: m.source == null
+            ? null
+            : ClideSettings.i18n.string(context, 'conversation.draw.viewSource', namespace: 'builtin.claude', placeholder: 'view d2 source'),
         // A data-lightbox element opens the whole drawing, zoomable (T-318).
         onLightbox: () => ClideKernel.of(context).dialog.show<Object>(
           (ctx, dismiss) => ClideLightbox(

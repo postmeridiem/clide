@@ -14,6 +14,7 @@ library;
 
 import 'package:clide/kernel/src/theme/tokens.dart';
 import 'package:clide/widgets/src/clide_card_metrics.dart';
+import 'package:clide/widgets/src/clide_collapser_card.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
 import 'package:clide/widgets/src/clide_text.dart';
 import 'package:clide/widgets/src/svg/svg_painter.dart';
@@ -22,11 +23,26 @@ import 'package:clide/src/svg/svg_node.dart';
 import 'package:flutter/widgets.dart';
 
 class DrawingCard extends StatelessWidget {
-  const DrawingCard({super.key, required this.document, this.label, this.description, this.images, this.onLightbox, this.maxHeight = 360});
+  const DrawingCard({
+    super.key,
+    required this.document,
+    this.label,
+    this.description,
+    this.images,
+    this.onLightbox,
+    this.source,
+    this.sourceLabel,
+    this.maxHeight = 360,
+  });
 
   final SvgDocument document;
   final String? label, description;
   final SvgImageResolver? images;
+
+  /// The template source (e.g. d2 diagram text) and its disclosure title. When
+  /// [source] is present, a collapsed "view source" disclosure renders beneath
+  /// the drawing (T-494) — the rendered diagram leads; the code folds away.
+  final String? source, sourceLabel;
 
   /// Called when a `data-lightbox` element is tapped (the caller opens the
   /// zoom view). Null ⇒ no lightbox affordance.
@@ -50,6 +66,20 @@ class DrawingCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: kClideCardHeaderPadV),
             child: ClideText(description!, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+          ),
+        if (_has(source))
+          Padding(
+            padding: const EdgeInsets.only(top: kClideCardHeaderPadV),
+            child: ClideCollapserCard(
+              label: sourceLabel ?? 'view source',
+              color: tokens.globalTextMuted,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(kClideCardHeaderPadH),
+                  child: ClideText(source!, fontSize: clideFontCaption, fontFamily: ClideSettings.fonts.monoOf(context), color: tokens.globalForeground),
+                ),
+              ],
+            ),
           ),
       ],
     );

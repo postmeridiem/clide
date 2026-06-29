@@ -98,6 +98,12 @@ Future<IpcResponse> _draw(IpcRequest req, MessagePublisher? Function() publisher
     );
   }
 
-  publish('cli', drawShowChannel, {'svg': svg, if (doc.label != null) 'label': doc.label, if (doc.description != null) 'description': doc.description});
+  publish('cli', drawShowChannel, {
+    'svg': svg,
+    if (doc.label != null) 'label': doc.label,
+    if (doc.description != null) 'description': doc.description,
+    // d2 cards carry their source so the card can offer a "view source" peek.
+    if (doc.template == 'd2' && doc.fields['source'] is String) 'source': doc.fields['source'],
+  });
   return IpcResponse.ok(id: req.id, data: {'shown': true, if (doc.template != null) 'template': doc.template});
 }

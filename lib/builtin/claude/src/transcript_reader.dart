@@ -196,13 +196,25 @@ final class ImageMessage extends ConversationItem {
 /// paints (already lowered from the doc's template / primitive source);
 /// [label] / [description] are the optional card caption.
 final class DrawingMessage extends ConversationItem {
-  const DrawingMessage({required super.uuid, required super.timestamp, required super.isSidechain, required this.svg, this.label, this.description});
+  const DrawingMessage({
+    required super.uuid,
+    required super.timestamp,
+    required super.isSidechain,
+    required this.svg,
+    this.label,
+    this.description,
+    this.source,
+  });
 
   /// The SVG document source the renderer paints.
   final String svg;
 
   /// Optional card-level caption (label + supporting description).
   final String? label, description;
+
+  /// Optional template source (e.g. the d2 diagram text) — shown in a collapsed
+  /// "view source" disclosure on the card when present (T-494).
+  final String? source;
 
   @override
   String toString() => 'DrawingMessage(${label ?? '<svg>'})';
