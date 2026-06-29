@@ -45,6 +45,7 @@ import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
+import 'package:clide/src/daemon/icon_commands.dart';
 import 'package:clide/src/daemon/image_commands.dart';
 import 'package:clide/src/daemon/project_commands.dart';
 import 'package:clide/src/daemon/instance_command.dart';
@@ -61,6 +62,7 @@ import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
 import 'package:clide/src/env/shell_env.dart' show primeLoginShellPath;
 import 'package:clide/src/env/supporter_binaries.dart';
+import 'package:clide/widgets/src/icons/phosphor_glyphs.g.dart' show kPhosphorGlyphs;
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/mcp_server.dart';
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath, logDirectory;
@@ -368,6 +370,21 @@ Future<void> main() async {
         final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
         return file.existsSync() ? file.absolute.path : null;
       },
+      readFile: (path) async {
+        final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
+        try {
+          return file.existsSync() ? await file.readAsString() : null;
+        } catch (_) {
+          return null;
+        }
+      },
+    );
+    // `clide icon show <name…>` — drive a Phosphor glyph card into the Claude
+    // conversation (T-313). Resolves names via the bundled glyph table.
+    registerIconCommands(
+      dispatcher,
+      () => kernelMessages?.publish,
+      resolve: (name) => kPhosphorGlyphs[name],
       readFile: (path) async {
         final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
         try {

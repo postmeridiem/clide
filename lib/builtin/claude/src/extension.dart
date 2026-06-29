@@ -19,10 +19,11 @@ import 'package:clide/builtin/claude/src/session_index.dart';
 import 'package:clide/builtin/claude/src/stream_json_session.dart' show kEffortLevels, kFallbackModels, kPermissionModes;
 import 'package:clide/builtin/claude/src/session_storage.dart';
 import 'package:clide/builtin/claude/src/ticket_pick_up.dart';
-import 'package:clide/builtin/claude/src/transcript_reader.dart' show DrawingMessage, ImageMessage;
+import 'package:clide/builtin/claude/src/transcript_reader.dart' show DrawingMessage, IconEntry, IconMessage, ImageMessage;
 import 'package:clide/src/daemon/claude_account_commands.dart' show accountActionChannel;
 import 'package:clide/src/daemon/project_commands.dart' show projectCreatedChannel;
 import 'package:clide/src/daemon/draw_commands.dart' show drawShowChannel;
+import 'package:clide/src/daemon/icon_commands.dart' show iconShowChannel;
 import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:clide/builtin/claude/src/team_chat_sidebar.dart' show TeamChatPane;
 import 'package:clide/builtin/claude/src/team_panel_host.dart';
@@ -530,6 +531,10 @@ class ClaudeExtension extends ClideExtension {
     // conversation the user is looking at.
     _subs.add(ctx.messages.subscribe(channel: drawShowChannel).listen(_onDrawShow));
 
+    // `clide icon show <name…>` (T-313): the dispatcher resolves the glyphs and
+    // publishes an 'icon' message; we inject the glyph card.
+    _subs.add(ctx.messages.subscribe(channel: iconShowChannel).listen(_onIconShow));
+
     // A sidebar "pick up" click (T-327) publishes the full ticket; inject it
     // into the active conversation as a user turn so Claude starts working it.
     _subs.add(ctx.messages.subscribe(publisher: 'builtin.tickets', channel: 'pick-up').listen(_onTicketPickUp));
@@ -643,6 +648,39 @@ class ClaudeExtension extends ClideExtension {
         caption: m.data['caption'] as String?,
         label: m.data['label'] as String?,
         description: m.data['description'] as String?,
+      ),
+    );
+  }
+
+  /// Inject an [IconMessage] from a published `icon` bus message (T-313).
+  void _onIconShow(Message m) {
+    final raw = m.data['entries'];
+    if (raw is! List || raw.isEmpty) return;
+    final entries = <IconEntry>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final cp = item['codepoint'];
+      if (cp is! int) continue;
+      entries.add(
+        IconEntry(
+          codepoint: cp,
+          name: item['name'] as String? ?? '',
+          label: item['label'] as String?,
+          description: item['description'] as String?,
+          color: item['color'] as String?,
+        ),
+      );
+    }
+    if (entries.isEmpty) return;
+    final target = _orchestrator?.byId('primary') ?? _orchestrator?.visibleSessions.firstOrNull;
+    if (target == null) return;
+    target.conversation.inject(
+      IconMessage(
+        uuid: 'icon-${DateTime.now().microsecondsSinceEpoch}',
+        timestamp: DateTime.now(),
+        isSidechain: false,
+        entries: entries,
+        color: m.data['color'] as String?,
       ),
     );
   }

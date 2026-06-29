@@ -19,6 +19,7 @@ import 'package:clide/builtin/claude/src/claude_status.dart' show shortModelLabe
 import 'package:clide/builtin/claude/src/conversation_card.dart';
 import 'package:clide/builtin/claude/src/conversation_controller.dart';
 import 'package:clide/builtin/claude/src/file_tail_follower.dart';
+import 'package:clide/builtin/claude/src/icon_card.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
@@ -705,6 +706,7 @@ class _ConversationTurn extends StatelessWidget {
       ToolResultMessage() => _toolResult(context, i),
       ImageMessage() => _image(context, i),
       DrawingMessage() => _drawing(context, i),
+      IconMessage() => _icon(context, i),
     };
   }
 
@@ -732,6 +734,17 @@ class _ConversationTurn extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// A driven-in Phosphor glyph card (T-313): each glyph at a hero size plus a
+  /// real-UI-size strip, with optional label/description/color. Display-only
+  /// per D-78 — selection happens in the interaction zone, not on the card.
+  Widget _icon(BuildContext context, IconMessage m) {
+    return ConversationCard(
+      accent: tokens.globalTextMuted,
+      label: ClideSettings.i18n.string(context, 'conversation.label.icon', namespace: 'builtin.claude', placeholder: 'icons'),
+      body: IconGlyphCard(entries: m.entries, defaultColor: m.color),
     );
   }
 
@@ -1319,5 +1332,7 @@ String _summarizeActivity(BuildContext context, ConversationItem item) {
       return '${label('conversation.label.image', 'image')} $path';
     case DrawingMessage(label: final cardLabel):
       return '${label('conversation.label.drawing', 'drawing')}${cardLabel != null ? ' $cardLabel' : ''}';
+    case IconMessage(:final entries):
+      return '${label('conversation.label.icon', 'icons')} ${entries.map((e) => e.name).join(', ')}';
   }
 }

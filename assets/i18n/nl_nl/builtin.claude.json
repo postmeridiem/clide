@@ -47,6 +47,7 @@
   "conversation.label.thinking": { "translation": "nadenken" },
   "conversation.label.agentThinking": { "translation": "agent denkt na" },
   "conversation.label.image": { "translation": "afbeelding" },
+  "conversation.label.icon": { "translation": "iconen" },
   "conversation.label.drawing": { "translation": "tekening" },
   "conversation.draw.viewSource": { "translation": "d2-bron tonen" },
   "conversation.label.agentRun": { "translation": "agent-uitvoering" },

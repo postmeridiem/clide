@@ -47,6 +47,7 @@
   "conversation.label.thinking": { "translation": "thinking" },
   "conversation.label.agentThinking": { "translation": "agent thinking" },
   "conversation.label.image": { "translation": "image" },
+  "conversation.label.icon": { "translation": "icons" },
   "conversation.label.drawing": { "translation": "drawing" },
   "conversation.draw.viewSource": { "translation": "view d2 source" },
   "conversation.label.agentRun": { "translation": "agent run" },

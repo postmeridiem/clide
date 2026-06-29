@@ -38,6 +38,8 @@ ToolResultMessage _result(String content, {bool isError = false}) =>
 ImageMessage _image(String path, {String? caption, String? label, String? description}) =>
     ImageMessage(uuid: 'i', timestamp: _t, isSidechain: false, path: path, caption: caption, label: label, description: description);
 
+IconMessage _iconMsg(List<IconEntry> entries, {String? color}) => IconMessage(uuid: 'ic', timestamp: _t, isSidechain: false, entries: entries, color: color);
+
 class _MockClipboard {
   Map<String, dynamic> _data = {'text': null};
   Future<Object?> handleMethodCall(MethodCall call) async {
@@ -478,6 +480,17 @@ void main() {
       expect(find.text('HUD v3'), findsOneWidget);
       expect(find.text('note the cramped status row'), findsOneWidget);
       expect(find.text('before'), findsOneWidget);
+    });
+
+    testWidgets('an icon card renders the glyph label, description, and size strip (T-313)', (tester) async {
+      await pumpWith(tester, [
+        _iconMsg([const IconEntry(codepoint: 0xe2a4, name: 'gear', label: 'Settings', description: 'global scope')]),
+      ]);
+      expect(find.text('icons'), findsOneWidget); // card label
+      expect(find.text('Settings'), findsOneWidget); // entry label
+      expect(find.text('global scope'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget); // smallest strip sample
+      expect(find.text('48'), findsOneWidget); // largest strip sample
     });
 
     testWidgets('inject() drives a new image card into a live view (T-249)', (tester) async {

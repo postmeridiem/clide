@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Phosphor glyph cards.** `clide icon show gear folder` (or `--file` entries
+  with label/description/color) renders glyphs in the conversation at a hero
+  size plus a real-UI-size strip (10–48), for previewing and comparing icons.
+  Resolves by name or 0xNNNN codepoint; honest error on an unknown glyph. (T-313)
 - **Annotated image cards.** `clide image show --file meta.json` attaches a
   title/label and a longer description to an image card (alongside the existing
   one-line caption); the bare `image show <path> --caption` form is unchanged.

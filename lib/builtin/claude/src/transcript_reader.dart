@@ -232,6 +232,31 @@ final class DrawingMessage extends ConversationItem {
   String toString() => 'DrawingMessage(${label ?? '<svg>'})';
 }
 
+/// One glyph entry on an [IconMessage] (T-313): a resolved Phosphor [codepoint]
+/// (its [name] kept for copy/debug), with optional per-entry [label],
+/// [description], and [color] (hex or CSS name, parsed at render).
+final class IconEntry {
+  const IconEntry({required this.codepoint, required this.name, this.label, this.description, this.color});
+
+  final int codepoint;
+  final String name;
+  final String? label, description, color;
+}
+
+/// A locally-injected Phosphor glyph card (T-313). Driven by `clide icon show`
+/// (D-6 parity), display-only per D-78. Renders each [entries] glyph at a hero
+/// size plus a sample strip of real UI sizes, with its optional label +
+/// description; [color] is the card-level default glyph color.
+final class IconMessage extends ConversationItem {
+  const IconMessage({required super.uuid, required super.timestamp, required super.isSidechain, required this.entries, this.color});
+
+  final List<IconEntry> entries;
+  final String? color;
+
+  @override
+  String toString() => 'IconMessage(${entries.length} glyph${entries.length == 1 ? '' : 's'})';
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
