@@ -37,15 +37,15 @@ void main() {
     });
 
     test('template: a registered handler lowers the doc to SVG', () async {
-      final reg = DrawingRegistry()..register('d2', (doc) async => '<svg data-src="${doc.fields['source']}"/>');
+      final reg = DrawingRegistry()..register('d2', (doc) async => DrawOk('<svg data-src="${doc.fields['source']}"/>'));
       final r = await resolve(parseDrawingCardDoc({'template': 'd2', 'source': 'a -> b'})!, reg);
       expect((r as DrawOk).svg, '<svg data-src="a -> b"/>');
     });
 
-    test('template: a handler that returns null is an error', () async {
-      final reg = DrawingRegistry()..register('d2', (_) async => null);
+    test('template: a handler error propagates with its message', () async {
+      final reg = DrawingRegistry()..register('d2', (_) async => const DrawErr('d2 not found'));
       final r = await resolve(parseDrawingCardDoc({'template': 'd2'})!, reg);
-      expect(r, isA<DrawErr>());
+      expect((r as DrawErr).message, contains('d2 not found'));
     });
   });
 }

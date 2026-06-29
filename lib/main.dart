@@ -41,6 +41,7 @@ import 'package:clide/clide.dart' show clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/draw_commands.dart';
+import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
@@ -376,7 +377,7 @@ Future<void> main() async {
     registerDrawCommands(
       dispatcher,
       () => kernelMessages?.publish,
-      registry: DrawingRegistry(),
+      registry: DrawingRegistry()..register('d2', d2TemplateHandler()),
       readFile: (path) async {
         final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
         try {

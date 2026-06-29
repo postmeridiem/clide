@@ -48,12 +48,30 @@ void main() {
 
   test('template doc lowers via the registry before publishing', () async {
     wire();
-    registry.register('d2', (doc) async => '<svg data-d2="${doc.fields['source']}"/>');
+    registry.register('d2', (doc) async => DrawOk('<svg data-d2="${doc.fields['source']}"/>'));
     files['c.json'] = '{"template":"d2","source":"a -> b"}';
     final r = await draw('c.json');
     expect(r.ok, isTrue, reason: r.error?.message);
     expect(published.single.data['svg'], '<svg data-d2="a -> b"/>');
     expect(r.data['template'], 'd2');
+  });
+
+  test('a .d2 file is wrapped as a d2 template and lowered (T-494)', () async {
+    wire();
+    registry.register('d2', (doc) async => DrawOk('<svg data-d2="${doc.fields['source']}"/>'));
+    files['pipeline.d2'] = 'a -> b';
+    final r = await draw('pipeline.d2');
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(published.single.data['svg'], '<svg data-d2="a -> b"/>');
+    expect(r.data['template'], 'd2');
+  });
+
+  test('a .svg file renders as a primitive card (T-494)', () async {
+    wire();
+    files['logo.svg'] = '<svg id="raw"/>';
+    final r = await draw('logo.svg');
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(published.single.data['svg'], '<svg id="raw"/>');
   });
 
   test('a missing file → notFound, nothing published', () async {

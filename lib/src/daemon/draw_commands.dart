@@ -18,7 +18,7 @@ import 'dart:convert';
 import '../draw/draw_dispatch.dart';
 import '../draw/draw_doc.dart';
 
-export '../draw/draw_dispatch.dart' show DrawingFileReader, DrawingRegistry, DrawingTemplateHandler;
+export '../draw/draw_dispatch.dart' show DrawErr, DrawOk, DrawResult, DrawingFileReader, DrawingRegistry, DrawingTemplateHandler;
 import '../ipc/command_schema.dart';
 import '../ipc/envelope.dart';
 import '../ipc/schema_v1.dart';
@@ -66,15 +66,25 @@ Future<IpcResponse> _draw(IpcRequest req, MessagePublisher? Function() publisher
     );
   }
 
-  Object? decoded;
-  try {
-    decoded = jsonDecode(raw);
-  } on FormatException catch (e) {
-    return _userErr(req.id, 'invalid JSON in $file: ${e.message}');
+  // Type inference from the extension (T-494): a `.d2`/`.svg` file is the raw
+  // source, not a JSON envelope — wrap it in the matching doc. Everything else
+  // is a drawing-card JSON document.
+  final lower = file.toLowerCase();
+  final DrawingCardDoc? doc;
+  if (lower.endsWith('.d2')) {
+    doc = DrawingCardDoc(template: 'd2', fields: {'template': 'd2', 'source': raw});
+  } else if (lower.endsWith('.svg')) {
+    doc = DrawingCardDoc(svg: raw);
+  } else {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException catch (e) {
+      return _userErr(req.id, 'invalid JSON in $file: ${e.message}');
+    }
+    doc = parseDrawingCardDoc(decoded);
+    if (doc == null) return _userErr(req.id, 'a drawing-card document must be a JSON object');
   }
-
-  final doc = parseDrawingCardDoc(decoded);
-  if (doc == null) return _userErr(req.id, 'a drawing-card document must be a JSON object');
 
   final result = await resolveDrawingSvg(doc, registry, readFile: readFile);
   if (result is DrawErr) return _userErr(req.id, result.message);

@@ -17,8 +17,10 @@ library;
 
 import 'draw_doc.dart';
 
-/// Produces an SVG string for a template-mode doc, or `null` on failure.
-typedef DrawingTemplateHandler = Future<String?> Function(DrawingCardDoc doc);
+/// Lowers a template-mode doc to SVG, as a [DrawResult] — [DrawOk] with the SVG
+/// or [DrawErr] carrying an honest, user-facing message (e.g. a compile failure
+/// or an unresolved tool, with a hint).
+typedef DrawingTemplateHandler = Future<DrawResult> Function(DrawingCardDoc doc);
 
 /// Reads a file's contents, or `null` if unreadable. Injected for testability.
 typedef DrawingFileReader = Future<String?> Function(String path);
@@ -65,6 +67,5 @@ Future<DrawResult> resolveDrawingSvg(DrawingCardDoc doc, DrawingRegistry registr
 
   final handler = registry.handlerFor(doc.template!);
   if (handler == null) return DrawErr('unknown drawing template: ${doc.template}');
-  final svg = await handler(doc);
-  return svg == null ? DrawErr('template ${doc.template} produced no SVG') : DrawOk(svg);
+  return handler(doc);
 }

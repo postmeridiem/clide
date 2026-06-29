@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **D2 diagram cards.** `clide draw --file diagram.d2` compiles a d2 diagram to
+  SVG (via the `d2` binary) and renders it in the conversation; `template:"d2"`
+  with inline source works too, and a `.svg` file renders directly. Honest error
+  if d2 isn't installed or the source doesn't compile. (T-494, D-103)
 - **Tool path resolution + settings.** clide resolves supporter binaries (claude,
   d2) via an explicit per-tool path, else PATH and the common install dirs — now
   including Homebrew-on-Linux. A Tools settings category edits the paths and
