@@ -156,8 +156,15 @@ class CommandSchema {
     final out = <String, Object?>{};
     final pos = raw['positional'];
     if (pos is List) {
-      for (var i = 0; i < pos.length && i < positional.length; i++) {
-        out[positional[i]] = pos[i];
+      for (var i = 0; i < positional.length; i++) {
+        final name = positional[i];
+        // A trailing stringList positional is variadic: it absorbs ALL the
+        // remaining tokens (e.g. `icon show gear folder gauge`), not just one.
+        if (i == positional.length - 1 && args[name]?.type == ArgType.stringList) {
+          out[name] = i < pos.length ? pos.sublist(i) : const <Object?>[];
+          break;
+        }
+        if (i < pos.length) out[name] = pos[i];
       }
     }
     final flags = raw['flags'];

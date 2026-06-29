@@ -8908,3 +8908,66 @@ PATH / tool-resolution dependency (2026-06-28): the d2 compile step shells out t
 DONE (2026-06-29): d2 diagram template landed + fast suite green. Decision RESOLVED: shell out to the d2 binary (supporter-tool pattern, D-3/D-5) — not vendored. d2TemplateHandler compiles doc.source -> SVG via ''d2 - -'', resolved through the D-104 path layer (T-495); painted by the T-320 SVG renderer. CLI infers type from .d2 (and .svg renders directly). Template handlers now return DrawResult so an unresolved d2 or a compile failure surface as honest userError with an install hint. The d2 source folds into a collapsed ''view source'' disclosure (D-78). ACCEPTANCE VERIFIED LIVE: resolver found /home/linuxbrew/.linuxbrew/bin/d2 and compiled a -> b to a 13.5KB SVG end-to-end (the brew-on-linux case). Commits 64d77ec5 (core) + 5f8fa6af (disclosure).', NULL, '2026-06-29 10:23:55', '2026-06-29 10:23:55.745', '2026-06-29 10:23:55.745', NULL, '1ab9a75ee23a5332edc9e3459a92b6cd', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGX26B0NAC9WRJMVB0QE6CV8', 'status', 'backlog', 'done', NULL, '2026-06-29 10:23:55', '2026-06-29 10:23:55.781', '2026-06-29 10:23:55.781', NULL, 'ff09222d1e3a77f0a082caf302aedf07', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2AD3HPR3HXSVASVZEX8PK0', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 10:41:42', '2026-06-29 10:41:42.262', '2026-06-29 10:41:42.262', NULL, '6ecda6d328b1cc8ade1d80e5f2de08f1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2AD3HPR3HXSVASVZEX8PK0', 'description', 'Give `clide image show` the same structured-metadata plumbing the icon card gets (T-313), so an image driven into the conversation can carry ANNOTATIONS — not just a single one-line caption.
+
+## Why
+
+Today image.show (lib/src/daemon/image_commands.dart) takes a `path` positional plus an optional `--caption` string, and ImageMessage (lib/builtin/claude/src/transcript_reader.dart:160) holds only `path` + optional one-line `caption`. When showing a screenshot/wireframe to discuss, one line is thin — we want to attach a title/label, a longer description, and potentially captioned markers (callouts on specific spots). This mirrors the per-entry label+description the icon card introduces.
+
+## Deliverable
+
+Extend image.show to accept a JSON metadata payload (via the new stdin plumbing T-315 and/or a `--file <path.json>` flag, same as T-313''s icon entries) describing the image''s annotations, e.g.:
+
+  { "path": "docs/shot.png", "label": "HUD v3", "description": "note the cramped status row", "caption": "before the fix" }
+
+Extend ImageMessage + the image card to render the richer metadata. Keep the existing `clide image show <path> --caption "…"` form working unchanged (back-compat); the JSON payload is additive.
+
+## Open decision — text vs visual annotation
+
+''Annotated'' could mean (a) richer TEXT metadata shown around the image (label + description + caption), or (b) VISUAL overlays drawn ON the image (markers/arrows/numbered callouts at coordinates). Start with (a) — straightforward extension of the current card. (b) is a bigger, clide-owned CustomPaint job (markers:[{x,y,label}] painted over the image); feasible since the image card is our own rendering, but scope it as a follow-up unless we decide we need it now. Flag which we want before building markers.
+
+## Dependencies
+
+- Pairs with T-315 (stdin JSON plumbing) for the piped form; can land with `--file` alone if T-315 isn''t ready.
+- Parallel to T-313 (icon card) — same --file/--stdin metadata pattern, same Flutter-free handler + MessageBus publish path.
+
+## Acceptance
+
+- `clide image show` accepts a JSON metadata payload (via --file, and via --stdin once T-315 lands) carrying at least label + description alongside the existing caption.
+- ImageMessage + the image card render the added metadata.
+- The existing `image show <path> [--caption]` form is unchanged.
+- Malformed payload / unknown fields fail with a clear userError, mirroring image.show''s current validation.
+- Visual marker overlays are explicitly noted as a separate follow-up unless pulled in by decision.', 'Give `clide image show` the same structured-metadata plumbing the icon card gets (T-313), so an image driven into the conversation can carry ANNOTATIONS — not just a single one-line caption.
+
+## Why
+
+Today image.show (lib/src/daemon/image_commands.dart) takes a `path` positional plus an optional `--caption` string, and ImageMessage (lib/builtin/claude/src/transcript_reader.dart:160) holds only `path` + optional one-line `caption`. When showing a screenshot/wireframe to discuss, one line is thin — we want to attach a title/label, a longer description, and potentially captioned markers (callouts on specific spots). This mirrors the per-entry label+description the icon card introduces.
+
+## Deliverable
+
+Extend image.show to accept a JSON metadata payload (via the new stdin plumbing T-315 and/or a `--file <path.json>` flag, same as T-313''s icon entries) describing the image''s annotations, e.g.:
+
+  { "path": "docs/shot.png", "label": "HUD v3", "description": "note the cramped status row", "caption": "before the fix" }
+
+Extend ImageMessage + the image card to render the richer metadata. Keep the existing `clide image show <path> --caption "…"` form working unchanged (back-compat); the JSON payload is additive.
+
+## Open decision — text vs visual annotation
+
+''Annotated'' could mean (a) richer TEXT metadata shown around the image (label + description + caption), or (b) VISUAL overlays drawn ON the image (markers/arrows/numbered callouts at coordinates). Start with (a) — straightforward extension of the current card. (b) is a bigger, clide-owned CustomPaint job (markers:[{x,y,label}] painted over the image); feasible since the image card is our own rendering, but scope it as a follow-up unless we decide we need it now. Flag which we want before building markers.
+
+## Dependencies
+
+- Pairs with T-315 (stdin JSON plumbing) for the piped form; can land with `--file` alone if T-315 isn''t ready.
+- Parallel to T-313 (icon card) — same --file/--stdin metadata pattern, same Flutter-free handler + MessageBus publish path.
+
+## Acceptance
+
+- `clide image show` accepts a JSON metadata payload (via --file, and via --stdin once T-315 lands) carrying at least label + description alongside the existing caption.
+- ImageMessage + the image card render the added metadata.
+- The existing `image show <path> [--caption]` form is unchanged.
+- Malformed payload / unknown fields fail with a clear userError, mirroring image.show''s current validation.
+- Visual marker overlays are explicitly noted as a separate follow-up unless pulled in by decision.
+
+DONE (2026-06-29): text-annotation payload landed (option a). image.show --file {path,label,description,caption}; ImageMessage + card render label (title) + description; bare positional/--caption form unchanged; honest userError on malformed/missing payload. Tests: command (--file, malformed, missing) + widget (label/description render). Commit f0fb5a51. Visual marker overlays (option b) split to a follow-up.', NULL, '2026-06-29 10:58:54', '2026-06-29 10:58:54.871', '2026-06-29 10:58:54.871', NULL, '441e112bc4d899f4bde04d27b4a04f09', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2AD3HPR3HXSVASVZEX8PK0', 'status', 'in_progress', 'done', NULL, '2026-06-29 10:58:54', '2026-06-29 10:58:54.909', '2026-06-29 10:58:54.909', NULL, 'd75063a149400a6fd1a418dd5bc0da2f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 10:59:39', '2026-06-29 10:59:39.390', '2026-06-29 10:59:39.390', NULL, '107169be09c5a9a31a7c19a905cecce9', 2) ON CONFLICT(hash) DO NOTHING;

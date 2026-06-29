@@ -124,6 +124,29 @@ void main() {
       expect(out['to'], '300');
     });
 
+    test('a trailing stringList positional absorbs all remaining tokens (T-313)', () {
+      const variadic = CommandSchema(
+        positional: ['head', 'rest'],
+        args: {
+          'head': ArgSpec(),
+          'rest': ArgSpec(type: ArgType.stringList),
+        },
+      );
+      final out = variadic.normalize(const {
+        'positional': ['a', 'b', 'c', 'd'],
+      });
+      expect(out['head'], 'a');
+      expect(out['rest'], ['b', 'c', 'd']);
+    });
+
+    test('a variadic positional with no tokens normalizes to an empty list', () {
+      const variadic = CommandSchema(
+        positional: ['rest'],
+        args: {'rest': ArgSpec(type: ArgType.stringList)},
+      );
+      expect(variadic.normalize(const {'positional': []})['rest'], const <Object?>[]);
+    });
+
     test('passthrough is carried over', () {
       final out = schema.normalize(const {
         'positional': ['x'],
