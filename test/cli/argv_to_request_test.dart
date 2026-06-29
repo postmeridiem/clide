@@ -101,6 +101,14 @@ void main() {
       expect((req.args['flags'] as Map)['since'], '5');
       expect((req.args['flags'] as Map)['filter'], 'pane');
     });
+
+    test('"draw --file card.json" reaches the draw command (T-318)', () {
+      // draw is single-token (no verb) — it must be an umbrella command, else
+      // `clide draw --file x` mis-parses as cmd "draw.--file".
+      final req = _expectOk(parseArgv(['draw', '--file', 'card.json'], requestId: 'd'));
+      expect(req.cmd, 'draw');
+      expect((req.args['flags'] as Map)['file'], 'card.json');
+    });
   });
 
   group('parseArgv — errors', () {
