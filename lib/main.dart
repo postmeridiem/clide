@@ -119,10 +119,7 @@ Future<void> main() async {
     // Resolve external supporter binaries (claude, d2, …) — explicit user-scope
     // overrides first, else the primed PATH + the well-known dirs; auto-detect
     // and pin them on first run (T-495, D-104).
-    activeSupporterBinaries = await loadSupporterBinaries(
-      read: (k) => bootSettings.get<Object>(k),
-      write: (k, v) => bootSettings.set<Object?>(k, v),
-    );
+    activeSupporterBinaries = await loadSupporterBinaries(read: (k) => bootSettings.get<Object>(k), write: (k, v) => bootSettings.set<Object?>(k, v));
     startupWorkRoot = resolveStartupWorkspace(
       cwdRoot: startupWorkRoot,
       lastProject: bootSettings.get<String>('app.lastProject'),
