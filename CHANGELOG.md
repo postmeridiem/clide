@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Before/after compare cards.** `clide draw --file compare.json` (template
+  `compare`) renders two or more images side by side, each with its own
+  label/description and tap-to-zoom; images aspect-fit so differing shapes
+  don't distort. (T-319)
 - **Phosphor glyph cards.** `clide icon show gear folder` (or `--file` entries
   with label/description/color) renders glyphs in the conversation at a hero
   size plus a real-UI-size strip (10–48), for previewing and comparing icons.

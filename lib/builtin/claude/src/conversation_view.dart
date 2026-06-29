@@ -12,6 +12,8 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data' show Uint8List;
+import 'dart:ui' as ui;
 
 import 'package:clide/builtin/claude/src/activity_cluster.dart';
 import 'package:clide/builtin/claude/src/bash_tail_source.dart';
@@ -24,6 +26,7 @@ import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/prompt_card.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
 import 'package:clide/src/svg/svg_document.dart' show buildSvgDocument;
+import 'package:clide/src/svg/svg_node.dart' show SvgDocument;
 import 'package:clide/widgets/src/draw/drawing_card.dart';
 import 'package:clide/widgets/src/svg/svg_painter.dart' show SvgView;
 import 'package:clide/builtin/claude/src/workflow_run.dart';
@@ -714,25 +717,17 @@ class _ConversationTurn extends StatelessWidget {
   /// CustomPaint engine (D-103), display-only per D-78, with an optional
   /// label/description caption.
   Widget _drawing(BuildContext context, DrawingMessage m) {
-    final doc = buildSvgDocument(m.svg);
     return ConversationCard(
       accent: tokens.globalTextMuted,
       label: ClideSettings.i18n.string(context, 'conversation.label.drawing', namespace: 'builtin.claude', placeholder: 'drawing'),
-      body: DrawingCard(
-        document: doc,
+      body: _DrawingWithImages(
+        doc: buildSvgDocument(m.svg),
         label: m.label,
         description: m.description,
         source: m.source,
         sourceLabel: m.source == null
             ? null
             : ClideSettings.i18n.string(context, 'conversation.draw.viewSource', namespace: 'builtin.claude', placeholder: 'view d2 source'),
-        // A data-lightbox element opens the whole drawing, zoomable (T-318).
-        onLightbox: () => ClideKernel.of(context).dialog.show<Object>(
-          (ctx, dismiss) => ClideLightbox(
-            onDismiss: dismiss,
-            child: SvgView(document: doc),
-          ),
-        ),
       ),
     );
   }
@@ -1334,5 +1329,101 @@ String _summarizeActivity(BuildContext context, ConversationItem item) {
       return '${label('conversation.label.drawing', 'drawing')}${cardLabel != null ? ' $cardLabel' : ''}';
     case IconMessage(:final entries):
       return '${label('conversation.label.icon', 'icons')} ${entries.map((e) => e.name).join(', ')}';
+  }
+}
+
+/// Decode every annotated `<image>` href in [doc] into a `ui.Image` (T-319) —
+/// the resolver the renderer + lightbox paint through. A missing/undecodable
+/// file is skipped (its cell paints empty), never thrown. [load] (read bytes)
+/// and [decode] are injectable so the path is testable off the real filesystem.
+Future<Map<String, ui.Image>> loadDrawingImages(
+  SvgDocument doc, {
+  Future<Uint8List?> Function(String path)? load,
+  Future<ui.Image> Function(Uint8List bytes)? decode,
+}) async {
+  final reader = load ?? _readFileBytes;
+  final decoder = decode ?? decodeImageFromList;
+  final out = <String, ui.Image>{};
+  for (final href in doc.annotations.map((a) => a.href).whereType<String>().toSet()) {
+    try {
+      final bytes = await reader(href);
+      if (bytes != null) out[href] = await decoder(bytes);
+    } catch (_) {
+      // Missing/undecodable — leave that cell empty.
+    }
+  }
+  return out;
+}
+
+Future<Uint8List?> _readFileBytes(String path) async {
+  try {
+    return await File(path).readAsBytes();
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Wraps a [DrawingCard], loading any `<image>` hrefs the SVG references into
+/// `ui.Image`s first (T-319) — the renderer + lightbox both paint through the
+/// resolver. A drawing with no images (d2, raw svg) loads nothing and renders
+/// immediately; a missing/unreadable file is skipped (that cell paints empty).
+class _DrawingWithImages extends StatefulWidget {
+  const _DrawingWithImages({required this.doc, this.label, this.description, this.source, this.sourceLabel});
+
+  final SvgDocument doc;
+  final String? label, description, source, sourceLabel;
+
+  @override
+  State<_DrawingWithImages> createState() => _DrawingWithImagesState();
+}
+
+class _DrawingWithImagesState extends State<_DrawingWithImages> {
+  final Map<String, ui.Image> _images = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final imgs = await loadDrawingImages(widget.doc);
+    if (imgs.isEmpty) return;
+    if (!mounted) {
+      for (final img in imgs.values) {
+        img.dispose();
+      }
+      return;
+    }
+    setState(() => _images.addAll(imgs));
+  }
+
+  @override
+  void dispose() {
+    for (final img in _images.values) {
+      img.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolver = _images.isEmpty ? null : (String href) => _images[href];
+    return DrawingCard(
+      document: widget.doc,
+      images: resolver,
+      label: widget.label,
+      description: widget.description,
+      source: widget.source,
+      sourceLabel: widget.sourceLabel,
+      // A data-lightbox element opens the whole drawing, zoomable (T-318); the
+      // lightbox paints through the same image resolver (T-319).
+      onLightbox: () => ClideKernel.of(context).dialog.show<Object>(
+        (ctx, dismiss) => ClideLightbox(
+          onDismiss: dismiss,
+          child: SvgView(document: widget.doc, images: resolver),
+        ),
+      ),
+    );
   }
 }

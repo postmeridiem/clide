@@ -41,6 +41,7 @@ import 'package:clide/clide.dart' show clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/draw_commands.dart';
+import 'package:clide/src/draw/compare_template.dart' show compareTemplateHandler;
 import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
@@ -402,7 +403,17 @@ Future<void> main() async {
     registerDrawCommands(
       dispatcher,
       () => kernelMessages?.publish,
-      registry: DrawingRegistry()..register('d2', d2TemplateHandler()),
+      registry: DrawingRegistry()
+        ..register('d2', d2TemplateHandler())
+        ..register(
+          'compare',
+          compareTemplateHandler(
+            resolvePath: (path) {
+              final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
+              return file.existsSync() ? file.absolute.path : null;
+            },
+          ),
+        ),
       readFile: (path) async {
         final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
         try {
