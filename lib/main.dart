@@ -27,6 +27,7 @@ import 'package:clide/builtin/problems/problems.dart';
 import 'package:clide/builtin/settings_ui/settings_ui.dart';
 import 'package:clide/builtin/terminal/terminal.dart';
 import 'package:clide/builtin/theme_picker/theme_picker.dart';
+import 'package:clide/builtin/tools_settings/tools_settings.dart';
 import 'package:clide/builtin/view/view.dart';
 import 'package:clide/builtin/vim/vim.dart';
 import 'package:clide/builtin/tickets/tickets.dart';
@@ -565,6 +566,7 @@ Future<void> main() async {
     ..register(ExtensionsUiExtension())
     ..register(KeybindingsUiExtension())
     ..register(ClaudeControlExtension())
+    ..register(ToolsSettingsExtension())
     ..register(CliInstallExtension());
 
   await services.extensions.activateAll();

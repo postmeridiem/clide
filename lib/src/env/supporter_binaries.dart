@@ -149,6 +149,12 @@ Future<SupporterBinaries> redetectSupporterBinaries({
   return SupporterBinaries(overrides: fresh);
 }
 
+/// A resolver built from the current per-tool override keys, with no detect or
+/// marker side effects — for rebuilding [activeSupporterBinaries] live when a
+/// path is edited in settings.
+SupporterBinaries supporterBinariesFrom(Object? Function(String key) read, {List<String> tools = knownSupporterTools}) =>
+    SupporterBinaries(overrides: _readOverrides(read, tools));
+
 Map<String, String> _readOverrides(Object? Function(String) read, List<String> tools) {
   final overrides = <String, String>{};
   for (final t in tools) {

@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Tool path resolution + settings.** clide resolves supporter binaries (claude,
+  d2) via an explicit per-tool path, else PATH and the common install dirs — now
+  including Homebrew-on-Linux. A Tools settings category edits the paths and
+  re-detects; a broken path shows in Problems. (T-495, D-104)
 - **Check for updates (About box).** Help → About has a manual "Check for
   updates" button that compares your version to the latest GitHub release and
   links to the notes — explicit and user-initiated, no background polling (the

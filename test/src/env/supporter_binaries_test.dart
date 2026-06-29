@@ -105,4 +105,17 @@ void main() {
       expect(store['app.tools.detected'], isTrue);
     });
   });
+
+  group('supporterBinariesFrom', () {
+    test('builds a resolver from the override keys', () {
+      final store = <String, Object?>{'app.tools.d2': '/x/d2'};
+      final r = supporterBinariesFrom((k) => store[k], tools: ['d2']);
+      expect(r.isStalePin('d2'), isTrue); // /x/d2 not a real file → loaded as override
+    });
+
+    test('ignores blank or missing keys', () {
+      final store = <String, Object?>{'app.tools.d2': ''};
+      expect(supporterBinariesFrom((k) => store[k], tools: ['claude', 'd2']).isStalePin('d2'), isFalse);
+    });
+  });
 }

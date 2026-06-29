@@ -1,0 +1,11 @@
+{
+  "command.detect": { "translation": "Re-detect tool paths" },
+  "settings.title": { "translation": "Tools" },
+  "settings.section.binaries": { "translation": "Supporter binaries" },
+  "settings.field.claude.label": { "translation": "Claude CLI" },
+  "settings.field.claude.help": { "translation": "Absolute path to the claude binary; blank to auto-resolve." },
+  "settings.field.d2.label": { "translation": "d2" },
+  "settings.field.d2.help": { "translation": "Absolute path to the d2 diagram compiler; blank to auto-resolve." },
+  "settings.field.detect.label": { "translation": "Re-detect" },
+  "settings.field.detect.help": { "translation": "Re-scan PATH and the common install dirs, overwriting the paths above." }
+}

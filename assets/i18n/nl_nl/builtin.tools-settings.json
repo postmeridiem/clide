@@ -1,0 +1,11 @@
+{
+  "command.detect": { "translation": "Tool-paden opnieuw detecteren" },
+  "settings.title": { "translation": "Tools" },
+  "settings.section.binaries": { "translation": "Hulpprogramma's" },
+  "settings.field.claude.label": { "translation": "Claude-CLI" },
+  "settings.field.claude.help": { "translation": "Absoluut pad naar het claude-binary; leeg om automatisch te bepalen." },
+  "settings.field.d2.label": { "translation": "d2" },
+  "settings.field.d2.help": { "translation": "Absoluut pad naar de d2-diagramcompiler; leeg om automatisch te bepalen." },
+  "settings.field.detect.label": { "translation": "Opnieuw detecteren" },
+  "settings.field.detect.help": { "translation": "Scan PATH en de gangbare installatiemappen opnieuw; overschrijft de paden hierboven." }
+}
