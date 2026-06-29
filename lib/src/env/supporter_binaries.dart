@@ -97,34 +97,63 @@ bool _fileExists(String p) => File(p).existsSync();
 /// headless contexts where boot wiring hasn't run.
 SupporterBinaries? activeSupporterBinaries;
 
-/// The user-scope SettingsStore key (app layer, `~/.clide`, per-machine) holding
-/// the tool→absolute-path override map.
-const supporterToolsKey = 'app.tools';
+/// User-scope SettingsStore key (app layer, `~/.clide`, per-machine) holding the
+/// explicit override path for tool [name]. One key per tool so the settings
+/// panel binds a plain text field to each (T-414 / D-104).
+String supporterToolKey(String name) => 'app.tools.$name';
+
+/// Marker key recording that first-run auto-detection has run, so a later launch
+/// neither re-probes nor clobbers a path the user cleared on purpose.
+const supporterDetectedKey = 'app.tools.detected';
 
 /// The external supporter binaries clide auto-detects (pql/git are bundled per
 /// D-58/D-59 and excluded).
 const knownSupporterTools = ['claude', 'd2'];
 
-/// Build a [SupporterBinaries] from persisted overrides, auto-detecting on first
-/// run (D-104). [readOverrides] returns the stored map (or null if unset);
-/// [writeOverrides] persists a freshly-detected one. Injected (not the
-/// SettingsStore directly) so this stays Flutter-free and `dart test`-able;
-/// [detect] is the prober (defaults to a real [SupporterBinaries]).
+/// Build a [SupporterBinaries] from the per-tool override keys, auto-detecting
+/// the as-yet-unconfigured tools ONCE on first run and pinning what it finds
+/// (D-104). [read] returns a stored value (or null); [write] persists one.
+/// Injected (not the SettingsStore directly) so this stays Flutter-free and
+/// `dart test`-able; [detect] is the prober.
 Future<SupporterBinaries> loadSupporterBinaries({
-  required Map<dynamic, dynamic>? Function() readOverrides,
-  required Future<void> Function(Map<String, String>) writeOverrides,
+  required Object? Function(String key) read,
+  required Future<void> Function(String key, Object? value) write,
   List<String> tools = knownSupporterTools,
   SupporterBinaries Function()? detect,
 }) async {
-  final raw = readOverrides();
-  if (raw != null) return SupporterBinaries(overrides: _asStringMap(raw));
-  // First run: probe once, persist (pinned), and use the result.
-  final detected = (detect?.call() ?? SupporterBinaries()).detect(tools);
-  await writeOverrides(detected);
-  return SupporterBinaries(overrides: detected);
+  final overrides = _readOverrides(read, tools);
+  if (read(supporterDetectedKey) == null) {
+    // First run: probe the tools without an explicit path, pin what's found.
+    final fresh = (detect?.call() ?? SupporterBinaries()).detect(tools.where((t) => !overrides.containsKey(t)));
+    for (final e in fresh.entries) {
+      await write(supporterToolKey(e.key), e.value);
+      overrides[e.key] = e.value;
+    }
+    await write(supporterDetectedKey, true);
+  }
+  return SupporterBinaries(overrides: overrides);
 }
 
-Map<String, String> _asStringMap(Map<dynamic, dynamic> raw) => {
-  for (final e in raw.entries)
-    if (e.key is String && e.value is String) e.key as String: e.value as String,
-};
+/// Re-probe every tool and overwrite its override key (clearing one no longer
+/// found), returning a fresh resolver. Backs the "Re-detect" settings action.
+Future<SupporterBinaries> redetectSupporterBinaries({
+  required Future<void> Function(String key, Object? value) write,
+  List<String> tools = knownSupporterTools,
+  SupporterBinaries Function()? detect,
+}) async {
+  final fresh = (detect?.call() ?? SupporterBinaries()).detect(tools);
+  for (final t in tools) {
+    await write(supporterToolKey(t), fresh[t]);
+  }
+  await write(supporterDetectedKey, true);
+  return SupporterBinaries(overrides: fresh);
+}
+
+Map<String, String> _readOverrides(Object? Function(String) read, List<String> tools) {
+  final overrides = <String, String>{};
+  for (final t in tools) {
+    final v = read(supporterToolKey(t));
+    if (v is String && v.isNotEmpty) overrides[t] = v;
+  }
+  return overrides;
+}

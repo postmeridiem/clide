@@ -119,8 +119,8 @@ Future<void> main() async {
     // overrides first, else the primed PATH + the well-known dirs; auto-detect
     // and pin them on first run (T-495, D-104).
     activeSupporterBinaries = await loadSupporterBinaries(
-      readOverrides: () => bootSettings.get<Map>(supporterToolsKey),
-      writeOverrides: (m) => bootSettings.set(supporterToolsKey, m),
+      read: (k) => bootSettings.get<Object>(k),
+      write: (k, v) => bootSettings.set<Object?>(k, v),
     );
     startupWorkRoot = resolveStartupWorkspace(
       cwdRoot: startupWorkRoot,

@@ -61,37 +61,48 @@ void main() {
   });
 
   group('loadSupporterBinaries', () {
-    test('first run detects the tools and persists the result', () async {
-      Map<String, String>? written;
+    test('first run detects the tools and pins each under its own key', () async {
+      final store = <String, Object?>{};
       final probe = SupporterBinaries(exists: {'/usr/bin/claude'}.contains, searchPath: () => '/usr/bin', home: '/h');
-      await loadSupporterBinaries(readOverrides: () => null, writeOverrides: (m) async => written = m, tools: ['claude', 'd2'], detect: () => probe);
-      expect(written, {'claude': '/usr/bin/claude'});
+      await loadSupporterBinaries(read: (k) => store[k], write: (k, v) async => store[k] = v, tools: ['claude', 'd2'], detect: () => probe);
+      expect(store['app.tools.claude'], '/usr/bin/claude');
+      expect(store.containsKey('app.tools.d2'), isFalse); // not found → not written
+      expect(store['app.tools.detected'], isTrue); // first-run marker
     });
 
-    test('first run with nothing found still persists (marks first-run done)', () async {
-      Map<String, String>? written;
-      await loadSupporterBinaries(
-        readOverrides: () => null,
-        writeOverrides: (m) async => written = m,
-        detect: () => SupporterBinaries(exists: (_) => false, searchPath: () => '/usr/bin'),
-      );
-      expect(written, isEmpty);
-    });
-
-    test('a subsequent run uses stored overrides without detecting or writing', () async {
-      var wrote = false, detected = false;
+    test('a subsequent run reads the keys without re-detecting', () async {
+      final store = <String, Object?>{'app.tools.detected': true, 'app.tools.d2': '/pin/d2'};
+      var detected = false;
       final r = await loadSupporterBinaries(
-        readOverrides: () => {'d2': '/pin/d2'},
-        writeOverrides: (m) async => wrote = true,
+        read: (k) => store[k],
+        write: (k, v) async => store[k] = v,
         detect: () {
           detected = true;
           return SupporterBinaries();
         },
       );
-      expect(wrote, isFalse);
       expect(detected, isFalse);
       // The stored override loaded — /pin/d2 isn't a real file, so it reads stale.
       expect(r.isStalePin('d2'), isTrue);
+    });
+
+    test('first run keeps an explicit path and does not overwrite it', () async {
+      final store = <String, Object?>{'app.tools.d2': '/my/d2'}; // set, no marker yet
+      final probe = SupporterBinaries(exists: {'/usr/bin/d2'}.contains, searchPath: () => '/usr/bin');
+      await loadSupporterBinaries(read: (k) => store[k], write: (k, v) async => store[k] = v, tools: ['d2'], detect: () => probe);
+      expect(store['app.tools.d2'], '/my/d2');
+      expect(store['app.tools.detected'], isTrue);
+    });
+  });
+
+  group('redetectSupporterBinaries', () {
+    test('overwrites every key from a fresh probe, clearing a vanished tool', () async {
+      final store = <String, Object?>{'app.tools.claude': '/old/claude', 'app.tools.d2': '/old/d2'};
+      final probe = SupporterBinaries(exists: {'/usr/bin/claude'}.contains, searchPath: () => '/usr/bin');
+      await redetectSupporterBinaries(write: (k, v) async => store[k] = v, tools: ['claude', 'd2'], detect: () => probe);
+      expect(store['app.tools.claude'], '/usr/bin/claude');
+      expect(store['app.tools.d2'], isNull); // no longer found → cleared
+      expect(store['app.tools.detected'], isTrue);
     });
   });
 }
