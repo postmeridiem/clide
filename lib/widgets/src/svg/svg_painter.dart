@@ -97,7 +97,20 @@ void _paintNode(ui.Canvas canvas, SvgNode node, _Ctx ctx) {
 void _paintImage(ui.Canvas canvas, SvgImage im, _Ctx ctx) {
   final img = ctx.images?.call(im.href);
   if (img == null) return; // not loaded / no resolver — paint nothing
-  canvas.drawImageRect(img, Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()), Rect.fromLTWH(im.x, im.y, im.width, im.height), ui.Paint());
+  final src = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
+  // Aspect-fit (contain) the image within its target rect, centered — so a
+  // compare card never distorts images of differing shapes (T-319). A degenerate
+  // (zero-size) image or rect falls back to the plain rect.
+  canvas.drawImageRect(img, src, _containRect(im.x, im.y, im.width, im.height, img.width.toDouble(), img.height.toDouble()), ui.Paint());
+}
+
+/// The largest rect with the source's aspect ratio that fits inside the target
+/// box [x],[y],[w],[h], centered within it.
+Rect _containRect(double x, double y, double w, double h, double srcW, double srcH) {
+  if (srcW <= 0 || srcH <= 0 || w <= 0 || h <= 0) return Rect.fromLTWH(x, y, w, h);
+  final scale = (w / srcW) < (h / srcH) ? w / srcW : h / srcH;
+  final fitW = srcW * scale, fitH = srcH * scale;
+  return Rect.fromLTWH(x + (w - fitW) / 2, y + (h - fitH) / 2, fitW, fitH);
 }
 
 void _paintShape(ui.Canvas canvas, SvgNode node, _Ctx ctx) {

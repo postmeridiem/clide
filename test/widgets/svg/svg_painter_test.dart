@@ -110,6 +110,18 @@ void main() {
     expect(alpha(await argbAt(img, 5, 5)), 0);
   });
 
+  test('a wide image is aspect-fit (contain) into a square cell, centered (T-319)', () async {
+    // 8x2 source into a 10x10 cell → scaled to 10x2.5, centered vertically
+    // (rows ~3.75–6.25). The center has the image; the top/bottom margins stay
+    // empty — proving contain-fit, not a stretched fill.
+    final wide = await solidImage(8, 2, 0xFF00FF00);
+    const svg = '<svg viewBox="0 0 10 10"><image x="0" y="0" width="10" height="10" href="pic"/></svg>';
+    final img = await render(svg, 10, 10, images: (href) => href == 'pic' ? wide : null);
+    expect(await argbAt(img, 5, 5), 0xFF00FF00); // center: image
+    expect(alpha(await argbAt(img, 5, 0)), 0); // top margin: empty
+    expect(alpha(await argbAt(img, 5, 9)), 0); // bottom margin: empty
+  });
+
   test('renders the real d2 fixture without error and draws ink', () async {
     final svg = File('test/svg/fixtures/d2_pipeline.svg').readAsStringSync();
     final img = await render(svg, 200, 120);

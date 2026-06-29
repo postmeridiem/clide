@@ -8971,3 +8971,112 @@ Extend ImageMessage + the image card to render the richer metadata. Keep the exi
 DONE (2026-06-29): text-annotation payload landed (option a). image.show --file {path,label,description,caption}; ImageMessage + card render label (title) + description; bare positional/--caption form unchanged; honest userError on malformed/missing payload. Tests: command (--file, malformed, missing) + widget (label/description render). Commit f0fb5a51. Visual marker overlays (option b) split to a follow-up.', NULL, '2026-06-29 10:58:54', '2026-06-29 10:58:54.871', '2026-06-29 10:58:54.871', NULL, '441e112bc4d899f4bde04d27b4a04f09', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2AD3HPR3HXSVASVZEX8PK0', 'status', 'in_progress', 'done', NULL, '2026-06-29 10:58:54', '2026-06-29 10:58:54.909', '2026-06-29 10:58:54.909', NULL, 'd75063a149400a6fd1a418dd5bc0da2f', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 10:59:39', '2026-06-29 10:59:39.390', '2026-06-29 10:59:39.390', NULL, '107169be09c5a9a31a7c19a905cecce9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'description', 'A conversation-pane card that renders one OR MANY Phosphor glyphs by name/codepoint, each with an optional label and an optional description line, so icons can be previewed and compared in the live pane — and so a set of candidate icons can be offered as a labelled choice list (e.g. picking settings-scope icons, T-302).
+
+## Why
+
+Picking icons needs to SEE real glyphs side by side with what each one means. Frame0 can''t render Phosphor (private-use codepoints, no font) and goldens render the font as Ahem boxes, so preview only works where the app has the font — a native card is the vehicle. Beyond a bare grid, real icon decisions are ''which of these N icons, for these N meanings'' — so each entry wants an optional label (what we''d call it) and an optional description (what it represents), turning the card into an offer/choice list.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a list/grid of entries, each entry = glyph + optional label + optional description, driven by the clide CLI (D-6 parity). Uses the bundled Phosphor.ttf via PhosphorIconPainter.
+
+### Multi-size rendering (per entry)
+
+Each icon is shown at SEVERAL sizes, not one: (1) a large hero rendering so the glyph''s detail is clearly legible, and (2) a sample at each font-size token the app actually uses inline, so you can judge how the glyph reads at real UI sizes. The relevant inline scale is in lib/widgets/src/typography.dart: clideFontBadge (11), clideFontSmall (12), clideFontMeta (13), clideFontCaption/clideFontMono (14), clideFontBody (15). Drive the inline samples off those tokens (not bare numbers) so the row tracks the scale if it changes. For the hero, REUSE the existing clideFontWelcomeBanner (52) token rather than adding a new constant — it''s already the app''s named oversized size; no new token needed. Lay the size samples out in a single row/strip per entry, smallest to largest, labelled with the token/px so a reviewer sees exactly where each size lands.
+
+### CLI shape + IPC wiring (mirror image.show exactly)
+
+Follow the image-card template (lib/src/daemon/image_commands.dart) end to end — it is the proven D-6 parity pattern:
+
+- REGISTRATION: a dotted `icon.show` command on DaemonDispatcher (invoked as `clide icon show`), declared with a CommandSchema — positional + per-arg ArgSpec — exactly like image.show''s `{positional: [''path''], args: {...}}`. Handler stays Flutter-free so it runs under `dart test`.
+- BARE PREVIEW (variadic): one or more icons as positionals via ArgType.stringList — `clide icon show gear folder gauge` — each a kebab-case name (resolved by PhosphorIcons.byName) or a 0xNNNN codepoint. stringList is already supported by the schema (lib/src/ipc/command_schema.dart) and the argv parser, so no new CLI plumbing.
+- LABELLED/DESCRIBED entries: a `--file <path.json>` flag whose value is a JSON array of `{"icon": "gear", "label": "Settings", "description": "global scope"}` (label, description optional); the handler reads and parses the file. NOTE: do NOT spec `--stdin` — clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals/flags/passthrough and has no stdin path, so a `--file` flag (or repeated flags) is the grounded choice unless we deliberately add stdin support as separate work.
+- RENDER PATH: validate + resolve icon names in the handler (inject a resolver the way image.show injects ImagePathResolver, so headless/dart-test stays filesystem-free), then publish on a dedicated MessageBus channel — e.g. `iconShowChannel = ''icon''`, peer of `imageShowChannel = ''image''` — captured post-boot in main.dart; the Claude extension subscribes to that literal and injects the card into the primary session''s conversation log. Honest failure (IpcError userError/notFound) on an unknown glyph name or a malformed/missing --file, and on no live UI bus (headless), mirroring image.show.
+- One card per invocation; entries render as rows (or a grid when label/description are absent).
+
+## Display-only card + interaction-zone selection (D-78 — decided)
+
+DECIDED: the display card is display-only; the SELECTION happens in the convo box (interaction zone), not on the card. The card renders the labelled icon options for the user to SEE; when a pick is needed, Claude offers a matching choice list in the interaction zone (AskUserQuestion-style options that replace the composer), and the user selects there. This keeps conversation widgets display-only per D-78 and the interaction-zone rule.
+
+The LABEL is the bridge between the two surfaces: Claude attaches a label to each icon on the display card, then offers the SAME labels as the options in the interaction-zone choice list — so ''I pick Settings'' in the convo box maps unambiguously back to the glyph the user saw on the card. That''s why per-entry labels are first-class here: they exist to facilitate this show-then-pick flow, with the description giving the extra context that doesn''t fit a one-word option. The card may still copy a codepoint/name on click (a convenience), but it never resolves the choice itself.
+
+## Notes / scope
+
+- Name->codepoint resolution ALREADY EXISTS: lib/widgets/src/icons/phosphor_glyphs.g.dart (generated, 1512 glyphs) + PhosphorIcons.byName. The earlier ''OPTIONAL: generate the full set'' caveat is resolved — every named glyph is already resolvable; the 49 curated consts in phosphor.dart remain curated sugar.
+- Every glyph already renders via PhosphorIconPainter(0xNNNN).
+- label and description are both optional per entry; an entry with neither degrades to the bare-preview look.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302); refined 2026-06-10 to cover multi-icon labelled offer/choice lists.
+
+## Acceptance
+
+- `icon.show` is registered on DaemonDispatcher with a CommandSchema and invoked as `clide icon show`, mirroring image.show; the handler is Flutter-free and publishes on an `icon` MessageBus channel injected by the Claude extension.
+- `clide icon show <name> [<name> ...]` accepts multiple icons (variadic stringList positionals) in one call and renders them in a single conversation card.
+- A `--file <path.json>` payload lets each icon carry an optional label and optional description, both rendered alongside the glyph (no --stdin — not supported by the CLI parser).
+- Each icon renders at multiple sizes: a hero at the existing clideFontWelcomeBanner (52) token plus one sample at each inline font-size token (badge 11 -> body 15), sized off the typography tokens and labelled so the reviewer sees legibility at real UI sizes.
+- The card is display-only (no inline selection); selection happens in the interaction zone (convo box) via a Claude-offered choice list whose options reuse the per-icon labels from the card.
+- Unknown/invalid icon names fail with a clear user error, not a blank glyph.
+
+FOLLOW-UPS: the piped-JSON (--stdin) variant is split out as T-315 (generic CLI stdin plumbing); image.show gets the same metadata/annotation treatment in T-316. T-313 ships with --file regardless of T-315.
+
+DESIGN REFINEMENT (2026-06-28, wireframe review): broaden the per-entry size-sample strip beyond clide''s inline typography tokens. clide icon show is a general-purpose glyph previewer, not bound to clide''s own UI, so the strip renders BOTH clide inline tokens (11–15: badge/small/meta/caption/body) AND common icon sizes (18, 20, 24, 32, 48). Hero stays 52 (clideFontWelcomeBanner). Update the acceptance bullet accordingly: ''a sample at each inline token (11–15) PLUS common sizes 18/20/24/32/48'', driven off named tokens where they exist and explicit px otherwise. Wireframe: docs/design/wireframes/conversation/icon-glyph-card.png.
+
+Size set FINALIZED (2026-06-28): one continuous sample strip — 10, 11, 12, 13, 14, 15, 18, 20, 24, 32, 48 px — no clide-vs-common visual split. Hero stays 52. Supersedes the grouped framing in the prior note.
+
+COLOR (2026-06-28, folded into payload spec): add an OPTIONAL per-entry ''color'' to the --file JSON, e.g. {"icon":"gear","label":"Settings","color":"#e2b714"}. Value is an ARBITRARY color — hex #rrggbb / #rrggbbaa (CSS-style names acceptable) — passed straight to PhosphorIconPainter. NOT a clide SurfaceTokens theme token: the glyph is content for whatever project we''re working on (its own palette), and the D-7 token discipline governs clide''s own chrome, not rendered content. Optional card-level default ''color''; a glyph with none falls back to the card''s default foreground. Unknown/malformed color → the same honest userError as a bad glyph name. Mirrors how arbitrary colors already flow through the image/svg cards.', 'A conversation-pane card that renders one OR MANY Phosphor glyphs by name/codepoint, each with an optional label and an optional description line, so icons can be previewed and compared in the live pane — and so a set of candidate icons can be offered as a labelled choice list (e.g. picking settings-scope icons, T-302).
+
+## Why
+
+Picking icons needs to SEE real glyphs side by side with what each one means. Frame0 can''t render Phosphor (private-use codepoints, no font) and goldens render the font as Ahem boxes, so preview only works where the app has the font — a native card is the vehicle. Beyond a bare grid, real icon decisions are ''which of these N icons, for these N meanings'' — so each entry wants an optional label (what we''d call it) and an optional description (what it represents), turning the card into an offer/choice list.
+
+## Deliverable
+
+A conversation-pane card (peer of the image card, T-249/T-252) that renders a list/grid of entries, each entry = glyph + optional label + optional description, driven by the clide CLI (D-6 parity). Uses the bundled Phosphor.ttf via PhosphorIconPainter.
+
+### Multi-size rendering (per entry)
+
+Each icon is shown at SEVERAL sizes, not one: (1) a large hero rendering so the glyph''s detail is clearly legible, and (2) a sample at each font-size token the app actually uses inline, so you can judge how the glyph reads at real UI sizes. The relevant inline scale is in lib/widgets/src/typography.dart: clideFontBadge (11), clideFontSmall (12), clideFontMeta (13), clideFontCaption/clideFontMono (14), clideFontBody (15). Drive the inline samples off those tokens (not bare numbers) so the row tracks the scale if it changes. For the hero, REUSE the existing clideFontWelcomeBanner (52) token rather than adding a new constant — it''s already the app''s named oversized size; no new token needed. Lay the size samples out in a single row/strip per entry, smallest to largest, labelled with the token/px so a reviewer sees exactly where each size lands.
+
+### CLI shape + IPC wiring (mirror image.show exactly)
+
+Follow the image-card template (lib/src/daemon/image_commands.dart) end to end — it is the proven D-6 parity pattern:
+
+- REGISTRATION: a dotted `icon.show` command on DaemonDispatcher (invoked as `clide icon show`), declared with a CommandSchema — positional + per-arg ArgSpec — exactly like image.show''s `{positional: [''path''], args: {...}}`. Handler stays Flutter-free so it runs under `dart test`.
+- BARE PREVIEW (variadic): one or more icons as positionals via ArgType.stringList — `clide icon show gear folder gauge` — each a kebab-case name (resolved by PhosphorIcons.byName) or a 0xNNNN codepoint. stringList is already supported by the schema (lib/src/ipc/command_schema.dart) and the argv parser, so no new CLI plumbing.
+- LABELLED/DESCRIBED entries: a `--file <path.json>` flag whose value is a JSON array of `{"icon": "gear", "label": "Settings", "description": "global scope"}` (label, description optional); the handler reads and parses the file. NOTE: do NOT spec `--stdin` — clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals/flags/passthrough and has no stdin path, so a `--file` flag (or repeated flags) is the grounded choice unless we deliberately add stdin support as separate work.
+- RENDER PATH: validate + resolve icon names in the handler (inject a resolver the way image.show injects ImagePathResolver, so headless/dart-test stays filesystem-free), then publish on a dedicated MessageBus channel — e.g. `iconShowChannel = ''icon''`, peer of `imageShowChannel = ''image''` — captured post-boot in main.dart; the Claude extension subscribes to that literal and injects the card into the primary session''s conversation log. Honest failure (IpcError userError/notFound) on an unknown glyph name or a malformed/missing --file, and on no live UI bus (headless), mirroring image.show.
+- One card per invocation; entries render as rows (or a grid when label/description are absent).
+
+## Display-only card + interaction-zone selection (D-78 — decided)
+
+DECIDED: the display card is display-only; the SELECTION happens in the convo box (interaction zone), not on the card. The card renders the labelled icon options for the user to SEE; when a pick is needed, Claude offers a matching choice list in the interaction zone (AskUserQuestion-style options that replace the composer), and the user selects there. This keeps conversation widgets display-only per D-78 and the interaction-zone rule.
+
+The LABEL is the bridge between the two surfaces: Claude attaches a label to each icon on the display card, then offers the SAME labels as the options in the interaction-zone choice list — so ''I pick Settings'' in the convo box maps unambiguously back to the glyph the user saw on the card. That''s why per-entry labels are first-class here: they exist to facilitate this show-then-pick flow, with the description giving the extra context that doesn''t fit a one-word option. The card may still copy a codepoint/name on click (a convenience), but it never resolves the choice itself.
+
+## Notes / scope
+
+- Name->codepoint resolution ALREADY EXISTS: lib/widgets/src/icons/phosphor_glyphs.g.dart (generated, 1512 glyphs) + PhosphorIcons.byName. The earlier ''OPTIONAL: generate the full set'' caveat is resolved — every named glyph is already resolvable; the 49 curated consts in phosphor.dart remain curated sugar.
+- Every glyph already renders via PhosphorIconPainter(0xNNNN).
+- label and description are both optional per entry; an entry with neither degrades to the bare-preview look.
+- Surfaced 2026-06-10 while choosing settings scope icons (T-302); refined 2026-06-10 to cover multi-icon labelled offer/choice lists.
+
+## Acceptance
+
+- `icon.show` is registered on DaemonDispatcher with a CommandSchema and invoked as `clide icon show`, mirroring image.show; the handler is Flutter-free and publishes on an `icon` MessageBus channel injected by the Claude extension.
+- `clide icon show <name> [<name> ...]` accepts multiple icons (variadic stringList positionals) in one call and renders them in a single conversation card.
+- A `--file <path.json>` payload lets each icon carry an optional label and optional description, both rendered alongside the glyph (no --stdin — not supported by the CLI parser).
+- Each icon renders at multiple sizes: a hero at the existing clideFontWelcomeBanner (52) token plus one sample at each inline font-size token (badge 11 -> body 15), sized off the typography tokens and labelled so the reviewer sees legibility at real UI sizes.
+- The card is display-only (no inline selection); selection happens in the interaction zone (convo box) via a Claude-offered choice list whose options reuse the per-icon labels from the card.
+- Unknown/invalid icon names fail with a clear user error, not a blank glyph.
+
+FOLLOW-UPS: the piped-JSON (--stdin) variant is split out as T-315 (generic CLI stdin plumbing); image.show gets the same metadata/annotation treatment in T-316. T-313 ships with --file regardless of T-315.
+
+DESIGN REFINEMENT (2026-06-28, wireframe review): broaden the per-entry size-sample strip beyond clide''s inline typography tokens. clide icon show is a general-purpose glyph previewer, not bound to clide''s own UI, so the strip renders BOTH clide inline tokens (11–15: badge/small/meta/caption/body) AND common icon sizes (18, 20, 24, 32, 48). Hero stays 52 (clideFontWelcomeBanner). Update the acceptance bullet accordingly: ''a sample at each inline token (11–15) PLUS common sizes 18/20/24/32/48'', driven off named tokens where they exist and explicit px otherwise. Wireframe: docs/design/wireframes/conversation/icon-glyph-card.png.
+
+Size set FINALIZED (2026-06-28): one continuous sample strip — 10, 11, 12, 13, 14, 15, 18, 20, 24, 32, 48 px — no clide-vs-common visual split. Hero stays 52. Supersedes the grouped framing in the prior note.
+
+COLOR (2026-06-28, folded into payload spec): add an OPTIONAL per-entry ''color'' to the --file JSON, e.g. {"icon":"gear","label":"Settings","color":"#e2b714"}. Value is an ARBITRARY color — hex #rrggbb / #rrggbbaa (CSS-style names acceptable) — passed straight to PhosphorIconPainter. NOT a clide SurfaceTokens theme token: the glyph is content for whatever project we''re working on (its own palette), and the D-7 token discipline governs clide''s own chrome, not rendered content. Optional card-level default ''color''; a glyph with none falls back to the card''s default foreground. Unknown/malformed color → the same honest userError as a bad glyph name. Mirrors how arbitrary colors already flow through the image/svg cards.
+
+DONE (2026-06-29): Phosphor glyph card landed end-to-end + tests green. icon.show (Flutter-free, dart-tested): variadic stringList positionals (clide icon show gear folder — required a schema enhancement so a trailing stringList positional is variadic) OR --file JSON [{icon,label,description,color}]; resolves by name (injected kPhosphorGlyphs resolver) or 0xNNNN; color via parseSvgColor (hex/CSS); publishes on ''icon'' bus; honest userError on unknown glyph/bad color/malformed payload/no UI. Card: per entry a hero (52) + continuous sample strip 10..48, optional label/description, per-entry/card color; display-only D-78. Commits 9a2b4e9e (handler+schema) + 281fb2a8 (card+wiring).', NULL, '2026-06-29 11:11:17', '2026-06-29 11:11:17.477', '2026-06-29 11:11:17.477', NULL, 'dc19f7fc9798ca56d6ec7db1779744e4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB234WP4Y6Q16A0HFW8BSXMG', 'status', 'in_progress', 'done', NULL, '2026-06-29 11:11:17', '2026-06-29 11:11:17.514', '2026-06-29 11:11:17.514', NULL, 'b051374bed839b26002105c4febe1574', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ESCR4V6V07CRH18FBCDN8', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 11:11:28', '2026-06-29 11:11:28.762', '2026-06-29 11:11:28.762', NULL, '490b259653d17d1643ebb9e8a17f0574', 2) ON CONFLICT(hash) DO NOTHING;
