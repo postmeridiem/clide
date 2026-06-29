@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.9.0] — 2026-06-30
+
+### Added
+
 - **Graph cards.** `clide draw --file graph.json` (template `graph`) renders a
   nodes/edges graph in the conversation as a circular layout — labelled nodes,
   lines between them. Honest error on a duplicate id or an edge to an unknown
