@@ -56,6 +56,13 @@ void main() {
     expect(published.single.data, {'path': '/abs/docs/shot.png', 'caption': 'before', 'label': 'HUD v3', 'description': 'cramped status row'});
   });
 
+  test('a --stdin payload carries metadata like --file (T-315)', () async {
+    wire(found: {'docs/shot.png'});
+    final r = await show([], flags: {'stdin': '{"path":"docs/shot.png","label":"HUD"}'});
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(published.single.data, {'path': '/abs/docs/shot.png', 'label': 'HUD'});
+  });
+
   test('a malformed --file payload is an honest userError, nothing published', () async {
     wire(files: {'meta.json': 'not json'});
     final r = await show([], flags: {'file': 'meta.json'});

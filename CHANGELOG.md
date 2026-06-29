@@ -18,6 +18,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Piped `--stdin` payloads.** `cat icons.json | clide icon show --stdin` (and
+  `image show`) accept a JSON payload on stdin — the ergonomic peer of `--file`
+  for structured commands. (T-315)
 - **Before/after compare cards.** `clide draw --file compare.json` (template
   `compare`) renders two or more images side by side, each with its own
   label/description and tap-to-zoom; images aspect-fit so differing shapes

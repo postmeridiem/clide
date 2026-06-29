@@ -6,6 +6,7 @@
 library;
 
 import 'package:clide/src/cli/argv_dispatch.dart';
+import 'package:clide/src/cli/argv_to_request.dart' show ArgvParsed;
 import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/ipc/envelope.dart';
 import 'package:clide/src/ipc/schema_v1.dart';
@@ -32,6 +33,23 @@ void main() {
     expect(res.ok, isTrue);
     expect(res.id, 'x');
     expect(res.data['pong'], isTrue);
+  });
+
+  test('a stdin payload folds into the inner request as a flag (T-315)', () {
+    final result = unwrapArgvRequest(
+      IpcRequest(
+        id: 'x',
+        cmd: argvSentinelCmd,
+        args: {
+          'argv': ['icon', 'show'],
+          'stdin': '[{"icon":"gear"}]',
+        },
+      ),
+    );
+    expect(result, isA<ArgvParsed>());
+    final req = (result as ArgvParsed).request;
+    expect(req.cmd, 'icon.show');
+    expect((req.args['flags'] as Map)['stdin'], '[{"icon":"gear"}]');
   });
 
   test('args.argv missing → userError', () async {

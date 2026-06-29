@@ -36,7 +36,21 @@ ArgvParseResult unwrapArgvRequest(IpcRequest outer) {
       ),
     );
   }
-  return parseArgv(raw.cast<String>(), requestId: outer.id);
+  final result = parseArgv(raw.cast<String>(), requestId: outer.id);
+  // A piped `--stdin` payload (T-315): the C client slurps stdin and ships it
+  // alongside the argv. Fold it into the inner request as a `stdin` flag so it
+  // surfaces as a named arg (undeclared keys pass the schema untouched) — the
+  // handler reads it as the structured payload, the piped peer of `--file`.
+  final stdin = outer.args['stdin'];
+  if (result is ArgvParsed && stdin is String) {
+    final req = result.request;
+    final args = Map<String, Object?>.from(req.args);
+    final flags = Map<String, Object?>.from((args['flags'] as Map?) ?? const {});
+    flags['stdin'] = stdin;
+    args['flags'] = flags;
+    return ArgvParsed(IpcRequest(id: req.id, cmd: req.cmd, args: args));
+  }
+  return result;
 }
 
 /// Wire the `_argv` sentinel handler onto [dispatcher]. The handler

@@ -279,19 +279,41 @@ static void json_escape(const char *s, char *out, size_t out_size) {
 
 /* Build the request envelope and write it to `out`. Returns 0 on
  * success, -1 if any input was too large. */
-static int build_request(int argc, char **argv, long long pid, char *out, size_t out_size) {
+/* Slurp stdin (a piped JSON payload, T-315) into buf, NUL-terminated. Bounded:
+ * reads at most size-1 bytes — a larger payload is truncated, and the envelope's
+ * own size guard then rejects it loudly rather than corrupting the wire. */
+static int slurp_stdin(char *buf, size_t size) {
+    size_t n = fread(buf, 1, size - 1, stdin);
+    buf[n] = '\0';
+    return (int)n;
+}
+
+static int build_request(int argc, char **argv, long long pid, char *out, size_t out_size, const char *stdin_data) {
     /* Compute argv array size: each arg gets its own escaped JSON. */
     int n = snprintf(out, out_size,
         "{\"type\":\"request\",\"v\":1,\"id\":\"c%lld\",\"cmd\":\"_argv\",\"args\":{\"argv\":[",
         pid);
     if (n < 0 || (size_t)n >= out_size) return -1;
+    int first = 1;
     for (int i = 0; i < argc; i++) {
+        /* The --stdin flag is a slurp signal, not a value — strip it from argv;
+         * the payload rides alongside in the `stdin` field (T-315). */
+        if (strcmp(argv[i], "--stdin") == 0) continue;
         char esc[4096];
         json_escape(argv[i], esc, sizeof(esc));
-        n += snprintf(out + n, out_size - n, "%s%s", i ? "," : "", esc);
+        n += snprintf(out + n, out_size - n, "%s%s", first ? "" : ",", esc);
+        if (n < 0 || (size_t)n >= out_size) return -1;
+        first = 0;
+    }
+    n += snprintf(out + n, out_size - n, "]");
+    if (n < 0 || (size_t)n >= out_size) return -1;
+    if (stdin_data && *stdin_data) {
+        char esc[40000];
+        json_escape(stdin_data, esc, sizeof(esc));
+        n += snprintf(out + n, out_size - n, ",\"stdin\":%s", esc);
         if (n < 0 || (size_t)n >= out_size) return -1;
     }
-    n += snprintf(out + n, out_size - n, "]}}\n");
+    n += snprintf(out + n, out_size - n, "}}\n");
     return (n < 0 || (size_t)n >= out_size) ? -1 : 0;
 }
 
@@ -386,7 +408,7 @@ static int list_instances(void) {
         sock_t fd = connect_unix(path);
         if (fd == NET_INVALID) continue; /* dead socket — skip */
         char req[1024];
-        if (build_request(1, qargv, (long long)clide_getpid(), req, sizeof(req)) == 0 &&
+        if (build_request(1, qargv, (long long)clide_getpid(), req, sizeof(req), NULL) == 0 &&
             net_write(fd, req, (int)strlen(req)) == (int)strlen(req)) {
             char resp[65536];
             if (read_line(fd, resp, sizeof(resp)) == 0) {
@@ -460,10 +482,22 @@ int main(int argc, char **argv) {
         return EX_UNAVAILABLE;
     }
 
+    /* A `--stdin` flag anywhere in argv means slurp a piped JSON payload and
+     * ship it alongside (T-315) — the structured peer of `--file`. */
+    char stdin_buf[32768];
+    const char *stdin_data = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--stdin") == 0) {
+            slurp_stdin(stdin_buf, sizeof(stdin_buf));
+            stdin_data = stdin_buf;
+            break;
+        }
+    }
+
     /* Build + send request. Worst-case envelope sizing: argv totals
      * plus JSON overhead. 64 KB envelope handles 4 KB args * 16. */
     char req[65536];
-    if (build_request(argc - 1, argv + 1, (long long)clide_getpid(), req, sizeof(req)) != 0) {
+    if (build_request(argc - 1, argv + 1, (long long)clide_getpid(), req, sizeof(req), stdin_data) != 0) {
         fprintf(stderr, "clide: request payload too large\n");
         net_close(fd);
         return EX_USAGE;

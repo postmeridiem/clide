@@ -68,13 +68,15 @@ Future<IpcResponse> _show(IpcRequest req, MessagePublisher? Function() publisher
   String? label, description;
   String? caption = req.args['caption'] as String?;
 
-  // --file <json>: an annotation payload {path,label,description,caption}
-  // (T-316). Additive — the bare `image show <path> [--caption]` form is
-  // unchanged; label/description are the new richer metadata.
-  final file = req.args['file'] as String?;
-  if (file != null && file.trim().isNotEmpty) {
-    final raw = readFile == null ? null : await readFile(file);
-    if (raw == null) {
+  // An annotation payload {path,label,description,caption} from a piped --stdin
+  // (T-315) or a --file (T-316); --stdin wins. Additive — the bare
+  // `image show <path> [--caption]` form is unchanged.
+  final stdin = _str(req.args['stdin']);
+  final file = _str(req.args['file']);
+  String? payload = stdin;
+  if (payload == null && file != null) {
+    payload = readFile == null ? null : await readFile(file);
+    if (payload == null) {
       return IpcResponse.err(
         id: req.id,
         error: IpcError(
@@ -85,11 +87,13 @@ Future<IpcResponse> _show(IpcRequest req, MessagePublisher? Function() publisher
         ),
       );
     }
+  }
+  if (payload != null) {
     Object? decoded;
     try {
-      decoded = jsonDecode(raw);
+      decoded = jsonDecode(payload);
     } on FormatException catch (e) {
-      return _userErr(req.id, 'invalid JSON in $file: ${e.message}');
+      return _userErr(req.id, 'invalid JSON in the image payload: ${e.message}');
     }
     if (decoded is! Map) return _userErr(req.id, 'image metadata must be a JSON object');
     path = _str(decoded['path']) ?? path;

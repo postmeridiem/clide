@@ -63,6 +63,20 @@ void main() {
     });
   });
 
+  test('a --stdin payload is parsed like --file (T-315)', () async {
+    wire();
+    final r = await show([], flags: {'stdin': '[{"icon":"gear","label":"Settings"}]'});
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect((published.single.data['entries'] as List).single, {'codepoint': 0xe2a4, 'name': 'gear', 'label': 'Settings'});
+  });
+
+  test('--stdin wins over --file', () async {
+    wire(files: {'i.json': '[{"icon":"folder"}]'});
+    final r = await show([], flags: {'stdin': '[{"icon":"gear"}]'});
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect((published.single.data['entries'] as List).single['name'], 'gear');
+  });
+
   test('a card-level --color rides along', () async {
     wire();
     final r = await show(['gear'], flags: {'color': 'red'});

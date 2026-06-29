@@ -62,11 +62,14 @@ Future<IpcResponse> _show(IpcRequest req, MessagePublisher? Function() publisher
   }
 
   final entries = <Map<String, Object?>>[];
+  // The entry payload comes from a piped --stdin (T-315) or a --file; --stdin
+  // wins. Either is a JSON array of {icon,label,description,color}.
+  final stdin = _str(req.args['stdin']);
   final file = _str(req.args['file']);
-
-  if (file != null) {
-    final raw = readFile == null ? null : await readFile(file);
-    if (raw == null) {
+  String? payload = stdin;
+  if (payload == null && file != null) {
+    payload = readFile == null ? null : await readFile(file);
+    if (payload == null) {
       return IpcResponse.err(
         id: req.id,
         error: IpcError(
@@ -77,11 +80,14 @@ Future<IpcResponse> _show(IpcRequest req, MessagePublisher? Function() publisher
         ),
       );
     }
+  }
+
+  if (payload != null) {
     Object? decoded;
     try {
-      decoded = jsonDecode(raw);
+      decoded = jsonDecode(payload);
     } on FormatException catch (e) {
-      return _userErr(req.id, 'invalid JSON in $file: ${e.message}');
+      return _userErr(req.id, 'invalid JSON in the icon payload: ${e.message}');
     }
     if (decoded is! List) return _userErr(req.id, 'icon metadata must be a JSON array of entries');
     for (final item in decoded) {
