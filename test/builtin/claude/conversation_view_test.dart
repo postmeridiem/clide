@@ -35,7 +35,8 @@ AssistantToolUse _tool(String name, Map<String, dynamic> input) =>
     AssistantToolUse(uuid: 'tu', timestamp: _t, isSidechain: false, toolUseId: 'x1', name: name, input: input);
 ToolResultMessage _result(String content, {bool isError = false}) =>
     ToolResultMessage(uuid: 'r', timestamp: _t, isSidechain: false, toolUseId: 'x1', content: content, isError: isError);
-ImageMessage _image(String path, {String? caption}) => ImageMessage(uuid: 'i', timestamp: _t, isSidechain: false, path: path, caption: caption);
+ImageMessage _image(String path, {String? caption, String? label, String? description}) =>
+    ImageMessage(uuid: 'i', timestamp: _t, isSidechain: false, path: path, caption: caption, label: label, description: description);
 
 class _MockClipboard {
   Map<String, dynamic> _data = {'text': null};
@@ -470,6 +471,13 @@ void main() {
       // The image is wired to the resolved file path (display-only, D-78).
       final img = tester.widget<Image>(find.byType(Image));
       expect((img.image as FileImage).file.path, '/no/such/file.png');
+    });
+
+    testWidgets('an image card renders its --file label and description (T-316)', (tester) async {
+      await pumpWith(tester, [_image('/no/such/shot.png', label: 'HUD v3', description: 'note the cramped status row', caption: 'before')]);
+      expect(find.text('HUD v3'), findsOneWidget);
+      expect(find.text('note the cramped status row'), findsOneWidget);
+      expect(find.text('before'), findsOneWidget);
     });
 
     testWidgets('inject() drives a new image card into a live view (T-249)', (tester) async {

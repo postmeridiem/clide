@@ -368,6 +368,14 @@ Future<void> main() async {
         final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
         return file.existsSync() ? file.absolute.path : null;
       },
+      readFile: (path) async {
+        final file = File(path.startsWith('/') ? path : '${workRoot.path}/$path');
+        try {
+          return file.existsSync() ? await file.readAsString() : null;
+        } catch (_) {
+          return null;
+        }
+      },
     );
     // `clide draw --file <doc>` — drive a drawing card into the Claude
     // conversation (T-318, drive-half of D-6). Reads the JSON doc relative to

@@ -14,13 +14,18 @@ void main() {
 
   // [found] is the set of paths the fake resolver treats as existing on disk;
   // it echoes them back prefixed with /abs to stand in for an absolute path.
-  void wire({bool liveUi = true, Set<String> found = const {'docs/diagram.png'}, bool withResolver = true}) {
+  void wire({bool liveUi = true, Set<String> found = const {'docs/diagram.png'}, bool withResolver = true, Map<String, String> files = const {}}) {
     published = [];
     d = DaemonDispatcher();
-    registerImageCommands(d, () {
-      if (!liveUi) return null;
-      return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
-    }, resolve: withResolver ? (path) => found.contains(path) ? '/abs/$path' : null : null);
+    registerImageCommands(
+      d,
+      () {
+        if (!liveUi) return null;
+        return (publisher, channel, data) => published.add((publisher: publisher, channel: channel, data: data));
+      },
+      resolve: withResolver ? (path) => found.contains(path) ? '/abs/$path' : null : null,
+      readFile: (path) async => files[path],
+    );
   }
 
   Future<IpcResponse> show(List<String> positional, {Map<String, Object?>? flags}) =>
@@ -42,6 +47,26 @@ void main() {
     final r = await show(['docs/diagram.png'], flags: {'caption': 'before the fix'});
     expect(r.ok, isTrue, reason: r.error?.message);
     expect(published.single.data, {'path': '/abs/docs/diagram.png', 'caption': 'before the fix'});
+  });
+
+  test('--file metadata payload carries label + description (T-316)', () async {
+    wire(found: {'docs/shot.png'}, files: {'meta.json': '{"path":"docs/shot.png","label":"HUD v3","description":"cramped status row","caption":"before"}'});
+    final r = await show([], flags: {'file': 'meta.json'});
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(published.single.data, {'path': '/abs/docs/shot.png', 'caption': 'before', 'label': 'HUD v3', 'description': 'cramped status row'});
+  });
+
+  test('a malformed --file payload is an honest userError, nothing published', () async {
+    wire(files: {'meta.json': 'not json'});
+    final r = await show([], flags: {'file': 'meta.json'});
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(published, isEmpty);
+  });
+
+  test('a missing --file is notFound', () async {
+    wire();
+    final r = await show([], flags: {'file': 'gone.json'});
+    expect(r.error?.kind, IpcErrorKind.notFound);
   });
 
   test('--fullscreen rides along in the payload (T-252)', () async {
@@ -117,7 +142,9 @@ void main() {
     expect(spec['verb'], 'show');
     expect(spec['positional'], ['path']);
     final args = spec['args'] as Map<String, Object?>;
-    expect((args['path'] as Map)['required'], true);
+    // path is no longer required — it may come from a --file payload (T-316).
+    expect((args['path'] as Map)['required'], isNot(true));
     expect(args.containsKey('caption'), isTrue);
+    expect(args.containsKey('file'), isTrue);
   });
 }

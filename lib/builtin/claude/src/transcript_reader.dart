@@ -178,13 +178,25 @@ final class AssistantToolUse extends ConversationItem {
 /// driver has already resolved (workspace-relative paths are resolved before
 /// injection); [caption] is an optional one-line label.
 final class ImageMessage extends ConversationItem {
-  const ImageMessage({required super.uuid, required super.timestamp, required super.isSidechain, required this.path, this.caption});
+  const ImageMessage({
+    required super.uuid,
+    required super.timestamp,
+    required super.isSidechain,
+    required this.path,
+    this.caption,
+    this.label,
+    this.description,
+  });
 
   /// Absolute path to the image file on disk.
   final String path;
 
   /// Optional caption shown under the image.
   final String? caption;
+
+  /// Optional richer annotations from a `--file` metadata payload (T-316): a
+  /// title/label above the image and a longer description beneath it.
+  final String? label, description;
 
   @override
   String toString() => 'ImageMessage($path${caption != null ? ', "$caption"' : ''})';

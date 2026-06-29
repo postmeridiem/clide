@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Annotated image cards.** `clide image show --file meta.json` attaches a
+  title/label and a longer description to an image card (alongside the existing
+  one-line caption); the bare `image show <path> --caption` form is unchanged.
+  Visual marker overlays remain a follow-up. (T-316)
 - **D2 diagram cards.** `clide draw --file diagram.d2` compiles a d2 diagram to
   SVG (via the `d2` binary) and renders it in the conversation; `template:"d2"`
   with inline source works too, and a `.svg` file renders directly. Honest error

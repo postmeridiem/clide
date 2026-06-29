@@ -641,6 +641,8 @@ class ClaudeExtension extends ClideExtension {
         isSidechain: false,
         path: path,
         caption: m.data['caption'] as String?,
+        label: m.data['label'] as String?,
+        description: m.data['description'] as String?,
       ),
     );
   }

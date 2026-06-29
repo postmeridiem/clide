@@ -749,6 +749,11 @@ class _ConversationTurn extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Annotation title above the image (T-316), when a --file payload set it.
+          if (m.label != null && m.label!.isNotEmpty) ...[
+            ClideText(m.label!, fontSize: clideFontMeta, fontWeight: FontWeight.w600, color: tokens.globalForeground),
+            const SizedBox(height: 4),
+          ],
           // The card stays display-only (D-78); the click is a navigation
           // gesture that opens the full-screen lightbox (T-252), not an inline
           // control.
@@ -770,6 +775,10 @@ class _ConversationTurn extends StatelessWidget {
               ),
             ),
           ),
+          if (m.description != null && m.description!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ClideText(m.description!, fontSize: clideFontCaption, color: tokens.globalTextMuted),
+          ],
           if (caption != null && caption.isNotEmpty) ...[const SizedBox(height: 4), ClideText(caption, fontSize: clideFontMeta, color: tokens.globalTextMuted)],
         ],
       ),
