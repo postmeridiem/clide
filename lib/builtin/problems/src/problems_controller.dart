@@ -8,6 +8,7 @@ library;
 import 'dart:async';
 
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/env/supporter_binaries.dart';
 import 'package:flutter/foundation.dart';
 
 class Problem {
@@ -69,9 +70,24 @@ class ProblemsController extends ChangeNotifier {
       }
     }
 
+    found.addAll(supporterToolProblems(activeSupporterBinaries));
+
     _loading = false;
     _error = null;
     _problems = found;
     notifyListeners();
   }
+}
+
+/// Problems for STALE supporter-binary pins (T-495 / D-104): an explicit tool
+/// path that no longer points at a file — a real misconfig (a tool moved on an
+/// upgrade). A merely-unfound optional tool isn't flagged; its use-time
+/// userError covers that. Pure + testable.
+List<Problem> supporterToolProblems(SupporterBinaries? tools) {
+  if (tools == null) return const [];
+  return [
+    for (final name in knownSupporterTools)
+      if (tools.isStalePin(name))
+        Problem(source: 'tools', message: 'configured path for "$name" is missing', hint: 'Re-detect, or update its path in settings (app.tools).'),
+  ];
 }
