@@ -43,6 +43,7 @@ import 'package:clide/src/daemon/dispatcher.dart';
 import 'package:clide/src/daemon/draw_commands.dart';
 import 'package:clide/src/draw/compare_template.dart' show compareTemplateHandler;
 import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
+import 'package:clide/src/draw/graph_template.dart' show graphTemplateHandler;
 import 'package:clide/src/daemon/editor_commands.dart';
 import 'package:clide/src/daemon/files_commands.dart';
 import 'package:clide/src/daemon/git_commands.dart';
@@ -405,6 +406,7 @@ Future<void> main() async {
       () => kernelMessages?.publish,
       registry: DrawingRegistry()
         ..register('d2', d2TemplateHandler())
+        ..register('graph', graphTemplateHandler())
         ..register(
           'compare',
           compareTemplateHandler(

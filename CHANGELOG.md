@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Graph cards.** `clide draw --file graph.json` (template `graph`) renders a
+  nodes/edges graph in the conversation as a circular layout — labelled nodes,
+  lines between them. Honest error on a duplicate id or an edge to an unknown
+  node. (T-321)
 - **Piped `--stdin` payloads.** `cat icons.json | clide icon show --stdin` (and
   `image show`) accept a JSON payload on stdin — the ergonomic peer of `--file`
   for structured commands. (T-315)
