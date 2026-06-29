@@ -9085,3 +9085,70 @@ INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, chang
 DONE (2026-06-29): SVG-substrate compare card landed (approach chosen by user) + tests green. compareTemplateHandler lowers an images array [{path,label,description}] to side-by-side <image> cells, each with the T-318 data-label/description caption + data-lightbox; paths resolved to absolute up front (injected, honest DrawErr on a miss). _paintImage now aspect-fits (contain, centered) so differing shapes don''t distort. Draw card path loads <image> hrefs -> ui.Image via loadDrawingImages (decoder injectable for tests); renderer + lightbox both paint through the resolver. Commits a651c9e0 (template+painter) + 1f6d31ac (image-loading+register).', NULL, '2026-06-29 13:02:44', '2026-06-29 13:02:44.687', '2026-06-29 13:02:44.687', NULL, '61cd7ded0058d2727055ab9805712180', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ESCR4V6V07CRH18FBCDN8', 'status', 'in_progress', 'done', NULL, '2026-06-29 13:02:44', '2026-06-29 13:02:44.726', '2026-06-29 13:02:44.726', NULL, 'a03f0481fb84e46fa45077355a64a47b', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ACSDBDZARV3NNGYD9NYYR', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 16:44:18', '2026-06-29 16:44:18.342', '2026-06-29 16:44:18.342', NULL, '0d5c93289262d7527ea7471e96f8d02b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ACSDBDZARV3NNGYD9NYYR', 'description', 'Add a stdin path to clide''s CLI so a command can receive a JSON payload piped in — `… | clide icon show --stdin`, `cat meta.json | clide image show foo.png --stdin` — instead of only positionals/flags or a `--file`.
+
+## Why
+
+Structured commands (the labelled icon-card entries in T-313, image annotation metadata in T-316) want a JSON payload that''s awkward to express as flags. Today clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals, --flags, and `-- passthrough`; there is no stdin path. T-313 therefore falls back to a `--file <path.json>` flag. A `--stdin` convention is the ergonomic peer of `--file` for piping, and is shared infra both icon.show and image.show consume.
+
+## Where the work lives
+
+clide''s IPC server runs in-process and the `clide` CLI is a thin client that serialises argv into an IpcRequest over CLIDE_SOCK. So stdin must be slurped CLIENT-SIDE (in lib/src/cli/, around argv_to_request.dart / argv_dispatch.dart) and folded into the request before it is sent — the in-process handler never sees the real stdin. Decide how it surfaces in the envelope: e.g. a reserved `stdin`/`payload` field on IpcRequest, or a synthesised arg the CommandSchema can opt into (an ArgSpec flag like `acceptsStdin`, mirroring how ArgType.stringList is declared in lib/src/ipc/command_schema.dart).
+
+## Scope / decisions
+
+- Generic infra, not icon/image specific — once landed, any command opts in via its CommandSchema.
+- Keep `--file` working; --stdin and --file should be mutually exclusive (error if both given) or layered with a defined precedence.
+- Text/JSON payloads only to start; define a size cap and a clear error when --stdin is passed but stdin is empty/not a pipe (don''t hang waiting on a TTY).
+- Honest IpcError (userError) on malformed JSON, surfaced like image.show''s other validation failures.
+- D-6 parity: document the stdin convention alongside the other CLI verbs.
+
+## Acceptance
+
+- A command can declare (via CommandSchema) that it accepts a stdin payload; piping JSON in populates the IpcRequest with that payload.
+- `clide icon show --stdin` (T-313) and `clide image show <path> --stdin` (T-316) both consume it.
+- --stdin + --file together is a clear user error; --stdin with no piped input fails fast, never hangs on a TTY.
+- Malformed JSON returns a userError with a helpful message.
+
+Unblocks the piped-JSON variants of T-313 (icon entries) and T-316 (image annotations); both can also ship with --file independently of this.
+
+Deferred 2026-06-28 (user): blocked on its consumers T-316 + T-313 so it only resurfaces if one actually wants the piping UX. Standalone --stdin infra isn''t worth a build cycle now — both consumers can ship with --file (per this ticket), and structured JSON also flows natively through the MCP tool surface (D-86). Build it lazily inside whichever consumer first needs piping, if ever.', 'Add a stdin path to clide''s CLI so a command can receive a JSON payload piped in — `… | clide icon show --stdin`, `cat meta.json | clide image show foo.png --stdin` — instead of only positionals/flags or a `--file`.
+
+## Why
+
+Structured commands (the labelled icon-card entries in T-313, image annotation metadata in T-316) want a JSON payload that''s awkward to express as flags. Today clide''s CLI argv parser (lib/src/cli/argv_to_request.dart) only produces positionals, --flags, and `-- passthrough`; there is no stdin path. T-313 therefore falls back to a `--file <path.json>` flag. A `--stdin` convention is the ergonomic peer of `--file` for piping, and is shared infra both icon.show and image.show consume.
+
+## Where the work lives
+
+clide''s IPC server runs in-process and the `clide` CLI is a thin client that serialises argv into an IpcRequest over CLIDE_SOCK. So stdin must be slurped CLIENT-SIDE (in lib/src/cli/, around argv_to_request.dart / argv_dispatch.dart) and folded into the request before it is sent — the in-process handler never sees the real stdin. Decide how it surfaces in the envelope: e.g. a reserved `stdin`/`payload` field on IpcRequest, or a synthesised arg the CommandSchema can opt into (an ArgSpec flag like `acceptsStdin`, mirroring how ArgType.stringList is declared in lib/src/ipc/command_schema.dart).
+
+## Scope / decisions
+
+- Generic infra, not icon/image specific — once landed, any command opts in via its CommandSchema.
+- Keep `--file` working; --stdin and --file should be mutually exclusive (error if both given) or layered with a defined precedence.
+- Text/JSON payloads only to start; define a size cap and a clear error when --stdin is passed but stdin is empty/not a pipe (don''t hang waiting on a TTY).
+- Honest IpcError (userError) on malformed JSON, surfaced like image.show''s other validation failures.
+- D-6 parity: document the stdin convention alongside the other CLI verbs.
+
+## Acceptance
+
+- A command can declare (via CommandSchema) that it accepts a stdin payload; piping JSON in populates the IpcRequest with that payload.
+- `clide icon show --stdin` (T-313) and `clide image show <path> --stdin` (T-316) both consume it.
+- --stdin + --file together is a clear user error; --stdin with no piped input fails fast, never hangs on a TTY.
+- Malformed JSON returns a userError with a helpful message.
+
+Unblocks the piped-JSON variants of T-313 (icon entries) and T-316 (image annotations); both can also ship with --file independently of this.
+
+Deferred 2026-06-28 (user): blocked on its consumers T-316 + T-313 so it only resurfaces if one actually wants the piping UX. Standalone --stdin infra isn''t worth a build cycle now — both consumers can ship with --file (per this ticket), and structured JSON also flows natively through the MCP tool surface (D-86). Build it lazily inside whichever consumer first needs piping, if ever.
+
+DONE (2026-06-29): --stdin piped payloads landed + tests green, C client builds clean. C client (clide.c): slurp stdin on --stdin, strip the flag, ship args.stdin (bounded 32KB + envelope size guard). Dart unwrap (argv_dispatch) folds args.stdin into the inner request as a flag -> named arg (undeclared keys pass the schema). icon.show + image.show read the stdin payload as the peer of --file (stdin wins). Tests: unwrap fold + both handlers'' stdin path. Commit 64410e80. NOTE: the fold is generic, so draw could adopt --stdin trivially if wanted.', NULL, '2026-06-29 21:56:46', '2026-06-29 21:56:46.563', '2026-06-29 21:56:46.563', NULL, '649bcf844d6f04552c9c854b2bca84f2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2ACSDBDZARV3NNGYD9NYYR', 'status', 'in_progress', 'done', NULL, '2026-06-29 21:56:46', '2026-06-29 21:56:46.597', '2026-06-29 21:56:46.597', NULL, '5abc8eaf2d572c6eba1a69f9c85147b8', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EV29HSK6EJ5VF50R87VC4', 'description', 'Template for the unified drawing card (T-317, D-91): render a graph passed in the JSON. Reuses clide''s native graph rendering (CustomPaint; the planned graph subsystem, D-46) rather than a new renderer. Optional label + description beneath (T-318). Display-only (D-78). Depends on the core engine (T-318); coordinate with the graph subsystem so the card embeds it rather than forking it.', 'Template for the unified drawing card (T-317, D-91): render a graph passed in the JSON. Reuses clide''s native graph rendering (CustomPaint; the planned graph subsystem, D-46) rather than a new renderer. Optional label + description beneath (T-318). Display-only (D-78). Depends on the core engine (T-318); coordinate with the graph subsystem so the card embeds it rather than forking it.
+
+DECOUPLED from T-323 (2026-06-29): the graph CARD is static display-only (D-78) — it lowers a nodes/edges JSON to the SVG substrate (T-320) like the compare/d2 templates, so it does NOT need the interactive force-directed pane (T-323). T-323 remains a separate from-scratch pane. Building as a Flutter-free ''graph'' drawing template: deterministic circular layout -> <circle> nodes + <line> edges + <text> labels.', NULL, '2026-06-29 21:58:13', '2026-06-29 21:58:13.945', '2026-06-29 21:58:13.945', NULL, '77d68f4254bf06af680c330d4817a960', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EV29HSK6EJ5VF50R87VC4', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 21:58:13', '2026-06-29 21:58:13.987', '2026-06-29 21:58:13.987', NULL, '6ad6abee6bb3fe32a0267e9a299ce8ba', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2EV29HSK6EJ5VF50R87VC4', 'status', 'in_progress', 'done', NULL, '2026-06-29 22:02:01', '2026-06-29 22:02:01.070', '2026-06-29 22:02:01.070', NULL, 'f810703df30dce71610d7cb15c456987', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2G1WD1839Z90AQ5C0BHNV4', 'description', 'Tier-5 canvas PANE, absorbed from the former T-7 into the unified canvas epic (T-317, decision D-91). A full workspace pane that renders .canvas files by CONVERTING them into the drawing-card JSON (per D-91: .canvas is an import format, not a native schema) and painting via the shared canvas renderer (T-318). Scope: nodes (note, text, group, image) + edges + layout state; pan/zoom; node selection, drag, resize; edit affordances (add note from file picker, add text node, draw edge between nodes); persist layout back to the .canvas file on disk. Uses MultitabPane (T-83) for tabs and its own slot per D-47; panels are extension-shaped (D-17). Depends on the core renderer (T-318). NOTE: unlike the conversation drawing card (display-only, D-78), this pane is interactive/editable — it is a pane, not a conversation widget.', 'Tier-5 canvas PANE, absorbed from the former T-7 into the unified canvas epic (T-317, decision D-91). A full workspace pane that renders .canvas files by CONVERTING them into the drawing-card JSON (per D-91: .canvas is an import format, not a native schema) and painting via the shared canvas renderer (T-318). Scope: nodes (note, text, group, image) + edges + layout state; pan/zoom; node selection, drag, resize; edit affordances (add note from file picker, add text node, draw edge between nodes); persist layout back to the .canvas file on disk. Uses MultitabPane (T-83) for tabs and its own slot per D-47; panels are extension-shaped (D-17). Depends on the core renderer (T-318). NOTE: unlike the conversation drawing card (display-only, D-78), this pane is interactive/editable — it is a pane, not a conversation widget.
+
+SCOPE NOTE (2026-06-29): currently a 17-line stub. This is a from-scratch interactive Tier-5 pane (parse .canvas -> drawing-card JSON, CustomPaint render, pan/zoom, node select/drag/resize, edit affordances, persist .canvas) — a multi-session feature, NOT template-class work. The drawing-card TEMPLATE half of epic T-317 is now complete (svg/d2/image/icon/compare/graph + stdin).', NULL, '2026-06-29 22:02:01', '2026-06-29 22:02:01.103', '2026-06-29 22:02:01.103', NULL, '6805996f31597f6175f5bf5d4fb1da0f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FB2G2KHKT5CJYR0TK1WQGMD0', 'status', 'backlog', 'in_progress', NULL, '2026-06-29 22:02:01', '2026-06-29 22:02:01.132', '2026-06-29 22:02:01.132', NULL, 'cdeea9aebcb4acc1242d3e1354756020', 2) ON CONFLICT(hash) DO NOTHING;
