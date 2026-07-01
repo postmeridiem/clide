@@ -84,6 +84,19 @@ void main() {
     expect(published.single.data['color'], 'red');
   });
 
+  test('an invalid card-level --color is an honest userError', () async {
+    wire();
+    final r = await show(['gear'], flags: {'color': 'notacolor'});
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(published, isEmpty);
+  });
+
+  test('a missing --file is notFound', () async {
+    wire();
+    final r = await show([], flags: {'file': 'gone.json'});
+    expect(r.error?.kind, IpcErrorKind.notFound);
+  });
+
   test('an unknown glyph name is an honest userError', () async {
     wire();
     final r = await show(['notaglyph']);
@@ -93,6 +106,12 @@ void main() {
 
   test('an invalid color is an honest userError', () async {
     wire(files: {'i.json': '[{"icon":"gear","color":"notacolor"}]'});
+    final r = await show([], flags: {'file': 'i.json'});
+    expect(r.error?.kind, IpcErrorKind.userError);
+  });
+
+  test('an unknown icon inside a --file entry is a userError', () async {
+    wire(files: {'i.json': '[{"icon":"notaglyph"}]'});
     final r = await show([], flags: {'file': 'i.json'});
     expect(r.error?.kind, IpcErrorKind.userError);
   });

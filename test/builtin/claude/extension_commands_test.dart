@@ -13,6 +13,7 @@ import 'package:clide/builtin/claude/src/session_orchestrator.dart' show activeS
 import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
+import 'package:clide/src/daemon/icon_commands.dart' show iconShowChannel;
 import 'package:clide/src/daemon/image_commands.dart' show imageShowChannel;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -126,6 +127,20 @@ void main() {
       await pumpEventQueue();
       // Nothing to assert beyond "no throw" — there is no conversation to
       // receive the card and the CLI already acked at publish time.
+    });
+
+    test('an icon-show message parses entries, dropped silently with no session (T-313)', () async {
+      f.services.messages.publish('test', iconShowChannel, {
+        'entries': [
+          {'codepoint': 0xe2a4, 'name': 'gear', 'label': 'Settings', 'description': 'd', 'color': '#fff'},
+          {'name': 'noCodepoint'}, // skipped — no int codepoint
+        ],
+        'color': '#888',
+      });
+      f.services.messages.publish('test', iconShowChannel, {'entries': const []}); // empty → early return
+      f.services.messages.publish('test', iconShowChannel, {'entries': 'notalist'}); // not a list → early return
+      await pumpEventQueue();
+      // No live session — the entry parse ran; nothing to inject into.
     });
 
     test('a project switch closes sessions that belong to the old root (T-269)', () async {

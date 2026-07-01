@@ -8,6 +8,13 @@ void main() {
   Future<DrawResult> resolve(DrawingCardDoc doc, DrawingRegistry reg, {Map<String, String> files = const {}}) =>
       resolveDrawingSvg(doc, reg, readFile: reader(files));
 
+  test('a fresh registry is empty; registering a handler fills it', () {
+    expect(DrawingRegistry().isEmpty, isTrue);
+    final reg = DrawingRegistry()..register('x', (_) async => const DrawOk('<svg/>'));
+    expect(reg.isEmpty, isFalse);
+    expect(reg.handlerFor('x'), isNotNull);
+  });
+
   group('resolveDrawingSvg', () {
     test('primitive: inline svg passes through', () async {
       final r = await resolve(parseDrawingCardDoc({'svg': '<svg id="x"/>'})!, DrawingRegistry());

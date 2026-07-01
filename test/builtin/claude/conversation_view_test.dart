@@ -14,6 +14,8 @@ import 'package:clide/builtin/claude/src/conversation_view.dart';
 import 'package:clide/builtin/claude/src/image_thumbnail.dart';
 import 'package:clide/builtin/claude/src/transcript_publisher.dart';
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/widgets/src/draw/drawing_card.dart' show DrawingCard;
+import 'package:clide/widgets/src/svg/svg_painter.dart' show SvgView;
 import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/clide.dart' show IpcResponse;
 import 'package:clide/kernel/kernel.dart' show PaneKeyNav;
@@ -491,6 +493,24 @@ void main() {
       expect(find.text('global scope'), findsOneWidget);
       expect(find.text('10'), findsOneWidget); // smallest strip sample
       expect(find.text('48'), findsOneWidget); // largest strip sample
+    });
+
+    testWidgets('an icon entry + card colour are parsed and rendered (T-313)', (tester) async {
+      await pumpWith(tester, [
+        _iconMsg([const IconEntry(codepoint: 0xe2a4, name: 'gear', label: 'S', color: '#e2b714')], color: '#888888'),
+      ]);
+      expect(find.text('S'), findsOneWidget);
+    });
+
+    testWidgets('tapping a data-lightbox drawing opens the zoom lightbox (T-318)', (tester) async {
+      await pumpWith(tester, [
+        DrawingMessage(uuid: 'L', timestamp: _t, isSidechain: false, svg: '<svg viewBox="0 0 10 10"><rect width="10" height="10" data-lightbox=""/></svg>'),
+      ]);
+      await tester.tap(find.byType(DrawingCard));
+      await tester.pumpAndSettle();
+      // The lightbox opened — its SvgView renders in the dialog overlay (in
+      // addition to the card's own).
+      expect(find.byType(SvgView), findsWidgets);
     });
 
     testWidgets('inject() drives a new image card into a live view (T-249)', (tester) async {

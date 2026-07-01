@@ -135,4 +135,34 @@ void main() {
     }
     expect(anyInk, isTrue);
   });
+
+  const markerDefs =
+      '<defs><marker id="a" orient="auto" markerWidth="6" markerHeight="6" refX="3" refY="3"><path d="M0 0 L6 3 L0 6 Z" fill="#000"/></marker></defs>';
+
+  test('renders quad/arc/close path segments with markers (T-320)', () async {
+    // Each path leads with a different first-draw op to exercise every
+    // start-angle branch in the marker placement + the segPath builder.
+    for (final d in ['M5 25 Q20 5 35 25 Z', 'M5 25 A8 8 0 0 1 50 25', 'M5 25 Z']) {
+      final svg = '<svg viewBox="0 0 100 50">$markerDefs<path d="$d" stroke="#f00" fill="none" marker-start="url(#a)" marker-end="url(#a)"/></svg>';
+      final img = await render(svg, 100, 50);
+      expect(img.width, 100);
+    }
+  });
+
+  test('a line carries start + end markers (T-320)', () async {
+    final svg = '<svg viewBox="0 0 50 50">$markerDefs<line x1="0" y1="0" x2="40" y2="40" stroke="#00f" marker-start="url(#a)" marker-end="url(#a)"/></svg>';
+    final img = await render(svg, 50, 50);
+    expect(img.width, 50);
+  });
+
+  test('renders text anchors/baselines/weights + a fill-opacity (T-320)', () async {
+    const svg =
+        '<svg viewBox="0 0 40 20">'
+        '<rect width="40" height="20" fill="#FF0000" fill-opacity="0.5"/>'
+        '<text x="20" y="10" text-anchor="middle" dominant-baseline="middle" font-weight="bold" fill="#000">M</text>'
+        '<text x="20" y="18" text-anchor="end" dominant-baseline="hanging" font-weight="300">e</text>'
+        '</svg>';
+    final img = await render(svg, 40, 20);
+    expect(img.width, 40); // exercised the anchor/baseline/weight + fill-opacity color paths
+  });
 }

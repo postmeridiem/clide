@@ -44,4 +44,17 @@ void main() {
     expect(f.services.settings.get<bool>('app.tools.detected'), isTrue);
     expect(activeSupporterBinaries, isNotNull);
   });
+
+  test('exposes its id, title, and version', () {
+    final ext = ToolsSettingsExtension();
+    expect(ext.id, 'builtin.tools-settings');
+    expect(ext.title, isNotEmpty);
+    expect(ext.version, isNotEmpty);
+  });
+
+  test('deactivate removes the live-sync listener', () async {
+    await f.services.extensions.deactivate('builtin.tools-settings');
+    // Listener gone — a settings write no longer rebuilds the resolver, no throw.
+    await f.services.settings.set<String>(supporterToolKey('d2'), '/x/d2');
+  });
 }

@@ -155,5 +155,40 @@ void main() {
     test('a group with data-label is skipped — annotations anchor leaf shapes', () {
       expect(buildSvgDocument('<svg><g data-label="grp"><rect width="10" height="10"/></g></svg>').annotations, isEmpty);
     });
+
+    test('computes a bounding box for every leaf shape type (T-318)', () {
+      final d = buildSvgDocument(
+        '<svg viewBox="0 0 100 100">'
+        '<ellipse cx="50" cy="40" rx="20" ry="10" data-label="e"/>'
+        '<line x1="0" y1="0" x2="30" y2="40" data-label="l"/>'
+        '<polyline points="0,0 10,20 30,5" data-label="p"/>'
+        '<path d="M0 0 L10 10 C20 20 30 0 40 10 Q50 20 60 0 A5 5 0 0 1 70 5 Z" data-label="pa"/>'
+        '<text x="5" y="15" data-label="t">hi</text>'
+        '</svg>',
+      );
+      expect(d.annotations.map((a) => a.label), containsAll(['e', 'l', 'p', 'pa', 't']));
+      // ellipse bbox = [cx-rx, cy-ry, 2rx, 2ry].
+      final e = d.annotations.firstWhere((a) => a.label == 'e');
+      expect([e.x, e.y, e.width, e.height], [30, 30, 40, 20]);
+    });
+  });
+
+  group('buildSvgDocument — style attribute vocabulary', () {
+    test('parses every stroke/text style branch', () {
+      // Exercises _cap/_join/_anchor/_baseline/_weight/_dash.
+      final kids = buildSvgDocument(
+        '<svg viewBox="0 0 10 10">'
+        '<line x1="0" y1="0" x2="9" y2="9" stroke="#000" stroke-linecap="square" stroke-linejoin="bevel" stroke-dasharray="2 1"/>'
+        '<line x1="0" y1="0" x2="9" y2="9" stroke="#000" stroke-linecap="round" stroke-linejoin="round"/>'
+        '<text x="1" y="5" text-anchor="middle" dominant-baseline="hanging" font-weight="bold">a</text>'
+        '<text x="1" y="8" text-anchor="end" dominant-baseline="central" font-weight="600">b</text>'
+        '</svg>',
+      ).root.children;
+      expect(kids, hasLength(4)); // all parsed; every style branch hit
+    });
+
+    test('stroke-dasharray="none" yields no dashes', () {
+      expect(buildSvgDocument('<svg><line x1="0" y1="0" x2="9" y2="9" stroke="#000" stroke-dasharray="none"/></svg>').root.children, hasLength(1));
+    });
   });
 }

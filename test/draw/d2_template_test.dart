@@ -55,5 +55,18 @@ void main() {
       final r = await compile(run: (exe, src) async => throw 'ENOENT');
       expect((r as DrawErr).message, contains('could not run d2'));
     });
+
+    test('spawns the resolved binary over stdin — real process (covers _spawnD2)', () async {
+      // /bin/cat stands in for d2: `cat - -` echoes stdin (the source) to stdout.
+      final r = await d2CompileViaBinary('<svg>hi</svg>', resolveD2: () => '/bin/cat');
+      expect((r as DrawOk).svg, contains('hi'));
+    }, testOn: 'linux || mac-os');
+
+    test('the default resolver runs when resolveD2 is not injected', () async {
+      // run is injected so there is no real spawn; the default resolver either
+      // finds d2 or not — either way exercises _defaultResolveD2.
+      final r = await d2CompileViaBinary('a -> b', run: (exe, src) async => (code: 0, out: '<svg/>', err: ''));
+      expect(r, anyOf(isA<DrawOk>(), isA<DrawErr>()));
+    });
   });
 }

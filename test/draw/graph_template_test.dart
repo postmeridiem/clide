@@ -54,6 +54,20 @@ void main() {
     expect((r as DrawErr).message, contains('duplicate'));
   });
 
+  test('an edge from an unknown node is an error', () async {
+    final r = await handler(
+      doc({
+        'nodes': [
+          {'id': 'a'},
+        ],
+        'edges': [
+          {'from': 'ghost', 'to': 'a'},
+        ],
+      }),
+    );
+    expect((r as DrawErr).message, contains('ghost'));
+  });
+
   test('an edge to an unknown node is an error', () async {
     final r = await handler(
       doc({

@@ -74,6 +74,21 @@ void main() {
     expect(published.single.data['svg'], '<svg id="raw"/>');
   });
 
+  test('an empty --file value is a userError', () async {
+    wire();
+    final r = await draw('');
+    expect(r.ok, isFalse);
+    expect(r.error?.kind, IpcErrorKind.userError);
+  });
+
+  test('valid JSON that is not an object is a userError', () async {
+    wire();
+    files['arr.json'] = '[1,2,3]';
+    final r = await draw('arr.json');
+    expect(r.error?.kind, IpcErrorKind.userError);
+    expect(published, isEmpty);
+  });
+
   test('a missing file → notFound, nothing published', () async {
     wire();
     final r = await draw('nope.json');
