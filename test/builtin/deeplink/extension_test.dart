@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 
 import 'package:clide/builtin/deeplink/deeplink.dart';
+import 'package:clide/extension/extension.dart' show CommandContribution;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,5 +53,26 @@ void main() {
     final r = await f.services.commands.execute('deeplink.invoke', args: ['https://evil.example/open?path=/x']);
     expect(f.services.dialog.isOpen, isFalse);
     expect(r.data['status'], 'rejected');
+  });
+
+  testWidgets('confirming an allowlisted link opens the file (T-56)', (tester) async {
+    await tester.pumpWidget(harness(f, const SizedBox()));
+    await tester.pump();
+
+    final future = f.services.commands.execute('deeplink.invoke', args: ['clide://open?path=/x.dart&line=5']);
+    await tester.pump();
+    expect(f.services.dialog.isOpen, isTrue);
+    f.services.dialog.dismiss(true); // confirm → the handler runs editor.open
+    await tester.pumpAndSettle();
+
+    final r = await future;
+    expect(r.data['status'], 'opened');
+    expect(r.data['path'], '/x.dart');
+  });
+
+  test('reports not-activated when invoked before activation', () async {
+    final ext = DeepLinkExtension(); // never activated → no context
+    final run = (ext.contributions.single as CommandContribution).run;
+    expect((await run(['clide://open?path=/x'])).data['status'], 'not-activated');
   });
 }

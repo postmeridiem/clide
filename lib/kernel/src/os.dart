@@ -15,11 +15,16 @@ class OsLifecycleEvent extends ClideEvent {
   String get kind => _kind;
 }
 
+/// Runs an external command — injected so [OsBridge] is testable without
+/// spawning a real `xdg-open` / `open` / `explorer`.
+typedef OsProcessRunner = Future<ProcessResult> Function(String executable, List<String> arguments);
+
 class OsBridge {
-  OsBridge({required Logger log, required DaemonBus events}) : _log = log, _events = events;
+  OsBridge({required Logger log, required DaemonBus events, OsProcessRunner? run}) : _log = log, _events = events, _run = run ?? Process.run;
 
   final Logger _log;
   final DaemonBus _events;
+  final OsProcessRunner _run;
 
   Future<bool> openURL(String url) async {
     final cmd = _openCommand();
@@ -28,7 +33,7 @@ class OsBridge {
       return false;
     }
     try {
-      final r = await Process.run(cmd[0], [...cmd.skip(1), url]);
+      final r = await _run(cmd[0], [...cmd.skip(1), url]);
       return r.exitCode == 0;
     } catch (e) {
       _log.warn('os', 'openURL failed', error: e);
@@ -40,7 +45,7 @@ class OsBridge {
     final cmd = _revealCommand(path);
     if (cmd == null) return false;
     try {
-      final r = await Process.run(cmd[0], cmd.skip(1).toList());
+      final r = await _run(cmd[0], cmd.skip(1).toList());
       return r.exitCode == 0;
     } catch (e) {
       _log.warn('os', 'reveal failed', error: e);

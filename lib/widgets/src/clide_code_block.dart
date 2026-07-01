@@ -64,7 +64,7 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
     if (spans == null || spans.isEmpty) {
       textSpan = TextSpan(text: widget.source, style: style);
     } else {
-      textSpan = _buildHighlightedSpan(widget.source, spans, style, tokens);
+      textSpan = buildHighlightedSpan(widget.source, spans, style, tokens);
     }
 
     return Container(
@@ -78,53 +78,57 @@ class _ClideCodeBlockState extends State<ClideCodeBlock> {
       child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Text.rich(textSpan)),
     );
   }
+}
 
-  static TextSpan _buildHighlightedSpan(String source, List<SyntaxSpan> spans, TextStyle base, dynamic tokens) {
-    final bytes = utf8.encode(source);
-    final byteToChar = List<int>.filled(bytes.length + 1, source.length);
-    var bi = 0;
-    for (var ci = 0; ci < source.length; ci++) {
-      byteToChar[bi] = ci;
-      final rune = source.codeUnitAt(ci);
-      if (rune < 0x80) {
-        bi += 1;
-      } else if (rune < 0x800) {
-        bi += 2;
-      } else if (rune >= 0xD800 && rune <= 0xDBFF) {
-        bi += 4;
-        ci++;
-      } else {
-        bi += 3;
-      }
+/// Maps tree-sitter byte-offset [spans] onto character ranges of [source]
+/// (handling multi-byte UTF-8 + surrogate pairs) and colours each run. Exposed
+/// so the byte→char mapping and span clipping are unit-tested directly.
+@visibleForTesting
+TextSpan buildHighlightedSpan(String source, List<SyntaxSpan> spans, TextStyle base, dynamic tokens) {
+  final bytes = utf8.encode(source);
+  final byteToChar = List<int>.filled(bytes.length + 1, source.length);
+  var bi = 0;
+  for (var ci = 0; ci < source.length; ci++) {
+    byteToChar[bi] = ci;
+    final rune = source.codeUnitAt(ci);
+    if (rune < 0x80) {
+      bi += 1;
+    } else if (rune < 0x800) {
+      bi += 2;
+    } else if (rune >= 0xD800 && rune <= 0xDBFF) {
+      bi += 4;
+      ci++;
+    } else {
+      bi += 3;
     }
-    byteToChar[bi] = source.length;
-
-    final sorted = List.of(spans)..sort((a, b) => a.start.compareTo(b.start));
-    final children = <TextSpan>[];
-    var lastChar = 0;
-
-    for (final span in sorted) {
-      final sChar = span.start < byteToChar.length ? byteToChar[span.start] : source.length;
-      final eChar = span.end < byteToChar.length ? byteToChar[span.end] : source.length;
-      final clippedStart = sChar < lastChar ? lastChar : sChar;
-      if (clippedStart > lastChar) {
-        children.add(TextSpan(text: source.substring(lastChar, clippedStart)));
-      }
-      if (eChar > clippedStart) {
-        final color = TreeSitterService.colorForRole(span.role, tokens);
-        children.add(
-          TextSpan(
-            text: source.substring(clippedStart, eChar),
-            style: base.copyWith(color: color),
-          ),
-        );
-      }
-      if (eChar > lastChar) lastChar = eChar;
-    }
-    if (lastChar < source.length) {
-      children.add(TextSpan(text: source.substring(lastChar)));
-    }
-
-    return TextSpan(style: base, children: children);
   }
+  byteToChar[bi] = source.length;
+
+  final sorted = List.of(spans)..sort((a, b) => a.start.compareTo(b.start));
+  final children = <TextSpan>[];
+  var lastChar = 0;
+
+  for (final span in sorted) {
+    final sChar = span.start < byteToChar.length ? byteToChar[span.start] : source.length;
+    final eChar = span.end < byteToChar.length ? byteToChar[span.end] : source.length;
+    final clippedStart = sChar < lastChar ? lastChar : sChar;
+    if (clippedStart > lastChar) {
+      children.add(TextSpan(text: source.substring(lastChar, clippedStart)));
+    }
+    if (eChar > clippedStart) {
+      final color = TreeSitterService.colorForRole(span.role, tokens);
+      children.add(
+        TextSpan(
+          text: source.substring(clippedStart, eChar),
+          style: base.copyWith(color: color),
+        ),
+      );
+    }
+    if (eChar > lastChar) lastChar = eChar;
+  }
+  if (lastChar < source.length) {
+    children.add(TextSpan(text: source.substring(lastChar)));
+  }
+
+  return TextSpan(style: base, children: children);
 }
