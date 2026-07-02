@@ -24,6 +24,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Bundled Claude skills pruned to clide-specific ones (T-507): broken/duplicate
+  skills removed, repo-agnostic ones moved to user scope, and stale guidance in
+  the remaining five (paths, commands, icon API) brought back in line with the
+  repo.
+
 ### Fixed
 
 ## [2.9.0] — 2026-06-30
