@@ -68,4 +68,16 @@ void main() {
     final tokens = await tokensFrom(tester);
     expect(await tester.runAsync(() => hasInk(GraphPainter(graph: const VaultGraph([], []), positions: const {}, tokens: tokens))), isFalse);
   });
+
+  group('hitTestNode', () {
+    test('finds the node under the point, null when far or empty', () {
+      final g = VaultGraph.fromOutlinks({'a.md': const []});
+      // A single node lays out at the layout centre (400,300); an 800×600 canvas
+      // over an 800×600 layout is scale 1, no offset → the node sits at (400,300).
+      final pos = ForceLayout.compute(['a.md'], const []);
+      expect(hitTestNode(g, pos, const Offset(400, 300), const Size(800, 600)), 'a.md');
+      expect(hitTestNode(g, pos, const Offset(20, 20), const Size(800, 600)), isNull);
+      expect(hitTestNode(g, const {}, Offset.zero, const Size(800, 600)), isNull);
+    });
+  });
 }

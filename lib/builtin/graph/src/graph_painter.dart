@@ -15,6 +15,47 @@ import 'package:clide/src/graph/force_layout.dart';
 import 'package:clide/src/graph/vault_graph.dart';
 import 'package:flutter/widgets.dart';
 
+/// The aspect-preserving, centered fit of the solver's [layoutSize] space into a
+/// canvas — shared by the painter and hit-testing so hover/click land exactly on
+/// what's drawn.
+class GraphViewport {
+  GraphViewport(this.scale, this.dx, this.dy);
+  final double scale, dx, dy;
+
+  factory GraphViewport.fit(Size canvas, Size layout) {
+    final scale = math.min(canvas.width / layout.width, canvas.height / layout.height);
+    return GraphViewport(scale, (canvas.width - layout.width * scale) / 2, (canvas.height - layout.height * scale) / 2);
+  }
+
+  Offset toPixel(GraphPoint p) => Offset(dx + p.x * scale, dy + p.y * scale);
+}
+
+/// The node id nearest [local] within [hitRadius] px, or null — the inverse of
+/// [GraphViewport], so it matches what [GraphPainter] drew.
+String? hitTestNode(
+  VaultGraph graph,
+  Map<String, GraphPoint> positions,
+  Offset local,
+  Size size, {
+  Size layoutSize = const Size(800, 600),
+  double hitRadius = 12,
+}) {
+  if (positions.isEmpty) return null;
+  final vp = GraphViewport.fit(size, layoutSize);
+  String? best;
+  var bestD = hitRadius;
+  for (final n in graph.nodes) {
+    final p = positions[n.id];
+    if (p == null) continue;
+    final d = (vp.toPixel(p) - local).distance;
+    if (d <= bestD) {
+      bestD = d;
+      best = n.id;
+    }
+  }
+  return best;
+}
+
 class GraphPainter extends CustomPainter {
   GraphPainter({required this.graph, required this.positions, required this.tokens, this.highlight, this.layoutSize = const Size(800, 600)});
 
@@ -33,10 +74,8 @@ class GraphPainter extends CustomPainter {
   @override
   void paint(ui.Canvas canvas, Size size) {
     if (graph.isEmpty || positions.isEmpty) return;
-    final scale = math.min(size.width / layoutSize.width, size.height / layoutSize.height);
-    final dx = (size.width - layoutSize.width * scale) / 2;
-    final dy = (size.height - layoutSize.height * scale) / 2;
-    Offset at(GraphPoint p) => Offset(dx + p.x * scale, dy + p.y * scale);
+    final vp = GraphViewport.fit(size, layoutSize);
+    Offset at(GraphPoint p) => vp.toPixel(p);
     bool lit(String id) => highlight == null || highlight!.contains(id);
 
     final edge = Paint()
