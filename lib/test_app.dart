@@ -23,6 +23,8 @@ import 'package:flutter/widgets.dart';
 import 'builtin/diff/diff.dart';
 import 'builtin/files/files.dart';
 import 'builtin/git/git.dart';
+import 'builtin/graph/graph.dart';
+import 'builtin/pql/pql.dart';
 import 'builtin/terminal/terminal.dart';
 import 'extension/extension.dart' show ClideExtension;
 import 'kernel/kernel.dart';
@@ -279,7 +281,9 @@ class _ClideTestAppState extends State<ClideTestApp> {
         toolchain: tc,
       );
 
-      final extensions = <ClideExtension>[DiffExtension(), FilesExtension(), GitExtension(), TerminalExtension()];
+      // PqlExtension precedes GraphExtension: the graph view depends on it
+      // (activateAll resolves the order, but this documents the dependency).
+      final extensions = <ClideExtension>[DiffExtension(), FilesExtension(), GitExtension(), TerminalExtension(), PqlExtension(), GraphExtension()];
 
       for (final ext in extensions) {
         try {
