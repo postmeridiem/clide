@@ -1,4 +1,9 @@
 {
   "tab.graph.title": { "translation": "Grafiek" },
-  "graph.empty": { "translation": "Geen gekoppelde notities in deze vault." }
+  "graph.empty": { "translation": "Geen gekoppelde notities in deze vault." },
+  "graph.empty.filtered": { "translation": "Geen notities voldoen aan het filter." },
+  "graph.empty.nolocal": { "translation": "Open een notitie om de lokale grafiek te zien." },
+  "graph.filter.glob": { "translation": "Padpatroon, bijv. notes/**" },
+  "graph.filter.depth": { "translation": "Lokaal" },
+  "graph.filter.all": { "translation": "Alles" }
 }

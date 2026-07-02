@@ -17,8 +17,8 @@ void main() {
 
   IpcResponse ok(Map<String, Object?> data) => IpcResponse.ok(id: '1', data: data);
 
-  /// Stubs `pql.files` (from the map's keys) and `pql.outlinks` (per path).
-  void stubVault(Map<String, List<String>> vault) {
+  /// Stubs `pql.files` (from the map's keys) and `pql.meta` (outlinks + tags).
+  void stubVault(Map<String, List<String>> vault, {Map<String, List<String>> tags = const {}}) {
     f.ipc.stub(
       'pql.files',
       (_) async => ok({
@@ -27,28 +27,29 @@ void main() {
         ],
       }),
     );
-    f.ipc.stub('pql.outlinks', (args) async {
-      final links = vault[args['path'] as String?] ?? const [];
+    f.ipc.stub('pql.meta', (args) async {
+      final path = args['path'] as String?;
       return ok({
-        'links': [
-          for (final t in links) {'target': t},
+        'outlinks': [
+          for (final t in vault[path] ?? const []) {'target': t},
         ],
+        'tags': tags[path] ?? const <String>[],
       });
     });
   }
 
   Widget panel([Size size = const Size(400, 400)]) => anchoredHarness(f, SizedBox(width: size.width, height: size.height, child: const GraphPanel()));
 
-  testWidgets('shows a spinner while the first load is in flight', (tester) async {
-    // A never-completing pql.files keeps the panel in its loading state.
+  testWidgets('shows a spinner (no filter bar) while the first load is in flight', (tester) async {
     f.ipc.stub('pql.files', (_) => Completer<IpcResponse>().future);
     await tester.pumpWidget(panel());
     await tester.pump();
     expect(find.byType(ClideSpinner), findsOneWidget);
+    expect(find.byType(ClideFilterBox), findsNothing);
     expect(find.byType(GraphView), findsNothing);
   });
 
-  testWidgets('renders the graph once loaded', (tester) async {
+  testWidgets('renders the graph and the filter bar once loaded', (tester) async {
     stubVault({
       'a.md': ['b.md'],
       'b.md': [],
@@ -56,7 +57,7 @@ void main() {
     await tester.pumpWidget(panel());
     await pumpAsync(tester);
     expect(find.byType(GraphView), findsOneWidget);
-    expect(find.byType(ClideSpinner), findsNothing);
+    expect(find.byType(ClideFilterBox), findsOneWidget);
   });
 
   testWidgets('shows an empty message for a vault with no notes', (tester) async {
@@ -90,10 +91,42 @@ void main() {
     });
     await tester.pumpWidget(panel());
     await pumpAsync(tester);
-    // A single node lays out at the layout centre → a square canvas maps it to
-    // the view's centre, which is where a byType tap lands.
     await tester.tap(find.byType(GraphView));
     await pumpAsync(tester);
     expect(opened, 'only.md');
+  });
+
+  testWidgets('a depth pill with no active note shows the local-graph hint', (tester) async {
+    stubVault({
+      'a.md': ['b.md'],
+      'b.md': [],
+    });
+    await tester.pumpWidget(panel());
+    await pumpAsync(tester);
+    await tester.tap(find.text('1')); // depth-1 from the (absent) active note
+    await pumpAsync(tester);
+    expect(find.text('Open a note to see its local graph.'), findsOneWidget);
+    expect(find.byType(GraphView), findsNothing);
+  });
+
+  testWidgets('a tag pill cycles include → exclude and filters the graph', (tester) async {
+    stubVault(
+      {'only.md': const []},
+      tags: {
+        'only.md': ['x'],
+      },
+    );
+    await tester.pumpWidget(panel());
+    await pumpAsync(tester);
+    expect(find.text('x'), findsOneWidget); // neutral tag pill
+
+    await tester.tap(find.text('x')); // → include; the note carries x, so it stays
+    await pumpAsync(tester);
+    expect(find.byType(GraphView), findsOneWidget);
+
+    await tester.tap(find.text('+x')); // → exclude; the note carries x, so it drops
+    await pumpAsync(tester);
+    expect(find.text('No notes match the filter.'), findsOneWidget);
+    expect(find.byType(GraphView), findsNothing);
   });
 }

@@ -1,4 +1,9 @@
 {
   "tab.graph.title": { "translation": "Graph" },
-  "graph.empty": { "translation": "No linked notes in this vault." }
+  "graph.empty": { "translation": "No linked notes in this vault." },
+  "graph.empty.filtered": { "translation": "No notes match the filter." },
+  "graph.empty.nolocal": { "translation": "Open a note to see its local graph." },
+  "graph.filter.glob": { "translation": "Path glob, e.g. notes/**" },
+  "graph.filter.depth": { "translation": "Local" },
+  "graph.filter.all": { "translation": "All" }
 }
