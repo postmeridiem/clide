@@ -48,4 +48,39 @@ void main() {
     expect(g.neighborhood('b.md'), {'b.md', 'a.md', 'c.md'});
     expect(g.neighborhood('x.md'), {'x.md'}); // isolated node
   });
+
+  group('nodesWithin', () {
+    final g = VaultGraph.fromOutlinks({
+      'a.md': const ['b.md'],
+      'b.md': const ['c.md'],
+      'c.md': const [],
+      'x.md': const [],
+    }); // a—b—c chain, x isolated
+
+    test('depth 0 is the root alone', () {
+      expect(g.nodesWithin('a.md', 0), {'a.md'});
+    });
+
+    test('depth grows the frontier over undirected edges, both directions', () {
+      expect(g.nodesWithin('a.md', 1), {'a.md', 'b.md'});
+      expect(g.nodesWithin('a.md', 2), {'a.md', 'b.md', 'c.md'});
+      expect(g.nodesWithin('c.md', 2), {'c.md', 'b.md', 'a.md'}); // walks backwards too
+    });
+
+    test('an isolated node is just itself; an unknown root is empty', () {
+      expect(g.nodesWithin('x.md', 3), {'x.md'});
+      expect(g.nodesWithin('ghost.md', 3), isEmpty);
+    });
+  });
+
+  test('subgraph keeps only the kept nodes and edges between them', () {
+    final g = VaultGraph.fromOutlinks({
+      'a.md': const ['b.md', 'c.md'],
+      'b.md': const ['c.md'],
+      'c.md': const [],
+    });
+    final sub = g.subgraph({'a.md', 'b.md'});
+    expect(sub.nodes.map((n) => n.id), unorderedEquals(['a.md', 'b.md']));
+    expect(sub.edgePairs, [('a.md', 'b.md')]); // a—c and b—c drop with c gone
+  });
 }
