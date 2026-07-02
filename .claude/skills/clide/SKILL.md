@@ -4,10 +4,8 @@ description: >
   Use when you are running inside the clide IDE and want to observe or drive
   its live UI — panes, editor, files, git, readers, toasts, layout — through
   the `clide` CLI, or to find out what commands clide exposes. clide is the
-  IDE hosting this session; it puts `clide` on your PATH and a per-workspace
-  socket in `CLIDE_SOCK`. Start with `clide capabilities` to enumerate the
-  live tool surface. Triggers: "what can clide do", "drive the clide UI",
-  "open this in clide", "show the user", "toast", or invoking /clide.
+  IDE hosting this session. Triggers: "what can clide do", "drive the clide
+  UI", "open this in clide", "show the user", "toast", or invoking /clide.
 user-invocable: true
 allowed-tools: Bash
 ---
@@ -15,9 +13,10 @@ allowed-tools: Bash
 # Driving clide from the CLI
 
 You are (often) running **inside clide** — a Flutter IDE that hosts this
-Claude session. It exposes its whole UI surface as a `clide <subsystem> <verb>`
-CLI on your PATH, talking to the running app over a per-workspace socket
-(`CLIDE_SOCK`). Every UI action the user can take has a CLI verb, and every
+Claude session. It puts `clide` on your PATH and exposes its whole UI surface
+as a `clide <subsystem> <verb>` CLI, talking to the running app over a
+per-workspace socket (`CLIDE_SOCK`). Every UI action the user can take has a
+CLI verb, and every
 verb's effect is observable — that is the parity contract (D-6). So you can
 *see what the user sees* and *show the user what you mean*.
 
@@ -53,9 +52,11 @@ one). `clide <subsystem>` with no verb, or an unknown command, prints usage.
 
 ## Conventions
 
-- **Slots:** the layout has three content slots — `sidebar` (left), `workspace`
-  (center, where Claude lives), `context` (right) — plus the bottom `statusbar`.
-  Many verbs take a slot.
+- **Slots:** the layout has four content slots — `sidebar` (left), `workspace`
+  (center, where Claude lives), `context` (right), and `dock` (bottom —
+  Output/Problems panes, hidden by default; D-87) — plus the bottom
+  `statusbar`. Many verbs take a slot. The live list is whatever
+  `clide capabilities` reports.
 - **Honest failures:** a drive verb with no live GUI returns a `toolError`
   ("no live UI to drive"), not a hang. JSON on stdout; exit code conveys
   ok/usage/tool error.

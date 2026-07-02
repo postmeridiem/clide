@@ -30,17 +30,24 @@ This repo uses [Conventional Commits 1.0](https://www.conventionalcommits.org/en
 Default to **one logical change per commit**, even when a lot of work lands in the tree at once. When there's a pile of uncommitted or untracked files:
 
 1. **Read `git status` + `git diff` first** — never stage the whole tree blind.
-2. **Group by concern**, not by file location. Typical concerns to separate:
+2. **Triage: session vs pre-existing.** Separate changes you made in this
+   session from changes that were already dirty (or that a concurrent session
+   is producing — this worktree can host several Claude sessions at once).
+   Check the conversation history — if you didn't touch a file, it's not yours
+   to stage. After grouping your own commits, surface any remaining modified
+   or untracked files to the user and ask whether they belong in a commit.
+   Never silently skip or silently include changes that aren't yours.
+3. **Group by concern**, not by file location. Typical concerns to separate:
    - **Bookkeeping** — `.gitignore`, editor/IDE config, lockfiles, `go.sum` / `pubspec.lock` updates.
-   - **Documentation** — `README.md`, `CLAUDE.md`, ADRs under `docs/ADRs/`, design notes under `docs/`.
+   - **Documentation** — `README.md`, `CLAUDE.md`, D-records under `governance/`, design notes under `docs/`.
    - **General-purpose tooling / skills** — things that aren't project-specific (reusable skills, shared scripts).
    - **Project-specific conventions** — this repo's own rules.
-   - **Feature or subsystem** — one cohesive change per commit; a sidecar change and an app change for the same feature can land together, but two unrelated features should split.
-   - **Layer changes** — Flutter app, sidecar CLI, sidecar daemon, IPC server, pql wrapper, canvas driver, git panel — separate concerns; prefer separate commits when the changes are independent.
-3. **Sequence the commits** so each one is cleanly scoped, but don't obsess about whether each intermediate commit "works" — for scaffolding PRs it's fine if the full picture only snaps together at the end.
-4. **Prefer many small focused commits over one large mixed one** — a reviewer can read, revert, or cherry-pick a focused commit; they can't do any of those to a blob.
-5. **Use `git add <specific paths>`** — never `git add -A` or `git add .` when splitting, or you'll sweep in the next commit's work by accident.
-6. **Verify between commits** with `git status` and `git log -1` to confirm the split landed as intended.
+   - **Feature or subsystem** — one cohesive change per commit; a CLI change and an app change for the same feature can land together, but two unrelated features should split.
+   - **Layer changes** — Flutter app, `clide` CLI (`native/clide-cli/`), IPC server, pql wrapper, canvas driver, git panel — separate concerns; prefer separate commits when the changes are independent.
+4. **Sequence the commits** so each one is cleanly scoped, but don't obsess about whether each intermediate commit "works" — for scaffolding PRs it's fine if the full picture only snaps together at the end.
+5. **Prefer many small focused commits over one large mixed one** — a reviewer can read, revert, or cherry-pick a focused commit; they can't do any of those to a blob.
+6. **Use `git add <specific paths>`** — never `git add -A` or `git add .` when splitting, or you'll sweep in the next commit's work by accident.
+7. **Verify between commits** with `git status` and `git log -1` to confirm the split landed as intended.
 
 Corollary: if a commit's subject line needs the word "and" to be accurate, it probably should have been two commits.
 
@@ -113,29 +120,32 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 The model-identifier variant produced by the Claude Code harness (e.g. `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`) is also accepted — don't rewrite it if the harness emits that form.
 
-## HEREDOC discipline
+## Message-file discipline
 
-Pass commit messages via HEREDOC so multi-line formatting survives:
+Pass commit messages via a message file so multi-line formatting survives
+and the command stays inside the permission allowlist (command substitution
+defeats the `git commit` prefix match and triggers permission prompts):
+
+1. Write the full message to a file in `/tmp` (never inside `.git/` — that
+   directory is git's own state) using the Write tool.
+2. Commit with it:
 
 ```bash
-git commit -m "$(cat <<'EOF'
-short imperative summary
-
-Optional longer body explaining why this change was needed,
-wrapped at about 72 characters.
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
+git commit -F /tmp/commit-msg.txt
 ```
 
-Never pass multi-line messages via `-m "line1\nline2"` or multiple `-m` flags — Git's behavior differs between shells and quoting regimes and the trailer can end up in the wrong place.
+Fallback only: the HEREDOC-in-substitution form
+(`git commit -m "$(cat <<'EOF' … EOF)"`) works but prompts for permission —
+use it only when writing a file is impossible. Never pass multi-line messages
+via `-m "line1\nline2"` or multiple `-m` flags — Git's behavior differs
+between shells and quoting regimes and the trailer can end up in the wrong
+place.
 
 ## What not to commit
 
 - `.env` and any `*.env.local` — see `.gitignore`.
 - `.claude/settings.local.json` — user-specific Claude Code settings, ignored.
-- Build artefacts: `sidecar/bin/`, `sidecar/dist/`, `build/` (Flutter output), `app/.dart_tool/` — gitignored.
+- Build artefacts: `/build/` (Flutter output), `/.dart_tool/` — gitignored.
 - SQLite index files (`*.sqlite`, `*.sqlite-wal`, `*.sqlite-shm`, `*.db`) — caches generated against local repos; must never land here. Gitignored defensively.
 - Coverage / test output (`*.out`, `coverage.*`, `*.test`) — gitignored.
 

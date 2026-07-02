@@ -6,9 +6,10 @@ description: >
   lifecycle, theme loading, or native platform code. Also use when
   the user says "run testmode", "test the app", "smoke test", or
   "verify the build". Triggers on changes to: lib/kernel/src/toolchain.dart,
-  lib/src/daemon/dispatcher.dart, lib/src/ipc/, lib/extension/,
-  lib/kernel/src/theme/, lib/builtin/*/src/extension.dart,
-  linux/CMakeLists.txt, macos/, Makefile (run targets), lib/main.dart.
+  lib/src/daemon/dispatcher.dart, lib/src/ipc/, lib/src/pty/,
+  lib/builtin/terminal/, lib/extension/, lib/kernel/src/theme/,
+  lib/builtin/*/src/extension.dart, linux/CMakeLists.txt, macos/,
+  Makefile (run targets), lib/main.dart.
 ---
 
 # Testmode harness
@@ -26,6 +27,7 @@ make run-testmode                             # all categories, 60s timeout
 make run-testmode TESTMODE_CATEGORY=toolchain
 make run-testmode TESTMODE_CATEGORY=ipc
 make run-testmode TESTMODE_CATEGORY=extensions
+make run-testmode TESTMODE_CATEGORY=terminal
 make run-testmode TESTMODE_TIMEOUT=120        # longer timeout for slow builds
 ```
 
@@ -47,6 +49,7 @@ Exit code is non-zero when any test fails. The Makefile verifies
 | IPC envelope, dispatcher, schema | `ipc` | Round-trip + error contract |
 | Extension manifest, activate, contributions | `extensions` | Register + activate lifecycle |
 | Theme YAML, loader, palette | `extensions` | Theme parse is in this category |
+| PTY spawning, terminal pane, xterm wiring | `terminal` | Real PTY spawn + I/O round-trip |
 | Platform config (CMakeLists, pbxproj, Makefile) | `all` | Full rebuild validates everything |
 | Any doubt | `all` | ~30s, cheap insurance |
 

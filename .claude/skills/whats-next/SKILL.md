@@ -4,7 +4,8 @@ description: >
   Surface the best batch of tickets to pick up next from pql. Walks the
   initiative/epic tree, filters to unblocked work, refines context via
   parallel agents (or `pql ticket refine` for empty descriptions), and
-  optionally activates the batch on a fresh branch. Use when the user
+  optionally activates the batch (directly on main — no topic branch by
+  default). Use when the user
   says "what's next", "next batch", "pick up work", or invokes
   /whats-next. NOT triggered by "what should we work on" in a design
   context — that's a discussion, not a batch selection.
@@ -18,7 +19,8 @@ Dependency-driven batch selection against pql. Three steps:
 batch selection → refinement review → batch activation.
 
 Pql is the single source of truth for tickets and decisions in this repo
-(see [pql skill](../pql/SKILL.md) and [`decisions/README.md`](../../../decisions/README.md)). Always run from the repo root.
+(see the pql skill — user scope, installed via `pql init` — and
+[`governance/README.md`](../../../governance/README.md)). Always run from the repo root.
 
 ## Step 0: Sync state
 
@@ -158,8 +160,8 @@ Agent({
 
   Your job:
   1. Run `pql decisions show <decision_ref> --with-refs --pretty` and
-     read the linked D/Q-record in decisions/<domain>.md.
-  2. Grep decisions/questions-*.md for related Q-records.
+     read the linked D/Q-record in governance/decisions/<domain>.md.
+  2. Grep governance/questions/<domain>.md for related Q-records.
   3. Verify referenced files, classes, and APIs actually exist in the
      current tree (Read/Grep). Flag dangling references.
   4. Cross-check against CLAUDE.md guardrails (single process, CLI-first,
@@ -217,24 +219,22 @@ Batch transition (comma-separated IDs):
 pql ticket status T-1,T-2,T-3 in_progress
 ```
 
-**Then persist it.** Ticket mutations (status here, and any `ticket new` in
-Step 2) land only in the gitignored `.pql/pql.db`. The post-checkout/post-merge
-hooks rebuild that DB from the committed changelog on every branch switch — so
-un-exported changes vanish silently the next time anyone switches branches. After
-creating or transitioning tickets, always:
-
-```bash
-pql plan export                      # regenerates .pql/changelog/*.sql
-git add .pql/changelog && git commit # durable; survives rebuild
-```
-
-See the [pql skill](../pql/SKILL.md#versioning-planning-state--data-loss-footgun-read-this).
+**Then make sure it persists.** Ticket mutations (status here, and any
+`ticket new` in Step 2) land only in the gitignored `.pql/pql.db`. The
+pre-commit hook runs `pql plan export --stage` automatically — the changelog
+is exported and staged on every commit, so never hand-run the export or
+`git add .pql/changelog`. The rule is simpler: the turn must land at least
+one commit (through the git-commit skill). A ticket-only turn with no commit
+leaves the mutations in `pql.db` only, and the post-checkout/post-merge hooks
+rebuild that DB from the committed changelog on the next branch switch —
+silently dropping them. See the pql skill's "Versioning planning state"
+section for the full mechanics.
 
 ### 3b. Branch? Default no.
 
 Solo-dev flow on this repo — work lands directly on `main` (see recent
 `git log`). Don't create a topic branch unless the user explicitly asks.
-If they do, plain `git checkout -b` is fine; there is no `gh` CLI.
+If they do, plain `git checkout -b` is fine.
 
 ### 3c. Spawn implementation agents (optional)
 
@@ -263,13 +263,13 @@ End with a tight summary:
 ## Anti-patterns
 
 - Don't skip Step 0 — stale `pql.db` makes the rest of the skill lie.
-- Don't leave ticket changes un-exported — `pql.db` is gitignored and the
-  post-checkout/post-merge hooks rebuild it from the committed changelog, so a
-  branch switch silently drops un-exported tickets. Always `pql plan export` +
-  commit `.pql/changelog/` after mutating tickets (Step 3a).
+- Don't hand-export or hand-stage `.pql/changelog/` — the pre-commit hook does
+  both on every commit. The real footgun is a turn that mutates tickets but
+  never commits: `pql.db` is gitignored and gets rebuilt from the committed
+  changelog on branch switch, silently dropping un-committed mutations. Land
+  at least one commit per ticket-mutating turn (Step 3a).
 - Don't activate a batch the user hasn't confirmed.
 - Don't spawn refinement agents for tickets that have no description — use
   `pql ticket refine` instead; it's cheaper and writes back through the
   proper channel.
-- Don't reach for `gh` — this system doesn't have it. Plain `git` only.
 - Don't `cd` into subdirectories — run everything from the repo root.
