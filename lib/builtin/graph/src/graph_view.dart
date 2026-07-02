@@ -7,6 +7,7 @@ import 'package:clide/builtin/graph/src/graph_painter.dart';
 import 'package:clide/src/graph/force_layout.dart';
 import 'package:clide/src/graph/vault_graph.dart';
 import 'package:clide/widgets/src/clide_settings.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 class GraphView extends StatefulWidget {
@@ -24,8 +25,12 @@ class GraphView extends StatefulWidget {
 }
 
 class _GraphViewState extends State<GraphView> {
+  static const double _minZoom = 0.2, _maxZoom = 5;
+
   late Map<String, GraphPoint> _pos;
   String? _hovered;
+  double _zoom = 1;
+  Offset _pan = Offset.zero;
 
   @override
   void initState() {
@@ -47,6 +52,15 @@ class _GraphViewState extends State<GraphView> {
       height: widget.layoutSize.height,
     );
     _hovered = null;
+    // A fresh graph re-fits; drop any user pan/zoom.
+    _zoom = 1;
+    _pan = Offset.zero;
+  }
+
+  void _onScroll(PointerScrollEvent e) {
+    final factor = e.scrollDelta.dy < 0 ? 1.1 : 0.9;
+    final next = (_zoom * factor).clamp(_minZoom, _maxZoom);
+    if (next != _zoom) setState(() => _zoom = next);
   }
 
   @override
@@ -55,28 +69,36 @@ class _GraphViewState extends State<GraphView> {
     return LayoutBuilder(
       builder: (ctx, constraints) {
         final size = constraints.biggest;
-        String? hit(Offset local) => hitTestNode(widget.graph, _pos, local, size, layoutSize: widget.layoutSize);
-        return MouseRegion(
-          onHover: (e) {
-            final h = hit(e.localPosition);
-            if (h != _hovered) setState(() => _hovered = h);
+        String? hit(Offset local) => hitTestNode(widget.graph, _pos, local, size, layoutSize: widget.layoutSize, zoom: _zoom, pan: _pan);
+        return Listener(
+          onPointerSignal: (s) {
+            if (s is PointerScrollEvent) _onScroll(s);
           },
-          onExit: (_) {
-            if (_hovered != null) setState(() => _hovered = null);
-          },
-          child: GestureDetector(
-            onTapUp: (d) {
-              final h = hit(d.localPosition);
-              if (h != null) widget.onOpen?.call(h);
+          child: MouseRegion(
+            onHover: (e) {
+              final h = hit(e.localPosition);
+              if (h != _hovered) setState(() => _hovered = h);
             },
-            child: CustomPaint(
-              size: size,
-              painter: GraphPainter(
-                graph: widget.graph,
-                positions: _pos,
-                tokens: tokens,
-                highlight: _hovered == null ? null : widget.graph.neighborhood(_hovered!),
-                layoutSize: widget.layoutSize,
+            onExit: (_) {
+              if (_hovered != null) setState(() => _hovered = null);
+            },
+            child: GestureDetector(
+              onTapUp: (d) {
+                final h = hit(d.localPosition);
+                if (h != null) widget.onOpen?.call(h);
+              },
+              onPanUpdate: (d) => setState(() => _pan += d.delta),
+              child: CustomPaint(
+                size: size,
+                painter: GraphPainter(
+                  graph: widget.graph,
+                  positions: _pos,
+                  tokens: tokens,
+                  highlight: _hovered == null ? null : widget.graph.neighborhood(_hovered!),
+                  layoutSize: widget.layoutSize,
+                  zoom: _zoom,
+                  pan: _pan,
+                ),
               ),
             ),
           ),

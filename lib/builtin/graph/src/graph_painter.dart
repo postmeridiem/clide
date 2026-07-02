@@ -22,9 +22,16 @@ class GraphViewport {
   GraphViewport(this.scale, this.dx, this.dy);
   final double scale, dx, dy;
 
-  factory GraphViewport.fit(Size canvas, Size layout) {
-    final scale = math.min(canvas.width / layout.width, canvas.height / layout.height);
-    return GraphViewport(scale, (canvas.width - layout.width * scale) / 2, (canvas.height - layout.height * scale) / 2);
+  /// Fits the solver's [layout] space into [canvas] (aspect-preserving), then
+  /// applies the user's [zoom] (about the canvas centre) and [pan]. At
+  /// `zoom: 1, pan: zero` this is the plain centered fit.
+  factory GraphViewport.fit(Size canvas, Size layout, {double zoom = 1, Offset pan = Offset.zero}) {
+    final scale = math.min(canvas.width / layout.width, canvas.height / layout.height) * zoom;
+    // Pin the layout centre to the canvas centre so zoom scales about it, then
+    // translate by the pan.
+    final dx = canvas.width / 2 + pan.dx - scale * layout.width / 2;
+    final dy = canvas.height / 2 + pan.dy - scale * layout.height / 2;
+    return GraphViewport(scale, dx, dy);
   }
 
   Offset toPixel(GraphPoint p) => Offset(dx + p.x * scale, dy + p.y * scale);
@@ -39,9 +46,11 @@ String? hitTestNode(
   Size size, {
   Size layoutSize = const Size(800, 600),
   double hitRadius = 12,
+  double zoom = 1,
+  Offset pan = Offset.zero,
 }) {
   if (positions.isEmpty) return null;
-  final vp = GraphViewport.fit(size, layoutSize);
+  final vp = GraphViewport.fit(size, layoutSize, zoom: zoom, pan: pan);
   String? best;
   var bestD = hitRadius;
   for (final n in graph.nodes) {
@@ -57,7 +66,15 @@ String? hitTestNode(
 }
 
 class GraphPainter extends CustomPainter {
-  GraphPainter({required this.graph, required this.positions, required this.tokens, this.highlight, this.layoutSize = const Size(800, 600)});
+  GraphPainter({
+    required this.graph,
+    required this.positions,
+    required this.tokens,
+    this.highlight,
+    this.layoutSize = const Size(800, 600),
+    this.zoom = 1,
+    this.pan = Offset.zero,
+  });
 
   final VaultGraph graph;
   final Map<String, GraphPoint> positions;
@@ -69,12 +86,16 @@ class GraphPainter extends CustomPainter {
 
   final Size layoutSize;
 
+  /// User pan/zoom over the base fit — kept in lockstep with [hitTestNode].
+  final double zoom;
+  final Offset pan;
+
   static const double nodeRadius = 5;
 
   @override
   void paint(ui.Canvas canvas, Size size) {
     if (graph.isEmpty || positions.isEmpty) return;
-    final vp = GraphViewport.fit(size, layoutSize);
+    final vp = GraphViewport.fit(size, layoutSize, zoom: zoom, pan: pan);
     Offset at(GraphPoint p) => vp.toPixel(p);
     bool lit(String id) => highlight == null || highlight!.contains(id);
 
@@ -115,5 +136,10 @@ class GraphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(GraphPainter old) =>
-      !identical(old.graph, graph) || !identical(old.positions, positions) || old.highlight != highlight || old.tokens != tokens;
+      !identical(old.graph, graph) ||
+      !identical(old.positions, positions) ||
+      old.highlight != highlight ||
+      old.tokens != tokens ||
+      old.zoom != zoom ||
+      old.pan != pan;
 }

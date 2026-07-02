@@ -20,7 +20,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 - **Vault graph view.** A force-directed link graph of the whole vault in the
   context panel — notes are nodes, wikilinks edges. Hover highlights a note's
-  neighbourhood; click opens it in the editor. (T-323)
+  neighbourhood; click opens it in the editor. Scroll to zoom, drag to pan.
+  (T-323)
 
 ### Changed
 
