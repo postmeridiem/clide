@@ -74,6 +74,21 @@ Color? canvasContentColor(String? spec) {
   };
 }
 
+/// The id of the topmost node under [local], or null. Uses the same
+/// [CanvasViewport.fit] the painter draws with, so a click lands on what's
+/// shown. Cards (drawn last) win over the group frames behind them.
+String? hitTestCanvasNode(CanvasDoc doc, Offset local, Size size, {double zoom = 1, Offset pan = Offset.zero}) {
+  if (doc.isEmpty) return null;
+  final vp = CanvasViewport.fit(size, CanvasBounds.of(doc), zoom: zoom, pan: pan);
+  for (final n in doc.nodes.reversed) {
+    if (n is! GroupNode && vp.rectOf(n).contains(local)) return n.id;
+  }
+  for (final n in doc.nodes.reversed) {
+    if (n is GroupNode && vp.rectOf(n).contains(local)) return n.id;
+  }
+  return null;
+}
+
 Color? _hex(String s) {
   var h = s.substring(1);
   if (h.length == 3) h = h.split('').map((c) => '$c$c').join();
