@@ -20,6 +20,7 @@ import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
+import 'builtin/canvas/canvas.dart';
 import 'builtin/diff/diff.dart';
 import 'builtin/files/files.dart';
 import 'builtin/git/git.dart';
@@ -283,7 +284,7 @@ class _ClideTestAppState extends State<ClideTestApp> {
 
       // PqlExtension precedes GraphExtension: the graph view depends on it
       // (activateAll resolves the order, but this documents the dependency).
-      final extensions = <ClideExtension>[DiffExtension(), FilesExtension(), GitExtension(), TerminalExtension(), PqlExtension(), GraphExtension()];
+      final extensions = <ClideExtension>[DiffExtension(), FilesExtension(), GitExtension(), TerminalExtension(), PqlExtension(), GraphExtension(), CanvasExtension()];
 
       for (final ext in extensions) {
         try {
