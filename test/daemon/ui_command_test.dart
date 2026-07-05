@@ -59,6 +59,16 @@ void main() {
     expect(published.single.data, {'path': 'lib/main.dart'});
   });
 
+  test('canvas keys on path and publishes a builtin.canvas selection (T-322)', () async {
+    wire();
+    final r = await open(['canvas', 'notes/board.canvas']);
+    expect(r.ok, isTrue, reason: r.error?.message);
+    expect(r.data['opened'], isTrue);
+    expect(published.single.publisher, 'builtin.canvas');
+    expect(published.single.channel, 'selection');
+    expect(published.single.data, {'path': 'notes/board.canvas'});
+  });
+
   test('named args work too (reader/ref)', () async {
     wire();
     final r = await d.dispatch(IpcRequest(id: '1', cmd: 'ui.open', args: {'reader': 'tickets', 'ref': 'T-7'}));
@@ -68,7 +78,7 @@ void main() {
 
   test('unknown reader → userError, nothing published', () async {
     wire();
-    final r = await open(['canvas', 'foo']);
+    final r = await open(['bogus', 'foo']);
     expect(r.ok, isFalse);
     expect(r.error?.kind, IpcErrorKind.userError);
     expect(published, isEmpty);

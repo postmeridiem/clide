@@ -18,6 +18,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+- **Canvas pane.** `.canvas` (Obsidian JSONCanvas) files now open in an
+  interactive workspace pane — each document a sub-tab, with pan, zoom, and
+  node selection. Routed from the file tree, quick-open, and
+  `clide ui open canvas <path>`. (T-322)
 - **Vault graph view.** A force-directed link graph of the whole vault in the
   context panel — notes are nodes, wikilinks edges. Hover highlights a note's
   neighbourhood; click opens it. Scroll to zoom, drag to pan; filter by path

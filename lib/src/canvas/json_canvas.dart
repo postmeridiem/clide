@@ -3,9 +3,11 @@
 /// back, so the canvas pane can load, edit, and persist a `.canvas`.
 ///
 /// Per D-91 `.canvas` is an import format, not clide's native schema — this
-/// model is the faithful parse; the pane lowers it onto the SVG substrate for
-/// rendering. Pure data — no Flutter, no I/O here — so it runs under
-/// `dart test`. Spec: https://jsoncanvas.org/spec/1.0/
+/// model is the faithful parse. The interactive pane paints this model
+/// directly via `CanvasPainter` (the D-103 live-widget exception, like the
+/// graph); only the display-only drawing card lowers to the SVG substrate.
+/// Pure data — no Flutter, no I/O here — so it runs under `dart test`.
+/// Spec: https://jsoncanvas.org/spec/1.0/
 library;
 
 import 'dart:convert';

@@ -28,14 +28,16 @@ typedef MessagePublisher = void Function(String publisher, String channel, Map<S
 
 /// The readers `ui.open` can target → (bus publisher id, payload key the
 /// reader reads its entry from). Matches each reader's `ReaderNav` dataKey
-/// (tickets/decisions key on `id`; markdown on `path`). `diff` is not a
-/// ReaderNav reader — it keys on `path` and its extension subscribes to the
-/// same `selection` channel to reveal its tab + focus the file (T-233).
+/// (tickets/decisions key on `id`; markdown on `path`). `diff` and `canvas`
+/// are not ReaderNav readers — they key on `path` and their extensions
+/// subscribe to the same `selection` channel to reveal their tab + focus
+/// the file (T-233, T-322).
 const Map<String, ({String publisher, String dataKey})> _readers = {
   'tickets': (publisher: 'builtin.tickets', dataKey: 'id'),
   'decisions': (publisher: 'builtin.decisions', dataKey: 'id'),
   'markdown': (publisher: 'builtin.markdown', dataKey: 'path'),
   'diff': (publisher: 'builtin.diff', dataKey: 'path'),
+  'canvas': (publisher: 'builtin.canvas', dataKey: 'path'),
 };
 
 /// Severities the toast verb accepts — mirrors `ToastSeverity` (kept as a

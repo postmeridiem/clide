@@ -1,6 +1,7 @@
 /// The single dispatch point for opening a workspace file the way
 /// clide routes file activations (T-51 / T-187):
 ///   * `.md` paths → the markdown reader, via the kernel MessageBus;
+///   * `.canvas` paths → the canvas pane, via the kernel MessageBus (T-322);
 ///   * every other path → the editor, via the `editor.open` IPC verb.
 ///
 /// Records the open in [KernelServices.recentFiles] so the quick-open
@@ -15,8 +16,11 @@ import 'package:clide/kernel/src/facade.dart';
 void openWorkspaceFile(KernelServices services, String path) {
   if (path.isEmpty) return;
   services.recentFiles.push(path);
-  if (path.toLowerCase().endsWith('.md')) {
+  final lower = path.toLowerCase();
+  if (lower.endsWith('.md')) {
     services.messages.publish('builtin.markdown', 'selection', {'path': path});
+  } else if (lower.endsWith('.canvas')) {
+    services.messages.publish('builtin.canvas', 'selection', {'path': path});
   } else {
     unawaited(services.ipc.request('editor.open', args: {'path': path}));
   }
