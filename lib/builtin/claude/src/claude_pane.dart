@@ -613,12 +613,21 @@ class _ClaudePaneState extends State<ClaudePane> {
 
   /// Cycle this pane's session through the safe permission-mode trio
   /// (default → acceptEdits → plan → default), sent over the stream-json
-  /// control channel (T-226). bypassPermissions is not reachable here — it
-  /// stays behind the explicit confirmed path in the cockpit roster (T-181).
+  /// control channel (T-226). bypassPermissions is not in the plain chord —
+  /// it's in the shift-modified full cycle ([_cycleModeFull], T-510).
   void _cycleMode() {
     final s = _session;
     if (s == null) return;
     s.setPermissionMode(nextSafePermissionMode(_status.permissionMode ?? 'default'));
+  }
+
+  /// Cycle through the full mode list including bypassPermissions —
+  /// Ctrl/Cmd+Shift+M, where holding shift is the explicit opt-in for the
+  /// footgun (T-510).
+  void _cycleModeFull() {
+    final s = _session;
+    if (s == null) return;
+    s.setPermissionMode(nextPermissionMode(_status.permissionMode ?? 'default'));
   }
 
   /// Focus the composer when the user taps empty conversation area (T-227).
@@ -835,6 +844,7 @@ class _ClaudePaneState extends State<ClaudePane> {
                     busy: busySnap.data ?? false,
                     onInterrupt: _session?.interrupt,
                     onCycleMode: _cycleMode,
+                    onCycleModeFull: _cycleModeFull,
                     permissionMode: _status.permissionMode,
                     onSetPermissionMode: _session != null ? (m) => _session!.setPermissionMode(m) : null,
                     onSubmit: _send,

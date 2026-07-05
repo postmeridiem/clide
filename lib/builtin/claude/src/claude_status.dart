@@ -41,15 +41,28 @@ String shortModelLabel(String model) {
 }
 
 /// The safe permission-mode cycle: default → acceptEdits → plan → default
-/// (T-226/T-181). `bypassPermissions` is intentionally excluded — it's
-/// reachable only via an explicit confirmed path (the footgun guard).
+/// (T-226/T-181). `bypassPermissions` is intentionally excluded from the
+/// plain chord — it lives in [kFullPermissionCycle] behind the shift
+/// modifier (T-510).
 const List<String> kSafePermissionCycle = ['default', 'acceptEdits', 'plan'];
+
+/// The full cycle including the bypass footgun. Reachable only through
+/// shift-modified gestures (Ctrl/Cmd+Shift+M, shift-click on the popup's
+/// bypass row) — holding shift is the explicit opt-in (T-510).
+const List<String> kFullPermissionCycle = ['default', 'acceptEdits', 'plan', 'bypassPermissions'];
 
 /// The next mode in [kSafePermissionCycle] after [current] (wraps). An
 /// unknown or `bypassPermissions` current restarts the cycle at `default`.
 String nextSafePermissionMode(String current) {
   final i = kSafePermissionCycle.indexOf(current);
   return kSafePermissionCycle[(i + 1) % kSafePermissionCycle.length];
+}
+
+/// The next mode in [kFullPermissionCycle] after [current] (wraps). An
+/// unknown current restarts the cycle at `default`.
+String nextPermissionMode(String current) {
+  final i = kFullPermissionCycle.indexOf(current);
+  return kFullPermissionCycle[(i + 1) % kFullPermissionCycle.length];
 }
 
 /// Status-line segments split around the permission-mode badge so the UI can

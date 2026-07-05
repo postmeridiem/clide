@@ -373,6 +373,39 @@ void main() {
       await tester.pump();
       expect(cycles, 0);
     });
+
+    testWidgets('Ctrl+Shift+M fires onCycleModeFull, not onCycleMode (T-510)', (tester) async {
+      var safe = 0, full = 0;
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => safe++, onCycleModeFull: () => full++)));
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+
+      expect(full, 1);
+      expect(safe, 0);
+      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text, isEmpty);
+    });
+
+    testWidgets('plain Ctrl+M still cycles the safe trio only', (tester) async {
+      var safe = 0, full = 0;
+      await tester.pumpWidget(harness(f, ClaudeComposer(onSubmit: (_) {}, onCycleMode: () => safe++, onCycleModeFull: () => full++)));
+      await tester.tap(find.byType(EditableText));
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+
+      expect(safe, 1);
+      expect(full, 0);
+    });
   });
 
   group('ClaudeComposer external focus node (T-227)', () {

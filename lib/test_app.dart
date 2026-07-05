@@ -284,7 +284,15 @@ class _ClideTestAppState extends State<ClideTestApp> {
 
       // PqlExtension precedes GraphExtension: the graph view depends on it
       // (activateAll resolves the order, but this documents the dependency).
-      final extensions = <ClideExtension>[DiffExtension(), FilesExtension(), GitExtension(), TerminalExtension(), PqlExtension(), GraphExtension(), CanvasExtension()];
+      final extensions = <ClideExtension>[
+        DiffExtension(),
+        FilesExtension(),
+        GitExtension(),
+        TerminalExtension(),
+        PqlExtension(),
+        GraphExtension(),
+        CanvasExtension(),
+      ];
 
       for (final ext in extensions) {
         try {

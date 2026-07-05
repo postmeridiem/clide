@@ -50,6 +50,7 @@ class ClaudeComposer extends StatefulWidget {
     this.onInterrupt,
     this.busy = false,
     this.onCycleMode,
+    this.onCycleModeFull,
     this.permissionMode,
     this.onSetPermissionMode,
     this.initialValue,
@@ -83,10 +84,16 @@ class ClaudeComposer extends StatefulWidget {
   /// (when the typeahead is closed). The escape hatch for a runaway turn.
   final VoidCallback? onInterrupt;
 
-  /// Cycle the session's permission mode — fired by Ctrl/Cmd+M while the
-  /// composer is focused (T-226). Intercepted here (not a global keymap
-  /// binding) so it targets this pane's session. Null disables the chord.
+  /// Cycle the session's permission mode through the safe trio — fired by
+  /// Ctrl/Cmd+M while the composer is focused (T-226). Intercepted here
+  /// (not a global keymap binding) so it targets this pane's session.
+  /// Null disables the chord.
   final VoidCallback? onCycleMode;
+
+  /// Cycle through the FULL mode list including bypassPermissions — fired
+  /// by Ctrl/Cmd+Shift+M (T-510). Holding shift is the explicit opt-in
+  /// for the footgun. Null disables the chord.
+  final VoidCallback? onCycleModeFull;
 
   /// Whether a turn is in flight; shows the Stop affordance.
   final bool busy;
@@ -255,13 +262,22 @@ class _ClaudeComposerState extends State<ClaudeComposer> {
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
-    // Ctrl/Cmd+M: cycle the session's permission mode (T-226). Intercepted
-    // here so it targets this pane. (Shift+Tab — the CLI chord — is off the
-    // table: it's a real a11y focus-traversal binding.)
+    // Ctrl/Cmd+M: cycle the session's permission mode through the safe trio
+    // (T-226); with Shift held, through the full list including bypass
+    // (T-510). Intercepted here so it targets this pane. (Shift+Tab — the
+    // CLI chord — is off the table: it's a real a11y focus-traversal
+    // binding.)
     final mod = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-    if (mod && e.logicalKey == LogicalKeyboardKey.keyM && widget.onCycleMode != null) {
-      widget.onCycleMode!();
-      return KeyEventResult.handled;
+    if (mod && e.logicalKey == LogicalKeyboardKey.keyM) {
+      final shift = HardwareKeyboard.instance.isShiftPressed;
+      if (shift && widget.onCycleModeFull != null) {
+        widget.onCycleModeFull!();
+        return KeyEventResult.handled;
+      }
+      if (!shift && widget.onCycleMode != null) {
+        widget.onCycleMode!();
+        return KeyEventResult.handled;
+      }
     }
     // Escape: dismiss the typeahead if open, otherwise interrupt the running
     // turn — the escape hatch from a runaway (D-78).

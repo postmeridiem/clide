@@ -90,6 +90,20 @@ void main() {
     });
   });
 
+  group('nextPermissionMode (T-510)', () {
+    test('cycles the full list including bypass and wraps', () {
+      expect(nextPermissionMode('default'), 'acceptEdits');
+      expect(nextPermissionMode('acceptEdits'), 'plan');
+      expect(nextPermissionMode('plan'), 'bypassPermissions');
+      expect(nextPermissionMode('bypassPermissions'), 'default');
+    });
+
+    test('unknown restarts at default', () {
+      expect(nextPermissionMode('whatever'), 'default');
+      expect(kFullPermissionCycle, contains('bypassPermissions'));
+    });
+  });
+
   group('statusSegmentsAroundMode (T-226)', () {
     test('splits model (leading) from ctx/cost/rate (trailing), mode excluded', () {
       const s = SessionStatus(model: 'claude-opus-4-7', permissionMode: 'plan', contextTokens: 21000, cost: 0.05);

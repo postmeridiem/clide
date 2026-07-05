@@ -29,6 +29,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Changed
 
+- Permission mode: Ctrl/Cmd+Shift+M cycles the full list including
+  bypassPermissions, and the composer menu's bypass row unlocks via
+  shift-click — plain Ctrl/Cmd+M and plain clicks stay safe-trio only (T-510).
 - Bundled Claude skills pruned to clide-specific ones (T-507): broken/duplicate
   skills removed, repo-agnostic ones moved to user scope, and stale guidance in
   the remaining five (paths, commands, icon API) brought back in line with the

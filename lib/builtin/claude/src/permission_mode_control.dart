@@ -3,15 +3,18 @@
 ///
 /// Shows the current mode as a per-mode coloured glyph; clicking opens a menu
 /// of the safe trio (default / accept-edits / plan) with the active one marked,
-/// plus a divided, disabled `bypass` row — that footgun stays behind the
-/// cockpit's explicit confirmed path (T-181), never one click away here. The
-/// label lives in the tooltip, the menu rows, and the status-bar indicator —
-/// the resting button is the glyph alone.
+/// plus a divided `bypass` row gated behind shift-click (T-510): a plain click
+/// no-ops and keeps the menu open, shift-click selects — the footgun is never
+/// a *plain* click away, and holding shift is the explicit opt-in (same
+/// convention as the roster badge, T-181). The label lives in the tooltip, the
+/// menu rows, and the status-bar indicator — the resting button is the glyph
+/// alone.
 library;
 
 import 'package:clide/builtin/claude/src/claude_status.dart' show kSafePermissionCycle, permissionModeLabel;
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/widgets/widgets.dart';
+import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart';
 
 /// Per-mode glyph. `bypass` reuses a warning shield; the safe trio gets a
@@ -66,7 +69,7 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
     super.dispose();
   }
 
-  List<ClideMenuEntry> _entries(SurfaceTokens tokens) => [
+  List<ClideMenuEntry> _entries(BuildContext ctx, SurfaceTokens tokens) => [
     for (final m in kSafePermissionCycle)
       ClideMenuItem(
         leading: permissionModeIcon(m),
@@ -76,13 +79,33 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
         onSelect: () => widget.onSelect(m),
       ),
     const ClideMenuSeparator(),
+    // The footgun row (T-510): a plain click/Enter no-ops and keeps the
+    // menu open; with shift held it selects and closes. The trailing hint
+    // names the gesture (suppressed while active — the check mark wins).
     ClideMenuItem(
       leading: permissionModeIcon('bypassPermissions'),
       color: permissionModeColor('bypassPermissions', tokens),
       label: permissionModeLabel('bypassPermissions'),
-      enabled: false,
       active: widget.mode == 'bypassPermissions',
-      onSelect: () {},
+      keepOpenOnSelect: true,
+      semanticLabel: ClideSettings.i18n.string(
+        ctx,
+        'permissionControl.bypassSemantics',
+        namespace: 'builtin.claude',
+        placeholder: 'bypassPermissions — shift-click to enable',
+      ),
+      trailing: widget.mode == 'bypassPermissions'
+          ? null
+          : ClideText(
+              ClideSettings.i18n.string(ctx, 'permissionControl.bypassHint', namespace: 'builtin.claude', placeholder: 'shift-click'),
+              fontSize: 10,
+              color: tokens.globalTextMuted,
+            ),
+      onSelect: () {
+        if (!HardwareKeyboard.instance.isShiftPressed) return;
+        widget.onSelect('bypassPermissions');
+        _overlay.close();
+      },
     ),
   ];
 
@@ -94,7 +117,7 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
       side: ClideAnchorSide.above,
       align: ClideAnchorAlign.end,
       offset: const Offset(0, -6),
-      overlayBuilder: (ctx, ctrl) => ClideMenu(onClose: ctrl.close, minWidth: 180, entries: _entries(ClideSettings.theme.of(ctx).surface)),
+      overlayBuilder: (ctx, ctrl) => ClideMenu(onClose: ctrl.close, minWidth: 180, entries: _entries(ctx, ClideSettings.theme.of(ctx).surface)),
       anchor: ListenableBuilder(
         listenable: _overlay,
         builder: (ctx, _) {
@@ -115,7 +138,7 @@ class _PermissionModeControlState extends State<PermissionModeControl> {
                 context,
                 'permissionControl.tooltip',
                 namespace: 'builtin.claude',
-                placeholder: 'Permission mode: ${permissionModeLabel(widget.mode)} — change (Ctrl/Cmd+M cycles)',
+                placeholder: 'Permission mode: ${permissionModeLabel(widget.mode)} — change (Ctrl/Cmd+M cycles; +Shift includes bypass)',
                 replacers: [I18nReplacer(from: '{mode}', replace: permissionModeLabel(widget.mode))],
               ),
               builder: (ctx, hovered, _) => Container(
