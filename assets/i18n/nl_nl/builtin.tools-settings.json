@@ -7,5 +7,20 @@
   "settings.field.d2.label": { "translation": "d2" },
   "settings.field.d2.help": { "translation": "Absoluut pad naar de d2-diagramcompiler; leeg om automatisch te bepalen." },
   "settings.field.detect.label": { "translation": "Opnieuw detecteren" },
-  "settings.field.detect.help": { "translation": "Scan PATH en de gangbare installatiemappen opnieuw; overschrijft de paden hierboven." }
+  "settings.field.detect.help": { "translation": "Scan PATH en de gangbare installatiemappen opnieuw; overschrijft de paden hierboven." },
+  "settings.section.path": { "translation": "Workspace-PATH" },
+  "settings.field.pathPreset.label": { "translation": "Vooraan aan PATH toevoegen" },
+  "settings.field.pathPreset.help": { "translation": "Mappen die vóór PATH komen in Claude-sessies en terminalvensters voor deze repo; worktrees delen de preset van de repo. Geldt voor nieuwe shells." },
+  "path.noWorkspace": { "translation": "Open een workspace om de PATH-preset in te stellen." },
+  "path.sharedRoot": { "translation": "Worktree — preset gedeeld met" },
+  "path.empty": { "translation": "Geen preset-items — nieuwe shells krijgen het opgeloste login-shell-PATH ongewijzigd." },
+  "path.add": { "translation": "Item toevoegen" },
+  "path.invalid": { "translation": "Voer een absoluut pad in (of ~/…)." },
+  "path.missing": { "translation": "ontbreekt" },
+  "path.moveUp": { "translation": "Omhoog" },
+  "path.moveDown": { "translation": "Omlaag" },
+  "path.remove": { "translation": "Verwijderen" },
+  "path.capture": { "translation": "Voorstellen uit login-shell" },
+  "path.captureNone": { "translation": "Niets voor te stellen — het login-shell-PATH is al gedekt." },
+  "path.addSuggestion": { "translation": "Voorgesteld item toevoegen" }
 }

@@ -1,3 +1,4 @@
+import 'package:clide/builtin/tools_settings/src/path_preset_control.dart';
 import 'package:clide/clide.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
@@ -7,6 +8,9 @@ import 'package:clide/src/env/supporter_binaries.dart';
 /// claude, d2, … (D-104 / T-495). A path field per tool (`app.tools.<name>`),
 /// auto-detected on first run, plus a Re-detect action. Editing a path rebuilds
 /// the live resolver so the change takes effect without a restart.
+///
+/// Also hosts the per-workspace PATH preset editor (D-106 / T-511) — the UI
+/// half of `clide env path …`.
 class ToolsSettingsExtension extends ClideExtension {
   @override
   String get id => 'builtin.tools-settings';
@@ -87,9 +91,31 @@ class ToolsSettingsExtension extends ClideExtension {
               ),
             ],
           ),
+          // Per-workspace PATH preset (D-106, T-511): dirs prepended to the
+          // PATH of every shell clide spawns for this repo. CLI parity:
+          // `clide env path list|set|add|remove|clear|capture`.
+          SettingsSection(
+            label: 'Workspace PATH',
+            labelKey: 'settings.section.path',
+            fields: [
+              SettingsField(
+                // Placeholder key — the custom control persists to the
+                // worktree-aware app.env.pathPrepend.<hash> key itself.
+                key: 'app.env.pathPrepend',
+                kind: SettingsFieldKind.custom,
+                label: 'Prepend to PATH',
+                labelKey: 'settings.field.pathPreset.label',
+                help:
+                    'Directories put ahead of PATH in Claude sessions and terminal panes spawned for this repo; worktrees share the repo\'s preset. Applies to new shells.',
+                helpKey: 'settings.field.pathPreset.help',
+                customId: 'tools.path-preset',
+              ),
+            ],
+          ),
         ],
       ),
     ),
+    SettingsControlContribution(id: 'tools.path-preset', customId: 'tools.path-preset', builder: (_) => const PathPresetControl()),
   ];
 
   Future<IpcResponse> _redetect(List<String> args) async {

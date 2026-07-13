@@ -7,5 +7,20 @@
   "settings.field.d2.label": { "translation": "d2" },
   "settings.field.d2.help": { "translation": "Absolute path to the d2 diagram compiler; blank to auto-resolve." },
   "settings.field.detect.label": { "translation": "Re-detect" },
-  "settings.field.detect.help": { "translation": "Re-scan PATH and the common install dirs, overwriting the paths above." }
+  "settings.field.detect.help": { "translation": "Re-scan PATH and the common install dirs, overwriting the paths above." },
+  "settings.section.path": { "translation": "Workspace PATH" },
+  "settings.field.pathPreset.label": { "translation": "Prepend to PATH" },
+  "settings.field.pathPreset.help": { "translation": "Directories put ahead of PATH in Claude sessions and terminal panes spawned for this repo; worktrees share the repo's preset. Applies to new shells." },
+  "path.noWorkspace": { "translation": "Open a workspace to set its PATH preset." },
+  "path.sharedRoot": { "translation": "Worktree — preset shared with" },
+  "path.empty": { "translation": "No preset entries — spawned shells get the resolved login-shell PATH as-is." },
+  "path.add": { "translation": "Add entry" },
+  "path.invalid": { "translation": "Enter an absolute path (or ~/…)." },
+  "path.missing": { "translation": "missing" },
+  "path.moveUp": { "translation": "Move up" },
+  "path.moveDown": { "translation": "Move down" },
+  "path.remove": { "translation": "Remove" },
+  "path.capture": { "translation": "Suggest from login shell" },
+  "path.captureNone": { "translation": "Nothing to suggest — the login-shell PATH is already covered." },
+  "path.addSuggestion": { "translation": "Add suggested entry" }
 }
