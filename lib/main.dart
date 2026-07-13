@@ -63,7 +63,7 @@ import 'package:clide/src/daemon/search_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
-import 'package:clide/src/env/path_preset.dart' show applyPathPreset, pathPresetKey, presetDirsFrom;
+import 'package:clide/src/env/path_preset.dart' show applyPathPreset, pathPresetKey, presetDirsFrom, presetLookupRoot;
 import 'package:clide/src/env/shell_env.dart' show primeLoginShellPath, resolvedToolPath;
 import 'package:clide/src/env/supporter_binaries.dart';
 import 'package:clide/widgets/src/icons/phosphor_glyphs.g.dart' show kPhosphorGlyphs;
@@ -322,7 +322,7 @@ Future<void> main() async {
         final settings = kernelSettings;
         final base = resolvedToolPath();
         if (settings == null) return base;
-        return applyPathPreset(base, presetDirsFrom((k) => settings.get<Object>(k), cwd ?? workRoot.path));
+        return applyPathPreset(base, presetDirsFrom((k) => settings.get<Object>(k), presetLookupRoot(cwd, workRoot.path)));
       },
     );
     // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI

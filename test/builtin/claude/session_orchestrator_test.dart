@@ -53,6 +53,19 @@ void main() {
     expect(spawnedArgs.single, isNot(contains('--effort')));
   });
 
+  test('the workspace PATH preset reaches the spawned session env (D-106)', () async {
+    final envs = <Map<String, String>?>[];
+    final preset = ClaudeSessionOrchestrator(
+      processFactory: ({required sessionArgs, required cwd, env}) async {
+        envs.add(env);
+        return _FakeProc();
+      },
+      pathPresetFor: (cwd) => cwd == '/repo' ? const ['/opt/go/bin'] : const [],
+    );
+    await preset.spawn(SpawnSpec(id: 'p1', role: 'primary', sessionId: 'p1-uuid', cwd: '/repo'));
+    expect(envs.single?['PATH'], startsWith('/opt/go/bin:'), reason: 'preset dirs lead the delta PATH');
+  });
+
   test('a fresh session gets the skills nudge; resume + fork do not (T-490)', () async {
     String appendPrompt(List<String> args) {
       final i = args.indexOf('--append-system-prompt');

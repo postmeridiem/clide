@@ -32,7 +32,7 @@ void main() {
   String? loginPath;
   var processPath = '/usr/bin:/bin';
 
-  void wire({String? cwd = '/repo', bool withStore = true}) {
+  void wire({String? cwd = '/repo', bool withStore = true, String? home = '/home/u'}) {
     store = _FakeStore();
     published = [];
     existingDirs = {};
@@ -45,7 +45,7 @@ void main() {
       publisher: () =>
           (p, c, data) => published.add((publisher: p, channel: c, data: data)),
       workspaceCwd: () => cwd,
-      home: () => '/home/u',
+      home: () => home,
       dirExists: (dir) => existingDirs.contains(dir),
       loginPath: () => loginPath,
       processPath: () => processPath,
@@ -89,6 +89,26 @@ void main() {
       final empty = await run(['set']);
       expect(empty.ok, isFalse);
       expect(empty.error?.hint, contains('clear'));
+    });
+
+    test('add and remove apply the same guards as set (relative + separator)', () async {
+      wire();
+      for (final action in ['set', 'add', 'remove']) {
+        final rel = await run([action, 'go/bin']);
+        expect(rel.ok, isFalse, reason: '$action relative');
+        expect(rel.error?.message, contains('not an absolute path'));
+        final sep = await run([action, '/a:']);
+        expect(sep.ok, isFalse, reason: '$action separator');
+        expect(sep.error?.message, contains('PATH separator'));
+      }
+      expect(store.byCwd, isEmpty, reason: 'nothing was written');
+    });
+
+    test('~ with no HOME errors instead of storing a broken entry', () async {
+      wire(home: null);
+      final r = await run(['set', '~/go/bin']);
+      expect(r.ok, isFalse);
+      expect(r.error?.message, contains('cannot expand'));
     });
 
     test('a leading-dash entry is rejected by the schema (T-104 guard)', () async {

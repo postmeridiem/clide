@@ -29,8 +29,8 @@ const pathPresetKeyPrefix = 'app.env.pathPrepend.';
 /// The settings key holding [workspaceRoot]'s preset — app layer, suffixed
 /// with the FNV-1a hash (the same one D-70 derives for the socket path) of the
 /// [presetRootFor]-resolved repo root, so all worktrees of a repo share one key.
-String pathPresetKey(String workspaceRoot, {bool Function(String path)? isFile, String? Function(String path)? readFile}) =>
-    '$pathPresetKeyPrefix${fnv1a64Hex(canonicalWorkspaceKey(presetRootFor(workspaceRoot, isFile: isFile, readFile: readFile)))}';
+String pathPresetKey(String workspaceRoot, {bool Function(String path)? isFile, String? Function(String path)? readFile, bool Function(String path)? isDir}) =>
+    '$pathPresetKeyPrefix${fnv1a64Hex(canonicalWorkspaceKey(presetRootFor(workspaceRoot, isFile: isFile, readFile: readFile, isDir: isDir)))}';
 
 /// The directory whose identity keys the preset: the MAIN repo root when
 /// [workspaceRoot] is a linked git worktree, else [workspaceRoot] itself
@@ -42,11 +42,20 @@ String pathPresetKey(String workspaceRoot, {bool Function(String path)? isFile, 
 /// that shape — a normal repo (`.git` directory), no `.git` at all, a
 /// submodule pointer — keys off [workspaceRoot] unchanged.
 ///
-/// [isFile]/[readFile] are injectable for tests; defaults touch the real fs.
-String presetRootFor(String workspaceRoot, {bool Function(String path)? isFile, String? Function(String path)? readFile}) {
+/// The pointer content is REPO-controlled, so the resolved target is
+/// validated before it is trusted: the candidate main root must actually
+/// hold a `.git` directory (a genuine repo), else the pointer is ignored and
+/// the workspace keys off itself. Without that check a crafted `.git` file
+/// could alias an arbitrary path's preset key (same-user only — the preset
+/// values themselves stay user-authored — but the boundary is cheap to hold).
+///
+/// [isFile]/[readFile]/[isDir] are injectable for tests; defaults touch the
+/// real fs.
+String presetRootFor(String workspaceRoot, {bool Function(String path)? isFile, String? Function(String path)? readFile, bool Function(String path)? isDir}) {
   final root = _stripTrailingSep(workspaceRoot);
   final probe = isFile ?? _isFile;
   final read = readFile ?? _readFile;
+  final dirProbe = isDir ?? _isDir;
   final gitPointer = '$root/.git';
   if (!probe(gitPointer)) return root;
   final content = read(gitPointer);
@@ -58,7 +67,21 @@ String presetRootFor(String workspaceRoot, {bool Function(String path)? isFile, 
   const marker = '/.git/worktrees/';
   final idx = resolved.indexOf(marker);
   if (idx <= 0) return root;
-  return resolved.substring(0, idx);
+  final mainRoot = resolved.substring(0, idx);
+  if (!dirProbe('$mainRoot/.git')) return root;
+  return mainRoot;
+}
+
+/// The root to key a spawn-time preset lookup on: [workspaceRoot] when [cwd]
+/// is the workspace root or anywhere below it (a pane spawned in a subdir
+/// must share the workspace's preset), else [cwd] itself (a spawn in an
+/// unrelated directory keys off that directory's own repo).
+String presetLookupRoot(String? cwd, String workspaceRoot) {
+  final ws = _stripTrailingSep(workspaceRoot);
+  if (cwd == null || cwd.isEmpty) return ws;
+  final c = _stripTrailingSep(cwd);
+  if (c == ws || c.startsWith('$ws/')) return ws;
+  return c;
 }
 
 /// Read [workspaceRoot]'s preset through an injected settings [read] (key →
@@ -69,8 +92,9 @@ List<String> presetDirsFrom(
   String workspaceRoot, {
   bool Function(String path)? isFile,
   String? Function(String path)? readFile,
+  bool Function(String path)? isDir,
 }) {
-  final raw = read(pathPresetKey(workspaceRoot, isFile: isFile, readFile: readFile));
+  final raw = read(pathPresetKey(workspaceRoot, isFile: isFile, readFile: readFile, isDir: isDir));
   if (raw is! List) return const [];
   return [
     for (final e in raw)
@@ -81,11 +105,17 @@ List<String> presetDirsFrom(
 /// Pure prepend: [preset] dirs (de-duplicated, order kept) ahead of [base],
 /// with base entries that repeat a preset dir dropped so the preset always
 /// wins. An empty preset returns [base] unchanged.
+///
+/// Contract: one directory per entry. An entry containing [sep] is malformed
+/// (the CLI/UI reject it at input time; this guards stored values that
+/// predate the check) and is skipped — joined verbatim it would smuggle
+/// extra tokens into PATH, and a trailing separator yields an EMPTY token,
+/// which POSIX shells resolve as CWD.
 String applyPathPreset(String base, List<String> preset, {String sep = ':'}) {
   final dirs = <String>[];
   for (final d in preset) {
     final t = d.trim();
-    if (t.isNotEmpty && !dirs.contains(t)) dirs.add(t);
+    if (t.isNotEmpty && !t.contains(sep) && !dirs.contains(t)) dirs.add(t);
   }
   if (dirs.isEmpty) return base;
   final baseParts = base.isEmpty ? const <String>[] : base.split(sep);
@@ -107,6 +137,8 @@ List<String> missingLoginShellDirs({required String? loginPath, required String 
 }
 
 bool _isFile(String path) => FileSystemEntity.typeSync(path) == FileSystemEntityType.file;
+
+bool _isDir(String path) => FileSystemEntity.typeSync(path) == FileSystemEntityType.directory;
 
 String? _readFile(String path) {
   try {

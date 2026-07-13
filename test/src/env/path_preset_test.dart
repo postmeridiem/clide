@@ -34,6 +34,11 @@ void main() {
     test('honours a custom separator', () {
       expect(applyPathPreset(r'C:\bin', [r'C:\go'], sep: ';'), r'C:\go;C:\bin');
     });
+
+    test('skips a malformed entry containing the separator (would smuggle a CWD token)', () {
+      expect(applyPathPreset('/usr/bin', ['/a:', '/ok']), '/ok:/usr/bin');
+      expect(applyPathPreset('/usr/bin', ['/a::/b']), '/usr/bin');
+    });
   });
 
   group('missingLoginShellDirs', () {
@@ -65,20 +70,45 @@ void main() {
 
     test('an in-repo .worktrees worktree resolves to the main repo root (absolute gitdir)', () {
       expect(
-        presetRootFor('/repo/.worktrees/fix', isFile: (p) => p == '/repo/.worktrees/fix/.git', readFile: (p) => 'gitdir: /repo/.git/worktrees/fix\n'),
+        presetRootFor(
+          '/repo/.worktrees/fix',
+          isFile: (p) => p == '/repo/.worktrees/fix/.git',
+          readFile: (p) => 'gitdir: /repo/.git/worktrees/fix\n',
+          isDir: (p) => p == '/repo/.git',
+        ),
         '/repo',
       );
     });
 
     test('a relative gitdir pointer resolves against the worktree root', () {
       expect(
-        presetRootFor('/repo/.worktrees/fix', isFile: (p) => p == '/repo/.worktrees/fix/.git', readFile: (p) => 'gitdir: ../../.git/worktrees/fix'),
+        presetRootFor(
+          '/repo/.worktrees/fix',
+          isFile: (p) => p == '/repo/.worktrees/fix/.git',
+          readFile: (p) => 'gitdir: ../../.git/worktrees/fix',
+          isDir: (p) => p == '/repo/.git',
+        ),
         '/repo',
       );
     });
 
     test('a worktree outside the repo still resolves to the main root', () {
-      expect(presetRootFor('/tmp/wt', isFile: (p) => p == '/tmp/wt/.git', readFile: (_) => 'gitdir: /srv/repos/main/.git/worktrees/wt'), '/srv/repos/main');
+      expect(
+        presetRootFor(
+          '/tmp/wt',
+          isFile: (p) => p == '/tmp/wt/.git',
+          readFile: (_) => 'gitdir: /srv/repos/main/.git/worktrees/wt',
+          isDir: (p) => p == '/srv/repos/main/.git',
+        ),
+        '/srv/repos/main',
+      );
+    });
+
+    test('a pointer whose target is not a real repo is ignored (repo-controlled content)', () {
+      expect(
+        presetRootFor('/evil', isFile: (p) => p == '/evil/.git', readFile: (_) => 'gitdir: /home/u/victim/.git/worktrees/x', isDir: (_) => false),
+        '/evil',
+      );
     });
 
     test('a gitdir pointer without the worktrees marker (submodule-style) keys off itself', () {
@@ -91,7 +121,15 @@ void main() {
     });
 
     test('backslashed gitdir (Windows-written pointer) still matches', () {
-      expect(presetRootFor('/repo/.worktrees/x', isFile: (p) => p == '/repo/.worktrees/x/.git', readFile: (_) => r'gitdir: /repo/.git\worktrees\x'), '/repo');
+      expect(
+        presetRootFor(
+          '/repo/.worktrees/x',
+          isFile: (p) => p == '/repo/.worktrees/x/.git',
+          readFile: (_) => r'gitdir: /repo/.git\worktrees\x',
+          isDir: (p) => p == '/repo/.git',
+        ),
+        '/repo',
+      );
     });
 
     test('resolves a REAL worktree layout on disk (no injected probes)', () {
@@ -116,7 +154,12 @@ void main() {
     test('a worktree and its main repo share one key; trailing slash is unified', () {
       final main = pathPresetKey('/repo', isFile: (_) => false, readFile: (_) => null);
       final slash = pathPresetKey('/repo/', isFile: (_) => false, readFile: (_) => null);
-      final wt = pathPresetKey('/repo/.worktrees/fix', isFile: (p) => p == '/repo/.worktrees/fix/.git', readFile: (_) => 'gitdir: /repo/.git/worktrees/fix');
+      final wt = pathPresetKey(
+        '/repo/.worktrees/fix',
+        isFile: (p) => p == '/repo/.worktrees/fix/.git',
+        readFile: (_) => 'gitdir: /repo/.git/worktrees/fix',
+        isDir: (p) => p == '/repo/.git',
+      );
       expect(slash, main);
       expect(wt, main);
       expect(pathPresetKey('/other', isFile: (_) => false, readFile: (_) => null), isNot(main));

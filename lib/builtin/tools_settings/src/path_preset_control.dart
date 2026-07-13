@@ -77,6 +77,10 @@ class _PathPresetControlState extends State<PathPresetControl> {
       d = d == '~' ? home : '$home${d.substring(1)}';
     }
     if (d.isEmpty || !(d.startsWith('/') || RegExp(r'^[A-Za-z]:[/\\]').hasMatch(d))) return null;
+    // One dir per entry — an embedded PATH separator would smuggle extra
+    // (possibly empty → CWD) tokens into the joined PATH.
+    final body = RegExp(r'^[A-Za-z]:').hasMatch(d) ? d.substring(2) : d;
+    if (body.contains(':') || body.contains(';')) return null;
     while (d.length > 1 && d.endsWith('/')) {
       d = d.substring(0, d.length - 1);
     }
@@ -293,7 +297,7 @@ class _PathPresetControlState extends State<PathPresetControl> {
             onTap: () => _add(services, cwd),
             builder: (ctx, hovered, _) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(color: hovered ? tokens.listItemHoverBackground : tokens.buttonBackground, borderRadius: BorderRadius.circular(4)),
+              decoration: BoxDecoration(color: hovered ? tokens.buttonHoverBackground : tokens.buttonBackground, borderRadius: BorderRadius.circular(4)),
               child: ClideText(addLabel, color: tokens.buttonForeground, fontSize: clideFontCaption),
             ),
           ),

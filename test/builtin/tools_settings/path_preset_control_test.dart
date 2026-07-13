@@ -81,6 +81,29 @@ void main() {
     expect(dirs(f.tempDir.path), isEmpty);
   });
 
+  testWidgets('an entry containing a PATH separator is rejected (CWD-token guard)', (tester) async {
+    await tester.runAsync(() => f.services.settings.setProjectDir(f.tempDir));
+    await pump(tester);
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), '/opt/go/bin:');
+    await tester.tap(find.text('Add entry'));
+    await tester.pump();
+    expect(find.textContaining('absolute path'), findsOneWidget);
+    expect(dirs(f.tempDir.path), isEmpty);
+  });
+
+  testWidgets('~/ expands against HOME and Enter submits (parity with the CLI verb)', (tester) async {
+    final home = Platform.environment['HOME'];
+    if (home == null || home.isEmpty) return; // no HOME in this environment — the guard path is CLI-tested
+    await tester.runAsync(() => f.services.settings.setProjectDir(f.tempDir));
+    await pump(tester);
+    await tester.pump();
+    await tester.enterText(find.byType(EditableText), '~/go/bin/');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(dirs(f.tempDir.path), ['$home/go/bin']);
+  });
+
   testWidgets('an existing dir renders without the missing tag', (tester) async {
     await tester.runAsync(() async {
       await f.services.settings.setProjectDir(f.tempDir);

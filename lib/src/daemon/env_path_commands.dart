@@ -174,6 +174,11 @@ Future<IpcResponse> _dispatch(
     }
     final absolute = d.startsWith('/') || RegExp(r'^[A-Za-z]:[/\\]').hasMatch(d);
     if (!absolute) return (out, 'not an absolute path: $raw');
+    // One dir per entry: an embedded PATH separator would expand into extra
+    // tokens at join time — and a stray trailing ':' yields an EMPTY token,
+    // which POSIX shells resolve as CWD (the classic dot-in-PATH hazard).
+    final body = RegExp(r'^[A-Za-z]:').hasMatch(d) ? d.substring(2) : d;
+    if (body.contains(':') || body.contains(';')) return (out, 'entry contains a PATH separator: $raw');
     while (d.length > 1 && d.endsWith('/')) {
       d = d.substring(0, d.length - 1);
     }
