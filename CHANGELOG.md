@@ -26,6 +26,11 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   context panel — notes are nodes, wikilinks edges. Hover highlights a note's
   neighbourhood; click opens it. Scroll to zoom, drag to pan; filter by path
   glob, tag include/exclude, or depth from the active note. (T-323)
+- **Per-workspace PATH preset.** Directories prepended to the PATH of every
+  shell clide spawns for a repo — Claude sessions and terminal panes. Settings
+  → Tools → Workspace PATH, or `clide env path …` with capture-from-login-shell
+  suggestions. Worktrees share their repo's preset; stored machine-local, never
+  committed. (D-106, T-511)
 
 ### Changed
 

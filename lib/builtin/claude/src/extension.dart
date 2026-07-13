@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:clide/clide.dart';
 import 'package:clide/builtin/claude/src/account_registry.dart';
+import 'package:clide/src/env/path_preset.dart' show presetDirsFrom;
 import 'package:clide/builtin/claude/src/account_login_dialog.dart';
 import 'package:clide/builtin/claude/src/account_roadblock_dialog.dart';
 import 'package:clide/builtin/claude/src/account_settings_control.dart';
@@ -511,8 +512,13 @@ class ClaudeExtension extends ClideExtension {
 
     // The clide-managed session set (T-169). Panes spawn/bind through it so a
     // session outlives its pane and is shared across surfaces. The account
-    // registry (T-476) lets a bound workspace spawn under its own Claude account.
-    _orchestrator = ClaudeSessionOrchestrator(accountRegistry: AccountRegistry(ctx.settings));
+    // registry (T-476) lets a bound workspace spawn under its own Claude
+    // account; the PATH-preset lookup (D-106) prepends the workspace's preset
+    // dirs to every hosted session's PATH — read live at each spawn.
+    _orchestrator = ClaudeSessionOrchestrator(
+      accountRegistry: AccountRegistry(ctx.settings),
+      pathPresetFor: (cwd) => presetDirsFrom((k) => ctx.settings.get<Object>(k), cwd),
+    );
     activeSessionOrchestrator = _orchestrator;
 
     // An in-place workspace switch (Open Project/Folder) must not leave the

@@ -19,9 +19,17 @@ import 'event_sink.dart';
 import 'pane.dart';
 
 class PaneRegistry {
-  PaneRegistry({required this.events, this.ptyLog = PtyLog.none});
+  PaneRegistry({required this.events, this.ptyLog = PtyLog.none, String Function(String? cwd)? pathForSpawn})
+    : _pathForSpawn = pathForSpawn ?? _defaultPathForSpawn;
 
   final DaemonEventSink events;
+
+  /// PATH for a child spawned in `cwd` — the seam the per-workspace PATH
+  /// preset (D-106) is applied through; the default is the plain resolved
+  /// login-shell PATH (T-439). main.dart wires the preset-aware closure.
+  final String Function(String? cwd) _pathForSpawn;
+
+  static String _defaultPathForSpawn(String? _) => resolvedToolPath();
 
   /// Breadcrumb hook handed to every PTY this registry spawns (T-434). Default
   /// no-op; production wires it to the kernel Logger + a crumb file.
@@ -55,8 +63,9 @@ class PaneRegistry {
     final fullEnv = <String, String>{
       ...Platform.environment,
       // The login-shell-resolved PATH so PTY children find user-installed tools
-      // even on a desktop launch (T-439); an explicit caller PATH still wins.
-      'PATH': resolvedToolPath(),
+      // even on a desktop launch (T-439), plus the workspace's PATH preset
+      // (D-106) via [_pathForSpawn]; an explicit caller PATH still wins.
+      'PATH': _pathForSpawn(cwd),
       'TERM': 'xterm-256color',
       'COLORTERM': 'truecolor',
       'LANG': 'en_US.UTF-8',

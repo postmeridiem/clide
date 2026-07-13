@@ -99,6 +99,32 @@ void main() {
       expect(pane.kind, PaneKind.claude);
       expect(pane.toJson()['kind'], 'claude');
     });
+
+    test('pathForSpawn hook sets the child PATH per cwd (D-106)', tags: ['pty'], () async {
+      String? seenCwd;
+      final preset = PaneRegistry(
+        events: sink,
+        pathForSpawn: (cwd) {
+          seenCwd = cwd;
+          return '/preset-marker:/usr/bin:/bin';
+        },
+      );
+      addTearDown(preset.shutdown);
+
+      final buf = StringBuffer();
+      final got = Completer<void>();
+      final sub = sink.stream.listen((e) {
+        if (e.kind != 'pane.output') return;
+        buf.write(utf8.decode(base64Decode(e.data['bytes_b64']! as String)));
+        if (buf.toString().contains('/preset-marker') && !got.isCompleted) got.complete();
+      });
+      addTearDown(sub.cancel);
+
+      await preset.spawn(kind: PaneKind.terminal, argv: const ['/bin/sh', '-c', r'printf %s "$PATH"; sleep 0.25'], cwd: '/tmp');
+
+      await got.future.timeout(ioTimeout, onTimeout: () => fail('child PATH never carried the preset marker within ${ioTimeout.inSeconds}s'));
+      expect(seenCwd, '/tmp');
+    });
   });
 
   group('RecordingEventSink filters', () {

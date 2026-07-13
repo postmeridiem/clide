@@ -153,7 +153,7 @@ class ManagedSession {
 ClaudeSessionOrchestrator? activeSessionOrchestrator;
 
 class ClaudeSessionOrchestrator extends ChangeNotifier {
-  ClaudeSessionOrchestrator({ProcessFactory? processFactory, this.accountRegistry}) : _factory = processFactory ?? _spawnClaude {
+  ClaudeSessionOrchestrator({ProcessFactory? processFactory, this.accountRegistry, this.pathPresetFor}) : _factory = processFactory ?? _spawnClaude {
     _chatModel = TeamChatModel(broker: broker, sessionResolver: (name) => byMemberName(name)?.session);
   }
 
@@ -161,6 +161,11 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
   /// its hosted sessions spawn under that account's CLAUDE_CONFIG_DIR (T-484).
   /// Null in tests / when no registry is wired → no injection.
   final AccountRegistry? accountRegistry;
+
+  /// Per-workspace PATH preset lookup (D-106): dirs prepended to a hosted
+  /// session's PATH at spawn, wired by the extension over the settings store.
+  /// Null in tests / when not wired → no injection.
+  final List<String> Function(String cwd)? pathPresetFor;
 
   final ProcessFactory _factory;
   final _sessions = <String, ManagedSession>{};
@@ -255,7 +260,12 @@ class ClaudeSessionOrchestrator extends ChangeNotifier {
       mcpServers.add(TeamMcpServer(broker: broker, memberId: spec.id));
       preambles.add(_teamSystemPrompt(name, spec.role));
     }
-    final bootstrap = agentBootstrap(spec.cwd, base: spec.env, boundConfigDir: (cwd) => accountRegistry?.accountForWorkspace(cwd)?.dir);
+    final bootstrap = agentBootstrap(
+      spec.cwd,
+      base: spec.env,
+      boundConfigDir: (cwd) => accountRegistry?.accountForWorkspace(cwd)?.dir,
+      pathPreset: pathPresetFor,
+    );
     sessionArgs = [
       '--append-system-prompt',
       preambles.join('\n\n'),

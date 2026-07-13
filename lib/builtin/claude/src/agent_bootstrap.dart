@@ -23,6 +23,7 @@ library;
 
 import 'dart:io';
 
+import 'package:clide/src/env/path_preset.dart' show applyPathPreset;
 import 'package:clide/src/env/shell_env.dart' show resolvedToolPath;
 import 'package:clide/src/ipc/paths.dart' show workspaceSocketPath;
 
@@ -74,12 +75,22 @@ String clideSkillsNote() =>
 ///
 ///   * `CLIDE_SOCK` — the per-workspace socket ([workspaceSocketPath], D-70).
 ///   * `CLIDE_WORKSPACE` — the workspace root.
-///   * `PATH` — prepended with [clideCliDir] when it is non-null (i.e. `clide`
-///     is not already resolvable), otherwise left untouched.
-Map<String, String> agentEnvDelta({required String workspaceRoot, required String socketPath, required String? currentPath, required String? clideCliDir}) {
+///   * `PATH` — the workspace's preset dirs (D-106), then [clideCliDir] when it
+///     is non-null (i.e. `clide` is not already resolvable), then
+///     [currentPath]. Exported whenever there is anything to prepend —
+///     the preset must reach the session's Bash tool even when `clide` is
+///     already on PATH — and left untouched otherwise.
+Map<String, String> agentEnvDelta({
+  required String workspaceRoot,
+  required String socketPath,
+  required String? currentPath,
+  required String? clideCliDir,
+  List<String> prependDirs = const [],
+}) {
   final delta = <String, String>{'CLIDE_SOCK': socketPath, 'CLIDE_WORKSPACE': workspaceRoot};
-  if (clideCliDir != null && clideCliDir.isNotEmpty) {
-    delta['PATH'] = (currentPath == null || currentPath.isEmpty) ? clideCliDir : '$clideCliDir:$currentPath';
+  final prepend = <String>[...prependDirs, if (clideCliDir != null && clideCliDir.isNotEmpty) clideCliDir];
+  if (prepend.isNotEmpty) {
+    delta['PATH'] = applyPathPreset(currentPath ?? '', prepend);
   }
   return delta;
 }
@@ -132,11 +143,18 @@ class AgentBootstrap {
 /// env (usually null → inherit clide's). The returned [AgentBootstrap.extraArgs]
 /// carries the context note; team callers append their own preamble and the
 /// orchestrator merges both into one `--append-system-prompt`.
-AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base, String? Function(String cwd)? boundConfigDir}) {
+AgentBootstrap agentBootstrap(
+  String workspaceRoot, {
+  Map<String, String>? base,
+  String? Function(String cwd)? boundConfigDir,
+  List<String> Function(String cwd)? pathPreset,
+}) {
   final home = Platform.environment['HOME'];
   // The login-shell-resolved PATH (T-439) so a hosted claude — and the tools it
   // shells out to — find user-installed components on a desktop launch, not just
-  // the sparse GUI PATH. agentEnvDelta still prepends the clide-CLI dir.
+  // the sparse GUI PATH. agentEnvDelta still prepends the clide-CLI dir and the
+  // workspace's PATH preset (D-106), injected as a plain lookup like
+  // [boundConfigDir] so this stays Flutter-free.
   final currentPath = resolvedToolPath();
   final candidates = <String>[
     if (home != null && home.isNotEmpty) '$home/.local/bin',
@@ -144,7 +162,13 @@ AgentBootstrap agentBootstrap(String workspaceRoot, {Map<String, String>? base, 
     File(Platform.resolvedExecutable).parent.path,
   ];
   final cliDir = resolveClideCliDir(currentPath: currentPath, candidateDirs: candidates, isExecutableFile: _isExecutableFile);
-  final delta = agentEnvDelta(workspaceRoot: workspaceRoot, socketPath: workspaceSocketPath(workspaceRoot), currentPath: currentPath, clideCliDir: cliDir);
+  final delta = agentEnvDelta(
+    workspaceRoot: workspaceRoot,
+    socketPath: workspaceSocketPath(workspaceRoot),
+    currentPath: currentPath,
+    clideCliDir: cliDir,
+    prependDirs: pathPreset?.call(workspaceRoot) ?? const [],
+  );
   // Per-repo Claude account (T-484): a bound workspace runs claude under that
   // account's CLAUDE_CONFIG_DIR. Spread BEFORE base so an explicit per-call
   // SpawnSpec.env override still wins (precedence: override > binding > parent

@@ -40,6 +40,7 @@ import 'package:clide/builtin/claude/src/account_registry.dart';
 import 'package:clide/clide.dart' show clideVersion;
 import 'package:clide/src/daemon/claude_account_commands.dart';
 import 'package:clide/src/daemon/dispatcher.dart';
+import 'package:clide/src/daemon/env_path_commands.dart';
 import 'package:clide/src/daemon/draw_commands.dart';
 import 'package:clide/src/draw/compare_template.dart' show compareTemplateHandler;
 import 'package:clide/src/draw/d2_template.dart' show d2TemplateHandler;
@@ -62,7 +63,8 @@ import 'package:clide/src/daemon/search_commands.dart';
 import 'package:clide/src/editor/registry.dart' show EditorRegistry;
 import 'package:clide/src/git/client.dart';
 import 'package:clide/src/cli/argv_dispatch.dart';
-import 'package:clide/src/env/shell_env.dart' show primeLoginShellPath;
+import 'package:clide/src/env/path_preset.dart' show applyPathPreset, pathPresetKey, presetDirsFrom;
+import 'package:clide/src/env/shell_env.dart' show primeLoginShellPath, resolvedToolPath;
 import 'package:clide/src/env/supporter_binaries.dart';
 import 'package:clide/widgets/src/icons/phosphor_glyphs.g.dart' show kPhosphorGlyphs;
 import 'package:clide/src/ipc/envelope.dart';
@@ -310,7 +312,19 @@ Future<void> main() async {
             crumbPath: '${logDirectory()}/clide-pty.crumbs.log',
             verbose: log.minLevel.index <= LogLevel.debug.index,
           );
-    final paneRegistry = PaneRegistry(events: eventSink, ptyLog: ptyLog);
+    // Terminal PTY children get the workspace's PATH preset (D-106) prepended
+    // to the resolved login-shell PATH. Read live per spawn off the kernel
+    // settings (null pre-boot → plain resolved PATH, same as before).
+    final paneRegistry = PaneRegistry(
+      events: eventSink,
+      ptyLog: ptyLog,
+      pathForSpawn: (cwd) {
+        final settings = kernelSettings;
+        final base = resolvedToolPath();
+        if (settings == null) return base;
+        return applyPathPreset(base, presetDirsFrom((k) => settings.get<Object>(k), cwd ?? workRoot.path));
+      },
+    );
     // D-6 parity (T-219, D-83): make the tabs the user sees in the GUI
     // visible to `pane list` by snapshotting the kernel PanelRegistry +
     // LayoutArrangement at request time — no mirrored state to drift.
@@ -436,6 +450,18 @@ Future<void> main() async {
         final home = Platform.environment['HOME'];
         if (settings == null || home == null || home.isEmpty) return null;
         return _AccountStoreAdapter(AccountRegistry(settings), home);
+      },
+      publisher: () => kernelMessages?.publish,
+      workspaceCwd: () => workRoot.path,
+    );
+    // `clide env path …` — the per-workspace PATH preset's CLI half (D-106,
+    // T-511). Reads/writes the user-scope preset key through the kernel
+    // settings; mutations publish on envPathChannel.
+    registerEnvPathCommands(
+      dispatcher,
+      () {
+        final settings = kernelSettings;
+        return settings == null ? null : _PathPresetStoreAdapter(settings);
       },
       publisher: () => kernelMessages?.publish,
       workspaceCwd: () => workRoot.path,
@@ -653,6 +679,24 @@ class _AccountStoreAdapter implements AccountStore {
   Future<void> bind(String cwd, String name) => _reg.bindWorkspace(cwd, name);
   @override
   Future<void> unbind(String cwd) => _reg.unbindWorkspace(cwd);
+}
+
+/// Adapts the (foundation-bound) [SettingsStore] to the Flutter-free
+/// [PathPresetStore] port the `env path` verbs use (D-106, T-511). The key is
+/// worktree-aware ([pathPresetKey]); an empty preset removes the key rather
+/// than leaving an empty list in settings.yaml.
+class _PathPresetStoreAdapter implements PathPresetStore {
+  _PathPresetStoreAdapter(this._settings);
+  final SettingsStore _settings;
+
+  @override
+  List<String> dirsFor(String cwd) => presetDirsFrom((k) => _settings.get<Object>(k), cwd);
+
+  @override
+  Future<void> setFor(String cwd, List<String> dirs) {
+    final key = pathPresetKey(cwd);
+    return dirs.isEmpty ? _settings.removeAt(SettingsScope.app, key) : _settings.setAt(SettingsScope.app, key, dirs);
+  }
 }
 
 class _BusEventSink implements DaemonEventSink {

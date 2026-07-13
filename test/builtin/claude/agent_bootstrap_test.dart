@@ -67,6 +67,33 @@ void main() {
       final d = agentEnvDelta(workspaceRoot: '/repo', socketPath: '/s.sock', currentPath: null, clideCliDir: '/opt/clide/bin');
       expect(d['PATH'], '/opt/clide/bin');
     });
+
+    test('exports PATH for a preset even when clide is already resolvable (D-106)', () {
+      final d = agentEnvDelta(workspaceRoot: '/repo', socketPath: '/s.sock', currentPath: '/usr/bin:/bin', clideCliDir: null, prependDirs: ['/opt/go/bin']);
+      expect(d['PATH'], '/opt/go/bin:/usr/bin:/bin');
+    });
+
+    test('preset dirs come first, then the cli dir, then the current PATH (D-106)', () {
+      final d = agentEnvDelta(
+        workspaceRoot: '/repo',
+        socketPath: '/s.sock',
+        currentPath: '/usr/bin',
+        clideCliDir: '/home/dev/.local/bin',
+        prependDirs: ['/opt/go/bin', '/brew/bin'],
+      );
+      expect(d['PATH'], '/opt/go/bin:/brew/bin:/home/dev/.local/bin:/usr/bin');
+    });
+
+    test('a preset dir already on the current PATH is not duplicated (D-106)', () {
+      final d = agentEnvDelta(
+        workspaceRoot: '/repo',
+        socketPath: '/s.sock',
+        currentPath: '/opt/go/bin:/usr/bin',
+        clideCliDir: null,
+        prependDirs: ['/opt/go/bin'],
+      );
+      expect(d['PATH'], '/opt/go/bin:/usr/bin');
+    });
   });
 
   group('resolveClideCliDir (T-215)', () {
@@ -142,6 +169,17 @@ void main() {
     test('an explicit base CLAUDE_CONFIG_DIR override beats the workspace binding (T-484)', () {
       final b = agentBootstrap('/ws', base: {'CLAUDE_CONFIG_DIR': '/override'}, boundConfigDir: (_) => '/bound');
       expect(b.envDelta['CLAUDE_CONFIG_DIR'], '/override');
+    });
+
+    test('the workspace PATH preset lands at the head of the delta PATH (D-106)', () {
+      final b = agentBootstrap('/ws', pathPreset: (cwd) => cwd == '/ws' ? ['/opt/go/bin'] : const []);
+      expect(b.envDelta['PATH'], startsWith('/opt/go/bin:'));
+    });
+
+    test('no preset wired → bootstrap behaves as before (no gratuitous PATH export)', () {
+      final emptyPreset = agentBootstrap('/ws', pathPreset: (_) => const []);
+      final unwired = agentBootstrap('/ws');
+      expect(emptyPreset.envDelta.containsKey('PATH'), unwired.envDelta.containsKey('PATH'));
     });
   });
 }

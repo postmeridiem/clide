@@ -80,6 +80,11 @@ String expandToolPath(String base, {required bool isMac, required bool isLinux, 
   return [...missing, ...existing].join(':');
 }
 
+/// The raw login-shell PATH the probe captured, or null when it is
+/// unavailable (probe failed / not yet primed / Windows). `env path capture`
+/// (D-106) diffs this against the process PATH to suggest preset entries.
+String? loginShellPathOrNull() => _loginShellPath;
+
 /// Test seam: force the cached login-shell PATH (and mark primed).
 void debugSetLoginShellPath(String? value) {
   _loginShellPath = value;
