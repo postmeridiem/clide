@@ -17,36 +17,9 @@ in the D-record.
 
 ---
 
-## FR-2 — Lead the `clide` skill `description` with `clide capabilities`
+## FR-2 — Lead the `clide` skill `description` with `clide capabilities` *(accepted → T-512, 2026-07-13)*
 
-- **Status:** proposed
-- **Source:** settled-reach estate-cleanup session, 2026-07-13 — de-forking
-  the hand-copied `clide` skill back to canonical surfaced a description
-  improvement in the consumer's fork worth keeping.
-- **Severity:** low; discoverability wording, not a functional gap.
-
-### Problem
-
-The canonical `.claude/skills/clide/SKILL.md` `description` names the
-triggers but not the *first move*. settled-reach's drifted copy had a
-sharper opening that named `clide capabilities` as the entry action and the
-`clide`-on-PATH + `CLIDE_SOCK` mechanics inline. Syncing that copy back to
-canonical (de-forking) drops the improvement unless it's adopted here. The
-skill *body* already says "discover the surface first → `clide capabilities`",
-but the `description` — what an agent reads when *deciding* whether to invoke
-the skill — buries that lead.
-
-### Proposal
-
-Fold the fork's opening into the canonical `description` frontmatter:
-
-> clide is the IDE hosting this session; it puts `clide` on your PATH and a
-> per-workspace socket in `CLIDE_SOCK`. Start with `clide capabilities` to
-> enumerate the live tool surface.
-
+Applied: the canonical `.claude/skills/clide/SKILL.md` `description` now
+leads with the hosting context (`clide` on PATH, `CLIDE_SOCK`) and
+`clide capabilities` as the entry action, keeping the trigger list.
 Pure frontmatter wording; no behavior change.
-
----
-
-*Logged from a settled-reach session (consuming the clide skill), not
-authored in a clide session — review and triage/commit from clide.*

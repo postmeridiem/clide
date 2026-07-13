@@ -1,11 +1,12 @@
 ---
 name: clide
 description: >
-  Use when you are running inside the clide IDE and want to observe or drive
-  its live UI — panes, editor, files, git, readers, toasts, layout — through
-  the `clide` CLI, or to find out what commands clide exposes. clide is the
-  IDE hosting this session. Triggers: "what can clide do", "drive the clide
-  UI", "open this in clide", "show the user", "toast", or invoking /clide.
+  clide is the IDE hosting this session; it puts `clide` on your PATH and a
+  per-workspace socket in `CLIDE_SOCK`. Start with `clide capabilities` to
+  enumerate the live tool surface, then observe or drive the UI — panes,
+  editor, files, git, readers, toasts, layout — via `clide <subsystem> <verb>`.
+  Triggers: "what can clide do", "drive the clide UI", "open this in clide",
+  "show the user", "toast", or invoking /clide.
 user-invocable: true
 allowed-tools: Bash
 ---

@@ -41,6 +41,9 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   skills removed, repo-agnostic ones moved to user scope, and stale guidance in
   the remaining five (paths, commands, icon API) brought back in line with the
   repo.
+- The `clide` skill description now leads with the hosting mechanics (`clide`
+  on PATH, `CLIDE_SOCK`) and `clide capabilities` as the entry action, so an
+  agent deciding whether to invoke it sees the first move up front (T-512).
 
 ### Fixed
 
