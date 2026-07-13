@@ -162,5 +162,7 @@ class IgnoreSet {
   /// ignore files. Matches D-004's "walker magic: none except
   /// `.git/`" — but the tree-view UI benefits from hiding `.pql/` and
   /// `.dart_tool/` too since users never edit those by hand.
-  static IgnoreSet builtin() => IgnoreSet.parse(const ['.git/\n.pql/\n.clide/\n.dart_tool/\nbuild/\nnode_modules/\n']);
+  /// `.worktrees/` holds in-repo linked worktrees (D-106) — sibling
+  /// checkouts a user opens as their own workspaces, not tree content.
+  static IgnoreSet builtin() => IgnoreSet.parse(const ['.git/\n.pql/\n.clide/\n.dart_tool/\n.worktrees/\nbuild/\nnode_modules/\n']);
 }

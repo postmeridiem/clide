@@ -84,7 +84,7 @@ void _writeScaffold(String dir, String name) {
   // Claude with an empty CLAUDE.md stub. No language/framework templates. Never
   // clobbers — safe to run over an existing folder (T-489).
   final gitignore = File('$dir/.gitignore');
-  if (!gitignore.existsSync()) gitignore.writeAsStringSync('# clide\n.clide/\n');
+  if (!gitignore.existsSync()) gitignore.writeAsStringSync('# clide\n.clide/\n.worktrees/\n');
   final claudeMd = File('$dir/CLAUDE.md');
   if (!claudeMd.existsSync()) claudeMd.writeAsStringSync('# $name\n\nGuidance for Claude Code in this project.\n');
 }
