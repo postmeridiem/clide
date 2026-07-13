@@ -166,6 +166,21 @@ void main() {
     });
   });
 
+  group('presetLookupRoot', () {
+    test('a cwd at or below the workspace keys off the workspace', () {
+      expect(presetLookupRoot('/repo', '/repo'), '/repo');
+      expect(presetLookupRoot('/repo/', '/repo'), '/repo');
+      expect(presetLookupRoot('/repo/lib/src', '/repo'), '/repo');
+      expect(presetLookupRoot(null, '/repo'), '/repo');
+      expect(presetLookupRoot('', '/repo'), '/repo');
+    });
+
+    test('an unrelated cwd keys off itself; sibling-prefix dirs are not confused', () {
+      expect(presetLookupRoot('/elsewhere', '/repo'), '/elsewhere');
+      expect(presetLookupRoot('/repo-other/x', '/repo'), '/repo-other/x');
+    });
+  });
+
   group('presetDirsFrom', () {
     List<String> read(Object? stored) => presetDirsFrom((_) => stored, '/repo', isFile: (_) => false, readFile: (_) => null);
 

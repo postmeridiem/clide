@@ -189,6 +189,34 @@ void main() {
     });
   });
 
+  test('un-injected production seams (HOME / dir probe / process PATH) work', () async {
+    store = _FakeStore();
+    d = DaemonDispatcher();
+    registerEnvPathCommands(d, () => store, workspaceCwd: () => '/repo');
+    final set = await d.dispatch(
+      IpcRequest(
+        id: '1',
+        cmd: 'env.path',
+        args: const {
+          'positional': ['set', '/definitely-missing-dir'],
+        },
+      ),
+    );
+    expect(set.ok, isTrue, reason: set.error?.message);
+    expect(set.data['missing'], ['/definitely-missing-dir'], reason: 'real Directory probe ran');
+    final cap = await d.dispatch(
+      IpcRequest(
+        id: '2',
+        cmd: 'env.path',
+        args: const {
+          'positional': ['capture'],
+        },
+      ),
+    );
+    expect(cap.ok, isTrue);
+    expect(cap.data['processPath'], isA<String>());
+  });
+
   test('no workspace / no store / unknown action error clearly', () async {
     wire(cwd: null);
     expect((await run(['list'])).error?.message, contains('no workspace'));
