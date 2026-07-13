@@ -61,7 +61,7 @@ void main() {
 
     test('built-in set hides clide-owned dirs', () {
       final s = IgnoreSet.builtin();
-      for (final d in const ['.git', '.pql', '.clide', '.dart_tool', 'build', 'node_modules']) {
+      for (final d in const ['.git', '.pql', '.clide', '.dart_tool', '.worktrees', 'build', 'node_modules']) {
         expect(s.isIgnored(d, isDirectory: true), isTrue, reason: d);
       }
       expect(s.isIgnored('lib', isDirectory: true), isFalse);

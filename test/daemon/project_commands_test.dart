@@ -35,7 +35,9 @@ void main() {
       final target = '${parent.path}/my-app';
       expect(r.path, target);
       expect(Directory(target).existsSync(), isTrue);
-      expect(File('$target/.gitignore').existsSync(), isTrue);
+      final ignored = File('$target/.gitignore').readAsStringSync();
+      expect(ignored, contains('.clide/'));
+      expect(ignored, contains('.worktrees/'), reason: 'in-repo worktree checkouts stay out of git (D-106)');
       expect(File('$target/CLAUDE.md').readAsStringSync(), contains('my-app'));
       expect(inited, [target]);
     });
