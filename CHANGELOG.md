@@ -18,6 +18,14 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.10.0] — 2026-07-13
+
+### Added
+
 - **Canvas pane.** `.canvas` (Obsidian JSONCanvas) files now open in an
   interactive workspace pane — each document a sub-tab, with pan, zoom, and
   node selection. Routed from the file tree, quick-open, and
