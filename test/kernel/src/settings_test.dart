@@ -37,6 +37,20 @@ void main() {
       loaded.dispose();
     });
 
+    test('numeric-shaped key segments round-trip unmangled (workspace-hash keys)', () async {
+      // FNV workspace-hash suffixes (app.env.pathPrepend.<hash>, the account
+      // bindings) can be number-shaped; an unquoted YAML key would reload as
+      // an int (leading zero dropped) or a float ('1e…' → Infinity) and
+      // silently orphan the stored value.
+      await store.set<List<String>>('app.env.pathPrepend.0123456789012345', const ['/opt/go/bin']);
+      await store.set<String>('app.claude.account.1e23456789012345', 'work');
+      final loaded = SettingsStore(appDir: tmp);
+      await loaded.load();
+      expect(loaded.get<List<dynamic>>('app.env.pathPrepend.0123456789012345'), ['/opt/go/bin']);
+      expect(loaded.get<String>('app.claude.account.1e23456789012345'), 'work');
+      loaded.dispose();
+    });
+
     test('app.* scope supports bool + int + list', () async {
       await store.set<bool>('app.extensions.git.enabled', false);
       await store.set<int>('app.layout.width', 240);

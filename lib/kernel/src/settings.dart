@@ -282,7 +282,14 @@ void _emit(StringBuffer buf, Object? v, int indent) {
       return;
     }
     v.forEach((k, vv) {
-      buf.write('$pad$k:');
+      // Keys go through the same quoting as values: a numeric-shaped key —
+      // e.g. an all-digit FNV workspace-hash suffix (`app.env.pathPrepend.
+      // 0123…`, `app.claude.account.<hash>`) — would otherwise reload as an
+      // int/float and silently corrupt the key (leading zero dropped, or
+      // `1e…` collapsing to Infinity), orphaning the stored value.
+      buf.write(pad);
+      _emitScalar(buf, '$k');
+      buf.write(':');
       if (vv is Map && vv.isNotEmpty) {
         buf.writeln();
         _emit(buf, vv, indent + 1);

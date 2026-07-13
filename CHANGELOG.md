@@ -44,6 +44,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 
 ### Fixed
 
+- Hash-keyed settings (per-workspace PATH presets, Claude account bindings)
+  with a number-shaped hash suffix were silently lost on restart — YAML map
+  keys are now quoted on write.
+
 ## [2.9.0] — 2026-06-30
 
 ### Added
