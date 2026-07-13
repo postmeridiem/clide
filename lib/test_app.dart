@@ -381,7 +381,13 @@ class _ClideTestAppState extends State<ClideTestApp> {
 
     // Test: does Dart's Process.start inherit socket fds on macOS? (T-438: the
     // FFI body lives in fd_check_io.dart so the web build can stub it out.)
-    await _testAsync('fd inheritance check', fdInheritanceCheck);
+    // The probe needs the hand-built /tmp/checkfd helper; on machines without
+    // it, skip explicitly rather than failing the whole harness.
+    if (File(fdCheckHelperPath).existsSync()) {
+      await _testAsync('fd inheritance check', fdInheritanceCheck);
+    } else {
+      _say('skip | fd inheritance check | $fdCheckHelperPath not present (hand-built probe helper — see fd_check_io.dart)');
+    }
 
     _say('');
   }

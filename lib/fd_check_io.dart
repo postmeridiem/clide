@@ -12,6 +12,10 @@ import 'package:ffi/ffi.dart' as pkg_ffi;
 
 import 'src/pty/ffi/libc.dart' as libc;
 
+/// The hand-built helper binary the probe spawns. Not part of the repo — the
+/// harness skips this probe when it is absent.
+const fdCheckHelperPath = '/tmp/checkfd';
+
 /// Probe whether `Process.start` inherits socket fds (the macOS question the
 /// testmode harness answers). Returns a human-readable result line.
 Future<String> fdInheritanceCheck() async {
@@ -20,7 +24,7 @@ Future<String> fdInheritanceCheck() async {
   final parent = sv[0];
   final child = sv[1];
   pkg_ffi.calloc.free(sv);
-  final proc = await Process.start('/tmp/checkfd', [], environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
+  final proc = await Process.start(fdCheckHelperPath, [], environment: {...Platform.environment, 'PTYC_SOCK_FD': '$child'});
   final stderr = await proc.stderr.transform(utf8.decoder).join();
   final exit = await proc.exitCode;
   libc.close(parent);
