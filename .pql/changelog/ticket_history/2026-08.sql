@@ -131,3 +131,234 @@ confirmed by decompile only. Verify during implementation.
 - Related but out of scope: `isolatePeerMachines` (cross-machine `SendMessage`
   between peer sessions); `claude remote-control` hidden subcommand (`bridgeMain`)
   which runs a per-directory daemon with `--spawn same-dir|worktree|session`.', NULL, '2026-08-07 12:21:08', '2026-08-07 12:21:08.809', '2026-08-07 12:21:08.809', NULL, '3908441f5df127b533670e4b4e35b283', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGYS06SDJGZ4W3Z9V9HDEATW', 'description', 'The pre-commit hook re-exports + stages .pql/changelog on commit but only catches the tickets + ticket_history tables — it leaves ticket_deps (blocker edges) and ticket_idmap (new T-NNN <-> record_id mappings) UNSTAGED. Seen repeatedly this session (D-103 re-sequencing blockers; T-495 id mapping), each needing a manual follow-up commit; otherwise the planning state silently doesn''t persist and a later branch switch drops it — exactly the failure the hook exists to prevent. Fix: stage ALL of .pql/changelog/ (git add .pql/changelog/), not just the tables the export rewrote. Repro: pql ticket block X --by Y + create a ticket, commit unrelated files, observe ticket_deps/ticket_idmap still modified afterward.', 'The pre-commit hook re-exports + stages .pql/changelog on commit but only catches the tickets + ticket_history tables — it leaves ticket_deps (blocker edges) and ticket_idmap (new T-NNN <-> record_id mappings) UNSTAGED. Seen repeatedly this session (D-103 re-sequencing blockers; T-495 id mapping), each needing a manual follow-up commit; otherwise the planning state silently doesn''t persist and a later branch switch drops it — exactly the failure the hook exists to prevent. Fix: stage ALL of .pql/changelog/ (git add .pql/changelog/), not just the tables the export rewrote. Repro: pql ticket block X --by Y + create a ticket, commit unrelated files, observe ticket_deps/ticket_idmap still modified afterward.
+
+## Widened 2026-08-07 — broader than the title, and the root cause is different
+
+### The scope is wrong: tickets + ticket_history are NOT immune
+
+This ticket states the hook "only catches the tickets + ticket_history tables."
+That is not the failure mode. On 2026-08-07 a ticket-only turn (appending Step-1
+findings to T-454) left **`tickets/2026-08.sql` and `ticket_history/2026-08.sql`
+untracked and unstaged** — the two tables assumed to work. The commit aborted
+with "nothing added to commit but untracked files present" and needed an explicit
+`git add` of both paths.
+
+So no table is reliably staged. Retitle accordingly.
+
+### Likely root cause: staging is gated on rows appended, not on file dirtiness
+
+The pre-commit hook is a one-liner that delegates everything to pql:
+
+```sh
+# .pql/hooks/pre-commit
+''/…/pql'' plan export --stage 2>/dev/null || true
+```
+
+Its output on the failing commit:
+
+```
+{"files_written":["…/ticket_history/2026-08.sql","…/tickets/2026-08.sql"],"rows_written":0}
+```
+
+It **wrote both files and staged neither**. Second invocation (after a manual
+`git add`) returned `{"files_written":null,"rows_written":0}`.
+
+Hypothesis: `--stage` only issues the `git add` when it appends rows
+(`rows_written > 0`). Because ticket mutations already **write through** to
+`.pql/changelog/` synchronously, by the time the pre-commit hook runs there is
+nothing left to append — `rows_written` is 0 — so the staging step is skipped even
+though the file on disk is new/dirty. NOT YET VERIFIED; confirm against pql''s
+`plan export --stage` implementation.
+
+This also better explains the originally-reported symptom: `ticket_deps` /
+`ticket_idmap` aren''t special-cased out, they just tend to be *new month files*
+or already-written-through, hitting the same skip.
+
+Contributing factor: new-month rollover. These were the first August files, so
+they were untracked rather than modified — worth checking whether `--stage`
+handles untracked paths differently from tracked-but-modified ones.
+
+### The fix belongs in pql, not clide
+
+clide''s hook has no logic to fix — it is a single delegating line installed by
+`pql init`. The change is in pql''s `plan export --stage`: stage every file under
+`.pql/changelog/` that is dirty or untracked, regardless of `rows_written`.
+Track/land it in the pql repo; this ticket is the clide-side symptom record.
+
+The ticket''s proposed workaround (`git add .pql/changelog/` on the whole
+directory) is still correct and would cover untracked files too.
+
+### Severity is higher than "medium"
+
+This is a silent data-loss path, not a nuisance. A turn that only files or edits
+tickets makes no other commit, so the hook is the sole persistence mechanism; when
+it silently no-ops, the planning state never lands and a later branch switch drops
+it. The failure is invisible unless someone reads the hook''s JSON on stderr.
+Consider raising priority and/or making a failed stage loud rather than
+`2>/dev/null || true`.', NULL, '2026-08-07 12:30:44', '2026-08-07 12:30:44.880', '2026-08-07 12:30:44.880', NULL, 'aaccee60badf01e93df53301dd52dc79', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGYS06SDJGZ4W3Z9V9HDEATW', 'priority', 'medium', 'high', NULL, '2026-08-07 12:30:59', '2026-08-07 12:30:59.962', '2026-08-07 12:30:59.962', NULL, '98d21d1e300343931ea7601b217a3b8e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGYS06SDJGZ4W3Z9V9HDEATW', 'title', 'pre-commit changelog hook leaves ticket_deps/ticket_idmap unstaged', 'pre-commit hook stages no .pql/changelog files (pql plan export --stage)', NULL, '2026-08-07 12:30:59', '2026-08-07 12:30:59.967', '2026-08-07 12:30:59.967', NULL, '4f3d1bf15c90af6ba608067a90d78e77', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FGYS06SDJGZ4W3Z9V9HDEATW', 'description', 'The pre-commit hook re-exports + stages .pql/changelog on commit but only catches the tickets + ticket_history tables — it leaves ticket_deps (blocker edges) and ticket_idmap (new T-NNN <-> record_id mappings) UNSTAGED. Seen repeatedly this session (D-103 re-sequencing blockers; T-495 id mapping), each needing a manual follow-up commit; otherwise the planning state silently doesn''t persist and a later branch switch drops it — exactly the failure the hook exists to prevent. Fix: stage ALL of .pql/changelog/ (git add .pql/changelog/), not just the tables the export rewrote. Repro: pql ticket block X --by Y + create a ticket, commit unrelated files, observe ticket_deps/ticket_idmap still modified afterward.
+
+## Widened 2026-08-07 — broader than the title, and the root cause is different
+
+### The scope is wrong: tickets + ticket_history are NOT immune
+
+This ticket states the hook "only catches the tickets + ticket_history tables."
+That is not the failure mode. On 2026-08-07 a ticket-only turn (appending Step-1
+findings to T-454) left **`tickets/2026-08.sql` and `ticket_history/2026-08.sql`
+untracked and unstaged** — the two tables assumed to work. The commit aborted
+with "nothing added to commit but untracked files present" and needed an explicit
+`git add` of both paths.
+
+So no table is reliably staged. Retitle accordingly.
+
+### Likely root cause: staging is gated on rows appended, not on file dirtiness
+
+The pre-commit hook is a one-liner that delegates everything to pql:
+
+```sh
+# .pql/hooks/pre-commit
+''/…/pql'' plan export --stage 2>/dev/null || true
+```
+
+Its output on the failing commit:
+
+```
+{"files_written":["…/ticket_history/2026-08.sql","…/tickets/2026-08.sql"],"rows_written":0}
+```
+
+It **wrote both files and staged neither**. Second invocation (after a manual
+`git add`) returned `{"files_written":null,"rows_written":0}`.
+
+Hypothesis: `--stage` only issues the `git add` when it appends rows
+(`rows_written > 0`). Because ticket mutations already **write through** to
+`.pql/changelog/` synchronously, by the time the pre-commit hook runs there is
+nothing left to append — `rows_written` is 0 — so the staging step is skipped even
+though the file on disk is new/dirty. NOT YET VERIFIED; confirm against pql''s
+`plan export --stage` implementation.
+
+This also better explains the originally-reported symptom: `ticket_deps` /
+`ticket_idmap` aren''t special-cased out, they just tend to be *new month files*
+or already-written-through, hitting the same skip.
+
+Contributing factor: new-month rollover. These were the first August files, so
+they were untracked rather than modified — worth checking whether `--stage`
+handles untracked paths differently from tracked-but-modified ones.
+
+### The fix belongs in pql, not clide
+
+clide''s hook has no logic to fix — it is a single delegating line installed by
+`pql init`. The change is in pql''s `plan export --stage`: stage every file under
+`.pql/changelog/` that is dirty or untracked, regardless of `rows_written`.
+Track/land it in the pql repo; this ticket is the clide-side symptom record.
+
+The ticket''s proposed workaround (`git add .pql/changelog/` on the whole
+directory) is still correct and would cover untracked files too.
+
+### Severity is higher than "medium"
+
+This is a silent data-loss path, not a nuisance. A turn that only files or edits
+tickets makes no other commit, so the hook is the sole persistence mechanism; when
+it silently no-ops, the planning state never lands and a later branch switch drops
+it. The failure is invisible unless someone reads the hook''s JSON on stderr.
+Consider raising priority and/or making a failed stage loud rather than
+`2>/dev/null || true`.', 'The pre-commit hook re-exports + stages .pql/changelog on commit but only catches the tickets + ticket_history tables — it leaves ticket_deps (blocker edges) and ticket_idmap (new T-NNN <-> record_id mappings) UNSTAGED. Seen repeatedly this session (D-103 re-sequencing blockers; T-495 id mapping), each needing a manual follow-up commit; otherwise the planning state silently doesn''t persist and a later branch switch drops it — exactly the failure the hook exists to prevent. Fix: stage ALL of .pql/changelog/ (git add .pql/changelog/), not just the tables the export rewrote. Repro: pql ticket block X --by Y + create a ticket, commit unrelated files, observe ticket_deps/ticket_idmap still modified afterward.
+
+## Widened 2026-08-07 — broader than the title, and the root cause is different
+
+### The scope is wrong: tickets + ticket_history are NOT immune
+
+This ticket states the hook "only catches the tickets + ticket_history tables."
+That is not the failure mode. On 2026-08-07 a ticket-only turn (appending Step-1
+findings to T-454) left **`tickets/2026-08.sql` and `ticket_history/2026-08.sql`
+untracked and unstaged** — the two tables assumed to work. The commit aborted
+with "nothing added to commit but untracked files present" and needed an explicit
+`git add` of both paths.
+
+So no table is reliably staged. Retitle accordingly.
+
+### Likely root cause: staging is gated on rows appended, not on file dirtiness
+
+The pre-commit hook is a one-liner that delegates everything to pql:
+
+```sh
+# .pql/hooks/pre-commit
+''/…/pql'' plan export --stage 2>/dev/null || true
+```
+
+Its output on the failing commit:
+
+```
+{"files_written":["…/ticket_history/2026-08.sql","…/tickets/2026-08.sql"],"rows_written":0}
+```
+
+It **wrote both files and staged neither**. Second invocation (after a manual
+`git add`) returned `{"files_written":null,"rows_written":0}`.
+
+Hypothesis: `--stage` only issues the `git add` when it appends rows
+(`rows_written > 0`). Because ticket mutations already **write through** to
+`.pql/changelog/` synchronously, by the time the pre-commit hook runs there is
+nothing left to append — `rows_written` is 0 — so the staging step is skipped even
+though the file on disk is new/dirty. NOT YET VERIFIED; confirm against pql''s
+`plan export --stage` implementation.
+
+This also better explains the originally-reported symptom: `ticket_deps` /
+`ticket_idmap` aren''t special-cased out, they just tend to be *new month files*
+or already-written-through, hitting the same skip.
+
+Contributing factor: new-month rollover. These were the first August files, so
+they were untracked rather than modified — worth checking whether `--stage`
+handles untracked paths differently from tracked-but-modified ones.
+
+### The fix belongs in pql, not clide
+
+clide''s hook has no logic to fix — it is a single delegating line installed by
+`pql init`. The change is in pql''s `plan export --stage`: stage every file under
+`.pql/changelog/` that is dirty or untracked, regardless of `rows_written`.
+Track/land it in the pql repo; this ticket is the clide-side symptom record.
+
+The ticket''s proposed workaround (`git add .pql/changelog/` on the whole
+directory) is still correct and would cover untracked files too.
+
+### Severity is higher than "medium"
+
+This is a silent data-loss path, not a nuisance. A turn that only files or edits
+tickets makes no other commit, so the hook is the sole persistence mechanism; when
+it silently no-ops, the planning state never lands and a later branch switch drops
+it. The failure is invisible unless someone reads the hook''s JSON on stderr.
+Consider raising priority and/or making a failed stage loud rather than
+`2>/dev/null || true`.
+
+### Correction (same session): not an untracked-file issue — `--stage` never stages
+
+The "new-month rollover / untracked path" contributing factor above is **disproved**.
+Tested directly: with `tickets/2026-08.sql` and `ticket_history/2026-08.sql` already
+tracked and merely *modified*, a bare `git commit` still aborted with "no changes
+added to commit". Hook output was identical:
+
+```
+{"files_written":["…/ticket_history/2026-08.sql","…/tickets/2026-08.sql"],"rows_written":0}
+```
+
+Tracked-modified and untracked-new both fail. The only common factor is
+`rows_written: 0`.
+
+**Escalates the diagnosis:** this is not intermittent and not table-specific.
+Because ticket mutations write through to `.pql/changelog/` synchronously, the
+pre-commit export always finds zero rows left to append, so `--stage` skips its
+`git add` on *every* commit. In this repo the hook''s staging step is effectively
+dead — it has likely never worked, and every ticket change that landed did so
+because some other file in the commit was staged by hand, or because someone
+noticed and re-added.
+
+That reframes the earlier `ticket_deps` / `ticket_idmap` reports: those tables
+weren''t being singled out, they were just the cases where nothing else in the
+commit masked the failure.
+
+**Fix (pql):** `plan export --stage` must stage on file state, not on
+`rows_written` — `git add` every dirty-or-untracked path under `.pql/changelog/`
+whenever the directory differs from the index, including when the export was a
+no-op. Consider also dropping the hook''s `2>/dev/null || true` so a staging
+failure is visible instead of silent.', NULL, '2026-08-07 12:31:41', '2026-08-07 12:31:41.109', '2026-08-07 12:31:41.109', NULL, '52366e812f9b77586b07f322791e4fd3', 2) ON CONFLICT(hash) DO NOTHING;
