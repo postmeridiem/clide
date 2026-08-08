@@ -39,7 +39,6 @@
     ],
     "deny": [
       "Edit(//var/mnt/data/projects/treesitter/**)",
-      "Write(//var/mnt/data/projects/treesitter/**)",
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~*)",
       "Bash(rm -rf $HOME*)",
