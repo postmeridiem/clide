@@ -35,8 +35,7 @@
       "Bash(pql)",
       "Bash(pql *)",
       "Bash(clide)",
-      "Bash(clide *)",
-      "Bash(awk *)"
+      "Bash(clide *)"
     ],
     "deny": [
       "Edit(//var/mnt/data/projects/treesitter/**)",
