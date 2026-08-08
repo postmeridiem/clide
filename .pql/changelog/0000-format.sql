@@ -1,0 +1,11 @@
+-- Changelog format marker, written by pql. Comments only: this file
+-- is never executed — Import descends into the per-table directories
+-- and does not read the changelog root.
+--
+-- A changelog carrying no marker is format 1, the shape that existed
+-- before formats were versioned. An older format is migrated forward
+-- by `pql plan upgrade` (and automatically from the post-merge hook);
+-- a newer one is refused rather than replayed under rules this binary
+-- does not know. See D-28 and docs/versions.md.
+-- pql:changelog_format: 2.0.0
+-- pql:written_by: 2.0.0
