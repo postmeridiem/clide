@@ -1,0 +1,310 @@
+{
+  "name": "Clide gaze — reading the pane to his left",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 40, "top": 40,
+      "text": "CLIDE GAZE — he reads the pane to his left, because that is literally what he ingests",
+      "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "subtitle": {
+      "type": "Text",
+      "left": 40, "top": 64,
+      "text": "In placement B the face is pinned to the left edge of the context column. Directly left of it, across the divider, is the Claude conversation — the digest source. Gaze direction encodes the data flow.",
+      "fontColor": "#8a92a6", "fontSize": 12
+    },
+
+    "claude": {
+      "type": "Rectangle",
+      "left": 40, "top": 104, "width": 420, "height": 250,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "claude-lbl": {
+      "type": "Text", "parent": "claude",
+      "left": 56, "top": 118, "text": "claude",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "claude-body": {
+      "type": "Text", "parent": "claude",
+      "left": 56, "top": 144,
+      "text": "…so the sign flip is hard-coded to\nSlots.contextPanel at two separate\ncall sites. Miss either one and the\ndrag handle runs backwards ▊",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "claude-streaming": {
+      "type": "Text", "parent": "claude",
+      "left": 56, "top": 226, "text": "streaming…",
+      "fontColor": "#5a7a5a", "fontSize": 10
+    },
+
+    "ctx": {
+      "type": "Rectangle",
+      "left": 476, "top": 104, "width": 420, "height": 140,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 0, 0]
+    },
+    "ctx-lbl": {
+      "type": "Text", "parent": "ctx",
+      "left": 492, "top": 118, "text": "context · T-322",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "ctx-body": {
+      "type": "Text", "parent": "ctx",
+      "left": 492, "top": 144,
+      "text": "Tier-5 canvas pane\n\nSCOPE NOTE (2026-06-29):\ncurrently a 17-line stub…",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "strip": {
+      "type": "Rectangle",
+      "left": 476, "top": 246, "width": 420, "height": 108,
+      "fillColor": "#15181d", "strokeColor": "#c8d8f0", "corners": [0, 0, 6, 6]
+    },
+    "strip-rain": {
+      "type": "Text", "parent": "strip",
+      "left": 492, "top": 254,
+      "text": "╷   ┤   ╵   │   ╷   ┼   ╵   ├   │   ╷   ┤   ╵   ┼   │\n│   ╵   ╷   ┤   │   ╵   ┼   │   ╷   ├   ╵   │   ╷   ┤\n╵   ╷   │   ╵   ┼   ╷   │   ╵   ┤   │   ╷   ╵   │   ╵",
+      "fontColor": "#2f3a48", "fontSize": 10
+    },
+    "strip-eyes": {
+      "type": "Text", "parent": "strip",
+      "left": 496, "top": 274, "text": "◧   ◧",
+      "fontColor": "#c8d8f0", "fontSize": 20
+    },
+    "strip-mouth": {
+      "type": "Text", "parent": "strip",
+      "left": 516, "top": 302, "text": "~",
+      "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "strip-bubble": {
+      "type": "Rectangle", "parent": "strip",
+      "left": 584, "top": 258, "width": 296, "height": 50,
+      "fillColor": "#242838", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "strip-bubble-txt": {
+      "type": "Text", "parent": "strip-bubble",
+      "left": 596, "top": 268,
+      "text": "…he's reading. eyes track left while\nClaude streams; pupils sweep as lines land.",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+    "strip-input": {
+      "type": "Rectangle", "parent": "strip",
+      "left": 584, "top": 316, "width": 296, "height": 26,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "strip-input-lbl": {
+      "type": "Text", "parent": "strip-input",
+      "left": 596, "top": 323, "text": "ask Clide…",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "sight1": {
+      "type": "Line",
+      "left": 462, "top": 284, "width": 32, "height": 0,
+      "strokeColor": "#4a6a8a"
+    },
+    "sight-lbl": {
+      "type": "Text",
+      "left": 300, "top": 372,
+      "text": "gaze points at the pane it actually reads →",
+      "fontColor": "#4a6a8a", "fontSize": 11
+    },
+
+    "gaze-title": {
+      "type": "Text",
+      "left": 40, "top": 424,
+      "text": "GAZE STATES — one extra axis on top of the DeskLock expression table",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+
+    "g1": {
+      "type": "Rectangle",
+      "left": 40, "top": 456, "width": 200, "height": 120,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "g1-eyes": {
+      "type": "Text", "parent": "g1",
+      "left": 78, "top": 484, "text": "◧   ◧",
+      "fontColor": "#c8d8f0", "fontSize": 22
+    },
+    "g1-mouth": {
+      "type": "Text", "parent": "g1",
+      "left": 98, "top": 518, "text": "~",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "g1-lbl": {
+      "type": "Text",
+      "left": 40, "top": 584,
+      "text": "READING — Claude is streaming.\nPupils left AND the face leans left:\nmouth slides ~8px off the eye axis.\nHe leans in toward what he reads.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "g2": {
+      "type": "Rectangle",
+      "left": 268, "top": 456, "width": 200, "height": 120,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "g2-eyes": {
+      "type": "Text", "parent": "g2",
+      "left": 312, "top": 486, "text": "●   ●",
+      "fontColor": "#c8d8f0", "fontSize": 22
+    },
+    "g2-mouth": {
+      "type": "Text", "parent": "g2",
+      "left": 342, "top": 518, "text": "o",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "g2-lbl": {
+      "type": "Text",
+      "left": 268, "top": 584,
+      "text": "ADDRESSED — you typed into his box.\nPupils forward, face straightens up.\nThe lean releasing IS the\nacknowledgement — no chrome needed.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "g3": {
+      "type": "Rectangle",
+      "left": 496, "top": 456, "width": 200, "height": 120,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "g3-eyes": {
+      "type": "Text", "parent": "g3",
+      "left": 540, "top": 486, "text": "◨   ◨",
+      "fontColor": "#c8d8f0", "fontSize": 22
+    },
+    "g3-mouth": {
+      "type": "Text", "parent": "g3",
+      "left": 570, "top": 518, "text": "~",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "g3-lbl": {
+      "type": "Text",
+      "left": 496, "top": 584,
+      "text": "GLANCING UP-RIGHT — you just opened a\nticket in the detail view above him.\nOptional; cheap once the axis exists.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "g4": {
+      "type": "Rectangle",
+      "left": 724, "top": 456, "width": 200, "height": 120,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "g4-eyes": {
+      "type": "Text", "parent": "g4",
+      "left": 768, "top": 486, "text": "-   -",
+      "fontColor": "#c8d8f0", "fontSize": 22
+    },
+    "g4-mouth": {
+      "type": "Text", "parent": "g4",
+      "left": 798, "top": 516, "text": "\\_/",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "g4-lbl": {
+      "type": "Text",
+      "left": 724, "top": 584,
+      "text": "IDLE — nothing to read. Lids down,\nno gaze. Unchanged from DeskLock.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "sweep-title": {
+      "type": "Text",
+      "left": 40, "top": 660,
+      "text": "THE READING SWEEP — 4 frames, ~600ms, looped while assistant text streams",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+    "sweep-note": {
+      "type": "Text",
+      "left": 40, "top": 684,
+      "text": "Pupils track left→right like eyes crossing a line of text, then snap\nback — a saccade. Tie the snap to arriving partial- items and he\nvisibly reads faster when tokens land faster.",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+
+    "f1": {
+      "type": "Rectangle", "left": 40, "top": 736, "width": 150, "height": 80,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "f1-eyes": {
+      "type": "Text", "parent": "f1", "left": 74, "top": 742, "text": "◧   ◧",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "f1-lbl": {
+      "type": "Text", "left": 40, "top": 804, "text": "1 · line start",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "f2": {
+      "type": "Rectangle", "left": 208, "top": 716, "width": 150, "height": 80,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "f2-eyes": {
+      "type": "Text", "parent": "f2", "left": 242, "top": 742, "text": "◎   ◎",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "f2-lbl": {
+      "type": "Text", "left": 208, "top": 804, "text": "2 · mid-line",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "f3": {
+      "type": "Rectangle", "left": 376, "top": 716, "width": 150, "height": 80,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "f3-eyes": {
+      "type": "Text", "parent": "f3", "left": 410, "top": 742, "text": "◨   ◨",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "f3-lbl": {
+      "type": "Text", "left": 376, "top": 804, "text": "3 · line end",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "f4": {
+      "type": "Rectangle", "left": 544, "top": 716, "width": 150, "height": 80,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "f4-eyes": {
+      "type": "Text", "parent": "f4", "left": 578, "top": 742, "text": "◧   ◧",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "f4-lbl": {
+      "type": "Text", "left": 544, "top": 804, "text": "4 · saccade back",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "font-title": {
+      "type": "Text",
+      "left": 740, "top": 660,
+      "text": "GLYPH COVERAGE — verified",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "font-body": {
+      "type": "Text",
+      "left": 740, "top": 686,
+      "text": "All four pupil glyphs are inside the ranges\nJetBrains Mono actually ships:\n\n  ◧  U+25E7   in 25e6–25eb\n  ◨  U+25E8   in 25e6–25eb\n  ●  U+25CF   in 25ce–25cf\n  ◎  U+25CE   in 25ce–25cf\n\nSame family as the rain glyphs, so no new font\nasset and no licenses.yaml entry. Monospace\nadvance width holds, so the eyes do not jitter\nhorizontally as they change.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "why-title": {
+      "type": "Text",
+      "left": 40, "top": 850,
+      "text": "WHY THIS EARNS ITS KEEP",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "why-body": {
+      "type": "Text",
+      "left": 40, "top": 876,
+      "text": "It is not decoration — it is a second, cheaper channel for the same signal. Rain says HOW HARD the session is working;\ngaze says WHAT IT IS WORKING ON. And it makes the digest boundary visible: Clide looks at the conversation because that is\nall he is given. When you ask him about a tool call and he cannot answer, the fact that he was never looking at it is\nalready on screen — the limitation reads as character rather than as a bug.\n\nCost: one enum on top of Epic A's state table (gazeLeft / forward / gazeRight / none) and a 4-frame pupil cycle. No new\nstate machine — it rides the existing busy + partial- signals Epic B already binds.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "lean-title": {
+      "type": "Text",
+      "left": 740, "top": 850,
+      "text": "THE LEAN — a happy accident, kept",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "lean-body": {
+      "type": "Text",
+      "left": 740, "top": 876,
+      "text": "The tilt in the first wireframe was a coordinate\nslip — the mouth landed off the eye axis. It read\nas a head-tilt, so it stays, now deliberate.\n\nOne number: mouth x-offset from the eye centre.\n  lean left   −8px   reading the conversation\n  upright      0px   addressed, or idle\n  lean right  +8px   glancing at the detail view\n\nAnimate the offset rather than snapping it and\nthe lean becomes the transition itself. It costs\nnothing — the mouth is already positioned per\nframe — and it makes attention legible at a size\nwhere pupils alone are only a few pixels.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    }
+  }
+}

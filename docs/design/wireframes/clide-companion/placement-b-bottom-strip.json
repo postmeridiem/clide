@@ -1,0 +1,280 @@
+{
+  "name": "Clide Placement B — horizontal strip in the context pane",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 40, "top": 40,
+      "text": "PLACEMENT B — Clide as a horizontal strip sharing the context column",
+      "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "subtitle": {
+      "type": "Text",
+      "left": 40, "top": 64,
+      "text": "Context detail shrinks; Clide takes the bottom of the same column. No new slot, no new window column.",
+      "fontColor": "#8a92a6", "fontSize": 12
+    },
+
+    "sidebar": {
+      "type": "Rectangle",
+      "left": 40, "top": 100, "width": 150, "height": 300,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "sidebar-lbl": {
+      "type": "Text", "parent": "sidebar",
+      "left": 56, "top": 116, "text": "tickets",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "sidebar-i1": {
+      "type": "Text", "parent": "sidebar",
+      "left": 56, "top": 142, "text": "T-513  initiative\nT-514  spike\nT-516  epic A\nT-519  epic D",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "center": {
+      "type": "Rectangle",
+      "left": 196, "top": 100, "width": 470, "height": 300,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "center-lbl": {
+      "type": "Text", "parent": "center",
+      "left": 212, "top": 116, "text": "claude",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "center-body": {
+      "type": "Text", "parent": "center",
+      "left": 212, "top": 142,
+      "text": "conversation\n\nthe primary surface — unchanged",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "center-composer": {
+      "type": "Rectangle", "parent": "center",
+      "left": 212, "top": 350, "width": 438, "height": 32,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "center-composer-lbl": {
+      "type": "Text", "parent": "center-composer",
+      "left": 224, "top": 359, "text": "Message Claude…",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+
+    "context": {
+      "type": "Rectangle",
+      "left": 672, "top": 100, "width": 496, "height": 186,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 0, 0]
+    },
+    "context-lbl": {
+      "type": "Text", "parent": "context",
+      "left": 688, "top": 116, "text": "context · T-322",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "context-body": {
+      "type": "Text", "parent": "context",
+      "left": 688, "top": 142,
+      "text": "Tier-5 canvas pane\n\nSCOPE NOTE (2026-06-29): currently a 17-line stub. This\nis a from-scratch interactive Tier-5 pane (parse .canvas →\ndrawing-card JSON, CustomPaint render, pan/zoom, node…",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "context-cut": {
+      "type": "Text", "parent": "context",
+      "left": 688, "top": 250,
+      "text": "↑ detail view loses ~40% of its height",
+      "fontColor": "#7a6a4a", "fontSize": 10
+    },
+
+    "divider": {
+      "type": "Rectangle",
+      "left": 672, "top": 286, "width": 496, "height": 2,
+      "fillColor": "#333340", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+
+    "cstrip": {
+      "type": "Rectangle",
+      "left": 672, "top": 288, "width": 496, "height": 112,
+      "fillColor": "#15181d", "strokeColor": "#c8d8f0", "corners": [0, 0, 6, 6]
+    },
+    "cstrip-rain1": {
+      "type": "Text", "parent": "cstrip",
+      "left": 690, "top": 296, "text": "╷\n│\n╵",
+      "fontColor": "#2f3a48", "fontSize": 9
+    },
+    "cstrip-rain2": {
+      "type": "Text", "parent": "cstrip",
+      "left": 1130, "top": 300, "text": "┤\n╵\n╷",
+      "fontColor": "#2f3a48", "fontSize": 9
+    },
+    "cstrip-eyes": {
+      "type": "Text", "parent": "cstrip",
+      "left": 706, "top": 302, "text": "-   -",
+      "fontColor": "#c8d8f0", "fontSize": 17
+    },
+    "cstrip-mouth": {
+      "type": "Text", "parent": "cstrip",
+      "left": 720, "top": 326, "text": "\\_/",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+    "cstrip-bubble": {
+      "type": "Rectangle", "parent": "cstrip",
+      "left": 790, "top": 298, "width": 362, "height": 56,
+      "fillColor": "#242838", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "cstrip-bubble-txt": {
+      "type": "Text", "parent": "cstrip-bubble",
+      "left": 802, "top": 308,
+      "text": "that one hurt. three epics and you\nhaven't written a line of code yet.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "cstrip-input": {
+      "type": "Rectangle", "parent": "cstrip",
+      "left": 790, "top": 364, "width": 362, "height": 26,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "cstrip-input-lbl": {
+      "type": "Text", "parent": "cstrip-input",
+      "left": 802, "top": 371, "text": "ask Clide…",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "statusbar": {
+      "type": "Rectangle",
+      "left": 40, "top": 406, "width": 1128, "height": 26,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "status-left": {
+      "type": "Text", "parent": "statusbar",
+      "left": 56, "top": 412, "text": "main    opus 5    plan    615k / 1.0M ctx    $17.60",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+    "status-right": {
+      "type": "Text", "parent": "statusbar",
+      "left": 1000, "top": 412, "text": "Output    terminal",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "face-title": {
+      "type": "Text",
+      "left": 40, "top": 476,
+      "text": "THE FACE IN A SHORT WIDE STRIP — at both ends of the context panel's 220–1000px range",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+
+    "wide-lbl": {
+      "type": "Text",
+      "left": 40, "top": 506, "text": "WIDE — context panel at ~1000px",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "wide": {
+      "type": "Rectangle",
+      "left": 40, "top": 528, "width": 660, "height": 132,
+      "fillColor": "#15181d", "strokeColor": "#c8d8f0", "corners": [0, 0, 6, 6]
+    },
+    "w-rain": {
+      "type": "Text", "parent": "wide",
+      "left": 54, "top": 536,
+      "text": "╷    ┤    ╵    │    ╷    ┼    ╵    ├    │    ╷    ┤    ╵    ┼    │    ╷    ╵\n│    ╵    ╷    ┤    │    ╵    ┼    │    ╷    ├    ╵    │    ╷    ┤    ╵    │\n╵    ╷    │    ╵    ┼    ╷    │    ╵    ┤    │    ╷    ╵    │    ╵    ┼    ╷",
+      "fontColor": "#2f3a48", "fontSize": 11
+    },
+    "w-eyes": {
+      "type": "Text", "parent": "wide",
+      "left": 68, "top": 556, "text": "-   -",
+      "fontColor": "#c8d8f0", "fontSize": 22
+    },
+    "w-mouth": {
+      "type": "Text", "parent": "wide",
+      "left": 84, "top": 588, "text": "\\_/",
+      "fontColor": "#c8d8f0", "fontSize": 18
+    },
+    "w-bubble": {
+      "type": "Rectangle", "parent": "wide",
+      "left": 180, "top": 542, "width": 500, "height": 58,
+      "fillColor": "#242838", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "w-bubble-txt": {
+      "type": "Text", "parent": "w-bubble",
+      "left": 194, "top": 552,
+      "text": "there are two call sites for that sign flip, not one — miss\neither and the drag runs backwards.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "w-input": {
+      "type": "Rectangle", "parent": "wide",
+      "left": 180, "top": 612, "width": 500, "height": 28,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "w-input-lbl": {
+      "type": "Text", "parent": "w-input",
+      "left": 194, "top": 619, "text": "ask Clide…",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "narrow-lbl": {
+      "type": "Text",
+      "left": 740, "top": 506, "text": "NARROW — context panel at 220px (min)",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "narrow": {
+      "type": "Rectangle",
+      "left": 740, "top": 528, "width": 220, "height": 132,
+      "fillColor": "#15181d", "strokeColor": "#c8d8f0", "corners": [0, 0, 6, 6]
+    },
+    "n-rain": {
+      "type": "Text", "parent": "narrow",
+      "left": 752, "top": 536,
+      "text": "╷    ┤    ╵    │    ╷\n│    ╵    ╷    ┤    │\n╵    ╷    │    ╵    ┼",
+      "fontColor": "#2f3a48", "fontSize": 11
+    },
+    "n-eyes": {
+      "type": "Text", "parent": "narrow",
+      "left": 762, "top": 556, "text": "- -",
+      "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "n-mouth": {
+      "type": "Text", "parent": "narrow",
+      "left": 770, "top": 578, "text": "\\_/",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "n-bubble": {
+      "type": "Rectangle", "parent": "narrow",
+      "left": 822, "top": 540, "width": 126, "height": 62,
+      "fillColor": "#242838", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "n-bubble-txt": {
+      "type": "Text", "parent": "n-bubble",
+      "left": 832, "top": 548,
+      "text": "two call sites,\nnot one — miss\neither and the\ndrag runs back…",
+      "fontColor": "#c8d0e0", "fontSize": 10
+    },
+    "n-input": {
+      "type": "Rectangle", "parent": "narrow",
+      "left": 752, "top": 614, "width": 196, "height": 26,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "n-input-lbl": {
+      "type": "Text", "parent": "n-input",
+      "left": 762, "top": 621, "text": "ask Clide…",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "rev-title": {
+      "type": "Text",
+      "left": 40, "top": 700,
+      "text": "REVISING MY OWN ARGUMENT — the rain objection is weaker than I claimed",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "rev-body": {
+      "type": "Text",
+      "left": 40, "top": 726,
+      "text": "I said a strip kills the density signal. Drawing it, that is only half right.\n\nA strip loses FALL DISTANCE — ~3 cells instead of ~38, so an individual stream barely moves before it dies.\nBut density is encoded as HOW MANY COLUMNS ARE LIT, not how far each falls, and a wide strip has MORE\ncolumns to light: ~45 at 1000px versus ~9 in a 200px rail. Idle-2 vs effort-40 still reads as sparse vs\ndense — arguably more legibly, because you see the whole field at once instead of scanning a column.\n\nWhat is genuinely lost is the MOTION quality: rain that falls three cells reads as flicker, not as rain.\nThat is an aesthetic loss, not a signal loss, and it is a fair trade for not spending a window column.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "cost-title": {
+      "type": "Text",
+      "left": 40, "top": 862,
+      "text": "WHAT B ACTUALLY COSTS",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "cost-body": {
+      "type": "Text",
+      "left": 40, "top": 888,
+      "text": "· The detail view loses ~110px of height permanently — on every ticket, decision, file and graph view.\n· The face is small and pinned left; at 220px it is cramped against the bubble with ~126px of text width.\n· Not a slot, so no isVisible / sizeOf / persistence / `clide panel resize` — Epic C must hand-roll a\n  collapse toggle and its own persisted height to keep D-6 parity, or go without.\n· One insertion point though: _ContextSlot at slot_host.dart:349-362 becomes a Column. Much less\n  surface area than a new slot — no slot_id, no layout_preset, no drag_resize sign-flip trap.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    }
+  }
+}

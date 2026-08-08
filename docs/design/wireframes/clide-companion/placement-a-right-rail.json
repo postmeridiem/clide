@@ -1,0 +1,245 @@
+{
+  "name": "Clide Placement A — own right-edge rail",
+  "shapes": {
+    "title": {
+      "type": "Text",
+      "left": 40, "top": 40,
+      "text": "PLACEMENT A — Clide as its own right-edge slot (full window height)",
+      "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "subtitle": {
+      "type": "Text",
+      "left": 40, "top": 64,
+      "text": "Shell at ultrawide. Rain gets the full column height; the column is chat-shaped for Epic E's input box.",
+      "fontColor": "#8a92a6", "fontSize": 12
+    },
+
+    "sidebar": {
+      "type": "Rectangle",
+      "left": 40, "top": 100, "width": 150, "height": 300,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "sidebar-lbl": {
+      "type": "Text", "parent": "sidebar",
+      "left": 56, "top": 116, "text": "tickets",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "sidebar-i1": {
+      "type": "Text", "parent": "sidebar",
+      "left": 56, "top": 142, "text": "T-513  initiative\nT-514  spike\nT-516  epic A\nT-519  epic D",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "center": {
+      "type": "Rectangle",
+      "left": 196, "top": 100, "width": 470, "height": 300,
+      "fillColor": "#2a3040", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "center-lbl": {
+      "type": "Text", "parent": "center",
+      "left": 212, "top": 116, "text": "claude",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "center-body": {
+      "type": "Text", "parent": "center",
+      "left": 212, "top": 142,
+      "text": "conversation\n\nthe primary surface — unchanged",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "center-composer": {
+      "type": "Rectangle", "parent": "center",
+      "left": 212, "top": 350, "width": 438, "height": 32,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "center-composer-lbl": {
+      "type": "Text", "parent": "center-composer",
+      "left": 224, "top": 359, "text": "Message Claude…",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+
+    "context": {
+      "type": "Rectangle",
+      "left": 672, "top": 100, "width": 300, "height": 300,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "context-lbl": {
+      "type": "Text", "parent": "context",
+      "left": 688, "top": 116, "text": "context · T-322",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+    "context-body": {
+      "type": "Text", "parent": "context",
+      "left": 688, "top": 142,
+      "text": "Tier-5 canvas pane\n\nSCOPE NOTE (2026-06-29):\ncurrently a 17-line stub.\nThis is a from-scratch\ninteractive Tier-5 pane…\n\nfull height retained —\nnothing is taken from\nthe detail view",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+
+    "clide": {
+      "type": "Rectangle",
+      "left": 978, "top": 100, "width": 190, "height": 300,
+      "fillColor": "#15181d", "strokeColor": "#c8d8f0", "corners": [6, 6, 6, 6]
+    },
+    "clide-lbl": {
+      "type": "Text", "parent": "clide",
+      "left": 994, "top": 112, "text": "CLIDE",
+      "fontColor": "#c8d8f0", "fontSize": 11
+    },
+    "clide-rain-1": {
+      "type": "Text", "parent": "clide",
+      "left": 996, "top": 132,
+      "text": "╷\n╵\n│\n┤\n╷\n┼\n╵\n│",
+      "fontColor": "#3a4454", "fontSize": 10
+    },
+    "clide-rain-2": {
+      "type": "Text", "parent": "clide",
+      "left": 1140, "top": 140,
+      "text": "┤\n╵\n┼\n│\n╷\n├\n│\n╵",
+      "fontColor": "#3a4454", "fontSize": 10
+    },
+    "clide-eyes": {
+      "type": "Text", "parent": "clide",
+      "left": 1042, "top": 152, "text": "-   -",
+      "fontColor": "#c8d8f0", "fontSize": 20
+    },
+    "clide-mouth": {
+      "type": "Text", "parent": "clide",
+      "left": 1056, "top": 180, "text": "\\_/",
+      "fontColor": "#c8d8f0", "fontSize": 16
+    },
+    "clide-bubble": {
+      "type": "Rectangle", "parent": "clide",
+      "left": 992, "top": 226, "width": 162, "height": 74,
+      "fillColor": "#242838", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "clide-bubble-txt": {
+      "type": "Text", "parent": "clide-bubble",
+      "left": 1002, "top": 236,
+      "text": "that one hurt.\nthree epics and\nyou haven't\nwritten a line yet",
+      "fontColor": "#c8d0e0", "fontSize": 10
+    },
+    "clide-input": {
+      "type": "Rectangle", "parent": "clide",
+      "left": 992, "top": 356, "width": 162, "height": 30,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "clide-input-lbl": {
+      "type": "Text", "parent": "clide-input",
+      "left": 1002, "top": 364, "text": "ask Clide…",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "statusbar": {
+      "type": "Rectangle",
+      "left": 40, "top": 406, "width": 1128, "height": 26,
+      "fillColor": "#15181d", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "status-left": {
+      "type": "Text", "parent": "statusbar",
+      "left": 56, "top": 412, "text": "main    opus 5    plan    615k / 1.0M ctx    $17.60",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+    "status-right": {
+      "type": "Text", "parent": "statusbar",
+      "left": 1000, "top": 412, "text": "Output    terminal",
+      "fontColor": "#8a92a6", "fontSize": 10
+    },
+
+    "detail-title": {
+      "type": "Text",
+      "left": 40, "top": 480,
+      "text": "THE RAIL — expanded, and collapsed to a 12px spine (D-51, same as every other slot)",
+      "fontColor": "#c8d8f0", "fontSize": 14
+    },
+
+    "d-rail": {
+      "type": "Rectangle",
+      "left": 40, "top": 512, "width": 220, "height": 420,
+      "fillColor": "#15181d", "strokeColor": "#c8d8f0", "corners": [6, 6, 6, 6]
+    },
+    "d-rain-a": {
+      "type": "Text", "parent": "d-rail",
+      "left": 56, "top": 524,
+      "text": "╷\n│\n┤\n╵\n\n╷\n┼\n│\n╵\n\n│\n├\n╵\n╷\n│\n┤\n╵\n\n╷\n│",
+      "fontColor": "#2f3a48", "fontSize": 11
+    },
+    "d-rain-b": {
+      "type": "Text", "parent": "d-rail",
+      "left": 228, "top": 540,
+      "text": "┼\n╵\n╷\n│\n┤\n╵\n\n│\n╷\n├\n╵\n│\n\n┤\n╷\n│\n╵\n┼",
+      "fontColor": "#2f3a48", "fontSize": 11
+    },
+    "d-face-eyes": {
+      "type": "Text", "parent": "d-rail",
+      "left": 108, "top": 556, "text": "-   -",
+      "fontColor": "#c8d8f0", "fontSize": 26
+    },
+    "d-face-mouth": {
+      "type": "Text", "parent": "d-rail",
+      "left": 126, "top": 596, "text": "\\_/",
+      "fontColor": "#c8d8f0", "fontSize": 20
+    },
+    "d-clock": {
+      "type": "Text", "parent": "d-rail",
+      "left": 128, "top": 634, "text": "01:16",
+      "fontColor": "#4a5464", "fontSize": 12
+    },
+    "d-bubble": {
+      "type": "Rectangle", "parent": "d-rail",
+      "left": 56, "top": 676, "width": 188, "height": 130,
+      "fillColor": "#242838", "strokeColor": "#333340", "corners": [6, 6, 6, 6]
+    },
+    "d-bubble-txt": {
+      "type": "Text", "parent": "d-bubble",
+      "left": 68, "top": 688,
+      "text": "you asked what it\nmeant by \"the sign\nflip is hard-coded\".\n\nthere are two call\nsites, not one — miss\neither and the drag\nruns backwards.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "d-input": {
+      "type": "Rectangle", "parent": "d-rail",
+      "left": 56, "top": 880, "width": 188, "height": 34,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [4, 4, 4, 4]
+    },
+    "d-input-lbl": {
+      "type": "Text", "parent": "d-input",
+      "left": 68, "top": 890, "text": "ask Clide…",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+
+    "d-spine": {
+      "type": "Rectangle",
+      "left": 300, "top": 512, "width": 14, "height": 420,
+      "fillColor": "#1a1e24", "strokeColor": "#333340", "corners": [0, 0, 0, 0]
+    },
+    "d-spine-lbl": {
+      "type": "Text",
+      "left": 330, "top": 512,
+      "text": "collapsed → 12px spine\n(D-51). Slot unmounts,\nticker disposes, zero\nrender cost. Free — the\npower ladder's 'night'\nrung comes from the\nexisting layout code.",
+      "fontColor": "#8a92a6", "fontSize": 11
+    },
+
+    "note-rain": {
+      "type": "Text",
+      "left": 560, "top": 512,
+      "text": "WHY A COLUMN",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "note-rain-body": {
+      "type": "Text",
+      "left": 560, "top": 536,
+      "text": "Rain falls vertically. Density encodes how hard\nthe session is working — 2 streams idle, 40 under\neffort — and that is the best idea in the DeskLock\ndesign.\n\nA 420px column gives a stream ~38 cells of fall.\nA 90px strip gives it ~4: streams spawn and die\nbefore the density difference is readable, so the\nsignal stops working.\n\nThe column is also chat-shaped, which is what\nEpic E's input box wants: face top, answer middle,\ninput bottom. A strip has nowhere to put an answer.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    },
+    "note-cost": {
+      "type": "Text",
+      "left": 560, "top": 760,
+      "text": "COST",
+      "fontColor": "#c8d8f0", "fontSize": 13
+    },
+    "note-cost-body": {
+      "type": "Text",
+      "left": 560, "top": 784,
+      "text": "Permanent horizontal space until collapsed —\nthe real trade. On a 3440px display that is ~5%\nof width; on a 1440px laptop it is ~13% and the\nspine matters more.\n\nBuys D-6 parity for free: isVisible / isCollapsed /\nsizeOf, restart persistence, `clide panel resize`,\nand `clide pane list` reporting, all from being a\nreal slot rather than a widget.",
+      "fontColor": "#c8d0e0", "fontSize": 11
+    }
+  }
+}

@@ -1520,3 +1520,422 @@ session and the `[direct]` protocol tag).
 Clide sees prose only — no tool calls, no tool results (Epic D). "What did that tool call
 do?" cannot be answered. Consider whether the empty/placeholder state should set that
 expectation rather than letting the user discover it by getting a bad answer.', NULL, '2026-08-08 23:15:29', '2026-08-08 23:15:29.241', '2026-08-08 23:15:29.241', NULL, 'c9ca0efb3540fd18ad2e9f5b319045d7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WC48DRPATA7Z6J7H9N8C', 'status', 'backlog', 'in_progress', NULL, '2026-08-08 23:18:16', '2026-08-08 23:18:16.287', '2026-08-08 23:18:16.287', NULL, '34a508ef835f3daf8cb3f0b2452481bd', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WC48DRPATA7Z6J7H9N8C', 'status', 'in_progress', 'in_progress', NULL, '2026-08-08 23:18:22', '2026-08-08 23:18:22.510', '2026-08-08 23:18:22.510', NULL, '171df577892f1b90791a27c5190d6c14', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WC48DRPATA7Z6J7H9N8C', 'description', 'Wireframe Clide''s placement in Frame0 and get one shape approved. **Blocks Epic C (T-518)**
+— the slot-vs-strip decision determines whether C touches `slot_id.dart` / `layout_preset.dart`
+/ `layout.dart` at all, or just `_ContextSlot`.
+
+Frame0 is running locally (see the `frame0-wireframe` skill).
+
+## Question 1 — placement
+
+The original sketch (user screenshot, 2026-08-08) was a strip at the bottom of the context
+panel. That breaks down on a widescreen. The context panel runs **220–1000px**
+(`layout_preset.dart:19`) and the repo explicitly assumes 3440/5120 ultrawide — see the
+"Ultrawide" section of `.claude/skills/ui-design/references/geometry.md` (T-239/T-241).
+
+Two problems at width:
+1. The face is marooned mid-strip with large dead flanks.
+2. **Matrix rain falls vertically.** A short wide strip gives streams ~4 cells of fall, so
+   the density-encodes-activity signal — the best idea in the DeskLock design — stops
+   reading. DeskLock''s panel is 800px tall for this reason.
+
+A tall column is the rain''s natural home, and is also chat-shaped for the input box that
+Epic E adds (face top / bubble middle / input bottom).
+
+Wireframe three, pick one:
+- **A. Own right-edge rail** — new slot, full window height. Rain works; chat-shaped;
+  collapses to a 12px spine like every other slot (D-51). Costs permanent horizontal space.
+- **B. Bottom strip in the context panel** — no new column, sits beside the detail view.
+  Rain compromised; steals height from every detail view.
+- **C. Responsive** — rail when wide, strip when narrow. Best fit at both extremes; two
+  layouts to build, golden at two surfaces, and keep in sync.
+
+## Question 2 — answer space
+
+A direct answer (Epic E) is longer than a one-line quip. Fixed height + scroll inside the
+bubble / grow to a capped height then scroll / take over the context-panel body. Largely
+resolves itself under A, which is why placement is decided first.
+
+## Deliverable
+
+One approved wireframe, plus a one-paragraph rationale recorded on this ticket. Feeds
+directly into T-515 (D-record).', 'Wireframe Clide''s placement in Frame0 and get one shape approved. **Blocks Epic C (T-518)**
+— the slot-vs-strip decision determines whether C touches `slot_id.dart` / `layout_preset.dart`
+/ `layout.dart` at all, or just `_ContextSlot`.
+
+Frame0 is running locally (see the `frame0-wireframe` skill).
+
+## Question 1 — placement
+
+The original sketch (user screenshot, 2026-08-08) was a strip at the bottom of the context
+panel. That breaks down on a widescreen. The context panel runs **220–1000px**
+(`layout_preset.dart:19`) and the repo explicitly assumes 3440/5120 ultrawide — see the
+"Ultrawide" section of `.claude/skills/ui-design/references/geometry.md` (T-239/T-241).
+
+Two problems at width:
+1. The face is marooned mid-strip with large dead flanks.
+2. **Matrix rain falls vertically.** A short wide strip gives streams ~4 cells of fall, so
+   the density-encodes-activity signal — the best idea in the DeskLock design — stops
+   reading. DeskLock''s panel is 800px tall for this reason.
+
+A tall column is the rain''s natural home, and is also chat-shaped for the input box that
+Epic E adds (face top / bubble middle / input bottom).
+
+Wireframe three, pick one:
+- **A. Own right-edge rail** — new slot, full window height. Rain works; chat-shaped;
+  collapses to a 12px spine like every other slot (D-51). Costs permanent horizontal space.
+- **B. Bottom strip in the context panel** — no new column, sits beside the detail view.
+  Rain compromised; steals height from every detail view.
+- **C. Responsive** — rail when wide, strip when narrow. Best fit at both extremes; two
+  layouts to build, golden at two surfaces, and keep in sync.
+
+## Question 2 — answer space
+
+A direct answer (Epic E) is longer than a one-line quip. Fixed height + scroll inside the
+bubble / grow to a capped height then scroll / take over the context-panel body. Largely
+resolves itself under A, which is why placement is decided first.
+
+## Deliverable
+
+One approved wireframe, plus a one-paragraph rationale recorded on this ticket. Feeds
+directly into T-515 (D-record).
+
+## OUTCOME (2026-08-09) — decided
+
+**Placement: B — horizontal strip sharing the bottom of the context column.** The context
+detail view shrinks; Clide takes the bottom of the same column. No new slot, no new window
+column.
+
+Wireframes (Frame0, committed):
+- `docs/design/wireframes/clide-companion/placement-a-right-rail.{json,png}` — rejected
+- `docs/design/wireframes/clide-companion/placement-b-bottom-strip.{json,png}` — **approved**
+- `docs/design/wireframes/clide-companion/placement-b-gaze.{json,png}` — approved addition
+
+### Rationale
+
+A was built first and argued for on the grounds that matrix rain falls vertically, so a short
+strip would kill the density-encodes-activity signal. **Drawing B disproved half of that.**
+Density is encoded as *how many columns are lit*, not how far each falls, and a wide strip has
+far more columns to light — ~45 at a 1000px context panel versus ~9 in a 200px rail. Idle-2
+versus effort-40 still reads, arguably more legibly, because the whole field is taken in at
+once instead of scanned down a column. What is genuinely lost is *motion quality*: rain
+falling ~3 cells reads as flicker rather than rain. That is an aesthetic cost, not a signal
+cost, and it is worth not spending a permanent window column. The face itself survives the
+short strip fine — eyes and mouth stack in ~40px and work at both 220px and 1000px.
+
+### Accepted costs
+
+- The detail view loses ~110px of height on every ticket, decision, file and graph view.
+- Not a slot, so no `isVisible` / `sizeOf` / persistence / `clide panel resize` for free.
+  **Epic C must hand-roll a collapse toggle and a persisted height to keep D-6 parity.**
+- In exchange: one insertion point (`_ContextSlot`, `slot_host.dart:349-362`, becomes a
+  `Column`), no `slot_id`/`layout_preset` changes, and it avoids the `drag_resize.dart`
+  two-site sign-flip trap entirely.
+
+### Approved addition — gaze and lean
+
+Not in the original brief; emerged during the spike and is approved.
+
+**Gaze.** In B the face is pinned to the left edge of the context column, so the pane directly
+to its left is the Claude conversation — exactly what it ingests. Pupils track left while
+Claude streams, forward when you address it, optionally right toward the detail view above.
+Glyphs `◧ ◨ ● ◎` (U+25E7/25E8/25CF/25CE) are all inside ranges JetBrains Mono actually ships,
+same family as the rain glyphs — no new font asset. A 4-frame pupil sweep (~600ms) tied to
+arriving `partial-` items makes him visibly read faster when tokens land faster.
+
+**Lean.** Originated as a coordinate slip in the first wireframe — the mouth landed off the
+eye axis and read as a head-tilt. Kept, now deliberate: one number, the mouth''s x-offset from
+the eye centre (−8px reading / 0 upright / +8px glancing right). Animating the offset makes
+the lean the transition itself. Free — the mouth is already positioned per frame — and it
+makes attention legible at a size where pupils alone are a few pixels.
+
+This is a second signal channel, not decoration: rain says *how hard* the session is working,
+gaze says *what it is working on*. It also makes the digest boundary visible — Clide looks at
+the conversation because that is all he is given, so the "can''t answer about tool calls"
+limitation reads as character rather than as a bug.
+
+### Answer space: strip grows, plus a conversation popout
+
+**Inline:** the strip grows to a capped height (~40% of the column) while answering, scrolls
+beyond that, and collapses back when idle. Space is borrowed only while in use.
+
+**Popout (new Epic E scope):** an expand control opens a light conversation view over the
+detail area — the full Clide exchange for this session, **latest first**, with a fetch limit
+and lazy loading on scroll, and a text box underneath to continue talking. It surfaces
+**only actually-said things — never tool uses, never injected metadata** — consistent with
+the digest boundary in Epic D. Requirement appended to T-520.
+
+### Unblocks
+
+T-518 (Epic C) — now scoped to the `_ContextSlot` Column route, not the new-slot route.
+T-515 (D-record) — placement, the gaze/lean axis, and the D-6-parity gap are the substance.', NULL, '2026-08-08 23:39:58', '2026-08-08 23:39:58.638', '2026-08-08 23:39:58.638', NULL, '796964e6a793a9a5b7a100cd3250527f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73ZFJHHB92SAKPKNJGD9XC', 'description', 'Make Clide addressable: an input box on its surface, and a readable place for the answer.
+This is what turns the companion from decoration into a tool — the driving use case is
+**"what did that mean?"** about what Claude just said, answered right where the work is.
+
+Blocked by Epic C (needs the surface and its internal composition) and Epic D (needs the
+session and the `[direct]` protocol tag).
+
+## Epic''s own first job
+
+1. **Break this epic down** once C and D have landed and their contracts are real.
+2. **Own the cross-epic behaviour** — a direct question changes face state (Epic B), consumes
+   the companion session (Epic D), and occupies surface space (Epic C). Don''t reimplement any
+   of those; extend them, and fold any needed contract changes back into the sibling epic
+   rather than working around it locally.
+
+## Scope
+
+- Input affordance on the Clide surface. Distinct from the Claude composer — it must be
+  visually and behaviourally obvious which one you''re typing into, since the whole point is
+  that they go to different models.
+- Submit → `[direct]` tagged line into the companion session (Epic D''s protocol).
+- Answer rendering. **Shape depends on T-514''s answer-space decision** — fixed height with
+  scroll inside the bubble, grow-to-cap-then-scroll, or take over the panel body.
+- Focus handling: focusing the input should put the face into `listening` (Epic B).
+- Direct questions bypass the notable-events trigger — always answered.
+
+## Design notes
+
+- Interactive controls belong in an interaction zone, not inline in a display surface —
+  the same principle as D-78''s rule for the Claude pane. The bubble stays display-only; the
+  input is its own region.
+- Two-column control pattern and the no-double-edge-padding rule from
+  `.claude/skills/ui-design/references/geometry.md` apply to the input row.
+- Placeholder text is a catalog string (D-21/D-102) and must tolerate ~30% length growth in
+  Dutch. Clide''s *answers* are model output and are not catalog strings.
+- At ultrawide, right-align with `Expanded`, not a `Spacer` fighting a flex sibling — the
+  drift is proportional to width (~1500px adrift at 3440px). See the ultrawide section of the
+  geometry reference.
+
+## Known limitation to surface in the UI
+
+Clide sees prose only — no tool calls, no tool results (Epic D). "What did that tool call
+do?" cannot be answered. Consider whether the empty/placeholder state should set that
+expectation rather than letting the user discover it by getting a bad answer.', 'Make Clide addressable: an input box on its surface, and a readable place for the answer.
+This is what turns the companion from decoration into a tool — the driving use case is
+**"what did that mean?"** about what Claude just said, answered right where the work is.
+
+Blocked by Epic C (needs the surface and its internal composition) and Epic D (needs the
+session and the `[direct]` protocol tag).
+
+## Epic''s own first job
+
+1. **Break this epic down** once C and D have landed and their contracts are real.
+2. **Own the cross-epic behaviour** — a direct question changes face state (Epic B), consumes
+   the companion session (Epic D), and occupies surface space (Epic C). Don''t reimplement any
+   of those; extend them, and fold any needed contract changes back into the sibling epic
+   rather than working around it locally.
+
+## Scope
+
+- Input affordance on the Clide surface. Distinct from the Claude composer — it must be
+  visually and behaviourally obvious which one you''re typing into, since the whole point is
+  that they go to different models.
+- Submit → `[direct]` tagged line into the companion session (Epic D''s protocol).
+- Answer rendering. **Shape depends on T-514''s answer-space decision** — fixed height with
+  scroll inside the bubble, grow-to-cap-then-scroll, or take over the panel body.
+- Focus handling: focusing the input should put the face into `listening` (Epic B).
+- Direct questions bypass the notable-events trigger — always answered.
+
+## Design notes
+
+- Interactive controls belong in an interaction zone, not inline in a display surface —
+  the same principle as D-78''s rule for the Claude pane. The bubble stays display-only; the
+  input is its own region.
+- Two-column control pattern and the no-double-edge-padding rule from
+  `.claude/skills/ui-design/references/geometry.md` apply to the input row.
+- Placeholder text is a catalog string (D-21/D-102) and must tolerate ~30% length growth in
+  Dutch. Clide''s *answers* are model output and are not catalog strings.
+- At ultrawide, right-align with `Expanded`, not a `Spacer` fighting a flex sibling — the
+  drift is proportional to width (~1500px adrift at 3440px). See the ultrawide section of the
+  geometry reference.
+
+## Known limitation to surface in the UI
+
+Clide sees prose only — no tool calls, no tool results (Epic D). "What did that tool call
+do?" cannot be answered. Consider whether the empty/placeholder state should set that
+expectation rather than letting the user discover it by getting a bad answer.
+
+## Added by T-514 spike (2026-08-09) — conversation popout
+
+Placement B was chosen, which caps the inline strip at ~2 lines of text at a 1000px context
+panel and ~4 short lines at the 220px minimum. Inline answers therefore grow the strip to a
+capped height (~40% of the column) and collapse back when idle.
+
+That is enough to read one answer. It is not enough to review a session''s worth of them, so
+Epic E also gains an **expand control that opens a conversation popout**:
+
+- A **light version of the conversation view** — not a second full implementation. Reuse
+  what the Claude pane already has where practical rather than forking it.
+- Shows the **full Clide exchange for this session**: his unprompted remarks and your direct
+  questions, interleaved.
+- **Latest first.**
+- **Fetch limit + lazy loading on scroll** — do not materialise the whole history up front.
+- **A text box underneath to talk back**, so the popout is a working surface rather than a
+  read-only log. Same `[direct]` protocol path as the inline input (Epic D).
+- Surfaces **only actually-said things — never tool uses, never injected metadata.** This
+  mirrors the digest boundary Epic D enforces on the way in: Clide never saw tool calls, so
+  the popout must not invent a view containing them.
+
+Open questions for this epic to settle at breakdown:
+
+- Overlay versus takeover of the context body. Overlay preserves the detail view underneath
+  but is new chrome for this repo (focus trap, Esc-to-dismiss, click-away).
+- Whether the popout and the inline strip share one scroll model and one controller, or the
+  popout is a separate surface fed by the same store. Prefer one store, two views.
+- What "session" means when Epic D restarts the companion session at ~50 comments — the
+  popout''s history should almost certainly outlive the underlying model session, which
+  implies the transcript is clide-side state, not a read of the companion process.
+
+That last one is load-bearing and worth resolving early: it decides whether the popout reads
+from a clide-owned store or from the companion session, and the restart behaviour makes the
+store the likelier answer.', NULL, '2026-08-08 23:40:18', '2026-08-08 23:40:18.010', '2026-08-08 23:40:18.010', NULL, '4f8c00c1a3fd6d168a66d89c2d2a90a1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73YPCJVWBXD9YF1JKZEK2W', 'description', 'Give Clide a real home in the shell, with the settings, i18n and CLI parity that make it a
+first-class surface rather than a bolted-on widget.
+
+**Blocked by T-514** — the spike decides whether this is a new slot or a region inside the
+context panel, and that changes most of the file list below.
+
+## Epic''s own first job
+
+1. **Break this epic down** once T-514 lands and the shape is known.
+2. **Own the seam with Epic E** — E mounts its input box inside this surface. Settle the
+   surface''s internal composition (face region / bubble region / input region) here so E
+   only fills a slot rather than renegotiating layout.
+
+## If the spike picks A (own right-edge rail)
+
+| File | Change |
+|---|---|
+| `lib/kernel/src/panels/slot_id.dart:20-33` | add the slot id (`SlotId` is a wrapped String — new ids are cheap) |
+| `lib/kernel/src/panels/layout_preset.dart:13-23` | `LayoutSlot(position: right, defaultSize/minSize/maxSize)` |
+| `lib/src/shell/layout.dart:51-59` | render column + `ClideSpine` when collapsed + `DragResizeHandle` |
+| `lib/kernel/src/panels/drag_resize.dart:178` **and** `:199` | **The sign flip is hard-coded to `Slots.contextPanel` at both sites.** A new right-side slot must be added to both or the drag runs backwards. This is the single easiest thing to get wrong in this epic. |
+| `lib/builtin/default_layout/src/extension.dart:170-234` | persistence keys (`_restoreLayout` / `_persistLayout`) |
+| `lib/main.dart:599-632` + `lib/test_app.dart:288-294` | register the extension |
+
+A real slot buys `isVisible` / `isCollapsed` / `sizeOf`, restart persistence,
+`clide panel resize <slot>` (`lib/src/daemon/panel_commands.dart:66`) and `clide pane list`
+reporting — i.e. **D-6 parity for free**. That is the main argument for a slot over a bare
+widget.
+
+## If the spike picks B (strip in the context panel)
+
+Single insertion point: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`, currently
+`Container(... child: active.build(context))`, becomes a `Column`. The slot/persistence/
+drag-resize rows above all drop away. Structural template for a split inside a column:
+`_WorkspaceSlot` at `slot_host.dart:147-207`.
+
+## Also in scope regardless of shape
+
+- **Settings**: `SettingsCategoryContribution` + controls — enable/disable Clide entirely,
+  comment frequency, suspend-when-minimised. Registration template:
+  `lib/builtin/output/src/extension.dart` (tab + status toggle + command, with
+  `dependsOn: [''builtin.default-layout'']` so the slot exists first).
+- **i18n**: chrome strings via `ClideSettings.i18n.string(...)` into
+  `assets/i18n/{en_us,nl_nl}/clide.json` (D-21/D-102). Note Clide''s *replies* are model
+  output, not catalog strings — the locale is carried into the prompt by Epic D, not
+  translated here. Design for ~30% length growth on any fixed-width chrome.
+- **Contribution + registration** per `lib/extension/src/contribution.dart`; host dispatch
+  is `extensions_manager.dart:237-260`.
+
+## Testing
+
+Layout must be asserted **at ultrawide**, driving `tester.view.physicalSize` — a wide
+`SizedBox` under the default 800px test surface is clamped to 800 and does not actually test
+wide. Pattern: `test/app_statusbar_test.dart` (`pumpAt`). Related audit: T-241.
+
+Likely to need updating: `test/app_test.dart`, `test/app_collapse_toggle_test.dart`,
+`test/builtin/default_layout/widget_test.dart`, and the panels tests under
+`test/kernel/src/panels/`.', 'Give Clide a real home in the shell, with the settings, i18n and CLI parity that make it a
+first-class surface rather than a bolted-on widget.
+
+**Blocked by T-514** — the spike decides whether this is a new slot or a region inside the
+context panel, and that changes most of the file list below.
+
+## Epic''s own first job
+
+1. **Break this epic down** once T-514 lands and the shape is known.
+2. **Own the seam with Epic E** — E mounts its input box inside this surface. Settle the
+   surface''s internal composition (face region / bubble region / input region) here so E
+   only fills a slot rather than renegotiating layout.
+
+## If the spike picks A (own right-edge rail)
+
+| File | Change |
+|---|---|
+| `lib/kernel/src/panels/slot_id.dart:20-33` | add the slot id (`SlotId` is a wrapped String — new ids are cheap) |
+| `lib/kernel/src/panels/layout_preset.dart:13-23` | `LayoutSlot(position: right, defaultSize/minSize/maxSize)` |
+| `lib/src/shell/layout.dart:51-59` | render column + `ClideSpine` when collapsed + `DragResizeHandle` |
+| `lib/kernel/src/panels/drag_resize.dart:178` **and** `:199` | **The sign flip is hard-coded to `Slots.contextPanel` at both sites.** A new right-side slot must be added to both or the drag runs backwards. This is the single easiest thing to get wrong in this epic. |
+| `lib/builtin/default_layout/src/extension.dart:170-234` | persistence keys (`_restoreLayout` / `_persistLayout`) |
+| `lib/main.dart:599-632` + `lib/test_app.dart:288-294` | register the extension |
+
+A real slot buys `isVisible` / `isCollapsed` / `sizeOf`, restart persistence,
+`clide panel resize <slot>` (`lib/src/daemon/panel_commands.dart:66`) and `clide pane list`
+reporting — i.e. **D-6 parity for free**. That is the main argument for a slot over a bare
+widget.
+
+## If the spike picks B (strip in the context panel)
+
+Single insertion point: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`, currently
+`Container(... child: active.build(context))`, becomes a `Column`. The slot/persistence/
+drag-resize rows above all drop away. Structural template for a split inside a column:
+`_WorkspaceSlot` at `slot_host.dart:147-207`.
+
+## Also in scope regardless of shape
+
+- **Settings**: `SettingsCategoryContribution` + controls — enable/disable Clide entirely,
+  comment frequency, suspend-when-minimised. Registration template:
+  `lib/builtin/output/src/extension.dart` (tab + status toggle + command, with
+  `dependsOn: [''builtin.default-layout'']` so the slot exists first).
+- **i18n**: chrome strings via `ClideSettings.i18n.string(...)` into
+  `assets/i18n/{en_us,nl_nl}/clide.json` (D-21/D-102). Note Clide''s *replies* are model
+  output, not catalog strings — the locale is carried into the prompt by Epic D, not
+  translated here. Design for ~30% length growth on any fixed-width chrome.
+- **Contribution + registration** per `lib/extension/src/contribution.dart`; host dispatch
+  is `extensions_manager.dart:237-260`.
+
+## Testing
+
+Layout must be asserted **at ultrawide**, driving `tester.view.physicalSize` — a wide
+`SizedBox` under the default 800px test surface is clamped to 800 and does not actually test
+wide. Pattern: `test/app_statusbar_test.dart` (`pumpAt`). Related audit: T-241.
+
+Likely to need updating: `test/app_test.dart`, `test/app_collapse_toggle_test.dart`,
+`test/builtin/default_layout/widget_test.dart`, and the panels tests under
+`test/kernel/src/panels/`.
+
+## Spike resolved (T-514, 2026-08-09) — take the B route
+
+Placement **B** was chosen: a horizontal strip sharing the bottom of the context column.
+
+**The "If the spike picks A" section above is dead — ignore it.** No `slot_id.dart`, no
+`layout_preset.dart`, no `layout.dart` column, and in particular **no `drag_resize.dart`
+sign-flip work**; that trap does not apply on this route.
+
+Live scope is the B section: `_ContextSlot` at `lib/src/shell/slot_host.dart:349-362`
+becomes a `Column`. Structural template for a split inside a column is `_WorkspaceSlot`
+(`slot_host.dart:147-207`).
+
+**What B costs this epic, and it is the main work here:** the strip is not a slot, so none of
+`isVisible` / `isCollapsed` / `sizeOf` / restart persistence / `clide panel resize` /
+`clide pane list` come for free. To keep **D-6 parity** this epic must hand-roll:
+
+- a collapse/expand affordance for the strip,
+- a persisted height and collapsed-state (alongside the dock''s keys in
+  `default_layout/src/extension.dart:170-234`),
+- and CLI verbs so every UI action has a command equivalent.
+
+Budget for that explicitly — it was the strongest argument for A and is now this epic''s
+problem. Decide early whether the strip''s height is a first-class arrangement value or
+extension-local settings state; the former is more work but keeps it consistent with every
+other resizable region.
+
+Also in scope from the spike: the strip **grows to a capped height (~40% of the column)
+while Clide is answering and collapses back when idle**. That interacts with the persisted
+height — the user''s chosen height is the resting height, not a ceiling.', NULL, '2026-08-08 23:40:36', '2026-08-08 23:40:36.515', '2026-08-08 23:40:36.515', NULL, '992ecc42c35e7216a7ee1e49c33e46e6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WC48DRPATA7Z6J7H9N8C', 'status', 'in_progress', 'done', NULL, '2026-08-08 23:40:42', '2026-08-08 23:40:42.460', '2026-08-08 23:40:42.460', NULL, '6383eaad8dd9a86fca21b0970f3d5eea', 2) ON CONFLICT(hash) DO NOTHING;
