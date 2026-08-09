@@ -34,6 +34,23 @@ const companionStateChannel = 'companion.state';
 /// publishes `{'open': false}` and says nothing about `enabled`.
 const companionSetChannel = 'companion.set';
 
+/// Announces what the **primary** session is doing — the weather, not Clide
+/// (D-107 commitment 5). Data: `busy`, and `busySinceMs` while it is.
+///
+/// Observe-only; there is no `set` counterpart, because nobody may ask the
+/// primary session to look busy.
+const companionLoadChannel = 'companion.load';
+
+/// Announce the primary session's load.
+///
+/// [busySinceMs] is epoch milliseconds for the moment the current turn started,
+/// null when idle. **The publisher stamps it**, because nothing upstream records
+/// it — `_setBusy(true)` keeps no time — and because a renderer that timed turns
+/// from its own prop changes would only be guessing.
+void publishCompanionLoad(MessageBus messages, {required bool busy, int? busySinceMs}) {
+  messages.publish(clideCompanionPublisher, companionLoadChannel, {'busy': busy, 'busySinceMs': ?busySinceMs});
+}
+
 /// Ask for a companion state change. The extension is what actually applies it.
 void publishCompanionSet(MessageBus messages, {bool? enabled, bool? open, String? frequency}) {
   messages.publish(clideCompanionPublisher, companionSetChannel, {'enabled': ?enabled, 'open': ?open, 'frequency': ?frequency});

@@ -8457,3 +8457,211 @@ Done (2026-08-09).
 Tests: rain assertions moved off `face_state_test` into `session_load_test` (12), and two new ladder cases prove independence in both directions. The strip golden is now a face x weather cross including `idle / working` — a resting face in a downpour, which was unrepresentable before and is the ordinary case during a long tool run.
 
 Full suite 8 + 4168 + 50. **T-539 and T-538 are unblocked from this side.**', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 12:25:01.558', '2026-08-09 12:41:15.714', NULL, 'ad9ebbc9bd2b49b68c953b614dd0fe41', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZB4GNSJ08012SRRCQCCY8', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B2: Primary session load adapter — busyStream to the bus', 'Bind the primary Claude session and publish its load on the bus. This is the
+**only** thing Epic B reads from the primary session after the D-107 commitment 5
+scope cut.
+
+## Input
+
+`busyStream` on the primary `StreamJsonSession` — a replay-latest `ValueStream<bool>`,
+edge-deduped, already consumed by the running indicator
+(`stream_json_session.dart:426`). Replay is why no seeding dance is needed for
+the value itself.
+
+Reached via `activeSessionOrchestrator.byId(''primary'')`. The orchestrator is a
+`ChangeNotifier` that fires on spawn/close/show/hide/mute and on session-id
+resolution, so this **must rebind on every notification** — the worked example is
+`claude_meta_sidebar.dart:200-245`.
+
+## Output
+
+A `companion.load` message on the existing `clide.companion` publisher, carrying
+whether the session is busy and, when it is, when it started.
+
+**The turn-start timestamp is ours to stamp.** Nothing records it: `_setBusy(true)`
+has exactly one call site (`:876`) and keeps no time. Stamp the rising edge here
+— the widget deliberately does not time turns, because it would only be guessing
+from prop changes.
+
+## Why the bus rather than props
+
+Same reason as T-527: the strip is one widget deep inside the context column, and
+the thing that knows about sessions is an extension. Publishing keeps them
+unaware of each other, and gives T-529''s CLI verbs somewhere to read from for
+free.
+
+Add the channel to `companion_channel.dart` beside `companion.set` /
+`companion.state`, with the same rule — one publisher, announced after the fact,
+never optimistically.
+
+## Watch for
+
+- **No session is a normal state**, not an error: clide boots with no primary
+  session and the strip renders throughout. Absence must publish "not busy"
+  rather than nothing at all.
+- Rebinding must not double-subscribe; cancel first.
+- Do not add public API to `StreamJsonSession` for this. Epic D reads the same
+  session and any addition should be agreed with it.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:26:45.253', '2026-08-09 12:42:39.366', NULL, '9ca4b84d5eb536a8f24a270403c3323b', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZB4GNSJ08012SRRCQCCY8', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B2: Primary session load adapter — busyStream to the bus', 'Bind the primary Claude session and publish its load on the bus. This is the
+**only** thing Epic B reads from the primary session after the D-107 commitment 5
+scope cut.
+
+## Input
+
+`busyStream` on the primary `StreamJsonSession` — a replay-latest `ValueStream<bool>`,
+edge-deduped, already consumed by the running indicator
+(`stream_json_session.dart:426`). Replay is why no seeding dance is needed for
+the value itself.
+
+Reached via `activeSessionOrchestrator.byId(''primary'')`. The orchestrator is a
+`ChangeNotifier` that fires on spawn/close/show/hide/mute and on session-id
+resolution, so this **must rebind on every notification** — the worked example is
+`claude_meta_sidebar.dart:200-245`.
+
+## Output
+
+A `companion.load` message on the existing `clide.companion` publisher, carrying
+whether the session is busy and, when it is, when it started.
+
+**The turn-start timestamp is ours to stamp.** Nothing records it: `_setBusy(true)`
+has exactly one call site (`:876`) and keeps no time. Stamp the rising edge here
+— the widget deliberately does not time turns, because it would only be guessing
+from prop changes.
+
+## Why the bus rather than props
+
+Same reason as T-527: the strip is one widget deep inside the context column, and
+the thing that knows about sessions is an extension. Publishing keeps them
+unaware of each other, and gives T-529''s CLI verbs somewhere to read from for
+free.
+
+Add the channel to `companion_channel.dart` beside `companion.set` /
+`companion.state`, with the same rule — one publisher, announced after the fact,
+never optimistically.
+
+## Watch for
+
+- **No session is a normal state**, not an error: clide boots with no primary
+  session and the strip renders throughout. Absence must publish "not busy"
+  rather than nothing at all.
+- Rebinding must not double-subscribe; cancel first.
+- Do not add public API to `StreamJsonSession` for this. Epic D reads the same
+  session and any addition should be agreed with it.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:26:45.253', '2026-08-09 12:42:43.804', NULL, '98b5685edf9b05a256ccf1d7a4baa809', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZB4GNSJ08012SRRCQCCY8', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B2: Primary session load adapter — busyStream to the bus', 'Bind the primary Claude session and publish its load on the bus. This is the
+**only** thing Epic B reads from the primary session after the D-107 commitment 5
+scope cut.
+
+## Input
+
+`busyStream` on the primary `StreamJsonSession` — a replay-latest `ValueStream<bool>`,
+edge-deduped, already consumed by the running indicator
+(`stream_json_session.dart:426`). Replay is why no seeding dance is needed for
+the value itself.
+
+Reached via `activeSessionOrchestrator.byId(''primary'')`. The orchestrator is a
+`ChangeNotifier` that fires on spawn/close/show/hide/mute and on session-id
+resolution, so this **must rebind on every notification** — the worked example is
+`claude_meta_sidebar.dart:200-245`.
+
+## Output
+
+A `companion.load` message on the existing `clide.companion` publisher, carrying
+whether the session is busy and, when it is, when it started.
+
+**The turn-start timestamp is ours to stamp.** Nothing records it: `_setBusy(true)`
+has exactly one call site (`:876`) and keeps no time. Stamp the rising edge here
+— the widget deliberately does not time turns, because it would only be guessing
+from prop changes.
+
+## Why the bus rather than props
+
+Same reason as T-527: the strip is one widget deep inside the context column, and
+the thing that knows about sessions is an extension. Publishing keeps them
+unaware of each other, and gives T-529''s CLI verbs somewhere to read from for
+free.
+
+Add the channel to `companion_channel.dart` beside `companion.set` /
+`companion.state`, with the same rule — one publisher, announced after the fact,
+never optimistically.
+
+## Watch for
+
+- **No session is a normal state**, not an error: clide boots with no primary
+  session and the strip renders throughout. Absence must publish "not busy"
+  rather than nothing at all.
+- Rebinding must not double-subscribe; cancel first.
+- Do not add public API to `StreamJsonSession` for this. Epic D reads the same
+  session and any addition should be agreed with it.
+
+Done (2026-08-09).
+
+`CompanionLoadAdapter` binds the primary session via the orchestrator and republishes `busyStream` as `companion.load`. Started by the extension, so it binds once for the app rather than once per mounted widget.
+
+**No API added to `StreamJsonSession`**, as the ticket required — and that constraint was extended to the test seam. Busy is driven through the session''s own path (`send()` raises it, a `result` event clears it) rather than a debug setter: a fake that can force the flag would stop proving the adapter reacts to the real one. This cost one rewrite; the first draft invented `debugSetBusy` before the constraint was applied properly.
+
+**The turn-start stamp is the substantive design point.** Nothing upstream records one — `_setBusy(true)` has a single call site and keeps no time — so the rising edge is stamped here and carried on the message. Only the rising edge: a rebind mid-turn keeps the original instant, or the counter would restart every time the orchestrator notified (which it does on show/hide/mute, routinely). `now` is injectable so the test asserts the stamped instant rather than racing it.
+
+**Absence publishes.** No session and a null orchestrator both announce not-busy rather than staying silent — silence would leave the last session''s weather on screen forever. Closing a session does the same.
+
+Also deduped: an unchanged state is not republished, so the orchestrator''s frequent notifications do not wake every companion surface.
+
+9 tests. Full suite 8 + 4177 + 50. **T-539 is now fully unblocked.**', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:26:45.253', '2026-08-09 12:49:46.144', NULL, '02d41b7958a9dd127371ffd6e205ea9f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZB4GNSJ08012SRRCQCCY8', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B2: Primary session load adapter — busyStream to the bus', 'Bind the primary Claude session and publish its load on the bus. This is the
+**only** thing Epic B reads from the primary session after the D-107 commitment 5
+scope cut.
+
+## Input
+
+`busyStream` on the primary `StreamJsonSession` — a replay-latest `ValueStream<bool>`,
+edge-deduped, already consumed by the running indicator
+(`stream_json_session.dart:426`). Replay is why no seeding dance is needed for
+the value itself.
+
+Reached via `activeSessionOrchestrator.byId(''primary'')`. The orchestrator is a
+`ChangeNotifier` that fires on spawn/close/show/hide/mute and on session-id
+resolution, so this **must rebind on every notification** — the worked example is
+`claude_meta_sidebar.dart:200-245`.
+
+## Output
+
+A `companion.load` message on the existing `clide.companion` publisher, carrying
+whether the session is busy and, when it is, when it started.
+
+**The turn-start timestamp is ours to stamp.** Nothing records it: `_setBusy(true)`
+has exactly one call site (`:876`) and keeps no time. Stamp the rising edge here
+— the widget deliberately does not time turns, because it would only be guessing
+from prop changes.
+
+## Why the bus rather than props
+
+Same reason as T-527: the strip is one widget deep inside the context column, and
+the thing that knows about sessions is an extension. Publishing keeps them
+unaware of each other, and gives T-529''s CLI verbs somewhere to read from for
+free.
+
+Add the channel to `companion_channel.dart` beside `companion.set` /
+`companion.state`, with the same rule — one publisher, announced after the fact,
+never optimistically.
+
+## Watch for
+
+- **No session is a normal state**, not an error: clide boots with no primary
+  session and the strip renders throughout. Absence must publish "not busy"
+  rather than nothing at all.
+- Rebinding must not double-subscribe; cancel first.
+- Do not add public API to `StreamJsonSession` for this. Epic D reads the same
+  session and any addition should be agreed with it.
+
+Done (2026-08-09).
+
+`CompanionLoadAdapter` binds the primary session via the orchestrator and republishes `busyStream` as `companion.load`. Started by the extension, so it binds once for the app rather than once per mounted widget.
+
+**No API added to `StreamJsonSession`**, as the ticket required — and that constraint was extended to the test seam. Busy is driven through the session''s own path (`send()` raises it, a `result` event clears it) rather than a debug setter: a fake that can force the flag would stop proving the adapter reacts to the real one. This cost one rewrite; the first draft invented `debugSetBusy` before the constraint was applied properly.
+
+**The turn-start stamp is the substantive design point.** Nothing upstream records one — `_setBusy(true)` has a single call site and keeps no time — so the rising edge is stamped here and carried on the message. Only the rising edge: a rebind mid-turn keeps the original instant, or the counter would restart every time the orchestrator notified (which it does on show/hide/mute, routinely). `now` is injectable so the test asserts the stamped instant rather than racing it.
+
+**Absence publishes.** No session and a null orchestrator both announce not-busy rather than staying silent — silence would leave the last session''s weather on screen forever. Closing a session does the same.
+
+Also deduped: an unchanged state is not republished, so the orchestrator''s frequent notifications do not wake every companion surface.
+
+9 tests. Full suite 8 + 4177 + 50. **T-539 is now fully unblocked.**', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 12:26:45.253', '2026-08-09 12:49:50.465', NULL, 'c1783ae355b95f95fffe52b711252163', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

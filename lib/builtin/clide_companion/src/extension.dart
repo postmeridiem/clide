@@ -20,12 +20,15 @@ import 'dart:async';
 
 import 'package:clide/builtin/clide_companion/src/companion_channel.dart';
 import 'package:clide/builtin/clide_companion/src/companion_settings.dart';
+import 'package:clide/builtin/clide_companion/src/load_adapter.dart';
+import 'package:clide/builtin/claude/src/session_orchestrator.dart';
 import 'package:clide/extension/extension.dart';
 import 'package:clide/kernel/kernel.dart';
 
 class ClideCompanionExtension extends ClideExtension {
   ClideExtensionContext? _ctx;
   StreamSubscription<Message>? _sets;
+  CompanionLoadAdapter? _load;
 
   /// Last announced state, so a settings notification about somebody else's key
   /// — the store notifies on every write — does not republish ours.
@@ -54,11 +57,18 @@ class ClideCompanionExtension extends ClideExtension {
     // Late subscribers seed themselves from the store instead — the bus does
     // not retain.
     _announce();
+
+    // The primary session's load — the rain's input (T-538). Started here rather
+    // than by the strip so it is bound once for the app, not once per widget
+    // that happens to be mounted.
+    _load = CompanionLoadAdapter(messages: ctx.messages)..start(activeSessionOrchestrator);
   }
 
   @override
   Future<void> deactivate() async {
     await _sets?.cancel();
+    _load?.dispose();
+    _load = null;
     _ctx?.settings.removeListener(_onSettingsChanged);
     _ctx = null;
   }
