@@ -188,7 +188,7 @@ class ClideFacePainter extends CustomPainter {
   /// wash across a strip — which erases the rain everywhere, including the
   /// columns whose job is to show density (T-526).
   void _paintVignette(Canvas canvas, Size size) {
-    final centre = Offset(_faceCentreX(size), size.height * 0.47);
+    final centre = Offset(_faceCentreX(size), _faceCentreY(size));
     final radius = size.height * 0.85;
     if (radius <= 0) return;
     canvas.drawRect(
@@ -203,7 +203,27 @@ class ClideFacePainter extends CustomPainter {
     );
   }
 
+  /// Where the eye row starts, as a fraction of the box.
+  ///
+  /// Named because two things read it and they must not drift: the face is
+  /// drawn from here, and the vignette centres on the face. Moving the face is
+  /// moving the centre of the whole composition, so anything anchored to it
+  /// follows from this one number.
+  static const _eyesTopFactor = 0.21;
+
   double _eyeSize(Size size) => (size.height * 0.22).clamp(8.0, 40.0);
+
+  /// Vertical centre of the face group, without laying out any text.
+  ///
+  /// Derived rather than guessed: the group runs from the eye row down through
+  /// the mouth, which hangs 0.9 of an eye-line below it and is itself 0.62 of
+  /// one. A monospace line box is close enough to 1.32em for an anchor.
+  double _faceCentreY(Size size) {
+    final eyeLine = _eyeSize(size) * 1.32;
+    final top = size.height * _eyesTopFactor;
+    final bottom = top + eyeLine * 0.9 + eyeLine * 0.62;
+    return (top + bottom) / 2;
+  }
 
   /// Centre of the face group, without laying out any text.
   ///
@@ -229,7 +249,12 @@ class ClideFacePainter extends CustomPainter {
     final eyes = _eyesNow(spec, t);
     final eyesPara = cache.paragraph(eyes, color: colour, fontSize: eyeSize, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
     final eyesX = _alignX(size.width, eyesPara.maxIntrinsicWidth) + jitter;
-    final eyesY = size.height * 0.30 + breathe + jitter;
+    // See [_eyesTopFactor]: 0.21, not the 0.30 this started at. The bottom cue
+    // is anchored to the bottom edge, so the face only ever balances against it
+    // from above, and at the strip's 112px the old factor left 34px of air
+    // above the eyes against 15px below — bottom-heavy against a cue that
+    // weighs almost nothing. This evens them at roughly 24px each.
+    final eyesY = size.height * _eyesTopFactor + breathe + jitter;
     canvas.drawParagraph(eyesPara, Offset(eyesX, eyesY));
 
     // Everything below the eyes hangs off the eye group's centre, not off the

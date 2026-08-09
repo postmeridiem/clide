@@ -9109,3 +9109,215 @@ Why the host app stopped answering IPC in the first place. It also stopped
 serving permission prompts at the same moment, so the two are almost certainly
 one fault in the app rather than two. Nothing in this change addresses that; it
 makes the CLI survive it.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 13:04:38.832', '2026-08-09 13:19:45.674', NULL, '414c24831b07aac77fc56d769859a799', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B3: Strip renders session load — rain density + elapsed counter', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.
+
+Done (2026-08-09) — automated half. **The live check is still outstanding; see
+the bottom.**
+
+## Shipped
+
+`CompanionStateBuilder` grew a second channel rather than being wrapped in
+another builder, as the ticket suggested: it now carries `load` and `busySince`
+alongside enabled/open, so the strip and the rail toggle still cannot disagree.
+`ClideStripHost` passes the load to `ClideFace` and turns the stamped instant
+into a running counter.
+
+## Two things the ticket did not anticipate
+
+**Seeding was impossible, so it asks instead.** The ticket says "seed from the
+store, then follow the bus" — but load is not a preference, so there is nothing
+to seed from, and `main.dart` activates extensions at line 636 and calls
+`runApp` at 649. The adapter''s opening announcement is therefore *always*
+published before any widget exists. Added a `companion.load.ask` channel: a
+renderer asks on mount and the adapter answers. That is the same request/announce
+grammar as `companion.set` / `companion.state`, and it also gives T-529''s CLI
+verbs a way to read the current load.
+
+Pre-answer default is `SessionLoad.absent` rather than something livelier —
+park-by-default is the safer bias for a surface whose power behaviour is a
+contract (D-107 commitment 4), and the answer arrives within a microtask.
+
+**The counter was gated on the wrong layer.** `FaceSpec.elapsed` made the `[ Ns ]`
+counter a property of the *face*, so under the D-107 split it would never have
+appeared — Clide sits at `idle` until Epic D. Gated on `busyFor != null` now, and
+`FaceSpec.elapsed` is deleted. It shares the bottom cue slot with the idle clock
+and wins while a turn runs: how long something has been going is more useful than
+the time of day.
+
+## Who ticks the counter
+
+The widget still does not time turns (the T-521 contract): the instant comes from
+the adapter, which stamped it. The *ticking* is the host''s — one tick a second,
+and only while a turn is running. Seconds are the counter''s granularity so
+anything faster is redraws nobody can read; while busy the face is already
+animating at frame rate so it costs nothing measurable; while idle there is no
+timer at all, which is what keeps it clear of the power ladder.
+
+A turn ending clears the counter rather than freezing it — a stopped counter left
+on screen reads as a turn still running.
+
+## Tests
+
+9 in `strip_load_test.dart`: load reaches the face, idle announces `calm` (only
+the pre-answer default is `absent`), mounting asks, the counter runs from the
+stamped start rather than from when the widget noticed (asserted with a start a
+minute in the past — a widget that restarted its own clock would report zero),
+clears on turn end, advances mid-turn, and leaves no timer behind.
+
+Suite: 8 + 4184 + 50, with one **pre-existing** failure unrelated to this work —
+`clide_cli_e2e_test` times out because the CLI itself hangs on a stale socket.
+Confirmed pre-existing by stashing this change and reproducing on the baseline;
+filed as **T-542**.
+
+## Still to do — the acceptance check is live, not automated
+
+"Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends." That needs a real turn
+in a real session and has **not** been done. The tests prove the wiring; they
+cannot tell me it reads at a glance, which is the entire point of the feature.
+
+Live check done (2026-08-09). Confirmed in the running app: the rain thickens while a turn runs and thins when it ends, and the counter runs from the stamped start and clears rather than freezing. Verdict: ''reads right''.
+
+Two aesthetic corrections came out of the live look, both landed here since they only became visible with real weather behind the face:
+
+**The face sat too low.** The bottom cue is anchored to the bottom edge, so the face only balances against it from above — and at 112px the old anchor left 34px of air above the eyes against 15px below, bottom-heavy against a cue that weighs almost nothing. Raised ~10px (0.30 to 0.21 of the height, proportional so it survives a height change); the gaps are now about 24px each.
+
+**Moving the face meant moving the composition, not the glyphs.** The vignette was still anchored at a fixed 0.47 of the height, so raising the face left the pool of darkness sitting below it — the thing the vignette exists to do (hold the face apart from the rain) was now happening under the face''s chin. Both now derive from one named factor, so they cannot drift apart again.
+
+Full suite 8 + 4187 + 50.', 'in_progress', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 13:36:48.002', NULL, '16ae6dfb754d41a2f4999079f37cc92d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZDXYNZ7ND17G1BFM0G26W', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B3: Strip renders session load — rain density + elapsed counter', 'Make the strip show the weather. Blocked by **T-537** (the input must exist) and
+**T-538** (something must publish it).
+
+## What lands
+
+- `ClideStripHost` subscribes to `companion.load` alongside the state it already
+  follows, and passes the load through to `ClideFace`.
+- The `[ Ns ]` counter runs from the stamped turn start. It is main-session
+  information and belongs to the ambient layer with the rain, not to the face
+  (D-107 commitment 5) — it is already drawn in the bottom cue slot, so this is
+  wiring, not layout.
+
+**This is the first time the strip carries real information.** Until now it has
+rendered `idle` forever regardless of what the session was doing; after this the
+rain thickens when the session is working and the counter says how long.
+
+## Watch for
+
+- Seed from the store, then follow the bus — the bus has no retention, so a
+  subscriber alone shows the default until something happens to change. Same
+  shape as `CompanionStateBuilder`; probably the same widget grows a second
+  channel rather than a second builder wrapping the first.
+- The counter must not tick from the widget''s own clock. It renders elapsed from
+  a start instant; the widget does not time turns (the T-521 contract).
+- A turn that ends must clear it, not freeze it at the last value.
+
+## Done when
+
+Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends. That is a `make run`
+check, not only a test — the point of the feature is that it reads at a glance.
+
+Done (2026-08-09) — automated half. **The live check is still outstanding; see
+the bottom.**
+
+## Shipped
+
+`CompanionStateBuilder` grew a second channel rather than being wrapped in
+another builder, as the ticket suggested: it now carries `load` and `busySince`
+alongside enabled/open, so the strip and the rail toggle still cannot disagree.
+`ClideStripHost` passes the load to `ClideFace` and turns the stamped instant
+into a running counter.
+
+## Two things the ticket did not anticipate
+
+**Seeding was impossible, so it asks instead.** The ticket says "seed from the
+store, then follow the bus" — but load is not a preference, so there is nothing
+to seed from, and `main.dart` activates extensions at line 636 and calls
+`runApp` at 649. The adapter''s opening announcement is therefore *always*
+published before any widget exists. Added a `companion.load.ask` channel: a
+renderer asks on mount and the adapter answers. That is the same request/announce
+grammar as `companion.set` / `companion.state`, and it also gives T-529''s CLI
+verbs a way to read the current load.
+
+Pre-answer default is `SessionLoad.absent` rather than something livelier —
+park-by-default is the safer bias for a surface whose power behaviour is a
+contract (D-107 commitment 4), and the answer arrives within a microtask.
+
+**The counter was gated on the wrong layer.** `FaceSpec.elapsed` made the `[ Ns ]`
+counter a property of the *face*, so under the D-107 split it would never have
+appeared — Clide sits at `idle` until Epic D. Gated on `busyFor != null` now, and
+`FaceSpec.elapsed` is deleted. It shares the bottom cue slot with the idle clock
+and wins while a turn runs: how long something has been going is more useful than
+the time of day.
+
+## Who ticks the counter
+
+The widget still does not time turns (the T-521 contract): the instant comes from
+the adapter, which stamped it. The *ticking* is the host''s — one tick a second,
+and only while a turn is running. Seconds are the counter''s granularity so
+anything faster is redraws nobody can read; while busy the face is already
+animating at frame rate so it costs nothing measurable; while idle there is no
+timer at all, which is what keeps it clear of the power ladder.
+
+A turn ending clears the counter rather than freezing it — a stopped counter left
+on screen reads as a turn still running.
+
+## Tests
+
+9 in `strip_load_test.dart`: load reaches the face, idle announces `calm` (only
+the pre-answer default is `absent`), mounting asks, the counter runs from the
+stamped start rather than from when the widget noticed (asserted with a start a
+minute in the past — a widget that restarted its own clock would report zero),
+clears on turn end, advances mid-turn, and leaves no timer behind.
+
+Suite: 8 + 4184 + 50, with one **pre-existing** failure unrelated to this work —
+`clide_cli_e2e_test` times out because the CLI itself hangs on a stale socket.
+Confirmed pre-existing by stashing this change and reproducing on the baseline;
+filed as **T-542**.
+
+## Still to do — the acceptance check is live, not automated
+
+"Driving a long tool run in the running app visibly thickens the rain and starts
+the counter, and both return to idle when the turn ends." That needs a real turn
+in a real session and has **not** been done. The tests prove the wiring; they
+cannot tell me it reads at a glance, which is the entire point of the feature.
+
+Live check done (2026-08-09). Confirmed in the running app: the rain thickens while a turn runs and thins when it ends, and the counter runs from the stamped start and clears rather than freezing. Verdict: ''reads right''.
+
+Two aesthetic corrections came out of the live look, both landed here since they only became visible with real weather behind the face:
+
+**The face sat too low.** The bottom cue is anchored to the bottom edge, so the face only balances against it from above — and at 112px the old anchor left 34px of air above the eyes against 15px below, bottom-heavy against a cue that weighs almost nothing. Raised ~10px (0.30 to 0.21 of the height, proportional so it survives a height change); the gaps are now about 24px each.
+
+**Moving the face meant moving the composition, not the glyphs.** The vignette was still anchored at a fixed 0.47 of the height, so raising the face left the pool of darkness sitting below it — the thing the vignette exists to do (hold the face apart from the rain) was now happening under the face''s chin. Both now derive from one named factor, so they cannot drift apart again.
+
+Full suite 8 + 4187 + 50.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 13:36:53.661', NULL, 'b13781066650d83d7c2866b8fdb226c3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
