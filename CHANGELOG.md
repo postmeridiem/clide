@@ -34,7 +34,8 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
 ### Changed
 
 - Clide's rain draws in the theme's code green rather than muted body text, so
-  it reads as falling code instead of dimmed text. (T-535)
+  it reads as falling code instead of dimmed text; his speech bubble takes the
+  same green on its edge. (T-535, T-536)
 
 ### Fixed
 

@@ -118,7 +118,10 @@ class _Bubble extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: tokens.listItemBackground,
-          border: Border.all(color: tokens.dividerColor),
+          // The same green as the rain, so the bubble reads as Clide's rather
+          // than as one more framed panel — a divider-grey edge made it look
+          // like chrome that happened to contain text.
+          border: Border.all(color: tokens.syntaxString),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Padding(
