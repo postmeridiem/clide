@@ -36,10 +36,16 @@ help: ## Show this help.
 # runner in the bundle instead. Recursively expanded on purpose — CLIDE_CLI_BIN
 # is defined further down, and only the `$(...)` reference is a make variable;
 # the `CLIDE_CLI_BIN=` on the left is literal text handed to the shell.
+# Extra flutter arguments for a one-off run, e.g.
+#   make run RUN_ARGS=--dart-define=CLIDE_FACE_CYCLE=true
+# Goes through the make layer rather than a hand-typed flutter invocation, so a
+# choice made once is repeatable and the environment setup above still applies.
+RUN_ARGS ?=
+
 ifeq ($(FLUTTER_OS),linux)
-  FLUTTER_RUN = CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR)
+  FLUTTER_RUN = CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) GDK_BACKEND=x11 LD_LIBRARY_PATH=$(CURDIR)/native/linux-x64$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} flutter run -d linux --dart-define=CLIDE_PROJECT=$(CURDIR) $(RUN_ARGS)
 else
-  FLUTTER_RUN = CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR)
+  FLUTTER_RUN = CLIDE_CLI_BIN=$(CURDIR)/$(CLIDE_CLI_BIN) flutter run -d $(FLUTTER_OS) --dart-define=CLIDE_PROJECT=$(CURDIR) $(RUN_ARGS)
 endif
 
 # Control pipe for a `make run` with no terminal behind it — an agent, a
