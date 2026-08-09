@@ -2,6 +2,8 @@
 /// collapse toggles + bottom icon rails. Split out of app.dart (T-394).
 library;
 
+import 'package:clide/builtin/clide_companion/src/companion_state.dart';
+import 'package:clide/builtin/clide_companion/src/rail_toggle.dart';
 import 'package:clide/extension/src/contribution.dart';
 import 'package:clide/kernel/kernel.dart';
 import 'package:clide/src/shell/slot_host.dart';
@@ -143,14 +145,17 @@ class _BottomRail extends StatelessWidget {
         final tabs = kernel.panels.tabsFor(slot);
         if (tabs.isEmpty) return Container(color: tokens.chromeBackground);
         final activeId = kernel.panels.activeTabIn(slot) ?? tabs.first.id;
-        return Container(
+        final items = [for (final t in tabs) ClideIconRailItem(id: t.id, icon: _iconFor(slot, t), tooltip: resolveTabTitle(ctx, t), iconColor: t.iconColor)];
+
+        Widget rail(List<ClideIconRailToggle> toggles) => Container(
           color: tokens.chromeBackground,
-          child: ClideIconRail(
-            items: [for (final t in tabs) ClideIconRailItem(id: t.id, icon: _iconFor(slot, t), tooltip: resolveTabTitle(ctx, t), iconColor: t.iconColor)],
-            activeId: activeId,
-            onSelect: (id) => kernel.panels.activateTab(slot, id),
-          ),
+          child: ClideIconRail(items: items, activeId: activeId, onSelect: (id) => kernel.panels.activateTab(slot, id), toggles: toggles),
         );
+
+        // Only the context panel's rail carries it — that is the column the
+        // strip shares, so that is where the control for it belongs (T-528).
+        if (slot != Slots.contextPanel) return rail(const []);
+        return CompanionStateBuilder(builder: (ctx, state) => rail([?companionRailToggle(ctx, state)]));
       },
     );
   }

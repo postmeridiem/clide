@@ -7043,3 +7043,574 @@ gate rather than against any session machinery.
 `project.companion.open` already exists and is honoured by the strip host: the
 minimise button''s job is to publish `companion.set {open: false}`. No new key, no
 new wiring — just the affordance.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 03:00:37.055', '2026-08-09 11:34:42.950', NULL, '87a85309d2d33a4410cd426ad68d9542', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C2: Strip collapse affordance + persisted height + grow-to-cap while answering', 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.
+
+Placement resolved (2026-08-09): **the bottom rail, as the last item after the tab icons** — not on the strip. Same icon treatment and same spacing as the tabs, so it reads as the last member of that family; only its behaviour differs. It toggles the strip rather than switching the detail view, and it must survive being minimized, which is the other reason it cannot live on the strip: the control that brings Clide back cannot disappear with him.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:41.007', '2026-08-09 11:37:47.350', NULL, '8872e1f8a93ff9ad9e94cdf734eb1a82', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C2: Strip collapse affordance + persisted height + grow-to-cap while answering', 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.
+
+Placement resolved (2026-08-09): **the bottom rail, as the last item after the tab icons** — not on the strip. Same icon treatment and same spacing as the tabs, so it reads as the last member of that family; only its behaviour differs. It toggles the strip rather than switching the detail view, and it must survive being minimized, which is the other reason it cannot live on the strip: the control that brings Clide back cannot disappear with him.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:41.007', '2026-08-09 11:37:51.924', NULL, '823a03173e675c40e16820da2c295385', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCPG0HVFYJDH8XYTF09BC4M', 'task', '06FY73Z35AYAJQZ4MZMT25DPWC', 'Clide conversation log — durable visual replay of his side', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.', 'backlog', 'high', NULL, NULL, 'D-107', '2026-08-09 11:48:05.902', '2026-08-09 11:48:05.902', NULL, '31aa6dceee24c6faa0fffc8f3f585792', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73ZFJHHB92SAKPKNJGD9XC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic E: Clide direct addressing — input box and answer surface', 'Make Clide addressable: an input box on its surface, and a readable place for the answer.
+This is what turns the companion from decoration into a tool — the driving use case is
+**"what did that mean?"** about what Claude just said, answered right where the work is.
+
+Blocked by Epic C (needs the surface and its internal composition) and Epic D (needs the
+session and the `[direct]` protocol tag).
+
+## Epic''s own first job
+
+1. **Break this epic down** once C and D have landed and their contracts are real.
+2. **Own the cross-epic behaviour** — a direct question changes face state (Epic B), consumes
+   the companion session (Epic D), and occupies surface space (Epic C). Don''t reimplement any
+   of those; extend them, and fold any needed contract changes back into the sibling epic
+   rather than working around it locally.
+
+## Scope
+
+- Input affordance on the Clide surface. Distinct from the Claude composer — it must be
+  visually and behaviourally obvious which one you''re typing into, since the whole point is
+  that they go to different models.
+- Submit → `[direct]` tagged line into the companion session (Epic D''s protocol).
+- Answer rendering. **Shape depends on T-514''s answer-space decision** — fixed height with
+  scroll inside the bubble, grow-to-cap-then-scroll, or take over the panel body.
+- Focus handling: focusing the input should put the face into `listening` (Epic B).
+- Direct questions bypass the notable-events trigger — always answered.
+
+## Design notes
+
+- Interactive controls belong in an interaction zone, not inline in a display surface —
+  the same principle as D-78''s rule for the Claude pane. The bubble stays display-only; the
+  input is its own region.
+- Two-column control pattern and the no-double-edge-padding rule from
+  `.claude/skills/ui-design/references/geometry.md` apply to the input row.
+- Placeholder text is a catalog string (D-21/D-102) and must tolerate ~30% length growth in
+  Dutch. Clide''s *answers* are model output and are not catalog strings.
+- At ultrawide, right-align with `Expanded`, not a `Spacer` fighting a flex sibling — the
+  drift is proportional to width (~1500px adrift at 3440px). See the ultrawide section of the
+  geometry reference.
+
+## Known limitation to surface in the UI
+
+Clide sees prose only — no tool calls, no tool results (Epic D). "What did that tool call
+do?" cannot be answered. Consider whether the empty/placeholder state should set that
+expectation rather than letting the user discover it by getting a bad answer.
+
+## Added by T-514 spike (2026-08-09) — conversation popout
+
+Placement B was chosen, which caps the inline strip at ~2 lines of text at a 1000px context
+panel and ~4 short lines at the 220px minimum. Inline answers therefore grow the strip to a
+capped height (~40% of the column) and collapse back when idle.
+
+That is enough to read one answer. It is not enough to review a session''s worth of them, so
+Epic E also gains an **expand control that opens a conversation popout**:
+
+- A **light version of the conversation view** — not a second full implementation. Reuse
+  what the Claude pane already has where practical rather than forking it.
+- Shows the **full Clide exchange for this session**: his unprompted remarks and your direct
+  questions, interleaved.
+- **Latest first.**
+- **Fetch limit + lazy loading on scroll** — do not materialise the whole history up front.
+- **A text box underneath to talk back**, so the popout is a working surface rather than a
+  read-only log. Same `[direct]` protocol path as the inline input (Epic D).
+- Surfaces **only actually-said things — never tool uses, never injected metadata.** This
+  mirrors the digest boundary Epic D enforces on the way in: Clide never saw tool calls, so
+  the popout must not invent a view containing them.
+
+Open questions for this epic to settle at breakdown:
+
+- Overlay versus takeover of the context body. Overlay preserves the detail view underneath
+  but is new chrome for this repo (focus trap, Esc-to-dismiss, click-away).
+- Whether the popout and the inline strip share one scroll model and one controller, or the
+  popout is a separate surface fed by the same store. Prefer one store, two views.
+- What "session" means when Epic D restarts the companion session at ~50 comments — the
+  popout''s history should almost certainly outlive the underlying model session, which
+  implies the transcript is clide-side state, not a read of the companion process.
+
+That last one is load-bearing and worth resolving early: it decides whether the popout reads
+from a clide-owned store or from the companion session, and the restart behaviour makes the
+store the likelier answer.
+
+Blocked on **T-534** (Clide conversation log), filed 2026-08-09. The popout described here — previous messages this session, latest first, fetch limit, lazy loading on scroll — has nothing to page through today: D-107 spawns the companion with `--no-session-persistence`, so nothing Clide says is recorded anywhere. T-534 gives this epic its data source, and settles where that log may live given D-107''s ''writes nothing to the workspace'' clause.
+
+Note the split the user drew: T-534 is **visual replay only**. It does not resume a session or restore model context — what Clide *remembers* stays a session and prompt concern (T-519, T-532). This epic renders history; it does not reconstruct a mind.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:08.852', '2026-08-09 11:48:15.052', NULL, '5cd8c3f3e3c61cbc6bf23f209d7f2a59', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C2: Strip collapse affordance + persisted height + grow-to-cap while answering', 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.
+
+Placement resolved (2026-08-09): **the bottom rail, as the last item after the tab icons** — not on the strip. Same icon treatment and same spacing as the tabs, so it reads as the last member of that family; only its behaviour differs. It toggles the strip rather than switching the detail view, and it must survive being minimized, which is the other reason it cannot live on the strip: the control that brings Clide back cannot disappear with him.
+
+Done (2026-08-09).
+
+## Shipped
+
+A smiley at the end of the context panel''s bottom rail, drawn exactly like the
+tabs beside it and behaving unlike them. Tapping publishes `companion.set
+{open: …}`; the extension persists and announces; the strip and the button both
+follow the announcement. Neither surface talks to the other, and neither writes
+the preference.
+
+The two halves of "same looks, different UX" landed in different places:
+
+- **Same looks** — `ClideIconRailToggle` reuses the rail''s own `_RailButton`, so
+  spacing, hover, tint and the active underline are the tabs'' by construction
+  rather than by imitation. A restyle of the rail restyles this with it.
+- **Different UX** — the rail''s `activeId` models one selected item, which is
+  right for tabs and wrong here. Toggles are a separate list with their own
+  independent on/off, so two things in the rail can read as "on" at once. That
+  went into `ClideIconRail`, not the call site, as the ticket asked.
+
+## Accessibility is where the difference actually matters
+
+A tab is *selected*; a toggle is *toggled*. Announced as "selected", a screen
+reader would tell someone that turning Clide on had switched away from the
+current detail view. `_RailButton` now takes a `toggle` flag that swaps
+`selected:` for `toggled:` — asserted both ways in the tests, including that a
+tab beside it kept the old role.
+
+## Decisions inside the implementation
+
+- **Disabled hides the button too.** A dead control that only settings can revive
+  is worse than no control, and "off is off for the repo" means the companion
+  leaves no trace in the chrome.
+- **Minimised keeps it.** The control that brings Clide back cannot vanish with
+  him — the reason it could never have lived on the strip.
+- **Not a caret.** `StatusbarCollapseToggle` is two controls away and collapses
+  the whole panel; a face reads as *Clide* rather than as a second hide button.
+- **Context panel only.** `_BottomRail` also serves the sidebar; the toggle is
+  gated to the column the strip shares.
+
+## Scope changes
+
+The **persisted height** half is gone, per the amended design: with two states
+there is no height to remember. `project.companion.open` (from T-527) carries the
+state and is per repo, so a workspace reopens as it was left. Grow-to-cap while
+answering stays with Epic E.
+
+Seed-plus-bus was extracted to `CompanionStateBuilder` — there are now two
+consumers on opposite sides of the window and they must never disagree about
+whether Clide is open.
+
+## Not done here, deliberately
+
+**Minimising does not yet pause ingest.** The ticket''s semantics — a minimised
+period is conversation Clide genuinely did not see — need a session to pause, and
+Epic D has none yet. `companion.state` already carries `open`, so T-519 has
+everything it needs to honour it; this is a wiring gap, not a design one, and it
+is noted there.
+
+## Tests
+
+8 widget: placement after the tabs, hidden when disabled, present when minimised,
+tap publishes without writing, follows announcements both ways, disappears on a
+disable announcement, and two a11y assertions covering the toggle/tab role split.
+Full suite 8 + 4163 + 50.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:41.007', '2026-08-09 11:54:01.103', NULL, 'e681f2f6cfc63184cc65a29b00b1b118', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'epic', '06FY73V6EVHP32P31NQRJCP104', 'Epic D: Clide companion session + observed/direct protocol', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-08 22:48:05.674', '2026-08-09 11:54:10.432', NULL, '1463794ae98e9e9ea0fb7a1411d8a651', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'task', '06FY73YPCJVWBXD9YF1JKZEK2W', 'C2: Strip collapse affordance + persisted height + grow-to-cap while answering', 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.
+
+Placement resolved (2026-08-09): **the bottom rail, as the last item after the tab icons** — not on the strip. Same icon treatment and same spacing as the tabs, so it reads as the last member of that family; only its behaviour differs. It toggles the strip rather than switching the detail view, and it must survive being minimized, which is the other reason it cannot live on the strip: the control that brings Clide back cannot disappear with him.
+
+Done (2026-08-09).
+
+## Shipped
+
+A smiley at the end of the context panel''s bottom rail, drawn exactly like the
+tabs beside it and behaving unlike them. Tapping publishes `companion.set
+{open: …}`; the extension persists and announces; the strip and the button both
+follow the announcement. Neither surface talks to the other, and neither writes
+the preference.
+
+The two halves of "same looks, different UX" landed in different places:
+
+- **Same looks** — `ClideIconRailToggle` reuses the rail''s own `_RailButton`, so
+  spacing, hover, tint and the active underline are the tabs'' by construction
+  rather than by imitation. A restyle of the rail restyles this with it.
+- **Different UX** — the rail''s `activeId` models one selected item, which is
+  right for tabs and wrong here. Toggles are a separate list with their own
+  independent on/off, so two things in the rail can read as "on" at once. That
+  went into `ClideIconRail`, not the call site, as the ticket asked.
+
+## Accessibility is where the difference actually matters
+
+A tab is *selected*; a toggle is *toggled*. Announced as "selected", a screen
+reader would tell someone that turning Clide on had switched away from the
+current detail view. `_RailButton` now takes a `toggle` flag that swaps
+`selected:` for `toggled:` — asserted both ways in the tests, including that a
+tab beside it kept the old role.
+
+## Decisions inside the implementation
+
+- **Disabled hides the button too.** A dead control that only settings can revive
+  is worse than no control, and "off is off for the repo" means the companion
+  leaves no trace in the chrome.
+- **Minimised keeps it.** The control that brings Clide back cannot vanish with
+  him — the reason it could never have lived on the strip.
+- **Not a caret.** `StatusbarCollapseToggle` is two controls away and collapses
+  the whole panel; a face reads as *Clide* rather than as a second hide button.
+- **Context panel only.** `_BottomRail` also serves the sidebar; the toggle is
+  gated to the column the strip shares.
+
+## Scope changes
+
+The **persisted height** half is gone, per the amended design: with two states
+there is no height to remember. `project.companion.open` (from T-527) carries the
+state and is per repo, so a workspace reopens as it was left. Grow-to-cap while
+answering stays with Epic E.
+
+Seed-plus-bus was extracted to `CompanionStateBuilder` — there are now two
+consumers on opposite sides of the window and they must never disagree about
+whether Clide is open.
+
+## Not done here, deliberately
+
+**Minimising does not yet pause ingest.** The ticket''s semantics — a minimised
+period is conversation Clide genuinely did not see — need a session to pause, and
+Epic D has none yet. `companion.state` already carries `open`, so T-519 has
+everything it needs to honour it; this is a wiring gap, not a design one, and it
+is noted there.
+
+## Tests
+
+8 widget: placement after the tabs, hidden when disabled, present when minimised,
+tap publishes without writing, follows announcements both ways, disappears on a
+disable announcement, and two a11y assertions covering the toggle/tab role split.
+Full suite 8 + 4163 + 50.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 03:00:41.007', '2026-08-09 11:54:13.986', NULL, 'ad1045704d62f2ddadb16fa9cb579e94', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

@@ -27,6 +27,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   repository, tunes how often it speaks, and suspends it while the window is
   minimised. Off removes it entirely — no session, no strip. (D-107, T-527)
 
+- **Minimise Clide.** A toggle at the end of the context panel's bottom rail
+  hides the strip and gives the detail view its height back; the state persists
+  per repository. (T-528)
+
 ### Changed
 
 ### Fixed

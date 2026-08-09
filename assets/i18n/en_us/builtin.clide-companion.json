@@ -13,6 +13,8 @@
   "settings.section.power": { "translation": "Power" },
   "settings.field.suspend.label": { "translation": "Suspend while the window is minimised" },
   "settings.field.suspend.help": { "translation": "Stops the animation and tears the session down while you are not looking at it." },
+  "rail.minimise": { "translation": "Minimise Clide" },
+  "rail.restore": { "translation": "Show Clide" },
   "face.semantics.idle": { "translation": "Clide is idle" },
   "face.semantics.listening": { "translation": "Clide is listening" },
   "face.semantics.thinking": { "translation": "Clide is thinking" },

@@ -16,12 +16,40 @@ class ClideIconRailItem {
   final Color? iconColor;
 }
 
+/// A trailing rail entry that is **not a tab**: it carries its own on/off state
+/// and toggles something instead of selecting a view (T-528).
+///
+/// The rail's [ClideIconRail.activeId] models exactly one selected item, which
+/// is right for tabs and wrong for this — a toggle is on or off independently of
+/// which view is showing, so two things in the rail can read as "on" at once.
+///
+/// Drawn identically to a tab on purpose. It sits at the end of the same rail
+/// and should read as the last member of that family; only its behaviour
+/// differs.
+class ClideIconRailToggle {
+  const ClideIconRailToggle({required this.id, required this.icon, required this.tooltip, required this.on, required this.onToggle, this.iconColor});
+
+  final String id;
+  final ClideIconPainter icon;
+
+  /// Should describe the *action*, since the state is already conveyed by the
+  /// button's appearance and by its `toggled` semantics.
+  final String tooltip;
+
+  final bool on;
+  final ValueChanged<bool> onToggle;
+  final Color? iconColor;
+}
+
 class ClideIconRail extends StatelessWidget {
-  const ClideIconRail({super.key, required this.items, required this.activeId, required this.onSelect});
+  const ClideIconRail({super.key, required this.items, required this.activeId, required this.onSelect, this.toggles = const []});
 
   final List<ClideIconRailItem> items;
   final String? activeId;
   final ValueChanged<String> onSelect;
+
+  /// Non-tab entries rendered after [items]. See [ClideIconRailToggle].
+  final List<ClideIconRailToggle> toggles;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +66,16 @@ class ClideIconRail extends StatelessWidget {
             constraints: BoxConstraints(minWidth: minWidth),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [for (final item in items) _RailButton(item: item, active: item.id == activeId, onTap: () => onSelect(item.id))],
+              children: [
+                for (final item in items) _RailButton(item: item, active: item.id == activeId, onTap: () => onSelect(item.id)),
+                for (final t in toggles)
+                  _RailButton(
+                    item: ClideIconRailItem(id: t.id, icon: t.icon, tooltip: t.tooltip, iconColor: t.iconColor),
+                    active: t.on,
+                    toggle: true,
+                    onTap: () => t.onToggle(!t.on),
+                  ),
+              ],
             ),
           ),
         );
@@ -48,18 +85,26 @@ class ClideIconRail extends StatelessWidget {
 }
 
 class _RailButton extends StatelessWidget {
-  const _RailButton({required this.item, required this.active, required this.onTap});
+  const _RailButton({required this.item, required this.active, required this.onTap, this.toggle = false});
 
   final ClideIconRailItem item;
   final bool active;
   final VoidCallback onTap;
+
+  /// Changes only what a screen reader is told (D-20). A tab is *selected* —
+  /// one of a set, and picking it deselects its neighbour. A toggle is
+  /// *toggled* — on or off, independently of everything beside it. Announcing
+  /// the second as the first would tell a reader that turning Clide on had
+  /// switched away from the current view.
+  final bool toggle;
 
   @override
   Widget build(BuildContext context) {
     final tokens = ClideSettings.theme.of(context).surface;
     return Semantics(
       button: true,
-      selected: active,
+      selected: toggle ? null : active,
+      toggled: toggle ? active : null,
       label: item.tooltip,
       child: ClideTappable(
         onTap: onTap,

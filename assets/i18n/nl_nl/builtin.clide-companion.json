@@ -13,6 +13,8 @@
   "settings.section.power": { "translation": "Energie" },
   "settings.field.suspend.label": { "translation": "Pauzeren zolang het venster geminimaliseerd is" },
   "settings.field.suspend.help": { "translation": "Stopt de animatie en breekt de sessie af zolang je er niet naar kijkt." },
+  "rail.minimise": { "translation": "Clide minimaliseren" },
+  "rail.restore": { "translation": "Clide tonen" },
   "face.semantics.idle": { "translation": "Clide doet niets" },
   "face.semantics.listening": { "translation": "Clide luistert" },
   "face.semantics.thinking": { "translation": "Clide denkt na" },
