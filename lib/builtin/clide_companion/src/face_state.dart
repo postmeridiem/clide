@@ -77,7 +77,7 @@ class FaceSpec {
   const FaceSpec({
     required this.eyes,
     required this.mouth,
-    required this.rainStreams,
+    required this.rainDensity,
     required this.rainSpeed,
     this.blink = false,
     this.thoughtDots = false,
@@ -119,9 +119,19 @@ class FaceSpec {
   /// `HH:MM` under the face.
   final bool clock;
 
-  /// Number of concurrent rain streams. **This is the load signal** — the thing
-  /// that tells you at a glance whether the session is idle or grinding.
-  final int rainStreams;
+  /// Concurrent rain streams **as a fraction of the grid's column count**.
+  /// `1.0` is one stream per column on average. **This is the load signal** —
+  /// the thing that tells you at a glance whether the session is idle or
+  /// grinding.
+  ///
+  /// A fraction, not a count, because the strip is resizable: the context panel
+  /// runs 220–1000px, which is 33 to 151 columns. DeskLock could use an absolute
+  /// because its display was a fixed 800×800; here the same absolute reads as
+  /// two different states at the two ends of the drag range (T-533).
+  final double rainDensity;
+
+  /// Streams for a grid [columns] wide.
+  int streamsFor(int columns) => (columns * rainDensity).round();
 
   /// Rain fall speed, cells per second.
   final double rainSpeed;
@@ -130,15 +140,18 @@ class FaceSpec {
   final double opacity;
 }
 
-const _idle = FaceSpec(eyes: '-   -', mouth: r'\_/', blink: true, clock: true, rainStreams: 2, rainSpeed: 4);
+// Densities are fractions of the column count, with `effort` at 1.0 — one stream
+// per column — and the rest holding the ratios to it that DeskLock's absolutes
+// established. Settled against rendered ladders at 420px and 1000px (T-533).
+const _idle = FaceSpec(eyes: '-   -', mouth: r'\_/', blink: true, clock: true, rainDensity: 0.05, rainSpeed: 4);
 
-const _listening = FaceSpec(eyes: 'O   O', mouth: 'o', blink: true, rainStreams: 16, rainSpeed: 7);
+const _listening = FaceSpec(eyes: 'O   O', mouth: 'o', blink: true, rainDensity: 0.40, rainSpeed: 7);
 
-const _pensive = FaceSpec(eyes: '·   ·', mouth: '~', thoughtDots: true, rainStreams: 7, rainSpeed: 5);
+const _pensive = FaceSpec(eyes: '·   ·', mouth: '~', thoughtDots: true, rainDensity: 0.18, rainSpeed: 5);
 
-const _effort = FaceSpec(eyes: '>   <', mouth: '~', jitter: true, elapsed: true, rainStreams: 40, rainSpeed: 16);
+const _effort = FaceSpec(eyes: '>   <', mouth: '~', jitter: true, elapsed: true, rainDensity: 1.0, rainSpeed: 16);
 
-const _speaking = FaceSpec(eyes: '^   ^', mouth: 'o', blink: true, talkCycle: true, rainStreams: 14, rainSpeed: 9);
+const _speaking = FaceSpec(eyes: '^   ^', mouth: 'o', blink: true, talkCycle: true, rainDensity: 0.35, rainSpeed: 9);
 
 /// Brows down, hard flat mouth, agitated.
 ///
@@ -147,10 +160,10 @@ const _speaking = FaceSpec(eyes: '^   ^', mouth: 'o', blink: true, talkCycle: tr
 /// are absent from both bundled monospace fonts, and rendering whole lines
 /// through the eye slot would need a second render path for the least-seen
 /// state. The scowl reuses the ordinary grammar; [jitter] carries the agitation.
-const _rage = FaceSpec(eyes: '▼   ▼', mouth: '━', jitter: true, rainStreams: 34, rainSpeed: 20);
+const _rage = FaceSpec(eyes: '▼   ▼', mouth: '━', jitter: true, rainDensity: 0.85, rainSpeed: 20);
 
 /// Rain stops completely — the visible half of the power-ladder contract.
-const _error = FaceSpec(eyes: 'x   x', mouth: '-', rainStreams: 0, rainSpeed: 0, opacity: 0.45);
+const _error = FaceSpec(eyes: 'x   x', mouth: '-', rainDensity: 0, rainSpeed: 0, opacity: 0.45);
 
 /// The drawing recipe for [state].
 FaceSpec specFor(FaceState state) => switch (state) {

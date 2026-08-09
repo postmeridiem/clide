@@ -4568,3 +4568,476 @@ Not fixed — **deleted**. The arc encodes ''something is happening''; the rain 
 `FaceSpec.orbit`, `_paintOrbit` and `_orbitPeriod` are gone rather than defaulted off, so there is no dormant flag to re-enable by accident. The honest-wait requirement is still met by dense rain + jitter + the `[ Ns ]` counter — the counter stays because it says something the rain cannot: how long.', NULL, '2026-08-09 08:56:10', '2026-08-09 08:56:10.296', '2026-08-09 08:56:10.296', NULL, '3ff03470f0c19ba271193386ccb34088', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XR4APSKWH94DNG00B51J4', 'status', 'in_progress', 'done', NULL, '2026-08-09 08:56:14', '2026-08-09 08:56:14.044', '2026-08-09 08:56:14.044', NULL, '49cc2d67dd2d6404f37e21bcd6ca9a15', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY94EJJA4BFKCM729AVDY4V8', 'status', 'backlog', 'done', NULL, '2026-08-09 08:56:14', '2026-08-09 08:56:14.051', '2026-08-09 08:56:14.051', NULL, '4812307d4edb525f13f9716e09ad7cd3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'description', NULL, 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.', NULL, '2026-08-09 09:22:24', '2026-08-09 09:22:24.799', '2026-08-09 09:22:24.799', NULL, '2a3a03f2eb9a583ae9d61cda6e7ea590', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'description', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.', NULL, '2026-08-09 09:22:27', '2026-08-09 09:22:27.836', '2026-08-09 09:22:27.836', NULL, 'c67ff0c9d6158a23596cd95b93b0ddb3', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY8XS3NW0XJA256CB6BJ21BM', 'description', 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.', 'Minimize design settled with the product owner (2026-08-09), live against the
+running app. This narrows the ticket — read it as amending the original scope.
+
+## Minimize is binary, not a collapse
+
+**Gone entirely.** The strip''s height goes to zero and the detail view reclaims
+all 112px. No spine, no sliver, no face-only rung. The 112px is taken from every
+ticket, decision, file and graph view in the column, so the affordance that gives
+it back should give *all* of it back.
+
+This deletes the "persisted height" half of the original scope: with only two
+states there is no height to remember. Grow-to-cap while answering (Epic E) still
+stands and is unaffected.
+
+## Affordance: a non-tab button in the bottom rail
+
+The control lives in `_BottomRail` (`layout.dart:96`) — the `ClideIconRail` of
+context-panel tabs that sits in the statusbar row under the context column — as a
+trailing item after the tab icons.
+
+It is **not a tab**: clicking it does not change which detail view is showing.
+The rail today models exactly one active item (`activeId`), so this needs a
+second, independent on/off state — two items in that rail can read as "on" at
+once. That is a change to `ClideIconRail`, not a workaround at the call site.
+
+Note the collision risk: `StatusbarCollapseToggle` sits immediately to the right
+of this rail and collapses the *whole* context panel. Two adjacent controls that
+both look like "hide something" is the failure mode to design against — the
+Clide button should not be a caret.
+
+## Minimize is not just visual — it detaches him
+
+Minimizing **pauses the companion session**, and the digest stops. Clide only
+receives prompts from the orchestrator while the strip is open, so a minimized
+period is conversation he genuinely did not see. That is the intended semantics,
+not a limitation to paper over: it is also the honest privacy story (nothing is
+sent to a second model while he is closed) and the cheapest possible power rung.
+
+Consequence for Epic B''s power ladder: minimized is a stronger rung than
+`night` — `night` stops rendering, this stops *ingest*.
+
+The re-attach notice ("you were away for N minutes") is T-532''s, and is worth
+trying rather than assuming: a companion who knows he was gone may be better
+company than one with a silent hole in his memory.
+
+Placement resolved (2026-08-09): **the bottom rail, as the last item after the tab icons** — not on the strip. Same icon treatment and same spacing as the tabs, so it reads as the last member of that family; only its behaviour differs. It toggles the strip rather than switching the detail view, and it must survive being minimized, which is the other reason it cannot live on the strip: the control that brings Clide back cannot disappear with him.', NULL, '2026-08-09 09:24:54', '2026-08-09 09:24:54.266', '2026-08-09 09:24:54.266', NULL, 'c19f1c4f4bef7db78f289dc9e1edd213', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBSP0GRXMFWTTHQ344YCGC4', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 09:42:15', '2026-08-09 09:42:15.881', '2026-08-09 09:42:15.881', NULL, 'eb979feaed780b2679dea8b5502f9160', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBSP0GRXMFWTTHQ344YCGC4', 'description', 'Settled with the product owner on 2026-08-09 against rendered ladders, after the
+strip landed (T-526) and the rain read as "a bit low" in the running app.
+
+Two defects, one symptom. Neither is a count problem, which is what it looked
+like from inside the app.
+
+## 1. A stream was a dash, not a stream
+
+`RainField` drew a head plus exactly **one** dim trail cell. On the strip''s 8-row
+grid that is a two-glyph dash, and a field of dashes reads as scatter at any
+density — rendering ladders at 40, 76, 113, 151 and 227 streams all read as
+confetti, just more of it. Nothing looked like it was falling.
+
+Fix: `trailLength` (default **6**) with a graded fade. `RainCell.leading` (bool)
+becomes `RainCell.intensity` (0..1) — a two-tone stream cannot convey direction,
+and direction is the whole point. The painter owns intensity → alpha (curved at
+1.7 so the head stays clearly brightest); the field stays pure geometry.
+
+Six is near the geometric ceiling here: at trail 9 the trail is longer than the
+grid is tall, so streams spend most of their life off-grid and the *on-screen*
+cell count goes **down** (147 vs 165). Measured, not guessed.
+
+Trails alone tripled the ink at unchanged count — 46 cells → 165.
+
+## 2. Density was an absolute, on a resizable panel
+
+`rainStreams` was a fixed count inherited from DeskLock''s 800x800 display. The
+context panel runs 220-1000px, i.e. **33 to 151 columns**, so 40 streams was 63%
+column occupancy at the default width and 26% at the wide end. The same state
+looked like two different states depending on panel width.
+
+Fix: `rainStreams` (int) becomes `rainDensity` (double), a fraction of the live
+column count. `effort` = **1.00 x columns**; the other rungs keep today''s ratios
+to it, so the approved ladder is preserved while every rung is cranked:
+
+| state | density | @420 (63 col) | @1000 (151 col) | was |
+|---|---|---|---|---|
+| idle | 0.05 | 3 | 8 | 2 |
+| pensive | 0.18 | 11 | 26 | 7 |
+| speaking | 0.35 | 22 | 53 | 14 |
+| listening | 0.40 | 25 | 60 | 16 |
+| rage | 0.85 | 54 | 128 | 34 |
+| effort | 1.00 | 63 | 151 | 40 |
+
+## Cost
+
+Measured with `tmp/rain_budget_probe.dart` (real font metrics — cell 6.60x15.00,
+so 63 columns at 420px and 151 at 1000px, 8 rows either way). tick + paint into a
+recorder, mean over 400 frames:
+
+| streams | cells | per frame | % of 16.7ms |
+|---|---|---|---|
+| 40 | 48 | 46us | 0.3% |
+| 120 | 158 | 100us | 0.6% |
+| 400 | 481 | 257us | 1.5% |
+| 600 | 740 | 372us | 2.2% |
+
+Linear at ~0.65us per drawn cell, no cliff, and width-independent. The new top
+rung draws ~430 cells at 1000px — roughly 1.4% of a frame. Performance was never
+the constraint; the constraint is legibility of the face and bubble underneath.
+
+## Incidental fixes
+
+- `_paintRain` iterated `field.cells` **twice** per frame (once per head/trail
+  pass), re-running the generator and its per-cell allocation. The field now
+  yields each stream tail-first, so one pass gives correct z-order.
+- Trail alpha is quantised to 1/32. The glyph cache keys on colour, so a
+  continuous alpha ramp would mint a new cached paragraph per cell and evict the
+  512-entry cache every frame.
+
+## Scope
+
+Amends T-521 (`FaceSpec`), T-522 (`RainField`) and T-524 (painter). Goldens
+regenerate.', 'Settled with the product owner on 2026-08-09 against rendered ladders, after the
+strip landed (T-526) and the rain read as "a bit low" in the running app.
+
+Two defects, one symptom. Neither is a count problem, which is what it looked
+like from inside the app.
+
+## 1. A stream was a dash, not a stream
+
+`RainField` drew a head plus exactly **one** dim trail cell. On the strip''s 8-row
+grid that is a two-glyph dash, and a field of dashes reads as scatter at any
+density — rendering ladders at 40, 76, 113, 151 and 227 streams all read as
+confetti, just more of it. Nothing looked like it was falling.
+
+Fix: `trailLength` (default **6**) with a graded fade. `RainCell.leading` (bool)
+becomes `RainCell.intensity` (0..1) — a two-tone stream cannot convey direction,
+and direction is the whole point. The painter owns intensity → alpha (curved at
+1.7 so the head stays clearly brightest); the field stays pure geometry.
+
+Six is near the geometric ceiling here: at trail 9 the trail is longer than the
+grid is tall, so streams spend most of their life off-grid and the *on-screen*
+cell count goes **down** (147 vs 165). Measured, not guessed.
+
+Trails alone tripled the ink at unchanged count — 46 cells → 165.
+
+## 2. Density was an absolute, on a resizable panel
+
+`rainStreams` was a fixed count inherited from DeskLock''s 800x800 display. The
+context panel runs 220-1000px, i.e. **33 to 151 columns**, so 40 streams was 63%
+column occupancy at the default width and 26% at the wide end. The same state
+looked like two different states depending on panel width.
+
+Fix: `rainStreams` (int) becomes `rainDensity` (double), a fraction of the live
+column count. `effort` = **1.00 x columns**; the other rungs keep today''s ratios
+to it, so the approved ladder is preserved while every rung is cranked:
+
+| state | density | @420 (63 col) | @1000 (151 col) | was |
+|---|---|---|---|---|
+| idle | 0.05 | 3 | 8 | 2 |
+| pensive | 0.18 | 11 | 26 | 7 |
+| speaking | 0.35 | 22 | 53 | 14 |
+| listening | 0.40 | 25 | 60 | 16 |
+| rage | 0.85 | 54 | 128 | 34 |
+| effort | 1.00 | 63 | 151 | 40 |
+
+## Cost
+
+Measured with `tmp/rain_budget_probe.dart` (real font metrics — cell 6.60x15.00,
+so 63 columns at 420px and 151 at 1000px, 8 rows either way). tick + paint into a
+recorder, mean over 400 frames:
+
+| streams | cells | per frame | % of 16.7ms |
+|---|---|---|---|
+| 40 | 48 | 46us | 0.3% |
+| 120 | 158 | 100us | 0.6% |
+| 400 | 481 | 257us | 1.5% |
+| 600 | 740 | 372us | 2.2% |
+
+Linear at ~0.65us per drawn cell, no cliff, and width-independent. The new top
+rung draws ~430 cells at 1000px — roughly 1.4% of a frame. Performance was never
+the constraint; the constraint is legibility of the face and bubble underneath.
+
+## Incidental fixes
+
+- `_paintRain` iterated `field.cells` **twice** per frame (once per head/trail
+  pass), re-running the generator and its per-cell allocation. The field now
+  yields each stream tail-first, so one pass gives correct z-order.
+- Trail alpha is quantised to 1/32. The glyph cache keys on colour, so a
+  continuous alpha ramp would mint a new cached paragraph per cell and evict the
+  512-entry cache every frame.
+
+## Scope
+
+Amends T-521 (`FaceSpec`), T-522 (`RainField`) and T-524 (painter). Goldens
+regenerate.
+
+Cost re-measured at the settled trail 6 (the table above was taken at trail 1, before the trail change, and understates the per-stream cost roughly 2.5x). At 1000x112, 151 columns:
+
+| streams | cells | per frame | % of 16.7ms |
+|---|---|---|---|
+| 40 | 103 | 82us | 0.5% |
+| 120 | 354 | 230us | 1.4% |
+| 200 | 570 | 391us | 2.3% |
+| 400 | 1223 | 720us | 4.3% |
+| 600 | 1790 | 1073us | 6.4% |
+
+The shipped top rung — effort at 1.00 x columns, so 151 streams at the widest — lands around 440 cells and ~290us, **~1.7% of a frame**. Still linear at ~0.6us per drawn cell.
+
+Worth recording for whoever raises this next: with trail 6 the old headroom is gone. 600 streams was 2.2% at trail 1 and is 6.4% now. The budget is spent on cells, and trail length multiplies cells per stream — so the two dials are not independent, and a future ''just crank the count'' needs re-measuring rather than reading the trail-1 table.', NULL, '2026-08-09 09:54:17', '2026-08-09 09:54:17.669', '2026-08-09 09:54:17.669', NULL, 'ef3b03fa67558f6a1e6bc85507883e99', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYBSP0GRXMFWTTHQ344YCGC4', 'status', 'in_progress', 'done', NULL, '2026-08-09 09:54:26', '2026-08-09 09:54:26.314', '2026-08-09 09:54:26.314', NULL, '876164cb335daed1e34581eeea8ba784', 2) ON CONFLICT(hash) DO NOTHING;

@@ -133,21 +133,30 @@ class ClideFacePainter extends CustomPainter {
     final cell = cache.metrics(fontSize: rainFontSize, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
     if (cell.width <= 0 || cell.height <= 0) return;
 
-    // Trail first, heads second, so a head always reads over its own trail.
-    for (final leading in const [false, true]) {
-      final color = tokens.globalTextMuted.withValues(alpha: leading ? 0.85 : 0.25);
-      for (final c in field.cells) {
-        if (c.leading != leading) continue;
-        final p = cache.paragraph(
-          kRainGlyphs[c.glyphIndex],
-          color: color,
-          fontSize: rainFontSize,
-          fontFamily: fontFamily,
-          fontFamilyFallback: fontFamilyFallback,
-        );
-        canvas.drawParagraph(p, Offset(c.column * cell.width, c.row * cell.height));
-      }
+    // One pass: the field yields each stream tail-first, so a head already
+    // paints over its own trail. The old two-pass split re-ran the `cells`
+    // generator — and its per-cell allocation — twice per frame.
+    for (final c in field.cells) {
+      final p = cache.paragraph(
+        kRainGlyphs[c.glyphIndex],
+        // Quantised so the glyph cache sees a handful of colours rather than a
+        // new one per cell; keys include the colour, and an unbounded palette
+        // would evict the whole cache every frame.
+        color: tokens.globalTextMuted.withValues(alpha: _trailAlpha(c.intensity)),
+        fontSize: rainFontSize,
+        fontFamily: fontFamily,
+        fontFamilyFallback: fontFamilyFallback,
+      );
+      canvas.drawParagraph(p, Offset(c.column * cell.width, c.row * cell.height));
     }
+  }
+
+  /// Intensity → alpha. Curved rather than linear so the head stays clearly the
+  /// brightest thing and the tail falls away quickly, which is what gives the
+  /// stream a direction.
+  static double _trailAlpha(double intensity) {
+    final a = 0.85 * math.pow(intensity.clamp(0.0, 1.0), 1.7);
+    return (a * 32).round() / 32;
   }
 
   /// Radial darkening behind the face. At 40 streams this is load-bearing, not

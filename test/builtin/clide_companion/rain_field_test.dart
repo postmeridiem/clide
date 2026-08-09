@@ -168,7 +168,7 @@ void main() {
       final f = _field();
       _run(f, seconds: 120, target: 40, speed: 16);
       expect(f.streamCount, 40, reason: 'streams accumulated: ${f.streamCount}');
-      expect(f.cells.length, lessThanOrEqualTo(80), reason: 'cells accumulated: ${f.cells.length}');
+      expect(f.cells.length, lessThanOrEqualTo(40 * (f.trailLength + 1)), reason: 'cells accumulated: ${f.cells.length}');
     });
 
     test('no cell is ever drawn outside the grid', () {
@@ -184,11 +184,33 @@ void main() {
       }
     });
 
-    test('each stream contributes at most a head and one trail cell', () {
+    test('each stream contributes at most a head and its trail', () {
       final f = _field();
       _run(f, seconds: 4, target: 40, speed: 16);
       expect(f.cells.where((c) => c.leading).length, lessThanOrEqualTo(f.streamCount));
-      expect(f.cells.length, lessThanOrEqualTo(f.streamCount * 2));
+      expect(f.cells.length, lessThanOrEqualTo(f.streamCount * (f.trailLength + 1)));
+    });
+
+    test('a trail fades monotonically behind its head', () {
+      // The fade is what makes a stream read as falling rather than as a dash
+      // (T-533), so its shape is asserted rather than eyeballed.
+      final f = RainField(columns: 1, rows: 40, seed: 11, trailLength: 6);
+      _run(f, seconds: 2, target: 1, speed: 6);
+      final cells = f.cells.toList()..sort((a, b) => b.row.compareTo(a.row));
+      expect(cells.length, greaterThan(1), reason: 'no trail was drawn at all');
+      expect(cells.first.intensity, 1.0, reason: 'the lowest cell is the head');
+      for (var i = 1; i < cells.length; i++) {
+        expect(cells[i].intensity, lessThan(cells[i - 1].intensity), reason: 'intensity did not fall at cell $i');
+        expect(cells[i].intensity, greaterThan(0), reason: 'an invisible cell was still drawn at $i');
+      }
+    });
+
+    test('trail length is honoured', () {
+      for (final trail in const [1, 4, 6]) {
+        final f = RainField(columns: 1, rows: 40, seed: 3, trailLength: trail);
+        _run(f, seconds: 2, target: 1, speed: 6);
+        expect(f.cells.length, lessThanOrEqualTo(trail + 1), reason: 'trail $trail drew ${f.cells.length} cells');
+      }
     });
 
     test('a degenerate grid is handled rather than dividing by zero', () {

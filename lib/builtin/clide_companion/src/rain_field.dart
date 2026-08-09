@@ -49,7 +49,7 @@ const kRainGlyphs = <String>[
 
 /// One drawn cell. The painter turns this into a glyph at a pixel position.
 class RainCell {
-  const RainCell({required this.column, required this.row, required this.glyphIndex, required this.leading});
+  const RainCell({required this.column, required this.row, required this.glyphIndex, required this.intensity});
 
   /// Grid column.
   final int column;
@@ -60,9 +60,16 @@ class RainCell {
   /// Index into [kRainGlyphs].
   final int glyphIndex;
 
-  /// True for the head of a stream, which DeskLock draws brighter than its
-  /// trail. The painter picks the colour; this only says which is which.
-  final bool leading;
+  /// `1.0` at the head of a stream, ramping linearly to `0` past its tail.
+  ///
+  /// A graded value rather than a head/trail flag: a two-tone stream is a dash,
+  /// and a field of dashes reads as scatter no matter how many you draw. The
+  /// fade is what makes it read as falling. The painter owns the curve from this
+  /// to an alpha — the field stays pure geometry.
+  final double intensity;
+
+  /// Convenience for the head of a stream.
+  bool get leading => intensity >= 1;
 }
 
 /// Xorshift32. Hand-rolled rather than `dart:math`'s `Random(seed)` so the
@@ -87,29 +94,44 @@ class _Rng {
 }
 
 class _Stream {
-  _Stream({required this.column, required this.row, required this.speed, required this.glyphIndex, required this.trailGlyphIndex});
+  _Stream({required this.column, required this.row, required this.speed, required this.glyphs});
 
   final int column;
   double row;
   final double speed;
-  int glyphIndex;
-  int trailGlyphIndex;
+
+  /// One glyph per drawn cell, head first. Re-rolled every tick — that flicker
+  /// is what makes a column read as code rather than as a moving smear.
+  final List<int> glyphs;
 }
 
 /// A falling-glyph field on a [columns] × [rows] grid.
 class RainField {
-  RainField({required this.columns, required this.rows, int seed = 0}) : _rng = _Rng(seed);
+  RainField({required this.columns, required this.rows, int seed = 0, this.trailLength = kDefaultTrailLength}) : _rng = _Rng(seed);
 
   /// Streams spawned per second while ramping up. Chosen so idle→effort (2→40)
   /// fills in ~0.6s: visible as the field *filling*, not popping.
   static const double spawnPerSecond = 60;
 
-  /// A stream is culled once it falls this far past the bottom, so its trail
-  /// cell has left the grid too.
-  static const double cullMargin = 2;
+  /// Cells drawn behind each head.
+  ///
+  /// The strip is only ~8 rows tall, so a stream is a very short thing; with one
+  /// trail cell it is a two-glyph dash and the field reads as scatter however
+  /// many you spawn. The trail is what conveys direction, and direction is what
+  /// makes it rain.
+  /// Six is near the ceiling the geometry allows: at trail 9 the trail is longer
+  /// than the 8-row grid is tall, streams spend most of their life off-grid, and
+  /// the *on-screen* cell count goes down rather than up (T-533).
+  static const int kDefaultTrailLength = 6;
 
   final int columns;
   final int rows;
+
+  /// Cells drawn behind each head, fading out. See [kDefaultTrailLength].
+  final int trailLength;
+
+  /// A stream is culled once its whole trail has left the grid.
+  double get cullMargin => trailLength + 1;
   final _Rng _rng;
   final List<_Stream> _streams = [];
 
@@ -136,8 +158,9 @@ class RainField {
       s.row += s.speed * dt;
       // Re-roll glyphs as the stream falls — the flicker that makes it read as
       // code rather than as moving dots.
-      s.glyphIndex = _rng.nextInt(kRainGlyphs.length);
-      s.trailGlyphIndex = _rng.nextInt(kRainGlyphs.length);
+      for (var i = 0; i < s.glyphs.length; i++) {
+        s.glyphs[i] = _rng.nextInt(kRainGlyphs.length);
+      }
     }
 
     final beforeCull = _streams.length;
@@ -183,20 +206,20 @@ class RainField {
     // base speed, assigned at spawn. A state change therefore affects new
     // streams first, which makes the transition read as organic.
     speed: speed * (0.7 + _rng.nextDouble() * 0.6),
-    glyphIndex: _rng.nextInt(kRainGlyphs.length),
-    trailGlyphIndex: _rng.nextInt(kRainGlyphs.length),
+    glyphs: List<int>.generate(trailLength + 1, (_) => _rng.nextInt(kRainGlyphs.length)),
   );
 
-  /// The cells to draw this frame: each stream contributes its head plus one
-  /// dimmer trail cell above it. Cells outside the grid are omitted.
+  /// The cells to draw this frame: each stream's head plus [trailLength] cells
+  /// fading out above it. Cells outside the grid are omitted.
+  ///
+  /// Yielded tail-first so a stream's head paints over its own trail without the
+  /// caller sorting or making a second pass.
   Iterable<RainCell> get cells sync* {
     for (final s in _streams) {
-      if (s.row >= 0 && s.row < rows) {
-        yield RainCell(column: s.column, row: s.row, glyphIndex: s.glyphIndex, leading: true);
-      }
-      final trail = s.row - 1;
-      if (trail >= 0 && trail < rows) {
-        yield RainCell(column: s.column, row: trail, glyphIndex: s.trailGlyphIndex, leading: false);
+      for (var i = trailLength; i >= 0; i--) {
+        final row = s.row - i;
+        if (row < 0 || row >= rows) continue;
+        yield RainCell(column: s.column, row: row, glyphIndex: s.glyphs[i], intensity: 1 - i / (trailLength + 1));
       }
     }
   }

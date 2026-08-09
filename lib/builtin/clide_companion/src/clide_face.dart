@@ -145,7 +145,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
     if (field == null) return false;
     final spec = specFor(widget.state);
     final settled = (_lean - widget.gaze.leanPx).abs() < 0.01;
-    return spec.rainStreams == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
+    return spec.rainDensity == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
   }
 
   void _tick(Duration elapsed) {
@@ -157,7 +157,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
     }
 
     final spec = specFor(widget.state);
-    _field?.tick(dt, targetStreams: spec.rainStreams, speed: spec.rainSpeed);
+    _field?.tick(dt, targetStreams: spec.streamsFor(_columns), speed: spec.rainSpeed);
 
     // Ease the lean toward its target at a constant rate.
     final target = widget.gaze.leanPx;
@@ -195,13 +195,16 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
   /// move.
   void _primeField(RainField field) {
     final spec = specFor(widget.state);
-    if (spec.rainStreams == 0) return;
+    final target = spec.streamsFor(field.columns);
+    if (target == 0) return;
     const step = 1 / 30;
-    // Bounded: enough to reach steady state at any density, and cheap enough to
-    // run during build.
-    final seconds = ((_frozen ? widget.debugFreezeAt!.inMicroseconds / 1e6 : 3.0)).clamp(1.0, 6.0);
+    // Long enough to actually reach the target, which is now width-dependent:
+    // growth is capped at `spawnPerSecond`, so a wide strip at full density needs
+    // seconds, and a fixed budget silently under-fills it. Bounded so this stays
+    // cheap enough to run during build.
+    final seconds = (target / RainField.spawnPerSecond + 2.0).clamp(1.0, 8.0);
     for (var t = 0.0; t < seconds; t += step) {
-      field.tick(step, targetStreams: spec.rainStreams, speed: spec.rainSpeed);
+      field.tick(step, targetStreams: target, speed: spec.rainSpeed);
     }
   }
 
