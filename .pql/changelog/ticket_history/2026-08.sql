@@ -10573,3 +10573,249 @@ New work landing in T-545 from this: filter companion transcripts out of clide''
 3. **`--model haiku` works as a spawn flag** (`init.model` = `claude-haiku-4-5-20251001`), so the model can be selected at spawn rather than by a `set_model` control request afterwards — no window where the session exists on the wrong model.
 
 **Cost, measured:** a first turn in a fresh session cost $0.0346 and $0.0265 across two probes, dominated by cache creation for the repo context (16k tokens). That is a *per-session* cost, and with one session per clide run it amortises — but the steady-state per-comment figure is still **unmeasured**, and the initiative''s ~$0.002 was never verified. T-547 should measure it before anyone relies on the number.', NULL, '2026-08-09 15:12:35', '2026-08-09 15:12:35.369', '2026-08-09 15:12:35.369', NULL, '725fa9c2c545707a90d5c4a72936db12', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0FWH7B6FN89P3THTVCZTM', 'description', 'One interface for reading a Claude session, and every consumer on it. Rescoped
+from T-549 (a task) on 2026-08-09 at the user''s direction: *"create a shared
+claude stream reader interface and apply it to all four consumers."*
+
+**Blocks Epic D''s session work (T-545, T-548).** Deliberately — Epic D would
+otherwise write the fourth copy of this logic, and its own brief already asked
+the two epics not to each grow their own subscription layer.
+
+## The problem, counted
+
+Three independent implementations of *bind to a session, rebind when the
+orchestrator notifies, cancel the old subscriptions*, plus a fourth about to be
+written:
+
+| Consumer | Reads |
+|---|---|
+| `claude_pane.dart` | busy, items, ended, model errors, pending prompt |
+| `claude_meta_sidebar.dart:205` `_bindPrimary()` | status, items, workflows |
+| `clide_companion/src/load_adapter.dart` (T-538) | busy, via the orchestrator |
+| **the companion''s own session** (Epic D) | items for the digest, state for the face |
+
+The third was written by copying the second. That is the tell: the rule is real,
+nobody wrote it down, and it is spreading.
+
+## Why an interface, not just a helper
+
+Because the same hazards are rediscovered at every site and each is one oversight
+from being got wrong:
+
+- **`endedStream` has no replay.** Check `session.end` first, *then* subscribe,
+  or a session that died before you bound looks alive forever
+  (`claude_pane.dart:421-426` gets this right; nothing makes the next copy).
+- **Rebind must cancel first.** The orchestrator notifies on spawn, close, show,
+  hide, mute and session-id resolution — all routine — so a missed cancel means
+  every later event is handled twice.
+- **Some streams replay and some do not** (`busyStream`, `statusStream`,
+  `pendingPromptStream`, `workflowsStream` do; `endedStream`, `modelErrors` do
+  not), and nothing in the type tells you which.
+
+An interface can encode all three once. A helper each site calls differently
+cannot.
+
+## Requirements
+
+1. **Session-agnostic.** It reads *a* session, not *the primary* one — the fourth
+   consumer binds the companion, and a design that hardcodes `''primary''` fails
+   that on day one. Primary-tracking is then a thin case of the general one.
+2. **Consumers never see the orchestrator.** Bind once, keep working across
+   respawns, workspace switches and session-id resolution.
+3. **Seeding is part of the contract**, not something each caller remembers: a
+   consumer that binds late must get current state, including for the streams
+   that do not replay.
+4. **Teardown is total.** Disposing releases every subscription and the
+   orchestrator listener.
+
+The concrete shape — facade, controller, `bindSession()` — is for the
+implementer, and should be settled by reading the three existing call sites
+rather than from this description.
+
+## Acceptance
+
+Refactor with **no behaviour change**: the existing tests for each migrated
+consumer must pass **unmodified**. A test that needs editing is evidence
+behaviour moved, not code — investigate rather than update it.
+
+## Not in scope
+
+Anything added to `StreamJsonSession` itself. Epic B''s audit lists real gaps
+(no public streaming signal, `thinking_delta` dropped by `_onStreamEvent`, no
+turn-start timestamp); each wants its own decision and its own ticket. This epic
+changes who subscribes and how, not what there is to subscribe to.', 'One interface for reading a Claude session, and every consumer on it. Rescoped
+from T-549 (a task) on 2026-08-09 at the user''s direction: *"create a shared
+claude stream reader interface and apply it to all four consumers."*
+
+**Blocks Epic D''s session work (T-545, T-548).** Deliberately — Epic D would
+otherwise write the fourth copy of this logic, and its own brief already asked
+the two epics not to each grow their own subscription layer.
+
+## The problem, counted
+
+Three independent implementations of *bind to a session, rebind when the
+orchestrator notifies, cancel the old subscriptions*, plus a fourth about to be
+written:
+
+| Consumer | Reads |
+|---|---|
+| `claude_pane.dart` | busy, items, ended, model errors, pending prompt |
+| `claude_meta_sidebar.dart:205` `_bindPrimary()` | status, items, workflows |
+| `clide_companion/src/load_adapter.dart` (T-538) | busy, via the orchestrator |
+| **the companion''s own session** (Epic D) | items for the digest, state for the face |
+
+The third was written by copying the second. That is the tell: the rule is real,
+nobody wrote it down, and it is spreading.
+
+## Why an interface, not just a helper
+
+Because the same hazards are rediscovered at every site and each is one oversight
+from being got wrong:
+
+- **`endedStream` has no replay.** Check `session.end` first, *then* subscribe,
+  or a session that died before you bound looks alive forever
+  (`claude_pane.dart:421-426` gets this right; nothing makes the next copy).
+- **Rebind must cancel first.** The orchestrator notifies on spawn, close, show,
+  hide, mute and session-id resolution — all routine — so a missed cancel means
+  every later event is handled twice.
+- **Some streams replay and some do not** (`busyStream`, `statusStream`,
+  `pendingPromptStream`, `workflowsStream` do; `endedStream`, `modelErrors` do
+  not), and nothing in the type tells you which.
+
+An interface can encode all three once. A helper each site calls differently
+cannot.
+
+## Requirements
+
+1. **Session-agnostic.** It reads *a* session, not *the primary* one — the fourth
+   consumer binds the companion, and a design that hardcodes `''primary''` fails
+   that on day one. Primary-tracking is then a thin case of the general one.
+2. **Consumers never see the orchestrator.** Bind once, keep working across
+   respawns, workspace switches and session-id resolution.
+3. **Seeding is part of the contract**, not something each caller remembers: a
+   consumer that binds late must get current state, including for the streams
+   that do not replay.
+4. **Teardown is total.** Disposing releases every subscription and the
+   orchestrator listener.
+
+The concrete shape — facade, controller, `bindSession()` — is for the
+implementer, and should be settled by reading the three existing call sites
+rather than from this description.
+
+## Acceptance
+
+Refactor with **no behaviour change**: the existing tests for each migrated
+consumer must pass **unmodified**. A test that needs editing is evidence
+behaviour moved, not code — investigate rather than update it.
+
+## Not in scope
+
+Anything added to `StreamJsonSession` itself. Epic B''s audit lists real gaps
+(no public streaming signal, `thinking_delta` dropped by `_onStreamEvent`, no
+turn-start timestamp); each wants its own decision and its own ticket. This epic
+changes who subscribes and how, not what there is to subscribe to.
+
+**Redesigned 2026-08-09 after probing the real wire contract**
+(`docs/spikes/cc-stream-json-2.1.226.md`). Read this over the "Not in scope"
+section above, which it reverses.
+
+## What the probe changed
+
+The epic said: *"Not in scope: anything added to `StreamJsonSession` itself…
+This epic changes who subscribes and how, not what there is to subscribe to."*
+
+That boundary was drawn on the belief — inherited from the Epic B audit and the
+2.1.150 spike — that the missing signals were missing **from the wire**. They are
+not. At 2.1.226 the CLI streams thinking as its own content block with
+`thinking_delta` deltas, and every `result` carries `is_error`, `stop_reason`,
+`terminal_reason` and `api_error_status`. `_onStreamEvent` drops all of it
+because it gates on `text_delta` and reads only `total_cost_usd`.
+
+So the gap is **in our parser**, not upstream. And that changes the argument: if
+this epic ships a reader while leaving the parser blind, then Epic D — which
+needs exactly those signals for the companion''s face and its digest — has no
+choice but to patch `StreamJsonSession` alongside the new reader. That is the
+duplication this epic exists to prevent, reproduced one layer down.
+
+**The exclusion is therefore lifted for the signals the probe proved are on the
+wire.** Not as a licence to grow the class generally: each addition surfaces
+something already arriving and already being discarded, and anything else still
+wants its own decision.
+
+## Revised requirement
+
+The reader''s job is to expose **what the session actually reports**, which now
+includes:
+
+- **Thinking as a live signal** — in progress, not only the completed block.
+  This is the honest `pensive` → `speaking` distinction Epic D needs, and it
+  retires the "busy but no text yet" inference the plan has been resting on.
+- **Turn outcome** — whether the turn failed, and why. The Epic B audit recorded
+  that `rage` had no source; it has one, and it is two fields we never read.
+
+Both are added at the parser and surfaced through the reader, once, rather than
+by each consumer learning to parse events.
+
+## Traps the probe found, to be honoured rather than rediscovered
+
+- **`system/thinking_tokens` is not a token count.** It is the CLI''s own running
+  estimate from delta sizes, it counts the signature blob as thinking, and it
+  reported 99 against an authoritative 36. Fine as a liveness hint; wrong as a
+  number. If the reader surfaces it at all, name it so nobody sums it.
+- **A `partial-` uuid does not mean "arriving now."** The final assistant event is
+  rewritten to carry it. Anything deriving "is streaming" from the prefix is
+  wrong, and a real streaming signal is now available instead.
+
+## Sequencing
+
+R1 grows: the interface lands together with the parser additions, because a
+reader shaped around today''s blind parser is the wrong shape. The three
+migrations (R2–R4) and the non-primary case (R5) are unchanged — their consumers
+do not use the new signals, which is exactly why "their tests pass unmodified"
+remains the right acceptance check.', NULL, '2026-08-09 15:17:18', '2026-08-09 15:17:18.649', '2026-08-09 15:17:18.649', NULL, 'b3c2eddf159e18b393ad3d9064ce837e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE6FCDATNHD4DKFW33JTDN0', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 15:17:49', '2026-08-09 15:17:49.382', '2026-08-09 15:17:49.382', NULL, '847accebc1aec736184bf17a507da773', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE6FCDATNHD4DKFW33JTDN0', 'description', 'Precedes R1. The reader is shaped around what a session reports, so what it reports has to be right first.
+
+Verified on the wire at claude 2.1.226 (`docs/spikes/cc-stream-json-2.1.226.md`) and dropped by `_onStreamEvent`, which handles `message_start`, `content_block_delta` **gated on `text_delta`**, and `message_stop`:
+
+- **Thinking, live.** `content_block_start` with `content_block.type: ''thinking''`, then `thinking_delta` deltas, then `signature_delta`. Gives a real in-progress signal rather than the completed-block-only `AssistantThinkingMessage` we surface today.
+- **Turn outcome.** `result` carries `is_error`, `stop_reason`, `terminal_reason`, `api_error_status`; `_statusFromEvent` reads only `total_cost_usd` and the context window.
+
+Both are additions to `StreamJsonSession`, which this epic originally excluded — see the epic''s redesign note for why that boundary moved. Keep the licence narrow: surface what already arrives and is discarded, nothing speculative.
+
+**Traps to honour:**
+- `system/thinking_tokens` is the CLI''s own estimate from delta sizes, counts the signature blob as thinking, and read 99 against an authoritative 36. Do not surface it as a count; if surfaced at all, name it so nobody sums it.
+- Do not derive ''is streaming'' from the `partial-` uuid prefix — the final assistant event is rewritten to carry it. That is what the new signals replace.
+
+**Existing consumers must not change behaviour.** Nothing reads these today, so every existing test passes unmodified — same acceptance check as the migrations.', 'Precedes R1. The reader is shaped around what a session reports, so what it reports has to be right first.
+
+Verified on the wire at claude 2.1.226 (`docs/spikes/cc-stream-json-2.1.226.md`) and dropped by `_onStreamEvent`, which handles `message_start`, `content_block_delta` **gated on `text_delta`**, and `message_stop`:
+
+- **Thinking, live.** `content_block_start` with `content_block.type: ''thinking''`, then `thinking_delta` deltas, then `signature_delta`. Gives a real in-progress signal rather than the completed-block-only `AssistantThinkingMessage` we surface today.
+- **Turn outcome.** `result` carries `is_error`, `stop_reason`, `terminal_reason`, `api_error_status`; `_statusFromEvent` reads only `total_cost_usd` and the context window.
+
+Both are additions to `StreamJsonSession`, which this epic originally excluded — see the epic''s redesign note for why that boundary moved. Keep the licence narrow: surface what already arrives and is discarded, nothing speculative.
+
+**Traps to honour:**
+- `system/thinking_tokens` is the CLI''s own estimate from delta sizes, counts the signature blob as thinking, and read 99 against an authoritative 36. Do not surface it as a count; if surfaced at all, name it so nobody sums it.
+- Do not derive ''is streaming'' from the `partial-` uuid prefix — the final assistant event is rewritten to carry it. That is what the new signals replace.
+
+**Existing consumers must not change behaviour.** Nothing reads these today, so every existing test passes unmodified — same acceptance check as the migrations.
+
+Done (2026-08-09).
+
+`TurnPhase` (idle / thinking / answering) as a replay-latest stream, and `TurnOutcome` (isError, stopReason, terminalReason, apiErrorStatus) as a per-turn event. Both parsed from envelopes clide was already receiving and discarding.
+
+**Phase comes from `content_block_start`**, not from the deltas. That is the piece that makes thinking observable: the deltas carry only `thinking_delta`/`text_delta` and the thinking ones were dropped by the `text_delta` gate, but the block announces its own type before any of them arrive.
+
+Two edges worth naming:
+
+- **`message_stop` resets the phase, not just `result`.** An interrupt or a dropped process ends a turn without a result, and the phase would otherwise stay stuck wherever it was.
+- **The phase is set to idle *before* the outcome is announced.** A listener reacting to a failure must not find the session still claiming to be answering.
+
+Replay on phase (a widget mounting mid-turn is normal), no replay on outcome (it is an event; a missed one is missed).
+
+Test envelopes are copied from the real 2.1.226 capture rather than invented — hand-written shapes are how the old assumptions survived, and `system/thinking_tokens` is deliberately not surfaced at all: it is the CLI''s own estimate, counts the signature blob, and read 99 against an authoritative 36.
+
+13 tests. Full suite 8 + 4224 + 50, **every existing test unmodified** — the epic''s acceptance check, and here it is also the evidence these are additive rather than a behaviour change.', NULL, '2026-08-09 15:24:15', '2026-08-09 15:24:15.614', '2026-08-09 15:24:15.614', NULL, 'fcb2228f3812173c64ceb74092033453', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE6FCDATNHD4DKFW33JTDN0', 'status', 'in_progress', 'review', NULL, '2026-08-09 15:24:15', '2026-08-09 15:24:15.639', '2026-08-09 15:24:15.639', NULL, 'eef3de77e0262869e366c11651e7bbf9', 2) ON CONFLICT(hash) DO NOTHING;

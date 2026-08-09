@@ -19,6 +19,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clide/builtin/claude/src/transcript_reader.dart';
+import 'package:clide/builtin/claude/src/turn_signals.dart';
 import 'package:clide/builtin/claude/src/workflow_run.dart';
 import 'package:clide/src/util/value_stream.dart';
 
@@ -357,6 +358,30 @@ class StreamJsonSession {
   /// for the pane to surface (T-408).
   Stream<String> get modelErrors => _modelErrorCtl.stream;
 
+  final _phaseCtl = ValueStream<TurnPhase>.seeded(TurnPhase.idle);
+
+  /// What the model is doing inside the current turn (T-557).
+  ///
+  /// Replay-latest, so a late subscriber is not told `idle` while a turn runs.
+  /// This is the honest thinking-versus-answering signal: the CLI streams a
+  /// `thinking` content block before the `text` one, which clide previously
+  /// discarded, leaving consumers to infer the split from the `partial-` uuid
+  /// prefix — which does not mean what it looks like.
+  Stream<TurnPhase> get phaseStream => _phaseCtl.stream;
+
+  TurnPhase get phase => _phaseCtl.value;
+
+  final _outcomeCtl = StreamController<TurnOutcome>.broadcast();
+
+  /// How each turn ended (T-557). **No replay** — it is an event, not a state;
+  /// a subscriber that missed one has missed it.
+  Stream<TurnOutcome> get turnOutcomes => _outcomeCtl.stream;
+
+  void _setPhase(TurnPhase p) {
+    if (_phaseCtl.value == p) return;
+    _phaseCtl.add(p);
+  }
+
   /// Token-by-token streaming state (T-168, wire shape verified by T-184).
   ///
   /// With `--include-partial-messages`, claude emits the in-progress reply as
@@ -534,6 +559,11 @@ class StreamJsonSession {
       _streamText.clear();
       _streamFinalized.clear();
       _streamingMsgId = null;
+      // The turn is over however it went, so the phase resets before the
+      // outcome is announced — a listener reacting to a failure should not find
+      // the session still claiming to be answering.
+      _setPhase(TurnPhase.idle);
+      if (!_outcomeCtl.isClosed) _outcomeCtl.add(TurnOutcome.fromResult(ev));
     }
 
     // Token-by-token streaming: `stream_event` envelopes carry the in-progress
@@ -598,6 +628,15 @@ class StreamJsonSession {
           _streamText[id] = '';
           _streamFinalized.remove(id);
         }
+      case 'content_block_start':
+        // The block's own type is the phase (T-557). Reading it here is what
+        // makes thinking observable rather than inferred — the deltas that
+        // follow carry no type of their own beyond `thinking_delta` /
+        // `text_delta`, and the thinking ones were being dropped.
+        final block = event['content_block'];
+        final kind = block is Map ? block['type'] : null;
+        if (kind == 'thinking') _setPhase(TurnPhase.thinking);
+        if (kind == 'text') _setPhase(TurnPhase.answering);
       case 'content_block_delta':
         final delta = event['delta'];
         final msgId = _streamingMsgId;
@@ -622,6 +661,10 @@ class StreamJsonSession {
         }
       case 'message_stop':
         _streamingMsgId = null;
+        // `result` also resets this, but a turn that stops without one — an
+        // interrupt, a dropped process — would otherwise leave the phase stuck
+        // wherever it happened to be.
+        _setPhase(TurnPhase.idle);
     }
   }
 
@@ -1011,5 +1054,7 @@ class StreamJsonSession {
     await _busyCtl.close();
     await _endCtl.close();
     await _modelErrorCtl.close();
+    await _phaseCtl.close();
+    await _outcomeCtl.close();
   }
 }
