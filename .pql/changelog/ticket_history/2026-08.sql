@@ -1939,3 +1939,121 @@ Also in scope from the spike: the strip **grows to a capped height (~40% of the 
 while Clide is answering and collapses back when idle**. That interacts with the persisted
 height — the user''s chosen height is the resting height, not a ceiling.', NULL, '2026-08-08 23:40:36', '2026-08-08 23:40:36.515', '2026-08-08 23:40:36.515', NULL, '992ecc42c35e7216a7ee1e49c33e46e6', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WC48DRPATA7Z6J7H9N8C', 'status', 'in_progress', 'done', NULL, '2026-08-08 23:40:42', '2026-08-08 23:40:42.460', '2026-08-08 23:40:42.460', NULL, '6383eaad8dd9a86fca21b0970f3d5eea', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WRAZBSBGGCSSMWHN17Q4', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 00:14:25', '2026-08-09 00:14:25.649', '2026-08-09 00:14:25.649', NULL, '87a92cbd6662449d8cbb19649fc1f02d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WRAZBSBGGCSSMWHN17Q4', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 00:14:39', '2026-08-09 00:14:39.964', '2026-08-09 00:14:39.964', NULL, '0cd3ab9ae12342c6260401ea7b274ce2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73V6EVHP32P31NQRJCP104', 'decision_ref', NULL, 'D-107', NULL, '2026-08-09 00:17:23', '2026-08-09 00:17:23.092', '2026-08-09 00:17:23.092', NULL, '6a0866d22e5d6f2b2ce4aa33546c5876', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WRAZBSBGGCSSMWHN17Q4', 'title', 'D-record: ambient companion surface + new right-edge slot', 'D-record: ambient companion surface + second model session (D-107)', NULL, '2026-08-09 00:17:43', '2026-08-09 00:17:43.708', '2026-08-09 00:17:43.708', NULL, '5926f711887a1d27dfe05a5ee0512ed1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WRAZBSBGGCSSMWHN17Q4', 'description', 'Write the D-record for the Clide companion. No existing decision covers an ambient AI
+companion surface, and (if T-514 picks placement A) none covers a new right-edge slot
+either.
+
+Claim the id with `pql decisions claim D architecture "..."`, then author the markdown under
+`governance/decisions/architecture.md`.
+
+## What the record must fix
+
+1. **That clide hosts a second, non-primary model session at all** — and that it runs
+   through the `claude` CLI on subscription auth, not an API client. This is the load-bearing
+   precedent: it is the first time clide spends the user''s quota on something other than the
+   session they are driving.
+2. **Placement** — the outcome of T-514, with the rain-needs-vertical-fall rationale.
+3. **What the companion may see.** User prompts and Claude prose only; no tool calls, no
+   tool results. State this as a privacy/scope boundary, not an implementation detail, so it
+   survives later feature pressure.
+4. **The power ladder as a contract**, not an optimisation — a continuously animated surface
+   in an IDE has to prove it stops.
+
+## Decisions it touches
+
+D-6 (CLI/UI parity — the slot must have verbs), D-47 (bottom strips align to one line),
+D-48 (chrome budget — this adds chrome), D-50 (context panel is reactive), D-51 (collapse →
+12px spine), D-53 (persist layout), D-78 (conversation cards are display-only — Clide is
+chrome, not a card, and the distinction matters), D-87 (dock precedent for a new region),
+D-101 (font facade), D-21/D-102 (i18n).
+
+Blocked by T-514 — placement is half the record.', 'Write the D-record for the Clide companion. No existing decision covers an ambient AI
+companion surface, and (if T-514 picks placement A) none covers a new right-edge slot
+either.
+
+Claim the id with `pql decisions claim D architecture "..."`, then author the markdown under
+`governance/decisions/architecture.md`.
+
+## What the record must fix
+
+1. **That clide hosts a second, non-primary model session at all** — and that it runs
+   through the `claude` CLI on subscription auth, not an API client. This is the load-bearing
+   precedent: it is the first time clide spends the user''s quota on something other than the
+   session they are driving.
+2. **Placement** — the outcome of T-514, with the rain-needs-vertical-fall rationale.
+3. **What the companion may see.** User prompts and Claude prose only; no tool calls, no
+   tool results. State this as a privacy/scope boundary, not an implementation detail, so it
+   survives later feature pressure.
+4. **The power ladder as a contract**, not an optimisation — a continuously animated surface
+   in an IDE has to prove it stops.
+
+## Decisions it touches
+
+D-6 (CLI/UI parity — the slot must have verbs), D-47 (bottom strips align to one line),
+D-48 (chrome budget — this adds chrome), D-50 (context panel is reactive), D-51 (collapse →
+12px spine), D-53 (persist layout), D-78 (conversation cards are display-only — Clide is
+chrome, not a card, and the distinction matters), D-87 (dock precedent for a new region),
+D-101 (font facade), D-21/D-102 (i18n).
+
+Blocked by T-514 — placement is half the record.
+
+## OUTCOME (2026-08-09) — D-107 written
+
+`governance/decisions/architecture.md` → **D-107: Clide — ambient companion surface backed
+by a second, non-primary model session**. Validated (`pql decisions validate` → ok),
+synced (167 records, 354 refs, 0 broken), indexed in `governance/README.md`, and linked:
+`T-513.decision_ref = D-107`, so `pql decisions show D-107 --with-tickets` reports
+implementation status.
+
+**Ticket retitled.** The original title said "+ new right-edge slot", which was conditional
+on T-514 picking placement A. It picked B, so there is no new slot and that clause was
+removed rather than left to mislead.
+
+### What the record fixes
+
+All four items from the brief, in descending order of how load-bearing they are:
+
+1. **clide may host one second, non-primary model session** — via the `claude` CLI and the
+   existing orchestrator (`visible: false`), not an API client. Because it therefore spends
+   **subscription quota from the same pool that throttles the primary session**, three
+   constraints are written in as part of the decision rather than as tuning: disableable to
+   zero (tears down the process, not just the UI), notable-events-only, and it must never be
+   the reason the primary session is throttled. Scoped to exactly one session — explicitly
+   not a general "clide may spawn models" licence.
+2. **Placement** — bottom strip in the context column, with the T-514 rationale including the
+   correction that the rain argument was half wrong, and the D-6 parity gap stated as a
+   consequence rather than buried.
+3. **Digest boundary** — prose only, stated as a scope/privacy boundary. The clause that
+   makes it survive feature pressure: *any future feature requiring Clide to see tool activity
+   amends this record; it is not a config flag.*
+4. **Power ladder as a contract** — four rungs, `dormant` parks the render loop, reduced-motion
+   is a hard gate, each rung asserted in tests. "A ladder that does not demonstrably park the
+   loop is decoration."
+
+### Added beyond the brief
+
+- **A "Not telemetry" clause.** [D-64](../governance/decisions/architecture.md) commits clide
+  to no telemetry, and "a second model session reading your conversation" reads adjacent to
+  that. The record states plainly that the companion adds **no new destination** — the same
+  prose already goes to the same provider via the primary session — and that
+  `--no-session-persistence` keeps it from writing anything, per D-93. Worth pre-empting
+  rather than leaving for someone to raise later as an objection.
+- **"A second model''s output can be wrong."** Clide is commentary, never authority, and must
+  be visually unmistakable for the primary session''s output. Not in the brief; belongs in the
+  cost section of any record that puts a second model''s text on screen.
+- **D-105 forward-link** — if the primary CLI becomes pluggable (Vibe), the companion''s
+  CLI assumption re-opens.
+
+### Cross-references
+
+D-1, D-5, D-6, D-20, D-21/D-102, D-47, D-48, D-50, D-51, D-53, D-64, D-78, D-83, D-87, D-93,
+D-101, D-105, D-31/D-42. Relates to Q-26 (strip height cost is worst on a short window) and
+Q-34 (quota is the real currency and is still not exposed upstream).
+
+Implemented by T-513 (epics T-516/517/518/519/520). Wireframes:
+`docs/design/wireframes/clide-companion/`.', NULL, '2026-08-09 00:18:08', '2026-08-09 00:18:08.159', '2026-08-09 00:18:08.159', NULL, '0c13b0af6d5d4609aec57f46dbfd2207', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WRAZBSBGGCSSMWHN17Q4', 'status', 'in_progress', 'done', NULL, '2026-08-09 00:18:12', '2026-08-09 00:18:12.242', '2026-08-09 00:18:12.242', NULL, 'a89232d8d51db3ab4f32edb72ae571cd', 2) ON CONFLICT(hash) DO NOTHING;

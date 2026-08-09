@@ -148,6 +148,7 @@ You might also want, project-permitting:
 - [D-104: Explicit supporter-binary path overrides in user-scope settings](decisions/tooling.md#d-104-explicit-supporter-binary-path-overrides-in-user-scope-settings) — _tooling_
 - [D-105: Support Vibe CLI as opt-in alternative to Claude Code CLI](decisions/llm.md#d-105-support-vibe-cli-as-opt-in-alternative-to-claude-code-cli) — _llm_
 - [D-106: Per-workspace PATH preset prepended at spawn](decisions/tooling.md#d-106-per-workspace-path-preset-prepended-at-spawn) — _tooling_
+- [D-107: Clide — ambient companion surface backed by a second, non-primary model session](decisions/architecture.md#d-107-clide--ambient-companion-surface-backed-by-a-second-non-primary-model-session) — _architecture_
 
 ## Open questions
 
