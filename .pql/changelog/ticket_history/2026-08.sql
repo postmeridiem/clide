@@ -2705,3 +2705,355 @@ D-107 never committed to the kaomoji (checked), so no amendment is needed.
   start/stop, disposal.
 - Font coverage checked with `fc-query` for every glyph in the proposed table, including the
   replacements: `▼` U+25BC, `━` U+2501, `▲` U+25B2, `·` U+00B7 all present.', NULL, '2026-08-09 01:02:04', '2026-08-09 01:02:04.774', '2026-08-09 01:02:04.774', NULL, '9334cae2a0ea4b4645c00d1f69c222a2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W569QMQPKWCJ2PY9APGM8', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 01:13:36', '2026-08-09 01:13:36.066', '2026-08-09 01:13:36.066', NULL, 'b2d1e188442486f1701c6a593064f3f1', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W569QMQPKWCJ2PY9APGM8', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 01:13:46', '2026-08-09 01:13:46.797', '2026-08-09 01:13:46.797', NULL, '91eb3c5eebdec6876810fb5e16c193d0', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W569QMQPKWCJ2PY9APGM8', 'description', '**This is the published seam with Epic B (T-517).** B codes against this contract; it must
+land first and then stay stable. Everything here is specified concretely so B is not blocked
+on the implementation.
+
+Pure Dart — **no Flutter import** (no `Color`, no `TextStyle`). Colours come from tokens at
+paint time, not from the spec. That keeps this file runnable under `dart test` and keeps the
+table reviewable as data.
+
+Target: `lib/builtin/clide_companion/src/face_state.dart`
+
+## The contract
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+
+/// Which way the pupils point. Drives the lean offset too (D-107, T-514).
+enum Gaze { none, left, forward, right }
+
+class FaceSpec {
+  final String eyes;        // always an eyes string — no alternate render path
+  final String mouth;       // '''' when hidden
+  final bool blink;         // lids drop ~130ms every 2.6–6.2s
+  final bool thoughtDots;   // cycling . / .. / ... beside the head
+  final bool talkCycle;     // mouth cycles the TALK sequence
+  final bool jitter;        // ±1px face shake
+  final bool orbit;         // bezel arc sweep
+  final bool elapsed;       // [ Ns ] counter
+  final bool clock;         // HH:MM under the face
+  final int rainStreams;    // density — the load signal
+  final double rainSpeed;   // cells/sec
+  final double opacity;     // 1.0, or 0.45 for error
+}
+```
+
+Widget props (what B passes to `ClideFace` in T-525):
+
+| Prop | Type | Notes |
+|---|---|---|
+| `state` | `FaceState` | required |
+| `gaze` | `Gaze` | default `Gaze.none` |
+| `busyFor` | `Duration?` | drives `[ Ns ]`; **B owns this**, the widget does not time turns. Null renders no counter. |
+
+**Lean is derived, not passed:** `none/forward → 0px`, `left → −8px`, `right → +8px`, applied
+as the mouth''s x-offset from the eye centre and animated rather than snapped (D-107). One
+number; do not add a `lean` prop.
+
+## The table — ported from DeskLock `sim/face/index.html`
+
+| state | eyes | mouth | blink | rain | extras |
+|---|---|---|---|---|---|
+| `idle` | `-   -` | `\_/` | ✓ | 2 @ 4 | clock |
+| `listening` | `O   O` | `o` | ✓ | 16 @ 7 | — |
+| `pensive` | `·   ·` | `~` | — | 7 @ 5 | thoughtDots |
+| `effort` | `>   <` | `~` | — | 40 @ 16 | jitter, orbit, elapsed |
+| `speaking` | `^   ^` | `o` | ✓ | 14 @ 9 | talkCycle |
+| `rage` | `▼   ▼` | `━` | — | 34 @ 20 | jitter |
+| `error` | `x   x` | `-` | — | 0 @ 0 | opacity 0.45 |
+
+`TALK = [''o'', ''O'', ''-'', ''O'', ''='', ''o'']` at ~150ms/frame. Blink replaces every non-space eye
+char with `_` for ~130ms. Thought dots cycle at ~480ms. Breathe is a 4.5s ±9px vertical bob
+applied to the whole face group (not per-state).
+
+## Deliberate deviation from DeskLock: `rage` is a scowl, not a table-flip
+
+DeskLock renders `rage` as a 3-frame kaomoji sequence — `(°□°) ┬─┬` → `(╯°□°)╯︵ ┻━┻` →
+`┬─┬ ノ( º_º ノ)` — pushed as whole lines through the eye slot. **Not ported.** Two reasons,
+and the second is the real one:
+
+1. **Two of its glyphs are missing from the bundled fonts**, verified with `fc-query` against
+   `JetBrainsMono-Regular.ttf`: `︵` (U+FE35) and `ノ` (U+30CE — katakana again; the
+   initiative''s font finding only covered the *rain* glyph set, so this is a second instance
+   of the same bug class). `╯` and `□` are fine, inside `2500-25a1`.
+2. **It needs a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it drags a `KaomojiFrame` class, a frame
+   timer, and a branch through the painter into the contract — for the state you see least.
+
+`rage` instead uses the ordinary grammar: brows-down eyes `▼` (U+25BC) and a hard flat mouth
+`━` (U+2501), with `jitter` already carrying the agitation and rain spiking to 34 @ 20. Both
+glyphs verified covered. Net effect on this epic: **no `KaomojiFrame`, no frame timer, no
+second branch in the painter, no font substitutions** — one more row in the same table.
+
+If the table-flip is ever wanted back, it is a deliberate re-open needing a bundled font that
+covers kana, which trades against prefer-zero-deps (D-31/D-42).
+
+## Done when
+
+- Enum + spec + const table exist, pure Dart, no Flutter import.
+- A `specFor(FaceState)` lookup returns the const spec.
+- Unit tests: every state has a spec; rain density is monotonic across
+  idle < pensive < speaking < listening < rage < effort; error has zero rain; **every glyph in
+  the table is asserted against the covered set** so a future edit reintroducing an uncovered
+  glyph fails the suite rather than the render.
+- Epic B (T-517) is told the contract is available.
+
+That last test is the one that matters — it is the guard that stops this bug class recurring,
+and it has now bitten twice.', '**This is the published seam with Epic B (T-517).** B codes against this contract; it must
+land first and then stay stable. Everything here is specified concretely so B is not blocked
+on the implementation.
+
+Pure Dart — **no Flutter import** (no `Color`, no `TextStyle`). Colours come from tokens at
+paint time, not from the spec. That keeps this file runnable under `dart test` and keeps the
+table reviewable as data.
+
+Target: `lib/builtin/clide_companion/src/face_state.dart`
+
+## The contract
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+
+/// Which way the pupils point. Drives the lean offset too (D-107, T-514).
+enum Gaze { none, left, forward, right }
+
+class FaceSpec {
+  final String eyes;        // always an eyes string — no alternate render path
+  final String mouth;       // '''' when hidden
+  final bool blink;         // lids drop ~130ms every 2.6–6.2s
+  final bool thoughtDots;   // cycling . / .. / ... beside the head
+  final bool talkCycle;     // mouth cycles the TALK sequence
+  final bool jitter;        // ±1px face shake
+  final bool orbit;         // bezel arc sweep
+  final bool elapsed;       // [ Ns ] counter
+  final bool clock;         // HH:MM under the face
+  final int rainStreams;    // density — the load signal
+  final double rainSpeed;   // cells/sec
+  final double opacity;     // 1.0, or 0.45 for error
+}
+```
+
+Widget props (what B passes to `ClideFace` in T-525):
+
+| Prop | Type | Notes |
+|---|---|---|
+| `state` | `FaceState` | required |
+| `gaze` | `Gaze` | default `Gaze.none` |
+| `busyFor` | `Duration?` | drives `[ Ns ]`; **B owns this**, the widget does not time turns. Null renders no counter. |
+
+**Lean is derived, not passed:** `none/forward → 0px`, `left → −8px`, `right → +8px`, applied
+as the mouth''s x-offset from the eye centre and animated rather than snapped (D-107). One
+number; do not add a `lean` prop.
+
+## The table — ported from DeskLock `sim/face/index.html`
+
+| state | eyes | mouth | blink | rain | extras |
+|---|---|---|---|---|---|
+| `idle` | `-   -` | `\_/` | ✓ | 2 @ 4 | clock |
+| `listening` | `O   O` | `o` | ✓ | 16 @ 7 | — |
+| `pensive` | `·   ·` | `~` | — | 7 @ 5 | thoughtDots |
+| `effort` | `>   <` | `~` | — | 40 @ 16 | jitter, orbit, elapsed |
+| `speaking` | `^   ^` | `o` | ✓ | 14 @ 9 | talkCycle |
+| `rage` | `▼   ▼` | `━` | — | 34 @ 20 | jitter |
+| `error` | `x   x` | `-` | — | 0 @ 0 | opacity 0.45 |
+
+`TALK = [''o'', ''O'', ''-'', ''O'', ''='', ''o'']` at ~150ms/frame. Blink replaces every non-space eye
+char with `_` for ~130ms. Thought dots cycle at ~480ms. Breathe is a 4.5s ±9px vertical bob
+applied to the whole face group (not per-state).
+
+## Deliberate deviation from DeskLock: `rage` is a scowl, not a table-flip
+
+DeskLock renders `rage` as a 3-frame kaomoji sequence — `(°□°) ┬─┬` → `(╯°□°)╯︵ ┻━┻` →
+`┬─┬ ノ( º_º ノ)` — pushed as whole lines through the eye slot. **Not ported.** Two reasons,
+and the second is the real one:
+
+1. **Two of its glyphs are missing from the bundled fonts**, verified with `fc-query` against
+   `JetBrainsMono-Regular.ttf`: `︵` (U+FE35) and `ノ` (U+30CE — katakana again; the
+   initiative''s font finding only covered the *rain* glyph set, so this is a second instance
+   of the same bug class). `╯` and `□` are fine, inside `2500-25a1`.
+2. **It needs a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it drags a `KaomojiFrame` class, a frame
+   timer, and a branch through the painter into the contract — for the state you see least.
+
+`rage` instead uses the ordinary grammar: brows-down eyes `▼` (U+25BC) and a hard flat mouth
+`━` (U+2501), with `jitter` already carrying the agitation and rain spiking to 34 @ 20. Both
+glyphs verified covered. Net effect on this epic: **no `KaomojiFrame`, no frame timer, no
+second branch in the painter, no font substitutions** — one more row in the same table.
+
+If the table-flip is ever wanted back, it is a deliberate re-open needing a bundled font that
+covers kana, which trades against prefer-zero-deps (D-31/D-42).
+
+## Done when
+
+- Enum + spec + const table exist, pure Dart, no Flutter import.
+- A `specFor(FaceState)` lookup returns the const spec.
+- Unit tests: every state has a spec; rain density is monotonic across
+  idle < pensive < speaking < listening < rage < effort; error has zero rain; **every glyph in
+  the table is asserted against the covered set** so a future edit reintroducing an uncovered
+  glyph fails the suite rather than the render.
+- Epic B (T-517) is told the contract is available.
+
+That last test is the one that matters — it is the guard that stops this bug class recurring,
+and it has now bitten twice.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/face_state.dart` — enum, `Gaze` + derived lean,
+  `FaceSpec`, the seven const specs, `specFor()`, timing constants, `kVerifiedFaceGlyphs`.
+  Pure Dart, no Flutter import; runs under `dart test`.
+- `test/builtin/clide_companion/face_state_test.dart` — 17 tests, all green.
+- `make analyze`, `make format` and `make test` (50 tests) all clean.
+
+Contract shipped exactly as published on T-517. No deviations, so Epic B needs no rework.
+
+### The glyph guard is proven, not just written
+
+The ticket called this the test that matters. A guard that has never failed is not evidence,
+so it was verified by sabotage: `rage`''s eyes were temporarily changed to `ノ   ノ` (the exact
+katakana that hid inside DeskLock''s kaomoji). Two tests failed, and the message named the
+codepoint and the fix:
+
+```
+Unverified glyph(s) in the face table: "ノ" (U+30CE). Verify against BOTH
+assets/fonts/jetbrains_mono/ and assets/fonts/fira_mono/ with fc-query,
+then add to kVerifiedFaceGlyphs.
+```
+
+Reverted, green again. A third instance of this bug class now fails the suite instead of
+rendering as tofu.
+
+### Correction to the earlier font work
+
+Both prior checks (initiative, T-516 breakdown) verified against **JetBrains Mono only**.
+That was insufficient: the mono face is user-selectable (D-101) and **Fira Mono is also
+bundled**, so a glyph present in one and absent from the other would render as tofu for
+anyone who switched fonts, and would break goldens on whichever font CI happens to use.
+
+Re-verified every face glyph against **both** fonts — all present, so no table change was
+needed, but the reasoning in `kVerifiedFaceGlyphs`'' doc comment and in the test''s failure
+message now says "both", with the verification recipe inline. **T-522 (rain glyph set)
+inherits this**: check the rain glyphs against both fonts, not just JetBrains.
+
+### Tests worth noting beyond the ticket''s list
+
+- **Eye rows are all the same width**, and blink preserves that width. The painter centres
+  the mouth against the eye row, so a ragged row would silently make the lean offset mean
+  something different per state.
+- **No astral glyphs / no surrogate pairs** — anything outside the BMP breaks the per-cell
+  monospace grid.
+- **`specFor` returns the identical instance** per call, so the painter''s identity-based
+  `shouldRepaint` (T-524) cannot be defeated by spec churn.
+- **Talk cycle loops seamlessly** (first frame equals last).', NULL, '2026-08-09 01:21:13', '2026-08-09 01:21:13.249', '2026-08-09 01:21:13.249', NULL, '83ca35cb0eb818fc1c07877edc12bd50', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W5PARJ36P3TQCANG78YF4', 'description', 'The rain field: spawn, fall, cull. Pure Dart, **no Flutter import** — it produces particle
+positions and glyph indices; the painter (T-524) turns those into pixels.
+
+Target: `lib/builtin/clide_companion/src/rain_field.dart`
+
+## Why it is its own ticket
+
+It is the load signal, not decoration. Density (`rainStreams`) is what tells you at a glance
+whether the session is idle or grinding — 2 streams versus 40 — so it deserves its own tests
+rather than being asserted only through a painted image.
+
+## Shape
+
+```dart
+class RainField {
+  RainField({required int columns, required int rows, int seed = 0});
+
+  /// Advance by dt seconds toward the target density/speed.
+  void tick(double dt, {required int targetStreams, required double speed});
+
+  Iterable<RainCell> get cells;   // col, row (fractional), glyphIndex, leading
+}
+```
+
+- **Deterministic.** Seeded PRNG, injected — **never `Random()` unseeded and never
+  `DateTime.now()`**. Tests and goldens need the same field for the same inputs.
+- **Density ramps, it does not snap.** Going idle→effort should read as the field filling in
+  over a few hundred ms, not popping. Going effort→idle drains by culling, not clearing.
+- **Leading cell is brighter** — DeskLock draws the head of each stream lighter than the
+  trail. Expose it as a flag on the cell; the painter picks the colour.
+- Cull when a stream falls past `rows + 2`.
+
+## Glyph set — ASCII + symbols + box-drawing only
+
+**No katakana.** The bundled fonts have zero kana coverage (verified with `fc-query`), so
+DeskLock''s `アイウエオ…` set cannot be used: it would fall through to a system font,
+break goldens, and break the monospace advance width the grid assumes.
+
+Use DeskLock''s covered half — `0123456789ACEFHKZ$#%*+=<>` — plus box/geometric glyphs from
+`2500-25a1` (JetBrains Mono ships the full box set there; Fira Mono also covers `250c-256c`).
+
+The field stores a **glyph index**, not a character, so the concrete set lives in one const
+list and the painter resolves it. That keeps the swap cheap if the set is ever revised.
+
+## Done when
+
+- `tick` is pure and deterministic for a given seed — same inputs, same field, asserted.
+- Density converges to `targetStreams` and holds; changing the target ramps rather than snaps.
+- Cull works: cells never accumulate past the bottom, and total cell count stays bounded
+  under a long run (this is the leak test — worth writing, since an unbounded field is the
+  obvious failure mode for a perpetual simulation).
+- Zero density produces an empty field (the `error` state must actually stop, per D-107''s
+  power-ladder contract).
+- Runs under `dart test` — no Flutter import.', 'The rain field: spawn, fall, cull. Pure Dart, **no Flutter import** — it produces particle
+positions and glyph indices; the painter (T-524) turns those into pixels.
+
+Target: `lib/builtin/clide_companion/src/rain_field.dart`
+
+## Why it is its own ticket
+
+It is the load signal, not decoration. Density (`rainStreams`) is what tells you at a glance
+whether the session is idle or grinding — 2 streams versus 40 — so it deserves its own tests
+rather than being asserted only through a painted image.
+
+## Shape
+
+```dart
+class RainField {
+  RainField({required int columns, required int rows, int seed = 0});
+
+  /// Advance by dt seconds toward the target density/speed.
+  void tick(double dt, {required int targetStreams, required double speed});
+
+  Iterable<RainCell> get cells;   // col, row (fractional), glyphIndex, leading
+}
+```
+
+- **Deterministic.** Seeded PRNG, injected — **never `Random()` unseeded and never
+  `DateTime.now()`**. Tests and goldens need the same field for the same inputs.
+- **Density ramps, it does not snap.** Going idle→effort should read as the field filling in
+  over a few hundred ms, not popping. Going effort→idle drains by culling, not clearing.
+- **Leading cell is brighter** — DeskLock draws the head of each stream lighter than the
+  trail. Expose it as a flag on the cell; the painter picks the colour.
+- Cull when a stream falls past `rows + 2`.
+
+## Glyph set — ASCII + symbols + box-drawing only
+
+**No katakana.** The bundled fonts have zero kana coverage (verified with `fc-query`), so
+DeskLock''s `アイウエオ…` set cannot be used: it would fall through to a system font,
+break goldens, and break the monospace advance width the grid assumes.
+
+Use DeskLock''s covered half — `0123456789ACEFHKZ$#%*+=<>` — plus box/geometric glyphs from
+`2500-25a1` (JetBrains Mono ships the full box set there; Fira Mono also covers `250c-256c`).
+
+The field stores a **glyph index**, not a character, so the concrete set lives in one const
+list and the painter resolves it. That keeps the swap cheap if the set is ever revised.
+
+## Done when
+
+- `tick` is pure and deterministic for a given seed — same inputs, same field, asserted.
+- Density converges to `targetStreams` and holds; changing the target ramps rather than snaps.
+- Cull works: cells never accumulate past the bottom, and total cell count stays bounded
+  under a long run (this is the leak test — worth writing, since an unbounded field is the
+  obvious failure mode for a perpetual simulation).
+- Zero density produces an empty field (the `error` state must actually stop, per D-107''s
+  power-ladder contract).
+- Runs under `dart test` — no Flutter import.
+
+Inherited from T-521: verify the rain glyph set against BOTH bundled mono fonts (assets/fonts/jetbrains_mono/ AND assets/fonts/fira_mono/), not just JetBrains. The mono face is user-selectable (D-101), so a glyph present in one font and absent from the other renders as tofu for anyone who switched and breaks goldens depending on which font CI uses. Reuse kVerifiedFaceGlyphs'' pattern: an explicit verified-glyph const plus a test asserting the set only draws from it, so an unverified addition fails the suite rather than the render.', NULL, '2026-08-09 01:21:20', '2026-08-09 01:21:20.924', '2026-08-09 01:21:20.924', NULL, '5cf71c3501f440c15736ea5cbb96b915', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W569QMQPKWCJ2PY9APGM8', 'status', 'in_progress', 'done', NULL, '2026-08-09 01:21:24', '2026-08-09 01:21:24.317', '2026-08-09 01:21:24.317', NULL, 'cb5bbf4c3b35712fb6000c717f821b81', 2) ON CONFLICT(hash) DO NOTHING;
