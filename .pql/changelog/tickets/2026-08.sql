@@ -3456,3 +3456,357 @@ I reported "`make test` (50 tests)" there. That was the count of the **serial-ta
 only**; `ci/test.sh` runs three phases and the parallel pool is **4045** tests. The suite is
 ~4100, and both of these tickets'' tests run inside it — verified with
 `flutter test test/builtin/clide_companion/` (34 tests) and by reading the per-phase output.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:51.190', '2026-08-09 01:41:42.056', NULL, 'b2627b3639be1de193ac34c622c5f70d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W64KMPGV5TMJ7C7D654WM', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A3: Glyph paragraph cache for per-particle drawing', 'One `ui.Paragraph` per distinct (glyph, style) pair, reused across frames and particles.
+This is the difference between the face being cheap and being a space heater.
+
+Target: `lib/builtin/clide_companion/src/glyph_cache.dart`
+
+## The rule
+
+**Never build a `TextPainter` per particle per frame.** At 40 streams × ~20 rows that is
+~800 layouts per frame at 30fps. Both existing painters (`graph_painter.dart:121`,
+`canvas_painter.dart:214`) do allocate a `TextPainter` per paint — that is fine for a static
+painter that repaints on interaction, and wrong here. Do not copy them.
+
+## Reuse `ParagraphCache`
+
+`lib/src/terminal/src/ui/paragraph_cache.dart` already implements exactly this: an LRU of
+`ui.Paragraph` keyed on `int`, with `getLayoutFromCache(key)` and
+`performAndCacheLayout(text, style, textScaler, key)`. It is ~50 lines, used by the terminal
+painter (`painter.dart:150-180`), and **not exported from any barrel**.
+
+Decide and record which:
+- **import it directly** (`package:clide/src/terminal/src/ui/paragraph_cache.dart`) — no
+  duplication, but reaches across into the terminal subsystem''s private path; or
+- **lift it** to a shared location and have both use it — cleaner layering, touches the
+  terminal painter.
+
+Prefer importing directly first and only lift if a third consumer appears. Note the file
+header credits xterm.dart (MIT) — per repo convention, code under `lib/` is owned, not
+vendored, so it is fair game to move; keep the credit either way.
+
+## Key scheme
+
+Key on everything that changes the rendered glyph: **glyph index, colour, font size, and the
+resolved font family**. Font comes from `ClideSettings.fonts.monoOf(context)` (D-101) and is
+user-changeable at runtime, so it must be in the key or a font switch silently renders stale
+paragraphs. Same for theme changes, which change colour.
+
+Cache size should comfortably exceed `glyphSet.length × distinctColours` — the working set is
+small and bounded, so sizing it too *small* is the only real failure mode.
+
+## Done when
+
+- One cache instance owned by the painter, cleared on theme or font change.
+- A test asserts the second request for the same key returns the **identical** `Paragraph`
+  instance (`identical()`, not `==`) — that is the whole point of the ticket.
+- A test asserts a colour, size, or font-family change produces a different entry rather than
+  reusing a stale one.
+- A bounded-growth test: painting many frames does not grow the cache without limit.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:54.845', '2026-08-09 02:07:33.607', NULL, '703f791b48c60bd1bc9a18cd18f38f25', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W64KMPGV5TMJ7C7D654WM', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A3: Glyph paragraph cache for per-particle drawing', 'One `ui.Paragraph` per distinct (glyph, style) pair, reused across frames and particles.
+This is the difference between the face being cheap and being a space heater.
+
+Target: `lib/builtin/clide_companion/src/glyph_cache.dart`
+
+## The rule
+
+**Never build a `TextPainter` per particle per frame.** At 40 streams × ~20 rows that is
+~800 layouts per frame at 30fps. Both existing painters (`graph_painter.dart:121`,
+`canvas_painter.dart:214`) do allocate a `TextPainter` per paint — that is fine for a static
+painter that repaints on interaction, and wrong here. Do not copy them.
+
+## Reuse `ParagraphCache`
+
+`lib/src/terminal/src/ui/paragraph_cache.dart` already implements exactly this: an LRU of
+`ui.Paragraph` keyed on `int`, with `getLayoutFromCache(key)` and
+`performAndCacheLayout(text, style, textScaler, key)`. It is ~50 lines, used by the terminal
+painter (`painter.dart:150-180`), and **not exported from any barrel**.
+
+Decide and record which:
+- **import it directly** (`package:clide/src/terminal/src/ui/paragraph_cache.dart`) — no
+  duplication, but reaches across into the terminal subsystem''s private path; or
+- **lift it** to a shared location and have both use it — cleaner layering, touches the
+  terminal painter.
+
+Prefer importing directly first and only lift if a third consumer appears. Note the file
+header credits xterm.dart (MIT) — per repo convention, code under `lib/` is owned, not
+vendored, so it is fair game to move; keep the credit either way.
+
+## Key scheme
+
+Key on everything that changes the rendered glyph: **glyph index, colour, font size, and the
+resolved font family**. Font comes from `ClideSettings.fonts.monoOf(context)` (D-101) and is
+user-changeable at runtime, so it must be in the key or a font switch silently renders stale
+paragraphs. Same for theme changes, which change colour.
+
+Cache size should comfortably exceed `glyphSet.length × distinctColours` — the working set is
+small and bounded, so sizing it too *small* is the only real failure mode.
+
+## Done when
+
+- One cache instance owned by the painter, cleared on theme or font change.
+- A test asserts the second request for the same key returns the **identical** `Paragraph`
+  instance (`identical()`, not `==`) — that is the whole point of the ticket.
+- A test asserts a colour, size, or font-family change produces a different entry rather than
+  reusing a stale one.
+- A bounded-growth test: painting many frames does not grow the cache without limit.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:54.845', '2026-08-09 02:07:51.619', NULL, '2a64b8a94361b8d753445a2c9343fe3d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W64KMPGV5TMJ7C7D654WM', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A3: Glyph paragraph cache for per-particle drawing', 'One `ui.Paragraph` per distinct (glyph, style) pair, reused across frames and particles.
+This is the difference between the face being cheap and being a space heater.
+
+Target: `lib/builtin/clide_companion/src/glyph_cache.dart`
+
+## The rule
+
+**Never build a `TextPainter` per particle per frame.** At 40 streams × ~20 rows that is
+~800 layouts per frame at 30fps. Both existing painters (`graph_painter.dart:121`,
+`canvas_painter.dart:214`) do allocate a `TextPainter` per paint — that is fine for a static
+painter that repaints on interaction, and wrong here. Do not copy them.
+
+## Reuse `ParagraphCache`
+
+`lib/src/terminal/src/ui/paragraph_cache.dart` already implements exactly this: an LRU of
+`ui.Paragraph` keyed on `int`, with `getLayoutFromCache(key)` and
+`performAndCacheLayout(text, style, textScaler, key)`. It is ~50 lines, used by the terminal
+painter (`painter.dart:150-180`), and **not exported from any barrel**.
+
+Decide and record which:
+- **import it directly** (`package:clide/src/terminal/src/ui/paragraph_cache.dart`) — no
+  duplication, but reaches across into the terminal subsystem''s private path; or
+- **lift it** to a shared location and have both use it — cleaner layering, touches the
+  terminal painter.
+
+Prefer importing directly first and only lift if a third consumer appears. Note the file
+header credits xterm.dart (MIT) — per repo convention, code under `lib/` is owned, not
+vendored, so it is fair game to move; keep the credit either way.
+
+## Key scheme
+
+Key on everything that changes the rendered glyph: **glyph index, colour, font size, and the
+resolved font family**. Font comes from `ClideSettings.fonts.monoOf(context)` (D-101) and is
+user-changeable at runtime, so it must be in the key or a font switch silently renders stale
+paragraphs. Same for theme changes, which change colour.
+
+Cache size should comfortably exceed `glyphSet.length × distinctColours` — the working set is
+small and bounded, so sizing it too *small* is the only real failure mode.
+
+## Done when
+
+- One cache instance owned by the painter, cleared on theme or font change.
+- A test asserts the second request for the same key returns the **identical** `Paragraph`
+  instance (`identical()`, not `==`) — that is the whole point of the ticket.
+- A test asserts a colour, size, or font-family change produces a different entry rather than
+  reusing a stale one.
+- A bounded-growth test: painting many frames does not grow the cache without limit.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/glyph_cache.dart` — `GlyphCache`, `GlyphMetrics`.
+- `test/builtin/clide_companion/glyph_cache_test.dart` — 16 tests, all green.
+- `make analyze`, `make format`, `make test` clean. Parallel pool 4045 → 4061, so the new
+  tests are in the gate.
+
+## Decision: imported, not lifted
+
+`ParagraphCache` is imported directly from
+`package:clide/src/terminal/src/ui/paragraph_cache.dart`, as the ticket preferred. Reaching
+across a subsystem boundary is the smaller evil than a second copy of the same LRU. The
+reasoning — and the trigger for revisiting it — is recorded in the class doc: **if a third
+consumer appears, lift it somewhere shared and update both.** `flutter analyze` is clean with
+the import, so there is no lint pressure against it.
+
+## Deviation: `Object.hash`, not the terminal''s XOR
+
+The terminal painter keys with `cellData.getHash() ^ _textScaler.hashCode`
+(`painter.dart:150`). XOR is a weak combiner and collides readily on structured inputs. That
+is tolerable there because it is hashing one packed struct; here the key combines six
+independent values, and **a collision does not degrade — it silently draws the wrong glyph or
+the wrong colour**, with no error and nothing to notice until someone squints at a
+screenshot. Used `Object.hash` / `Object.hashAll` instead.
+
+## The ticket asked for clearing; the key makes it unnecessary for correctness
+
+The ticket''s done-when says "one cache instance owned by the painter, **cleared on theme or
+font change**". Implemented, but with a stronger property than that implies:
+
+**Every input that changes the rendered pixels is in the key** — glyph, colour, font size,
+font family, fallback list, text scaler. So a theme or font switch simply *misses* and lays
+out fresh. It cannot return a stale paragraph even if nothing ever calls `clear()`.
+
+That downgrades forgetting to clear from a rendering bug to a memory issue, which matters
+because the painter is the thing that would have to remember, and it is the component most
+likely to be refactored later. `clear()` exists and is tested, but it is memory hygiene.
+There is an explicit test named for this: a theme switch *without* a clear must still produce
+the new colour.
+
+## Added beyond scope: `metrics()`
+
+The painter (T-524) needs the cell size to lay out the grid, and would otherwise hand-roll a
+measurement and probably rebuild it per frame. `metrics()` measures a reference glyph
+*through* the cache, so the probe layout is cached like everything else. Tested that a repeat
+call adds no entry.
+
+## Sizing
+
+Default `maximumSize: 512`. Working set is ~42 rain glyphs plus the face glyphs across a
+handful of token colours and one or two sizes — comfortably under. Sizing it too small is the
+only real failure mode, so there is a test asserting a 180-entry working set is not evicted
+at the default, alongside one asserting a deliberately tiny cache does evict.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:54.845', '2026-08-09 02:13:36.552', NULL, '01d0379cd9489d1701f4f7ae88fd7ab6', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W6JXV00WEC79SK0GDWSH0', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A4: ClideFacePainter — CustomPainter for face + rain', 'The painter: face (eyes, mouth, thought dots, clock, orbit arc, elapsed counter) plus the
+rain field, drawn from the T-521 spec, the T-522 field, and the T-523 cache.
+
+Target: `lib/builtin/clide_companion/src/face_painter.dart`
+
+Blocked by T-521 (spec), T-522 (field), T-523 (cache) — it composes all three.
+
+## Draw order
+
+1. Rain (behind everything), trail then leading cells
+2. Radial vignette behind the face — DeskLock uses this to keep the face readable over dense
+   rain, and at 40 streams it is doing real work, not decoration
+3. Face group: eyes, mouth, thought dots, clock — offset by breathe + jitter + lean
+4. Orbit arc on the bezel, elapsed `[ Ns ]` counter
+
+## Tokens only — never a hex literal
+
+`ClideSettings.theme.of(context).surface`. Mapping:
+
+| Element | Token |
+|---|---|
+| well / background | `panelBackground` |
+| rain trail | `globalTextMuted` at low alpha |
+| rain leading cell | `globalTextMuted` at higher alpha |
+| face glyphs | `globalForeground` |
+| clock, elapsed counter | `globalTextMuted` |
+| orbit arc | `globalFocus` |
+| `rage` accent | `statusWarning` |
+| `error` accent | `statusError` |
+
+`SurfaceTokens` has **no `==` override**, so `shouldRepaint` compares tokens by identity —
+match the existing painters (`graph_painter.dart:138`, `canvas_painter.dart:227`) rather than
+deep-comparing. A new instance is only built on theme change, so identity is correct.
+
+## `repaint:` — the first use in this repo
+
+Pass the ticker''s `Listenable` to `CustomPainter(repaint: controller)`. Zero uses of
+`repaint:` exist in `lib/` today; both existing painters drive repaints via `setState`, which
+rebuilds the widget subtree every frame. **Do not copy that for a continuous animation** — it
+is the difference between repainting a layer and rebuilding a tree 30 times a second.
+
+`shouldRepaint` still needs to be correct for the *non-animated* inputs (state, gaze, tokens,
+size) since those arrive by rebuild.
+
+## Done when
+
+- `hasInk` picture-recorder assertions per state (pattern:
+  `test/builtin/graph/graph_painter_test.dart:35-43`), run under `tester.runAsync` —
+  `toImage`/`toByteData` is real engine async and hangs on the fake test clock.
+- `shouldRepaint` unit-tested per field (pattern:
+  `test/builtin/canvas/canvas_painter_test.dart:103-111`): identical inputs → false, each
+  varying field → true.
+- `error` paints no rain — a visible assertion of the power-ladder contract (D-107).
+- Lean offset is applied to the mouth and is visible in the painted output at −8/0/+8.
+- No `TextPainter` allocation in `paint` — assert via the cache''s instance-reuse test (T-523)
+  rather than by inspection.
+
+From T-523: GlyphCache exposes metrics() for cell sizing — measure through it rather than hand-rolling a TextPainter, so the probe layout is cached too. Correctness does not depend on clearing the cache (every pixel-affecting input is in the key), so clear() on theme/font change is memory hygiene only; do not build logic that relies on it for freshness. ParagraphCache is imported from the terminal subsystem, not lifted — if this painter or anything else adds a third consumer, lift it somewhere shared and update all users.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:58.510', '2026-08-09 02:13:43.428', NULL, 'a21312a59127c13515cd3b7d7388d081', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W64KMPGV5TMJ7C7D654WM', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A3: Glyph paragraph cache for per-particle drawing', 'One `ui.Paragraph` per distinct (glyph, style) pair, reused across frames and particles.
+This is the difference between the face being cheap and being a space heater.
+
+Target: `lib/builtin/clide_companion/src/glyph_cache.dart`
+
+## The rule
+
+**Never build a `TextPainter` per particle per frame.** At 40 streams × ~20 rows that is
+~800 layouts per frame at 30fps. Both existing painters (`graph_painter.dart:121`,
+`canvas_painter.dart:214`) do allocate a `TextPainter` per paint — that is fine for a static
+painter that repaints on interaction, and wrong here. Do not copy them.
+
+## Reuse `ParagraphCache`
+
+`lib/src/terminal/src/ui/paragraph_cache.dart` already implements exactly this: an LRU of
+`ui.Paragraph` keyed on `int`, with `getLayoutFromCache(key)` and
+`performAndCacheLayout(text, style, textScaler, key)`. It is ~50 lines, used by the terminal
+painter (`painter.dart:150-180`), and **not exported from any barrel**.
+
+Decide and record which:
+- **import it directly** (`package:clide/src/terminal/src/ui/paragraph_cache.dart`) — no
+  duplication, but reaches across into the terminal subsystem''s private path; or
+- **lift it** to a shared location and have both use it — cleaner layering, touches the
+  terminal painter.
+
+Prefer importing directly first and only lift if a third consumer appears. Note the file
+header credits xterm.dart (MIT) — per repo convention, code under `lib/` is owned, not
+vendored, so it is fair game to move; keep the credit either way.
+
+## Key scheme
+
+Key on everything that changes the rendered glyph: **glyph index, colour, font size, and the
+resolved font family**. Font comes from `ClideSettings.fonts.monoOf(context)` (D-101) and is
+user-changeable at runtime, so it must be in the key or a font switch silently renders stale
+paragraphs. Same for theme changes, which change colour.
+
+Cache size should comfortably exceed `glyphSet.length × distinctColours` — the working set is
+small and bounded, so sizing it too *small* is the only real failure mode.
+
+## Done when
+
+- One cache instance owned by the painter, cleared on theme or font change.
+- A test asserts the second request for the same key returns the **identical** `Paragraph`
+  instance (`identical()`, not `==`) — that is the whole point of the ticket.
+- A test asserts a colour, size, or font-family change produces a different entry rather than
+  reusing a stale one.
+- A bounded-growth test: painting many frames does not grow the cache without limit.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/glyph_cache.dart` — `GlyphCache`, `GlyphMetrics`.
+- `test/builtin/clide_companion/glyph_cache_test.dart` — 16 tests, all green.
+- `make analyze`, `make format`, `make test` clean. Parallel pool 4045 → 4061, so the new
+  tests are in the gate.
+
+## Decision: imported, not lifted
+
+`ParagraphCache` is imported directly from
+`package:clide/src/terminal/src/ui/paragraph_cache.dart`, as the ticket preferred. Reaching
+across a subsystem boundary is the smaller evil than a second copy of the same LRU. The
+reasoning — and the trigger for revisiting it — is recorded in the class doc: **if a third
+consumer appears, lift it somewhere shared and update both.** `flutter analyze` is clean with
+the import, so there is no lint pressure against it.
+
+## Deviation: `Object.hash`, not the terminal''s XOR
+
+The terminal painter keys with `cellData.getHash() ^ _textScaler.hashCode`
+(`painter.dart:150`). XOR is a weak combiner and collides readily on structured inputs. That
+is tolerable there because it is hashing one packed struct; here the key combines six
+independent values, and **a collision does not degrade — it silently draws the wrong glyph or
+the wrong colour**, with no error and nothing to notice until someone squints at a
+screenshot. Used `Object.hash` / `Object.hashAll` instead.
+
+## The ticket asked for clearing; the key makes it unnecessary for correctness
+
+The ticket''s done-when says "one cache instance owned by the painter, **cleared on theme or
+font change**". Implemented, but with a stronger property than that implies:
+
+**Every input that changes the rendered pixels is in the key** — glyph, colour, font size,
+font family, fallback list, text scaler. So a theme or font switch simply *misses* and lays
+out fresh. It cannot return a stale paragraph even if nothing ever calls `clear()`.
+
+That downgrades forgetting to clear from a rendering bug to a memory issue, which matters
+because the painter is the thing that would have to remember, and it is the component most
+likely to be refactored later. `clear()` exists and is tested, but it is memory hygiene.
+There is an explicit test named for this: a theme switch *without* a clear must still produce
+the new colour.
+
+## Added beyond scope: `metrics()`
+
+The painter (T-524) needs the cell size to lay out the grid, and would otherwise hand-roll a
+measurement and probably rebuild it per frame. `metrics()` measures a reference glyph
+*through* the cache, so the probe layout is cached like everything else. Tested that a repeat
+call adds no entry.
+
+## Sizing
+
+Default `maximumSize: 512`. Working set is ~42 rain glyphs plus the face glyphs across a
+handful of token colours and one or two sizes — comfortably under. Sizing it too small is the
+only real failure mode, so there is a test asserting a 180-entry working set is not evicted
+at the default, alongside one asserting a deliberately tiny cache does evict.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:54.845', '2026-08-09 02:13:47.481', NULL, '0599f47621c231a5c4df4ce541096250', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
