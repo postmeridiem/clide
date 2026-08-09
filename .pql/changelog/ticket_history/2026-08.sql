@@ -2057,3 +2057,651 @@ Q-34 (quota is the real currency and is still not exposed upstream).
 Implemented by T-513 (epics T-516/517/518/519/520). Wireframes:
 `docs/design/wireframes/clide-companion/`.', NULL, '2026-08-09 00:18:08', '2026-08-09 00:18:08.159', '2026-08-09 00:18:08.159', NULL, '0c13b0af6d5d4609aec57f46dbfd2207', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73WRAZBSBGGCSSMWHN17Q4', 'status', 'in_progress', 'done', NULL, '2026-08-09 00:18:12', '2026-08-09 00:18:12.242', '2026-08-09 00:18:12.242', NULL, 'a89232d8d51db3ab4f32edb72ae571cd', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73XR4NJEPDARY06397RVVC', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 00:32:55', '2026-08-09 00:32:55.106', '2026-08-09 00:32:55.106', NULL, '51084cdcb09cb0eb9d44d220e72b2291', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73XR4NJEPDARY06397RVVC', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 00:33:11', '2026-08-09 00:33:11.097', '2026-08-09 00:33:11.097', NULL, 'dde917969b4e4f535217ac1201ce9fda', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W569QMQPKWCJ2PY9APGM8', 'description', NULL, '**This is the published seam with Epic B (T-517).** B codes against this contract; it must
+land first and then stay stable. Everything here is specified concretely so B is not blocked
+on the implementation.
+
+Pure Dart — **no Flutter import** (no `Color`, no `TextStyle`). Colours come from tokens at
+paint time, not from the spec. That keeps this file runnable under `dart test` and keeps the
+table reviewable as data.
+
+Target: `lib/builtin/clide_companion/src/face_state.dart`
+
+## The contract
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+
+/// Which way the pupils point. Drives the lean offset too (D-107, T-514).
+enum Gaze { none, left, forward, right }
+
+class FaceSpec {
+  final String eyes;        // always an eyes string — no alternate render path
+  final String mouth;       // '''' when hidden
+  final bool blink;         // lids drop ~130ms every 2.6–6.2s
+  final bool thoughtDots;   // cycling . / .. / ... beside the head
+  final bool talkCycle;     // mouth cycles the TALK sequence
+  final bool jitter;        // ±1px face shake
+  final bool orbit;         // bezel arc sweep
+  final bool elapsed;       // [ Ns ] counter
+  final bool clock;         // HH:MM under the face
+  final int rainStreams;    // density — the load signal
+  final double rainSpeed;   // cells/sec
+  final double opacity;     // 1.0, or 0.45 for error
+}
+```
+
+Widget props (what B passes to `ClideFace` in T-525):
+
+| Prop | Type | Notes |
+|---|---|---|
+| `state` | `FaceState` | required |
+| `gaze` | `Gaze` | default `Gaze.none` |
+| `busyFor` | `Duration?` | drives `[ Ns ]`; **B owns this**, the widget does not time turns. Null renders no counter. |
+
+**Lean is derived, not passed:** `none/forward → 0px`, `left → −8px`, `right → +8px`, applied
+as the mouth''s x-offset from the eye centre and animated rather than snapped (D-107). One
+number; do not add a `lean` prop.
+
+## The table — ported from DeskLock `sim/face/index.html`
+
+| state | eyes | mouth | blink | rain | extras |
+|---|---|---|---|---|---|
+| `idle` | `-   -` | `\_/` | ✓ | 2 @ 4 | clock |
+| `listening` | `O   O` | `o` | ✓ | 16 @ 7 | — |
+| `pensive` | `·   ·` | `~` | — | 7 @ 5 | thoughtDots |
+| `effort` | `>   <` | `~` | — | 40 @ 16 | jitter, orbit, elapsed |
+| `speaking` | `^   ^` | `o` | ✓ | 14 @ 9 | talkCycle |
+| `rage` | `▼   ▼` | `━` | — | 34 @ 20 | jitter |
+| `error` | `x   x` | `-` | — | 0 @ 0 | opacity 0.45 |
+
+`TALK = [''o'', ''O'', ''-'', ''O'', ''='', ''o'']` at ~150ms/frame. Blink replaces every non-space eye
+char with `_` for ~130ms. Thought dots cycle at ~480ms. Breathe is a 4.5s ±9px vertical bob
+applied to the whole face group (not per-state).
+
+## Deliberate deviation from DeskLock: `rage` is a scowl, not a table-flip
+
+DeskLock renders `rage` as a 3-frame kaomoji sequence — `(°□°) ┬─┬` → `(╯°□°)╯︵ ┻━┻` →
+`┬─┬ ノ( º_º ノ)` — pushed as whole lines through the eye slot. **Not ported.** Two reasons,
+and the second is the real one:
+
+1. **Two of its glyphs are missing from the bundled fonts**, verified with `fc-query` against
+   `JetBrainsMono-Regular.ttf`: `︵` (U+FE35) and `ノ` (U+30CE — katakana again; the
+   initiative''s font finding only covered the *rain* glyph set, so this is a second instance
+   of the same bug class). `╯` and `□` are fine, inside `2500-25a1`.
+2. **It needs a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it drags a `KaomojiFrame` class, a frame
+   timer, and a branch through the painter into the contract — for the state you see least.
+
+`rage` instead uses the ordinary grammar: brows-down eyes `▼` (U+25BC) and a hard flat mouth
+`━` (U+2501), with `jitter` already carrying the agitation and rain spiking to 34 @ 20. Both
+glyphs verified covered. Net effect on this epic: **no `KaomojiFrame`, no frame timer, no
+second branch in the painter, no font substitutions** — one more row in the same table.
+
+If the table-flip is ever wanted back, it is a deliberate re-open needing a bundled font that
+covers kana, which trades against prefer-zero-deps (D-31/D-42).
+
+## Done when
+
+- Enum + spec + const table exist, pure Dart, no Flutter import.
+- A `specFor(FaceState)` lookup returns the const spec.
+- Unit tests: every state has a spec; rain density is monotonic across
+  idle < pensive < speaking < listening < rage < effort; error has zero rain; **every glyph in
+  the table is asserted against the covered set** so a future edit reintroducing an uncovered
+  glyph fails the suite rather than the render.
+- Epic B (T-517) is told the contract is available.
+
+That last test is the one that matters — it is the guard that stops this bug class recurring,
+and it has now bitten twice.', NULL, '2026-08-09 00:59:44', '2026-08-09 00:59:44.288', '2026-08-09 00:59:44.288', NULL, '27d6030042fd460a262cea95d0559e74', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W5PARJ36P3TQCANG78YF4', 'description', NULL, 'The rain field: spawn, fall, cull. Pure Dart, **no Flutter import** — it produces particle
+positions and glyph indices; the painter (T-524) turns those into pixels.
+
+Target: `lib/builtin/clide_companion/src/rain_field.dart`
+
+## Why it is its own ticket
+
+It is the load signal, not decoration. Density (`rainStreams`) is what tells you at a glance
+whether the session is idle or grinding — 2 streams versus 40 — so it deserves its own tests
+rather than being asserted only through a painted image.
+
+## Shape
+
+```dart
+class RainField {
+  RainField({required int columns, required int rows, int seed = 0});
+
+  /// Advance by dt seconds toward the target density/speed.
+  void tick(double dt, {required int targetStreams, required double speed});
+
+  Iterable<RainCell> get cells;   // col, row (fractional), glyphIndex, leading
+}
+```
+
+- **Deterministic.** Seeded PRNG, injected — **never `Random()` unseeded and never
+  `DateTime.now()`**. Tests and goldens need the same field for the same inputs.
+- **Density ramps, it does not snap.** Going idle→effort should read as the field filling in
+  over a few hundred ms, not popping. Going effort→idle drains by culling, not clearing.
+- **Leading cell is brighter** — DeskLock draws the head of each stream lighter than the
+  trail. Expose it as a flag on the cell; the painter picks the colour.
+- Cull when a stream falls past `rows + 2`.
+
+## Glyph set — ASCII + symbols + box-drawing only
+
+**No katakana.** The bundled fonts have zero kana coverage (verified with `fc-query`), so
+DeskLock''s `アイウエオ…` set cannot be used: it would fall through to a system font,
+break goldens, and break the monospace advance width the grid assumes.
+
+Use DeskLock''s covered half — `0123456789ACEFHKZ$#%*+=<>` — plus box/geometric glyphs from
+`2500-25a1` (JetBrains Mono ships the full box set there; Fira Mono also covers `250c-256c`).
+
+The field stores a **glyph index**, not a character, so the concrete set lives in one const
+list and the painter resolves it. That keeps the swap cheap if the set is ever revised.
+
+## Done when
+
+- `tick` is pure and deterministic for a given seed — same inputs, same field, asserted.
+- Density converges to `targetStreams` and holds; changing the target ramps rather than snaps.
+- Cull works: cells never accumulate past the bottom, and total cell count stays bounded
+  under a long run (this is the leak test — worth writing, since an unbounded field is the
+  obvious failure mode for a perpetual simulation).
+- Zero density produces an empty field (the `error` state must actually stop, per D-107''s
+  power-ladder contract).
+- Runs under `dart test` — no Flutter import.', NULL, '2026-08-09 01:00:09', '2026-08-09 01:00:09.784', '2026-08-09 01:00:09.784', NULL, '81bd58093e6253fe6d4278693b4dae02', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W64KMPGV5TMJ7C7D654WM', 'description', NULL, 'One `ui.Paragraph` per distinct (glyph, style) pair, reused across frames and particles.
+This is the difference between the face being cheap and being a space heater.
+
+Target: `lib/builtin/clide_companion/src/glyph_cache.dart`
+
+## The rule
+
+**Never build a `TextPainter` per particle per frame.** At 40 streams × ~20 rows that is
+~800 layouts per frame at 30fps. Both existing painters (`graph_painter.dart:121`,
+`canvas_painter.dart:214`) do allocate a `TextPainter` per paint — that is fine for a static
+painter that repaints on interaction, and wrong here. Do not copy them.
+
+## Reuse `ParagraphCache`
+
+`lib/src/terminal/src/ui/paragraph_cache.dart` already implements exactly this: an LRU of
+`ui.Paragraph` keyed on `int`, with `getLayoutFromCache(key)` and
+`performAndCacheLayout(text, style, textScaler, key)`. It is ~50 lines, used by the terminal
+painter (`painter.dart:150-180`), and **not exported from any barrel**.
+
+Decide and record which:
+- **import it directly** (`package:clide/src/terminal/src/ui/paragraph_cache.dart`) — no
+  duplication, but reaches across into the terminal subsystem''s private path; or
+- **lift it** to a shared location and have both use it — cleaner layering, touches the
+  terminal painter.
+
+Prefer importing directly first and only lift if a third consumer appears. Note the file
+header credits xterm.dart (MIT) — per repo convention, code under `lib/` is owned, not
+vendored, so it is fair game to move; keep the credit either way.
+
+## Key scheme
+
+Key on everything that changes the rendered glyph: **glyph index, colour, font size, and the
+resolved font family**. Font comes from `ClideSettings.fonts.monoOf(context)` (D-101) and is
+user-changeable at runtime, so it must be in the key or a font switch silently renders stale
+paragraphs. Same for theme changes, which change colour.
+
+Cache size should comfortably exceed `glyphSet.length × distinctColours` — the working set is
+small and bounded, so sizing it too *small* is the only real failure mode.
+
+## Done when
+
+- One cache instance owned by the painter, cleared on theme or font change.
+- A test asserts the second request for the same key returns the **identical** `Paragraph`
+  instance (`identical()`, not `==`) — that is the whole point of the ticket.
+- A test asserts a colour, size, or font-family change produces a different entry rather than
+  reusing a stale one.
+- A bounded-growth test: painting many frames does not grow the cache without limit.', NULL, '2026-08-09 01:00:30', '2026-08-09 01:00:30.254', '2026-08-09 01:00:30.254', NULL, 'c451e9f093dd834e7a9b7c3bedac9923', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W6JXV00WEC79SK0GDWSH0', 'description', NULL, 'The painter: face (eyes, mouth, thought dots, clock, orbit arc, elapsed counter) plus the
+rain field, drawn from the T-521 spec, the T-522 field, and the T-523 cache.
+
+Target: `lib/builtin/clide_companion/src/face_painter.dart`
+
+Blocked by T-521 (spec), T-522 (field), T-523 (cache) — it composes all three.
+
+## Draw order
+
+1. Rain (behind everything), trail then leading cells
+2. Radial vignette behind the face — DeskLock uses this to keep the face readable over dense
+   rain, and at 40 streams it is doing real work, not decoration
+3. Face group: eyes, mouth, thought dots, clock — offset by breathe + jitter + lean
+4. Orbit arc on the bezel, elapsed `[ Ns ]` counter
+
+## Tokens only — never a hex literal
+
+`ClideSettings.theme.of(context).surface`. Mapping:
+
+| Element | Token |
+|---|---|
+| well / background | `panelBackground` |
+| rain trail | `globalTextMuted` at low alpha |
+| rain leading cell | `globalTextMuted` at higher alpha |
+| face glyphs | `globalForeground` |
+| clock, elapsed counter | `globalTextMuted` |
+| orbit arc | `globalFocus` |
+| `rage` accent | `statusWarning` |
+| `error` accent | `statusError` |
+
+`SurfaceTokens` has **no `==` override**, so `shouldRepaint` compares tokens by identity —
+match the existing painters (`graph_painter.dart:138`, `canvas_painter.dart:227`) rather than
+deep-comparing. A new instance is only built on theme change, so identity is correct.
+
+## `repaint:` — the first use in this repo
+
+Pass the ticker''s `Listenable` to `CustomPainter(repaint: controller)`. Zero uses of
+`repaint:` exist in `lib/` today; both existing painters drive repaints via `setState`, which
+rebuilds the widget subtree every frame. **Do not copy that for a continuous animation** — it
+is the difference between repainting a layer and rebuilding a tree 30 times a second.
+
+`shouldRepaint` still needs to be correct for the *non-animated* inputs (state, gaze, tokens,
+size) since those arrive by rebuild.
+
+## Done when
+
+- `hasInk` picture-recorder assertions per state (pattern:
+  `test/builtin/graph/graph_painter_test.dart:35-43`), run under `tester.runAsync` —
+  `toImage`/`toByteData` is real engine async and hangs on the fake test clock.
+- `shouldRepaint` unit-tested per field (pattern:
+  `test/builtin/canvas/canvas_painter_test.dart:103-111`): identical inputs → false, each
+  varying field → true.
+- `error` paints no rain — a visible assertion of the power-ladder contract (D-107).
+- Lean offset is applied to the mouth and is visible in the painted output at −8/0/+8.
+- No `TextPainter` allocation in `paint` — assert via the cache''s instance-reuse test (T-523)
+  rather than by inspection.', NULL, '2026-08-09 01:00:53', '2026-08-09 01:00:53.406', '2026-08-09 01:00:53.406', NULL, 'ecf79c3cf68f74fd77445f8143fd2218', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W71Q93S37DZF4ZJJ9QWJW', 'description', NULL, 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.', NULL, '2026-08-09 01:01:20', '2026-08-09 01:01:20.258', '2026-08-09 01:01:20.258', NULL, '26ecba6d2cc8f577db13e86035bf940c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'description', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.', NULL, '2026-08-09 01:01:41', '2026-08-09 01:01:41.243', '2026-08-09 01:01:41.243', NULL, '70a17bd38c4d45beda552104b65e3cb7', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73XR4NJEPDARY06397RVVC', 'description', 'The pure rendering core: a `ClideFace` widget that draws DeskLock''s glyph face and rain
+field from a plain state enum. **No session wiring** — it takes a state in and paints. That
+keeps it independently testable and lets it start immediately, in parallel with Epic D.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets once picked up, with the codebase fresh.
+2. **Own the seam with Epic B** — B drives this widget. Define and publish the state enum +
+   props contract early so B is not blocked on internals, and keep it stable.
+
+## Scope
+
+- `FaceState` enum + the per-state glyph/rain table, ported from DeskLock''s `STATES`
+  (`sim/face/index.html`). Eyes, mouth, blink, thought-dots, talk cycle, rain
+  streams/speed, orbit arc, elapsed counter, jitter, kaomoji frames.
+- `CustomPainter` for face + rain, driven by one `Ticker`.
+- Rain field simulation (spawn / fall / cull) with density and speed as inputs.
+- Glyph set: **ASCII + symbols + box-drawing only — no katakana** (see the initiative;
+  bundled fonts have zero kana coverage, verified with `fc-query`).
+
+## Rendering discipline — three firsts for this repo
+
+None of these have a house pattern to copy; establish them here.
+
+1. **`CustomPainter(repaint: controller)`** — zero uses of `repaint:` exist in `lib/`. Both
+   existing painters (`graph_painter`, `canvas_painter`) repaint via `setState`, which
+   rebuilds the widget subtree every frame. Don''t copy that for a continuous animation.
+2. **`RepaintBoundary`** — used exactly once in the repo
+   (`lib/src/terminal/src/ui/render.dart:174`). This would be the second.
+3. **`ParagraphCache`** (`lib/src/terminal/src/ui/paragraph_cache.dart`) — an LRU of
+   `ui.Paragraph`, already used by the terminal painter. Build one paragraph per distinct
+   glyph and `canvas.drawParagraph` per particle. **Never a `TextPainter` per particle per
+   frame** — the existing painters do allocate per paint; that is fine for static painters
+   and wrong here. Not exported from any barrel, so import directly or lift it.
+
+## Mandatory reduced-motion gate
+
+`MediaQuery.maybeOf(context)?.disableAnimations` checked in `didChangeDependencies`, ticker
+stopped when true. This is not optional: `test/widgets/src/clide_marquee_test.dart:50`
+asserts `pumpAndSettle()` completes under reduced motion, so a perpetual ticker that ignores
+the flag hangs the suite for ~10 minutes. Reference implementations: `clide_marquee.dart`
+(raw `Ticker`, closest structural match), `clide_spinner.dart`, `running_indicator.dart`.
+
+## Tokens, not hex
+
+`ClideSettings.theme.of(context).surface`. `SurfaceTokens` has **no `==` override**, so
+`shouldRepaint` compares by identity — match the existing painters rather than deep-comparing.
+Fonts via `ClideSettings.fonts.monoOf(context)` + `clideMonoFamilyFallback`, never the
+`clideMonoFamily` const (D-101).
+
+## Testing
+
+- `hasInk` picture-recorder pattern (`test/builtin/graph/graph_painter_test.dart:35-43`)
+  under `tester.runAsync` — `toImage`/`toByteData` is real engine async and must run off the
+  fake clock.
+- `shouldRepaint` unit-tested per field (`test/builtin/canvas/canvas_painter_test.dart:103-111`).
+- Bounded pumps; tear down by pumping an empty tree so the infinite ticker disposes.
+- Alchemist goldens at a **pinned ticker value** — a live animation is a bad golden.', 'The pure rendering core: a `ClideFace` widget that draws DeskLock''s glyph face and rain
+field from a plain state enum. **No session wiring** — it takes a state in and paints. That
+keeps it independently testable and lets it start immediately, in parallel with Epic D.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets once picked up, with the codebase fresh.
+2. **Own the seam with Epic B** — B drives this widget. Define and publish the state enum +
+   props contract early so B is not blocked on internals, and keep it stable.
+
+## Scope
+
+- `FaceState` enum + the per-state glyph/rain table, ported from DeskLock''s `STATES`
+  (`sim/face/index.html`). Eyes, mouth, blink, thought-dots, talk cycle, rain
+  streams/speed, orbit arc, elapsed counter, jitter, kaomoji frames.
+- `CustomPainter` for face + rain, driven by one `Ticker`.
+- Rain field simulation (spawn / fall / cull) with density and speed as inputs.
+- Glyph set: **ASCII + symbols + box-drawing only — no katakana** (see the initiative;
+  bundled fonts have zero kana coverage, verified with `fc-query`).
+
+## Rendering discipline — three firsts for this repo
+
+None of these have a house pattern to copy; establish them here.
+
+1. **`CustomPainter(repaint: controller)`** — zero uses of `repaint:` exist in `lib/`. Both
+   existing painters (`graph_painter`, `canvas_painter`) repaint via `setState`, which
+   rebuilds the widget subtree every frame. Don''t copy that for a continuous animation.
+2. **`RepaintBoundary`** — used exactly once in the repo
+   (`lib/src/terminal/src/ui/render.dart:174`). This would be the second.
+3. **`ParagraphCache`** (`lib/src/terminal/src/ui/paragraph_cache.dart`) — an LRU of
+   `ui.Paragraph`, already used by the terminal painter. Build one paragraph per distinct
+   glyph and `canvas.drawParagraph` per particle. **Never a `TextPainter` per particle per
+   frame** — the existing painters do allocate per paint; that is fine for static painters
+   and wrong here. Not exported from any barrel, so import directly or lift it.
+
+## Mandatory reduced-motion gate
+
+`MediaQuery.maybeOf(context)?.disableAnimations` checked in `didChangeDependencies`, ticker
+stopped when true. This is not optional: `test/widgets/src/clide_marquee_test.dart:50`
+asserts `pumpAndSettle()` completes under reduced motion, so a perpetual ticker that ignores
+the flag hangs the suite for ~10 minutes. Reference implementations: `clide_marquee.dart`
+(raw `Ticker`, closest structural match), `clide_spinner.dart`, `running_indicator.dart`.
+
+## Tokens, not hex
+
+`ClideSettings.theme.of(context).surface`. `SurfaceTokens` has **no `==` override**, so
+`shouldRepaint` compares by identity — match the existing painters rather than deep-comparing.
+Fonts via `ClideSettings.fonts.monoOf(context)` + `clideMonoFamilyFallback`, never the
+`clideMonoFamily` const (D-101).
+
+## Testing
+
+- `hasInk` picture-recorder pattern (`test/builtin/graph/graph_painter_test.dart:35-43`)
+  under `tester.runAsync` — `toImage`/`toByteData` is real engine async and must run off the
+  fake clock.
+- `shouldRepaint` unit-tested per field (`test/builtin/canvas/canvas_painter_test.dart:103-111`).
+- Bounded pumps; tear down by pumping an empty tree so the infinite ticker disposes.
+- Alchemist goldens at a **pinned ticker value** — a live animation is a bad golden.
+
+## Breakdown (2026-08-09) — both first-job items done
+
+**1. Broken down** into five leaf tickets:
+
+| | Ticket | Blocked by |
+|---|---|---|
+| A1 | T-521 — `FaceState` contract: enum, gaze/lean axis, per-state glyph table | — |
+| A2 | T-522 — Rain field simulation: deterministic spawn/fall/cull | — |
+| A3 | T-523 — Glyph paragraph cache for per-particle drawing | — |
+| A4 | T-524 — `ClideFacePainter`: CustomPainter for face + rain | A1, A2, A3 |
+| A5 | T-525 — `ClideFace` widget: ticker, reduced-motion gate, RepaintBoundary | A4 |
+
+**A1, A2 and A3 are all unblocked and mutually independent** — the contract, the simulation
+and the cache have no dependencies on each other. A4 composes all three; A5 wraps A4.
+
+No separate testing ticket: per repo convention tests ride along with the work that needs
+them, and each leaf ticket carries its own "done when" assertions.
+
+**2. Contract published** to Epic B on T-517 — the enum, the three widget props, and the two
+consequences that affect B''s mapping (`busyFor` is B-owned; lean is derived from `gaze`, not
+a prop). B can code against it without waiting for T-521 to land.
+
+## Decision taken during breakdown: `rage` drops the kaomoji
+
+DeskLock renders `rage` as a 3-frame table-flip pushed as whole lines through the eye slot.
+Not ported. Two reasons:
+
+1. **Two glyphs are missing from the bundled fonts** — `︵` (U+FE35) and `ノ` (U+30CE). The
+   kaomoji contains katakana, which the initiative''s font finding did not catch because it
+   only examined the *rain* glyph set. **Second instance of the same bug class**, which is why
+   T-521''s "done when" includes a test asserting every glyph in the table against the covered
+   set — so the third instance fails the suite instead of the render.
+2. **It needed a second render path.** Whole-line text through the eye slot is not the
+   eyes+mouth model every other state uses, so it dragged a `KaomojiFrame` class, a frame
+   timer and a painter branch into the contract — for the least-seen state.
+
+`rage` now uses the ordinary grammar: `▼   ▼` / `━` with jitter and rain spiking to 34 @ 20,
+both glyphs verified covered. Semantics unchanged, so Epic B''s mapping is unaffected.
+D-107 never committed to the kaomoji (checked), so no amendment is needed.
+
+## Verified during breakdown
+
+- `ParagraphCache` (`lib/src/terminal/src/ui/paragraph_cache.dart`) is a ~50-line LRU of
+  `ui.Paragraph` keyed on `int` — directly reusable, not exported from a barrel. T-523 records
+  the import-vs-lift decision.
+- `clide_marquee.dart` is the closest structural precedent for the ticker: raw `Ticker`, dt
+  from elapsed `Duration`, reduced-motion gate in `didChangeDependencies`, explicit
+  start/stop, disposal.
+- Font coverage checked with `fc-query` for every glyph in the proposed table, including the
+  replacements: `▼` U+25BC, `━` U+2501, `▲` U+25B2, `·` U+00B7 all present.', NULL, '2026-08-09 01:02:04', '2026-08-09 01:02:04.774', '2026-08-09 01:02:04.774', NULL, '9334cae2a0ea4b4645c00d1f69c222a2', 2) ON CONFLICT(hash) DO NOTHING;
