@@ -3174,3 +3174,285 @@ inherits this**: check the rain glyphs against both fonts, not just JetBrains.
 - **`specFor` returns the identical instance** per call, so the painter''s identity-based
   `shouldRepaint` (T-524) cannot be defeated by spec churn.
 - **Talk cycle loops seamlessly** (first frame equals last).', 'done', 'high', NULL, NULL, NULL, '2026-08-09 00:33:47.085', '2026-08-09 01:21:24.317', NULL, 'f459ca2497b4801a5064e0a028af410d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W5PARJ36P3TQCANG78YF4', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A2: Rain field simulation — deterministic spawn/fall/cull', 'The rain field: spawn, fall, cull. Pure Dart, **no Flutter import** — it produces particle
+positions and glyph indices; the painter (T-524) turns those into pixels.
+
+Target: `lib/builtin/clide_companion/src/rain_field.dart`
+
+## Why it is its own ticket
+
+It is the load signal, not decoration. Density (`rainStreams`) is what tells you at a glance
+whether the session is idle or grinding — 2 streams versus 40 — so it deserves its own tests
+rather than being asserted only through a painted image.
+
+## Shape
+
+```dart
+class RainField {
+  RainField({required int columns, required int rows, int seed = 0});
+
+  /// Advance by dt seconds toward the target density/speed.
+  void tick(double dt, {required int targetStreams, required double speed});
+
+  Iterable<RainCell> get cells;   // col, row (fractional), glyphIndex, leading
+}
+```
+
+- **Deterministic.** Seeded PRNG, injected — **never `Random()` unseeded and never
+  `DateTime.now()`**. Tests and goldens need the same field for the same inputs.
+- **Density ramps, it does not snap.** Going idle→effort should read as the field filling in
+  over a few hundred ms, not popping. Going effort→idle drains by culling, not clearing.
+- **Leading cell is brighter** — DeskLock draws the head of each stream lighter than the
+  trail. Expose it as a flag on the cell; the painter picks the colour.
+- Cull when a stream falls past `rows + 2`.
+
+## Glyph set — ASCII + symbols + box-drawing only
+
+**No katakana.** The bundled fonts have zero kana coverage (verified with `fc-query`), so
+DeskLock''s `アイウエオ…` set cannot be used: it would fall through to a system font,
+break goldens, and break the monospace advance width the grid assumes.
+
+Use DeskLock''s covered half — `0123456789ACEFHKZ$#%*+=<>` — plus box/geometric glyphs from
+`2500-25a1` (JetBrains Mono ships the full box set there; Fira Mono also covers `250c-256c`).
+
+The field stores a **glyph index**, not a character, so the concrete set lives in one const
+list and the painter resolves it. That keeps the swap cheap if the set is ever revised.
+
+## Done when
+
+- `tick` is pure and deterministic for a given seed — same inputs, same field, asserted.
+- Density converges to `targetStreams` and holds; changing the target ramps rather than snaps.
+- Cull works: cells never accumulate past the bottom, and total cell count stays bounded
+  under a long run (this is the leak test — worth writing, since an unbounded field is the
+  obvious failure mode for a perpetual simulation).
+- Zero density produces an empty field (the `error` state must actually stop, per D-107''s
+  power-ladder contract).
+- Runs under `dart test` — no Flutter import.
+
+Inherited from T-521: verify the rain glyph set against BOTH bundled mono fonts (assets/fonts/jetbrains_mono/ AND assets/fonts/fira_mono/), not just JetBrains. The mono face is user-selectable (D-101), so a glyph present in one font and absent from the other renders as tofu for anyone who switched and breaks goldens depending on which font CI uses. Reuse kVerifiedFaceGlyphs'' pattern: an explicit verified-glyph const plus a test asserting the set only draws from it, so an unverified addition fails the suite rather than the render.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:51.190', '2026-08-09 01:30:01.703', NULL, 'f2d01ea70ec75710d9cc375bc4ec6059', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W5PARJ36P3TQCANG78YF4', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A2: Rain field simulation — deterministic spawn/fall/cull', 'The rain field: spawn, fall, cull. Pure Dart, **no Flutter import** — it produces particle
+positions and glyph indices; the painter (T-524) turns those into pixels.
+
+Target: `lib/builtin/clide_companion/src/rain_field.dart`
+
+## Why it is its own ticket
+
+It is the load signal, not decoration. Density (`rainStreams`) is what tells you at a glance
+whether the session is idle or grinding — 2 streams versus 40 — so it deserves its own tests
+rather than being asserted only through a painted image.
+
+## Shape
+
+```dart
+class RainField {
+  RainField({required int columns, required int rows, int seed = 0});
+
+  /// Advance by dt seconds toward the target density/speed.
+  void tick(double dt, {required int targetStreams, required double speed});
+
+  Iterable<RainCell> get cells;   // col, row (fractional), glyphIndex, leading
+}
+```
+
+- **Deterministic.** Seeded PRNG, injected — **never `Random()` unseeded and never
+  `DateTime.now()`**. Tests and goldens need the same field for the same inputs.
+- **Density ramps, it does not snap.** Going idle→effort should read as the field filling in
+  over a few hundred ms, not popping. Going effort→idle drains by culling, not clearing.
+- **Leading cell is brighter** — DeskLock draws the head of each stream lighter than the
+  trail. Expose it as a flag on the cell; the painter picks the colour.
+- Cull when a stream falls past `rows + 2`.
+
+## Glyph set — ASCII + symbols + box-drawing only
+
+**No katakana.** The bundled fonts have zero kana coverage (verified with `fc-query`), so
+DeskLock''s `アイウエオ…` set cannot be used: it would fall through to a system font,
+break goldens, and break the monospace advance width the grid assumes.
+
+Use DeskLock''s covered half — `0123456789ACEFHKZ$#%*+=<>` — plus box/geometric glyphs from
+`2500-25a1` (JetBrains Mono ships the full box set there; Fira Mono also covers `250c-256c`).
+
+The field stores a **glyph index**, not a character, so the concrete set lives in one const
+list and the painter resolves it. That keeps the swap cheap if the set is ever revised.
+
+## Done when
+
+- `tick` is pure and deterministic for a given seed — same inputs, same field, asserted.
+- Density converges to `targetStreams` and holds; changing the target ramps rather than snaps.
+- Cull works: cells never accumulate past the bottom, and total cell count stays bounded
+  under a long run (this is the leak test — worth writing, since an unbounded field is the
+  obvious failure mode for a perpetual simulation).
+- Zero density produces an empty field (the `error` state must actually stop, per D-107''s
+  power-ladder contract).
+- Runs under `dart test` — no Flutter import.
+
+Inherited from T-521: verify the rain glyph set against BOTH bundled mono fonts (assets/fonts/jetbrains_mono/ AND assets/fonts/fira_mono/), not just JetBrains. The mono face is user-selectable (D-101), so a glyph present in one font and absent from the other renders as tofu for anyone who switched and breaks goldens depending on which font CI uses. Reuse kVerifiedFaceGlyphs'' pattern: an explicit verified-glyph const plus a test asserting the set only draws from it, so an unverified addition fails the suite rather than the render.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/rain_field.dart` — `RainField`, `RainCell`, `kRainGlyphs`,
+  hand-rolled seeded xorshift. Pure Dart, no Flutter import.
+- `test/builtin/clide_companion/rain_field_test.dart` — 17 tests, all green.
+- `make analyze`, `make format`, `make test` all clean.
+
+## The both-fonts check earned its keep immediately
+
+The inherited lesson from T-521 was not theoretical. Checking candidate glyphs against both
+bundled fonts found three present in JetBrains Mono and **absent from Fira Mono**:
+
+| Glyph | Codepoint | JetBrains | Fira |
+|---|---|---|---|
+| `┆` | U+2506 | ✓ | **missing** |
+| `┊` | U+250A | ✓ | **missing** |
+| `⋮` | U+22EE | ✓ | **missing** |
+
+Those dashed and dotted verticals are the *most obviously rain-like* glyphs in the range —
+they would have been the natural first picks, and they would have rendered as tofu for anyone
+who switched to Fira, while passing every test on the author''s machine. Excluded; the set is
+built from the intersection instead, and the exclusion is documented in `kRainGlyphs`'' doc
+comment with the reason, so it does not get "helpfully" re-added.
+
+## A real bug the tests caught: churn and growth shared a budget
+
+First implementation rate-limited *all* spawning to make density ramp visibly rather than
+snap. That also throttled routine replacement of streams that had fallen off the bottom —
+and at 40 streams, the cull rate alone consumes the entire per-frame spawn allowance, so a
+dense fast field hovered at 36–40 and never actually reached its target.
+
+Fixed by separating the two: replacing a culled stream keeps density flat and is **free**;
+only genuine *growth* is rate-limited. Density now holds exactly while ramps stay visible.
+
+Guarded by a regression test that samples **every frame** for 300 frames at maximum churn —
+the original failure was invisible when sampling once at the end, which is exactly how it
+would have been missed.
+
+## Design notes worth carrying to T-524
+
+- **`isQuiescent`** — true once the field is empty. The widget (T-525) can park its ticker on
+  it, which is the visible half of D-107''s power-ladder contract.
+- **Zero density drains, it does not clear.** `error` stops spawning and lets existing streams
+  fall off, so the rain runs out rather than vanishing mid-air. Tested both ways: a fresh
+  field at target 0 never spawns; an existing field drains to empty and reports quiescent.
+- **Per-stream speed is assigned at spawn** with ±30% jitter, so a state change affects new
+  streams first and the transition reads as organic rather than as a global speed switch.
+- **Hand-rolled xorshift, not `Random(seed)`** — pins the sequence to this file so goldens
+  cannot silently rebase if the Dart SDK changes its generator.
+
+## Correction to the T-521 report
+
+I reported "`make test` (50 tests)" there. That was the count of the **serial-tagged phase
+only**; `ci/test.sh` runs three phases and the parallel pool is **4045** tests. The suite is
+~4100, and both of these tickets'' tests run inside it — verified with
+`flutter test test/builtin/clide_companion/` (34 tests) and by reading the per-phase output.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:51.190', '2026-08-09 01:41:37.381', NULL, '97029de5df85e0b7c5e5e433f5e319b0', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W5PARJ36P3TQCANG78YF4', 'task', '06FY73XR4NJEPDARY06397RVVC', 'A2: Rain field simulation — deterministic spawn/fall/cull', 'The rain field: spawn, fall, cull. Pure Dart, **no Flutter import** — it produces particle
+positions and glyph indices; the painter (T-524) turns those into pixels.
+
+Target: `lib/builtin/clide_companion/src/rain_field.dart`
+
+## Why it is its own ticket
+
+It is the load signal, not decoration. Density (`rainStreams`) is what tells you at a glance
+whether the session is idle or grinding — 2 streams versus 40 — so it deserves its own tests
+rather than being asserted only through a painted image.
+
+## Shape
+
+```dart
+class RainField {
+  RainField({required int columns, required int rows, int seed = 0});
+
+  /// Advance by dt seconds toward the target density/speed.
+  void tick(double dt, {required int targetStreams, required double speed});
+
+  Iterable<RainCell> get cells;   // col, row (fractional), glyphIndex, leading
+}
+```
+
+- **Deterministic.** Seeded PRNG, injected — **never `Random()` unseeded and never
+  `DateTime.now()`**. Tests and goldens need the same field for the same inputs.
+- **Density ramps, it does not snap.** Going idle→effort should read as the field filling in
+  over a few hundred ms, not popping. Going effort→idle drains by culling, not clearing.
+- **Leading cell is brighter** — DeskLock draws the head of each stream lighter than the
+  trail. Expose it as a flag on the cell; the painter picks the colour.
+- Cull when a stream falls past `rows + 2`.
+
+## Glyph set — ASCII + symbols + box-drawing only
+
+**No katakana.** The bundled fonts have zero kana coverage (verified with `fc-query`), so
+DeskLock''s `アイウエオ…` set cannot be used: it would fall through to a system font,
+break goldens, and break the monospace advance width the grid assumes.
+
+Use DeskLock''s covered half — `0123456789ACEFHKZ$#%*+=<>` — plus box/geometric glyphs from
+`2500-25a1` (JetBrains Mono ships the full box set there; Fira Mono also covers `250c-256c`).
+
+The field stores a **glyph index**, not a character, so the concrete set lives in one const
+list and the painter resolves it. That keeps the swap cheap if the set is ever revised.
+
+## Done when
+
+- `tick` is pure and deterministic for a given seed — same inputs, same field, asserted.
+- Density converges to `targetStreams` and holds; changing the target ramps rather than snaps.
+- Cull works: cells never accumulate past the bottom, and total cell count stays bounded
+  under a long run (this is the leak test — worth writing, since an unbounded field is the
+  obvious failure mode for a perpetual simulation).
+- Zero density produces an empty field (the `error` state must actually stop, per D-107''s
+  power-ladder contract).
+- Runs under `dart test` — no Flutter import.
+
+Inherited from T-521: verify the rain glyph set against BOTH bundled mono fonts (assets/fonts/jetbrains_mono/ AND assets/fonts/fira_mono/), not just JetBrains. The mono face is user-selectable (D-101), so a glyph present in one font and absent from the other renders as tofu for anyone who switched and breaks goldens depending on which font CI uses. Reuse kVerifiedFaceGlyphs'' pattern: an explicit verified-glyph const plus a test asserting the set only draws from it, so an unverified addition fails the suite rather than the render.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/rain_field.dart` — `RainField`, `RainCell`, `kRainGlyphs`,
+  hand-rolled seeded xorshift. Pure Dart, no Flutter import.
+- `test/builtin/clide_companion/rain_field_test.dart` — 17 tests, all green.
+- `make analyze`, `make format`, `make test` all clean.
+
+## The both-fonts check earned its keep immediately
+
+The inherited lesson from T-521 was not theoretical. Checking candidate glyphs against both
+bundled fonts found three present in JetBrains Mono and **absent from Fira Mono**:
+
+| Glyph | Codepoint | JetBrains | Fira |
+|---|---|---|---|
+| `┆` | U+2506 | ✓ | **missing** |
+| `┊` | U+250A | ✓ | **missing** |
+| `⋮` | U+22EE | ✓ | **missing** |
+
+Those dashed and dotted verticals are the *most obviously rain-like* glyphs in the range —
+they would have been the natural first picks, and they would have rendered as tofu for anyone
+who switched to Fira, while passing every test on the author''s machine. Excluded; the set is
+built from the intersection instead, and the exclusion is documented in `kRainGlyphs`'' doc
+comment with the reason, so it does not get "helpfully" re-added.
+
+## A real bug the tests caught: churn and growth shared a budget
+
+First implementation rate-limited *all* spawning to make density ramp visibly rather than
+snap. That also throttled routine replacement of streams that had fallen off the bottom —
+and at 40 streams, the cull rate alone consumes the entire per-frame spawn allowance, so a
+dense fast field hovered at 36–40 and never actually reached its target.
+
+Fixed by separating the two: replacing a culled stream keeps density flat and is **free**;
+only genuine *growth* is rate-limited. Density now holds exactly while ramps stay visible.
+
+Guarded by a regression test that samples **every frame** for 300 frames at maximum churn —
+the original failure was invisible when sampling once at the end, which is exactly how it
+would have been missed.
+
+## Design notes worth carrying to T-524
+
+- **`isQuiescent`** — true once the field is empty. The widget (T-525) can park its ticker on
+  it, which is the visible half of D-107''s power-ladder contract.
+- **Zero density drains, it does not clear.** `error` stops spawning and lets existing streams
+  fall off, so the rain runs out rather than vanishing mid-air. Tested both ways: a fresh
+  field at target 0 never spawns; an existing field drains to empty and reports quiescent.
+- **Per-stream speed is assigned at spawn** with ±30% jitter, so a state change affects new
+  streams first and the transition reads as organic rather than as a global speed switch.
+- **Hand-rolled xorshift, not `Random(seed)`** — pins the sequence to this file so goldens
+  cannot silently rebase if the Dart SDK changes its generator.
+
+## Correction to the T-521 report
+
+I reported "`make test` (50 tests)" there. That was the count of the **serial-tagged phase
+only**; `ci/test.sh` runs three phases and the parallel pool is **4045** tests. The suite is
+~4100, and both of these tickets'' tests run inside it — verified with
+`flutter test test/builtin/clide_companion/` (34 tests) and by reading the per-phase output.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 00:33:51.190', '2026-08-09 01:41:42.056', NULL, 'b2627b3639be1de193ac34c622c5f70d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
