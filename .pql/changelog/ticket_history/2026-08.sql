@@ -8497,3 +8497,2079 @@ without a window.
 the ticket specified rather than a real minimise. Full suite 8 + 4211 + 50.
 
 **Epic B is complete** with this — T-537 through T-541 all done.', NULL, '2026-08-09 14:22:19', '2026-08-09 14:22:19.780', '2026-08-09 14:22:19.780', NULL, '98e6ba0de5d090330aef15e2b70dc76f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZXXPSAJWDTGX0Y3H2WMP0', 'status', 'in_progress', 'review', NULL, '2026-08-09 14:23:11', '2026-08-09 14:23:11.312', '2026-08-09 14:23:11.312', NULL, '7a9767f761b9b8f70b17b86ca5980663', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 14:27:33', '2026-08-09 14:27:33.730', '2026-08-09 14:27:33.730', NULL, '53fa4c0211009a3eb56c750b19ac536d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 14:27:39', '2026-08-09 14:27:39.664', '2026-08-09 14:27:39.664', NULL, 'bcb1625ec75a089d3053719ee729b7b4', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'description', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.', NULL, '2026-08-09 14:32:35', '2026-08-09 14:32:35.373', '2026-08-09 14:32:35.373', NULL, '8b91d6882c66c3a22f52e75632cd8919', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCPG0HVFYJDH8XYTF09BC4M', 'description', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.
+
+**Settled 2026-08-09 — this ticket changes shape. Read this over the description
+above, which assumed persistence.**
+
+## Decision: in memory, not on disk
+
+No file, no storage location, and therefore **no D-107 conflict to resolve** —
+"the companion writes nothing to the workspace" stands as written, and D-93 is
+untouched. That was the cleanest of the three options and it removes the
+governance question entirely rather than answering it.
+
+The buffer dies with the app. Accepted: the popout shows this run.
+
+## But it does not die with the widget
+
+Explicitly: **closing or minimising the strip pauses, it does not clear.** So the
+buffer cannot live in `_Strip`, `ClideStripHost`, or anything else that unmounts
+— minimising removes those from the tree (T-528), and the whole point is that
+what he said is still there when you bring him back.
+
+It belongs beside the session lifecycle, in the extension, which is where the
+adapters already live and which survives everything except the kill switch.
+
+## Three "restarts", and they are not the same
+
+Worth stating because the words collide:
+
+| Event | Model context | Visual buffer |
+|---|---|---|
+| strip minimised / closed | kept (T-545: pause, don''t drop) | **kept** |
+| ~50-comment session restart (cost control) | reset | **kept** — it is history, not context |
+| kill switch off | process torn down | cleared |
+| app restart | gone | gone |
+
+The middle row is the one to get right. The session restart exists to stop the
+prompt growing quadratically; it says nothing about what the user should still be
+able to scroll back through. Wiping the popout because we recycled a process
+would look like a bug.
+
+## Still needed
+
+- **A bound.** An in-memory buffer that only grows is a leak on a long day. A
+  ring of the last N exchanges, with N stated and the drop logged rather than
+  silent.
+- Prose only, still — the digest boundary applies to what is recorded as much as
+  to what is sent (D-107 commitment 3).
+- Latest-first read with a fetch limit, which is what Epic E''s popout wants.
+
+## Epic E
+
+Still blocked on this, but on a much smaller thing than before: a bounded
+in-memory ring with a read API, rather than a file format and a storage argument.', NULL, '2026-08-09 14:37:41', '2026-08-09 14:37:41.495', '2026-08-09 14:37:41.495', NULL, '24c9c4f58dce8d42970b9e8f788d64f2', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'description', 'Stand the companion session up and — more importantly — make it go away reliably.
+Everything else in Epic D needs a live session, so this is first.
+
+## Spawn
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(id: ''clide.companion'', visible: false, …))`
+already gives a headless stream-json session, idempotent per `(id, cwd)` and
+serialized against races. Precedent for spawning outside a pane: `_forkMember`
+(`claude_meta_sidebar.dart:256-274`).
+
+- `--model haiku`
+- `--no-session-persistence`, so it never writes into `~/.claude/projects`
+  (precedent: `claude_config.dart:576`)
+- Do **not** set `effort` — it errors on Haiku 4.5.
+- Thinking off, `max_tokens` ~100: a bad turn must not be able to produce an
+  essay.
+
+## Teardown is the substance of this ticket
+
+Four separate things must stop it, and they are not the same thing:
+
+| Cause | Required behaviour |
+|---|---|
+| kill switch off (`mayRunSession`, T-527) | **tear the process down**, not hide it |
+| strip minimised (`companion.state.open` false, T-528) | pause ingest; see below |
+| primary session cleared or restarted | companion goes with it |
+| ~50 comments | restart the session, preserving nothing |
+
+The gate already exists and is named for the question:
+`ClideCompanionSettings.mayRunSession`. Consult it before spawning **and** on
+every settings change — disabling has to kill a running process, since a hidden
+face still burning subscription quota is precisely the failure D-107''s kill
+switch exists to prevent.
+
+**Minimise pauses ingest rather than killing the session** (T-528''s settled
+semantics): a minimised stretch is conversation Clide genuinely did not see. That
+is the honest privacy story and the cheapest power rung — stronger than Epic B''s
+`night`, which stops rendering but not ingest. Whether it also drops the process
+after long enough is a judgement call worth making explicitly here rather than
+leaving implied.
+
+**Clear and restart track the primary.** Clide already owns `/clear`, `/resume`
+and `/compact` rather than forwarding them (T-156), so there is an existing
+interception point. Without this he keeps context the user believes they threw
+away — a surprise and a quiet privacy problem, and it defeats the "he is watching
+*this* conversation" framing.
+
+**The ~50-comment restart is cost control, not hygiene.** History re-sends every
+turn, so cost grows quadratically. A rolling window is the wrong fix: evicting
+the oldest line changes the cache prefix and every turn then pays full price.
+Grow-then-restart keeps cache hits within an epoch and bounds growth.
+
+## Watch for
+
+- The kill switch must be re-checked on change, not only at spawn.
+- Spawning is idempotent per `(id, cwd)` — a second workspace is a second
+  companion, which is correct, but means the id alone is not the identity.
+- Nothing here should add public API to `StreamJsonSession`; Epic B reads the
+  same class and any addition is a joint decision.', 'Stand the companion session up and — more importantly — make it go away reliably.
+Everything else in Epic D needs a live session, so this is first.
+
+## Spawn
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(id: ''clide.companion'', visible: false, …))`
+already gives a headless stream-json session, idempotent per `(id, cwd)` and
+serialized against races. Precedent for spawning outside a pane: `_forkMember`
+(`claude_meta_sidebar.dart:256-274`).
+
+- `--model haiku`
+- `--no-session-persistence`, so it never writes into `~/.claude/projects`
+  (precedent: `claude_config.dart:576`)
+- Do **not** set `effort` — it errors on Haiku 4.5.
+- Thinking off, `max_tokens` ~100: a bad turn must not be able to produce an
+  essay.
+
+## Teardown is the substance of this ticket
+
+Four separate things must stop it, and they are not the same thing:
+
+| Cause | Required behaviour |
+|---|---|
+| kill switch off (`mayRunSession`, T-527) | **tear the process down**, not hide it |
+| strip minimised (`companion.state.open` false, T-528) | pause ingest; see below |
+| primary session cleared or restarted | companion goes with it |
+| ~50 comments | restart the session, preserving nothing |
+
+The gate already exists and is named for the question:
+`ClideCompanionSettings.mayRunSession`. Consult it before spawning **and** on
+every settings change — disabling has to kill a running process, since a hidden
+face still burning subscription quota is precisely the failure D-107''s kill
+switch exists to prevent.
+
+**Minimise pauses ingest rather than killing the session** (T-528''s settled
+semantics): a minimised stretch is conversation Clide genuinely did not see. That
+is the honest privacy story and the cheapest power rung — stronger than Epic B''s
+`night`, which stops rendering but not ingest. Whether it also drops the process
+after long enough is a judgement call worth making explicitly here rather than
+leaving implied.
+
+**Clear and restart track the primary.** Clide already owns `/clear`, `/resume`
+and `/compact` rather than forwarding them (T-156), so there is an existing
+interception point. Without this he keeps context the user believes they threw
+away — a surprise and a quiet privacy problem, and it defeats the "he is watching
+*this* conversation" framing.
+
+**The ~50-comment restart is cost control, not hygiene.** History re-sends every
+turn, so cost grows quadratically. A rolling window is the wrong fix: evicting
+the oldest line changes the cache prefix and every turn then pays full price.
+Grow-then-restart keeps cache hits within an epoch and bounds growth.
+
+## Watch for
+
+- The kill switch must be re-checked on change, not only at spawn.
+- Spawning is idempotent per `(id, cwd)` — a second workspace is a second
+  companion, which is correct, but means the id alone is not the identity.
+- Nothing here should add public API to `StreamJsonSession`; Epic B reads the
+  same class and any addition is a joint decision.
+
+Lifecycle settled with the product owner (2026-08-09), narrowing the teardown table above:
+
+**Minimising pauses ingest and keeps the process.** Restoring is then instant and he keeps the context he had. A parked `claude` process costs memory but no quota — quota is spent per request, not per second — so there is no cost argument for dropping it, and dropping it would make a quick minimise/restore lose everything he knew.
+
+**The settings kill switch is the only thing that force-drops the process.** Not minimise, not dormancy, not the window being hidden. That keeps ''off is off'' meaning exactly one thing and leaves every other rung as a pause.
+
+So the four causes in the table above resolve to:
+
+| Cause | Process | Ingest |
+|---|---|---|
+| kill switch off | **torn down** | stopped |
+| strip minimised / closed | kept | paused |
+| primary cleared or restarted | restarted with it | restarted |
+| ~50 comments | restarted | continuous |
+
+Related, from T-534 the same day: the visual conversation buffer is **in memory and is not cleared by any of these except the kill switch** — closing the strip pauses, and the ~50-comment restart resets what Clide *remembers* without touching what the popout *shows*. Do not conflate the two here.', NULL, '2026-08-09 14:37:52', '2026-08-09 14:37:52.583', '2026-08-09 14:37:52.583', NULL, '673c4c2a6989c7f41f70c960e6ce5175', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 14:39:17', '2026-08-09 14:39:17.905', '2026-08-09 14:39:17.905', NULL, '42a4479aa81384bb775475c38f5f28b6', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 14:39:23', '2026-08-09 14:39:23.095', '2026-08-09 14:39:23.095', NULL, 'b62c0865e9d01bdcce45e4784ace1f1e', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'description', 'Stand the companion session up and — more importantly — make it go away reliably.
+Everything else in Epic D needs a live session, so this is first.
+
+## Spawn
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(id: ''clide.companion'', visible: false, …))`
+already gives a headless stream-json session, idempotent per `(id, cwd)` and
+serialized against races. Precedent for spawning outside a pane: `_forkMember`
+(`claude_meta_sidebar.dart:256-274`).
+
+- `--model haiku`
+- `--no-session-persistence`, so it never writes into `~/.claude/projects`
+  (precedent: `claude_config.dart:576`)
+- Do **not** set `effort` — it errors on Haiku 4.5.
+- Thinking off, `max_tokens` ~100: a bad turn must not be able to produce an
+  essay.
+
+## Teardown is the substance of this ticket
+
+Four separate things must stop it, and they are not the same thing:
+
+| Cause | Required behaviour |
+|---|---|
+| kill switch off (`mayRunSession`, T-527) | **tear the process down**, not hide it |
+| strip minimised (`companion.state.open` false, T-528) | pause ingest; see below |
+| primary session cleared or restarted | companion goes with it |
+| ~50 comments | restart the session, preserving nothing |
+
+The gate already exists and is named for the question:
+`ClideCompanionSettings.mayRunSession`. Consult it before spawning **and** on
+every settings change — disabling has to kill a running process, since a hidden
+face still burning subscription quota is precisely the failure D-107''s kill
+switch exists to prevent.
+
+**Minimise pauses ingest rather than killing the session** (T-528''s settled
+semantics): a minimised stretch is conversation Clide genuinely did not see. That
+is the honest privacy story and the cheapest power rung — stronger than Epic B''s
+`night`, which stops rendering but not ingest. Whether it also drops the process
+after long enough is a judgement call worth making explicitly here rather than
+leaving implied.
+
+**Clear and restart track the primary.** Clide already owns `/clear`, `/resume`
+and `/compact` rather than forwarding them (T-156), so there is an existing
+interception point. Without this he keeps context the user believes they threw
+away — a surprise and a quiet privacy problem, and it defeats the "he is watching
+*this* conversation" framing.
+
+**The ~50-comment restart is cost control, not hygiene.** History re-sends every
+turn, so cost grows quadratically. A rolling window is the wrong fix: evicting
+the oldest line changes the cache prefix and every turn then pays full price.
+Grow-then-restart keeps cache hits within an epoch and bounds growth.
+
+## Watch for
+
+- The kill switch must be re-checked on change, not only at spawn.
+- Spawning is idempotent per `(id, cwd)` — a second workspace is a second
+  companion, which is correct, but means the id alone is not the identity.
+- Nothing here should add public API to `StreamJsonSession`; Epic B reads the
+  same class and any addition is a joint decision.
+
+Lifecycle settled with the product owner (2026-08-09), narrowing the teardown table above:
+
+**Minimising pauses ingest and keeps the process.** Restoring is then instant and he keeps the context he had. A parked `claude` process costs memory but no quota — quota is spent per request, not per second — so there is no cost argument for dropping it, and dropping it would make a quick minimise/restore lose everything he knew.
+
+**The settings kill switch is the only thing that force-drops the process.** Not minimise, not dormancy, not the window being hidden. That keeps ''off is off'' meaning exactly one thing and leaves every other rung as a pause.
+
+So the four causes in the table above resolve to:
+
+| Cause | Process | Ingest |
+|---|---|---|
+| kill switch off | **torn down** | stopped |
+| strip minimised / closed | kept | paused |
+| primary cleared or restarted | restarted with it | restarted |
+| ~50 comments | restarted | continuous |
+
+Related, from T-534 the same day: the visual conversation buffer is **in memory and is not cleared by any of these except the kill switch** — closing the strip pauses, and the ~50-comment restart resets what Clide *remembers* without touching what the popout *shows*. Do not conflate the two here.', 'Stand the companion session up and — more importantly — make it go away reliably.
+Everything else in Epic D needs a live session, so this is first.
+
+## Spawn
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(id: ''clide.companion'', visible: false, …))`
+already gives a headless stream-json session, idempotent per `(id, cwd)` and
+serialized against races. Precedent for spawning outside a pane: `_forkMember`
+(`claude_meta_sidebar.dart:256-274`).
+
+- `--model haiku`
+- `--no-session-persistence`, so it never writes into `~/.claude/projects`
+  (precedent: `claude_config.dart:576`)
+- Do **not** set `effort` — it errors on Haiku 4.5.
+- Thinking off, `max_tokens` ~100: a bad turn must not be able to produce an
+  essay.
+
+## Teardown is the substance of this ticket
+
+Four separate things must stop it, and they are not the same thing:
+
+| Cause | Required behaviour |
+|---|---|
+| kill switch off (`mayRunSession`, T-527) | **tear the process down**, not hide it |
+| strip minimised (`companion.state.open` false, T-528) | pause ingest; see below |
+| primary session cleared or restarted | companion goes with it |
+| ~50 comments | restart the session, preserving nothing |
+
+The gate already exists and is named for the question:
+`ClideCompanionSettings.mayRunSession`. Consult it before spawning **and** on
+every settings change — disabling has to kill a running process, since a hidden
+face still burning subscription quota is precisely the failure D-107''s kill
+switch exists to prevent.
+
+**Minimise pauses ingest rather than killing the session** (T-528''s settled
+semantics): a minimised stretch is conversation Clide genuinely did not see. That
+is the honest privacy story and the cheapest power rung — stronger than Epic B''s
+`night`, which stops rendering but not ingest. Whether it also drops the process
+after long enough is a judgement call worth making explicitly here rather than
+leaving implied.
+
+**Clear and restart track the primary.** Clide already owns `/clear`, `/resume`
+and `/compact` rather than forwarding them (T-156), so there is an existing
+interception point. Without this he keeps context the user believes they threw
+away — a surprise and a quiet privacy problem, and it defeats the "he is watching
+*this* conversation" framing.
+
+**The ~50-comment restart is cost control, not hygiene.** History re-sends every
+turn, so cost grows quadratically. A rolling window is the wrong fix: evicting
+the oldest line changes the cache prefix and every turn then pays full price.
+Grow-then-restart keeps cache hits within an epoch and bounds growth.
+
+## Watch for
+
+- The kill switch must be re-checked on change, not only at spawn.
+- Spawning is idempotent per `(id, cwd)` — a second workspace is a second
+  companion, which is correct, but means the id alone is not the identity.
+- Nothing here should add public API to `StreamJsonSession`; Epic B reads the
+  same class and any addition is a joint decision.
+
+Lifecycle settled with the product owner (2026-08-09), narrowing the teardown table above:
+
+**Minimising pauses ingest and keeps the process.** Restoring is then instant and he keeps the context he had. A parked `claude` process costs memory but no quota — quota is spent per request, not per second — so there is no cost argument for dropping it, and dropping it would make a quick minimise/restore lose everything he knew.
+
+**The settings kill switch is the only thing that force-drops the process.** Not minimise, not dormancy, not the window being hidden. That keeps ''off is off'' meaning exactly one thing and leaves every other rung as a pause.
+
+So the four causes in the table above resolve to:
+
+| Cause | Process | Ingest |
+|---|---|---|
+| kill switch off | **torn down** | stopped |
+| strip minimised / closed | kept | paused |
+| primary cleared or restarted | restarted with it | restarted |
+| ~50 comments | restarted | continuous |
+
+Related, from T-534 the same day: the visual conversation buffer is **in memory and is not cleared by any of these except the kill switch** — closing the strip pauses, and the ~50-comment restart resets what Clide *remembers* without touching what the popout *shows*. Do not conflate the two here.
+
+**Superseded 2026-08-09 (D-107 amended). Read this over the spawn and teardown
+sections above.**
+
+The companion is an **ordinary persisted session**, not a `--no-session-persistence`
+one. The user''s argument: the digest is lean prose, so there is nothing to hide,
+and a real session gets persistence, stoppability and teardown for free.
+
+He was right, and one of the justifications recorded that morning was simply
+wrong: Clide''s transcript is a **strict subset of what the primary session
+already persists** — the same prose with tool activity stripped. `--no-session-persistence`
+was protecting nothing.
+
+## What changes
+
+- **Drop `--no-session-persistence`.** Ordinary session, ordinary transcript.
+- **One session per clide run.** Fresh `--session-id` each launch; no resume
+  logic, no epoch bookkeeping. History is per-run, which is also what the answer
+  surface will show.
+- **The ~50-comment restart is deleted, not deferred.** It existed to bound
+  quadratic history growth. The CLI''s own autocompaction handles that, and clide
+  coordinates nothing — a second mechanism competing with autocompact would
+  fragment the very conversation the answer surface reads.
+- **`/clear` is the teardown**, reusing the interception clide already owns
+  (T-156), alongside the settings kill switch.
+- **Stoppability comes free.** No prompts means no requests means no quota; an
+  idle session simply waits.
+
+## The teardown table, restated
+
+| Cause | Process | Ingest |
+|---|---|---|
+| kill switch off | torn down | stopped |
+| `/clear` | torn down | stopped |
+| strip minimised / closed | kept | paused |
+| primary cleared or restarted | restarted with it | restarted |
+| context growth | *nothing* — autocompact handles it | continuous |
+
+## New, and this ticket owns it
+
+**Filter companion transcripts out of clide''s `/resume` picker.** It lists
+everything in `claudeProjectDir(root)` (`claude_pane.dart:692`), so without this
+the picker fills with companion sessions — one per clide launch. `claude --resume`
+outside clide will still list them; that is the accepted cost recorded in D-107.', NULL, '2026-08-09 14:46:19', '2026-08-09 14:46:19.796', '2026-08-09 14:46:19.796', NULL, '32569b5f372ad8d20c39cbd6a0bdd660', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCPG0HVFYJDH8XYTF09BC4M', 'description', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.
+
+**Settled 2026-08-09 — this ticket changes shape. Read this over the description
+above, which assumed persistence.**
+
+## Decision: in memory, not on disk
+
+No file, no storage location, and therefore **no D-107 conflict to resolve** —
+"the companion writes nothing to the workspace" stands as written, and D-93 is
+untouched. That was the cleanest of the three options and it removes the
+governance question entirely rather than answering it.
+
+The buffer dies with the app. Accepted: the popout shows this run.
+
+## But it does not die with the widget
+
+Explicitly: **closing or minimising the strip pauses, it does not clear.** So the
+buffer cannot live in `_Strip`, `ClideStripHost`, or anything else that unmounts
+— minimising removes those from the tree (T-528), and the whole point is that
+what he said is still there when you bring him back.
+
+It belongs beside the session lifecycle, in the extension, which is where the
+adapters already live and which survives everything except the kill switch.
+
+## Three "restarts", and they are not the same
+
+Worth stating because the words collide:
+
+| Event | Model context | Visual buffer |
+|---|---|---|
+| strip minimised / closed | kept (T-545: pause, don''t drop) | **kept** |
+| ~50-comment session restart (cost control) | reset | **kept** — it is history, not context |
+| kill switch off | process torn down | cleared |
+| app restart | gone | gone |
+
+The middle row is the one to get right. The session restart exists to stop the
+prompt growing quadratically; it says nothing about what the user should still be
+able to scroll back through. Wiping the popout because we recycled a process
+would look like a bug.
+
+## Still needed
+
+- **A bound.** An in-memory buffer that only grows is a leak on a long day. A
+  ring of the last N exchanges, with N stated and the drop logged rather than
+  silent.
+- Prose only, still — the digest boundary applies to what is recorded as much as
+  to what is sent (D-107 commitment 3).
+- Latest-first read with a fetch limit, which is what Epic E''s popout wants.
+
+## Epic E
+
+Still blocked on this, but on a much smaller thing than before: a bounded
+in-memory ring with a read API, rather than a file format and a storage argument.', 'Clide''s own conversation — his remarks, and the questions put directly to him —
+must be **durably recorded by clide**, so the visual history can always be rebuilt
+from the log.
+
+**Visual replay only.** This is not session resume: nothing here restarts a
+`claude` process, re-attaches a transcript, or restores model context. The log
+exists so the conversation *surface* can be rendered without a live session
+behind it. What Clide remembers is a separate question owned by the session
+(T-519) and the prompt (T-532).
+
+## Why the log has to be ours
+
+D-107 spawns the companion with `--no-session-persistence` precisely so it never
+writes into `~/.claude/projects`. That is the right call for the *transcript* and
+it has a consequence nobody costed: **there is no record of anything Clide said.**
+Close the app and his side of the conversation is gone; restart the session at
+the ~50-comment cost boundary and it is gone mid-use. Epic E''s popout — "all
+previous messages this session, latest first, with a fetch limit and lazy loading
+on scroll" — has nothing to page through.
+
+So clide records it, in its own append-only log, with its own shape. Append-only
+because replay is the only read pattern, and because a log that can only grow at
+the end is the one that survives a crash mid-write.
+
+## The D-107 conflict, to be resolved not worked around
+
+D-107 currently states the companion "**writes nothing to the workspace**", citing
+D-93. A conversation log is a write. Options, in preference order:
+
+1. **App scope** (`~/.clide/…`, keyed by repo) — keeps the workspace clean,
+   honours D-93 and D-107 as written, and means the log is not something a user
+   accidentally commits. A repo cloned elsewhere loses the history, which for
+   ambient commentary is acceptable.
+2. **Project scope** (`.clide/…`) — survives with the repo, and `.clide/` already
+   holds `settings.yaml` so it is not a *new* directory. But it makes a second
+   model''s output a thing that can land in a commit, and D-107''s sentence has to
+   be amended and re-argued rather than quietly reinterpreted.
+
+Whichever wins, amend D-107 in the same commit. A record that says "writes
+nothing to the workspace" while the code writes to the workspace is worse than no
+record.
+
+## Shape
+
+- Append-only, one entry per turn: timestamp, direction (Clide spoke / the user
+  asked), text, and the mood he declared (T-532) so a replayed conversation shows
+  the same face it did live.
+- **Prose only, no tool activity** — the digest boundary is a D-107 commitment and
+  the log must not become a way around it. Whatever cannot be sent to Clide must
+  not be written down on his behalf either.
+- Bounded. It grows forever otherwise; decide a cap or a rotation and say what is
+  lost when it trips.
+- Read path is "latest first, page backwards" — that is what the popout wants, so
+  the format should make the tail cheap to read without loading the whole file.
+
+## Consumers
+
+- **T-520 (Epic E)** — the popout renders from this. It is the reason the log
+  exists, and E is blocked on it.
+- **T-519 (Epic D)** — writes to it as remarks are produced.
+- Detach and clear (T-528, T-532) are gaps in *ingest*, not in the log: what he
+  said before being minimised stays readable afterwards, even though he did not
+  see what happened while away.
+
+**Settled 2026-08-09 — this ticket changes shape. Read this over the description
+above, which assumed persistence.**
+
+## Decision: in memory, not on disk
+
+No file, no storage location, and therefore **no D-107 conflict to resolve** —
+"the companion writes nothing to the workspace" stands as written, and D-93 is
+untouched. That was the cleanest of the three options and it removes the
+governance question entirely rather than answering it.
+
+The buffer dies with the app. Accepted: the popout shows this run.
+
+## But it does not die with the widget
+
+Explicitly: **closing or minimising the strip pauses, it does not clear.** So the
+buffer cannot live in `_Strip`, `ClideStripHost`, or anything else that unmounts
+— minimising removes those from the tree (T-528), and the whole point is that
+what he said is still there when you bring him back.
+
+It belongs beside the session lifecycle, in the extension, which is where the
+adapters already live and which survives everything except the kill switch.
+
+## Three "restarts", and they are not the same
+
+Worth stating because the words collide:
+
+| Event | Model context | Visual buffer |
+|---|---|---|
+| strip minimised / closed | kept (T-545: pause, don''t drop) | **kept** |
+| ~50-comment session restart (cost control) | reset | **kept** — it is history, not context |
+| kill switch off | process torn down | cleared |
+| app restart | gone | gone |
+
+The middle row is the one to get right. The session restart exists to stop the
+prompt growing quadratically; it says nothing about what the user should still be
+able to scroll back through. Wiping the popout because we recycled a process
+would look like a bug.
+
+## Still needed
+
+- **A bound.** An in-memory buffer that only grows is a leak on a long day. A
+  ring of the last N exchanges, with N stated and the drop logged rather than
+  silent.
+- Prose only, still — the digest boundary applies to what is recorded as much as
+  to what is sent (D-107 commitment 3).
+- Latest-first read with a fetch limit, which is what Epic E''s popout wants.
+
+## Epic E
+
+Still blocked on this, but on a much smaller thing than before: a bounded
+in-memory ring with a read API, rather than a file format and a storage argument.
+
+**Largely dissolved 2026-08-09 (D-107 amended) — read this over everything above.**
+
+The companion is now an ordinary persisted session, so its conversation **is a transcript** like any other. There is no bespoke buffer to build: no ring, no bound, no read API, no storage question, and the memory-only decision taken an hour earlier is moot.
+
+That also retires the reasoning I recorded for it. I argued persistence was a privacy concern; it is not — Clide''s transcript is a strict subset of what the primary session already writes to the same directory.
+
+**What remains of this ticket is Epic E''s, not a data layer:** the answer surface reads a `ConversationController` over the companion''s transcript exactly as the main pane does. Same items, same renderer, minus tool cards. Whether this ticket closes as duplicate-of-T-520 or survives as ''wire the companion''s conversation into a controller'' is T-520''s call when it is picked up.
+
+One consequence worth carrying forward: history is **per clide run** (the settled session model), so the answer surface never spans days. Nobody should build paging that assumes it does.', NULL, '2026-08-09 14:46:30', '2026-08-09 14:46:30.245', '2026-08-09 14:46:30.245', NULL, 'ba4e1466c7c3ed34c3a5a8a8d953ef6d', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'description', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.
+
+**Cost-guards section superseded 2026-08-09 (D-107 amended).** The companion is an ordinary persisted session, one per clide run, and the ~50-comment restart is deleted rather than deferred — the CLI''s autocompaction handles context growth and clide coordinates nothing. `--no-session-persistence` is dropped: Clide''s transcript is a strict subset of what the primary session already persists, so it was protecting nothing.
+
+Knock-on: **T-534 is largely dissolved** (the conversation is a transcript, so there is no bespoke buffer to build), and Epic E gets simpler with it — the answer surface reads a `ConversationController` like the main pane rather than inventing a renderer. The remaining cost guards stand unchanged: notable events only, no `effort`, thinking off, `max_tokens` ~100, and the kill switch.
+
+New work landing in T-545 from this: filter companion transcripts out of clide''s `/resume` picker, which lists the whole project dir.', NULL, '2026-08-09 14:46:39', '2026-08-09 14:46:39.273', '2026-08-09 14:46:39.273', NULL, '6dca4c6850891adcb9a97d7e323926ab', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDVESRDEKKSK18PRSN72Y60', 'status', 'in_progress', 'backlog', NULL, '2026-08-09 14:48:53', '2026-08-09 14:48:53.248', '2026-08-09 14:48:53.248', NULL, '8f316e26c140b0608f921bad90a2fc6c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDZTSZVNQZA9EHST2S8VK54', 'description', 'Raised 2026-08-09 while breaking down Epic D, one step before writing a fourth
+copy of the same logic. Epic D''s own brief already asked for it — "coordinate
+with B on reading `StreamJsonSession` so the two epics don''t each grow their own
+subscription layer" — and the sensible reading is to extract the layer once,
+first.
+
+## The duplication, counted
+
+Three independent implementations of *bind to the primary session, rebind when
+the orchestrator notifies, cancel the old subscriptions*:
+
+- `claude_pane.dart` — five stream subscriptions (busy, items, ended, model
+  errors, pending prompt)
+- `claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel /
+  rebind / seed dance, and the one every other site was told to copy
+- `clide_companion/src/load_adapter.dart` — `busyStream` and orchestrator
+  rebinding, written for T-538 by copying the sidebar
+
+Epic D adds a fourth (the companion''s *own* session: items for the digest, state
+for the face, T-548) and Epic E would touch it again.
+
+## Why it is worth doing before Epic D rather than after
+
+Each copy has independently rediscovered the same three hazards, and each is one
+oversight from getting them wrong:
+
+- **`endedStream` has no replay** — check `session.end` first, *then* subscribe,
+  or a session that died before you bound looks alive forever
+  (`claude_pane.dart:421-426` has this; a new copy might not).
+- **Rebind must cancel first.** The orchestrator notifies on spawn, close, show,
+  hide, mute *and* session-id resolution — routine events — so a missed cancel
+  means every subsequent event is handled twice. T-538''s tests exist because of
+  exactly this.
+- **`busyStream`/`statusStream` replay but `endedStream` and `modelErrors` do
+  not**, and nothing in the type tells you which is which.
+
+Four copies of a rule nobody wrote down is a maintenance surface, which is the
+user''s point.
+
+## Shape
+
+A service that owns "the primary session, whichever it currently is" and hands
+consumers a stable subscription surface across rebinds — so a widget or an
+adapter listens once and never sees the orchestrator at all. Ideally the same
+type serves *any* managed session, since Epic D needs identical machinery for the
+companion''s own session; the difference is which id it binds.
+
+Deliberately not specified further here: the right shape (ChangeNotifier facade,
+a per-session controller, a `bindSession()` helper) is a design decision for
+whoever picks it up, and it should be settled by reading the three existing call
+sites rather than from this description.
+
+## Scope
+
+Refactor with no behaviour change. The three existing sites move onto it and
+their tests must pass **unmodified** — that is the check that the extraction is
+faithful, and any test that needs editing is evidence the behaviour moved.
+
+`claude_pane.dart` is the biggest and most load-bearing of the three; it is
+reasonable to land the service with the two smaller consumers and move the pane
+in a second commit rather than one large change.
+
+## Not in scope
+
+Adding anything to `StreamJsonSession` itself. Epic B''s audit lists real gaps
+there (no streaming signal, `thinking_delta` dropped, no turn-start timestamp);
+those are separate and want their own decision.', 'Raised 2026-08-09 while breaking down Epic D, one step before writing a fourth
+copy of the same logic. Epic D''s own brief already asked for it — "coordinate
+with B on reading `StreamJsonSession` so the two epics don''t each grow their own
+subscription layer" — and the sensible reading is to extract the layer once,
+first.
+
+## The duplication, counted
+
+Three independent implementations of *bind to the primary session, rebind when
+the orchestrator notifies, cancel the old subscriptions*:
+
+- `claude_pane.dart` — five stream subscriptions (busy, items, ended, model
+  errors, pending prompt)
+- `claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel /
+  rebind / seed dance, and the one every other site was told to copy
+- `clide_companion/src/load_adapter.dart` — `busyStream` and orchestrator
+  rebinding, written for T-538 by copying the sidebar
+
+Epic D adds a fourth (the companion''s *own* session: items for the digest, state
+for the face, T-548) and Epic E would touch it again.
+
+## Why it is worth doing before Epic D rather than after
+
+Each copy has independently rediscovered the same three hazards, and each is one
+oversight from getting them wrong:
+
+- **`endedStream` has no replay** — check `session.end` first, *then* subscribe,
+  or a session that died before you bound looks alive forever
+  (`claude_pane.dart:421-426` has this; a new copy might not).
+- **Rebind must cancel first.** The orchestrator notifies on spawn, close, show,
+  hide, mute *and* session-id resolution — routine events — so a missed cancel
+  means every subsequent event is handled twice. T-538''s tests exist because of
+  exactly this.
+- **`busyStream`/`statusStream` replay but `endedStream` and `modelErrors` do
+  not**, and nothing in the type tells you which is which.
+
+Four copies of a rule nobody wrote down is a maintenance surface, which is the
+user''s point.
+
+## Shape
+
+A service that owns "the primary session, whichever it currently is" and hands
+consumers a stable subscription surface across rebinds — so a widget or an
+adapter listens once and never sees the orchestrator at all. Ideally the same
+type serves *any* managed session, since Epic D needs identical machinery for the
+companion''s own session; the difference is which id it binds.
+
+Deliberately not specified further here: the right shape (ChangeNotifier facade,
+a per-session controller, a `bindSession()` helper) is a design decision for
+whoever picks it up, and it should be settled by reading the three existing call
+sites rather than from this description.
+
+## Scope
+
+Refactor with no behaviour change. The three existing sites move onto it and
+their tests must pass **unmodified** — that is the check that the extraction is
+faithful, and any test that needs editing is evidence the behaviour moved.
+
+`claude_pane.dart` is the biggest and most load-bearing of the three; it is
+reasonable to land the service with the two smaller consumers and move the pane
+in a second commit rather than one large change.
+
+## Not in scope
+
+Adding anything to `StreamJsonSession` itself. Epic B''s audit lists real gaps
+there (no streaming signal, `thinking_delta` dropped, no turn-start timestamp);
+those are separate and want their own decision.
+
+Superseded by **T-550** on 2026-08-09 — rescoped from a task into an epic at the user''s direction: a shared reader *interface*, applied to all four consumers rather than a helper the three existing sites happen to call.
+
+Everything in this description was carried over. Broken down there as T-551 (the interface), T-552/T-553/T-554 (the three existing consumers, smallest and most canonical first, the Claude pane last), and T-555 (the fourth — reading a non-primary session, which is what proves the interface is not quietly primary-only).', NULL, '2026-08-09 14:52:35', '2026-08-09 14:52:35.998', '2026-08-09 14:52:35.998', NULL, 'cc0aa17bcdc5a2372c82a3e6c1710841', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDZTSZVNQZA9EHST2S8VK54', 'status', 'backlog', 'cancelled', NULL, '2026-08-09 14:52:36', '2026-08-09 14:52:36.020', '2026-08-09 14:52:36.020', NULL, '2bc3acdd1a229ca4ee56b18c3f75f6ef', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Y5FBHF8QNAXQDJBJ26B0', 'description', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.', 'Drive Epic A''s face from real session signals, and make it provably stop when nothing is
+happening. This is where "whimsical but a solid widget" is actually earned.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams on both sides** — consume Epic A''s state-enum contract, and consume the
+   session signals below without adding new public API to `StreamJsonSession` unless it
+   genuinely belongs there (coordinate with Epic D, which also reads that session).
+
+## State mapping
+
+| State | Trigger |
+|---|---|
+| `idle` | `!busy`, no recent activity |
+| `listening` | composer or Clide input focused |
+| `pensive` | `busy` && no `partial-` item yet — i.e. thinking |
+| `effort` | `busy` && elapsed past a threshold → orbit arc + `[ Ns ]` counter |
+| `speaking` | `busy` && `partial-` items arriving — i.e. streaming |
+| `rage` | API error / turn failure; plays the 3-frame table-flip, then returns to idle |
+| `error` | `endedStream` fired — session died |
+
+**The thinking-vs-streaming split is free and is the nicest signal here.** There is no
+public "is streaming" stream on the session; the tell is items whose
+`uuid.startsWith(''partial-'')` (`stream_json_session.dart:589-628`). So `busy` with no partial
+yet = thinking; `busy` with partials arriving = streaming.
+
+Signals to bind: `busyStream` (seeded `ValueStream`), `items`, `statusStream`,
+`pendingPromptStream`, `endedStream`. Binding pattern: the `_bindPrimary()` cancel/rebind/seed
+dance at `claude_meta_sidebar.dart:205-245` — the worked example for exactly this.
+
+DeskLock''s rule is adopted verbatim: **"wait cues are a hard requirement — never a bare
+static face during a wait, and no fake progress bars, only honest cues."** The `effort`
+orbit + elapsed counter is the answer to clide''s long tool runs.
+
+## Power ladder
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible, focused |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | unmounted / no ticker | panel collapsed or hidden; window minimised |
+
+**Collapse and hide are free.** `layout.dart:51-59` renders a spine or nothing when a slot is
+collapsed/hidden, so `SlotHost` unmounts entirely and the controller disposes. Same for
+inactive tabs — the context path has no `IndexedStack`/`keepAlive`.
+
+**Minimise is not free — this is a new capability for the codebase.** There is no
+`WidgetsBindingObserver`, `didChangeAppLifecycleState`, or `AppLifecycleState` handling
+anywhere in `lib/` (zero hits), and `TickerMode` is unused. Adding lifecycle observation is
+its own commit and should be reviewed as a kernel-level addition, not smuggled in as a
+widget detail. `lib/main.dart:553` has a comment noting lifecycle isn''t wired.
+
+## Testing
+
+Assert each rung actually stops the ticker — a power ladder that doesn''t demonstrably park
+the render loop is decoration. Bounded pumps, empty-tree teardown, and the reduced-motion
+`pumpAndSettle` contract from Epic A still apply.
+
+## Contract published (Epic A breakdown, 2026-08-09) — you are not blocked
+
+Epic A''s seam is specified in full on **T-521**. Code against it now; you do not need to wait
+for T-521 to land, and A will not change it without renegotiating here.
+
+```dart
+enum FaceState { idle, listening, pensive, effort, speaking, rage, error }
+enum Gaze { none, left, forward, right }
+
+ClideFace({
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,   // you own this; the widget does not time turns
+})
+```
+
+That is the entire surface. Three things follow for B:
+
+1. **B owns elapsed time.** `busyFor` drives the `[ Ns ]` counter in `effort`. The widget
+   deliberately does not time turns itself, because you already know when the turn started
+   and the widget would only be guessing from prop changes.
+2. **Lean is derived from `gaze`, not passed.** `left → −8px`, `forward/none → 0`,
+   `right → +8px`. Do not look for a `lean` prop.
+3. **If you need something more, that is a T-521 change, not a prop added quietly to the
+   widget.** Raise it there so the contract stays one place.
+
+### `rage` is a scowl, not a table-flip
+
+Deviation from DeskLock, decided during the A breakdown: `rage` renders as brows-down eyes
+`▼   ▼` with a flat mouth `━` and jitter, not the 3-frame kaomoji. Two of the kaomoji''s
+glyphs (`︵` U+FE35, `ノ` U+30CE — katakana) are missing from the bundled fonts, and the
+sequence needed a second render path for the state you see least. **Semantics are unchanged**
+— it is still the transient-failure reaction, so your mapping (API error / turn failure →
+`rage` for a beat → back to `idle`) is unaffected.
+
+### Signals reminder for your mapping
+
+The thinking-versus-streaming split is free: `busy && no partial- item yet` → `pensive`;
+`busy && partial- items arriving` → `speaking` (`stream_json_session.dart:589-628`). There is
+no public "is streaming" stream; items whose `uuid.startsWith(''partial-'')` are the tell.
+
+Signal audit against the live session code (2026-08-09), before breakdown. Two
+of the seven states have **no source at all** today, and one of the plan''s
+central assumptions is wrong. Read this before scoping.
+
+Everything hangs off `activeSessionOrchestrator.byId(''primary'')` — rebind on
+every orchestrator notification, per the worked example at
+`claude_meta_sidebar.dart:200-245`.
+
+## Available now, no new plumbing
+
+| Need | Signal | Where |
+|---|---|---|
+| busy on/off | `busyStream` — `ValueStream<bool>`, replay-latest, edge-deduped | `stream_json_session.dart:426` |
+| turn ended | falling edge of the same stream | `:532-537` |
+| session died (`error`) | `endedStream` + `end` field. **No replay** — check `end` first, then subscribe (`claude_pane.dart:421-426`) | `:465-472`, `:982-993` |
+| blocked on a permission ask | `pendingPromptStream` — `ValueStream`, replay | `:436-440` |
+| context tokens / cost | `statusStream` — `ValueStream`, replay | `:457` |
+
+## Wrong assumption: `partial-` does not mean "arriving now"
+
+The plan and `FaceState.speaking` both rest on "items whose uuid starts with
+`partial-` are the tell for streaming". It is **half true**. Partial items are
+created per `text_delta` (`:601-622`), but at `:561-570` the *final* assistant
+event is rewritten to carry the same `partial-$msgId` uuid — so a completed
+message keeps the prefix permanently. The predicate therefore means "this text
+came through the streaming path", not "prose is arriving right now".
+
+The honest tell is either the **arrival event** (a new/updated `partial-` item
+while `busy`) or exposing `_streamingMsgId` (`:381`, private; set on
+`message_start`, cleared on `message_stop` and `result`) — a one-line addition
+and the cleaner of the two.
+
+## Missing: thinking-in-progress
+
+`_onStreamEvent` (`:589-626`) handles exactly `message_start`,
+`content_block_delta` gated on `text_delta`, and `message_stop`. **`thinking_delta`
+is on the wire** (`docs/spikes/cc-stream-json-control-protocol-2.1.150.md:74`)
+**and dropped on the floor.** What survives is `AssistantThinkingMessage`
+(`transcript_reader.dart:133`), which arrives when a thinking block *completes* —
+an end edge, not a during state.
+
+So `pensive` as specified ("busy && no partial item yet") is an inference, not an
+observation. Handling `thinking_delta` would make it an observation, and would
+also let `effort` key off real reasoning rather than a stopwatch. Worth doing as
+part of this epic: it is a `case` in an existing switch.
+
+## Missing: `busyFor`
+
+No turn-start timestamp is recorded anywhere. `_setBusy(true)` has exactly one
+call site (`:876`). The state machine stamps the rising edge itself — trivial,
+but it is *our* job, not the session''s.
+
+## Missing: a source for `rage`
+
+`_statusFromEvent`''s `case ''result'':` (`:803-824`) reads only `total_cost_usd`
+and `contextWindow`. The result event''s `is_error` / error `subtype` are **never
+inspected**, and there is no error member in the `ConversationItem` union
+(`transcript_reader.dart:41`). The nearest thing is `ToolResultMessage.isError` —
+a *tool* failure, not an API failure.
+
+Decide early: either parse `result.is_error` (small, and useful beyond the face),
+or cut `rage` and let `error` cover both. Do not leave a state in the table with
+nothing that can trigger it.
+
+## Missing: a source for `listening`
+
+Composer drafts are pane-local and silent (`claude_pane.dart:645-653`). Focus is
+observable via the kernel''s focus tracker, which is probably the honest trigger —
+"the user is typing at me" rather than "a draft changed".
+
+## Not exposed: tool currently running
+
+Derived per-card in the view (`conversation_view.dart:1064-1070`) by scanning for
+an `AssistantToolUse` with no matching `ToolResultMessage`. Fine as a pattern to
+copy; there is no session-level signal.
+
+## Note on cadence
+
+`ConversationController` coalesces `notifyListeners` through a zero-duration
+timer (`conversation_controller.dart:111-114`) — at most once per microtask
+drain. Good as a liveness heartbeat, useless as a token counter.
+
+**Scope cut — D-107 amended 2026-08-09 (commitment 5).** Read this before the
+signal audit above; it supersedes half of it.
+
+The face no longer reads the primary session. It reports **Clide''s own state**
+only, and the rain keeps the primary session''s load as ambient weather. So this
+epic loses the mapping table it was mostly about.
+
+## What stays here
+
+- **Rain density from the primary session.** `busyStream` is the whole input:
+  busy → the `effort` density, idle → the `idle` density, with the existing ramp
+  doing the transition. This is now the *only* thing epic B reads from the
+  primary session, and `ValueStream` gives it to us with replay for free.
+- **The elapsed counter**, moved to the ambient layer with the rain — it is
+  main-session information. Still needs the state machine to stamp the rising
+  edge of `busyStream`, since no turn-start timestamp is recorded anywhere.
+- **The power ladder**, unchanged, including minimise-suspension and the new
+  `WidgetsBindingObserver` capability.
+
+## What moves out
+
+The seven-state face mapping. Under the split its sources are:
+
+| State | Source | Epic |
+|---|---|---|
+| `listening` | focus on Clide''s input | E |
+| `pensive` | his request in flight | D |
+| `speaking` | his reply streaming | D |
+| `error` | his session died (`endedStream`) | D |
+| `rage` and any other editorial mood | **his own declared mood** | D (prompt: T-532) |
+| `idle` | none of the above | — |
+
+This also retires the "`rage` has no source, cut it or wire `result.is_error`"
+finding above: under the split, a reaction to *content* is the one thing only
+Clide can produce, and the mood channel is exactly that source.
+
+## Consequence for sequencing
+
+The face stays at `idle` until epic D exists — no state machine can make it live
+sooner, because there is nothing of Clide''s to report yet. Epic B is therefore
+much smaller than planned and no longer the thing that brings the strip to life;
+D is. Worth reordering against that rather than discovering it mid-epic.
+
+`thinking_delta` (dropped by `_onStreamEvent`, see above) is still worth adding —
+but for **Clide''s** session, where it distinguishes "he is composing" from "he is
+answering", not for the primary''s.
+
+**Signal audit correction (2026-08-09).** The audit recorded above says thinking-in-progress is unavailable — only an end-of-block `AssistantThinkingMessage`. **That is wrong at claude 2.1.226**, verified against the real binary (`docs/spikes/cc-stream-json-2.1.226.md`).
+
+Thinking arrives as its own streamed content block: `content_block_start` with `content_block.type: ''thinking''`, then `thinking_delta` deltas, then `signature_delta`, then the text block. Plus `system/thinking_tokens` events carrying a running estimate. `_onStreamEvent` sees all of it and drops it because it gates on `text_delta`.
+
+Also corrected: the audit says `rage` has no source because API errors are never inspected. The *inspection* is missing, but the **fields are on the wire** — `result` carries `is_error`, `stop_reason`, `terminal_reason` and `api_error_status`.
+
+Neither changes Epic B''s shipped work — under D-107 commitment 5 the face reports Clide, not the primary session — but both matter to Epic D, which needs exactly these signals for the companion''s own session.', NULL, '2026-08-09 15:12:22', '2026-08-09 15:12:22.307', '2026-08-09 15:12:22.307', NULL, '1f165fb2104038f66a9f7ba0bb1aa01f', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY73Z35AYAJQZ4MZMT25DPWC', 'description', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.
+
+**Cost-guards section superseded 2026-08-09 (D-107 amended).** The companion is an ordinary persisted session, one per clide run, and the ~50-comment restart is deleted rather than deferred — the CLI''s autocompaction handles context growth and clide coordinates nothing. `--no-session-persistence` is dropped: Clide''s transcript is a strict subset of what the primary session already persists, so it was protecting nothing.
+
+Knock-on: **T-534 is largely dissolved** (the conversation is a transcript, so there is no bespoke buffer to build), and Epic E gets simpler with it — the answer surface reads a `ConversationController` like the main pane rather than inventing a renderer. The remaining cost guards stand unchanged: notable events only, no `effort`, thinking off, `max_tokens` ~100, and the kill switch.
+
+New work landing in T-545 from this: filter companion transcripts out of clide''s `/resume` picker, which lists the whole project dir.', 'Stand up the Haiku companion session, feed it a filtered digest of the main conversation,
+and give it a protocol that distinguishes *watching* from *being spoken to*. Pure plumbing —
+**can start immediately, in parallel with Epic A**.
+
+## Epic''s own first job
+
+1. **Break this epic down** into leaf tickets when picked up.
+2. **Own the seams** — publish the reply/state stream that Epic B (face reactions to
+   companion errors) and Epic E (answer rendering) consume, and coordinate with B on reading
+   `StreamJsonSession` so the two epics don''t each grow their own subscription layer.
+
+## Spawning — no new process plumbing needed
+
+`ClaudeSessionOrchestrator.spawn(SpawnSpec(..., visible: false))`
+(`lib/builtin/claude/src/session_orchestrator.dart:209`) already yields a live stream-json
+session with **no pane**, idempotent per `(id, cwd)`, serialized against races.
+`visible: false` is the intended primitive for a headless agent. Precedent for spawning
+outside a pane: `_forkMember` at `claude_meta_sidebar.dart:256-274`.
+
+- Spawn id `clide.companion`, `--model haiku`.
+- `--no-session-persistence` so it never pollutes `~/.claude/projects` (precedent:
+  `claude_config.dart:576`).
+- **There is no Anthropic API client in the repo** — grep for `anthropic` / `ANTHROPIC_API_KEY`
+  across `lib/` returns only comments. Everything goes through the `claude` CLI, so this runs
+  on subscription auth exactly like the main session.
+
+## Digest — what Clide sees
+
+Filter `session.items` to **`UserMessage` + `AssistantTextMessage` only**. Drop
+`AssistantToolUse`, `ToolResultMessage`, thinking, and the clide-injected image/drawing/icon
+cards. Item model: `transcript_reader.dart:41-267`.
+
+**Known limitation, accepted for v1:** with tool calls excluded, *"what did that tool call
+do?"* is unanswerable. Asking what Claude **said** works; asking what Claude **did** does
+not. Revisit if it bites in practice.
+
+## Protocol — observed vs direct
+
+```
+[observed] jeroen: <prompt text>
+[observed] claude: <assistant prose>
+[direct]   jeroen: <question typed into Clide''s own input>
+```
+
+The system prompt states the split explicitly: `observed` lines are a conversation between
+the user and Claude that Clide is watching — remark rarely and briefly; `direct` lines are
+addressed to Clide — always answer. Reply in the active locale (`app.locale`, carried into
+the prompt). One or two sentences.
+
+Trigger for unprompted remarks: **notable events only** — turn finished, error, long run
+crossing a threshold, commit landed. Never per-token.
+
+## Cost guards — the constraints that actually shape this
+
+- **Restart the session at ~50 comments.** Cost grows quadratically (history re-sends each
+  turn). A rolling window is the wrong fix: evicting the oldest event changes the cache
+  prefix, so every turn would pay full price. Grow-then-restart preserves cache hits within
+  an epoch and bounds growth.
+- **Haiku 4.5''s prompt-cache minimum is 4096 tokens — the highest of any current model.**
+  Below it `cache_control` is silently ignored (`cache_creation_input_tokens: 0`, no error).
+  A lean sidekick prompt is uncached for roughly its first 20 comments.
+- **Do not set `effort`** — it errors on Haiku 4.5.
+- Leave thinking off (latency and tokens for a one-line quip), and cap `max_tokens` ~100 so
+  a bad turn can''t produce an essay.
+- Budget: ~$0.002/comment at 50 comments. But under subscription auth the real cost is
+  **quota**, drawn from the same pool already rate-limiting the main session — keep the
+  trigger stingy.
+
+## Lifecycle
+
+Respect the settings kill switch (Epic C) and the power ladder (Epic B): a disabled or
+dormant Clide should not hold a live process open. Tear the session down, don''t just stop
+reading it.
+
+BLOCKED BY T-527 (kill switch) — added deliberately 2026-08-09. D-107 commits the companion to being user-disableable to zero, and this epic is the thing that spends subscription quota from the same pool that already rate-limits the primary session. Landing it before an off switch exists would leave a window with no way to stop it short of quitting the app. Note the requirement is a real teardown of the claude process, not just hiding the UI — a hidden face still spawning a process and burning quota is exactly the failure the blocker exists to prevent.
+
+Session lifecycle settled with the product owner (2026-08-09).
+
+**The companion session lives alongside the main conversation, not beside it in
+time.** It tracks the primary session''s clear and restart windows: when the user
+clears or restarts the main conversation, Clide''s session goes with it. Without
+that, Clide keeps context the user believes they threw away — which is both a
+surprise and a quiet privacy problem, and it defeats the "he is watching *this*
+conversation" framing.
+
+Clide already owns `/clear`, `/resume` and `/compact` rather than forwarding them
+(T-156), so there is an existing interception point to hang this on.
+
+**Ingest is gated on the strip being open.** The orchestrator only feeds the
+digest while the strip is visible; minimizing pauses the session and stops the
+feed (see T-528). A minimized stretch is conversation Clide did not see, by
+design — it is the honest privacy story and the cheapest power rung, stronger
+than Epic B''s `night` because it stops ingest rather than rendering.
+
+Three discontinuities therefore exist, and they are not the same thing:
+
+| | Cause | Does Clide know? |
+|---|---|---|
+| Detach | user minimized the strip | yes — tell him, see T-532 |
+| Clear / restart | user reset the main conversation | yes, implicitly — he is reset too |
+| ~50-comment restart | our cost control | open question, T-532 |
+
+Prompt text for all three is **T-532**, split out of this epic.
+
+Wiring gap left by T-528 (2026-08-09): **minimising must pause ingest**, and cannot yet, because there is no session to pause.
+
+`companion.state` already carries `open`, so this epic has everything it needs — subscribe, and stop feeding the digest while `open` is false. The semantics are settled and are not a limitation to paper over: a minimised period is conversation Clide genuinely did not see, which is simultaneously the honest privacy story (nothing goes to a second model while he is closed) and the cheapest power rung — stronger than Epic B''s `night`, which stops rendering but not ingest.
+
+The re-attach notice that follows from it ("you were away for N minutes") is T-532''s.
+
+Broken down 2026-08-09 into six leaves: **T-545** session lifecycle, **T-546** digest filter + observed/direct framing, **T-547** trigger policy, **T-548** the reply/state seam, plus the two already filed from asides — **T-532** prompt templates and **T-534** conversation log.
+
+Order: T-545 first (nothing works without a session), then T-546 and T-548 in parallel off it, then T-547 off T-546. T-532''s bake-off needs a live session, so it follows T-545 too. T-534 is independent of all of them but **opens with a governance question** — D-107 says the companion writes nothing to the workspace, and a durable log is a write; that decision is the user''s and blocks Epic E.
+
+Two notes recorded during breakdown rather than left to be rediscovered:
+
+- **The digest filter is written as an allow-list, not a deny-list** (T-546). D-107 commitment 3 makes it a privacy boundary, so a new item type appearing in the union must be invisible to Clide until someone decides otherwise. A deny-list would leak it silently.
+- **`speaking` cannot come from the `partial-` prefix** (T-548). Epic B''s audit found the final assistant event is rewritten to carry the same uuid, so the prefix means ''came through the streaming path'', not ''arriving now''. Both epics read the same class, so exposing a streaming signal is a joint decision rather than a patch either one makes alone.
+
+**Cost-guards section superseded 2026-08-09 (D-107 amended).** The companion is an ordinary persisted session, one per clide run, and the ~50-comment restart is deleted rather than deferred — the CLI''s autocompaction handles context growth and clide coordinates nothing. `--no-session-persistence` is dropped: Clide''s transcript is a strict subset of what the primary session already persists, so it was protecting nothing.
+
+Knock-on: **T-534 is largely dissolved** (the conversation is a transcript, so there is no bespoke buffer to build), and Epic E gets simpler with it — the answer surface reads a `ConversationController` like the main pane rather than inventing a renderer. The remaining cost guards stand unchanged: notable events only, no `effort`, thinking off, `max_tokens` ~100, and the kill switch.
+
+New work landing in T-545 from this: filter companion transcripts out of clide''s `/resume` picker, which lists the whole project dir.
+
+**Wire contract verified against claude 2.1.226 (2026-08-09)** — `docs/spikes/cc-stream-json-2.1.226.md`. Three things in this epic''s brief are now known to be wrong or unachievable:
+
+1. **''Do not set `effort` — it errors on Haiku 4.5'' is false at 2.1.226.** `--model haiku --effort low` was accepted and ran clean. The prohibition is lifted — but it buys nothing, see below.
+2. **''Leave thinking off'' is not achievable from the CLI.** Haiku 4.5 thinks by default and `--effort low` does not stop it; there is no flag that does. A one-line quip cost 36 thinking tokens. Either accept it or find another lever, but the brief''s instruction cannot be followed as written.
+3. **`--model haiku` works as a spawn flag** (`init.model` = `claude-haiku-4-5-20251001`), so the model can be selected at spawn rather than by a `set_model` control request afterwards — no window where the session exists on the wrong model.
+
+**Cost, measured:** a first turn in a fresh session cost $0.0346 and $0.0265 across two probes, dominated by cache creation for the repo context (16k tokens). That is a *per-session* cost, and with one session per clide run it amortises — but the steady-state per-comment figure is still **unmeasured**, and the initiative''s ~$0.002 was never verified. T-547 should measure it before anyone relies on the number.', NULL, '2026-08-09 15:12:35', '2026-08-09 15:12:35.369', '2026-08-09 15:12:35.369', NULL, '725fa9c2c545707a90d5c4a72936db12', 2) ON CONFLICT(hash) DO NOTHING;
