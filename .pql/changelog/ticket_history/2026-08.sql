@@ -3490,3 +3490,320 @@ size) since those arrive by rebuild.
 
 From T-523: GlyphCache exposes metrics() for cell sizing — measure through it rather than hand-rolling a TextPainter, so the probe layout is cached too. Correctness does not depend on clearing the cache (every pixel-affecting input is in the key), so clear() on theme/font change is memory hygiene only; do not build logic that relies on it for freshness. ParagraphCache is imported from the terminal subsystem, not lifted — if this painter or anything else adds a third consumer, lift it somewhere shared and update all users.', NULL, '2026-08-09 02:13:43', '2026-08-09 02:13:43.428', '2026-08-09 02:13:43.428', NULL, '293da788008502f88525513a0f74c776', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W64KMPGV5TMJ7C7D654WM', 'status', 'in_progress', 'done', NULL, '2026-08-09 02:13:47', '2026-08-09 02:13:47.481', '2026-08-09 02:13:47.481', NULL, '4152818769743c9b627e27ea6599ed57', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W6JXV00WEC79SK0GDWSH0', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 02:31:19', '2026-08-09 02:31:19.828', '2026-08-09 02:31:19.828', NULL, '22d12930b224996ba2bce2197c400380', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W6JXV00WEC79SK0GDWSH0', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 02:31:27', '2026-08-09 02:31:27.355', '2026-08-09 02:31:27.355', NULL, 'df9af24caa1d7dbbd34566d3728daa99', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W6JXV00WEC79SK0GDWSH0', 'description', 'The painter: face (eyes, mouth, thought dots, clock, orbit arc, elapsed counter) plus the
+rain field, drawn from the T-521 spec, the T-522 field, and the T-523 cache.
+
+Target: `lib/builtin/clide_companion/src/face_painter.dart`
+
+Blocked by T-521 (spec), T-522 (field), T-523 (cache) — it composes all three.
+
+## Draw order
+
+1. Rain (behind everything), trail then leading cells
+2. Radial vignette behind the face — DeskLock uses this to keep the face readable over dense
+   rain, and at 40 streams it is doing real work, not decoration
+3. Face group: eyes, mouth, thought dots, clock — offset by breathe + jitter + lean
+4. Orbit arc on the bezel, elapsed `[ Ns ]` counter
+
+## Tokens only — never a hex literal
+
+`ClideSettings.theme.of(context).surface`. Mapping:
+
+| Element | Token |
+|---|---|
+| well / background | `panelBackground` |
+| rain trail | `globalTextMuted` at low alpha |
+| rain leading cell | `globalTextMuted` at higher alpha |
+| face glyphs | `globalForeground` |
+| clock, elapsed counter | `globalTextMuted` |
+| orbit arc | `globalFocus` |
+| `rage` accent | `statusWarning` |
+| `error` accent | `statusError` |
+
+`SurfaceTokens` has **no `==` override**, so `shouldRepaint` compares tokens by identity —
+match the existing painters (`graph_painter.dart:138`, `canvas_painter.dart:227`) rather than
+deep-comparing. A new instance is only built on theme change, so identity is correct.
+
+## `repaint:` — the first use in this repo
+
+Pass the ticker''s `Listenable` to `CustomPainter(repaint: controller)`. Zero uses of
+`repaint:` exist in `lib/` today; both existing painters drive repaints via `setState`, which
+rebuilds the widget subtree every frame. **Do not copy that for a continuous animation** — it
+is the difference between repainting a layer and rebuilding a tree 30 times a second.
+
+`shouldRepaint` still needs to be correct for the *non-animated* inputs (state, gaze, tokens,
+size) since those arrive by rebuild.
+
+## Done when
+
+- `hasInk` picture-recorder assertions per state (pattern:
+  `test/builtin/graph/graph_painter_test.dart:35-43`), run under `tester.runAsync` —
+  `toImage`/`toByteData` is real engine async and hangs on the fake test clock.
+- `shouldRepaint` unit-tested per field (pattern:
+  `test/builtin/canvas/canvas_painter_test.dart:103-111`): identical inputs → false, each
+  varying field → true.
+- `error` paints no rain — a visible assertion of the power-ladder contract (D-107).
+- Lean offset is applied to the mouth and is visible in the painted output at −8/0/+8.
+- No `TextPainter` allocation in `paint` — assert via the cache''s instance-reuse test (T-523)
+  rather than by inspection.
+
+From T-523: GlyphCache exposes metrics() for cell sizing — measure through it rather than hand-rolling a TextPainter, so the probe layout is cached too. Correctness does not depend on clearing the cache (every pixel-affecting input is in the key), so clear() on theme/font change is memory hygiene only; do not build logic that relies on it for freshness. ParagraphCache is imported from the terminal subsystem, not lifted — if this painter or anything else adds a third consumer, lift it somewhere shared and update all users.', 'The painter: face (eyes, mouth, thought dots, clock, orbit arc, elapsed counter) plus the
+rain field, drawn from the T-521 spec, the T-522 field, and the T-523 cache.
+
+Target: `lib/builtin/clide_companion/src/face_painter.dart`
+
+Blocked by T-521 (spec), T-522 (field), T-523 (cache) — it composes all three.
+
+## Draw order
+
+1. Rain (behind everything), trail then leading cells
+2. Radial vignette behind the face — DeskLock uses this to keep the face readable over dense
+   rain, and at 40 streams it is doing real work, not decoration
+3. Face group: eyes, mouth, thought dots, clock — offset by breathe + jitter + lean
+4. Orbit arc on the bezel, elapsed `[ Ns ]` counter
+
+## Tokens only — never a hex literal
+
+`ClideSettings.theme.of(context).surface`. Mapping:
+
+| Element | Token |
+|---|---|
+| well / background | `panelBackground` |
+| rain trail | `globalTextMuted` at low alpha |
+| rain leading cell | `globalTextMuted` at higher alpha |
+| face glyphs | `globalForeground` |
+| clock, elapsed counter | `globalTextMuted` |
+| orbit arc | `globalFocus` |
+| `rage` accent | `statusWarning` |
+| `error` accent | `statusError` |
+
+`SurfaceTokens` has **no `==` override**, so `shouldRepaint` compares tokens by identity —
+match the existing painters (`graph_painter.dart:138`, `canvas_painter.dart:227`) rather than
+deep-comparing. A new instance is only built on theme change, so identity is correct.
+
+## `repaint:` — the first use in this repo
+
+Pass the ticker''s `Listenable` to `CustomPainter(repaint: controller)`. Zero uses of
+`repaint:` exist in `lib/` today; both existing painters drive repaints via `setState`, which
+rebuilds the widget subtree every frame. **Do not copy that for a continuous animation** — it
+is the difference between repainting a layer and rebuilding a tree 30 times a second.
+
+`shouldRepaint` still needs to be correct for the *non-animated* inputs (state, gaze, tokens,
+size) since those arrive by rebuild.
+
+## Done when
+
+- `hasInk` picture-recorder assertions per state (pattern:
+  `test/builtin/graph/graph_painter_test.dart:35-43`), run under `tester.runAsync` —
+  `toImage`/`toByteData` is real engine async and hangs on the fake test clock.
+- `shouldRepaint` unit-tested per field (pattern:
+  `test/builtin/canvas/canvas_painter_test.dart:103-111`): identical inputs → false, each
+  varying field → true.
+- `error` paints no rain — a visible assertion of the power-ladder contract (D-107).
+- Lean offset is applied to the mouth and is visible in the painted output at −8/0/+8.
+- No `TextPainter` allocation in `paint` — assert via the cache''s instance-reuse test (T-523)
+  rather than by inspection.
+
+From T-523: GlyphCache exposes metrics() for cell sizing — measure through it rather than hand-rolling a TextPainter, so the probe layout is cached too. Correctness does not depend on clearing the cache (every pixel-affecting input is in the key), so clear() on theme/font change is memory hygiene only; do not build logic that relies on it for freshness. ParagraphCache is imported from the terminal subsystem, not lifted — if this painter or anything else adds a third consumer, lift it somewhere shared and update all users.
+
+## DONE (2026-08-09)
+
+- `lib/builtin/clide_companion/src/face_painter.dart` — `ClideFacePainter`.
+- `test/builtin/clide_companion/face_painter_test.dart` — 11 tests, all green.
+- `make analyze`, `make format`, `make test` clean. Parallel pool 4061 → 4072.
+
+## `repaint:` — the clock is both the time source and the repaint source
+
+First use of `CustomPainter(repaint:)` in the repo, so the pattern is worth stating: the
+painter takes a `ValueListenable<Duration>` and passes it to `super(repaint:)`. Because
+`repaint:` schedules a paint **without rebuilding the widget subtree**, the painter is not
+reconstructed per frame — so a `final Duration` field would go stale immediately. Time
+therefore has to arrive through the same listenable that schedules the paint. One object,
+both jobs.
+
+`shouldRepaint` still covers the non-animated inputs, which arrive by rebuild: state, gaze,
+lean, busyFor, rainFontSize, fontFamily, tokens (identity, per the note below), and identity
+of field/cache/clock.
+
+## Correction to the ticket: "error paints no rain" is not the painter''s job
+
+The ticket''s done-when says *"`error` paints no rain — a visible assertion of the
+power-ladder contract"*. Implementing it revealed that would be the **wrong** place for it.
+
+The painter draws whatever cells the field holds; it never consults `spec.rainStreams`. That
+number is the *target* the widget ticks the field toward, so an empty field at `error` is
+produced upstream by the spec draining the simulation (already tested in T-522), not by a
+branch inside `paint`. Adding such a branch would have made the painter lie about its input
+and duplicated a rule that already lives in the data.
+
+The test was rewritten to assert the property that actually belongs here: **the painter is a
+faithful function of the field** — an empty field and a primed field at the same state render
+differently. The power-ladder assertion stays in T-522, where the draining is.
+
+## The prescribed `hasInk` metric does not discriminate here
+
+The ticket specified the `hasInk` picture-recorder pattern from `graph_painter_test.dart`,
+which counts non-transparent pixels. That works for the graph painter, which draws sparse
+marks on a transparent canvas. **It fails here**, and quietly: the vignette is full-bleed, so
+after it paints, ~37,300 of 38,400 pixels already have non-zero alpha. The
+`busyFor` test initially passed the same count with and without the elapsed counter — an
+identical number, not a near-miss, which is what made it obvious rather than a flaky
+threshold.
+
+Fixed by comparing **raw pixel bytes** between two renders instead of counting alpha.
+`hasInk` is retained only for "did this state draw anything at all", where saturation is
+harmless. Worth carrying to T-525''s goldens: any assertion finer than "something was drawn"
+needs byte comparison, not ink counting.
+
+## Notes for T-525
+
+- The widget owns the ticker, advances the `RainField`, and updates the clock''s value; the
+  painter reads. Keeping simulation out of `paint` is what makes every frame a pure function
+  of (clock, field, spec, tokens) and lets the tests above be deterministic.
+- `lean` is nullable and falls back to `gaze.leanPx`. Pass an interpolated value to animate
+  the transition — that is the "animated rather than snapped" half of D-107, and the painter
+  is already set up for it.
+- Wall-clock `HH:MM` for the idle state is the one thing not derived from the ticker, since
+  it is genuinely time-of-day. Goldens covering `idle` must pin or avoid it.', NULL, '2026-08-09 02:41:19', '2026-08-09 02:41:19.548', '2026-08-09 02:41:19.548', NULL, '0c93a697b3e58914e04bef5d3355dbbe', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W71Q93S37DZF4ZJJ9QWJW', 'description', 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.', 'The widget shell: owns the single `Ticker`, gates on reduced motion, isolates repaints, and
+exposes the T-521 props. After this, Epic A is done and Epic B has something to drive.
+
+Target: `lib/builtin/clide_companion/src/clide_face.dart`
+
+Blocked by T-524.
+
+## Public surface — exactly the T-521 contract
+
+```dart
+ClideFace({
+  Key? key,
+  required FaceState state,
+  Gaze gaze = Gaze.none,
+  Duration? busyFor,
+})
+```
+
+Nothing else. If Epic B needs something more, that is a contract change negotiated on T-521,
+not a prop added quietly here.
+
+## One ticker
+
+`createTicker` via `SingleTickerProviderStateMixin`, closest existing model is
+`clide_marquee.dart:30` (raw `Ticker`, dt computed from the elapsed `Duration`). The ticker
+drives a `ValueNotifier<int>`/`ChangeNotifier` handed to the painter as `repaint:` — the
+widget itself does **not** `setState` per frame.
+
+**No `Timer.periodic`.** The repo''s animated widgets are all controller/ticker-driven
+specifically so tests can advance them with bounded pumps; timers break that.
+
+## Reduced motion is a hard gate
+
+```dart
+final reduced = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+```
+
+Checked in `didChangeDependencies`, ticker stopped when true, static frame painted instead.
+Precedent: `clide_marquee.dart:54`, `clide_spinner.dart:43`, `running_indicator.dart:71`.
+
+**This is not a courtesy.** `test/widgets/src/clide_marquee_test.dart:50` asserts
+`pumpAndSettle()` completes under `disableAnimations: true`; a perpetual ticker that ignores
+the flag wedges the whole suite for ~10 minutes. Write the equivalent assertion here.
+
+## `RepaintBoundary`
+
+Wrap the `CustomPaint`. This is the **second** use in the repo — the only other is the
+terminal render object (`lib/src/terminal/src/ui/render.dart:174`). Without it, a repaint of
+an animating layer can dirty ancestors, which is exactly what you do not want 30 times a
+second inside a panel that also hosts a detail view.
+
+## Sizing
+
+`LayoutBuilder` → the field''s column/row count derives from the box and the glyph advance
+width. Must survive the context panel''s **220–1000px** range (`layout_preset.dart:19`) and a
+short strip height. Degrade sensibly when very small rather than overflowing.
+
+## Done when
+
+- Renders every `FaceState` without error at both 220px and 1000px wide.
+- `pumpAndSettle()` completes under `disableAnimations: true` — the wedge guard.
+- Ticker disposes: pump the widget, then pump an empty tree, and assert no pending ticker
+  (the teardown pattern in `running_indicator_test.dart:29-45` and `clide_marquee_test.dart`).
+- Alchemist goldens at a **pinned ticker value** per state — a live animation is a bad golden,
+  so expose a test-only seam to hold the frame rather than sleeping.
+- Widget-level a11y: one stable `Semantics` label describing state in words
+  (D-20), with the animated glyphs under `ExcludeSemantics` — the
+  `running_indicator.dart` pattern. A screen reader should hear "Clide: thinking", never a
+  stream of box-drawing characters.
+
+From T-524: (1) The widget owns the ticker, advances the RainField, and updates the clock ValueNotifier<Duration>; the painter only reads. Keeping simulation out of paint() is what makes each frame a pure function of (clock, field, spec, tokens). (2) ClideFacePainter takes a nullable lean that falls back to gaze.leanPx — pass an interpolated value to animate the transition, which is the ''animated rather than snapped'' half of D-107. (3) hasInk-style alpha counting does NOT discriminate for this painter: the vignette is full-bleed so ~37300/38400 pixels have non-zero alpha. Goldens and any assertion finer than ''something was drawn'' must compare raw pixel bytes. (4) The idle clock label uses DateTime.now() — it is genuinely time-of-day, not animation state — so goldens covering idle must pin or avoid it.', NULL, '2026-08-09 02:41:26', '2026-08-09 02:41:26.899', '2026-08-09 02:41:26.899', NULL, 'b129f26744bb6b5ffce13d993212305c', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FY7W6JXV00WEC79SK0GDWSH0', 'status', 'in_progress', 'done', NULL, '2026-08-09 02:41:30', '2026-08-09 02:41:30.922', '2026-08-09 02:41:30.922', NULL, '8bd4d7266323e27b5e6ffc31746eb7d6', 2) ON CONFLICT(hash) DO NOTHING;
