@@ -13205,3 +13205,197 @@ They did not, which is the first real evidence the interface generalises rather 
 Note the layering that survived: absence still arrives here as `busy: false` and is still published. The reader reports absence without interpreting it, and ''publish not-busy'' is this consumer''s answer — different from the sidebar''s ''blank the panel''. That distinction is now load-bearing rather than incidental.
 
 Full suite 8 + 4235 + 50.', 'review', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:02.881', '2026-08-09 16:00:35.351', NULL, '30933db22d0e330d66c7d2409cd77acb', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R3: Move the companion load adapter onto the reader', '`clide_companion/src/load_adapter.dart` (T-538) — busy state via the orchestrator, published to the bus.
+
+The smallest of the three and the most recently written; it was produced by copying the meta sidebar, which is the clearest evidence the rule was spreading rather than being shared.
+
+Its nine tests cover the exact hazards the interface is meant to own — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped turn-start surviving a mid-turn rebind. **They must pass unmodified**; they are the closest thing to a specification for the interface''s rebinding behaviour.
+
+Done (2026-08-09). All nine tests pass **unmodified, first run**.
+
+The whole `_bindPrimary` method is gone — cancel, null-check, absence branch, replay comment — replaced by one `reader.busy.listen` that survives every respawn. The class keeps only what is actually its own: the turn-start stamp, the dedupe, and answering the `companion.load.ask` channel.
+
+**This was the fairest test of the interface**, and it was uncomfortable by design: these nine tests were written *against the hand-rolled version*, and three of them exist specifically because I nearly got the hand-rolled version wrong in T-538 — rebinding without double-subscribing, absence publishing rather than staying silent, the stamped start surviving a mid-turn rebind. If the reader had a different opinion about any of those, they would have failed rather than been quietly adjusted.
+
+They did not, which is the first real evidence the interface generalises rather than merely compiling: the sidebar migration proved it could express the *canonical* shape, and this proves it independently satisfies a set of assertions written before it existed.
+
+Note the layering that survived: absence still arrives here as `busy: false` and is still published. The reader reports absence without interpreting it, and ''publish not-busy'' is this consumer''s answer — different from the sidebar''s ''blank the panel''. That distinction is now load-bearing rather than incidental.
+
+Full suite 8 + 4235 + 50.', 'done', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:02.881', '2026-08-09 16:01:36.453', NULL, '41cfe18469bf85a125e700fec63f4f4f', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R2: Move the meta sidebar onto the reader', '`claude_meta_sidebar.dart:205` `_bindPrimary()` — the canonical cancel/rebind/seed dance, and the one every other site was told to copy. Migrating it first is the fairest test of the interface: if the shape cannot express the original cleanly, the shape is wrong.
+
+Reads status, items and workflows.
+
+**Its tests must pass unmodified.** Any that need editing mean behaviour moved rather than code — stop and investigate rather than updating the test.
+
+Done (2026-08-09). All 43 sidebar tests pass **unmodified**.
+
+The cancel/rebind/seed dance is gone: three `listen` calls that outlive any number of session swaps, because the reader re-subscribes underneath. `_bindPrimary` went from ~40 lines of lifecycle to three subscriptions.
+
+**The migration was not one-for-one, and the difference is worth recording.** The old `_onOrchestratorChange` did two jobs at once — re-bind the primary, and rebuild so the roster rows reflect the session set. Only the first belongs to the reader. The roster is drawn from *every* session, not from the primary, so the sidebar still listens to the orchestrator directly; what it no longer does is bind through it. Anyone reading this as ''the reader replaced the orchestrator listener'' would be wrong.
+
+Absence stays the sidebar''s decision, per T-551: the reader reports `attached`, and clearing `_primaryStatus`/`_workflows` on detach is this surface''s answer (a stale status would read as a live session). The pane and the companion adapter give different answers to the same question, which is why the reader does not pick one.
+
+**One real bug, caught by the tests rather than by review:** the cascade `SessionReader.primary(...)..addListener(...)..start()` reads well and is wrong — `start` binds synchronously and notifies, re-entering the listener while the `late final` field was still unassigned. Assignment now precedes `start`. A migration that had *edited* its tests to pass would have shipped this.
+
+Full suite 8 + 4235 + 50.', 'done', 'high', NULL, NULL, NULL, '2026-08-09 14:51:55.777', '2026-08-09 16:01:46.341', NULL, '67833b312c3b7fa8e9124bff36a96c87', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEH0XC2WK9S7333BGH7C898', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Backlog section is unbrowsable at 112 tickets — consider ordering and grouping', 'The backlog section of the tickets pane has **112 tickets** in it and is
+effectively unbrowsable. Raised while working the companion initiative, which
+added ~40 of them in a day.
+
+Deliberately framed as *consider*: the obvious fix is newest-first, and it may
+well be right, but it is worth a moment''s thought before it becomes the answer —
+recency is not the same as relevance, and an ordering that hides old work is a
+different failure from one that buries new work.
+
+## What it does today
+
+`tickets_view.dart` groups by status into collapsible sections and renders each
+group in whatever order `pql.tickets.list` returns. There is no client-side sort
+at all, so the order is pql''s — and the pane inherits it silently.
+
+So step one is to find out what that order actually is before changing anything:
+if pql already returns newest-first, the problem is length, not sequence, and
+sorting fixes nothing.
+
+## Options worth weighing
+
+- **Newest first.** What was asked for, and the cheapest. Matches how the list is
+  used in practice — the thing you filed ten minutes ago is the thing you want.
+  Cost: long-lived tickets sink permanently, which is how a backlog quietly turns
+  into a graveyard.
+- **Group by epic/parent inside the section.** The companion work is ~40 tickets
+  across five epics; as a flat list that is noise, as five collapsed groups it is
+  five lines. Probably the bigger win, and it composes with any sort.
+- **Collapse the section by default past a threshold**, or cap it with a "show
+  all" — the pane already has expand/collapse machinery per section
+  (`_isSectionExpanded`).
+- **Filter to the active initiative.** The strongest reduction and the most
+  opinionated; the filter chips (T-343) are the existing precedent.
+
+## Worth checking first
+
+- Whether the ordering should be a **setting** rather than a decision. It is the
+  kind of preference that splits people, and the pane has no ordering controls at
+  all today.
+- Whether `pql.tickets.list` can sort server-side. Sorting 112 rows client-side
+  is free, but the CLI parity surface (D-6) should agree with the pane, and a
+  pane-only sort would make `clide` and the UI disagree about "the list".
+- The board view (`pql ticket board`) is a separate surface with the same
+  pressure; whatever is decided here should not leave the two contradicting each
+  other.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 16:03:48.704', '2026-08-09 16:03:48.704', NULL, 'cf141c0ae1e3b7e7ed3259e1b4ae5b41', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEH0XC2WK9S7333BGH7C898', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Backlog section is unbrowsable at 112 tickets — consider ordering and grouping', 'The backlog section of the tickets pane has **112 tickets** in it and is
+effectively unbrowsable. Raised while working the companion initiative, which
+added ~40 of them in a day.
+
+Deliberately framed as *consider*: the obvious fix is newest-first, and it may
+well be right, but it is worth a moment''s thought before it becomes the answer —
+recency is not the same as relevance, and an ordering that hides old work is a
+different failure from one that buries new work.
+
+## What it does today
+
+`tickets_view.dart` groups by status into collapsible sections and renders each
+group in whatever order `pql.tickets.list` returns. There is no client-side sort
+at all, so the order is pql''s — and the pane inherits it silently.
+
+So step one is to find out what that order actually is before changing anything:
+if pql already returns newest-first, the problem is length, not sequence, and
+sorting fixes nothing.
+
+## Options worth weighing
+
+- **Newest first.** What was asked for, and the cheapest. Matches how the list is
+  used in practice — the thing you filed ten minutes ago is the thing you want.
+  Cost: long-lived tickets sink permanently, which is how a backlog quietly turns
+  into a graveyard.
+- **Group by epic/parent inside the section.** The companion work is ~40 tickets
+  across five epics; as a flat list that is noise, as five collapsed groups it is
+  five lines. Probably the bigger win, and it composes with any sort.
+- **Collapse the section by default past a threshold**, or cap it with a "show
+  all" — the pane already has expand/collapse machinery per section
+  (`_isSectionExpanded`).
+- **Filter to the active initiative.** The strongest reduction and the most
+  opinionated; the filter chips (T-343) are the existing precedent.
+
+## Worth checking first
+
+- Whether the ordering should be a **setting** rather than a decision. It is the
+  kind of preference that splits people, and the pane has no ordering controls at
+  all today.
+- Whether `pql.tickets.list` can sort server-side. Sorting 112 rows client-side
+  is free, but the CLI parity surface (D-6) should agree with the pane, and a
+  pane-only sort would make `clide` and the UI disagree about "the list".
+- The board view (`pql ticket board`) is a separate surface with the same
+  pressure; whatever is decided here should not leave the two contradicting each
+  other.
+
+**Order confirmed empirically (2026-08-09), and it makes this smaller.**
+
+`pql.tickets.list` returns backlog **strictly ascending by numeric ticket id** — T-8 first through T-559 last. Checked all 113: no lexicographic breakage, T-99 correctly precedes T-100. Ids are chronological, so id order *is* filing order.
+
+So there is no sorting bug and no comparator to fix. ''Newest first'' is a reverse, and it is close to a one-liner wherever the list is materialised.
+
+That leaves the real question, which is not order:
+
+- Reversing gives a browsable **top** and an unreachable **bottom**. For 112 items that is an improvement, not a solution — the old-but-live tickets simply move from ''buried at the end'' to ''buried at the end'' with different neighbours.
+- **Grouping by epic/parent** is the change that makes the count stop mattering, and it composes with either direction.
+- Reversing also **inverts the implicit priority signal** the list currently carries: oldest-first reads as a queue. Worth being deliberate about, since nobody chose the current order either.
+
+If this is picked up as just the reverse, say so on the ticket and split the grouping out rather than leaving it implied — the reverse alone will feel like a fix for about a week.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 16:03:48.704', '2026-08-09 16:05:01.070', NULL, '88e785d77eb6e6e58dbcb594b578d64c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R4: Move the Claude pane onto the reader', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:11.904', '2026-08-09 16:05:29.087', NULL, '6ae4a4c963aa83f3c2cddaddc447c64e', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R4: Move the Claude pane onto the reader', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:11.904', '2026-08-09 16:05:36.797', NULL, '8346e44b68284d9be76db94d3e2998e4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R4: Move the Claude pane onto the reader', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.
+
+Done (2026-08-09). Tests pass **unmodified**; also verified live, which for this surface matters more.
+
+Four subscriptions moved from per-spawn to once-for-the-pane''s-life. `_orchId` is derived from immutable widget props, so the reader follows this pane''s session — `primary` or `secondary-N` — through spawn, close and workspace switch without the pane re-subscribing at all.
+
+**Three cancel blocks disappeared**, not one: `_spawn`''s bind tail, `_rebindToActiveProject`, and the corresponding half of `dispose`. That is the clearest measure of what the epic bought — the pane was cancelling and re-subscribing the same four streams in three different places, each of which had to stay in step.
+
+**The `endedStream` seeding this ticket called out is gone from here, and that is the point.** This pane was the only site that got it right by hand (`final alreadyEnded = session.end; if (…) … else subscribe`). It is now one `_reader.ended.listen` — the reader replays an end that already happened, so the case this pane handled correctly is handled for every consumer, including the two that did not.
+
+Session-agnostic earned its keep immediately: this is the first consumer that is *not* the primary in the general case. A reader hardcoded to ''primary'' would have silently bound the wrong session for every secondary pane.
+
+**Live check** (`make run`): `pane primary bound session … connected to history (104 seeded item(s))` — a real resume against this session''s own transcript. Tests alone would not have shown the pane failing to bind.
+
+Full suite 8 + 4235 + 50. **Epic T-550 is 4/5** — only T-555 (the non-primary case, for Epic D) remains.', 'in_progress', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:11.904', '2026-08-09 16:13:28.497', NULL, '6af3cdafc0d3c0bd656b758e7203b4de', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'task', '06FYE0FWH7B6FN89P3THTVCZTM', 'R4: Move the Claude pane onto the reader', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.
+
+Done (2026-08-09). Tests pass **unmodified**; also verified live, which for this surface matters more.
+
+Four subscriptions moved from per-spawn to once-for-the-pane''s-life. `_orchId` is derived from immutable widget props, so the reader follows this pane''s session — `primary` or `secondary-N` — through spawn, close and workspace switch without the pane re-subscribing at all.
+
+**Three cancel blocks disappeared**, not one: `_spawn`''s bind tail, `_rebindToActiveProject`, and the corresponding half of `dispose`. That is the clearest measure of what the epic bought — the pane was cancelling and re-subscribing the same four streams in three different places, each of which had to stay in step.
+
+**The `endedStream` seeding this ticket called out is gone from here, and that is the point.** This pane was the only site that got it right by hand (`final alreadyEnded = session.end; if (…) … else subscribe`). It is now one `_reader.ended.listen` — the reader replays an end that already happened, so the case this pane handled correctly is handled for every consumer, including the two that did not.
+
+Session-agnostic earned its keep immediately: this is the first consumer that is *not* the primary in the general case. A reader hardcoded to ''primary'' would have silently bound the wrong session for every secondary pane.
+
+**Live check** (`make run`): `pane primary bound session … connected to history (104 seeded item(s))` — a real resume against this session''s own transcript. Tests alone would not have shown the pane failing to bind.
+
+Full suite 8 + 4235 + 50. **Epic T-550 is 4/5** — only T-555 (the non-primary case, for Epic D) remains.', 'review', 'medium', NULL, NULL, NULL, '2026-08-09 14:52:11.904', '2026-08-09 16:13:28.524', NULL, 'df8ce3deffcd51c83aaf162f9b1e771c', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

@@ -23,6 +23,7 @@ import 'session_index.dart';
 import 'session_naming.dart';
 import 'session_orchestrator.dart';
 import 'session_picker.dart';
+import 'session_reader.dart';
 import 'slash_commands.dart';
 import 'stream_json_session.dart';
 import 'task_list.dart';
@@ -74,6 +75,12 @@ class ClaudePane extends StatefulWidget {
 }
 
 class _ClaudePaneState extends State<ClaudePane> {
+  /// Follows this pane's session — `primary` or `secondary-N` — across spawn,
+  /// close and workspace switch (T-554). Created in `didChangeDependencies`
+  /// alongside the first spawn, because `_orchId` is available from the widget
+  /// but the kernel is not available earlier.
+  late final SessionReader _reader;
+
   StreamSubscription<SessionStatus>? _statusSub;
   StreamSubscription<SessionEnd>? _endSub;
   StreamSubscription<ProjectOpened>? _projectSub;
@@ -172,6 +179,33 @@ class _ClaudePaneState extends State<ClaudePane> {
     // Spawn once, after the kernel is available.
     if (!_spawned) {
       _spawned = true;
+      // Bind once, for the pane's whole life. `_orchId` is derived from
+      // immutable widget props, so the reader follows this pane's session
+      // through every spawn, close and workspace switch without the pane
+      // re-subscribing (T-554). The cancel/rebind that used to live in
+      // `_spawn`, `_rebindToActiveProject` and `dispose` is gone with it.
+      _reader = SessionReader(sessionId: _orchId)..start();
+      _statusSub = _reader.status.listen((s) {
+        if (!mounted) return;
+        setState(() => _status = s);
+      });
+      // Workflow runs arrive on out-of-band system events that add no
+      // conversation item, so the view won't rebuild on its own — drive a
+      // rebuild as the run map changes so the workflow card updates live
+      // (T-416).
+      _workflowsSub = _reader.workflows.listen((_) {
+        if (!mounted) return;
+        setState(() {});
+      });
+      // A rejected /model change (unknown name) rolls back silently in the
+      // status — say why out loud (T-408).
+      _modelErrorSub = _reader.modelErrors.listen((msg) {
+        _kernel?.notify.warn(msg, title: 'model');
+      });
+      // Surface a dead process instead of letting it look thoughtful (T-361).
+      // The reader replays an end that already happened, so the late-binder
+      // case this pane used to handle by hand is handled for everyone now.
+      _endSub = _reader.ended.listen(_onSessionEnd);
       unawaited(_spawnWhenReady());
       // Warm the slash-command list in the background (lazy, idempotent) so
       // custom commands are recognised by the time the user types one (T-153).
@@ -220,6 +254,7 @@ class _ClaudePaneState extends State<ClaudePane> {
     _modelErrorSub = null;
     _workflowsSub?.cancel();
     _workflowsSub = null;
+    _reader.dispose();
     // The orchestrator owns the session, so disposing this pane does NOT kill
     // it — that's what lets a hidden/kept-alive pane keep its session (T-169).
     // A secondary tab being *closed* is a real teardown, so close its session;
@@ -269,14 +304,8 @@ class _ClaudePaneState extends State<ClaudePane> {
   /// workspace: drop the cached session id and repo root so [_spawn]
   /// re-resolves both for the new repo (T-269).
   Future<void> _rebindToActiveProject() async {
-    _statusSub?.cancel();
-    _statusSub = null;
-    _endSub?.cancel();
-    _endSub = null;
-    _modelErrorSub?.cancel();
-    _modelErrorSub = null;
-    _workflowsSub?.cancel();
-    _workflowsSub = null;
+    // No subscription juggling here any more: the reader follows `_orchId`
+    // through the close and the respawn below (T-554).
     _modelPickerOpen = false;
     _effortPickerOpen = false;
     _permissionPickerOpen = false;
@@ -400,30 +429,6 @@ class _ClaudePaneState extends State<ClaudePane> {
       'pane $_orchId bound session ${_sessionId ?? '?'} in $repoRoot — '
           '${seeded > 0 ? 'connected to history ($seeded seeded item(s))' : 'fresh session (no history)'}',
     );
-    _statusSub = managed.session.statusStream.listen((s) {
-      if (!mounted) return;
-      setState(() => _status = s);
-    });
-    // Workflow runs arrive on out-of-band system events that add no
-    // conversation item, so the view won't rebuild on its own — drive a
-    // rebuild as the run map changes so the workflow card updates live (T-416).
-    _workflowsSub = managed.session.workflowsStream.listen((_) {
-      if (!mounted) return;
-      setState(() {});
-    });
-    // A rejected /model change (unknown name) rolls back silently in the
-    // status — say why out loud (T-408).
-    _modelErrorSub = managed.session.modelErrors.listen((msg) {
-      _kernel?.notify.warn(msg, title: 'model');
-    });
-    // Surface a dead process instead of letting it look thoughtful (T-361):
-    // late binders read the replayed end; live sessions stream it.
-    final alreadyEnded = managed.session.end;
-    if (alreadyEnded != null) {
-      _onSessionEnd(alreadyEnded);
-    } else {
-      _endSub = managed.session.endedStream.listen(_onSessionEnd);
-    }
   }
 
   /// The claude process exited under this pane's live session. Stop looking

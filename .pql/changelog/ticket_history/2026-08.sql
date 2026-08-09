@@ -11678,3 +11678,138 @@ Note the layering that survived: absence still arrives here as `busy: false` and
 
 Full suite 8 + 4235 + 50.', NULL, '2026-08-09 16:00:35', '2026-08-09 16:00:35.322', '2026-08-09 16:00:35.322', NULL, '02b94540f27e285fbfa2565d33dcbf81', 2) ON CONFLICT(hash) DO NOTHING;
 INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'status', 'in_progress', 'review', NULL, '2026-08-09 16:00:35', '2026-08-09 16:00:35.351', '2026-08-09 16:00:35.351', NULL, '1188b9469aa21c11abb9360de7c757c9', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0K9R40T1948C780FKDAQ8', 'status', 'review', 'done', NULL, '2026-08-09 16:01:36', '2026-08-09 16:01:36.454', '2026-08-09 16:01:36.454', NULL, '41c697ffd3879abf5a23161b786755be', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0JE00Z8KD783CKCREYS44', 'status', 'review', 'done', NULL, '2026-08-09 16:01:46', '2026-08-09 16:01:46.341', '2026-08-09 16:01:46.341', NULL, '602bc3f58680266303a20d63f16cce10', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYEH0XC2WK9S7333BGH7C898', 'description', 'The backlog section of the tickets pane has **112 tickets** in it and is
+effectively unbrowsable. Raised while working the companion initiative, which
+added ~40 of them in a day.
+
+Deliberately framed as *consider*: the obvious fix is newest-first, and it may
+well be right, but it is worth a moment''s thought before it becomes the answer —
+recency is not the same as relevance, and an ordering that hides old work is a
+different failure from one that buries new work.
+
+## What it does today
+
+`tickets_view.dart` groups by status into collapsible sections and renders each
+group in whatever order `pql.tickets.list` returns. There is no client-side sort
+at all, so the order is pql''s — and the pane inherits it silently.
+
+So step one is to find out what that order actually is before changing anything:
+if pql already returns newest-first, the problem is length, not sequence, and
+sorting fixes nothing.
+
+## Options worth weighing
+
+- **Newest first.** What was asked for, and the cheapest. Matches how the list is
+  used in practice — the thing you filed ten minutes ago is the thing you want.
+  Cost: long-lived tickets sink permanently, which is how a backlog quietly turns
+  into a graveyard.
+- **Group by epic/parent inside the section.** The companion work is ~40 tickets
+  across five epics; as a flat list that is noise, as five collapsed groups it is
+  five lines. Probably the bigger win, and it composes with any sort.
+- **Collapse the section by default past a threshold**, or cap it with a "show
+  all" — the pane already has expand/collapse machinery per section
+  (`_isSectionExpanded`).
+- **Filter to the active initiative.** The strongest reduction and the most
+  opinionated; the filter chips (T-343) are the existing precedent.
+
+## Worth checking first
+
+- Whether the ordering should be a **setting** rather than a decision. It is the
+  kind of preference that splits people, and the pane has no ordering controls at
+  all today.
+- Whether `pql.tickets.list` can sort server-side. Sorting 112 rows client-side
+  is free, but the CLI parity surface (D-6) should agree with the pane, and a
+  pane-only sort would make `clide` and the UI disagree about "the list".
+- The board view (`pql ticket board`) is a separate surface with the same
+  pressure; whatever is decided here should not leave the two contradicting each
+  other.', 'The backlog section of the tickets pane has **112 tickets** in it and is
+effectively unbrowsable. Raised while working the companion initiative, which
+added ~40 of them in a day.
+
+Deliberately framed as *consider*: the obvious fix is newest-first, and it may
+well be right, but it is worth a moment''s thought before it becomes the answer —
+recency is not the same as relevance, and an ordering that hides old work is a
+different failure from one that buries new work.
+
+## What it does today
+
+`tickets_view.dart` groups by status into collapsible sections and renders each
+group in whatever order `pql.tickets.list` returns. There is no client-side sort
+at all, so the order is pql''s — and the pane inherits it silently.
+
+So step one is to find out what that order actually is before changing anything:
+if pql already returns newest-first, the problem is length, not sequence, and
+sorting fixes nothing.
+
+## Options worth weighing
+
+- **Newest first.** What was asked for, and the cheapest. Matches how the list is
+  used in practice — the thing you filed ten minutes ago is the thing you want.
+  Cost: long-lived tickets sink permanently, which is how a backlog quietly turns
+  into a graveyard.
+- **Group by epic/parent inside the section.** The companion work is ~40 tickets
+  across five epics; as a flat list that is noise, as five collapsed groups it is
+  five lines. Probably the bigger win, and it composes with any sort.
+- **Collapse the section by default past a threshold**, or cap it with a "show
+  all" — the pane already has expand/collapse machinery per section
+  (`_isSectionExpanded`).
+- **Filter to the active initiative.** The strongest reduction and the most
+  opinionated; the filter chips (T-343) are the existing precedent.
+
+## Worth checking first
+
+- Whether the ordering should be a **setting** rather than a decision. It is the
+  kind of preference that splits people, and the pane has no ordering controls at
+  all today.
+- Whether `pql.tickets.list` can sort server-side. Sorting 112 rows client-side
+  is free, but the CLI parity surface (D-6) should agree with the pane, and a
+  pane-only sort would make `clide` and the UI disagree about "the list".
+- The board view (`pql ticket board`) is a separate surface with the same
+  pressure; whatever is decided here should not leave the two contradicting each
+  other.
+
+**Order confirmed empirically (2026-08-09), and it makes this smaller.**
+
+`pql.tickets.list` returns backlog **strictly ascending by numeric ticket id** — T-8 first through T-559 last. Checked all 113: no lexicographic breakage, T-99 correctly precedes T-100. Ids are chronological, so id order *is* filing order.
+
+So there is no sorting bug and no comparator to fix. ''Newest first'' is a reverse, and it is close to a one-liner wherever the list is materialised.
+
+That leaves the real question, which is not order:
+
+- Reversing gives a browsable **top** and an unreachable **bottom**. For 112 items that is an improvement, not a solution — the old-but-live tickets simply move from ''buried at the end'' to ''buried at the end'' with different neighbours.
+- **Grouping by epic/parent** is the change that makes the count stop mattering, and it composes with either direction.
+- Reversing also **inverts the implicit priority signal** the list currently carries: oldest-first reads as a queue. Worth being deliberate about, since nobody chose the current order either.
+
+If this is picked up as just the reverse, say so on the ticket and split the grouping out rather than leaving it implied — the reverse alone will feel like a fix for about a week.', NULL, '2026-08-09 16:05:01', '2026-08-09 16:05:01.070', '2026-08-09 16:05:01.070', NULL, 'bc905d1c51f197af594fefe030e89e6b', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'status', 'backlog', 'in_progress', NULL, '2026-08-09 16:05:29', '2026-08-09 16:05:29.087', '2026-08-09 16:05:29.087', NULL, '8b09bda9535dd269e17dfa48f5121152', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'status', 'in_progress', 'in_progress', NULL, '2026-08-09 16:05:36', '2026-08-09 16:05:36.797', '2026-08-09 16:05:36.797', NULL, 'b456f565d0d0e9581c0f1c0c052d5434', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'description', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.', '`claude_pane.dart` — five subscriptions (busy, items, ended, model errors, pending prompt) and the most load-bearing surface in the app.
+
+Last of the three deliberately: by this point the interface has been proved against two smaller consumers, and the pane is where a subtle regression costs the most. It is also the only site that currently gets the `endedStream` seeding right (`:421-426`), so it is the reference for that part of the contract rather than a naive port.
+
+**Its tests must pass unmodified.**
+
+Landing this separately from R2/R3 is deliberate — a single commit spanning the pane and everything else would be hard to revert if it went wrong.
+
+Done (2026-08-09). Tests pass **unmodified**; also verified live, which for this surface matters more.
+
+Four subscriptions moved from per-spawn to once-for-the-pane''s-life. `_orchId` is derived from immutable widget props, so the reader follows this pane''s session — `primary` or `secondary-N` — through spawn, close and workspace switch without the pane re-subscribing at all.
+
+**Three cancel blocks disappeared**, not one: `_spawn`''s bind tail, `_rebindToActiveProject`, and the corresponding half of `dispose`. That is the clearest measure of what the epic bought — the pane was cancelling and re-subscribing the same four streams in three different places, each of which had to stay in step.
+
+**The `endedStream` seeding this ticket called out is gone from here, and that is the point.** This pane was the only site that got it right by hand (`final alreadyEnded = session.end; if (…) … else subscribe`). It is now one `_reader.ended.listen` — the reader replays an end that already happened, so the case this pane handled correctly is handled for every consumer, including the two that did not.
+
+Session-agnostic earned its keep immediately: this is the first consumer that is *not* the primary in the general case. A reader hardcoded to ''primary'' would have silently bound the wrong session for every secondary pane.
+
+**Live check** (`make run`): `pane primary bound session … connected to history (104 seeded item(s))` — a real resume against this session''s own transcript. Tests alone would not have shown the pane failing to bind.
+
+Full suite 8 + 4235 + 50. **Epic T-550 is 4/5** — only T-555 (the non-primary case, for Epic D) remains.', NULL, '2026-08-09 16:13:28', '2026-08-09 16:13:28.497', '2026-08-09 16:13:28.497', NULL, '3b55a03922faca8073f873c839819e97', 2) ON CONFLICT(hash) DO NOTHING;
+INSERT INTO ticket_history (ticket_record_id, field, old_value, new_value, changed_by, changed_at, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYE0MD03HG8PM86KTWRVKMQM', 'status', 'in_progress', 'review', NULL, '2026-08-09 16:13:28', '2026-08-09 16:13:28.524', '2026-08-09 16:13:28.524', NULL, '3eaf131fb5686edf3dcea19fbdb772aa', 2) ON CONFLICT(hash) DO NOTHING;
