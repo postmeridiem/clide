@@ -35,6 +35,10 @@ heading, and (b) bumping `pubspec.yaml` `version:` in the same commit.
   working and thins when it stops, with a counter for how long the current turn
   has run. (D-107, T-537, T-538, T-539)
 
+- **Clide goes to sleep.** After ten quiet minutes the strip drains, settles to
+  a still frame and stops redrawing entirely; anything happening wakes it.
+  (D-107, T-540)
+
 ### Changed
 
 - Clide's rain draws in the theme's code green rather than muted body text, so

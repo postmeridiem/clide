@@ -55,6 +55,15 @@ const _absent = LoadSpec(rainDensity: 0, rainSpeed: 0);
 const _calm = LoadSpec(rainDensity: 0.05, rainSpeed: 4);
 const _working = LoadSpec(rainDensity: 1.0, rainSpeed: 16);
 
+/// How long a quiet strip keeps animating before it parks the render loop —
+/// D-107 commitment 4's `dormant` rung (T-540).
+///
+/// Ten minutes is long enough that it never interrupts someone working and short
+/// enough that a window left open overnight is not still drawing at dawn. The
+/// user does not choose it: a knob here would only ever be turned up, and the
+/// commitment is that the surface *demonstrably stops*.
+const kDormantAfter = Duration(minutes: 10);
+
 /// The rain recipe for [load].
 LoadSpec loadSpecFor(SessionLoad load) => switch (load) {
   SessionLoad.absent => _absent,

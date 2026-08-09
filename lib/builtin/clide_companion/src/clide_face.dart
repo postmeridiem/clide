@@ -7,6 +7,8 @@
 /// here, so the two epics keep one shared definition of the seam.
 library;
 
+import 'dart:async';
+
 import 'package:clide/builtin/clide_companion/src/face_painter.dart';
 import 'package:clide/builtin/clide_companion/src/face_state.dart';
 import 'package:clide/builtin/clide_companion/src/glyph_cache.dart';
@@ -35,9 +37,18 @@ class ClideFace extends StatefulWidget {
     this.gaze = Gaze.none,
     this.busyFor,
     this.faceAlignX = 0,
+    this.dormantAfter = kDormantAfter,
     this.debugFreezeAt,
     this.debugClockLabel,
   });
+
+  /// How long without any change before the render loop parks — the `dormant`
+  /// rung (D-107 commitment 4, T-540). `Duration.zero` disables dormancy.
+  ///
+  /// Injectable so a test can drive it in milliseconds. The alternative is a
+  /// test that waits ten real minutes, which nobody runs, which means the rung
+  /// is unasserted, which means it is decoration.
+  final Duration dormantAfter;
 
   /// What Clide is doing. Driven by his own session (Epic D).
   final FaceState state;
@@ -105,11 +116,51 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
 
   bool get _frozen => widget.debugFreezeAt != null;
 
+  /// One-shot, rescheduled on activity — never periodic. A timer that woke every
+  /// second to ask whether things were quiet would be exactly the drain the
+  /// `dormant` rung exists to remove (D-107 commitment 4).
+  Timer? _dormancy;
+
+  bool _dormant = false;
+
+  /// What the rain should be doing, allowing for dormancy.
+  ///
+  /// Dormant reads as [SessionLoad.absent] so the field **drains** rather than
+  /// freezing mid-fall: glyphs stopped in mid-air read as a hang, not as rest.
+  /// Once it has drained there is nothing left to draw and the loop parks.
+  SessionLoad get _load => _dormant ? SessionLoad.absent : widget.load;
+
   @override
   void initState() {
     super.initState();
     _lean = widget.gaze.leanPx;
     if (_frozen) _clock.value = widget.debugFreezeAt!;
+    _noteActivity();
+  }
+
+  /// Something happened: leave dormancy if we were in it, and start the clock
+  /// again on going back to sleep.
+  void _noteActivity() {
+    _dormancy?.cancel();
+    _dormancy = null;
+
+    final wake = _dormant;
+    _dormant = false;
+
+    final after = widget.dormantAfter;
+    if (after > Duration.zero && !_frozen) {
+      _dormancy = Timer(after, _goDormant);
+    }
+    if (wake) _syncTicker();
+  }
+
+  void _goDormant() {
+    if (!mounted || _dormant) return;
+    _dormant = true;
+    // Deliberately does not park the ticker here — the field has to drain
+    // first, and `_tick` parks once it has.
+    _syncTicker();
+    setState(() {});
   }
 
   @override
@@ -139,6 +190,12 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
       _field = null;
       _ensureField(_columns, _rows);
     }
+    // Anything the caller changed counts as activity. `busyFor` ticking once a
+    // second during a turn is activity too — a running turn is the clearest
+    // possible sign the surface should stay awake.
+    if (old.load != widget.load || old.state != widget.state || old.gaze != widget.gaze || old.busyFor != widget.busyFor) {
+      _noteActivity();
+    }
     _syncTicker();
   }
 
@@ -165,9 +222,16 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
   bool get _isQuiescent {
     final field = _field;
     if (field == null) return false;
+
+    // Dormancy overrides the face's own animations, and has to. `idle` blinks,
+    // so without this the loop would never park at rest however empty the
+    // field — which would make the whole rung decoration. Once drained, a
+    // dormant face is a still image and the painter draws it as one.
+    if (_dormant) return field.isQuiescent;
+
     final spec = specFor(widget.state);
     final settled = (_lean - widget.gaze.leanPx).abs() < 0.01;
-    return loadSpecFor(widget.load).rainDensity == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
+    return loadSpecFor(_load).rainDensity == 0 && field.isQuiescent && !spec.blink && !spec.talkCycle && !spec.thoughtDots && !spec.jitter && settled;
   }
 
   void _tick(Duration elapsed) {
@@ -178,7 +242,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
       return;
     }
 
-    final load = loadSpecFor(widget.load);
+    final load = loadSpecFor(_load);
     _field?.tick(dt, targetStreams: load.streamsFor(_columns), speed: load.rainSpeed);
 
     // Ease the lean toward its target at a constant rate.
@@ -216,7 +280,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
   /// user should still see that the session is busy; they just should not see it
   /// move.
   void _primeField(RainField field) {
-    final load = loadSpecFor(widget.load);
+    final load = loadSpecFor(_load);
     final target = load.streamsFor(field.columns);
     if (target == 0) return;
     const step = 1 / 30;
@@ -263,6 +327,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
 
   @override
   void dispose() {
+    _dormancy?.cancel();
     _ticker.dispose();
     _clock.dispose();
     super.dispose();
@@ -308,6 +373,7 @@ class _ClideFaceState extends State<ClideFace> with SingleTickerProviderStateMix
                   clockLabel: _clockLabel(),
                   faceAlignX: widget.faceAlignX,
                   rainFontSize: _rainFontSize,
+                  resting: _dormant,
                 ),
               ),
             );

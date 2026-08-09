@@ -9321,3 +9321,377 @@ Two aesthetic corrections came out of the live look, both landed here since they
 **Moving the face meant moving the composition, not the glyphs.** The vignette was still anchored at a fixed 0.47 of the height, so raising the face left the pool of darkness sitting below it — the thing the vignette exists to do (hold the face apart from the rain) was now happening under the face''s chin. Both now derive from one named factor, so they cannot drift apart again.
 
 Full suite 8 + 4187 + 50.', 'done', 'high', NULL, NULL, 'D-107', '2026-08-09 12:27:08.149', '2026-08-09 13:36:53.661', NULL, 'b13781066650d83d7c2866b8fdb226c3', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B4: Power ladder — ambient and dormant rungs, each proved to park the loop', 'D-107 commitment 4: the ladder is a contract, not an optimisation. A
+continuously animated surface in an IDE must **prove it stops**.
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | no ticker at all | panel collapsed or hidden, window minimised |
+
+## What is already done, and should be credited rather than rebuilt
+
+- **`night` via collapse/hide is free.** `layout.dart` renders a spine or nothing
+  for a collapsed or hidden slot, so `SlotHost` unmounts and the ticker disposes.
+  Same for the companion being disabled or minimised (T-527/T-528) — those
+  remove the widget outright.
+- **Reduced motion** is already a hard gate in `ClideFace`, asserted by the
+  `pumpAndSettle` wedge-guard test.
+- **The loop already parks when there is nothing to animate** — `_isQuiescent` +
+  `_syncTicker`, tested for the `error`-over-drained-field case.
+
+So the genuinely new work here is `ambient` and `dormant`: an idle timer that
+drops density after a few minutes and then stops the ticker entirely, and the
+path back up when something happens.
+
+## The test is the deliverable
+
+A rung that is not asserted is decoration. Each must be proved to *stop the
+render loop*, not merely to draw less — the existing power-ladder test is the
+pattern (`clide_face_test.dart`, "error over a drained field stops ticking").
+
+Bounded pumps only. Do not use `pumpAndSettle` to wait out a ten-minute timer;
+make the interval injectable so a test can drive it in milliseconds without a
+real wait, and keep the production default honest.
+
+## Watch for
+
+- Waking from `dormant` must not pop — the field ramps, and a state change that
+  restarts the ticker with an empty field should fill rather than appear.
+- The idle timer must not itself keep the loop alive: a `Timer` that fires every
+  second to check whether things are quiet is the failure this rung exists to
+  prevent.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:27:39.955', '2026-08-09 13:37:43.438', NULL, '8725eca67151312285264ac94b5f0ecc', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B4: Power ladder — ambient and dormant rungs, each proved to park the loop', 'D-107 commitment 4: the ladder is a contract, not an optimisation. A
+continuously animated surface in an IDE must **prove it stops**.
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | no ticker at all | panel collapsed or hidden, window minimised |
+
+## What is already done, and should be credited rather than rebuilt
+
+- **`night` via collapse/hide is free.** `layout.dart` renders a spine or nothing
+  for a collapsed or hidden slot, so `SlotHost` unmounts and the ticker disposes.
+  Same for the companion being disabled or minimised (T-527/T-528) — those
+  remove the widget outright.
+- **Reduced motion** is already a hard gate in `ClideFace`, asserted by the
+  `pumpAndSettle` wedge-guard test.
+- **The loop already parks when there is nothing to animate** — `_isQuiescent` +
+  `_syncTicker`, tested for the `error`-over-drained-field case.
+
+So the genuinely new work here is `ambient` and `dormant`: an idle timer that
+drops density after a few minutes and then stops the ticker entirely, and the
+path back up when something happens.
+
+## The test is the deliverable
+
+A rung that is not asserted is decoration. Each must be proved to *stop the
+render loop*, not merely to draw less — the existing power-ladder test is the
+pattern (`clide_face_test.dart`, "error over a drained field stops ticking").
+
+Bounded pumps only. Do not use `pumpAndSettle` to wait out a ten-minute timer;
+make the interval injectable so a test can drive it in milliseconds without a
+real wait, and keep the production default honest.
+
+## Watch for
+
+- Waking from `dormant` must not pop — the field ramps, and a state change that
+  restarts the ticker with an empty field should fill rather than appear.
+- The idle timer must not itself keep the loop alive: a `Timer` that fires every
+  second to check whether things are quiet is the failure this rung exists to
+  prevent.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:27:39.955', '2026-08-09 13:37:47.776', NULL, '91cf1acc713a74cfe231a4362525ad4d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDGH6NA4M13VHHSSDWN7TZ0', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Pick-up prompt should state the whole loop — status, /git-commit, leave in review', '`pickUpPrompt` (`lib/builtin/tickets/src/pick_up_prompt.dart:25`) opens with one
+line — "Pick up and start working this ticket. Read it fully, then begin." — and
+says nothing about how the work should *end*. So the ending is improvised each
+time: sometimes the ticket is closed, sometimes left open, sometimes committed
+before the ticket is updated, and the user has to ask what happened.
+
+Extend the lead-in to state the whole loop, not just the start.
+
+## What the prompt should ask for
+
+1. **Keep the ticket status honest as work proceeds** — `in_progress` on pickup,
+   and moved on deliberately rather than left wherever it was.
+2. **Run `/git-commit`** when the work is done, so the commit goes through the
+   skill that encodes message format, explicit staging and changelog discipline
+   rather than being hand-rolled.
+3. **Leave the ticket in `review`, not `done`.** This is the substantive change:
+   the agent does not get to mark its own work complete. `done` becomes
+   something the human sets after looking.
+4. **End with a two-sentence summary and an explicit request to review.** Short
+   on purpose — the ticket body already holds the detail, and a long sign-off
+   buries the one thing being asked for.
+
+## Why `review` rather than `done`
+
+Every ticket this session was closed by the agent that wrote it, on the strength
+of its own tests. That is exactly the reviewer arrangement nobody would accept
+between two people. A `review` rung costs one status transition and puts the
+decision back with the person who can actually judge whether the thing is right —
+several tickets this session needed visual corrections that no test caught
+(T-539''s face balance, T-531''s arc, T-535''s colour).
+
+## Check first
+
+- Confirm `review` is a status the pql schema accepts, and what the board does
+  with it — if it is not a real status this needs one, or a label, and that is a
+  bigger change than the prompt text.
+- The prompt is also produced for tickets picked up from the CLI, not only the
+  detail pane; keep one wording.
+- `pick_up_prompt_test.dart` asserts the current lead-in; update it with the
+  text rather than around it.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 13:41:51.402', '2026-08-09 13:41:51.402', NULL, 'a18efbcea3f16e14ec1c5e5bc224c5db', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B4: Power ladder — ambient and dormant rungs, each proved to park the loop', 'D-107 commitment 4: the ladder is a contract, not an optimisation. A
+continuously animated surface in an IDE must **prove it stops**.
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | no ticker at all | panel collapsed or hidden, window minimised |
+
+## What is already done, and should be credited rather than rebuilt
+
+- **`night` via collapse/hide is free.** `layout.dart` renders a spine or nothing
+  for a collapsed or hidden slot, so `SlotHost` unmounts and the ticker disposes.
+  Same for the companion being disabled or minimised (T-527/T-528) — those
+  remove the widget outright.
+- **Reduced motion** is already a hard gate in `ClideFace`, asserted by the
+  `pumpAndSettle` wedge-guard test.
+- **The loop already parks when there is nothing to animate** — `_isQuiescent` +
+  `_syncTicker`, tested for the `error`-over-drained-field case.
+
+So the genuinely new work here is `ambient` and `dormant`: an idle timer that
+drops density after a few minutes and then stops the ticker entirely, and the
+path back up when something happens.
+
+## The test is the deliverable
+
+A rung that is not asserted is decoration. Each must be proved to *stop the
+render loop*, not merely to draw less — the existing power-ladder test is the
+pattern (`clide_face_test.dart`, "error over a drained field stops ticking").
+
+Bounded pumps only. Do not use `pumpAndSettle` to wait out a ten-minute timer;
+make the interval injectable so a test can drive it in milliseconds without a
+real wait, and keep the production default honest.
+
+## Watch for
+
+- Waking from `dormant` must not pop — the field ramps, and a state change that
+  restarts the ticker with an empty field should fill rather than appear.
+- The idle timer must not itself keep the loop alive: a `Timer` that fires every
+  second to check whether things are quiet is the failure this rung exists to
+  prevent.
+
+Done (2026-08-09).
+
+## The rung was worse than "not built" — it was impossible
+
+The ticket says the loop already parks when there is nothing to animate, citing
+the `error`-over-drained-field test. True, but that case is unreachable at rest:
+`idle` sets `blink`, and `_isQuiescent` refused to park while *any* face
+animation was live. So a strip left alone drew forever, however empty the field
+— the exact defect D-107 commitment 4 exists to forbid, sitting in the code with
+a passing test beside it that looked like proof it did not.
+
+Dormancy therefore has to override the face''s own animations, not just drain the
+rain. That is the substantive design point and it is why `dormant` is a state on
+the widget rather than a load level.
+
+## Shipped
+
+- `dormantAfter` (default `kDormantAfter`, ten minutes; `Duration.zero`
+  disables). Injectable because a test that waits ten real minutes never runs,
+  and an unasserted rung is decoration.
+- A **one-shot** `Timer`, rescheduled on activity — never periodic. A timer
+  waking every second to ask whether things are quiet is precisely the drain
+  this rung removes.
+- Dormant reads the load as `absent`, so the field **drains** rather than
+  freezing mid-fall; glyphs stopped in mid-air read as a hang, not as rest. Once
+  drained there is nothing left and the ticker parks.
+- Activity = any change to load, state, gaze or `busyFor`. A running turn ticks
+  `busyFor` every second, which is the clearest possible sign to stay awake.
+
+## The frozen frame had to be made deterministic
+
+Stopping the clock freezes every cycle derived from it, so the face would rest at
+whatever phase it happened to reach — roughly one time in thirty, mid-blink. A
+face sitting with its eyes shut until you touch something reads as a hang. The
+painter takes `resting`, which draws the still frame: no blink, no talk cycle,
+no thought dots, no jitter, no breathe. Same frame every time.
+
+## `ambient` and `night` were already done and are credited, not rebuilt
+
+`ambient` is `calm` — a real but small density, now asserted so that making it
+zero fails here rather than silently stilling the strip. `night` is the widget
+being gone: collapse, hide, disable (T-527) and minimise (T-528) all unmount it,
+so the rung is a teardown assertion.
+
+## Tests
+
+10 in `power_ladder_test.dart`, every one against `transientCallbackCount` —
+whether the loop is *running*, not whether it draws less. Bounded pumps
+throughout; no `pumpAndSettle` anywhere near a live ticker.
+
+One budget worth knowing: the wake-then-sleep test needs ~12s of pumped time,
+because dormancy drains rather than freezes and at `calm` the streams fall at
+four cells a second with per-stream jitter. A tight budget there fails for the
+drain being slow rather than for dormancy being broken — it cost one iteration
+to find.
+
+Full suite 8 + 4197 + 50.
+
+**Not covered here:** minimise. That needs app-lifecycle observation, which the
+codebase has nowhere, and is T-541.', 'in_progress', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:27:39.955', '2026-08-09 13:49:22.018', NULL, '085aed9adcc2d7dac129e719297b3ac4', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYCZHT6CG6NY0W2Y9AAGMCCG', 'task', '06FY73Y5FBHF8QNAXQDJBJ26B0', 'B4: Power ladder — ambient and dormant rungs, each proved to park the loop', 'D-107 commitment 4: the ladder is a contract, not an optimisation. A
+continuously animated surface in an IDE must **prove it stops**.
+
+| Rung | Rendering | Entered when |
+|---|---|---|
+| `active` | full animation | busy, visible |
+| `ambient` | idle face, sparse rain | idle, activity in the last few minutes |
+| `dormant` | **ticker stopped, no redraws** | quiet N minutes (default 10) |
+| `night` | no ticker at all | panel collapsed or hidden, window minimised |
+
+## What is already done, and should be credited rather than rebuilt
+
+- **`night` via collapse/hide is free.** `layout.dart` renders a spine or nothing
+  for a collapsed or hidden slot, so `SlotHost` unmounts and the ticker disposes.
+  Same for the companion being disabled or minimised (T-527/T-528) — those
+  remove the widget outright.
+- **Reduced motion** is already a hard gate in `ClideFace`, asserted by the
+  `pumpAndSettle` wedge-guard test.
+- **The loop already parks when there is nothing to animate** — `_isQuiescent` +
+  `_syncTicker`, tested for the `error`-over-drained-field case.
+
+So the genuinely new work here is `ambient` and `dormant`: an idle timer that
+drops density after a few minutes and then stops the ticker entirely, and the
+path back up when something happens.
+
+## The test is the deliverable
+
+A rung that is not asserted is decoration. Each must be proved to *stop the
+render loop*, not merely to draw less — the existing power-ladder test is the
+pattern (`clide_face_test.dart`, "error over a drained field stops ticking").
+
+Bounded pumps only. Do not use `pumpAndSettle` to wait out a ten-minute timer;
+make the interval injectable so a test can drive it in milliseconds without a
+real wait, and keep the production default honest.
+
+## Watch for
+
+- Waking from `dormant` must not pop — the field ramps, and a state change that
+  restarts the ticker with an empty field should fill rather than appear.
+- The idle timer must not itself keep the loop alive: a `Timer` that fires every
+  second to check whether things are quiet is the failure this rung exists to
+  prevent.
+
+Done (2026-08-09).
+
+## The rung was worse than "not built" — it was impossible
+
+The ticket says the loop already parks when there is nothing to animate, citing
+the `error`-over-drained-field test. True, but that case is unreachable at rest:
+`idle` sets `blink`, and `_isQuiescent` refused to park while *any* face
+animation was live. So a strip left alone drew forever, however empty the field
+— the exact defect D-107 commitment 4 exists to forbid, sitting in the code with
+a passing test beside it that looked like proof it did not.
+
+Dormancy therefore has to override the face''s own animations, not just drain the
+rain. That is the substantive design point and it is why `dormant` is a state on
+the widget rather than a load level.
+
+## Shipped
+
+- `dormantAfter` (default `kDormantAfter`, ten minutes; `Duration.zero`
+  disables). Injectable because a test that waits ten real minutes never runs,
+  and an unasserted rung is decoration.
+- A **one-shot** `Timer`, rescheduled on activity — never periodic. A timer
+  waking every second to ask whether things are quiet is precisely the drain
+  this rung removes.
+- Dormant reads the load as `absent`, so the field **drains** rather than
+  freezing mid-fall; glyphs stopped in mid-air read as a hang, not as rest. Once
+  drained there is nothing left and the ticker parks.
+- Activity = any change to load, state, gaze or `busyFor`. A running turn ticks
+  `busyFor` every second, which is the clearest possible sign to stay awake.
+
+## The frozen frame had to be made deterministic
+
+Stopping the clock freezes every cycle derived from it, so the face would rest at
+whatever phase it happened to reach — roughly one time in thirty, mid-blink. A
+face sitting with its eyes shut until you touch something reads as a hang. The
+painter takes `resting`, which draws the still frame: no blink, no talk cycle,
+no thought dots, no jitter, no breathe. Same frame every time.
+
+## `ambient` and `night` were already done and are credited, not rebuilt
+
+`ambient` is `calm` — a real but small density, now asserted so that making it
+zero fails here rather than silently stilling the strip. `night` is the widget
+being gone: collapse, hide, disable (T-527) and minimise (T-528) all unmount it,
+so the rung is a teardown assertion.
+
+## Tests
+
+10 in `power_ladder_test.dart`, every one against `transientCallbackCount` —
+whether the loop is *running*, not whether it draws less. Bounded pumps
+throughout; no `pumpAndSettle` anywhere near a live ticker.
+
+One budget worth knowing: the wake-then-sleep test needs ~12s of pumped time,
+because dormancy drains rather than freezes and at `calm` the streams fall at
+four cells a second with per-stream jitter. A tight budget there fails for the
+drain being slow rather than for dormancy being broken — it cost one iteration
+to find.
+
+Full suite 8 + 4197 + 50.
+
+**Not covered here:** minimise. That needs app-lifecycle observation, which the
+codebase has nowhere, and is T-541.', 'review', 'medium', NULL, NULL, 'D-107', '2026-08-09 12:27:39.955', '2026-08-09 13:49:27.526', NULL, '885c50ea29f82512b77f1e011dae381d', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;
+INSERT INTO tickets (record_id, type, parent_record_id, title, description, status, priority, assigned_to, team, decision_ref, created_at, updated_at, deleted_at, hash, canonical_version) VALUES ('06FYDGH6NA4M13VHHSSDWN7TZ0', 'task', '06FB0TNQM5TWC00GW0P3X02HZW', 'Pick-up prompt should state the whole loop — status, /git-commit, leave in review', '`pickUpPrompt` (`lib/builtin/tickets/src/pick_up_prompt.dart:25`) opens with one
+line — "Pick up and start working this ticket. Read it fully, then begin." — and
+says nothing about how the work should *end*. So the ending is improvised each
+time: sometimes the ticket is closed, sometimes left open, sometimes committed
+before the ticket is updated, and the user has to ask what happened.
+
+Extend the lead-in to state the whole loop, not just the start.
+
+## What the prompt should ask for
+
+1. **Keep the ticket status honest as work proceeds** — `in_progress` on pickup,
+   and moved on deliberately rather than left wherever it was.
+2. **Run `/git-commit`** when the work is done, so the commit goes through the
+   skill that encodes message format, explicit staging and changelog discipline
+   rather than being hand-rolled.
+3. **Leave the ticket in `review`, not `done`.** This is the substantive change:
+   the agent does not get to mark its own work complete. `done` becomes
+   something the human sets after looking.
+4. **End with a two-sentence summary and an explicit request to review.** Short
+   on purpose — the ticket body already holds the detail, and a long sign-off
+   buries the one thing being asked for.
+
+## Why `review` rather than `done`
+
+Every ticket this session was closed by the agent that wrote it, on the strength
+of its own tests. That is exactly the reviewer arrangement nobody would accept
+between two people. A `review` rung costs one status transition and puts the
+decision back with the person who can actually judge whether the thing is right —
+several tickets this session needed visual corrections that no test caught
+(T-539''s face balance, T-531''s arc, T-535''s colour).
+
+## Check first
+
+- Confirm `review` is a status the pql schema accepts, and what the board does
+  with it — if it is not a real status this needs one, or a label, and that is a
+  bigger change than the prompt text.
+- The prompt is also produced for tickets picked up from the CLI, not only the
+  detail pane; keep one wording.
+- `pick_up_prompt_test.dart` asserts the current lead-in; update it with the
+  text rather than around it.
+
+Confirmed 2026-08-09: **`review` is already a valid pql status** — `pql ticket status <id> review` is accepted and reads back. So the open question at the bottom of this ticket resolves cleanly and the change really is just prompt text plus its test.
+
+Adopted immediately by hand on T-540 while this ticket waits: work recorded on the ticket, `/git-commit` run, status left at `review` rather than `done`, and a two-sentence summary put to the user. Worth checking the board renders a `review` column sensibly before this lands, since it will start appearing routinely.', 'backlog', 'medium', NULL, NULL, NULL, '2026-08-09 13:41:51.402', '2026-08-09 13:49:42.564', NULL, 'ce45ee94aea1e915ef6c09712b2a9d71', 2) ON CONFLICT(record_id) DO UPDATE SET type=excluded.type, parent_record_id=excluded.parent_record_id, title=excluded.title, description=excluded.description, status=excluded.status, priority=excluded.priority, assigned_to=excluded.assigned_to, team=excluded.team, decision_ref=excluded.decision_ref, updated_at=excluded.updated_at, deleted_at=excluded.deleted_at, hash=excluded.hash, canonical_version=excluded.canonical_version WHERE excluded.updated_at >= tickets.updated_at;

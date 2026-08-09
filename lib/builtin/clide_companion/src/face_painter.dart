@@ -58,6 +58,7 @@ class ClideFacePainter extends CustomPainter {
     this.clockLabel,
     this.faceAlignX = 0,
     this.rainFontSize = 11,
+    this.resting = false,
   }) : super(repaint: clock);
 
   /// Elapsed time since the face was mounted. Drives every cyclic animation and
@@ -105,6 +106,16 @@ class ClideFacePainter extends CustomPainter {
   final double faceAlignX;
 
   final double rainFontSize;
+
+  /// Draw the still frame: no blink, no talk cycle, no thought dots, no jitter,
+  /// no breathe. Set while the widget is dormant (T-540).
+  ///
+  /// **Not cosmetic.** Dormancy stops the clock, and every one of those cycles
+  /// is derived from it — so without this the face freezes at whatever phase it
+  /// happened to reach. Roughly one time in thirty that is mid-blink, and a face
+  /// that sits with its eyes shut until you touch something reads as a hang. The
+  /// resting frame is the same one every time.
+  final bool resting;
 
   double get _lean => lean ?? gaze.leanPx;
 
@@ -240,8 +251,8 @@ class ClideFacePainter extends CustomPainter {
     final mouthSize = eyeSize * 0.62;
 
     // Breathe: 0 → amplitude → 0 over the period, applied to the whole group.
-    final breathe = (1 - math.cos(2 * math.pi * t / (kBreathePeriod.inMilliseconds / 1000))) / 2 * kBreatheAmplitudePx;
-    final jitter = spec.jitter ? (((t / _jitterStep).floor() % 2 == 0) ? 1.0 : -1.0) : 0.0;
+    final breathe = resting ? 0.0 : (1 - math.cos(2 * math.pi * t / (kBreathePeriod.inMilliseconds / 1000))) / 2 * kBreatheAmplitudePx;
+    final jitter = (spec.jitter && !resting) ? (((t / _jitterStep).floor() % 2 == 0) ? 1.0 : -1.0) : 0.0;
 
     final colour = _faceColor.withValues(alpha: _faceColor.a * spec.opacity);
     final muted = tokens.globalTextMuted.withValues(alpha: tokens.globalTextMuted.a * spec.opacity);
@@ -273,7 +284,7 @@ class ClideFacePainter extends CustomPainter {
       canvas.drawParagraph(mouthPara, Offset(mouthX, eyesY + eyesPara.height * 0.9));
     }
 
-    if (spec.thoughtDots) {
+    if (spec.thoughtDots && !resting) {
       final dots = '.' * (1 + (t / (kThoughtDotFrame.inMilliseconds / 1000)).floor() % 3);
       final p = cache.paragraph(dots, color: muted, fontSize: mouthSize, fontFamily: fontFamily, fontFamilyFallback: fontFamilyFallback);
       canvas.drawParagraph(p, Offset(eyesX + eyesPara.maxIntrinsicWidth + mouthSize * 0.4, eyesY - mouthSize * 0.2));
@@ -310,7 +321,7 @@ class ClideFacePainter extends CustomPainter {
 
   /// The eye row for this instant — blinking replaces every non-space character.
   String _eyesNow(FaceSpec spec, double t) {
-    if (!spec.blink) return spec.eyes;
+    if (!spec.blink || resting) return spec.eyes;
     final cycle = (t / _blinkAverageGap).floor();
     final start = cycle * _blinkAverageGap + _hash01(cycle) * _blinkAverageGap * 0.5;
     final hold = kBlinkHold.inMilliseconds / 1000;
@@ -319,7 +330,7 @@ class ClideFacePainter extends CustomPainter {
   }
 
   String _mouthNow(FaceSpec spec, double t) {
-    if (!spec.talkCycle) return spec.mouth;
+    if (!spec.talkCycle || resting) return spec.mouth;
     return kTalkCycle[(t / (kTalkFrame.inMilliseconds / 1000)).floor() % kTalkCycle.length];
   }
 
@@ -342,6 +353,7 @@ class ClideFacePainter extends CustomPainter {
       old.busyFor != busyFor ||
       old.clockLabel != clockLabel ||
       old.faceAlignX != faceAlignX ||
+      old.resting != resting ||
       old.rainFontSize != rainFontSize ||
       old.fontFamily != fontFamily ||
       // SurfaceTokens has no `==`, so identity is the correct comparison — a new
